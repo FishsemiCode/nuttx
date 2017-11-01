@@ -327,6 +327,10 @@ config 16550_SUPRESS_CONFIG
 		that configures the 16550_UART.  In that case, you may want to
 		just leave the existing console configuration in place.  Default: n
 
+config SERIAL_UART_ARCH_MMIO
+	bool "Platform access register through the memory mapping"
+	default n
+
 config SERIAL_UART_ARCH_IOCTL
 	bool "Platform has own custom IOCTL"
 	default n
