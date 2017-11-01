@@ -1000,7 +1000,7 @@ static bool u16550_txready(struct uart_dev_s *dev)
 static bool u16550_txempty(struct uart_dev_s *dev)
 {
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
-  return ((u16550_serialin(priv, UART_LSR_OFFSET) & UART_LSR_THRE) != 0);
+  return ((u16550_serialin(priv, UART_LSR_OFFSET) & UART_LSR_TEMT) != 0);
 }
 
 /****************************************************************************
