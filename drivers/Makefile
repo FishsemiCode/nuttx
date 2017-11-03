@@ -66,6 +66,7 @@ include eeprom$(DELIM)Make.defs
 include net$(DELIM)Make.defs
 include pipes$(DELIM)Make.defs
 include power$(DELIM)Make.defs
+include pwm$(DELIM)Make.defs
 include sensors$(DELIM)Make.defs
 include serial$(DELIM)Make.defs
 include spi$(DELIM)Make.defs
@@ -91,10 +92,6 @@ ifeq ($(CONFIG_DRVR_READAHEAD),y)
   CSRCS += rwbuffer.c
 endif
 endif
-endif
-
-ifeq ($(CONFIG_PWM),y)
-  CSRCS += pwm.c
 endif
 
 ifeq ($(CONFIG_DEV_URANDOM),y)
