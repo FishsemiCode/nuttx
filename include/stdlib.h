@@ -80,6 +80,10 @@
 #  define environ get_environ_ptr()
 #endif
 
+/* Macros convert the length between chars and bytes */
+#define B2C(len) ((8 * (len) + CHAR_BIT - 1) / CHAR_BIT)
+#define C2B(len) ((CHAR_BIT * (len) + 8 - 1) / 8)
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -279,6 +283,43 @@ void     qsort(FAR void *base, size_t nel, size_t width,
 FAR void *bsearch(FAR const void *key, FAR const void *base, size_t nel,
                   size_t width, CODE int (*compar)(FAR const void *,
                   FAR const void *));
+
+/* Functions convert the memory between chars and bytes */
+#if CHAR_BIT != 8
+
+size_t bstrnlen(FAR const char *src, size_t maxlen);
+
+FAR char *ancstr2bstr(FAR const char *src, size_t maxlen);
+FAR char *anbstr2cstr(FAR const char *src, size_t maxlen);
+
+void ncstr2bstr(FAR char *dst, FAR const char *src, size_t maxlen);
+void nbstr2cstr(FAR char *dst, FAR const char *src, size_t maxlen);
+
+void cmem2bmem(FAR void *dst, int odd, FAR const void *src, size_t len);
+void bmem2cmem(FAR void *dst, FAR const void *src, int odd, size_t len);
+
+#else
+
+#define bstrnlen(src, maxlen) strnlen(src, maxlen)
+
+#define ancstr2bstr(src, len) strndup(src, maxlen)
+#define anbstr2cstr(src, len) strndup(src, maxlen)
+
+#define ncstr2bstr(dst, src, len) strncpy(dst, src, maxlen)
+#define nbstr2cstr(dst, src, len) strncpy(dst, src, maxlen)
+
+#define cmem2bmem(dst, odd, src, len) memcpy((char *)(dst) + !!(odd), src, len)
+#define bmem2cmem(dst, src, odd, len) memcpy(dst, (char *)(src) + !!(odd), len)
+
+#endif
+
+#define bstrlen(src) bstrnlen(src, SIZE_MAX)
+
+#define acstr2bstr(src) ancstr2bstr(src, SIZE_MAX)
+#define abstr2cstr(src) anbstr2cstr(src, SIZE_MAX)
+
+#define cstr2bstr(dst, src) ncstr2bstr(dst, src, SIZE_MAX)
+#define bstr2cstr(dst, src) nbstr2cstr(dst, src, SIZE_MAX)
 
 #undef EXTERN
 #if defined(__cplusplus)
