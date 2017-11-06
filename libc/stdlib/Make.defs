@@ -40,8 +40,6 @@ CSRCS += lib_itoa.c lib_labs.c lib_llabs.c
 CSRCS += lib_bsearch.c lib_rand.c lib_qsort.c lib_srand.c
 CSRCS += lib_strtol.c lib_strtoll.c lib_strtoul.c lib_strtoull.c
 CSRCS += lib_strtod.c lib_strtof.c lib_strtold.c lib_checkbase.c
-CSRCS += lib_anbstr2cstr.c lib_ancstr2bstr.c lib_bmem2cmem.c
-CSRCS += lib_bstrnlen.c lib_cmem2bmem.c lib_nbstr2cstr.c lib_ncstr2bstr.c
 
 ifeq ($(CONFIG_FS_WRITABLE),y)
 CSRCS += lib_mktemp.c lib_mkstemp.c
