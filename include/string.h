@@ -42,11 +42,21 @@
 
 #include <nuttx/config.h>
 
+#include <limits.h>
 #include <stddef.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* Macros convert between chars and bytes */
+#define B2C(x) ((8 * (x) + CHAR_BIT - 1) / CHAR_BIT)
+#define C2B(x) ((CHAR_BIT * (x) + 8 - 1) / 8)
+
+#define B2C_OFF(x) ((8 * (x)) / CHAR_BIT)
+#define C2B_OFF(x) ((CHAR_BIT * (x)) / 8)
+
+#define B2C_REM(x) ((x) - C2B_OFF(B2C_OFF(x)))
 
 /****************************************************************************
  * Public Function Prototypes
@@ -94,6 +104,43 @@ FAR void  *memmove(FAR void *dest, FAR const void *src, size_t count);
 FAR void  *memset(FAR void *s, int c, size_t n);
 
 void explicit_bzero(FAR void *s, size_t n);
+
+/* Functions convert between chars and bytes */
+#if CHAR_BIT != 8
+
+size_t bstrnlen(FAR const char *src, size_t maxlen);
+
+FAR char *ancstr2bstr(FAR const char *src, size_t maxlen);
+FAR char *anbstr2cstr(FAR const char *src, size_t maxlen);
+
+void ncstr2bstr(FAR char *dst, FAR const char *src, size_t maxlen);
+void nbstr2cstr(FAR char *dst, FAR const char *src, size_t maxlen);
+
+void cmem2bmem(FAR void *dst, size_t rem, FAR const void *src, size_t len);
+void bmem2cmem(FAR void *dst, FAR const void *src, size_t rem, size_t len);
+
+#else
+
+#define bstrnlen(src, maxlen) strnlen(src, maxlen)
+
+#define ancstr2bstr(src, len) strndup(src, maxlen)
+#define anbstr2cstr(src, len) strndup(src, maxlen)
+
+#define ncstr2bstr(dst, src, len) strncpy(dst, src, maxlen)
+#define nbstr2cstr(dst, src, len) strncpy(dst, src, maxlen)
+
+#define cmem2bmem(dst, rem, src, len) memcpy((char *)(dst) + rem, src, len)
+#define bmem2cmem(dst, src, rem, len) memcpy(dst, (char *)(src) + rem, len)
+
+#endif
+
+#define bstrlen(src) bstrnlen(src, SIZE_MAX)
+
+#define acstr2bstr(src) ancstr2bstr(src, SIZE_MAX)
+#define abstr2cstr(src) anbstr2cstr(src, SIZE_MAX)
+
+#define cstr2bstr(dst, src) ncstr2bstr(dst, src, SIZE_MAX)
+#define bstr2cstr(dst, src) nbstr2cstr(dst, src, SIZE_MAX)
 
 #undef EXTERN
 #if defined(__cplusplus)
