@@ -470,6 +470,13 @@ config MCU_SERIAL
 	bool
 	default n
 
+config RPMSG_UART
+	bool "UART rpmsg support"
+	default n
+	select SERIAL_DMA
+	select SERIAL_REMOVABLE
+	select SERIAL_IFLOWCONTROL
+
 #
 # Standard serial driver configuration
 #
