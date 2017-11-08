@@ -168,7 +168,7 @@ static ssize_t devurand_read(FAR struct file *filep, FAR char *buffer,
 #ifdef CONFIG_DEV_URANDOM_RANDOM_POOL
   if (len)
     {
-      getrandom(buffer, len);
+      up_getrandom(buffer, len);
     }
 #else
   size_t n;
@@ -348,6 +348,31 @@ void devurandom_register(void)
 #endif
 
   (void)register_driver("/dev/urandom", &g_urand_fops, 0666, NULL);
+}
+
+/****************************************************************************
+ * Name: getrandom
+ *
+ * Description:
+ *   Fill a buffer of arbitrary length with randomness. This is the
+ *   preferred interface for getting random numbers. The traditional
+ *   /dev/random approach is susceptible for things like the attacker
+ *   exhausting file descriptors on purpose.
+ *
+ *   Note that this function cannot fail, other than by asserting.
+ *
+ * Parameters:
+ *   bytes  - Buffer for returned random bytes
+ *   nbytes - Number of bytes requested.
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+void getrandom(FAR void *bytes, size_t nbytes)
+{
+  devurand_read(NULL, bytes, nbytes);
 }
 
 #endif /* CONFIG_DEV_URANDOM && CONFIG_DEV_URANDOM_ARCH */
