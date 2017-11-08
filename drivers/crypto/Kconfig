@@ -74,3 +74,20 @@ config DEV_URANDOM_ARCH
 
 endchoice # /dev/urandom algorithm
 endif # DEV_URANDOM
+
+config SONG_HAVE_RNG
+	bool
+
+config SONG_RNG
+	bool "Song RNG Driver"
+	default n
+	depends on SONG_HAVE_RNG
+	select ARCH_HAVE_RNG
+
+if SONG_RNG
+
+config SONG_RNG_BASE
+	hex "Song RNG base address"
+	depends on SONG_RNG
+
+endif # SONG_RNG

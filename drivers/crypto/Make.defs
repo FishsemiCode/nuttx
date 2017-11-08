@@ -39,6 +39,10 @@ ifneq ($(CONFIG_DEV_URANDOM_ARCH),y)
 endif
 endif
 
+ifeq ($(CONFIG_SONG_RNG),y)
+  CSRCS += song_rng.c
+endif
+
 # Include crypto device driver build support
 
 DEPPATH += --dep-path crypto
