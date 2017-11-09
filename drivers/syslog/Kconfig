@@ -183,6 +183,25 @@ config SYSLOG_FILE
 		NOTE interrupt level SYSLOG output will be lost in this case unless
 		the interrupt buffer is used.
 
+config SYSLOG_RPMSG
+	bool "Use RPMSG for SYSLOG"
+	default n
+	select SCHED_HPWORK
+	---help---
+		Use the rpmsg as a SYSLOG output device, send message to remote proc.
+
+config SYSLOG_RPMSG_WORK_DELAY
+	int "SYSLOG RPMSG work delay(ms)"
+	default 100
+	depends on SYSLOG_RPMSG
+
+config SYSLOG_RPMSG_SERVER
+	bool "Enable RPMSG server for SYSLOG"
+	default n
+	select SCHED_HPWORK
+	---help---
+		Use rpmsg to receive message from remote proc.
+
 config CONSOLE_SYSLOG
 	bool "Use SYSLOG for /dev/console"
 	default n
