@@ -2,7 +2,7 @@
  * drivers/timers/song_rtc_lowerhalf.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
