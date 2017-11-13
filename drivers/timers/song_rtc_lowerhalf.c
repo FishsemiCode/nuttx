@@ -198,7 +198,7 @@ static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower,
   return 0;
 }
 
-static int song_rtc_interrupt(int irq, void *context, FAR void *arg)
+static int song_rtc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct song_rtc_lowerhalf_s *lower = arg;
 
