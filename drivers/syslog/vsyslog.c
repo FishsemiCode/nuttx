@@ -131,7 +131,7 @@ int _vsyslog(int priority, FAR const IPTR char *fmt, FAR va_list *ap)
 #if defined(CONFIG_SYSLOG_TIMESTAMP)
   /* Pre-pend the message with the current time, if available */
 
-  (void)lib_sprintf(&stream.public, "[%6d.%06d]",
+  (void)lib_sprintf(&stream.public, "[%5d.%06d] ",
                     ts.tv_sec, ts.tv_nsec/1000);
 #endif
 
