@@ -222,7 +222,6 @@ config RTC_SONG
 	default n
 	depends on ARCH_CHIP_SONG
 	select ARCH_HAVE_RTC_SUBSECONDS
-	select RTC_DATETIME
 
 if RTC_SONG
 

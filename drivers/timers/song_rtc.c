@@ -114,6 +114,16 @@ static uint32_t song_rtc_cnt12nsec(uint32_t cnt1)
   return NSEC_PER_USEC * usec;
 }
 
+static void song_rtc_getcounter(uint32_t *cnt2, uint32_t *cnt1)
+{
+  do
+    {
+      *cnt2 = g_song_rtc->set_cnt2;
+      *cnt1 = g_song_rtc->set_cnt1;
+    }
+  while (*cnt2 != g_song_rtc->set_cnt2);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -164,10 +174,42 @@ int up_rtc_initialize(void)
  *
  ************************************************************************************/
 
+#ifndef CONFIG_RTC_HIRES
 time_t up_rtc_time(void)
 {
   return g_song_rtc->set_cnt2;
 }
+#endif
+
+/************************************************************************************
+ * Name: up_rtc_gettime
+ *
+ * Description:
+ *   Get the current time from the high resolution RTC clock/counter.  This interface
+ *   is only supported by the high-resolution RTC/counter hardware implementation.
+ *   It is used to replace the system timer.
+ *
+ * Input Parameters:
+ *   tp - The location to return the high resolution time value.
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_RTC_HIRES
+int up_rtc_gettime(FAR struct timespec *tp)
+{
+  uint32_t cnt1;
+  uint32_t cnt2;
+
+  song_rtc_getcounter(&cnt2, &cnt1);
+  tp->tv_nsec = song_rtc_cnt12nsec(cnt1);
+  tp->tv_sec  = cnt2;
+
+  return 0;
+}
+#endif
 
 /************************************************************************************
  * Name: up_rtc_getdatetime
@@ -192,6 +234,7 @@ time_t up_rtc_time(void)
  *
  ************************************************************************************/
 
+#ifdef CONFIG_RTC_DATETIME
 int up_rtc_getdatetime(FAR struct tm *tp)
 {
   time_t time;
@@ -201,6 +244,7 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 
   return 0;
 }
+#endif
 
 /************************************************************************************
  * Name: up_rtc_getdatetime_with_subseconds
@@ -226,23 +270,19 @@ int up_rtc_getdatetime(FAR struct tm *tp)
  *
  ************************************************************************************/
 
+#ifdef CONFIG_RTC_DATETIME
 int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
 {
   uint32_t cnt1;
   uint32_t cnt2;
 
-  do
-    {
-      cnt2 = g_song_rtc->set_cnt2;
-      cnt1 = g_song_rtc->set_cnt1;
-    }
-  while (cnt2 != g_song_rtc->set_cnt2);
-
+  song_rtc_getcounter(&cnt2, &cnt1);
   *nsec = song_rtc_cnt12nsec(cnt1);
   gmtime_r(&cnt2, tp);
 
   return 0;
 }
+#endif
 
 /************************************************************************************
  * Name: up_rtc_settime
