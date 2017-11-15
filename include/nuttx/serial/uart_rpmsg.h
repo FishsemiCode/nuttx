@@ -41,14 +41,32 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <stdbool.h>
 
-/************************************************************************************
- * Public Functions
- ************************************************************************************/
+#ifdef CONFIG_RPMSG_UART
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
 
 int uart_rpmsg_init(int dev_id, int buf_size,
         bool isconsole, int cpu_id, int ipc_id, bool master);
 
-#endif /* __INCLUDE_NUTTX_SERIAL_UART_RPMSG_H */
 
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* CONFIG_RPMSG_UART */
+#endif /* __INCLUDE_NUTTX_SERIAL_UART_RPMSG_H */
