@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <errno.h>
+
 #include <nuttx/irq.h>
 #include <nuttx/timers/rtc.h>
 
@@ -87,6 +89,11 @@ static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower,
                             FAR struct lower_rdalarm_s *alarminfo);
 #endif
 
+#ifdef CONFIG_RTC_IOCTL
+static int song_rtc_ioctl(FAR struct rtc_lowerhalf_s *lower, int cmd,
+                          unsigned long arg);
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -101,6 +108,9 @@ static const struct rtc_ops_s g_song_rtc_ops =
   .setrelative = song_rtc_setrelative,
   .cancelalarm = song_rtc_cancelalarm,
   .rdalarm     = song_rtc_rdalarm,
+#endif
+#ifdef CONFIG_RTC_IOCTL
+  .ioctl       = song_rtc_ioctl,
 #endif
 };
 
@@ -136,7 +146,6 @@ static bool song_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower)
 }
 
 #ifdef CONFIG_RTC_ALARM
-
 static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
                              FAR const struct lower_setalarm_s *alarminfo)
 {
@@ -210,7 +219,20 @@ static int song_rtc_interrupt(int irq, FAR void *context, FAR void *arg)
 
   return 0;
 }
+#endif
 
+#ifdef CONFIG_RTC_IOCTL
+static int song_rtc_ioctl(FAR struct rtc_lowerhalf_s *lower, int cmd,
+                          unsigned long arg)
+{
+  if (cmd == RTC_USER_IOCBASE)
+    {
+      *((FAR void **)(uintptr_t)arg) = lower;
+      return 0;
+    }
+
+  return -ENOTTY;
+}
 #endif
 
 /****************************************************************************
