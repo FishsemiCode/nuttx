@@ -135,6 +135,12 @@ int _vsyslog(int priority, FAR const IPTR char *fmt, FAR va_list *ap)
                     ts.tv_sec, ts.tv_nsec/1000);
 #endif
 
+#if defined(CONFIG_SYSLOG_PREFIX)
+  /* Pre-pend the prefix, if available */
+
+  (void)lib_sprintf(&stream.public, "%s ", CONFIG_SYSLOG_PREFIX_STRING);
+#endif
+
   /* Generate the output */
 
   ret = lib_vsprintf(&stream.public, fmt, *ap);
