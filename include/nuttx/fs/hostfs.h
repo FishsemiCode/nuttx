@@ -65,12 +65,12 @@
 
 /* These must exactly match the definitions from include/sys/stat.h: */
 
-#define NUTTX_S_IFIFO           0010000
-#define NUTTX_S_IFCHR           0020000
-#define NUTTX_S_IFDIR           0040000
-#define NUTTX_S_IFBLK           0060000
-#define NUTTX_S_IFREG           0100000
-#define NUTTX_S_IFLNK           0120000
+#define NUTTX_S_IFIFO           0000000
+#define NUTTX_S_IFCHR           0010000
+#define NUTTX_S_IFDIR           0020000
+#define NUTTX_S_IFBLK           0030000
+#define NUTTX_S_IFREG           0040000
+#define NUTTX_S_IFLNK           0100000
 
 /* These must exactly match the definitions from include/fctnl.h: */
 
