@@ -119,18 +119,24 @@ void nbstr2cstr(FAR char *dst, FAR const char *src, size_t maxlen);
 void cmem2bmem(FAR void *dst, size_t rem, FAR const void *src, size_t len);
 void bmem2cmem(FAR void *dst, FAR const void *src, size_t rem, size_t len);
 
+#define cstr2bstr(dst, src) ncstr2bstr(dst, src, SIZE_MAX)
+#define bstr2cstr(dst, src) nbstr2cstr(dst, src, SIZE_MAX)
+
 #else
 
 #define bstrnlen(src, maxlen) strnlen(src, maxlen)
 
-#define ancstr2bstr(src, len) strndup(src, maxlen)
-#define anbstr2cstr(src, len) strndup(src, maxlen)
+#define ancstr2bstr(src, maxlen) strndup(src, maxlen)
+#define anbstr2cstr(src, maxlen) strndup(src, maxlen)
 
-#define ncstr2bstr(dst, src, len) strncpy(dst, src, maxlen)
-#define nbstr2cstr(dst, src, len) strncpy(dst, src, maxlen)
+#define ncstr2bstr(dst, src, maxlen) strncpy(dst, src, maxlen)
+#define nbstr2cstr(dst, src, maxlen) strncpy(dst, src, maxlen)
 
 #define cmem2bmem(dst, rem, src, len) memcpy((char *)(dst) + rem, src, len)
 #define bmem2cmem(dst, src, rem, len) memcpy(dst, (char *)(src) + rem, len)
+
+#define cstr2bstr(dst, src) strcpy(dst, src)
+#define bstr2cstr(dst, src) strcpy(dst, src)
 
 #endif
 
@@ -138,9 +144,6 @@ void bmem2cmem(FAR void *dst, FAR const void *src, size_t rem, size_t len);
 
 #define acstr2bstr(src) ancstr2bstr(src, SIZE_MAX)
 #define abstr2cstr(src) anbstr2cstr(src, SIZE_MAX)
-
-#define cstr2bstr(dst, src) ncstr2bstr(dst, src, SIZE_MAX)
-#define bstr2cstr(dst, src) nbstr2cstr(dst, src, SIZE_MAX)
 
 #undef EXTERN
 #if defined(__cplusplus)
