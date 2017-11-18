@@ -42,6 +42,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "libc.h"
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -53,7 +55,7 @@ FAR char *ancstr2bstr(FAR const char *src, size_t maxlen)
   size_t len;
 
   len = strnlen(src, maxlen);
-  dst = malloc(B2C(len + 1));
+  dst = lib_malloc(B2C(len + 1));
   if (dst)
     {
       dst[B2C(len + 1) - 1] = 0;
