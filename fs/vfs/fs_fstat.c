@@ -51,20 +51,21 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: fstat
+ * Name: file_fstat
  *
  * Description:
- *   The fstat() function will obtain information about an open file
- *   associated with the file descriptor 'fd', and will write it to the area
- *   pointed to by 'buf'.
+ *   file_fstat() is an interanl OS interface.  It is functionally similar to
+ *   the standard fstat() interface except:
  *
- *   The 'buf' argument is a pointer to a stat structure, as defined in
- *   <sys/stat.h>, into which information is placed concerning the file.
+ *    - It does not modify the errno variable,
+ *    - It is not a cancellation point,
+ *    - It does not handle socket descriptors, and
+ *    - It accepts a file structure instance instead of file descriptor.
  *
  * Input Parameters:
- *   fd  - The file descriptor associated with the open file of interest
- *   buf - The caller provide location in which to return information about
- *         the open file.
+ *   filep  - File structure instance
+ *   buf    - The caller provide location in which to return information about
+ *            the open file.
  *
  * Returned Value:
  *   Upon successful completion, 0 shall be returned. Otherwise, -1 shall be
@@ -72,32 +73,10 @@
  *
  ****************************************************************************/
 
-int fstat(int fd, FAR struct stat *buf)
+int file_fstat(FAR struct file *filep, FAR struct stat *buf)
 {
-  FAR struct file *filep;
   FAR struct inode *inode;
   int ret;
-
-  /* Did we get a valid file descriptor? */
-
-  if ((unsigned int)fd >= CONFIG_NFILE_DESCRIPTORS)
-    {
-      /* No networking... it is a bad descriptor in any event */
-
-      ret = -EBADF;
-      goto errout;
-    }
-
-  /* The descriptor is in a valid range to file descriptor... do the
-   * read.  First, get the file structure.  Note that on failure,
-   * fs_getfilep() will set the errno variable.
-   */
-
-  ret = fs_getfilep(fd, &filep);
-  if (ret < 0)
-    {
-      goto errout;
-    }
 
   DEBUGASSERT(filep != NULL);
 
@@ -132,6 +111,60 @@ int fstat(int fd, FAR struct stat *buf)
 
       ret = inode_stat(inode, buf);
     }
+
+  return ret;
+}
+
+
+/****************************************************************************
+ * Name: fstat
+ *
+ * Description:
+ *   The fstat() function will obtain information about an open file
+ *   associated with the file descriptor 'fd', and will write it to the area
+ *   pointed to by 'buf'.
+ *
+ *   The 'buf' argument is a pointer to a stat structure, as defined in
+ *   <sys/stat.h>, into which information is placed concerning the file.
+ *
+ * Input Parameters:
+ *   fd  - The file descriptor associated with the open file of interest
+ *   buf - The caller provide location in which to return information about
+ *         the open file.
+ *
+ * Returned Value:
+ *   Upon successful completion, 0 shall be returned. Otherwise, -1 shall be
+ *   returned and errno set to indicate the error.
+ *
+ ****************************************************************************/
+
+int fstat(int fd, FAR struct stat *buf)
+{
+  FAR struct file *filep;
+  int ret;
+
+  /* Did we get a valid file descriptor? */
+
+  if ((unsigned int)fd >= CONFIG_NFILE_DESCRIPTORS)
+    {
+      /* No networking... it is a bad descriptor in any event */
+
+      ret = -EBADF;
+      goto errout;
+    }
+
+  /* The descriptor is in a valid range to file descriptor... do the
+   * read.  First, get the file structure.  Note that on failure,
+   * fs_getfilep() will set the errno variable.
+   */
+
+  ret = fs_getfilep(fd, &filep);
+  if (ret < 0)
+    {
+      goto errout;
+    }
+
+  ret = file_fstat(filep, buf);
 
   /* Check if the fstat operation was successful */
 

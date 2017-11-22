@@ -1129,6 +1129,33 @@ int file_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup);
 #endif
 
 /****************************************************************************
+ * Name: file_fstat
+ *
+ * Description:
+ *   file_fstat() is an interanl OS interface.  It is functionally similar to
+ *   the standard fstat() interface except:
+ *
+ *    - It does not modify the errno variable,
+ *    - It is not a cancellation point,
+ *    - It does not handle socket descriptors, and
+ *    - It accepts a file structure instance instead of file descriptor.
+ *
+ * Input Parameters:
+ *   filep  - File structure instance
+ *   buf    - The caller provide location in which to return information about
+ *            the open file.
+ *
+ * Returned Value:
+ *   Upon successful completion, 0 shall be returned. Otherwise, -1 shall be
+ *   returned and errno set to indicate the error.
+ *
+ ****************************************************************************/
+
+#if CONFIG_NFILE_DESCRIPTORS > 0
+int file_fstat(FAR struct file *filep, FAR struct stat *buf);
+#endif
+
+/****************************************************************************
  * Name: fdesc_poll
  *
  * Description:
