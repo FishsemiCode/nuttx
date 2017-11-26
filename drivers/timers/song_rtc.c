@@ -106,6 +106,7 @@ static uint32_t song_rtc_nsec2cnt1(uint32_t nsec)
   return 1024 * usec / USEC_PER_SEC;
 }
 
+#if defined(CONFIG_RTC_DATETIME) || defined(CONFIG_RTC_HIRES)
 static uint32_t song_rtc_cnt12nsec(uint32_t cnt1)
 {
   uint32_t usec;
@@ -123,6 +124,7 @@ static void song_rtc_getcounter(uint32_t *cnt2, uint32_t *cnt1)
     }
   while (*cnt2 != g_song_rtc->set_cnt2);
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -234,7 +236,7 @@ int up_rtc_gettime(FAR struct timespec *tp)
  *
  ************************************************************************************/
 
-#ifdef CONFIG_RTC_DATETIME
+#if defined(CONFIG_RTC_DATETIME) || defined(CONFIG_RTC_DRIVER)
 int up_rtc_getdatetime(FAR struct tm *tp)
 {
   time_t time;
