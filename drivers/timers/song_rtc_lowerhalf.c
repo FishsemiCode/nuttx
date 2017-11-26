@@ -133,11 +133,17 @@ static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower,
                             FAR const struct rtc_time *rtctime)
 {
   struct timespec ts;
+  irqstate_t flags;
+  int ret;
 
   ts.tv_sec  = mktime((FAR struct tm *)rtctime);
   ts.tv_nsec = 0;
 
-  return up_rtc_settime(&ts);
+  flags = enter_critical_section();
+  ret = up_rtc_settime(&ts);
+  leave_critical_section(flags);
+
+  return ret;
 }
 
 static bool song_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower)
