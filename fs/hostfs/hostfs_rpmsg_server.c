@@ -221,6 +221,8 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
       return;
     }
 
+  *rsp = *msg;
+
   space -= sizeof(*msg);
   if (space > msg->count)
     {
@@ -232,7 +234,6 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
       ret = file_read(&priv->files[msg->fd], rsp->buf, space);
     }
 
-  *rsp = *msg;
   rsp->header.result = ret;
 
   rpmsg_send_nocopy(channel, rsp, (ret < 0 ? 0 : ret) + sizeof(*rsp));

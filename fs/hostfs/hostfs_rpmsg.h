@@ -104,7 +104,7 @@ begin_packed_struct struct hostfs_rpmsg_read_s
   struct hostfs_rpmsg_header_s header;
   int32_t                      fd;
   uint32_t                     count;
-  uint32_t                     buf[0];
+  char                         buf[0];
 } end_packed_struct;
 
 #define hostfs_rpmsg_write_s hostfs_rpmsg_read_s
@@ -114,7 +114,7 @@ begin_packed_struct struct hostfs_rpmsg_lseek_s
   struct hostfs_rpmsg_header_s header;
   int32_t                      fd;
   int32_t                      whence;
-  int64_t                      offset;
+  int32_t                      offset;
 } end_packed_struct;
 
 begin_packed_struct struct hostfs_rpmsg_ioctl_s
@@ -122,7 +122,7 @@ begin_packed_struct struct hostfs_rpmsg_ioctl_s
   struct hostfs_rpmsg_header_s header;
   int32_t                      fd;
   int32_t                      request;
-  int64_t                      arg;
+  int32_t                      arg;
 } end_packed_struct;
 
 #define hostfs_rpmsg_sync_s hostfs_rpmsg_close_s
