@@ -63,3 +63,4 @@ CMN_CSRCS += up_systemreset.c up_unblocktask.c up_vectors.c
 # arch/arm/src/song
 #
 CHIP_CSRCS += arm_nvic.c
+CHIP_CSRCS += song_idle.c
