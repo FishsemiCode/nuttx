@@ -93,6 +93,8 @@ SECTIONS
 		_ebss = ABSOLUTE(.);
 	} > sram
 
+	_eheap = ORIGIN(sram) + LENGTH(sram);
+
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
 	.stabstr 0 : { *(.stabstr) }

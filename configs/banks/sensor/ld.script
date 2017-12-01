@@ -75,6 +75,9 @@ SECTIONS
 	} > iram
 	__exidx_end = ABSOLUTE(.);
 
+	_sheap2 = ABSOLUTE(ALIGN(8));
+	_eheap2 = ORIGIN(iram) + LENGTH(iram);
+
 	_eronly = LOADADDR(.data);
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -92,6 +95,8 @@ SECTIONS
 		. = ALIGN(8);
 		_ebss = ABSOLUTE(.);
 	} > dram
+
+	_eheap = ORIGIN(dram) + LENGTH(dram);
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
