@@ -23,18 +23,29 @@ config ARCH_CHIP_BANKS_SENSOR
 
 config ARCH_CHIP_UNICORN_AP
 	bool "Unicorn AP"
+	select SONG_CACHE
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_UNICORN_CP
 	bool "Unicorn CP"
+	select SONG_CACHE
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_UNICORN_SP
 	bool "Unicorn SP"
+	select SONG_CACHE
 	select SONG_CORTEXM4
 	select SONG_HAVE_RNG
 
 endchoice
+
+config SONG_CACHE
+	bool
+	select ARCH_HAVE_COHERENT_DCACHE
+
+config SONG_CACHE_BASE
+	hex "Song cache base address"
+	depends on SONG_CACHE
 
 config SONG_CORTEXM4
 	bool
