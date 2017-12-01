@@ -1,0 +1,43 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "Song Configuration Options"
+
+config ARCH_CHIP_SONG
+	bool
+
+choice
+	prompt "Song Chip Selection"
+	default ARCH_CHIP_BANKS_RPM
+	depends on ARCH_CHIP_SONG
+
+config ARCH_CHIP_BANKS_RPM
+	bool "Banks RPM"
+	select SONG_CORTEXM4
+
+config ARCH_CHIP_BANKS_SENSOR
+	bool "Banks Sensor"
+	select SONG_CORTEXM4
+
+config ARCH_CHIP_UNICORN_AP
+	bool "Unicorn AP"
+	select SONG_CORTEXM4
+
+config ARCH_CHIP_UNICORN_CP
+	bool "Unicorn CP"
+	select SONG_CORTEXM4
+
+config ARCH_CHIP_UNICORN_SP
+	bool "Unicorn SP"
+	select SONG_CORTEXM4
+	select SONG_HAVE_RNG
+
+endchoice
+
+config SONG_CORTEXM4
+	bool
+	select ARCH_CORTEXM4
+	select ARCH_HAVE_CMNVECTOR
+	select ARMV7M_CMNVECTOR

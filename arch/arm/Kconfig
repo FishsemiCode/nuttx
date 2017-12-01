@@ -10,6 +10,12 @@ choice
 	prompt "ARM chip selection"
 	default ARCH_CHIP_STM32
 
+config ARCH_ARM_SONG
+	bool "Pinecone Song"
+	select ARCH_CHIP_SONG
+	---help---
+		Pinecone Song(ARM series) architectures
+
 config ARCH_CHIP_A1X
 	bool "Allwinner A1X"
 	select ARCH_CORTEXA8
@@ -503,6 +509,7 @@ config ARCH_FAMILY
 
 config ARCH_CHIP
 	string
+	default "song"		if ARCH_ARM_SONG
 	default "a1x"		if ARCH_CHIP_A1X
 	default "bcm2708"	if ARCH_CHIP_BCM2708
 	default "c5471"		if ARCH_CHIP_C5471
@@ -709,6 +716,9 @@ source arch/arm/src/armv7-r/Kconfig
 endif
 if ARCH_ARM7TDMI || ARCH_ARM920T || ARCH_ARM926EJS || ARCH_ARM1136J || ARCH_ARM1156T2 || ARCH_ARM1176JZ
 source arch/arm/src/arm/Kconfig
+endif
+if ARCH_ARM_SONG
+source arch/arm/src/song/Kconfig
 endif
 if ARCH_CHIP_A1X
 source arch/arm/src/a1x/Kconfig
