@@ -19,16 +19,19 @@ config ARCH_CHIP_BANKS_RPM
 
 config ARCH_CHIP_BANKS_SENSOR
 	bool "Banks Sensor"
+	select ARCH_HAVE_FPU
 	select ARCH_HAVE_HEAP2
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_UNICORN_AP
 	bool "Unicorn AP"
+	select ARCH_HAVE_FPU
 	select SONG_CACHE
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_UNICORN_CP
 	bool "Unicorn CP"
+	select ARCH_HAVE_FPU
 	select SONG_CACHE
 	select SONG_CORTEXM4
 
