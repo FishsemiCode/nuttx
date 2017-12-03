@@ -75,6 +75,13 @@ SECTIONS
 	} > flash
 	__exidx_end = ABSOLUTE(.);
 
+	_framfuncs = LOADADDR(.ramfunc);
+	.ramfunc : {
+		_sramfuncs = ABSOLUTE(.);
+		*(.ramfunc .ramfunc.*)
+		_eramfuncs = ABSOLUTE(.);
+	} > sram AT > flash
+
 	_eronly = LOADADDR(.data);
 	.data : {
 		_sdata = ABSOLUTE(.);
