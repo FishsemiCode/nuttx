@@ -64,3 +64,5 @@ CMN_CSRCS += up_systemreset.c up_unblocktask.c up_vectors.c
 #
 CHIP_CSRCS += arm_nvic.c
 CHIP_CSRCS += song_cache.c song_idle.c
+
+CHIP_UCSRCS += song_userspace.c
