@@ -51,6 +51,8 @@ config SONG_CORTEXM4
 	bool
 	select ARCH_CORTEXM4
 	select ARCH_HAVE_CMNVECTOR
+	select ARCH_HAVE_MPU
+	select ARM_HAVE_MPU_UNIFIED
 	select ARMV7M_CMNVECTOR
 
 config SONG_NR_IRQS
