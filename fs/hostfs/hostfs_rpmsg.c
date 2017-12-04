@@ -138,7 +138,7 @@ static void hostfs_rpmsg_handler(struct rpmsg_channel *channel,
       memcpy(cookie->msg, data, len);
     }
 
-  sem_post(&cookie->sem);
+  nxsem_post(&cookie->sem);
 }
 
 static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
@@ -155,7 +155,7 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
       memcpy(cookie->privdata, recv->buf, B2C(header->result));
     }
 
-  sem_post(&cookie->sem);
+  nxsem_post(&cookie->sem);
 }
 
 static void hostfs_rpmsg_opendir_handler(struct rpmsg_channel *channel,
@@ -172,7 +172,7 @@ static void hostfs_rpmsg_opendir_handler(struct rpmsg_channel *channel,
       *((uint32_t *)cookie->privdata) = recv->dirp;
     }
 
-  sem_post(&cookie->sem);
+  nxsem_post(&cookie->sem);
 }
 
 static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
@@ -189,7 +189,7 @@ static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
       memcpy(cookie->privdata, &recv->buf, sizeof(recv->buf));
     }
 
-  sem_post(&cookie->sem);
+  nxsem_post(&cookie->sem);
 }
 
 static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
@@ -206,7 +206,7 @@ static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
       memcpy(cookie->privdata, &recv->buf, sizeof(recv->buf));
     }
 
-  sem_post(&cookie->sem);
+  nxsem_post(&cookie->sem);
 }
 
 static void hostfs_rpmsg_device_created(struct remote_device *rdev, void *priv_)
