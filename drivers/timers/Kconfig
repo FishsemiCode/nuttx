@@ -217,6 +217,11 @@ config PCF85263_I2C_FREQUENCY
 
 endif # RTC_PCF85263
 
+config RTC_RPMSG
+	bool "Rpmsg RTC Driver"
+	default n
+	select RTC_EXTERNAL
+
 config RTC_SONG
 	bool "Song RTC Driver"
 	default n
