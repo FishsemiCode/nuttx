@@ -208,6 +208,16 @@ source drivers/ioexpander/Kconfig
 source drivers/lcd/Kconfig
 source drivers/leds/Kconfig
 
+menuconfig MBOX
+	bool "MAILBOX Driver Support"
+	default n
+	---help---
+		Mailbox driver is used for multi-cores' communication.
+
+if MBOX
+source drivers/mbox/Kconfig
+endif # MBOX
+
 menuconfig MMCSD
 	bool "MMC/SD Driver Support"
 	default n
