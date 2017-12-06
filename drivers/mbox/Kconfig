@@ -5,4 +5,9 @@
 
 if MBOX
 
+config SONG_MBOX
+	bool "Song Mbox Support"
+	default n
+	depends on ARCH_CHIP_SONG
+
 endif # MBOX

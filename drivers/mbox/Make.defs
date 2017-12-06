@@ -39,6 +39,10 @@ ifeq ($(CONFIG_MBOX),y)
 
 CSRCS += mbox.c
 
+ifeq ($(CONFIG_SONG_MBOX),y)
+CSRCS += song_mbox.c
+endif
+
 DEPPATH += --dep-path mbox
 VPATH += :mbox
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)mbox}
