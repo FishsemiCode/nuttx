@@ -5,4 +5,9 @@
 
 if RPTUN
 
+config SONG_RPTUN
+	bool "Song Tunnel Support"
+	default n
+	depends on SONG_MBOX
+
 endif # RPTUN

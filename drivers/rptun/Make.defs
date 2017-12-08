@@ -39,6 +39,10 @@ ifeq ($(CONFIG_RPTUN),y)
 
 CSRCS += rptun.c
 
+ifeq ($(CONFIG_SONG_RPTUN),y)
+CSRCS += song_rptun.c
+endif
+
 DEPPATH += --dep-path rptun
 VPATH += :rptun
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)rptun}
