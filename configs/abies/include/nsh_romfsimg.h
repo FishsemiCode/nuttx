@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * configs/abies/include/nsh_romfsimg.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Pinecone <pinecone@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
 
-#include "rcS.common"
-
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
-#else
-#error "unknow banks config"
+#ifndef __CONFIGS_ABIES_INCLUDE_NSH_ROMFSIMG_H
+#define __CONFIGS_ABIES_INCLUDE_NSH_ROMFSIMG_H
+extern const unsigned char romfs_img[];
+extern const unsigned int romfs_img_len;
 #endif

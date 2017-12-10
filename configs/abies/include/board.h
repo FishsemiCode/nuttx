@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * configs/abies/include/board.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,46 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
 
-#include "rcS.common"
+#ifndef __CONFIGS_ABIES_INCLUDE_BOARD_H
+#define __CONFIGS_ABIES_INCLUDE_BOARD_H
 
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
 #else
-#error "unknow banks config"
+#define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void board_earlyinitialize(void);
+void board_lateinitialize(void);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+#endif
+
+#endif /* __CONFIGS_ABIES_INCLUDE_BOARD_H */

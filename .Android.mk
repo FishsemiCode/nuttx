@@ -20,6 +20,36 @@ NUTTX_OUTDIR    := $(abspath $(TARGET_OUT_INTERMEDIATES)/NUTTX_OBJ)
 NUTTX_ARMTOOL   := CROSSDEV=$(NUTTX_ROOT)/prebuilts/gcc/linux/arm/bin/arm-none-eabi-
 NUTTX_ARMTOOL   += ARCROSSDEV=$(NUTTX_ROOT)/prebuilts/gcc/linux/arm/bin/arm-none-eabi-
 
+NUTTX_TL4TOOL   := CROSSDEV=$(NUTTX_ROOT)/prebuilts/ceva/linux/tl4/
+
+#abies/audio
+$(NUTTX_OUTDIR)/abies/audio/nuttx/nuttx.a: FORCE
+	$(hide) $(NUTTX_TL4TOOL) $(NUTTX_ROOT)/nuttx/tools/configure.sh -o $(dir $@) abies/audio
+	$(hide) $(NUTTX_TL4TOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) V=$(if $(hide),0,1)
+	$(hide) $(NUTTX_TL4TOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) savedefconfig
+	$(hide) cp $(dir $@)/defconfig ${NUTTX_ROOT}/nuttx/configs/abies/audio
+
+include $(CLEAR_VARS)
+LOCAL_MODULE               := abies-audio.fw
+LOCAL_PREBUILT_MODULE_FILE := $(NUTTX_OUTDIR)/abies/audio/nuttx/nuttx.a
+LOCAL_MODULE_CLASS         := FIRMWARE
+LOCAL_MODULE_PATH          := $(TARGET_OUT_VENDOR)/firmware
+include $(BUILD_PREBUILT)
+
+#banks/audio
+$(NUTTX_OUTDIR)/banks/audio/nuttx/nuttx.a: FORCE
+	$(hide) $(NUTTX_TL4TOOL) $(NUTTX_ROOT)/nuttx/tools/configure.sh -o $(dir $@) banks/audio
+	$(hide) $(NUTTX_TL4TOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) V=$(if $(hide),0,1)
+	$(hide) $(NUTTX_TL4TOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) savedefconfig
+	$(hide) cp $(dir $@)/defconfig ${NUTTX_ROOT}/nuttx/configs/banks/audio
+
+include $(CLEAR_VARS)
+LOCAL_MODULE               := banks-audio.fw
+LOCAL_PREBUILT_MODULE_FILE := $(NUTTX_OUTDIR)/banks/audio/nuttx/nuttx.a
+LOCAL_MODULE_CLASS         := FIRMWARE
+LOCAL_MODULE_PATH          := $(TARGET_OUT_VENDOR)/firmware
+include $(BUILD_PREBUILT)
+
 #banks/rpm
 $(NUTTX_OUTDIR)/banks/rpm/nuttx/nuttx: FORCE
 	$(hide) $(NUTTX_ARMTOOL) $(NUTTX_ROOT)/nuttx/tools/configure.sh -o $(dir $@) banks/rpm

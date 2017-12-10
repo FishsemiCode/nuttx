@@ -6,6 +6,18 @@
 if ARCH_CEVA
 comment "CEVA Options"
 
+choice
+	prompt "CEVA chip selection"
+	default ARCH_CEVA_SONG
+
+config ARCH_CEVA_SONG
+	bool "Pinecone Song"
+	select ARCH_CHIP_SONG
+	---help---
+		Pinecone Song(CEVA series) architectures
+
+endchoice
+
 config ARCH_TL420
 	bool
 	select ARCH_STDARG_H
@@ -129,4 +141,8 @@ config ARCH_RTL_REVISION
 if ARCH_TL420 || ARCH_TL421
 source arch/ceva/src/tl4/Kconfig
 endif
+if ARCH_CEVA_SONG
+source arch/ceva/src/song/Kconfig
+endif
+
 endif # ARCH_CEVA

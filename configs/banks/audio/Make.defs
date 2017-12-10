@@ -1,7 +1,7 @@
 ############################################################################
-# configs/banks/src/Makefile
+# configs/banks/audio/Make.defs
 #
-#   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+#   Copyright (C) 2018 Pinecone Inc. All rights reserved.
 #   Author: Xiang Xiao <xiaoxiang@pinecone.net>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,8 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
-CSRCS  := audio.c
-RCSRCS := init.d/rcS
-include $(TOPDIR)/configs/Board.mk
+include ${TOPDIR}/.config
+include ${TOPDIR}/tools/Config.mk
+include ${TOPDIR}/arch/ceva/src/song/Toolchain.defs
+
+LDSCRIPT = $(TOPDIR)/configs/banks/audio/ld.lnk

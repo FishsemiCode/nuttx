@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * arch/ceva/src/song/abies_adsp.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,68 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include "rcS.common"
+#include <nuttx/irq.h>
+#include <nuttx/timers/arch_alarm.h>
+#include <nuttx/timers/song_oneshot.h>
 
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
-#else
-#error "unknow banks config"
+#include <string.h>
+
+#include "up_internal.h"
+
+#ifdef CONFIG_ARCH_CHIP_ABIES_ADSP
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void up_earlyinitialize(void)
+{
+}
+
+void ceva_timer_initialize(void)
+{
+  static const struct song_oneshot_config_s config =
+  {
+    .base       = B2C(0xf900a000),
+    .irq        = IRQ_INT3,
+    .c1_max     = 2600,
+    .c1_freq    = 26000000,
+    .ctl_off    = 0x160,
+    .calib_off  = 0x174,
+    .c1_off     = 0x164,
+    .c2_off     = 0x168,
+    .spec_off   = 0x660,
+    .intren_off = 0x644,
+    .intrst_off = 0x658,
+    .intr_bit   = 8,
+  };
+  FAR struct oneshot_lowerhalf_s *lower;
+
+  lower = song_oneshot_initialize(&config, -1);
+  if (lower)
+    {
+      up_alarm_set_lowerhalf(lower);
+    }
+}
+
+void up_lateinitialize(void)
+{
+}
+
+void up_cpu_normal(void)
+{
+}
+
+void up_cpu_sleep(void)
+{
+  up_cpu_standby();
+}
+
 #endif

@@ -1,7 +1,7 @@
 ############################################################################
-# configs/banks/src/Makefile
+# configs/abies/src/Makefile
 #
-#   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+#   Copyright (C) 2018 Pinecone Inc. All rights reserved.
 #   Author: Xiang Xiao <xiaoxiang@pinecone.net>
 #
 # Redistribution and use in source and binary forms, with or without

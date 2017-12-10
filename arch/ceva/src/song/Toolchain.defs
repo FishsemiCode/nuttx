@@ -1,0 +1,123 @@
+############################################################################
+# arch/ceva/src/song/Toolchain.defs
+#
+#   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+#   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+include ${TOPDIR}/arch/ceva/src/tl4/Toolchain.defs
+
+ifeq ($(WINTOOL),y)
+  # Windows-native toolchains
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
+  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)/tools/mkwindeps.sh
+  ARCHINCLUDES = -I. -I"${shell cygpath -w $(TOPDIR)/include}"
+  ARCHXXINCLUDES = -I. -I"${shell cygpath -w $(TOPDIR)/include}" -I"${shell cygpath -w $(TOPDIR)/include/cxx}"
+  ARCHSCRIPT = "${shell cygpath -w $(LDSCRIPT)}"
+else
+  # Linux/Cygwin-native toolchain
+  MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
+  ARCHINCLUDES = -I. -I$(TOPDIR)/include
+  ARCHXXINCLUDES = -I. -I$(TOPDIR)/include -I$(TOPDIR)/include/cxx
+  ARCHSCRIPT = $(LDSCRIPT)
+endif
+
+LD = $(CROSSDEV)cofflnk -quiet
+AR = $(ARCROSSDEV)cofflib -quiet
+DISASM  = $(CROSSDEV)disasm -q
+OBJCOPY = $(CROSSDEV)coffutil -quiet
+OBJDUMP = $(CROSSDEV)coffdump -quiet
+
+define ASSEMBLE
+	@echo "AS: $1"
+	$(call MKDIR, $(dir $2))
+	$(Q) $(CPP) $(AFLAGS) $1 -o $2.asm
+	$(Q) $(CC) -c $(AFLAGS) $2.asm -o $2
+	$(call DELFILE, $2.asm)
+endef
+
+define ARNOEMP
+	$(Q) for obj in $2; do \
+		$(AR) -r $$obj $1 1>/dev/null || true; \
+	done
+	$(Q) $(AR) -a $2 $1
+endef
+
+define AREMPTY
+	$(Q) touch $1.c
+	$(call COMPILE, $1.c, $1.o)
+	$(call ARNOEMP, $1, $1.o)
+	$(call DELFILE, $1.c)
+endef
+
+define ARCHIVE
+	@echo AR: $2
+	$(if $(word 1, $2), $(call ARNOEMP, $1, $2), $(call AREMPTY, $1))
+endef
+
+ARCHOPTIMIZATION =
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION = -g3
+endif
+
+ifneq ($(CONFIG_DEBUG_NOOPT),y)
+  ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
+endif
+
+ARCHCFLAGS = -fno-builtin
+ARCHCXXFLAGS = -fno-builtin -fno-exceptions -fcheck-new -fno-rtti
+ARCHWARNINGS = -Wall -Wstrict-prototypes -Wundef
+ARCHWARNINGSXX = -Wall -Wundef
+ARCHDEFINES =
+ARCHPICFLAGS = -mpic
+
+CFLAGS = $(ARCHCFLAGS) $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CPICFLAGS = $(ARCHPICFLAGS) $(CFLAGS)
+CXXFLAGS = $(ARCHCXXFLAGS) $(ARCHWARNINGSXX) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHXXINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CXXPICFLAGS = $(ARCHPICFLAGS) $(CXXFLAGS)
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS = $(CFLAGS) -D__ASSEMBLY__
+
+ASMEXT = .S
+OBJEXT = .o
+LIBEXT = .lib
+EXEEXT = .a
+
+LDFLAGS += -funcRef -G -libRefInfo -m -Oinfo -s -secInfo -unmentionedSections -x
+ifneq ($(CONFIG_DEBUG_NOOPT),y)
+  LDFLAGS += -mapUnmentionedSmallest -removeUnRefFunc -sortUnmentioned
+endif
+
+HOSTCC = gcc
+HOSTINCLUDES = -I.
+HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe
+HOSTLDFLAGS =

@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * arch/ceva/include/song/irq.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,16 +32,56 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/* This file should never be included directed but, rather,
+ * only indirectly through nuttx/irq.h
+ */
+
+#ifndef __ARCH_CEVA_INCLUDE_SONG_IRQ_H
+#define __ARCH_CEVA_INCLUDE_SONG_IRQ_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include "rcS.common"
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
+/* IRQ numbers.  The IRQ number corresponds vector number and hence map directly to
+ * bits in the INTC.  This does, however, waste several words of memory in the IRQ
+ * to handle mapping tables.
+ */
+
+#define NR_IRQS                   CONFIG_SONG_NR_IRQS
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
 #else
-#error "unknow banks config"
+#define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+#endif
+
+#endif /* __ARCH_CEVA_INCLUDE_SONG_IRQ_H */

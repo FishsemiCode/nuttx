@@ -12,6 +12,12 @@ choice
 		be available for selection.  Use ARCH_BOARD_CUSTOM to create a new
 		board configuration.
 
+config ARCH_BOARD_ABIES
+	bool "Pinecone Abies"
+	depends on ARCH_CHIP_SONG
+	---help---
+		Pinecone Abies SoC.
+
 config ARCH_BOARD_AMBER
 	bool "Amber Web Server"
 	depends on ARCH_CHIP_ATMEGA128
@@ -1568,6 +1574,7 @@ endif #ARCH_BOARD_CUSTOM
 
 config ARCH_BOARD
 	string
+	default "abies"                    if ARCH_BOARD_ABIES
 	default "amber"                    if ARCH_BOARD_AMBER
 	default "arduino-mega2560"         if ARCH_BOARD_ARDUINO_MEGA2560
 	default "arduino-due"              if ARCH_BOARD_ARDUINO_DUE
@@ -1750,7 +1757,9 @@ config ARCH_IRQBUTTONS
 
 comment "Board-Specific Options"
 
-
+if ARCH_BOARD_ABIES
+source "configs/abies/Kconfig"
+endif
 if ARCH_BOARD_AMBER
 source "configs/amber/Kconfig"
 endif

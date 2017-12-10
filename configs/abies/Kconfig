@@ -6,13 +6,7 @@
 choice
 	prompt "Select target application"
 
-config BANKS_AUDIO
-	bool "Banks Audio"
-
-config BANKS_RPM
-	bool "Banks RPM"
-
-config BANKS_SENSOR
-	bool "Banks Sensor"
+config ABIES_AUDIO
+	bool "Abies Audio"
 
 endchoice
