@@ -132,6 +132,11 @@ config ARCH_TOOLCHAIN_GNU
 	bool
 	default n
 
+config ARCH_GNU_NO_WEAKFUNCTIONS
+	bool
+	depends on ARCH_TOOLCHAIN_GNU
+	default n
+
 comment "Architecture Options"
 
 config ARCH_NOINTC
