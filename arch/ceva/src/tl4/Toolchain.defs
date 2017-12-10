@@ -1,0 +1,156 @@
+############################################################################
+# arch/ceva/src/tl4/Toolchain.defs
+#
+#   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+#   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+RTL_VERSION     := $(CONFIG_ARCH_RTL_MAJOR).$(CONFIG_ARCH_RTL_MINOR).$(CONFIG_ARCH_RTL_REVISION)
+RTL_VERSION_ALT := $(CONFIG_ARCH_RTL_MAJOR)_$(CONFIG_ARCH_RTL_MINOR)_$(CONFIG_ARCH_RTL_REVISION)
+
+ITCM_KW := $(shell expr $(CONFIG_ARCH_ITCM_SIZE) / 1024 / 2)
+DTCM_KW := $(shell expr $(CONFIG_ARCH_DTCM_SIZE) / 1024 / 2)
+
+#
+# Supported toolchains
+#
+# Each toolchain definition should set:
+#
+#  CROSSDEV         The GNU toolchain triple (command prefix)
+#  ARCROSSDEV       If required, an alternative prefix used when
+#                   invoking ar and nm.
+#  ARCHCPUFLAGS     CPU-specific flags selecting the instruction set
+#                   FPU options, etc.
+#  MAXOPTIMIZATION  The maximum optimization level that results in
+#                   reliable code generation.
+#
+
+ARCROSSDEV ?= $(CROSSDEV)
+ifneq ($(CROSSDEV),)
+  export LD_LIBRARY_PATH := $(CROSSDEV):$(LD_LIBRARY_PATH)
+  export PATH            := $(CROSSDEV):$(PATH)
+  export TL4TOOLS        := $(CROSSDEV)
+endif
+
+ifeq ($(CONFIG_DEBUG_CUSTOMOPT),y)
+  MAXOPTIMIZATION := $(CONFIG_DEBUG_OPTLEVEL)
+else ifeq ($(CONFIG_DEBUG_FULLOPT),y)
+  MAXOPTIMIZATION := -O3 -Os3
+endif
+
+ARCHCPUFLAGS  = -mrtl-version-$(RTL_VERSION) -Wa,-rtl$(RTL_VERSION)
+ARCHCPUFLAGS += -Xassembler -ignoreWarnings,w628,w672
+
+# cofflib -r will core dump if the library contain an object file
+# without any public symbol, so let's always generate a dummy global
+# function to overcome this issue.
+ARCHCPUFLAGS += -DCKSUM_SELF=$(word 1, $(shell cksum $<))
+ARCHCPUFLAGS += -include dummy.h
+
+ifeq ($(CONFIG_WINDOWS_NATIVE),y)
+  ARCHCPUFLAGS += -I$(TOPDIR)\arch\$(CONFIG_ARCH)\src\tl4
+else ifeq ($(CONFIG_WINDOWS_CYGWIN),y)
+  ARCHCPUFLAGS += -I "${shell cygpath -w $(TOPDIR)/arch/$(CONFIG_ARCH)/src/tl4}"
+else
+  ARCHCPUFLAGS += -I$(TOPDIR)/arch/$(CONFIG_ARCH)/src/tl4
+endif
+
+LDFLAGS  = -alignAllSections,c:4,d:4
+LDFLAGS += -internalCode$(ITCM_KW) -internalData$(DTCM_KW)
+
+ifeq ($(CONFIG_ARCH_TL420),y)
+  ifeq ($(CONFIG_ARCH_TL4_AUDIO),y)
+    ARCHCPUFLAGS += -DCEVA_TL420_AUDIO -DTL420_AUDIO -DTL_420A
+    ARCHCPUFLAGS += -Xassembler -p,-d,CEVA_TL420_AUDIO,-d,TL420_AUDIO,-d,TL_420A
+    LIBGCC  = $(CROSSDEV)libs/tl420/audio/rtl$(RTL_VERSION_ALT)/libm.lib
+    LIBGCC += $(CROSSDEV)libs/tl420/audio/rtl$(RTL_VERSION_ALT)/libcc.lib
+    LIBGCC += $(CROSSDEV)libs/tl420/audio/rtl$(RTL_VERSION_ALT)/tl4lib.lib
+  else ifeq ($(CONFIG_ARCH_TL4_COMPAT),y)
+    ARCHCPUFLAGS += -DCEVA_TL420_COMPATIBILITY -DTL420_COMPATIBILITY -DTL_420C
+    ARCHCPUFLAGS += -Xassembler -p,-d,CEVA_TL420_COMPATIBILITY,-d,TL420_COMPATIBILITY,-d,TL_420C
+    LIBGCC  = $(CROSSDEV)libs/tl420/compatibility/rtl$(RTL_VERSION_ALT)/libm.lib
+    LIBGCC += $(CROSSDEV)libs/tl420/compatibility/rtl$(RTL_VERSION_ALT)/libcc.lib
+    LIBGCC += $(CROSSDEV)libs/tl420/compatibility/rtl$(RTL_VERSION_ALT)/tl4lib.lib
+  else ifeq ($(CONFIG_ARCH_TL4_VOICE),y)
+    ARCHCPUFLAGS += -DCEVA_TL420_VOICE -DTL420_VOICE -DTL_420V
+    ARCHCPUFLAGS += -Xassembler -p,-d,CEVA_TL420_VOICE,-d,TL420_VOICE,-d,TL_420V
+    LIBGCC  = $(CROSSDEV)libs/tl420/voice/rtl$(RTL_VERSION_ALT)/libm.lib
+    LIBGCC += $(CROSSDEV)libs/tl420/voice/rtl$(RTL_VERSION_ALT)/libcc.lib
+    LIBGCC += $(CROSSDEV)libs/tl420/voice/rtl$(RTL_VERSION_ALT)/tl4lib.lib
+  endif
+  ARCHCPUFLAGS += -tl420 -Wa,-tl420
+  LDFLAGS += -tl420
+else ifeq ($(CONFIG_ARCH_TL421),y)
+  ifeq ($(CONFIG_ARCH_TL4_AUDIO),y)
+    ARCHCPUFLAGS += -DCEVA_TL421_AUDIO -DTL421_AUDIO -DTL_421A
+    ARCHCPUFLAGS += -Xassembler -p,-d,CEVA_TL421_AUDIO,-d,TL421_AUDIO,-d,TL_421A
+    LIBGCC  = $(CROSSDEV)libs/tl421/audio/rtl$(RTL_VERSION_ALT)/libm.lib
+    LIBGCC += $(CROSSDEV)libs/tl421/audio/rtl$(RTL_VERSION_ALT)/libcc.lib
+    LIBGCC += $(CROSSDEV)libs/tl421/audio/rtl$(RTL_VERSION_ALT)/tl4lib.lib
+  else ifeq ($(CONFIG_ARCH_TL4_COMPAT),y)
+    ARCHCPUFLAGS += -DCEVA_TL421_COMPATIBILITY -DTL421_COMPATIBILITY -DTL_421C
+    ARCHCPUFLAGS += -Xassembler -p,-d,CEVA_TL421_COMPATIBILITY,-d,TL421_COMPATIBILITY,-d,TL_421C
+    LIBGCC  = $(CROSSDEV)libs/tl421/compatibility/rtl$(RTL_VERSION_ALT)/libm.lib
+    LIBGCC += $(CROSSDEV)libs/tl421/compatibility/rtl$(RTL_VERSION_ALT)/libcc.lib
+    LIBGCC += $(CROSSDEV)libs/tl421/compatibility/rtl$(RTL_VERSION_ALT)/tl4lib.lib
+  else ifeq ($(CONFIG_ARCH_TL4_VOICE),y)
+    ARCHCPUFLAGS += -DCEVA_TL421_VOICE -DTL421_VOICE -DTL_421V
+    ARCHCPUFLAGS += -Xassembler -p,-d,CEVA_TL421_VOICE,-d,TL421_VOICE,-d,TL_421V
+    LIBGCC  = $(CROSSDEV)libs/tl421/voice/rtl$(RTL_VERSION_ALT)/libm.lib
+    LIBGCC += $(CROSSDEV)libs/tl421/voice/rtl$(RTL_VERSION_ALT)/libcc.lib
+    LIBGCC += $(CROSSDEV)libs/tl421/voice/rtl$(RTL_VERSION_ALT)/tl4lib.lib
+  endif
+  ARCHCPUFLAGS += -tl421 -Wa,-tl421
+  LDFLAGS += -tl421
+endif
+
+ifeq ($(CONFIG_ARCH_TL4_AUDIO),y)
+  ARCHCPUFLAGS += -maudio -Wa,-audio
+else ifeq ($(CONFIG_ARCH_TL4_COMPAT),y)
+  ARCHCPUFLAGS += -mcomp -Wa,-comp
+else ifeq ($(CONFIG_ARCH_TL4_VOICE),y)
+  ARCHCPUFLAGS += -mvoice -Wa,-voice
+endif
+
+ifneq ($(CONFIG_ARCH_NR_FPUS),)
+  ARCHCPUFLAGS += -mfpu
+endif
+
+ifeq ($(CONFIG_WINDOWS_CYGWIN),y)
+  WINTOOL = y
+endif
+
+CC  = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet
+CXX = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -cxx
+CPP = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -E -P -x c
+
+# disable all built-in rules
+.SUFFIXES:

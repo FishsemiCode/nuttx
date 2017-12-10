@@ -2,8 +2,10 @@
 Make.dep
 *.o
 *.a
+*.lib
 *.d
 *.i
+*.lst
 *~
 .swp
 .*.swp
@@ -20,6 +22,7 @@ core
 /nuttx-*
 /_SAVED_APPS_config
 /*.map
+/*.lin
 /*.elf
 /*.srec
 /*.bin

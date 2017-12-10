@@ -25,6 +25,19 @@ config ARCH_AVR
 	---help---
 		Atmel 8-bit bit AVR and 32-bit AVR32 architectures
 
+config ARCH_CEVA
+	bool "CEVA"
+	select ARCH_HAVE_CUSTOMOPT
+	select ARCH_HAVE_GARBAGE
+	select ARCH_HAVE_HEAPCHECK
+	select ARCH_HAVE_STACKCHECK
+	select ARCH_HAVE_TLS
+	select ARCH_HAVE_VFORK
+	select ARCH_GNU_NO_WEAKFUNCTIONS
+	select ARCH_TOOLCHAIN_GNU
+	---help---
+		The CEVA architectures
+
 config ARCH_HC
 	bool "Freescale HC"
 	select ARCH_NOINTC
@@ -100,6 +113,7 @@ config ARCH
 	string
 	default "arm"     if ARCH_ARM
 	default "avr"     if ARCH_AVR
+	default "ceva"    if ARCH_CEVA
 	default "hc"      if ARCH_HC
 	default "mips"    if ARCH_MIPS
 	default "misoc"   if ARCH_MISOC
@@ -113,6 +127,7 @@ config ARCH
 
 source arch/arm/Kconfig
 source arch/avr/Kconfig
+source arch/ceva/Kconfig
 source arch/hc/Kconfig
 source arch/mips/Kconfig
 source arch/misoc/Kconfig

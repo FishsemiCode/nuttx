@@ -1,0 +1,21 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "TL4 Configuration Options"
+
+choice
+	prompt "TL4 Profile Selection"
+	default ARCH_TL4_AUDIO
+
+config ARCH_TL4_AUDIO
+	bool "Audio Profile"
+
+config ARCH_TL4_COMPAT
+	bool "Compatibility Profile"
+
+config ARCH_TL4_VOICE
+	bool "Voice Profile"
+
+endchoice

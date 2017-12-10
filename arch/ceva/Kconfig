@@ -1,0 +1,132 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if ARCH_CEVA
+comment "CEVA Options"
+
+config ARCH_TL420
+	bool
+	select ARCH_STDARG_H
+	default n
+	---help---
+		CEVA-TL420 is a high-performance fixed-point DSP Core architecture.
+		It is designed for mid- to high-end telecommunications and consumer
+		electronics applications, where low power and portability are major
+		requirements.
+
+config ARCH_TL421
+	bool
+	select ARCH_STDARG_H
+	default n
+	---help---
+		CEVA-TL421 is a high-performance fixed-point DSP Core architecture.
+		It is designed for mid- to high-end telecommunications and consumer
+		electronics applications, where low power and portability are major
+		requirements.
+
+config ARCH_FAMILY
+	string
+	default "tl4"		if ARCH_TL420 || ARCH_TL421
+
+config ARCH_CHIP
+	string
+	default "song"		if ARCH_CHIP_SONG
+
+config ARCH_ITCM_SIZE
+	int "ITCM Size"
+
+config ARCH_DTCM_SIZE
+	int "DTCM Size"
+
+config ARCH_HAVE_ICACHE
+	bool
+	default n
+
+config ARCH_ICACHE
+	bool "Use I-Cache"
+	default n
+	depends on ARCH_HAVE_ICACHE
+	select ARCH_HAVE_COHERENT_DCACHE
+
+config ARCH_HAVE_DCACHE
+	bool
+	default n
+
+config ARCH_DCACHE
+	bool "Use D-Cache"
+	default n
+	depends on ARCH_HAVE_DCACHE
+	select ARCH_HAVE_COHERENT_DCACHE
+
+config ARCH_HAVE_FPU
+	bool
+	default n
+
+config ARCH_NR_FPUS
+	int "FPU Number"
+	default 1
+	depends on ARCH_HAVE_FPU
+	---help---
+		Build in support for the number of Floating Point Unit.
+		Check your chip specifications first; not all CEVA chips
+		support the FPU.
+
+config ARCH_MPU
+	bool "MPU support"
+	default n
+	depends on ARCH_HAVE_MPU
+	select ARCH_USE_MPU
+	---help---
+		Build in support for the CEVA Memory Protection Unit (MPU).
+		Also used to configure the cache and memory attribute.
+
+config ARCH_HAVE_VINTC
+	bool
+	default n
+
+config ARCH_HARDFAULT_IRQ
+	int "Hard Fault IRQ Number"
+	default -1
+
+config ARCH_NR_MEMORY
+	int "Memory Block Number"
+	default 1
+
+config ARCH_NR_USER_MEMORY
+	int "User Memory Block Number"
+	depends on BUILD_PROTECTED
+	default 1
+
+config ARCH_DEFAULT_HEAP
+	int "Default Heap Index"
+	default 0
+
+config ARCH_USER_DEFAULT_HEAP
+	int "User Default Heap Index"
+	depends on BUILD_PROTECTED
+	default 0
+
+config ARCH_STACK_HEAP
+	int "Stack Heap Index"
+	default 0
+
+config ARCH_KERNEL_STACK_HEAP
+	int "Kernel Stack Heap Index"
+	depends on MM_KERNEL_HEAP
+	default 0
+
+config ARCH_RTL_MAJOR
+	int "RTL Version Major Number"
+
+config ARCH_RTL_MINOR
+	int "RTL Version Minor Number"
+
+config ARCH_RTL_REVISION
+	int "RTL Version Revision Number"
+
+if ARCH_TL420 || ARCH_TL421
+source arch/ceva/src/tl4/Kconfig
+endif
+endif # ARCH_CEVA
