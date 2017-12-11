@@ -49,7 +49,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define SONG_MBOX_DEV_NAME      "/dev/mbox"
+#define MBOX_DEV_NAME       "/dev/mbox"
 
 /************************************************************************************
  * Private Function Prototypes
@@ -103,7 +103,7 @@ int mbox_register(struct mbox_dev_s *dev, int minor)
 {
   char devname[16];
 
-  snprintf(devname, 16, "%s%d", SONG_MBOX_DEV_NAME, minor);
+  snprintf(devname, 16, "%s%d", MBOX_DEV_NAME, minor);
 
   return register_driver(devname, &g_mbox_drvrops, 0666, dev);
 }
@@ -112,7 +112,7 @@ int mbox_unregister(int minor)
 {
   char devname[16];
 
-  snprintf(devname, 16, "%s%d", SONG_MBOX_DEV_NAME, minor);
+  snprintf(devname, 16, "%s%d", MBOX_DEV_NAME, minor);
 
   return unregister_driver(devname);
 }
