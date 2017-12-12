@@ -116,10 +116,7 @@ $(CXXOBJS) $(LINKOBJS): %$(OBJEXT): %.cxx
 	$(call COMPILEXX, $<, $@)
 
 libboard$(LIBEXT): $(OBJS) $(CXXOBJS)
-	$(Q) $(AR) $@
-ifneq ($(OBJS),)
 	$(call ARCHIVE, $@, $(OBJS) $(CXXOBJS))
-endif
 
 .depend: Makefile $(SRCS) $(CXXSRCS)
 ifneq ($(ZDSVERSION),)
