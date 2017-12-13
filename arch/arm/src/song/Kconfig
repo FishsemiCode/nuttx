@@ -29,33 +29,25 @@ config ARCH_CHIP_UNICORN_AP
 	bool "Unicorn AP"
 	select ARCH_HAVE_FPU
 	select BOOT_RUNFROMFLASH
-	select SONG_CACHE
 	select SONG_CORTEXM4
+	select SONG_ICACHE
 
 config ARCH_CHIP_UNICORN_CP
 	bool "Unicorn CP"
 	select ARCH_HAVE_FPU
 	select BOOT_RUNFROMFLASH
-	select SONG_CACHE
 	select SONG_CORTEXM4
+	select SONG_ICACHE
 
 config ARCH_CHIP_UNICORN_SP
 	bool "Unicorn SP"
 	select ARCH_HAVE_RAMFUNCS
 	select BOOT_RUNFROMFLASH
-	select SONG_CACHE
 	select SONG_CORTEXM4
 	select SONG_HAVE_RNG
+	select SONG_ICACHE
 
 endchoice
-
-config SONG_CACHE
-	bool
-	select ARCH_HAVE_COHERENT_DCACHE
-
-config SONG_CACHE_BASE
-	hex "Song cache base address"
-	depends on SONG_CACHE
 
 config SONG_CORTEXM4
 	bool
@@ -65,6 +57,14 @@ config SONG_CORTEXM4
 	select ARM_HAVE_MPU_UNIFIED
 	select ARMV7M_CMNVECTOR
 	select ARMV7M_HAVE_STACKCHECK
+
+config SONG_ICACHE
+	bool
+	select ARCH_HAVE_COHERENT_DCACHE
+
+config SONG_ICACHE_BASE
+	hex "Song icache base address"
+	depends on SONG_ICACHE
 
 config SONG_NR_IRQS
 	int "Interrupt Number"

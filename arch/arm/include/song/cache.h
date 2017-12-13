@@ -51,6 +51,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if defined(CONFIG_ARMV7M_ICACHE) || defined(CONFIG_SONG_ICACHE)
+#  define CONFIG_ARCH_ICACHE 1
+#endif
+
+#if defined(CONFIG_ARMV7M_DCACHE)
+#  define CONFIG_ARCH_DCACHE 1
+#endif
+
 #ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
@@ -62,8 +70,6 @@ extern "C"
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-#ifdef CONFIG_SONG_CACHE
 
 /****************************************************************************
  * Name: up_enable_icache
@@ -79,7 +85,13 @@ extern "C"
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_ICACHE
 void up_enable_icache(void);
+#else
+static inline void up_enable_icache(void)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_disable_icache
@@ -95,7 +107,13 @@ void up_enable_icache(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_ICACHE
 void up_disable_icache(void);
+#else
+static inline void up_disable_icache(void)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_icache
@@ -117,7 +135,13 @@ void up_disable_icache(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_ICACHE
 void up_invalidate_icache(uintptr_t start, uintptr_t end);
+#else
+static inline void up_invalidate_icache(uintptr_t start, uintptr_t end)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_icache_all
@@ -133,7 +157,13 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_ICACHE
 void up_invalidate_icache_all(void);
+#else
+static inline void up_invalidate_icache_all(void)
+{
+}
+#endif
 
  /****************************************************************************
  * Name: up_enable_dcache
@@ -149,7 +179,13 @@ void up_invalidate_icache_all(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_enable_dcache(void);
+#else
+static inline void up_enable_dcache(void)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_disable_dcache
@@ -165,7 +201,13 @@ void up_enable_dcache(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_disable_dcache(void);
+#else
+static inline void up_disable_dcache(void)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_dcache
@@ -189,7 +231,13 @@ void up_disable_dcache(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_invalidate_dcache(uintptr_t start, uintptr_t end);
+#else
+static inline void up_invalidate_dcache(uintptr_t start, uintptr_t end)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_dcache_all
@@ -205,7 +253,13 @@ void up_invalidate_dcache(uintptr_t start, uintptr_t end);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_invalidate_dcache_all(void);
+#else
+static inline void up_invalidate_dcache_all(void)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_clean_dcache
@@ -228,7 +282,13 @@ void up_invalidate_dcache_all(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_clean_dcache(uintptr_t start, uintptr_t end);
+#else
+static inline void up_clean_dcache(uintptr_t start, uintptr_t end)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_clean_dcache_all
@@ -250,7 +310,13 @@ void up_clean_dcache(uintptr_t start, uintptr_t end);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_clean_dcache_all(void);
+#else
+static inline void up_clean_dcache_all(void)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_flush_dcache
@@ -273,7 +339,13 @@ void up_clean_dcache_all(void);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_flush_dcache(uintptr_t start, uintptr_t end);
+#else
+static inline void up_flush_dcache(uintptr_t start, uintptr_t end)
+{
+}
+#endif
 
 /****************************************************************************
  * Name: up_flush_dcache_all
@@ -294,67 +366,19 @@ void up_flush_dcache(uintptr_t start, uintptr_t end);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_DCACHE
 void up_flush_dcache_all(void);
-
-#else /* !CONFIG_SONG_CACHE */
-
-/* Stubbed out versions of all of cache interface functions that may be used to
- * avoid so much conditional compilation in driver code when cache doesn't exist:
- */
-
-static inline void up_enable_icache(void)
-{
-}
-
-static inline void up_disable_icache(void)
-{
-}
-
-static inline void up_invalidate_icache(uintptr_t start, uintptr_t end)
-{
-}
-
-static inline void up_invalidate_icache_all(void)
-{
-}
-
-static inline void up_enable_dcache(void)
-{
-}
-
-static inline void up_disable_dcache(void)
-{
-}
-
-static inline void up_invalidate_dcache(uintptr_t start, uintptr_t end)
-{
-}
-
-static inline void up_invalidate_dcache_all(void)
-{
-}
-
-static inline void up_clean_dcache(uintptr_t start, uintptr_t end)
-{
-}
-
-static inline void up_clean_dcache_all(void)
-{
-}
-
-static inline void up_flush_dcache(uintptr_t start, uintptr_t end)
-{
-}
-
+#else
 static inline void up_flush_dcache_all(void)
 {
 }
+#endif
 
+#ifndef CONFIG_ARCH_HAVE_COHERENT_DCACHE
 static inline void up_coherent_dcache(uintptr_t addr, size_t len)
 {
 }
-
-#endif /* CONFIG_SONG_CACHE */
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

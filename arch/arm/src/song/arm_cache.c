@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/song_cache.c
+ * arch/arm/src/song/arm_cache.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -39,24 +39,8 @@
 
 #include <nuttx/config.h>
 
+#include "cache.h"
 #include "chip.h"
-#include "up_arch.h"
-
-#ifdef CONFIG_SONG_CACHE
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define SONG_CACHE_CTL            (CONFIG_SONG_CACHE_BASE + 0x00)
-#define SONG_CACHE_PRO_CTRL       (CONFIG_SONG_CACHE_BASE + 0x04)
-#define SONG_CACHE_HCNT           (CONFIG_SONG_CACHE_BASE + 0x08)
-#define SONG_CACHE_MCNT           (CONFIG_SONG_CACHE_BASE + 0x0c)
-
-#define SONG_CACHE_LP_EN          (1 << 3)
-#define SONG_CACHE_PREFET         (1 << 2)
-#define SONG_CACHE_EN             (1 << 1)
-#define SONG_CACHE_FLUSH          (1 << 0)
 
 /****************************************************************************
  * Public Functions
@@ -76,12 +60,12 @@
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_ICACHE
 void up_enable_icache(void)
 {
-  up_invalidate_icache_all();
-  modifyreg32(SONG_CACHE_CTL, 0,
-    SONG_CACHE_LP_EN | SONG_CACHE_PREFET | SONG_CACHE_EN);
+  arch_enable_icache();
 }
+#endif
 
 /****************************************************************************
  * Name: up_disable_icache
@@ -97,11 +81,12 @@ void up_enable_icache(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_ICACHE
 void up_disable_icache(void)
 {
-  modifyreg32(SONG_CACHE_CTL, SONG_CACHE_EN, 0);
-  up_invalidate_icache_all();
+  arch_disable_icache();
 }
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_icache
@@ -123,12 +108,14 @@ void up_disable_icache(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_ICACHE
 void up_invalidate_icache(uintptr_t start, uintptr_t end)
 {
   /* Just can invalidate the entire cache */
 
-  up_invalidate_icache_all();
+  arch_invalidate_icache_all();
 }
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_icache_all
@@ -144,14 +131,12 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_ICACHE
 void up_invalidate_icache_all(void)
 {
-  modifyreg32(SONG_CACHE_CTL, 0, SONG_CACHE_FLUSH);
-  while (getreg32(SONG_CACHE_CTL) & SONG_CACHE_FLUSH)
-    {
-      /* Wait until FLUSH bit get clear */;
-    }
+  arch_invalidate_icache_all();
 }
+#endif
 
  /****************************************************************************
  * Name: up_enable_dcache
@@ -167,10 +152,12 @@ void up_invalidate_icache_all(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_enable_dcache(void)
 {
-  /* No data cache at all */
+  arch_enable_dcache();
 }
+#endif
 
 /****************************************************************************
  * Name: up_disable_dcache
@@ -186,10 +173,12 @@ void up_enable_dcache(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_disable_dcache(void)
 {
-  /* No data cache at all */
+  arch_disable_dcache();
 }
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_dcache
@@ -213,10 +202,12 @@ void up_disable_dcache(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_invalidate_dcache(uintptr_t start, uintptr_t end)
 {
-  /* No data cache at all */
+  arch_invalidate_dcache(start, end);
 }
+#endif
 
 /****************************************************************************
  * Name: up_invalidate_dcache_all
@@ -232,10 +223,12 @@ void up_invalidate_dcache(uintptr_t start, uintptr_t end)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_invalidate_dcache_all(void)
 {
-  /* No data cache at all */
+  arch_invalidate_dcache_all();
 }
+#endif
 
 /****************************************************************************
  * Name: up_clean_dcache
@@ -258,10 +251,12 @@ void up_invalidate_dcache_all(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_clean_dcache(uintptr_t start, uintptr_t end)
 {
-  /* No data cache at all */
+  arch_clean_dcache(start, end);
 }
+#endif
 
 /****************************************************************************
  * Name: up_clean_dcache_all
@@ -283,10 +278,12 @@ void up_clean_dcache(uintptr_t start, uintptr_t end)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_clean_dcache_all(void)
 {
-  /* No data cache at all */
+  arch_clean_dcache_all();
 }
+#endif
 
 /****************************************************************************
  * Name: up_flush_dcache
@@ -309,10 +306,12 @@ void up_clean_dcache_all(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_flush_dcache(uintptr_t start, uintptr_t end)
 {
-  /* No data cache at all */
+  arch_flush_dcache(start, end);
 }
+#endif
 
 /****************************************************************************
  * Name: up_flush_dcache_all
@@ -333,10 +332,12 @@ void up_flush_dcache(uintptr_t start, uintptr_t end)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARMV7M_DCACHE
 void up_flush_dcache_all(void)
 {
-  /* No data cache at all */
+  arch_flush_dcache_all();
 }
+#endif
 
 /****************************************************************************
  * Name: up_coherent_dcache
@@ -356,11 +357,15 @@ void up_flush_dcache_all(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_HAVE_COHERENT_DCACHE
+#  if defined(CONFIG_ARMV7M_ICACHE) || defined(CONFIG_ARMV7M_DCACHE)
 void up_coherent_dcache(uintptr_t addr, size_t len)
 {
-  /* Invalidate instruction cache is enough */
+  arch_clean_dcache(addr, addr + len);
 
-  up_invalidate_icache(addr, addr + len);
+  /* Just can invalidate the entire icache */
+
+  arch_invalidate_icache_all();
 }
-
-#endif /* CONFIG_SONG_CACHE */
+#  endif
+#endif
