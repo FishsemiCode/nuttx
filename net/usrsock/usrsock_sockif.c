@@ -92,7 +92,8 @@ const struct sock_intf_s g_usrsock_sockif =
   NULL,                       /* si_sendfile */
 #endif
   usrsock_recvfrom,           /* si_recvfrom */
-  usrsock_sockif_close        /* si_close */
+  usrsock_sockif_close,       /* si_close */
+  usrsock_ioctl               /* si_ioctl */
 };
 
 /****************************************************************************

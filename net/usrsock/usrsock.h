@@ -549,6 +549,21 @@ int usrsock_setsockopt(FAR struct usrsock_conn_s *conn, int level, int option,
 int usrsock_getsockname(FAR struct socket *psock,
                         FAR struct sockaddr *addr, FAR socklen_t *addrlen);
 
+/****************************************************************************
+ * Name: usrsock_ioctl
+ *
+ * Description:
+ *   The usrsock_ioctl() function performs network device specific operations.
+ *
+ * Parameters:
+ *   psock    A pointer to a NuttX-specific, internal socket structure
+ *   cmd      The ioctl command
+ *   arg      The argument of the ioctl cmd
+ *
+ ****************************************************************************/
+
+int usrsock_ioctl(FAR struct socket *psock, int cmd, FAR void *arg, size_t arglen);
+
 #undef EXTERN
 #ifdef __cplusplus
 }
