@@ -60,6 +60,7 @@ NM = $(ARCROSSDEV)nm
 OBJCOPY = $(CROSSDEV)objcopy
 OBJDUMP = $(CROSSDEV)objdump
 
+ARCHOPTIMIZATION =
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   ARCHOPTIMIZATION = -g
 endif
@@ -125,7 +126,7 @@ endif
 
 LIBM = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libm.a}"
 ifeq ($(filter $(LIBM), $(EXTRA_LIBS)),)
- EXTRA_LIBS += $(LIBM)
+  EXTRA_LIBS += $(LIBM)
 endif
 
 HOSTCC = gcc
