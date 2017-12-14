@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/spinlock.h
+ * arch/ceva/src/xm6/up_initialstate.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,89 +33,79 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_INCLUDE_SPINLOCK_H
-#define __ARCH_CEVA_INCLUDE_SPINLOCK_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif /* __ASSEMBLY__ */
+#include <nuttx/config.h>
+
+#include <string.h>
+
+#include <nuttx/arch.h>
+#include <nuttx/irq.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Spinlock states */
-
-#define SP_UNLOCKED 0  /* The Un-locked state */
-#define SP_LOCKED   1  /* The Locked state */
-
-/* Memory barriers for use with NuttX spinlock logic
- *
- * Data Memory Barrier (DMB) acts as a memory barrier. It ensures that all
- * explicit memory accesses that appear in program order before the DMB
- * instruction are observed before any explicit memory accesses that appear
- * in program order after the DMB instruction. It does not affect the
- * ordering of any other instructions executing on the processor
- *
- * Data Synchronization Barrier (DSB) acts as a special kind of memory
- * barrier. No instruction in program order after this instruction executes
- * until this instruction completes. This instruction completes when: (1) All
- * explicit memory accesses before this instruction complete, and (2) all
- * Cache, Branch predictor and TLB maintenance operations before this
- * instruction complete.
- *
- */
-
-#define SP_DSB(n) up_dsb()
-#define SP_DMB(n) up_dmb()
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/* The Type of a spinlock. */
-
-typedef uint32_t spinlock_t;
+#define REG_MODE_DEFAULT          0x40004000 /* PR14H and PR14L */
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_testset
+ * Name: up_initial_state
  *
  * Description:
- *   Perform an atomic test and set operation on the provided spinlock.
+ *   A new thread is being started and a new TCB
+ *   has been created. This function is called to initialize
+ *   the processor specific portions of the new TCB.
  *
- *   This function must be provided via the architecture-specific logoic.
- *
- * Input Parameters:
- *   lock - The address of spinlock object.
- *
- * Returned Value:
- *   The spinlock is always locked upon return.  The value of previous value
- *   of the spinlock variable is returned, either SP_LOCKED if the spinlock
- *   as previously locked (meaning that the test-and-set operation failed to
- *   obtain the lock) or SP_UNLOCKED if the spinlock was previously unlocked
- *   (meaning that we successfully obtained the lock)
+ *   This function must setup the intial architecture registers
+ *   and/or  stack so that execution will begin at tcb->start
+ *   on the next context switch.
  *
  ****************************************************************************/
 
-/* See prototype in nuttx/include/nuttx/spinlock.h */
+void up_initial_state(struct tcb_s *tcb)
+{
+  struct xcptcontext *xcp = &tcb->xcp;
 
-/* Include CEVA architecture-specific spinlock definitions */
+  /* Initialize the initial exception register context structure */
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/spinlock.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/spinlock.h>
+  memset(xcp, 0, sizeof(struct xcptcontext));
+
+  if (tcb->adj_stack_ptr)
+    {
+      xcp->regs = tcb->adj_stack_ptr - XCPTCONTEXT_SIZE;
+      memset(xcp->regs, 0, XCPTCONTEXT_SIZE);
+
+      /* Save the task entry point */
+
+      xcp->regs[REG_PC]   = (uint32_t)tcb->start;
+
+#ifdef CONFIG_ARCH_XM6_STACKCHECK
+      /* Set the stack memory region for debugging */
+
+      xcp->regs[REG_SB]   = (uint32_t)tcb->stack_alloc_ptr;
+      xcp->regs[REG_SL]   = (uint32_t)tcb->adj_stack_ptr;
 #endif
 
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_CEVA_INCLUDE_SPINLOCK_H */
+      /* Initialize all no zero registers */
+
+      /* All tasks start via a stub function in kernel space.  So all
+       * tasks must start in privileged thread mode.  If CONFIG_BUILD_PROTECTED
+       * is defined, then that stub function will switch to unprivileged
+       * mode before transferring control to the user task.
+       */
+
+      xcp->regs[REG_OM]   = REG_OM_DEFAULT;
+
+#ifdef CONFIG_ARCH_XM6_BUG001
+      /* See BUG 001 in CEVA-XM6 Bug List */
+
+      xcp->regs[REG_MODE] = REG_MODE_DEFAULT;
+#endif
+    }
+}

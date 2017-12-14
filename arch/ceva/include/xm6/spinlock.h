@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/spinlock.h
+ * arch/ceva/include/xm6/spinlock.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,59 +33,62 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_INCLUDE_SPINLOCK_H
-#define __ARCH_CEVA_INCLUDE_SPINLOCK_H
+#ifndef __ARCH_CEVA_INCLUDE_XM6_SPINLOCK_H
+#define __ARCH_CEVA_INCLUDE_XM6_SPINLOCK_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif /* __ASSEMBLY__ */
+#include <arch/xm6/irq.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Spinlock states */
-
-#define SP_UNLOCKED 0  /* The Un-locked state */
-#define SP_LOCKED   1  /* The Locked state */
-
-/* Memory barriers for use with NuttX spinlock logic
- *
- * Data Memory Barrier (DMB) acts as a memory barrier. It ensures that all
- * explicit memory accesses that appear in program order before the DMB
- * instruction are observed before any explicit memory accesses that appear
- * in program order after the DMB instruction. It does not affect the
- * ordering of any other instructions executing on the processor
- *
- * Data Synchronization Barrier (DSB) acts as a special kind of memory
- * barrier. No instruction in program order after this instruction executes
- * until this instruction completes. This instruction completes when: (1) All
- * explicit memory accesses before this instruction complete, and (2) all
- * Cache, Branch predictor and TLB maintenance operations before this
- * instruction complete.
- *
- */
-
-#define SP_DSB(n) up_dsb()
-#define SP_DMB(n) up_dmb()
+#define SP_SECTION __attribute__ ((section(".DSECT spinlock")))
 
 /****************************************************************************
- * Public Types
+ * Inline functions
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
 
-/* The Type of a spinlock. */
+static inline void up_dsb(void)
+{
+  /* MSS_BARRIER(0x638):
+   * Bit [7] Internal Barrier Activation
+   */
+#define MSS_BARRIER 0x638
 
-typedef uint32_t spinlock_t;
+  uint32_t barrier = 0x80;
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+  __asm__ __volatile__
+  (
+    "out {cpm} %0.ui, (%1.ui).ui"
+     : : "r"(barrier), "r"(MSS_BARRIER)
+  );
+
+  do
+    {
+      __asm__ __volatile__
+      (
+        "in {cpm} (%1.ui).ui, %0.ui\n"
+        "nop #0x04\nnop #0x02"
+        : "=r"(barrier)
+        : "r"(MSS_BARRIER)
+      );
+
+      /* Wait unitl the barrier operation complete */
+    }
+  while ((barrier & 0x80) != 0);
+#undef MSS_BARRIER
+}
+
+static inline void up_dmb(void)
+{
+  up_dsb(); /* use dsb instead since dmb doesn't exist on xm6 */
+}
 
 /****************************************************************************
  * Name: up_testset
@@ -107,15 +110,60 @@ typedef uint32_t spinlock_t;
  *
  ****************************************************************************/
 
-/* See prototype in nuttx/include/nuttx/spinlock.h */
+static inline spinlock_t up_testset(volatile FAR spinlock_t *lock)
+{
+  irqstate_t flags;
+  spinlock_t old;
 
-/* Include CEVA architecture-specific spinlock definitions */
+  /* Disable the interrupt */
+  flags = up_irq_save();
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/spinlock.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/spinlock.h>
-#endif
+  while (1)
+    {
+      uint32_t modc = 0;
+
+      /* Issue exclusive read */
+      __asm__ __volatile__
+      (
+        "nop\n"
+        "LS0.ld (%1.ui).ui, %0.ui || monitor {on}\n"
+        "nop #0x02"
+        : "=r"(old)
+        : "r"(lock)
+      );
+
+      /* Is it already locked by other? */
+      if (old == SP_LOCKED)
+        {
+          break; /* Yes, exit */
+        }
+
+      /* Not yet, issue exclusive write */
+      __asm__ __volatile__
+      (
+        "LS1.st %2.ui, (%1.ui).ui || monitor {off}\n"
+        "mov modc.ui, %0.ui\n"
+        "nop"
+        : "=r"(modc)
+        : "r"(lock), "r"(SP_LOCKED)
+        : "memory"
+      );
+
+      /* Exclusive write success? */
+      if ((modc & 0x01) == 0) /* Bit[0] Monitor status */
+        {
+          break; /* Yes, we are done */
+        }
+
+      /* Fail, let's try again */
+    }
+
+  /* Restore the interrupt */
+  up_irq_restore(flags);
+
+  return old;
+}
 
 #endif /* __ASSEMBLY__ */
-#endif /* __ARCH_CEVA_INCLUDE_SPINLOCK_H */
+
+#endif /* __ARCH_CEVA_INCLUDE_XM6_SPINLOCK_H */

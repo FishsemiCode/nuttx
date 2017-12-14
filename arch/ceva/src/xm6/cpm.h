@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/irq.h
+ * arch/ceva/src/xm6/cpm.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,36 +33,20 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/irq.h
- */
-
-#ifndef __ARCH_CEVA_INCLUDE_IRQ_H
-#define __ARCH_CEVA_INCLUDE_IRQ_H
+#ifndef __ARCH_CEVA_SRC_XM6_CPM_H
+#define __ARCH_CEVA_SRC_XM6_CPM_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-/* Include chip-specific IRQ definitions (including IRQ numbers) */
-
-#include <arch/chip/irq.h>
-
-/* Include CEVA architecture-specific IRQ definitions (including register
- * save structure and up_irq_save()/up_irq_restore() functions)
- */
-
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/irq.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/irq.h>
-#endif
+#include <stdint.h>
+#include <vec-c.h>
 
 /****************************************************************************
- * Public Function Prototypes
+ * Inline functions
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
 #ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
@@ -71,16 +55,24 @@ extern "C"
 #define EXTERN extern
 #endif
 
-void up_irq_disable(void);
-irqstate_t up_irq_save(void);
+static inline uint32_t getcpm(uintptr_t addr)
+{
+  return in(cpm, (const volatile uintptr_t *)addr);
+}
 
-void up_irq_enable(void);
-void up_irq_restore(irqstate_t flags);
+static inline void putcpm(uintptr_t addr, uint32_t value)
+{
+  out(cpm, value, (volatile uintptr_t *)addr);
+}
+
+static inline void modifycpm(uintptr_t addr, uint32_t clearbits, uint32_t setbits)
+{
+  putcpm(addr, (getcpm(addr) & ~clearbits) | setbits);
+}
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
-#endif
 
-#endif /* __ARCH_CEVA_INCLUDE_IRQ_H */
+#endif /* __ARCH_CEVA_SRC_XM6_CPM_H */

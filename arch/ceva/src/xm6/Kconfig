@@ -1,0 +1,22 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "XM6 Configuration Options"
+
+config ARCH_XM6_BUG001
+	bool "Enable bug 001 workaround"
+	---help---
+		Read CEVA-XM6 Bug List for more information
+
+config ARCH_XM6_STACKCHECK
+	bool "Check for stack overflow on each access"
+	---help---
+		This check uses DBG_STACK_START/DBG_STACK_END to check for a stack
+		overflow within each access.
+
+config ARCH_XM6_NO_VPU
+	bool
+	---help---
+		Skip the code which save and restore all VPU context registers.

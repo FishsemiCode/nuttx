@@ -36,9 +36,21 @@ config ARCH_TL421
 		electronics applications, where low power and portability are major
 		requirements.
 
+config ARCH_XM6
+	bool
+	default n
+	select ARCH_HAVE_MPU
+	select ARCH_HAVE_MULTICPU
+	---help---
+		CEVA-XM6 is a licensable DSP and memory subsystem (MSS) platform
+		targeted for high-performance computer vision and image-processing
+		applications that provide very high processing power while
+		maintaining a small footprint and low power consumption.
+
 config ARCH_FAMILY
 	string
 	default "tl4"		if ARCH_TL420 || ARCH_TL421
+	default "xm6"		if ARCH_XM6
 
 config ARCH_CHIP
 	string
@@ -147,6 +159,9 @@ config DEBUG_HARDFAULT
 
 if ARCH_TL420 || ARCH_TL421
 source arch/ceva/src/tl4/Kconfig
+endif
+if ARCH_XM6
+source arch/ceva/src/xm6/Kconfig
 endif
 if ARCH_CEVA_SONG
 source arch/ceva/src/song/Kconfig

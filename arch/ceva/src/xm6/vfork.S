@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/spinlock.h
+ * arch/ceva/src/xm6/vfork.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,89 +33,104 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_INCLUDE_SPINLOCK_H
-#define __ARCH_CEVA_INCLUDE_SPINLOCK_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif /* __ASSEMBLY__ */
+#include <nuttx/config.h>
+#include <nuttx/irq.h>
+
+#include "svcall.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Spinlock states */
-
-#define SP_UNLOCKED 0  /* The Un-locked state */
-#define SP_LOCKED   1  /* The Locked state */
-
-/* Memory barriers for use with NuttX spinlock logic
- *
- * Data Memory Barrier (DMB) acts as a memory barrier. It ensures that all
- * explicit memory accesses that appear in program order before the DMB
- * instruction are observed before any explicit memory accesses that appear
- * in program order after the DMB instruction. It does not affect the
- * ordering of any other instructions executing on the processor
- *
- * Data Synchronization Barrier (DSB) acts as a special kind of memory
- * barrier. No instruction in program order after this instruction executes
- * until this instruction completes. This instruction completes when: (1) All
- * explicit memory accesses before this instruction complete, and (2) all
- * Cache, Branch predictor and TLB maintenance operations before this
- * instruction complete.
- *
- */
-
-#define SP_DSB(n) up_dsb()
-#define SP_DMB(n) up_dmb()
+.IF CONFIG_ARCH_XM6_BUG001
+	.EQU		prx pr14
+.ELSE
+	.EQU		prx pr15
+.ENDIF
 
 /****************************************************************************
- * Public Types
+ * Public Symbols
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-
-/* The Type of a spinlock. */
-
-typedef uint32_t spinlock_t;
+	.file		"vfork.S"
+	.extern		_up_vfork
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_testset
+ * Name: vfork
  *
  * Description:
- *   Perform an atomic test and set operation on the provided spinlock.
+ *   The vfork() function has the same effect as fork(), except that the behavior is
+ *   undefined if the process created by vfork() either modifies any data other than
+ *   a variable of type pid_t used to store the return value from vfork(), or returns
+ *   from the function in which vfork() was called, or calls any other function before
+ *   successfully calling _exit() or one of the exec family of functions.
  *
- *   This function must be provided via the architecture-specific logoic.
+ *   This thin layer implements vfork by simply calling up_vfork() with the vfork()
+ *   context as an argument.  The overall sequence is:
  *
- * Input Parameters:
- *   lock - The address of spinlock object.
+ *   1) User code calls vfork().  vfork() collects context information and
+ *      transfers control up up_vfork().
+ *   2) up_vfork()and calls task_vforksetup().
+ *   3) task_vforksetup() allocates and configures the child task's TCB.  This
+ *      consists of:
+ *      - Allocation of the child task's TCB.
+ *      - Initialization of file descriptors and streams
+ *      - Configuration of environment variables
+ *      - Setup the intput parameters for the task.
+ *      - Initialization of the TCB (including call to up_initial_state()
+ *   4) up_vfork() provides any additional operating context. up_vfork must:
+ *      - Allocate and initialize the stack
+ *      - Initialize special values in any CPU registers that were not
+ *        already configured by up_initial_state()
+ *   5) up_vfork() then calls task_vforkstart()
+ *   6) task_vforkstart() then executes the child thread.
  *
- * Returned Value:
- *   The spinlock is always locked upon return.  The value of previous value
- *   of the spinlock variable is returned, either SP_LOCKED if the spinlock
- *   as previously locked (meaning that the test-and-set operation failed to
- *   obtain the lock) or SP_UNLOCKED if the spinlock was previously unlocked
- *   (meaning that we successfully obtained the lock)
+ * Input Paremeters:
+ *   None
+ *
+ * Return:
+ *   Upon successful completion, vfork() returns 0 to the child process and returns
+ *   the process ID of the child process to the parent process. Otherwise, -1 is
+ *   returned to the parent, no child process is created, and errno is set to
+ *   indicate the error.
  *
  ****************************************************************************/
 
-/* See prototype in nuttx/include/nuttx/spinlock.h */
+	.text
+	.public		_vfork
+	.func_start	3 _vfork
 
-/* Include CEVA architecture-specific spinlock definitions */
+_vfork:
+	/* Create a stack frame */
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/spinlock.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/spinlock.h>
-#endif
+	modr		(sp.ui).ui +#-XCPTCONTEXT_SIZE	/* Allocate the structure on the stack */
 
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_CEVA_INCLUDE_SPINLOCK_H */
+	/* Save the volatile registers by svcall(SYS_save_context) */
+
+	mov		#SYS_save_context, r0.ui
+	mov		sp.ui, r1.ui
+	trap		{t0}
+
+	/* Then, call up_vfork(), passing it a pointer to the stack structure */
+
+	mov		sp.ui, r0.ui
+	nop
+	push		retreg.ui
+	callr		#_up_vfork, ?prx.b
+	pop		retreg.ui
+	nop
+
+	/* Release the stack data and return the value returned by up_vfork */
+
+	modr		(sp.ui).ui +#XCPTCONTEXT_SIZE
+	ret		?prx.b
+
+	.func_end	3 _vfork

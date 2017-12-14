@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/spinlock.h
+ * arch/ceva/src/xm6/syscall.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,89 +33,70 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_INCLUDE_SPINLOCK_H
-#define __ARCH_CEVA_INCLUDE_SPINLOCK_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif /* __ASSEMBLY__ */
+#include <nuttx/config.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Spinlock states */
-
-#define SP_UNLOCKED 0  /* The Un-locked state */
-#define SP_LOCKED   1  /* The Locked state */
-
-/* Memory barriers for use with NuttX spinlock logic
- *
- * Data Memory Barrier (DMB) acts as a memory barrier. It ensures that all
- * explicit memory accesses that appear in program order before the DMB
- * instruction are observed before any explicit memory accesses that appear
- * in program order after the DMB instruction. It does not affect the
- * ordering of any other instructions executing on the processor
- *
- * Data Synchronization Barrier (DSB) acts as a special kind of memory
- * barrier. No instruction in program order after this instruction executes
- * until this instruction completes. This instruction completes when: (1) All
- * explicit memory accesses before this instruction complete, and (2) all
- * Cache, Branch predictor and TLB maintenance operations before this
- * instruction complete.
- *
- */
-
-#define SP_DSB(n) up_dsb()
-#define SP_DMB(n) up_dmb()
+.IF CONFIG_ARCH_XM6_BUG001
+	.EQU		prx pr14
+.ELSE
+	.EQU		prx pr15
+.ENDIF
 
 /****************************************************************************
- * Public Types
+ * Public Symbols
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-
-/* The Type of a spinlock. */
-
-typedef uint32_t spinlock_t;
+	.file		"syscall.S"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_testset
+ * Name: sys_callx
  *
  * Description:
- *   Perform an atomic test and set operation on the provided spinlock.
+ *   This function generate the trap exception with the specified number of
+ *   parameters.
  *
- *   This function must be provided via the architecture-specific logoic.
- *
- * Input Parameters:
- *   lock - The address of spinlock object.
- *
- * Returned Value:
- *   The spinlock is always locked upon return.  The value of previous value
- *   of the spinlock variable is returned, either SP_LOCKED if the spinlock
- *   as previously locked (meaning that the test-and-set operation failed to
- *   obtain the lock) or SP_UNLOCKED if the spinlock was previously unlocked
- *   (meaning that we successfully obtained the lock)
+ *     r0 = SYS_ call number
+ *     r1 = parm0
+ *     r2 = parm1
+ *     r3 = parm2
+ *     r4 = parm3
+ *     r5 = parm4
+ *     r6 = parm5
  *
  ****************************************************************************/
 
-/* See prototype in nuttx/include/nuttx/spinlock.h */
+	.text
 
-/* Include CEVA architecture-specific spinlock definitions */
+	.public		_sys_call0
+	.public		_sys_call1
+	.public		_sys_call2
+	.public		_sys_call3
+	.public		_sys_call4
+	.public		_sys_call5
+	.public		_sys_call6
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/spinlock.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/spinlock.h>
-#endif
+	.func_start	3 _sys_call0
 
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_CEVA_INCLUDE_SPINLOCK_H */
+_sys_call0:
+_sys_call1:
+_sys_call2:
+_sys_call3:
+_sys_call4:
+_sys_call5:
+_sys_call6:
+	trap		{t0}
+	nop
+	ret		?prx.b
+
+	.func_end	3 _sys_call0

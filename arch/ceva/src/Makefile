@@ -40,6 +40,8 @@ ifeq ($(CONFIG_ARCH_TL420),y)
 ARCH_SUBDIR = tl4
 else ifeq ($(CONFIG_ARCH_TL421),y)
 ARCH_SUBDIR = tl4
+else ifeq ($(CONFIG_ARCH_XM6),y)
+ARCH_SUBDIR = xm6
 endif
 
 CPPFLAGS += $(EXTRADEFINES)

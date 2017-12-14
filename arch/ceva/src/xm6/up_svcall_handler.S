@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/spinlock.h
+ * arch/ceva/src/xm6/up_svcall_handler.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,89 +33,86 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_INCLUDE_SPINLOCK_H
-#define __ARCH_CEVA_INCLUDE_SPINLOCK_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif /* __ASSEMBLY__ */
+#include <nuttx/config.h>
+
+#include "svcall.h"
+
+#ifdef CONFIG_LIB_SYSCALL
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Public Symbols
  ****************************************************************************/
 
-/* Spinlock states */
-
-#define SP_UNLOCKED 0  /* The Un-locked state */
-#define SP_LOCKED   1  /* The Locked state */
-
-/* Memory barriers for use with NuttX spinlock logic
- *
- * Data Memory Barrier (DMB) acts as a memory barrier. It ensures that all
- * explicit memory accesses that appear in program order before the DMB
- * instruction are observed before any explicit memory accesses that appear
- * in program order after the DMB instruction. It does not affect the
- * ordering of any other instructions executing on the processor
- *
- * Data Synchronization Barrier (DSB) acts as a special kind of memory
- * barrier. No instruction in program order after this instruction executes
- * until this instruction completes. This instruction completes when: (1) All
- * explicit memory accesses before this instruction complete, and (2) all
- * Cache, Branch predictor and TLB maintenance operations before this
- * instruction complete.
- *
- */
-
-#define SP_DSB(n) up_dsb()
-#define SP_DMB(n) up_dmb()
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/* The Type of a spinlock. */
-
-typedef uint32_t spinlock_t;
+	.file		"up_svcall_handler.S"
+	.extern		_g_stublookup
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_testset
+ * Name: up_svcall_handler
  *
  * Description:
- *   Perform an atomic test and set operation on the provided spinlock.
+ *   This function is the kernel-space, syscall handler trampoline function.  It
+ *   is called from up_svcall() in interrupt handler.
  *
- *   This function must be provided via the architecture-specific logoic.
+ *   Call the stub function corresponding to the system call.  NOTE the non-
+ *   standard parameter passing:
  *
- * Input Parameters:
- *   lock - The address of spinlock object.
+ *     r0 = SYS_ call number
+ *     r1 = parm0
+ *     r2 = parm1
+ *     r3 = parm2
+ *     r4 = parm3
+ *     r5 = parm4
+ *     r6 = parm5
  *
- * Returned Value:
- *   The spinlock is always locked upon return.  The value of previous value
- *   of the spinlock variable is returned, either SP_LOCKED if the spinlock
- *   as previously locked (meaning that the test-and-set operation failed to
- *   obtain the lock) or SP_UNLOCKED if the spinlock was previously unlocked
- *   (meaning that we successfully obtained the lock)
+ * Return:
+ *   None.  This function does not return in the normal sense.  It returns
+ *   via the SYS_syscall_return (see svcall.h)
  *
  ****************************************************************************/
 
-/* See prototype in nuttx/include/nuttx/spinlock.h */
+	.text
+	.public		_up_svcall_handler
+	.func_start	3 _up_svcall_handler
 
-/* Include CEVA architecture-specific spinlock definitions */
+_up_svcall_handler:
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/spinlock.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/spinlock.h>
-#endif
+	/* Create a stack frame to hold LR */
 
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_CEVA_INCLUDE_SPINLOCK_H */
+	push		retreg.ui
+
+	/* Call the stub function */
+
+	mov		#_g_stublookup, r7.ui
+	shiftladd	r0.ui, #0x02, r7.ui, r7.ui
+	nop		#0x02
+	ld		(r7.ui).ui, r7.ui
+	nop		#0x04
+	nop
+	callar		r7.ui
+
+	/* Destroy the stack frame */
+
+	pop		retreg.ui
+
+	/* Execute the SYS_syscall_return SVCall (will not return) */
+						/* Save return value in r2 */
+	mov		r0.ui, r2.ui		/* will restore in up_svcall */
+	mov		#SYS_syscall_return, r0.ui
+	trap		{t0}
+
+	.func_end	3 _up_svcall_handler
+
+#else	/* Add dummy symbol to avoid cofflib crash */
+
+	.text
+dummy_svcall_handler:
+
+#endif /* CONFIG_LIB_SYSCALL */

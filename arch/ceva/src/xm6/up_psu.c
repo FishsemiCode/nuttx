@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/irq.h
+ * arch/ceva/src/xm6/up_psu.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,54 +33,43 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/irq.h
- */
-
-#ifndef __ARCH_CEVA_INCLUDE_IRQ_H
-#define __ARCH_CEVA_INCLUDE_IRQ_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-/* Include chip-specific IRQ definitions (including IRQ numbers) */
+#include <nuttx/config.h>
 
-#include <arch/chip/irq.h>
+#include <nuttx/irq.h>
 
-/* Include CEVA architecture-specific IRQ definitions (including register
- * save structure and up_irq_save()/up_irq_restore() functions)
- */
-
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/irq.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/irq.h>
-#endif
+#include "up_internal.h"
 
 /****************************************************************************
- * Public Function Prototypes
+ * Pre-processor Definitions
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+#define up_cpu_pmod(pmod_inst)                                        \
+  __asm__ __volatile__                                                \
+  (                                                                   \
+    "nop #0x04\nnop\n"                                                \
+    "movp %0.ui, moda.ui\n"       /* Enable the interrupt */          \
+    pmod_inst                     /* Enter the low power mode */      \
+    "nop #0x04\nnop #0x04\nnop\n" /* Clear the pipe of instruction */ \
+    /* Core auto restore to DPS here after wakeup */                  \
+    "movp %1.ui, moda.ui"         /* restore the interrupt */         \
+     : : "r"(CURRENT_IRQS | REG_IRQS_IE)                              \
+     , "r"(REG_IRQS_IE)                                               \
+  )
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void up_cpu_idle(void)
 {
-#else
-#define EXTERN extern
-#endif
-
-void up_irq_disable(void);
-irqstate_t up_irq_save(void);
-
-void up_irq_enable(void);
-void up_irq_restore(irqstate_t flags);
-
-#undef EXTERN
-#ifdef __cplusplus
+  up_cpu_pmod("psu {lightsleep}\n");
 }
-#endif
-#endif
 
-#endif /* __ARCH_CEVA_INCLUDE_IRQ_H */
+void up_cpu_standby(void)
+{
+  up_cpu_pmod("psu {standby}\n");
+}

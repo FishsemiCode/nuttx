@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/spinlock.h
+ * arch/ceva/src/xm6/up_signal_handler.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,89 +33,79 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_INCLUDE_SPINLOCK_H
-#define __ARCH_CEVA_INCLUDE_SPINLOCK_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#  include <stdint.h>
-#endif /* __ASSEMBLY__ */
+#include <nuttx/config.h>
+
+#include "svcall.h"
+
+#if (defined(CONFIG_BUILD_PROTECTED) && !defined(__KERNEL__)) && \
+    !defined(CONFIG_DISABLE_SIGNALS)
 
 /****************************************************************************
- * Pre-processor Definitions
+ * File info
  ****************************************************************************/
 
-/* Spinlock states */
-
-#define SP_UNLOCKED 0  /* The Un-locked state */
-#define SP_LOCKED   1  /* The Locked state */
-
-/* Memory barriers for use with NuttX spinlock logic
- *
- * Data Memory Barrier (DMB) acts as a memory barrier. It ensures that all
- * explicit memory accesses that appear in program order before the DMB
- * instruction are observed before any explicit memory accesses that appear
- * in program order after the DMB instruction. It does not affect the
- * ordering of any other instructions executing on the processor
- *
- * Data Synchronization Barrier (DSB) acts as a special kind of memory
- * barrier. No instruction in program order after this instruction executes
- * until this instruction completes. This instruction completes when: (1) All
- * explicit memory accesses before this instruction complete, and (2) all
- * Cache, Branch predictor and TLB maintenance operations before this
- * instruction complete.
- *
- */
-
-#define SP_DSB(n) up_dsb()
-#define SP_DMB(n) up_dmb()
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/* The Type of a spinlock. */
-
-typedef uint32_t spinlock_t;
+	.file		"up_signal_handler.S"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_testset
+ * Name: up_signal_handler
  *
  * Description:
- *   Perform an atomic test and set operation on the provided spinlock.
+ *   This function is the user-space, signal handler trampoline function.  It
+ *   is called from up_signal_dispatch() in user-mode.
  *
- *   This function must be provided via the architecture-specific logoic.
+ * Inputs:
+ *   r0 = sighand
+ *     The address user-space signal handling function
+ *   r1, r2, r3 = signo, info, and ucontext
+ *     Standard arguments to be passed to the signal handling function.
  *
- * Input Parameters:
- *   lock - The address of spinlock object.
- *
- * Returned Value:
- *   The spinlock is always locked upon return.  The value of previous value
- *   of the spinlock variable is returned, either SP_LOCKED if the spinlock
- *   as previously locked (meaning that the test-and-set operation failed to
- *   obtain the lock) or SP_UNLOCKED if the spinlock was previously unlocked
- *   (meaning that we successfully obtained the lock)
+ * Return:
+ *   None.  This function does not return in the normal sense.  It returns
+ *   via the SYS_signal_handler_return (see svcall.h)
  *
  ****************************************************************************/
 
-/* See prototype in nuttx/include/nuttx/spinlock.h */
+	.text
+	.public		_up_signal_handler
+	.func_start	3 _up_signal_handler
 
-/* Include CEVA architecture-specific spinlock definitions */
+_up_signal_handler:
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/spinlock.h>
-#elif defined(CONFIG_ARCH_XM6)
-#  include <arch/xm6/spinlock.h>
+	/* Save some register */
+
+	push		retreg.ui		/* Save LR on the stack */
+
+	/* Call the signal handler */
+
+	mov		r0.ui, r4.ui		/* r4=sighand */
+	mov		r1.ui, r0.ui		/* r0=signo */
+	mov		r2.ui, r1.ui		/* r1=info */
+	mov		r3.ui, r2.ui		/* r2=ucontext */
+	nop		#0x03
+	callar		r4.ui			/* Call the signal handler */
+
+	/* Restore the registers */
+
+	pop		retreg.ui
+
+	/* Execute the SYS_signal_handler_return SVCall (will not return) */
+
+	mov		#SYS_signal_handler_return, r0.ui
+	trap		{t0}
+
+	.func_end	3 _up_signal_handler
+
+#else	/* Add dummy symbol to avoid cofflib crash */
+
+	.text
+dummy_signal_handler:
+
 #endif
-
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_CEVA_INCLUDE_SPINLOCK_H */
