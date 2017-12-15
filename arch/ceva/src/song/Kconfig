@@ -21,6 +21,10 @@ config ARCH_CHIP_BANKS_ADSP
 	bool "Banks ADSP"
 	select SONG_TL421
 
+config ARCH_CHIP_BANKS_VDSP
+	bool "Banks VDSP"
+	select SONG_XM6
+
 endchoice
 
 config SONG_TL420
@@ -37,6 +41,12 @@ config SONG_TL421
 	select ARCH_HAVE_MPU
 	select ARCH_TL4_VOICE
 	select ARCH_TL421
+
+config SONG_XM6
+	bool
+	select ARCH_HAVE_FPU
+	select ARCH_HAVE_ICACHE
+	select ARCH_XM6
 
 config SONG_NR_IRQS
 	int "Interrupt Number"

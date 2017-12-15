@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * configs/banks/src/vision.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include "rcS.common"
+#include <arch/board/board.h>
 
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
-#elif CONFIG_BANKS_VISION
-#include "rcS.vision"
-#else
-#error "unknow banks config"
+#ifdef CONFIG_BANKS_VISION
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void board_earlyinitialize(void)
+{
+}
+
+void board_lateinitialize(void)
+{
+}
+
 #endif

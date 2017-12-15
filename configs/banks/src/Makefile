@@ -34,6 +34,6 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
-CSRCS  := audio.c
+CSRCS  := audio.c vision.c
 RCSRCS := init.d/rcS
 include $(TOPDIR)/configs/Board.mk

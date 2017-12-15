@@ -51,8 +51,13 @@ else
   ARCHSCRIPT = $(LDSCRIPT)
 endif
 
-CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/tl4)/
-include ${TOPDIR}/arch/ceva/src/tl4/Toolchain.defs
+ifeq ($(CONFIG_ARCH_TL420)$(CONFIG_ARCH_TL421),y)
+  CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/tl4)/
+  include ${TOPDIR}/arch/ceva/src/tl4/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_XM6),y)
+  CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/xm6)/
+  include ${TOPDIR}/arch/ceva/src/xm6/Toolchain.defs
+endif
 
 LD = $(CROSSDEV)cofflnk -quiet
 AR = $(ARCROSSDEV)cofflib -quiet

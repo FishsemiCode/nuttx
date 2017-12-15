@@ -72,3 +72,17 @@ LOCAL_PREBUILT_MODULE_FILE := $(NUTTX_OUTDIR)/banks/sensor/nuttx/nuttx
 LOCAL_MODULE_CLASS         := FIRMWARE
 LOCAL_MODULE_PATH          := $(TARGET_OUT_VENDOR)/firmware
 include $(BUILD_PREBUILT)
+
+#banks/vision
+$(NUTTX_OUTDIR)/banks/vision/nuttx/nuttx.a: FORCE
+	$(hide) $(NUTTX_ROOT)/nuttx/tools/configure.sh -o $(dir $@) banks/vision
+	$(hide) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) V=$(if $(hide),0,1) LM_LICENSE_FILE=27000@10.235.240.245
+	$(hide) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) savedefconfig
+	$(hide) cp $(dir $@)/defconfig ${NUTTX_ROOT}/nuttx/configs/banks/vision
+
+include $(CLEAR_VARS)
+LOCAL_MODULE               := banks-vision.fw
+LOCAL_PREBUILT_MODULE_FILE := $(NUTTX_OUTDIR)/banks/vision/nuttx/nuttx.a
+LOCAL_MODULE_CLASS         := FIRMWARE
+LOCAL_MODULE_PATH          := $(TARGET_OUT_VENDOR)/firmware
+include $(BUILD_PREBUILT)

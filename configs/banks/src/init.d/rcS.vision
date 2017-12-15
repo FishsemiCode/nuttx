@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * configs/banks/src/init.d/rcS.vision
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Pinecone <Pinecone@pinecone.net>
@@ -32,18 +32,3 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
-
-#include "rcS.common"
-
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
-#elif CONFIG_BANKS_VISION
-#include "rcS.vision"
-#else
-#error "unknow banks config"
-#endif

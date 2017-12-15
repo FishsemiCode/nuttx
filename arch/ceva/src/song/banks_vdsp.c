@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/banks/src/init.d/rcS
+ * arch/ceva/src/song/banks_vdsp.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,57 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include "rcS.common"
+#include <nuttx/irq.h>
+#include <nuttx/timers/arch_timer.h>
+#include <nuttx/timers/dw_timer.h>
 
-#ifdef CONFIG_BANKS_AUDIO
-#include "rcS.audio"
-#elif CONFIG_BANKS_SENSOR
-#include "rcS.sensor"
-#elif CONFIG_BANKS_RPM
-#include "rcS.rpm"
-#elif CONFIG_BANKS_VISION
-#include "rcS.vision"
-#else
-#error "unknow banks config"
+#include "up_internal.h"
+
+#ifdef CONFIG_ARCH_CHIP_BANKS_VDSP
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void up_earlyinitialize(void)
+{
+}
+
+void ceva_timer_initialize(void)
+{
+  static const struct dw_timer_config_s config =
+  {
+    .base       = 0xfd020000,
+    .irq        = IRQ_INT1,
+    .freq       = 1000000,
+  };
+  FAR struct timer_lowerhalf_s *lower;
+
+  lower = dw_timer_initialize(&config, -1);
+  if (lower)
+    {
+      up_timer_set_lowerhalf(lower);
+    }
+}
+
+void up_lateinitialize(void)
+{
+}
+
+void up_cpu_normal(void)
+{
+}
+
+void up_cpu_sleep(void)
+{
+  up_cpu_standby();
+}
+
 #endif

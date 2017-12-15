@@ -15,4 +15,7 @@ config BANKS_RPM
 config BANKS_SENSOR
 	bool "Banks Sensor"
 
+config BANKS_VISION
+	bool "Banks Vision"
+
 endchoice
