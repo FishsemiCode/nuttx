@@ -306,6 +306,21 @@ static int oneshot_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
+      /* OSIOC_CURRENT - Get the current time
+       *                Argument: A reference to a struct timespec in
+       *                which the current time will be returned.
+       */
+
+      case OSIOC_CURRENT:
+        {
+          FAR struct timespec *ts = (FAR struct timespec *)((uintptr_t)arg);
+
+          /* Get the current time */
+
+          ret = ONESHOT_CURRENT(priv->od_lower, ts);
+        }
+        break;
+
       default:
         {
           tmrerr("ERROR: Unrecognized cmd: %d arg: %ld\n", cmd, arg);
