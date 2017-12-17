@@ -234,21 +234,6 @@ config RTC_SONG
 	depends on ARCH_CHIP_SONG
 	select ARCH_HAVE_RTC_SUBSECONDS
 
-if RTC_SONG
-
-config RTC_SONG_BASE
-	hex "Song RTC base address"
-
-config RTC_SONG_IRQ
-	int "Song RTC IRQ number"
-	depends on RTC_ALARM
-
-config RTC_SONG_ALARM_INDEX
-	int "Song RTC alarm index"
-	depends on RTC_ALARM
-
-endif # RTC_SONG
-
 endif # RTC
 
 menuconfig WATCHDOG

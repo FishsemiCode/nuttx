@@ -39,10 +39,10 @@
 
 #include <nuttx/config.h>
 
-#include <time.h>
+#include <errno.h>
 
-#include <nuttx/arch.h>
-#include <nuttx/clock.h>
+#include <nuttx/kmalloc.h>
+#include <nuttx/timers/song_rtc.h>
 
 /****************************************************************************
  * Private Types
@@ -74,31 +74,81 @@ struct song_rtc_s
   struct song_rtc_alarm_s alarm[];
 };
 
+/* This is the private type for the RTC state. It must be cast compatible
+ * with struct rtc_lowerhalf_s.
+ */
+
+struct song_rtc_lowerhalf_s
+{
+  /* This is the contained reference to the read-only, lower-half
+   * operations vtable (which may lie in FLASH or ROM)
+   */
+
+  FAR const struct rtc_ops_s *ops;
+
+  /* Data following is private to this driver and not visible outside of
+   * this file.
+   */
+
+  FAR const struct song_rtc_config_s *config;
+
+#ifdef CONFIG_RTC_ALARM
+  rtc_alarm_callback_t cb;  /* Callback when the alarm expires */
+  FAR void *priv;           /* Private argument to accompany callback */
+#endif
+};
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+static int song_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
+                           FAR struct rtc_time *rtctime);
+static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
+                            FAR const struct rtc_time *rtctime);
+static bool song_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower_);
+
+#ifdef CONFIG_RTC_ALARM
+static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
+                             FAR const struct lower_setalarm_s *alarminfo);
+static int song_rtc_setrelative(FAR struct rtc_lowerhalf_s *lower,
+                                FAR const struct lower_setrelative_s *relinfo);
+static int song_rtc_cancelalarm(FAR struct rtc_lowerhalf_s *lower_,
+                                int alarmid);
+static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
+                            FAR struct lower_rdalarm_s *alarminfo);
+#endif
+
+#ifdef CONFIG_RTC_IOCTL
+static int song_rtc_ioctl(FAR struct rtc_lowerhalf_s *lower, int cmd,
+                          unsigned long arg);
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static FAR struct song_rtc_s * const g_song_rtc
-  = (FAR struct song_rtc_s *)CONFIG_RTC_SONG_BASE;
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/* Variable determines the state of the RTC module.
- *
- * After initialization value is set to 'true' if RTC starts successfully.
- * The value can be changed to false also during operation if RTC for
- * some reason fails.
- */
-
-volatile bool g_rtc_enabled = false;
+static const struct rtc_ops_s g_song_rtc_ops =
+{
+  .rdtime      = song_rtc_rdtime,
+  .settime     = song_rtc_settime,
+  .havesettime = song_rtc_havesettime,
+#ifdef CONFIG_RTC_ALARM
+  .setalarm    = song_rtc_setalarm,
+  .setrelative = song_rtc_setrelative,
+  .cancelalarm = song_rtc_cancelalarm,
+  .rdalarm     = song_rtc_rdalarm,
+#endif
+#ifdef CONFIG_RTC_IOCTL
+  .ioctl       = song_rtc_ioctl,
+#endif
+};
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-static uint32_t song_rtc_nsec2cnt1(uint32_t nsec)
+static uint32_t song_rtc_nsec2cnt(uint32_t nsec)
 {
   uint32_t usec;
 
@@ -106,23 +156,175 @@ static uint32_t song_rtc_nsec2cnt1(uint32_t nsec)
   return 1024 * usec / USEC_PER_SEC;
 }
 
-#if defined(CONFIG_RTC_DATETIME) || defined(CONFIG_RTC_HIRES)
-static uint32_t song_rtc_cnt12nsec(uint32_t cnt1)
+static uint32_t song_rtc_cnt2nsec(uint32_t cnt)
 {
   uint32_t usec;
 
-  usec = USEC_PER_SEC * cnt1 / 1024;
+  usec = USEC_PER_SEC * cnt / 1024;
   return NSEC_PER_USEC * usec;
 }
 
-static void song_rtc_getcounter(uint32_t *cnt2, uint32_t *cnt1)
+static int song_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
+                           FAR struct rtc_time *rtctime)
 {
+  FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+  uint32_t cnt2, cnt1;
+
   do
     {
-      *cnt2 = g_song_rtc->set_cnt2;
-      *cnt1 = g_song_rtc->set_cnt1;
+      cnt2 = base->set_cnt2;
+      cnt1 = base->set_cnt1;
     }
-  while (*cnt2 != g_song_rtc->set_cnt2);
+  while (cnt2 != base->set_cnt2);
+
+  gmtime_r(&cnt2, (FAR struct tm *)rtctime);
+  rtctime->tm_nsec = song_rtc_cnt2nsec(cnt1);
+
+  return 0;
+}
+
+static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
+                            FAR const struct rtc_time *rtctime)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+  uint32_t cnt2, cnt1;
+  irqstate_t flags;
+
+  cnt2 = mktime((FAR struct tm *)rtctime);
+  cnt1 = song_rtc_nsec2cnt(rtctime->tm_nsec);
+
+  flags = enter_critical_section();
+  base->set_cnt2   = cnt2;
+  base->set_cnt1   = cnt1;
+  base->set_update = 1; /* Trigger the update */
+  base->time_valid = 1; /* Mark the change */
+  leave_critical_section(flags);
+
+  return 0;
+}
+
+static bool song_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower_)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+
+  return base->time_valid != 0;
+}
+
+#ifdef CONFIG_RTC_ALARM
+static int song_rtc_interrupt(int irq, FAR void *context, FAR void *arg)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = arg;
+
+  song_rtc_cancelalarm(arg, 0);
+  if (lower->cb)
+    {
+      lower->cb(lower->priv, 0);
+    }
+
+  return 0;
+}
+
+static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
+                             FAR const struct lower_setalarm_s *alarminfo)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+  FAR struct song_rtc_alarm_s *alarm = &base->alarm[lower->config->index];
+  uint32_t cnt_hi, cnt_lo;
+  irqstate_t flags;
+  bool first_alarm;
+
+  cnt_hi = mktime((FAR struct tm *)&alarminfo->time);
+  cnt_lo = song_rtc_nsec2cnt(alarminfo->time.tm_nsec);
+
+  flags = enter_critical_section();
+  first_alarm       = !!lower->cb;
+  lower->cb         = alarminfo->cb;
+  lower->priv       = alarminfo->priv;
+  alarm->cnt_hi     = cnt_hi;
+  alarm->cnt_lo     = cnt_lo;
+  alarm->int_update = 1; /* Trigger the update */
+  alarm->int_en     = 1; /* Then enable interrupt */
+  leave_critical_section(flags);
+
+  if (first_alarm)
+    {
+      irq_attach(lower->config->irq, song_rtc_interrupt, lower);
+      up_enable_irq(lower->config->irq);
+    }
+
+  return 0;
+}
+
+static int song_rtc_setrelative(FAR struct rtc_lowerhalf_s *lower,
+                                FAR const struct lower_setrelative_s *relinfo)
+{
+  struct lower_setalarm_s alarminfo;
+  time_t time;
+
+  alarminfo.id   = relinfo->id;
+  alarminfo.cb   = relinfo->cb;
+  alarminfo.priv = relinfo->priv;
+
+  song_rtc_rdtime(lower, &alarminfo.time);
+  time = mktime((FAR struct tm *)&alarminfo.time);
+  time = time + relinfo->reltime;
+  gmtime_r(&time, (FAR struct tm *)&alarminfo.time);
+
+  return song_rtc_setalarm(lower, &alarminfo);
+}
+
+static int song_rtc_cancelalarm(FAR struct rtc_lowerhalf_s *lower_,
+                                int alarmid)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+  FAR struct song_rtc_alarm_s *alarm = &base->alarm[lower->config->index];
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+  alarm->int_en     = 0; /* Disable interrupt first */
+  alarm->int_status = 1; /* Clear the request */
+  leave_critical_section(flags);
+
+  return 0;
+}
+
+static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
+                            FAR struct lower_rdalarm_s *alarminfo)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+  FAR struct song_rtc_alarm_s *alarm = &base->alarm[lower->config->index];
+  uint32_t cnt_hi, cnt_lo;
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+  cnt_hi = alarm->cnt_hi;
+  cnt_lo = alarm->cnt_lo;
+  leave_critical_section(flags);
+
+  gmtime_r(&cnt_hi, (FAR struct tm *)alarminfo->time);
+  alarminfo->time->tm_nsec = song_rtc_cnt2nsec(cnt_lo);
+
+  return 0;
+}
+#endif
+
+#ifdef CONFIG_RTC_IOCTL
+static int song_rtc_ioctl(FAR struct rtc_lowerhalf_s *lower, int cmd,
+                          unsigned long arg)
+{
+  if (cmd == _RTCIOC(RTC_USER_IOCBASE))
+    {
+      *((FAR void **)(uintptr_t)arg) = lower;
+      return 0;
+    }
+
+  return -ENOTTY;
 }
 #endif
 
@@ -130,187 +332,16 @@ static void song_rtc_getcounter(uint32_t *cnt2, uint32_t *cnt1)
  * Public Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: up_rtc_initialize
- *
- * Description:
- *   Initialize the builtin, MCU hardware RTC per the selected
- *   configuration.  This function is called once very early in the OS
- *   initialization sequence.
- *
- *   NOTE that initialization of external RTC hardware that depends on the
- *   availability of OS resources (such as SPI or I2C) must be deferred
- *   until the system has fully booted.  Other, RTC-specific initialization
- *   functions are used in that case.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno on failure
- *
- ****************************************************************************/
-
-int up_rtc_initialize(void)
+FAR struct rtc_lowerhalf_s *song_rtc_initialize(FAR const struct song_rtc_config_s *config)
 {
-  /* Nothing to do since RTC auto start after reset */
-  g_rtc_enabled = true;
-  return 0;
+  FAR struct song_rtc_lowerhalf_s *lower;
+
+  lower = kmm_zalloc(sizeof(*lower));
+  if (lower != NULL)
+    {
+      lower->config = config;
+      lower->ops = &g_song_rtc_ops;
+    }
+
+  return (FAR struct rtc_lowerhalf_s *)lower;
 }
-
-/************************************************************************************
- * Name: up_rtc_time
- *
- * Description:
- *   Get the current time in seconds.  This is similar to the standard time()
- *   function.  This interface is only required if the low-resolution RTC/counter
- *   hardware implementation selected.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC is set but neither
- *   CONFIG_RTC_HIRES nor CONFIG_RTC_DATETIME are set.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   The current time in seconds.
- *
- ************************************************************************************/
-
-#ifndef CONFIG_RTC_HIRES
-time_t up_rtc_time(void)
-{
-  return g_song_rtc->set_cnt2;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_gettime
- *
- * Description:
- *   Get the current time from the high resolution RTC clock/counter.  This interface
- *   is only supported by the high-resolution RTC/counter hardware implementation.
- *   It is used to replace the system timer.
- *
- * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_RTC_HIRES
-int up_rtc_gettime(FAR struct timespec *tp)
-{
-  uint32_t cnt1;
-  uint32_t cnt2;
-
-  song_rtc_getcounter(&cnt2, &cnt1);
-  tp->tv_nsec = song_rtc_cnt12nsec(cnt1);
-  tp->tv_sec  = cnt2;
-
-  return 0;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_getdatetime
- *
- * Description:
- *   Get the current date and time from the date/time RTC.  This interface
- *   is only supported by the date/time RTC hardware implementation.
- *   It is used to replace the system timer.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
- *   are selected (and CONFIG_RTC_HIRES is not).
- *
- *   NOTE: Some date/time RTC hardware is capability of sub-second accuracy.  That
- *   sub-second accuracy is lost in this interface.  However, since the system time
- *   is reinitialized on each power-up/reset, there will be no timing inaccuracy in
- *   the long run.
- *
- * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-#if defined(CONFIG_RTC_DATETIME) || defined(CONFIG_RTC_DRIVER)
-int up_rtc_getdatetime(FAR struct tm *tp)
-{
-  time_t time;
-
-  time = up_rtc_time();
-  gmtime_r(&time, tp);
-
-  return 0;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_getdatetime_with_subseconds
- *
- * Description:
- *   Get the current date and time from the date/time RTC.  This interface
- *   is only supported by the date/time RTC hardware implementation.
- *   It is used to replace the system timer.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
- *   are selected (and CONFIG_RTC_HIRES is not).
- *
- *   NOTE: This interface exposes sub-second accuracy capability of RTC hardware.
- *   This interface allow maintaining timing accuracy when system time needs constant
- *   resynchronization with RTC, for example on MCU with low-power state that
- *   stop system timer.
- *
- * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *   nsec - The location to return the subsecond time value.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno on failure
- *
- ************************************************************************************/
-
-#ifdef CONFIG_RTC_DATETIME
-int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
-{
-  uint32_t cnt1;
-  uint32_t cnt2;
-
-  song_rtc_getcounter(&cnt2, &cnt1);
-  *nsec = song_rtc_cnt12nsec(cnt1);
-  gmtime_r(&cnt2, tp);
-
-  return 0;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_settime
- *
- * Description:
- *   Set the RTC to the provided time.  All RTC implementations must be able to
- *   set their time based on a standard timespec.
- *
- * Input Parameters:
- *   tp - the time to use
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-int up_rtc_settime(FAR const struct timespec *tp)
-{
-  g_song_rtc->set_cnt1   = song_rtc_nsec2cnt1(tp->tv_nsec);
-  g_song_rtc->set_cnt2   = tp->tv_sec;
-  g_song_rtc->set_update = 1; /* Trigger the update */
-  g_song_rtc->time_valid = 1; /* Mark the change */
-
-  return 0;
-}
-
-#ifdef CONFIG_RTC_DRIVER
-#include "song_rtc_lowerhalf.c"
-#endif

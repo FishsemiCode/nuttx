@@ -152,10 +152,6 @@ static int nvic_irqinfo(int irq, uintptr_t *regaddr, uint32_t *bit,
  * Public Functions
  ****************************************************************************/
 
-#if defined(CONFIG_RTC) && !defined(CONFIG_RTC_EXTERNAL)
-extern int up_rtc_irqinitialize(void);
-#endif
-
 /****************************************************************************
  * Name: up_ack_irq
  *
@@ -345,12 +341,6 @@ void up_irqinitialize(void)
 
   irq_attach(NVIC_IRQ_MEMFAULT, up_memfault, NULL);
   up_enable_irq(NVIC_IRQ_MEMFAULT);
-
-#if defined(CONFIG_RTC) && !defined(CONFIG_RTC_EXTERNAL)
-  /* RTC was initialized earlier but IRQs weren't ready at that time */
-
-  up_rtc_irqinitialize();
-#endif
 
   /* And finally, enable interrupts */
 
