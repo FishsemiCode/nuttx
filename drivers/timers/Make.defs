@@ -81,6 +81,12 @@ ifeq ($(CONFIG_RTC_SONG),y)
   TMRVPATH = :timers
 endif
 
+ifeq ($(CONFIG_RTC_ARCH),y)
+  CSRCS += arch_rtc.c
+  TMRDEPPATH = --dep-path timers
+  TMRVPATH = :timers
+endif
+
 ifeq ($(CONFIG_RTC_DRIVER),y)
   CSRCS += rtc.c
   TMRDEPPATH = --dep-path timers
