@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/rpmsg_rtc.h
+ * include/nuttx/timers/rpmsg_rtc.h
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Guiding Li<liguiding@pinecone.net>
@@ -39,7 +39,9 @@
 /****************************************************************************
  * Included Files
  ****************************************************************************/
+
 #include <nuttx/config.h>
+#include <nuttx/timers/rtc.h>
 
 /****************************************************************************
  * Public Function Prototypes
@@ -53,11 +55,11 @@ extern "C"
 #define EXTERN extern
 #endif
 
-#ifdef CONFIG_RPMSG_RTC
+#ifdef CONFIG_RTC_RPMSG
 
-int rpmsg_rtc_initialize(const char *cpu_name);
+FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(const char *cpu_name, int minor);
 
-#endif /* CONFIG_RPMSG_RTC */
+#endif /* CONFIG_RTC_RPMSG */
 
 #undef EXTERN
 #ifdef __cplusplus

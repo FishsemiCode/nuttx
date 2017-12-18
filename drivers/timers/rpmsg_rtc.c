@@ -39,8 +39,8 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/arch.h>
 #include <nuttx/clock.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/timers/rpmsg_rtc.h>
 
@@ -48,7 +48,6 @@
 
 #include <errno.h>
 #include <string.h>
-#include <time.h>
 
 /****************************************************************************
  * Pre-processor definitions
@@ -85,8 +84,22 @@ struct rpmsg_rtc_cookie_s
   sem_t                     sem;
 };
 
-struct rpmsg_rtc_s
+/* This is the private type for the RTC state. It must be cast compatible
+ * with struct rtc_lowerhalf_s.
+ */
+
+struct rpmsg_rtc_lowerhalf_s
 {
+  /* This is the contained reference to the read-only, lower-half
+   * operations vtable (which may lie in FLASH or ROM)
+   */
+
+  FAR const struct rtc_ops_s *ops;
+
+  /* Data following is private to this driver and not visible outside of
+   * this file.
+   */
+
   struct rpmsg_channel *channel;
   const char           *cpu_name;
   volatile bool        synced;
@@ -96,42 +109,40 @@ struct rpmsg_rtc_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv_);
+static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv);
 static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel);
 static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel);
 static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
-static int  rpmsg_rtc_msg_send_recv(uint32_t command,
-                struct rpmsg_rtc_header_s *msg, int len);
+                    void *data, int len, void *priv, unsigned long src);
+static int rpmsg_rtc_msg_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
+                uint32_t command, struct rpmsg_rtc_header_s *msg, int len);
+
+static int rpmsg_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
+                           FAR struct rtc_time *rtctime);
+static int rpmsg_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
+                            FAR const struct rtc_time *rtctime);
+static bool rpmsg_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower);
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static struct rpmsg_rtc_s g_rpmsg_rtc;
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/* Variable determines the state of the RTC module.
- *
- * After initialization value is set to 'true' if RTC starts successfully.
- * The value can be changed to false also during operation if RTC for
- * some reason fails.
- */
-
-volatile bool g_rtc_enabled = false;
+static const struct rtc_ops_s g_rpmsg_rtc_ops =
+{
+  .rdtime      = rpmsg_rtc_rdtime,
+  .settime     = rpmsg_rtc_settime,
+  .havesettime = rpmsg_rtc_havesettime,
+};
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv_)
+static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv)
 {
-  struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
+  struct rpmsg_rtc_lowerhalf_s *lower = priv;
 
-  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
     {
       rpmsg_create_channel(rdev, RPMSG_RTC_CHANNEL_NAME);
     }
@@ -139,17 +150,17 @@ static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv_)
 
 static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
 {
-  struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
+  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_callback_privdata(channel->name);
   struct remote_device *rdev = channel->rdev;
 
-  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      g_rtc_enabled = true;
-      priv->channel = channel;
+      rpmsg_set_privdata(channel, lower);
+      lower->channel = channel;
 
-      if (!priv->synced)
+      if (!lower->synced)
         {
-          priv->synced = true;
+          lower->synced = true;
           clock_synchronize();
         }
     }
@@ -157,13 +168,12 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
 
 static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel)
 {
-  struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
+  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
   struct remote_device *rdev = channel->rdev;
 
-  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      g_rtc_enabled = false;
-      priv->channel = NULL;
+      lower->channel = NULL;
     }
 }
 
@@ -182,14 +192,13 @@ static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
     }
 }
 
-static int rpmsg_rtc_msg_send_recv(uint32_t command,
-                struct rpmsg_rtc_header_s *msg, int len)
+static int rpmsg_rtc_msg_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
+                uint32_t command, struct rpmsg_rtc_header_s *msg, int len)
 {
-  struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
   struct rpmsg_rtc_cookie_s cookie = {0};
   int ret;
 
-  if (!priv->channel)
+  if (!lower->channel)
     {
       return -EAGAIN;
     }
@@ -203,7 +212,7 @@ static int rpmsg_rtc_msg_send_recv(uint32_t command,
   msg->result  = -ENXIO;
   msg->cookie  = (uintptr_t)&cookie;
 
-  ret = rpmsg_send(priv->channel, msg, len);
+  ret = rpmsg_send(lower->channel, msg, len);
   if (ret < 0)
     {
       goto fail;
@@ -227,177 +236,40 @@ fail:
   return ret;
 }
 
-/****************************************************************************
- * Public Funtions
- ****************************************************************************/
-
-/************************************************************************************
- * Name: up_rtc_time
- *
- * Description:
- *   Get the current time in seconds.  This is similar to the standard time()
- *   function.  This interface is only required if the low-resolution RTC/counter
- *   hardware implementation selected.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC is set but neither
- *   CONFIG_RTC_HIRES nor CONFIG_RTC_DATETIME are set.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   The current time in seconds.
- *
- ************************************************************************************/
-
-#ifndef CONFIG_RTC_HIRES
-time_t up_rtc_time(void)
+static int rpmsg_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
+                            FAR struct rtc_time *rtctime)
 {
+  FAR struct rpmsg_rtc_lowerhalf_s *lower = (FAR struct rpmsg_rtc_lowerhalf_s *)lower_;
   struct rpmsg_rtc_get_s msg;
   int ret;
 
-  ret = rpmsg_rtc_msg_send_recv(RPMSG_RTC_GET,
-          (struct rpmsg_rtc_header_s *)&msg, sizeof(msg));
-
-  return ret ? ret : msg.tv_sec;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_gettime
- *
- * Description:
- *   Get the current time from the high resolution RTC clock/counter.  This interface
- *   is only supported by the high-resolution RTC/counter hardware implementation.
- *   It is used to replace the system timer.
- *
- * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_RTC_HIRES
-int up_rtc_gettime(FAR struct timespec *tp)
-{
-  struct rpmsg_rtc_get_s msg;
-  int ret;
-
-  ret = rpmsg_rtc_msg_send_recv(RPMSG_RTC_GET,
+  ret = rpmsg_rtc_msg_send_recv(lower, RPMSG_RTC_GET,
           (struct rpmsg_rtc_header_s *)&msg, sizeof(msg));
   if (ret == 0)
     {
-      tp->tv_sec  = msg.tv_sec;
-      tp->tv_nsec = msg.tv_nsec;
+      gmtime_r(&msg.tv_sec, (FAR struct tm *)rtctime);
+      rtctime->tm_nsec = msg.tv_nsec;
     }
 
   return ret;
 }
-#endif
 
-/************************************************************************************
- * Name: up_rtc_getdatetime
- *
- * Description:
- *   Get the current date and time from the date/time RTC.  This interface
- *   is only supported by the date/time RTC hardware implementation.
- *   It is used to replace the system timer.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
- *   are selected (and CONFIG_RTC_HIRES is not).
- *
- *   NOTE: Some date/time RTC hardware is capability of sub-second accuracy.  That
- *   sub-second accuracy is lost in this interface.  However, since the system time
- *   is reinitialized on each power-up/reset, there will be no timing inaccuracy in
- *   the long run.
- *
- * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_RTC_DATETIME
-int up_rtc_getdatetime(FAR struct tm *tp)
+static int rpmsg_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
+                             FAR const struct rtc_time *rtctime)
 {
-  time_t time;
-
-  time = up_rtc_time();
-  gmtime_r(&time, tp);
-
-  return 0;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_getdatetime_with_subseconds
- *
- * Description:
- *   Get the current date and time from the date/time RTC.  This interface
- *   is only supported by the date/time RTC hardware implementation.
- *   It is used to replace the system timer.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
- *   are selected (and CONFIG_RTC_HIRES is not).
- *
- *   NOTE: This interface exposes sub-second accuracy capability of RTC hardware.
- *   This interface allow maintaining timing accuracy when system time needs constant
- *   resynchronization with RTC, for example on MCU with low-power state that
- *   stop system timer.
- *
- * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *   nsec - The location to return the subsecond time value.
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno on failure
- *
- ************************************************************************************/
-
-#ifdef CONFIG_RTC_DATETIME
-int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
-{
-  struct rpmsg_rtc_get_s msg;
-  int ret;
-
-  ret = rpmsg_rtc_msg_send_recv(RPMSG_RTC_GET,
-          (struct rpmsg_rtc_header_s *)&msg, sizeof(msg));
-  if (ret == 0)
-    {
-      *nsec = msg.tv_nsec;
-
-      gmtime_r(&msg.tv_sec, tp);
-    }
-
-  return ret;
-}
-#endif
-
-/************************************************************************************
- * Name: up_rtc_settime
- *
- * Description:
- *   Set the RTC to the provided time.  All RTC implementations must be able to
- *   set their time based on a standard timespec.
- *
- * Input Parameters:
- *   tp - the time to use
- *
- * Returned Value:
- *   Zero (OK) on success; a negated errno value on failure.
- *
- ************************************************************************************/
-
-int up_rtc_settime(FAR const struct timespec *tp)
-{
+  FAR struct rpmsg_rtc_lowerhalf_s *lower = (FAR struct rpmsg_rtc_lowerhalf_s *)lower_;
   struct rpmsg_rtc_set_s msg;
 
-  msg.tv_sec  = tp->tv_sec;
-  msg.tv_nsec = tp->tv_nsec;
+  msg.tv_sec  = mktime((FAR struct tm *)rtctime);
+  msg.tv_nsec = rtctime->tm_nsec;
 
-  return rpmsg_rtc_msg_send_recv(RPMSG_RTC_SET,
+  return rpmsg_rtc_msg_send_recv(lower, RPMSG_RTC_SET,
           (struct rpmsg_rtc_header_s *)&msg, sizeof(msg));
+}
+
+static bool rpmsg_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower)
+{
+  return true;
 }
 
 /****************************************************************************
@@ -409,24 +281,34 @@ int up_rtc_settime(FAR const struct timespec *tp)
  *
  * Input Parameters:
  *   cpu_name - current cpu name
+ *   minor  - device minor number
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno on failure
  *
  ****************************************************************************/
 
-int rpmsg_rtc_initialize(const char *cpu_name)
+FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(const char *cpu_name, int minor)
 {
-  struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
+  struct rpmsg_rtc_lowerhalf_s *lower;
 
-  priv->cpu_name = cpu_name;
+  lower = kmm_zalloc(sizeof(*lower));
+  if (lower != NULL)
+    {
+      lower->ops = &g_rpmsg_rtc_ops;
+      lower->cpu_name = cpu_name;
 
-  return rpmsg_register_callback(
+      rpmsg_register_callback(
                 RPMSG_RTC_CHANNEL_NAME,
-                NULL,
+                lower,
                 rpmsg_rtc_device_created,
                 NULL,
                 rpmsg_rtc_channel_created,
                 rpmsg_rtc_channel_destroyed,
                 rpmsg_rtc_channel_received);
+
+      rtc_initialize(minor, (FAR struct rtc_lowerhalf_s *)lower);
+    }
+
+  return (FAR struct rtc_lowerhalf_s *)lower;
 }

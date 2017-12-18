@@ -257,7 +257,8 @@ endif # RTC_PCF85263
 config RTC_RPMSG
 	bool "Rpmsg RTC Driver"
 	default n
-	select RTC_EXTERNAL
+	depends on RTC_EXTERNAL
+	select ARCH_HAVE_RTC_SUBSECONDS
 
 config RTC_SONG
 	bool "Song RTC Driver"
