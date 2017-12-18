@@ -1220,6 +1220,38 @@ int up_addrenv_kstackfree(FAR struct tcb_s *tcb);
 #endif
 
 /****************************************************************************
+ * Name: up_addrenv_pa_to_va
+ *
+ * Description:
+ *   Map phy address to virtual address.
+ *
+ * Input Parameters:
+ *   pa - The phy address to be mapped.
+ *
+ * Returned Value:
+ *   Virtual address on success; NULL on failure.
+ *
+ ****************************************************************************/
+
+void *up_addrenv_pa_to_va(uintptr_t pa);
+
+/****************************************************************************
+ * Name: up_addrenv_va_to_pa
+ *
+ * Description:
+ *   Map virtual address to phy address.
+ *
+ * Input Parameters:
+ *   va - The virtual address to be mapped.
+ *
+ * Returned Value:
+ *   Phy address on success; NULL on failure.
+ *
+ ****************************************************************************/
+
+uintptr_t up_addrenv_va_to_pa(void *va);
+
+/****************************************************************************
  * Name: up_shmat
  *
  * Description:
