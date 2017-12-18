@@ -64,10 +64,10 @@
 #define SYSLOG_RPMSG_CHANNEL_NAME       "rpmsg-syslog"
 #define SYSLOG_RPMSG_WORK_DELAY         MSEC2TICK(CONFIG_SYSLOG_RPMSG_WORK_DELAY)
 
-#define SYSLOG_RPMSG_TRANSFER           1
-#define SYSLOG_RPMSG_TRANSFER_DONE      2
-#define SYSLOG_RPMSG_SUSPEND            3
-#define SYSLOG_RPMSG_RESUME             4
+#define SYSLOG_RPMSG_TRANSFER           0
+#define SYSLOG_RPMSG_TRANSFER_DONE      1
+#define SYSLOG_RPMSG_SUSPEND            2
+#define SYSLOG_RPMSG_RESUME             3
 
 #define SYSLOG_RPMSG_COUNT(h, t, size)  ((B2C(h)>=(t)) ? B2C(h)-(t) : (size)-((t)-B2C(h)))
 #define SYSLOG_RPMSG_SPACE(h, t, size)  ((size) - 1 - SYSLOG_RPMSG_COUNT(h, t, size))
@@ -155,6 +155,7 @@ static void syslog_rpmsg_work(void *priv_)
 
   flags = enter_critical_section();
 
+  space  -= sizeof(*msg);
   len     = SYSLOG_RPMSG_COUNT(priv->head, priv->tail, priv->size);
   len_end = priv->size - priv->tail;
 
@@ -257,7 +258,7 @@ static void syslog_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
 
-  if (priv->buffer && priv->cpu_id == rdev->proc.cpu_id)
+  if (priv->buffer && priv->cpu_id == rdev->proc->cpu_id)
     {
       rpmsg_create_channel(rdev, SYSLOG_RPMSG_CHANNEL_NAME);
     }
@@ -268,7 +269,7 @@ static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel)
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->buffer && priv->cpu_id == rdev->proc.cpu_id)
+  if (priv->buffer && priv->cpu_id == rdev->proc->cpu_id)
     {
       priv->channel = channel;
       work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv, SYSLOG_RPMSG_WORK_DELAY);
@@ -280,7 +281,7 @@ static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->buffer && priv->cpu_id == rdev->proc.cpu_id)
+  if (priv->buffer && priv->cpu_id == rdev->proc->cpu_id)
     {
       work_cancel(HPWORK, &priv->work);
       priv->channel = NULL;
