@@ -112,7 +112,7 @@ static inline void song_mbox_modify(const struct song_mbox_config_s *config,
   irqstate_t flags;
   uint32_t regval;
 
-  offset += 4 * bit/32;
+  offset += 4 * (bit/32);
   bit %= 32;
 
   flags   = enter_critical_section();
