@@ -21,6 +21,17 @@ config ONESHOT
 		driver. See include/nuttx/timers/oneshot.h for further oneshot timer
 		driver information.
 
+if ONESHOT
+
+config ALARM_ARCH
+	bool "Alarm Arch Implementation"
+	select ARCH_HAVE_TICKLESS
+	select ARCH_HAVE_TIMEKEEPING
+	---help---
+		Implement alarm arch API on top of oneshot driver interface.
+
+endif # ONESHOT
+
 menuconfig RTC
 	bool "RTC Driver Support"
 	default n
