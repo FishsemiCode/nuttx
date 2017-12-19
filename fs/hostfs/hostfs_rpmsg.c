@@ -59,7 +59,7 @@
 struct hostfs_rpmsg_s
 {
   struct rpmsg_channel *channel;
-  int                  cpu_id;
+  const char           *cpu_name;
 };
 
 struct hostfs_rpmsg_cookie_s
@@ -213,7 +213,7 @@ static void hostfs_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
 
-  if (priv->cpu_id == rdev->proc.cpu_id)
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       rpmsg_create_channel(rdev, HOSTFS_RPMSG_CHANNEL_NAME);
     }
@@ -224,7 +224,7 @@ static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->cpu_id == rdev->proc.cpu_id)
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       priv->channel = channel;
     }
@@ -235,7 +235,7 @@ static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->cpu_id == rdev->proc.cpu_id)
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       priv->channel = NULL;
     }
@@ -735,11 +735,11 @@ int host_stat(const char *path, struct stat *buf)
           (struct hostfs_rpmsg_header_s *)msg, len);
 }
 
-int hostfs_rpmsg_init(int cpu_id)
+int hostfs_rpmsg_init(const char *cpu_name)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
 
-  priv->cpu_id = cpu_id;
+  priv->cpu_name = cpu_name;
 
   return rpmsg_register_callback(
                 HOSTFS_RPMSG_CHANNEL_NAME,

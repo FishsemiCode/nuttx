@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************
  * include/nuttx/rpmsg_rtc.h
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
@@ -31,7 +31,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_TIMERS_RPMSG_RTC_H
 #define __INCLUDE_NUTTX_TIMERS_RPMSG_RTC_H
@@ -55,7 +55,7 @@ extern "C"
 
 #ifdef CONFIG_RPMSG_RTC
 
-int rpmsg_rtc_initialize(int cpu_id);
+int rpmsg_rtc_initialize(const char *cpu_name);
 
 #endif /* CONFIG_RPMSG_RTC */
 

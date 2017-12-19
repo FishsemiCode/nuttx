@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************
  * include/nuttx/serial/uart_rpmsg.h
  * Serial driver for rpmsg UART
  *
@@ -32,7 +32,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_SERIAL_UART_RPMSG_H
 #define __INCLUDE_NUTTX_SERIAL_UART_RPMSG_H
@@ -60,8 +60,7 @@ extern "C"
 #endif
 
 int uart_rpmsg_init(int dev_id, int buf_size,
-        bool isconsole, int cpu_id, int ipc_id, bool master);
-
+        bool isconsole, const char *cpu_name, int ipc_id, bool master);
 
 #undef EXTERN
 #ifdef __cplusplus

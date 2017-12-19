@@ -98,7 +98,7 @@ struct syslog_rpmsg_s
   struct work_s        work;         /* Used for deferred callback work */
 
   struct rpmsg_channel *channel;
-  int                  cpu_id;
+  const char           *cpu_name;
   bool                 suspend;
   bool                 transfer;     /* The transfer flag */
   ssize_t              trans_len;    /* The data length when transfer */
@@ -258,7 +258,7 @@ static void syslog_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
 
-  if (priv->buffer && priv->cpu_id == rdev->proc->cpu_id)
+  if (priv->buffer && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       rpmsg_create_channel(rdev, SYSLOG_RPMSG_CHANNEL_NAME);
     }
@@ -269,7 +269,7 @@ static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel)
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->buffer && priv->cpu_id == rdev->proc->cpu_id)
+  if (priv->buffer && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       priv->channel = channel;
       work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv, SYSLOG_RPMSG_WORK_DELAY);
@@ -281,7 +281,7 @@ static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->buffer && priv->cpu_id == rdev->proc->cpu_id)
+  if (priv->buffer && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       work_cancel(HPWORK, &priv->work);
       priv->channel = NULL;
@@ -365,15 +365,15 @@ int up_putc(int ch)
   return syslog_rpmsg_putc(ch);
 }
 
-int syslog_rpmsg_init_early(int cpu_id, void *buffer, size_t size)
+int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size)
 {
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
   char prev, cur;
   size_t i, j;
 
-  priv->cpu_id = cpu_id;
-  priv->buffer = buffer;
-  priv->size   = size;
+  priv->cpu_name = cpu_name;
+  priv->buffer   = buffer;
+  priv->size     = size;
 
   prev = (priv->buffer[size - 1] >> (CHAR_BIT - 8)) & 0xff;
 

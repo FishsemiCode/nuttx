@@ -93,7 +93,7 @@ struct uart_rpmsg_priv_s
   bool                 registered;
   char                 channel_name[RPMSG_NAME_SIZE];
   int                  dev_id;
-  int                  cpu_id;
+  const char           *cpu_name;
   void                 *recv_data;
   bool                 last_upper;
 };
@@ -309,7 +309,7 @@ static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_)
   struct uart_dev_s *dev = priv_;
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (priv->master && priv->cpu_id == rdev->proc.cpu_id)
+  if (priv->master && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       rpmsg_create_channel(rdev, priv->channel_name);
     }
@@ -394,7 +394,7 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
  ****************************************************************************/
 
 int uart_rpmsg_init(int dev_id, int buf_size,
-        bool isconsole, int cpu_id, int ipc_id, bool master)
+        bool isconsole, const char *cpu_name, int ipc_id, bool master)
 {
   struct uart_rpmsg_priv_s *priv;
   struct uart_dev_s *dev;
@@ -429,11 +429,11 @@ int uart_rpmsg_init(int dev_id, int buf_size,
       goto fail;
     }
 
-  priv->master = master;
-  priv->dev_id = dev_id;
-  priv->cpu_id = cpu_id;
+  priv->master   = master;
+  priv->dev_id   = dev_id;
+  priv->cpu_name = cpu_name;
 
-  dev->priv    = priv;
+  dev->priv = priv;
 
   sprintf(priv->channel_name, "%s%d", UART_RPMSG_CHANNEL_PREFIX, ipc_id);
   ret = rpmsg_register_callback(priv->channel_name, dev,
@@ -457,4 +457,3 @@ fail:
 
   return ret;
 }
-

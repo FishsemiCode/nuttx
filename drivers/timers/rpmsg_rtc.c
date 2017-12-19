@@ -88,7 +88,7 @@ struct rpmsg_rtc_cookie_s
 struct rpmsg_rtc_s
 {
   struct rpmsg_channel *channel;
-  int                  cpu_id;
+  const char           *cpu_name;
   volatile bool        synced;
 };
 
@@ -131,7 +131,7 @@ static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv_)
 {
   struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
 
-  if (priv->cpu_id == rdev->proc.cpu_id)
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       rpmsg_create_channel(rdev, RPMSG_RTC_CHANNEL_NAME);
     }
@@ -142,7 +142,7 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
   struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->cpu_id == rdev->proc.cpu_id)
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       g_rtc_enabled = true;
       priv->channel = channel;
@@ -160,7 +160,7 @@ static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel)
   struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
   struct remote_device *rdev = channel->rdev;
 
-  if (priv->cpu_id == rdev->proc.cpu_id)
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       g_rtc_enabled = false;
       priv->channel = NULL;
@@ -400,18 +400,18 @@ int up_rtc_settime(FAR const struct timespec *tp)
  *   Take remote core RTC as external RTC hardware through rpmsg.
  *
  * Input Parameters:
- *   cpu_id - current cpu id
+ *   cpu_name - current cpu name
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno on failure
  *
  ****************************************************************************/
 
-int rpmsg_rtc_initialize(int cpu_id)
+int rpmsg_rtc_initialize(const char *cpu_name)
 {
   struct rpmsg_rtc_s *priv = &g_rpmsg_rtc;
 
-  priv->cpu_id = cpu_id;
+  priv->cpu_name = cpu_name;
 
   return rpmsg_register_callback(
                 RPMSG_RTC_CHANNEL_NAME,

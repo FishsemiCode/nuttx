@@ -50,7 +50,7 @@ extern "C"
 #endif
 
 #ifdef CONFIG_FS_HOSTFS_RPMSG
-int hostfs_rpmsg_init(int cpu_id);
+int hostfs_rpmsg_init(const char *cpu_name);
 #endif
 
 #ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER

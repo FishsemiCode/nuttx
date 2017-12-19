@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************
  * include/nuttx/syslog/syslog_rpmsg.h
  * Syslog driver for rpmsg syslog
  *
@@ -32,7 +32,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H
 #define __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H
@@ -57,7 +57,7 @@ extern "C"
 #if defined(CONFIG_SYSLOG_RPMSG) || defined(CONFIG_SYSLOG_RPMSG_SERVER)
 
 #ifdef CONFIG_SYSLOG_RPMSG
-int syslog_rpmsg_init_early(int cpu_id, void *buffer, size_t size);
+int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size);
 #endif /* CONFIG_SYSLOG_RPMSG */
 
 int syslog_rpmsg_init(void);
