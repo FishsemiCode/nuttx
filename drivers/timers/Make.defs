@@ -63,6 +63,12 @@ ifeq ($(CONFIG_ALARM_ARCH),y)
   TMRVPATH = :timers
 endif
 
+ifeq ($(CONFIG_ONESHOT_SONG),y)
+  CSRCS += song_oneshot.c
+  TMRDEPPATH = --dep-path timers
+  TMRVPATH = :timers
+endif
+
 ifeq ($(CONFIG_RTC_DSXXXX),y)
   CSRCS += ds3231.c
   TMRDEPPATH = --dep-path timers

@@ -1,5 +1,5 @@
-/****************************************************************************
- * arch/arm/src/song/unicorn_cp.c
+/************************************************************************************
+ * include/nuttx/timers/song_oneshot.h
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -31,78 +31,60 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ************************************************************************************/
+
+#ifndef __INCLUDE_NUTTX_TIMERS_SONG_ONESHOT_H
+#define __INCLUDE_NUTTX_TIMERS_SONG_ONESHOT_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#include <nuttx/timers/arch_alarm.h>
-#include <nuttx/timers/arch_rtc.h>
-#include <nuttx/timers/song_oneshot.h>
-#include <nuttx/timers/song_rtc.h>
-
-#ifdef CONFIG_ARCH_CHIP_UNICORN_CP
+#include <nuttx/timers/oneshot.h>
 
 /****************************************************************************
- * Private Data
+ * Public Types
  ****************************************************************************/
 
-static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+struct song_oneshot_config_s
+{
+  uintptr_t base;
+  uint32_t  irq;
+  uint32_t  c1_max;
+  uint32_t  c1_freq;
+  uint32_t  ctl_off;
+  uint32_t  calib_off;
+  uint32_t  c1_off;
+  uint32_t  c2_off;
+  uint32_t  spec_off;
+  uint32_t  intren_off;
+  uint32_t  intrst_off;
+  uint32_t  intr_bit;
+};
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
 {
-  static const struct song_oneshot_config_s config =
-  {
-    .base       = 0xb0040000,
-    .irq        = 18,
-    .c1_max     = 2048,
-    .c1_freq    = 32768000,
-    .ctl_off    = 0x170,
-    .calib_off  = 0x194,
-    .c1_off     = 0x174,
-    .c2_off     = 0x178,
-    .spec_off   = 0x1a4,
-    .intren_off = 0x12c,
-    .intrst_off = 0x138,
-    .intr_bit   = 0,
-  };
-  FAR struct oneshot_lowerhalf_s *lower;
-
-  lower = song_oneshot_initialize(&config, -1);
-  if (lower)
-    {
-      up_alarm_set_lowerhalf(lower);
-    }
-}
-
-int up_rtc_initialize(void)
-{
-  static const struct song_rtc_config_s config =
-  {
-    .base  = 0xb2020000,
-    .irq   = 16,
-    .index = 0,
-  };
-
-  g_rtc_lower = song_rtc_initialize(&config);
-  if (g_rtc_lower)
-    {
-      up_rtc_set_lowerhalf(g_rtc_lower);
-    }
-
-  return 0;
-}
-
-void up_lateinitialize(void)
-{
-  rtc_initialize(0, g_rtc_lower);
-}
-
+#else
+#define EXTERN extern
 #endif
+
+#ifdef CONFIG_ONESHOT_SONG
+
+FAR struct oneshot_lowerhalf_s *
+song_oneshot_initialize(FAR const struct song_oneshot_config_s *config, int minor);
+
+#endif /* CONFIG_ONESHOT_SONG */
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __INCLUDE_NUTTX_TIMERS_SONG_ONESHOT_H */

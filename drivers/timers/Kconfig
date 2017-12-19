@@ -30,6 +30,10 @@ config ALARM_ARCH
 	---help---
 		Implement alarm arch API on top of oneshot driver interface.
 
+config ONESHOT_SONG
+	bool "Song Oneshot Timer Driver"
+	depends on ARCH_CHIP_SONG
+
 endif # ONESHOT
 
 menuconfig RTC
@@ -279,49 +283,4 @@ config CS2100CP_REGDEBUG
 
 endif # TIMERS_CS2100CP
 
-config TIMERS_SONG
-	bool "Song Timer Driver"
-	depends on ARCH_CHIP_SONG
-	select ARCH_HAVE_TICKLESS
-	select ARCH_HAVE_TIMEKEEPING
-
-if TIMERS_SONG
-
-config TIMERS_SONG_BASE
-	hex "Song Timer base address"
-
-config TIMERS_SONG_CTL_OFFSET
-	hex "Song Timer CTL offset"
-
-config TIMERS_SONG_CALIB_OFFSET
-	hex "Song Timer CALIB offset"
-
-config TIMERS_SONG_C1_OFFSET
-	hex "Song Timer C1 offset"
-
-config TIMERS_SONG_C2_OFFSET
-	hex "Song Timer C2 offset"
-
-config TIMERS_SONG_SPEC_OFFSET
-	hex "Song Timer SPEC offset"
-
-config TIMERS_SONG_INTREN_OFFSET
-	hex "Song Timer INTREN offset"
-
-config TIMERS_SONG_INTRST_OFFSET
-	hex "Song Timer INTRST offset"
-
-config TIMERS_SONG_INTR_BIT
-	int "Song Timer INTREN/INTRST bit"
-
-config TIMERS_SONG_IRQ
-	int "Song Timer IRQ number"
-
-config TIMERS_SONG_C1_MAX
-	int "Song Timer C1 max value"
-
-config TIMERS_SONG_C1_FREQ
-	int "Song Timer C1 update frequence"
-
-endif # TIMERS_SONG
 endmenu  # Timer Driver Support

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/unicorn_cp.c
+ * arch/arm/src/song/banks_sensor.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -40,17 +40,9 @@
 #include <nuttx/config.h>
 
 #include <nuttx/timers/arch_alarm.h>
-#include <nuttx/timers/arch_rtc.h>
 #include <nuttx/timers/song_oneshot.h>
-#include <nuttx/timers/song_rtc.h>
 
-#ifdef CONFIG_ARCH_CHIP_UNICORN_CP
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+#ifdef CONFIG_ARCH_CHIP_BANKS_SENSOR
 
 /****************************************************************************
  * Public Functions
@@ -60,17 +52,17 @@ void arm_timer_initialize(void)
 {
   static const struct song_oneshot_config_s config =
   {
-    .base       = 0xb0040000,
-    .irq        = 18,
-    .c1_max     = 2048,
-    .c1_freq    = 32768000,
+    .base       = 0xf8b14000,
+    .irq        = 21,
+    .c1_max     = 2600,
+    .c1_freq    = 26000000,
     .ctl_off    = 0x170,
     .calib_off  = 0x194,
     .c1_off     = 0x174,
     .c2_off     = 0x178,
     .spec_off   = 0x1a4,
-    .intren_off = 0x12c,
-    .intrst_off = 0x138,
+    .intren_off = 0x138,
+    .intrst_off = 0x13c,
     .intr_bit   = 0,
   };
   FAR struct oneshot_lowerhalf_s *lower;
@@ -80,29 +72,6 @@ void arm_timer_initialize(void)
     {
       up_alarm_set_lowerhalf(lower);
     }
-}
-
-int up_rtc_initialize(void)
-{
-  static const struct song_rtc_config_s config =
-  {
-    .base  = 0xb2020000,
-    .irq   = 16,
-    .index = 0,
-  };
-
-  g_rtc_lower = song_rtc_initialize(&config);
-  if (g_rtc_lower)
-    {
-      up_rtc_set_lowerhalf(g_rtc_lower);
-    }
-
-  return 0;
-}
-
-void up_lateinitialize(void)
-{
-  rtc_initialize(0, g_rtc_lower);
 }
 
 #endif

@@ -39,7 +39,9 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
+#include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
 #ifdef CONFIG_ARCH_CHIP_UNICORN_AP
@@ -53,6 +55,32 @@ static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void arm_timer_initialize(void)
+{
+  static const struct song_oneshot_config_s config =
+  {
+    .base       = 0xb0040000,
+    .irq        = 18,
+    .c1_max     = 2048,
+    .c1_freq    = 32768000,
+    .ctl_off    = 0x170,
+    .calib_off  = 0x194,
+    .c1_off     = 0x174,
+    .c2_off     = 0x178,
+    .spec_off   = 0x1a8,
+    .intren_off = 0x128,
+    .intrst_off = 0x134,
+    .intr_bit   = 1,
+  };
+  FAR struct oneshot_lowerhalf_s *lower;
+
+  lower = song_oneshot_initialize(&config, -1);
+  if (lower)
+    {
+      up_alarm_set_lowerhalf(lower);
+    }
+}
 
 int up_rtc_initialize(void)
 {
