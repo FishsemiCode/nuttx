@@ -54,6 +54,8 @@ struct song_rptun_dev_s
 {
   struct rptun_dev_s               rptun;
   const struct song_rptun_config_s *config;
+  struct mbox_dev_s                *mbox_rx;
+  struct mbox_dev_s                *mbox_tx;
   uint32_t                         count_rx;
   rptun_callback_t                 callback;
   void                             *arg;
@@ -63,6 +65,7 @@ struct song_rptun_dev_s
  * Private Function Prototypes
  ************************************************************************************/
 
+static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev);
 static int song_rptun_get_resource(struct rptun_dev_s *dev,
                                     struct rsc_table_info *rsc, uint32_t *role);
 static int song_rptun_get_sharemem(struct rptun_dev_s *dev,
@@ -80,6 +83,7 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg);
 
 static const struct rptun_ops_s g_song_rptun_ops =
 {
+  .get_cpuname       = song_rptun_get_cpuname,
   .get_resource      = song_rptun_get_resource,
   .get_sharemem      = song_rptun_get_sharemem,
   .notify            = song_rptun_notify,
@@ -90,6 +94,14 @@ static const struct rptun_ops_s g_song_rptun_ops =
 /************************************************************************************
  * Private Functions
  ************************************************************************************/
+
+static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  return config->cpu_name;
+}
 
 static int song_rptun_get_resource(struct rptun_dev_s *dev,
                                     struct rsc_table_info *rsc, uint32_t *role)
@@ -122,11 +134,11 @@ static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid)
 
   if (vqid == RPTUN_NOTIFY_START && config->ch_start_tx >= 0)
     {
-      ret = MBOX_SEND(config->mbox_tx, config->ch_start_tx, 0);
+      ret = MBOX_SEND(priv->mbox_tx, config->ch_start_tx, 0);
     }
   else
     {
-      ret = MBOX_SEND(config->mbox_tx, config->ch_vring_tx, 0);
+      ret = MBOX_SEND(priv->mbox_tx, config->ch_vring_tx, 0);
     }
 
   return ret;
@@ -144,11 +156,11 @@ static int song_rptun_registercallback(struct rptun_dev_s *dev,
 
   if (config->ch_start_rx >= 0)
     {
-      ret |= MBOX_REGISTER_CALLBACK(config->mbox_rx, config->ch_start_rx,
+      ret |= MBOX_REGISTER_CALLBACK(priv->mbox_rx, config->ch_start_rx,
                         callback ? song_rptun_start_isr : NULL, priv);
     }
 
-  ret |= MBOX_REGISTER_CALLBACK(config->mbox_rx, config->ch_vring_rx,
+  ret |= MBOX_REGISTER_CALLBACK(priv->mbox_rx, config->ch_vring_rx,
                     callback ? song_rptun_vring_isr : NULL, priv);
 
   return ret;
@@ -198,7 +210,11 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg)
  * Public Functions
  ************************************************************************************/
 
-struct rptun_dev_s *song_rptun_initialize(const struct song_rptun_config_s *config, int minor)
+struct rptun_dev_s *song_rptun_initialize(
+                const struct song_rptun_config_s *config,
+                struct mbox_dev_s *mbox_rx,
+                struct mbox_dev_s *mbox_tx,
+                int minor)
 {
   struct song_rptun_dev_s *priv;
   int ret;
@@ -211,6 +227,8 @@ struct rptun_dev_s *song_rptun_initialize(const struct song_rptun_config_s *conf
 
   priv->rptun.ops = &g_song_rptun_ops;
   priv->config    = config;
+  priv->mbox_rx   = mbox_rx;
+  priv->mbox_tx   = mbox_tx;
 
   ret = rptun_register((struct rptun_dev_s *)priv, minor);
   if (ret < 0)

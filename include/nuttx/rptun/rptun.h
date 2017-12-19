@@ -57,6 +57,22 @@
 /* Access macros ************************************************************/
 
 /****************************************************************************
+ * Name: RPTUN_GET_CPUNAME
+ *
+ * Description:
+ *   Get remote cpu name
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   Cpu name on success, NULL on failure.
+ *
+ ****************************************************************************/
+
+#define RPTUN_GET_CPUNAME(d) ((d)->ops->get_cpuname(d))
+
+/****************************************************************************
  * Name: RPTUN_GET_RESOURCE
  *
  * Description:
@@ -146,11 +162,12 @@
  * Public Types
  ****************************************************************************/
 
-struct rptun_dev_s;
 typedef int (*rptun_callback_t)(void *arg, uint32_t vqid);
 
+struct rptun_dev_s;
 struct rptun_ops_s
 {
+  const char *(*get_cpuname)(struct rptun_dev_s *dev);
   int (*get_resource)(struct rptun_dev_s *dev,
                     struct rsc_table_info *rsc, uint32_t *role);
   int (*get_sharemem)(struct rptun_dev_s *dev, struct proc_shm *shm);
