@@ -65,6 +65,8 @@ extern "C"
  * Public Functions
  ****************************************************************************/
 
+void board_lateinitialize(void);
+
 #undef EXTERN
 #ifdef __cplusplus
 }

@@ -34,7 +34,4 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
-
-CSRCS += song_boot.c
-
 include $(TOPDIR)/configs/Board.mk

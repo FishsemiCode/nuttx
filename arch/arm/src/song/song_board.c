@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/unicorn/src/song_boot.c
+ * configs/banks/src/song_board.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -59,7 +59,6 @@
  ****************************************************************************/
 
 #ifdef CONFIG_BOARD_INITIALIZE
-#ifdef CONFIG_HAVE_WEAKFUNCTIONS
 void weak_function up_lateinitialize(void)
 {
 }
@@ -67,10 +66,6 @@ void weak_function up_lateinitialize(void)
 void weak_function board_lateinitialize(void)
 {
 }
-#else
-void up_lateinitialize(void);
-void board_lateinitialize(void);
-#endif
 
 void board_initialize(void)
 {

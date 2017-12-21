@@ -67,7 +67,8 @@ CMN_CSRCS += up_systemreset.c up_unblocktask.c up_vectors.c
 #
 CHIP_CSRCS += arm_cache.c arm_fpu.c arm_mpu.c arm_nvic.c
 CHIP_CSRCS += banks_sensor.c banks_rpm.c
-CHIP_CSRCS += song_addrenv.c song_heap.c song_icache.c song_idle.c song_start.c
+CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
+CHIP_CSRCS += song_icache.c song_idle.c song_start.c
 CHIP_CSRCS += unicorn_ap.c unicorn_cp.c unicorn_sp.c
 
 CHIP_UCSRCS += song_userspace.c
