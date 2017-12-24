@@ -128,11 +128,6 @@ static inline void up_disable_icache(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_ICACHE
@@ -224,11 +219,6 @@ static inline void up_disable_dcache(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_DCACHE
@@ -275,11 +265,6 @@ static inline void up_invalidate_dcache_all(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_DCACHE
@@ -302,11 +287,6 @@ static inline void up_clean_dcache(uintptr_t start, uintptr_t end)
  *
  * Returned Value:
  *   None
- *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
  *
  ****************************************************************************/
 
@@ -332,11 +312,6 @@ static inline void up_clean_dcache_all(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_DCACHE
@@ -358,11 +333,6 @@ static inline void up_flush_dcache(uintptr_t start, uintptr_t end)
  *
  * Returned Value:
  *   None
- *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
  *
  ****************************************************************************/
 

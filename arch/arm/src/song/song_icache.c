@@ -116,11 +116,6 @@ void up_disable_icache(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 void up_invalidate_icache(uintptr_t start, uintptr_t end)

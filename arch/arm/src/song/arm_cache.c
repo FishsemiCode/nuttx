@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/irq.h>
 
 #include "cache.h"
 #include "chip.h"
@@ -101,11 +102,6 @@ void up_disable_icache(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_ICACHE
@@ -113,7 +109,7 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end)
 {
   /* Just can invalidate the entire cache */
 
-  arch_invalidate_icache_all();
+  up_invalidate_icache_all();
 }
 #endif
 
@@ -134,7 +130,11 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end)
 #ifdef CONFIG_ARMV7M_ICACHE
 void up_invalidate_icache_all(void)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_invalidate_icache_all();
+  up_irq_restore(flags);
 }
 #endif
 
@@ -195,17 +195,16 @@ void up_disable_dcache(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_DCACHE
 void up_invalidate_dcache(uintptr_t start, uintptr_t end)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_invalidate_dcache(start, end);
+  up_irq_restore(flags);
 }
 #endif
 
@@ -226,7 +225,11 @@ void up_invalidate_dcache(uintptr_t start, uintptr_t end)
 #ifdef CONFIG_ARMV7M_DCACHE
 void up_invalidate_dcache_all(void)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_invalidate_dcache_all();
+  up_irq_restore(flags);
 }
 #endif
 
@@ -244,17 +247,16 @@ void up_invalidate_dcache_all(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_DCACHE
 void up_clean_dcache(uintptr_t start, uintptr_t end)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_clean_dcache(start, end);
+  up_irq_restore(flags);
 }
 #endif
 
@@ -271,17 +273,16 @@ void up_clean_dcache(uintptr_t start, uintptr_t end)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_DCACHE
 void up_clean_dcache_all(void)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_clean_dcache_all();
+  up_irq_restore(flags);
 }
 #endif
 
@@ -299,17 +300,16 @@ void up_clean_dcache_all(void)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_DCACHE
 void up_flush_dcache(uintptr_t start, uintptr_t end)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_flush_dcache(start, end);
+  up_irq_restore(flags);
 }
 #endif
 
@@ -325,17 +325,16 @@ void up_flush_dcache(uintptr_t start, uintptr_t end)
  * Returned Value:
  *   None
  *
- * Assumptions:
- *   This operation is not atomic.  This function assumes that the caller
- *   has exclusive access to the address range so that no harm is done if
- *   the operation is pre-empted.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_DCACHE
 void up_flush_dcache_all(void)
 {
+  irqstate_t flags;
+
+  flags = up_irq_save();
   arch_flush_dcache_all();
+  up_irq_restore(flags);
 }
 #endif
 
@@ -361,11 +360,8 @@ void up_flush_dcache_all(void)
 #  if defined(CONFIG_ARMV7M_ICACHE) || defined(CONFIG_ARMV7M_DCACHE)
 void up_coherent_dcache(uintptr_t addr, size_t len)
 {
-  arch_clean_dcache(addr, addr + len);
-
-  /* Just can invalidate the entire icache */
-
-  arch_invalidate_icache_all();
+  up_clean_dcache(addr, addr + len);
+  up_invalidate_icache(addr, addr + len);
 }
 #  endif
 #endif
