@@ -129,6 +129,10 @@ ifeq ($(CONFIG_HAVE_CXX),y)
 NUTTXLIBS += lib$(DELIM)libcxx$(LIBEXT)
 endif
 
+ifeq ($(CONFIG_OPENAMP),y)
+NUTTXLIBS += lib$(DELIM)libopenamp$(LIBEXT)
+endif
+
 # Export only the user libraries
 
 EXPORTLIBS = $(USERLIBS)

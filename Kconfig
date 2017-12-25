@@ -1685,6 +1685,10 @@ source libc/Kconfig
 source libxx/Kconfig
 endmenu
 
+menu "Open Asymmetric Multi Processing"
+source openamp/Kconfig
+endmenu
+
 menu "Application Configuration"
 source "$APPSDIR/Kconfig"
 endmenu

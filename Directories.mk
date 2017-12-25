@@ -137,6 +137,10 @@ else
 OTHERDIRS += wireless
 endif
 
+ifeq ($(CONFIG_OPENAMP),y)
+NONFSDIRS += openamp
+endif
+
 # CLEANDIRS are the directories that will clean in.  These are
 #   all directories that we know about.
 # KERNDEPDIRS are the directories in which we will build target dependencies.

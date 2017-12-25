@@ -130,6 +130,12 @@ $(ARCH_SRC)$(DELIM)libarch$(LIBEXT): context
 lib$(DELIM)libarch$(LIBEXT): $(ARCH_SRC)$(DELIM)libarch$(LIBEXT)
 	$(Q) install $(ARCH_SRC)$(DELIM)libarch$(LIBEXT) lib$(DELIM)libarch$(LIBEXT)
 
+openamp$(DELIM)libopenamp$(LIBEXT): context
+	$(Q) $(MAKE) -C openamp TOPDIR="$(TOPDIR)" libopenamp$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+
+lib$(DELIM)libopenamp$(LIBEXT): openamp$(DELIM)libopenamp$(LIBEXT)
+	$(Q) install openamp$(DELIM)libopenamp$(LIBEXT) lib$(DELIM)libopenamp$(LIBEXT)
+
 # Special case
 
 syscall$(DELIM)libstubs$(LIBEXT): context
