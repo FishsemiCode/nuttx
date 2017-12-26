@@ -129,7 +129,8 @@ static void hostfs_rpmsg_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie = (struct hostfs_rpmsg_cookie_s *)header->cookie;
+  struct hostfs_rpmsg_cookie_s *cookie =
+      (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
 
   cookie->result = header->result;
 
@@ -145,7 +146,8 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie = (struct hostfs_rpmsg_cookie_s *)header->cookie;
+  struct hostfs_rpmsg_cookie_s *cookie =
+      (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
   struct hostfs_rpmsg_read_s *recv = data;
 
   cookie->result = header->result;
@@ -162,7 +164,8 @@ static void hostfs_rpmsg_opendir_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie = (struct hostfs_rpmsg_cookie_s *)header->cookie;
+  struct hostfs_rpmsg_cookie_s *cookie =
+      (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
   struct hostfs_rpmsg_opendir_s *recv = data;
 
   cookie->result = header->result;
@@ -179,7 +182,8 @@ static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie = (struct hostfs_rpmsg_cookie_s *)header->cookie;
+  struct hostfs_rpmsg_cookie_s *cookie =
+      (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
   struct hostfs_rpmsg_statfs_s *recv = data;
 
   cookie->result = header->result;
@@ -196,7 +200,8 @@ static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie = (struct hostfs_rpmsg_cookie_s *)header->cookie;
+  struct hostfs_rpmsg_cookie_s *cookie =
+      (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
   struct hostfs_rpmsg_stat_s *recv = data;
 
   cookie->result = header->result;
@@ -257,9 +262,10 @@ static int hostfs_msg_send_recv(uint32_t command, bool copy, void *privdata,
                 struct hostfs_rpmsg_header_s *msg, int len)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct hostfs_rpmsg_cookie_s cookie = {0};
+  struct hostfs_rpmsg_cookie_s cookie;
   int ret;
 
+  memset(&cookie, 0, sizeof(cookie));
   nxsem_init(&cookie.sem, 0, 0);
   nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
 
@@ -677,12 +683,12 @@ int host_rename(const char *oldpath, const char *newpath)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_rename_s *msg;
+  size_t len, oldlen;
   uint32_t space;
-  size_t len;
 
-  len  = sizeof(*msg);
-  len += B2C(strlen(oldpath) + 1);
-  len += B2C(strlen(newpath) + 1);
+  len     = sizeof(*msg);
+  oldlen  = B2C((strlen(oldpath) + 1 + 0x7) & ~0x7);
+  len    += oldlen + B2C(strlen(newpath) + 1);
 
   space = rpmsg_get_buffer_size(priv->channel);
   if (len > space)
@@ -699,7 +705,7 @@ int host_rename(const char *oldpath, const char *newpath)
   memset(msg, 0, sizeof(*msg));
 
   cstr2bstr(msg->pathname, oldpath);
-  cstr2bstr(msg->pathname + B2C(strlen(oldpath) + 1), newpath);
+  cstr2bstr(msg->pathname + oldlen, newpath);
 
   return hostfs_msg_send_recv(HOSTFS_RPMSG_RENAME, false, NULL,
           (struct hostfs_rpmsg_header_s *)msg, len);

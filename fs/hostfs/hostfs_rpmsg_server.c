@@ -527,13 +527,11 @@ static void hostfs_rpmsg_rename_handler(struct rpmsg_channel *channel,
 {
   struct hostfs_rpmsg_rename_s *msg = data;
   char *newpath;
+  size_t oldlen;
   int ret;
 
-  newpath = msg->pathname + strlen(msg->pathname) + 1;
-  if (newpath[0] == 0)
-    {
-      newpath += 1;
-    }
+  oldlen = (strlen(msg->pathname) + 1 + 0x7) & ~0x7;
+  newpath = msg->pathname + oldlen;
 
   ret = rename(msg->pathname, newpath);
 
