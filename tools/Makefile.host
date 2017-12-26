@@ -65,14 +65,24 @@ HOSTEXEEXT ?= .exe
 endif
 endif
 
+KCONFIG_CFLAGS += $(filter-out -Wshadow,$(HOSTCFLAGS))
+KCONFIG_CFLAGS += -DHAVE_CONFIG_H
+KCONFIG_CFLAGS += -DROOTMENU=\"Configuration\"
+KCONFIG_CFLAGS += -DCURSES_LOC=\"ncurses.h\"
+KCONFIG_CFLAGS += -DGPERF_LEN_TYPE='unsigned int'
+KCONFIG_CFLAGS += -Ikconfig-frontends/include
+KCONFIG_CFLAGS += -Ikconfig-frontends/libs
+KCONFIG_CFLAGS += -Ikconfig-frontends/libs/parser
+
 # Targets
 
 all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
     configure$(HOSTEXEEXT) mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) \
     mksymtab$(HOSTEXEEXT)  mksyscall$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) \
-    cnvwindeps$(HOSTEXEEXT) nxstyle$(HOSTEXEEXT) initialconfig$(HOSTEXEEXT)
+    cnvwindeps$(HOSTEXEEXT) nxstyle$(HOSTEXEEXT) initialconfig$(HOSTEXEEXT) \
+    kconfig-conf$(HOSTEXEEXT) kconfig-mconf$(HOSTEXEEXT)
 default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) \
-    cnvwindeps$(HOSTEXEEXT)
+    cnvwindeps$(HOSTEXEEXT) kconfig-conf$(HOSTEXEEXT) kconfig-mconf$(HOSTEXEEXT)
 
 ifdef HOSTEXEEXT
 .PHONY: b16 bdf-converter cmpconfig clean configure kconfig2html mkconfig \
@@ -199,6 +209,28 @@ mkdeps$(HOSTEXEEXT): mkdeps.c csvparser.c
 
 ifdef HOSTEXEEXT
 mkdeps: mkdeps$(HOSTEXEEXT)
+endif
+
+kconfig-conf$(HOSTEXEEXT): kconfig-frontends/libs/parser/yconf.c \
+                           kconfig-frontends/frontends/conf/conf.c
+	$(Q) $(HOSTCC) $(KCONFIG_CFLAGS) -o $@ $^
+
+ifdef HOSTEXEEXT
+kconfig-conf: kconfig-conf$(HOSTEXEEXT)
+endif
+
+kconfig-mconf$(HOSTEXEEXT): kconfig-frontends/libs/parser/yconf.c \
+                            kconfig-frontends/libs/lxdialog/checklist.c \
+                            kconfig-frontends/libs/lxdialog/inputbox.c \
+                            kconfig-frontends/libs/lxdialog/menubox.c \
+                            kconfig-frontends/libs/lxdialog/textbox.c \
+                            kconfig-frontends/libs/lxdialog/util.c \
+                            kconfig-frontends/libs/lxdialog/yesno.c \
+                            kconfig-frontends/frontends/mconf/mconf.c
+	$(Q) $(HOSTCC) $(KCONFIG_CFLAGS) -o $@ $^ -lncurses
+
+ifdef HOSTEXEEXT
+kconfig-mconf: kconfig-mconf$(HOSTEXEEXT)
 endif
 
 clean:

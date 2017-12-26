@@ -485,40 +485,46 @@ pass2dep: context tools/mkdeps$(HOSTEXEEXT) tools/cnvwindeps$(HOSTEXEEXT)
 # location: http://ymorin.is-a-geek.org/projects/kconfig-frontends.  See
 # README.txt file in the NuttX tools GIT repository for additional information.
 
-do_config: dirlinks apps_preconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-conf Kconfig
+tools/kconfig-conf$(HOSTEXEEXT):
+	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)" kconfig-conf$(HOSTEXEEXT)
+
+tools/kconfig-mconf$(HOSTEXEEXT):
+	$(Q) $(MAKE) -C tools -f Makefile.host TOPDIR="$(TOPDIR)" kconfig-mconf$(HOSTEXEEXT)
+
+do_config: dirlinks apps_preconfig tools/kconfig-conf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-conf$(HOSTEXEEXT) Kconfig
 
 config: do_config clean_context
 
-do_oldconfig: dirlinks apps_preconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-conf --oldconfig Kconfig
+do_oldconfig: dirlinks apps_preconfig tools/kconfig-conf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-conf$(HOSTEXEEXT) --oldconfig Kconfig
 
 oldconfig: do_oldconfig clean_context
 
-do_olddefconfig: dirlinks apps_preconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-conf --olddefconfig Kconfig
+do_olddefconfig: dirlinks apps_preconfig tools/kconfig-conf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-conf$(HOSTEXEEXT) --olddefconfig Kconfig
 
 olddefconfig: do_olddefconfig clean_context
 
-do_menuconfig: dirlinks apps_preconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-mconf Kconfig
+do_menuconfig: dirlinks apps_preconfig tools/kconfig-mconf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-mconf$(HOSTEXEEXT) Kconfig
 
 menuconfig: do_menuconfig clean_context
 
-do_qconfig: dirlinks apps_preconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-qconf Kconfig
+do_qconfig: dirlinks apps_preconfig tools/kconfig-qconf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-qconf$(HOSTEXEEXT) Kconfig
 
 qconfig: do_qconfig clean_context
 
-do_gconfig: dirlinks apps_preconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-gconf Kconfig
+do_gconfig: dirlinks apps_preconfig tools/kconfig-gconf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-gconf$(HOSTEXEEXT) Kconfig
 
 gconfig: do_gconfig clean_context
 
 do_savedefconfig: dirlinks apps_preconfig
 
-savedefconfig: do_savedefconfig
-	$(Q) APPSDIR=${CONFIG_APPS_DIR} kconfig-conf --savedefconfig defconfig.tmp Kconfig
+savedefconfig: do_savedefconfig tools/kconfig-conf$(HOSTEXEEXT)
+	$(Q) APPSDIR=${CONFIG_APPS_DIR} tools/kconfig-conf$(HOSTEXEEXT) --savedefconfig defconfig.tmp Kconfig
 	$(Q) sed -i -e "/CONFIG_APPS_DIR=/d" defconfig.tmp
 	$(Q) grep "CONFIG_ARCH=" .config >> defconfig.tmp
 	-$(Q) grep "^CONFIG_ARCH_CHIP_" .config >> defconfig.tmp
