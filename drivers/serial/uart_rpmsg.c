@@ -89,8 +89,7 @@ begin_packed_struct struct uart_rpmsg_wakeup_s
 struct uart_rpmsg_priv_s
 {
   struct rpmsg_channel *channel;
-  bool                 master;
-  bool                 registered;
+  bool                 server;
   char                 channel_name[RPMSG_NAME_SIZE];
   int                  dev_id;
   const char           *cpu_name;
@@ -186,7 +185,10 @@ static bool uart_rpmsg_rxflowcontrol(FAR struct uart_dev_s *dev,
       memset(&msg, 0, sizeof(msg));
 
       msg.header.command = UART_RPMSG_TTY_WAKEUP;
-      rpmsg_send(priv->channel, &msg, sizeof(msg));
+      if (priv->channel)
+        {
+          rpmsg_send(priv->channel, &msg, sizeof(msg));
+        }
     }
 
   priv->last_upper = upper;
@@ -200,6 +202,11 @@ static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev)
   struct uart_rpmsg_write_s *msg;
   size_t len = xfer->length + xfer->nlength;
   uint32_t space;
+
+  if (!priv->channel)
+    {
+      return;
+    }
 
   msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
   if (!msg)
@@ -309,7 +316,7 @@ static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_)
   struct uart_dev_s *dev = priv_;
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (priv->master && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (!priv->server && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
       rpmsg_create_channel(rdev, priv->channel_name);
     }
@@ -319,25 +326,12 @@ static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
   struct uart_dev_s *dev = rpmsg_get_callback_privdata(channel->name);
   struct uart_rpmsg_priv_s *priv = dev->priv;
-  char dev_name[32];
 
   priv->channel = channel;
   rpmsg_set_privdata(channel, dev);
 
-  if (!priv->registered)
-    {
-      sprintf(dev_name, "%s%d", UART_RPMSG_DEV_PREFIX, priv->dev_id);
-      uart_register(dev_name, dev);
-
-      if (dev->isconsole)
-        {
-          uart_register(UART_RPMSG_DEV_CONSOLE, dev);
-        }
-
-      priv->registered = true;
-    }
-
   uart_connected(dev, true);
+  uart_xmitchars_dma(dev);
 }
 
 static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
@@ -394,10 +388,11 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
  ****************************************************************************/
 
 int uart_rpmsg_init(int dev_id, int buf_size,
-        bool isconsole, const char *cpu_name, int ipc_id, bool master)
+        bool isconsole, const char *cpu_name, int ipc_id, bool server)
 {
   struct uart_rpmsg_priv_s *priv;
   struct uart_dev_s *dev;
+  char dev_name[32];
   int ret = -ENOMEM;
 
   dev = kmm_zalloc(sizeof(struct uart_dev_s));
@@ -429,7 +424,7 @@ int uart_rpmsg_init(int dev_id, int buf_size,
       goto fail;
     }
 
-  priv->master   = master;
+  priv->server   = server;
   priv->dev_id   = dev_id;
   priv->cpu_name = cpu_name;
 
@@ -445,6 +440,14 @@ int uart_rpmsg_init(int dev_id, int buf_size,
   if (ret < 0)
     {
       goto fail;
+    }
+
+  sprintf(dev_name, "%s%d", UART_RPMSG_DEV_PREFIX, priv->dev_id);
+  uart_register(dev_name, dev);
+
+  if (dev->isconsole)
+    {
+      uart_register(UART_RPMSG_DEV_CONSOLE, dev);
     }
 
   return OK;
