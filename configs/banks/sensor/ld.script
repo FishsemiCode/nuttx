@@ -36,7 +36,7 @@
 MEMORY
 {
 	iram (rwx) : ORIGIN = 0x00000000, LENGTH = 586K
-	dram (rwx) : ORIGIN = 0x20000000, LENGTH = 700K /* 704-4 */
+	dram (rwx) : ORIGIN = 0x20000000, LENGTH = 696K /* 704-8 */
 }
 
 OUTPUT_ARCH(arm)
@@ -96,7 +96,10 @@ SECTIONS
 		_ebss = ABSOLUTE(.);
 	} > dram
 
-	_eheap = ORIGIN(dram) + LENGTH(dram);
+	_eheap = _slog;
+	_slog = _elog - _logsize;
+	_elog = ORIGIN(dram) + LENGTH(dram);
+	_logsize = 4096;
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }

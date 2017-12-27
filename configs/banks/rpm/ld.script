@@ -92,7 +92,10 @@ SECTIONS
 		_ebss = ABSOLUTE(.);
 	} > sram
 
-	_eheap = ORIGIN(sram) + LENGTH(sram);
+	_eheap = _slog;
+	_slog = _elog - _logsize;
+	_elog = ORIGIN(sram) + LENGTH(sram);
+	_logsize = 4096;
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
