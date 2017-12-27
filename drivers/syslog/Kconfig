@@ -199,7 +199,9 @@ config SYSLOG_FILE
 config SYSLOG_RPMSG
 	bool "Use RPMSG for SYSLOG"
 	default n
+	depends on OPENAMP
 	select SCHED_HPWORK
+	select SYSLOG_NONE
 	---help---
 		Use the rpmsg as a SYSLOG output device, send message to remote proc.
 

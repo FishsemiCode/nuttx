@@ -477,6 +477,7 @@ config MCU_SERIAL
 config RPMSG_UART
 	bool "UART rpmsg support"
 	default n
+	depends on OPENAMP
 	select SERIAL_DMA
 	select SERIAL_REMOVABLE
 	select SERIAL_IFLOWCONTROL
