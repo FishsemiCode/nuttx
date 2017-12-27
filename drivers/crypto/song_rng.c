@@ -62,9 +62,9 @@
 
 struct song_rng_s
 {
-  volatile uint32_t ctrl;
-  volatile uint32_t skip[35];
-  volatile uint32_t data[8];
+  volatile uint32_t CTRL;
+  volatile uint32_t SKIP[35];
+  volatile uint32_t DATA[8];
 };
 
 /****************************************************************************
@@ -154,7 +154,7 @@ static int song_rng_poll(FAR struct file *filep, FAR struct pollfd *fds,
 #ifdef CONFIG_DEV_RANDOM
 void devrandom_register(void)
 {
-  g_song_rng->ctrl |= SONG_RNG_STOP; /* Ensure the hardware stop */
+  g_song_rng->CTRL |= SONG_RNG_STOP; /* Ensure the hardware stop */
   register_driver("/dev/random", &g_song_rng_fops, 0444, NULL);
 }
 #endif
@@ -171,7 +171,7 @@ void devrandom_register(void)
 void devurandom_register(void)
 {
 #ifndef CONFIG_DEV_RANDOM
-  g_song_rng->ctrl |= SONG_RNG_STOP; /* Ensure the hardware stop */
+  g_song_rng->CTRL |= SONG_RNG_STOP; /* Ensure the hardware stop */
 #endif
   register_driver("/dev/urandom", &g_song_rng_fops, 0444, NULL);
 }
@@ -202,10 +202,10 @@ void getrandom(FAR void *bytes, size_t nbytes)
   while (nxsem_wait(&g_song_rng_sem) != 0)
     ; /* Ignore -EINTR error */
 
-  g_song_rng->ctrl &= ~SONG_RNG_STOP;
+  g_song_rng->CTRL &= ~SONG_RNG_STOP;
   while (nbytes > 0)
     {
-      size_t copied = sizeof(g_song_rng->data);
+      size_t copied = sizeof(g_song_rng->DATA);
 
       if (copied > nbytes)
         {
@@ -213,12 +213,12 @@ void getrandom(FAR void *bytes, size_t nbytes)
         }
 
       up_udelay(31); /* Wait one 32KHz before copy */
-      memcpy(bytes, (FAR void *)g_song_rng->data, copied);
+      memcpy(bytes, (FAR void *)g_song_rng->DATA, copied);
 
       bytes  += copied;
       nbytes -= copied;
     }
-  g_song_rng->ctrl |= SONG_RNG_STOP;
+  g_song_rng->CTRL |= SONG_RNG_STOP;
 
   nxsem_post(&g_song_rng_sem);
 }

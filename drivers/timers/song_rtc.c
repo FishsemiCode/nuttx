@@ -50,28 +50,28 @@
 
 struct song_rtc_alarm_s
 {
-  volatile uint32_t int_status;
-  volatile uint32_t int_mask;
-  volatile uint32_t int_en;
-  volatile uint32_t cnt_lo;
-  volatile uint32_t cnt_hi;
-  volatile uint32_t int_update;
-  volatile uint32_t reserved[10];
+  volatile uint32_t INT_STATUS;
+  volatile uint32_t INT_MASK;
+  volatile uint32_t INT_EN;
+  volatile uint32_t CNT_LO;
+  volatile uint32_t CNT_HI;
+  volatile uint32_t INT_UPDATE;
+  volatile uint32_t RESERVED[10];
 };
 
 struct song_rtc_s
 {
-  volatile uint32_t set_cnt1;
-  volatile uint32_t set_cnt2;
-  volatile uint32_t set_update;
-  volatile uint32_t reserved0;
-  volatile uint32_t set_cyc;
-  volatile uint32_t set_clk32k_adj;
-  volatile uint32_t cali_update;
-  volatile uint32_t time_valid;
-  volatile uint32_t rtc_ctl;
-  volatile uint32_t reserved1[7];
-  struct song_rtc_alarm_s alarm[];
+  volatile uint32_t SET_CNT1;
+  volatile uint32_t SET_CNT2;
+  volatile uint32_t SET_UPDATE;
+  volatile uint32_t RESERVED0;
+  volatile uint32_t SET_CYC;
+  volatile uint32_t SET_CLK32K_ADJ;
+  volatile uint32_t CALI_UPDATE;
+  volatile uint32_t TIME_VALID;
+  volatile uint32_t RTC_CTL;
+  volatile uint32_t RESERVED1[7];
+  struct song_rtc_alarm_s ALARM[];
 };
 
 /* This is the private type for the RTC state. It must be cast compatible
@@ -173,10 +173,10 @@ static int song_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
 
   do
     {
-      cnt2 = base->set_cnt2;
-      cnt1 = base->set_cnt1;
+      cnt2 = base->SET_CNT2;
+      cnt1 = base->SET_CNT1;
     }
-  while (cnt2 != base->set_cnt2);
+  while (cnt2 != base->SET_CNT2);
 
   gmtime_r(&cnt2, (FAR struct tm *)rtctime);
   rtctime->tm_nsec = song_rtc_cnt2nsec(cnt1);
@@ -196,10 +196,10 @@ static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
   cnt1 = song_rtc_nsec2cnt(rtctime->tm_nsec);
 
   flags = enter_critical_section();
-  base->set_cnt2   = cnt2;
-  base->set_cnt1   = cnt1;
-  base->set_update = 1; /* Trigger the update */
-  base->time_valid = 1; /* Mark the change */
+  base->SET_CNT2   = cnt2;
+  base->SET_CNT1   = cnt1;
+  base->SET_UPDATE = 1; /* Trigger the update */
+  base->TIME_VALID = 1; /* Mark the change */
   leave_critical_section(flags);
 
   return 0;
@@ -210,7 +210,7 @@ static bool song_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower_)
   FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
   FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
 
-  return base->time_valid != 0;
+  return base->TIME_VALID != 0;
 }
 
 #ifdef CONFIG_RTC_ALARM
@@ -232,7 +232,7 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
 {
   FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
   FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
-  FAR struct song_rtc_alarm_s *alarm = &base->alarm[lower->config->index];
+  FAR struct song_rtc_alarm_s *alarm = &base->ALARM[lower->config->index];
   uint32_t cnt_hi, cnt_lo;
   irqstate_t flags;
   bool first_alarm;
@@ -244,10 +244,10 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   first_alarm       = !!lower->cb;
   lower->cb         = alarminfo->cb;
   lower->priv       = alarminfo->priv;
-  alarm->cnt_hi     = cnt_hi;
-  alarm->cnt_lo     = cnt_lo;
-  alarm->int_update = 1; /* Trigger the update */
-  alarm->int_en     = 1; /* Then enable interrupt */
+  alarm->CNT_HI     = cnt_hi;
+  alarm->CNT_LO     = cnt_lo;
+  alarm->INT_UPDATE = 1; /* Trigger the update */
+  alarm->INT_EN     = 1; /* Then enable interrupt */
   leave_critical_section(flags);
 
   if (first_alarm)
@@ -282,12 +282,12 @@ static int song_rtc_cancelalarm(FAR struct rtc_lowerhalf_s *lower_,
 {
   FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
   FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
-  FAR struct song_rtc_alarm_s *alarm = &base->alarm[lower->config->index];
+  FAR struct song_rtc_alarm_s *alarm = &base->ALARM[lower->config->index];
   irqstate_t flags;
 
   flags = enter_critical_section();
-  alarm->int_en     = 0; /* Disable interrupt first */
-  alarm->int_status = 1; /* Clear the request */
+  alarm->INT_EN     = 0; /* Disable interrupt first */
+  alarm->INT_STATUS = 1; /* Clear the request */
   leave_critical_section(flags);
 
   return 0;
@@ -298,13 +298,13 @@ static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
 {
   FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
   FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
-  FAR struct song_rtc_alarm_s *alarm = &base->alarm[lower->config->index];
+  FAR struct song_rtc_alarm_s *alarm = &base->ALARM[lower->config->index];
   uint32_t cnt_hi, cnt_lo;
   irqstate_t flags;
 
   flags = enter_critical_section();
-  cnt_hi = alarm->cnt_hi;
-  cnt_lo = alarm->cnt_lo;
+  cnt_hi = alarm->CNT_HI;
+  cnt_lo = alarm->CNT_LO;
   leave_critical_section(flags);
 
   gmtime_r(&cnt_hi, (FAR struct tm *)alarminfo->time);

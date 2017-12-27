@@ -61,11 +61,11 @@
 
 struct dw_timer_s
 {
-  volatile uint32_t load_count;
-  volatile uint32_t current_value;
-  volatile uint32_t control;
-  volatile uint32_t eoi;
-  volatile uint32_t int_status;
+  volatile uint32_t LOAD_COUNT;
+  volatile uint32_t CURRENT_VALUE;
+  volatile uint32_t CONTROL;
+  volatile uint32_t EOI;
+  volatile uint32_t INT_STATUS;
 };
 
 /* This structure provides the private representation of the "lower-half"
@@ -133,7 +133,7 @@ static int dw_timer_start(FAR struct timer_lowerhalf_s *lower_)
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
   irqstate_t flags = enter_critical_section();
-  lower->tim->control |= DW_TIMER_ENABLE;
+  lower->tim->CONTROL |= DW_TIMER_ENABLE;
   leave_critical_section(flags);
 
   return 0;
@@ -144,8 +144,8 @@ static int dw_timer_stop(struct timer_lowerhalf_s *lower_)
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
   irqstate_t flags = enter_critical_section();
-  lower->tim->control &= ~DW_TIMER_ENABLE;
-  lower->tim->eoi; /* Read to clear interrupt */
+  lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
+  lower->tim->EOI; /* Read to clear interrupt */
   leave_critical_section(flags);
 
   return 0;
@@ -158,9 +158,9 @@ static int dw_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
 
   irqstate_t flags = enter_critical_section();
   status->flags  = lower->callback != NULL ? TCFLAGS_HANDLER : 0;
-  status->flags |= lower->tim->control & DW_TIMER_ENABLE ? TCFLAGS_ACTIVE : 0;
-  status->timeout = usec_from_count(lower->tim->load_count, lower->freq);
-  status->timeleft = usec_from_count(lower->tim->current_value, lower->freq);
+  status->flags |= lower->tim->CONTROL & DW_TIMER_ENABLE ? TCFLAGS_ACTIVE : 0;
+  status->timeout = usec_from_count(lower->tim->LOAD_COUNT, lower->freq);
+  status->timeleft = usec_from_count(lower->tim->CURRENT_VALUE, lower->freq);
   leave_critical_section(flags);
 
   return 0;
@@ -181,17 +181,17 @@ static int dw_timer_settimeout(FAR struct timer_lowerhalf_s *lower_,
 
       *lower->next_interval = timeout;
     }
-  else if (load_count != lower->tim->current_value)
+  else if (load_count != lower->tim->CURRENT_VALUE)
     {
-      if (lower->tim->control & DW_TIMER_ENABLE)
+      if (lower->tim->CONTROL & DW_TIMER_ENABLE)
         {
-          lower->tim->control &= ~DW_TIMER_ENABLE;
-          lower->tim->load_count = load_count;
-          lower->tim->control |= DW_TIMER_ENABLE;
+          lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
+          lower->tim->LOAD_COUNT = load_count;
+          lower->tim->CONTROL |= DW_TIMER_ENABLE;
         }
       else
         {
-          lower->tim->load_count = load_count;
+          lower->tim->LOAD_COUNT = load_count;
         }
     }
   leave_critical_section(flags);
@@ -232,11 +232,11 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct dw_timer_lowerhalf_s *lower = arg;
 
-  if (lower->callback && (lower->tim->control & DW_TIMER_ENABLE))
+  if (lower->callback && (lower->tim->CONTROL & DW_TIMER_ENABLE))
     {
       uint32_t interval, next_interval;
 
-      interval = usec_from_count(lower->tim->load_count, lower->freq);
+      interval = usec_from_count(lower->tim->LOAD_COUNT, lower->freq);
       next_interval = interval;
 
       lower->next_interval = &next_interval;
@@ -247,20 +247,20 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
               uint32_t load_count;
 
               load_count = usec_to_count(next_interval, lower->freq);
-              lower->tim->control &= ~DW_TIMER_ENABLE;
-              lower->tim->load_count = load_count;
-              lower->tim->control |= DW_TIMER_ENABLE;
+              lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
+              lower->tim->LOAD_COUNT = load_count;
+              lower->tim->CONTROL |= DW_TIMER_ENABLE;
             }
         }
       else
         {
-          lower->tim->control &= ~DW_TIMER_ENABLE;
+          lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
         }
       lower->next_interval = NULL;
     }
 
   /* Clear interrupt by reading EOI */
-  lower->tim->eoi;
+  lower->tim->EOI;
 
   return 0;
 }
@@ -282,8 +282,8 @@ dw_timer_initialize(FAR const struct dw_timer_config_s *config, int minor)
       lower->ops = &g_dw_timer_ops;
 
       /* Disable timer, Enable interrupt and periodic mode */
-      lower->tim->control = DW_TIMER_PERIODIC;
-      lower->tim->eoi; /* Read to clear interrupt */
+      lower->tim->CONTROL = DW_TIMER_PERIODIC;
+      lower->tim->EOI; /* Read to clear interrupt */
 
       irq_attach(config->irq, dw_timer_interrupt, lower);
       up_enable_irq(config->irq);
