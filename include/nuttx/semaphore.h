@@ -549,12 +549,6 @@ static inline int nxsem_wait_uninterruptible(FAR sem_t *sem)
       /* Take the semaphore (perhaps waiting) */
 
       ret = nxsem_wait(sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
     }
   while (ret == -EINTR);
 
