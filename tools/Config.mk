@@ -100,6 +100,7 @@ endif
 
 define PREPROCESS
 	@echo "CPP: $1->$2"
+	$(call MKDIR, $(dir $2))
 	$(Q) $(CPP) $(CPPFLAGS) $1 -o $2
 endef
 
@@ -114,6 +115,7 @@ endef
 
 define COMPILE
 	@echo "CC: $1"
+	$(call MKDIR, $(dir $2))
 	$(Q) $(CC) -c $(CFLAGS) $1 -o $2
 endef
 
@@ -128,6 +130,7 @@ endef
 
 define COMPILEXX
 	@echo "CXX: $1"
+	$(call MKDIR, $(dir $2))
 	$(Q) $(CXX) -c $(CXXFLAGS) $1 -o $2
 endef
 
@@ -149,6 +152,7 @@ endef
 
 define ASSEMBLE
 	@echo "AS: $1"
+	$(call MKDIR, $(dir $2))
 	$(Q) $(CC) -c $(AFLAGS) $1 -o $2
 endef
 
@@ -274,3 +278,24 @@ define CLEAN
 	$(Q) rm -f *$(OBJEXT) *$(LIBEXT) *~ .*.swp
 endef
 endif
+
+# mkdir
+define MKDIR
+    $(shell if [ ! -d $(1) ]; then mkdir -p $(1); fi)
+endef
+
+# test if two files are different, replacing the first
+# with the second if so
+# args: $1 - temporary file to test
+#       $2 - file to replace
+define TESTANDREPLACEFILE
+	if [ -f "$2" ]; then \
+		if cmp "$1" "$2"; then \
+			rm -f $1; \
+		else \
+			mv $1 $2; \
+		fi \
+	else \
+		mv $1 $2; \
+	fi
+endef

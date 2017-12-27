@@ -55,11 +55,11 @@ else
   BOARD_KCONFIG = $(TOPDIR)$(DELIM)configs$(DELIM)dummy$(DELIM)dummy_kconfig
 endif
 
-DUMMY_KCONFIG = $(TOPDIR)$(DELIM)configs$(DELIM)dummy$(DELIM)Kconfig
+DUMMY_KCONFIG = $(OUTDIR)$(DELIM)configs$(DELIM)dummy$(DELIM)Kconfig
 
 # The board configuration should be installed in the arch/ directory
 
-BOARD_DIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board
+BOARD_DIR = $(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board
 BOARD_INSTALLED = $(if $(wildcard $(BOARD_DIR)$(DELIM)Makefile),y,)
 
 # Basic
@@ -73,6 +73,8 @@ CONFIG_CXXSRCS =
 ifeq ($(CONFIG_LIB_BOARDCTL),y)
 CONFIG_CSRCS += boardctl.c
 endif
+
+VPATH := :$(SRCDIR)
 
 ASRCS = $(CONFIG_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
@@ -105,10 +107,10 @@ $(BIN): $(OBJS) $(CXXOBJS)
 
 .depend: Makefile $(SRCS) $(CXXSRCS)
 ifneq ($(SRCS),)
-	$(Q) $(MKDEP) --dep-path . "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path . "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 endif
 ifneq ($(CXXSRCS),)
-	$(Q) $(MKDEP) --dep-path . "$(CXX)" -- $(CXXFLAGS) -- $(CXXSRCS) >>Make.dep
+	$(Q) $(MKDEP) --dep-path . "$(CXX)" -- $(CXXFLAGS) -- $^ >>Make.dep
 endif
 	$(Q) touch $@
 
@@ -116,6 +118,7 @@ depend: .depend
 
 $(DUMMY_KCONFIG): $(BOARD_KCONFIG)
 	$(call DELFILE, $(DUMMY_KCONFIG))
+	$(call MKDIR, $(dir $(DUMMY_KCONFIG)))
 	$(Q) cp -f $(BOARD_KCONFIG) $(DUMMY_KCONFIG)
 
 dirlinks: $(DUMMY_KCONFIG)

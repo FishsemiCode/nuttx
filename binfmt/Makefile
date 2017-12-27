@@ -71,6 +71,9 @@ include libelf$(DELIM)Make.defs
 include libbuiltin$(DELIM)Make.defs
 include libpcode$(DELIM)Make.defs
 
+VPATH := $(patsubst %,$(SRCDIR)$(DELIM)%,$(VPATH))
+VPATH += :$(SRCDIR)
+
 BINFMT_AOBJS = $(BINFMT_ASRCS:.S=$(OBJEXT))
 BINFMT_COBJS = $(BINFMT_CSRCS:.c=$(OBJEXT))
 
@@ -92,7 +95,7 @@ $(BIN): $(BINFMT_OBJS)
 	$(call ARCHIVE, $@, $(BINFMT_OBJS))
 
 .depend: Makefile $(BINFMT_SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(BINFMT_SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

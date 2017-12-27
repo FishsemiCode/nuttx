@@ -52,7 +52,7 @@ CXXFLAGS += $(EXTRADEFINES)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
-  NUTTX = "$(TOPDIR)\nuttx$(EXEEXT)"
+  NUTTX = "$(OUTDIR)\nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)\chip
   CFLAGS += -I$(ARCH_SRCDIR)\common
   CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
@@ -60,13 +60,13 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 else
   ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
-  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx$(EXEEXT)}"
+  NUTTX = "${shell cygpath -w $(OUTDIR)/nuttx$(EXEEXT)}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
-  NUTTX = "$(TOPDIR)/nuttx$(EXEEXT)"
+  NUTTX = "$(OUTDIR)/nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)/chip
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
@@ -149,6 +149,7 @@ VPATH += chip
 VPATH += common
 VPATH += $(ARCH_SUBDIR)
 VPATH += $(CHIP_DIR)
+VPATH := $(patsubst %,:$(SRCDIR)$(DELIM)%,$(VPATH))
 
 all: $(HEAD_OBJ) $(BIN)
 
@@ -178,7 +179,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) $(NUTTX) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
-	sort > $(TOPDIR)/System.map
+	sort > $(OUTDIR)/System.map
 endif
 
 # This is part of the top-level export target
@@ -202,7 +203,7 @@ ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
 endif
 	$(Q) $(MKDEP) $(patsubst %,--dep-path %,$(subst :, ,$(VPATH))) \
-	 "$(CC)" -- $(CFLAGS) -- $(SRCS) > Make.dep
+	 "$(CC)" -- $(CFLAGS) -- $^ > Make.dep
 	$(Q) touch $@
 
 depend: .depend

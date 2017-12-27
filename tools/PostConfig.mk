@@ -1,8 +1,8 @@
 ############################################################################
-# audio/Makefile
+# tools/PostConfig.mk
 #
-#   Copyright (C) 2013 Ken Pettit. All rights reserved.
-#   Author: Ken Pettit <pettitkd@gmail.com>
+#   Copyright (C) 2007-2012, 2014-2015 Gregory Nutt. All rights reserved.
+#   Author: Pinecone <pinecone@pinecone.net>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -33,58 +33,16 @@
 #
 ############################################################################
 
--include $(TOPDIR)/Make.defs
-DELIM ?= $(strip /)
+SRCDIR   := $(patsubst %$(DELIM),%,$(dir $(firstword $(MAKEFILE_LIST))))
 
-ifeq ($(WINTOOL),y)
-INCDIROPT = -w
-endif
+# override MKDEP from defconfig
+MKDEP    := $(OUTDIR)$(DELIM)tools$(DELIM)mkdeps$(HOSTEXEEXT)
 
-DEPPATH = --dep-path .
-ASRCS =
-CSRCS = audio.c
-VPATH = :$(SRCDIR)
+CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
+CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include$(DELIM)cxx}
 
-# Include support for various drivers.  Each Make.defs file will add its
-# files to the source file list, add its DEPPATH info, and will add
-# the appropriate paths to the VPATH variable
-
-ifeq ($(CONFIG_AUDIO_FORMAT_PCM),y)
-  CSRCS += pcm_decode.c
-endif
-
-AOBJS = $(ASRCS:.S=$(OBJEXT))
-COBJS = $(CSRCS:.c=$(OBJEXT))
-
-SRCS = $(ASRCS) $(CSRCS)
-OBJS = $(AOBJS) $(COBJS)
-
-BIN = libaudio$(LIBEXT)
-
-all: $(BIN)
-.PHONY: depend clean distclean
-
-$(AOBJS): %$(OBJEXT): %.S
-	$(call ASSEMBLE, $<, $@)
-
-$(COBJS): %$(OBJEXT): %.c
-	$(call COMPILE, $<, $@)
-
-$(BIN): $(OBJS)
-	$(call ARCHIVE, $@, $(OBJS))
-
-.depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
-	$(Q) touch $@
-
-depend: .depend
-
-clean:
-	$(call DELFILE, $(BIN))
-	$(call CLEAN)
-
-distclean: clean
-	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
-
--include Make.dep
+# CREATEDIR is the list of directories which need to create
+$(if $(CREATEDIR), $(foreach DIR, $(CREATEDIR), $(call MKDIR, $(DIR))))

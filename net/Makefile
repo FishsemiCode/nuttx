@@ -78,6 +78,8 @@ include usrsock/Make.defs
 include utils/Make.defs
 endif
 
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
+
 ASRCS = $(SOCK_ASRCS) $(NETDEV_ASRCS) $(NET_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
@@ -103,7 +105,7 @@ $(BIN): $(OBJS)
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_NET),y)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 endif
 	$(Q) touch $@
 

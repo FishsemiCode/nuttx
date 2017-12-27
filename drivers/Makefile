@@ -43,7 +43,7 @@ endif
 DEPPATH = --dep-path .
 ASRCS =
 CSRCS =
-VPATH = .
+VPATH = :.
 
 # Include support for various drivers.  Each Make.defs file will add its
 # files to the source file list, add its DEPPATH info, and will add
@@ -98,6 +98,8 @@ endif
 endif
 endif # CONFIG_NFILE_DESCRIPTORS != 0
 
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
+
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
@@ -119,7 +121,7 @@ $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

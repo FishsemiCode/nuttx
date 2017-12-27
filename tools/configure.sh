@@ -33,7 +33,7 @@
 #
 
 WD=`test -d ${0%/*} && cd ${0%/*}; pwd`
-TOPDIR="${WD}/.."
+TOPDIR=`readlink -f "${WD}/.."`
 USAGE="
 
 USAGE: ${0} [-d] [-l|c|u|n] [-a <app-dir>] <board-name>/<config-name>
@@ -65,6 +65,7 @@ unset boardconfig
 unset appdir
 unset host
 unset wenv
+unset outdir
 
 while [ ! -z "$1" ]; do
   case "$1" in
@@ -89,6 +90,10 @@ while [ ! -z "$1" ]; do
     -n )
       host=windows
       wenv=native
+      ;;
+    -o )
+      shift
+      outdir=$1
       ;;
     -u )
       host=windows
@@ -116,6 +121,20 @@ if [ -z "${boardconfig}" ]; then
   exit 2
 fi
 
+if [ ! ${outdir} ]; then
+  outdir="${TOPDIR}"
+elif [ ${outdir:0:1} = "/" ]; then
+  outdir=${outdir}
+else
+  outdir=${TOPDIR}/${outdir}
+fi
+
+if [ ! -d ${outdir} ]; then
+  mkdir -p ${outdir}
+fi
+
+outdir=`readlink -f ${outdir}`
+
 configpath=${TOPDIR}/configs/${boardconfig}
 if [ ! -d "${configpath}" ]; then
   # Try direct path for convenience.
@@ -137,7 +156,7 @@ if [ ! -d "${configpath}" ]; then
 fi
 
 src_makedefs="${configpath}/Make.defs"
-dest_makedefs="${TOPDIR}/Make.defs"
+dest_makedefs="${outdir}/Make.defs"
 
 if [ ! -r "${src_makedefs}" ]; then
   boardpath=`dirname $configpath`
@@ -150,17 +169,11 @@ if [ ! -r "${src_makedefs}" ]; then
 fi
 
 src_config="${configpath}/defconfig"
-dest_config="${TOPDIR}/.config"
+dest_config="${outdir}/.config"
 
 if [ ! -r "${src_config}" ]; then
   echo "File \"${src_config}\" does not exist"
   exit 6
-fi
-
-if [ -r ${dest_config} ]; then
-  echo "Already configured!"
-  echo "Do 'make distclean' and try again."
-  exit 7
 fi
 
 # Extract values needed from the defconfig file.  We need:
@@ -204,8 +217,8 @@ if [ -z "${appdir}" ]; then
   # Check for a version file
 
   unset CONFIG_VERSION_STRING
-  if [ -x "${TOPDIR}/.version" ]; then
-    . "${TOPDIR}/.version"
+  if [ -x "${outdir}/.version" ]; then
+    . "${outdir}/.version"
   fi
 
   # Check for an unversioned apps/ directory
@@ -241,6 +254,14 @@ install -m 644 "${src_makedefs}" "${dest_makedefs}" || \
   { echo "Failed to copy \"${src_makedefs}\"" ; exit 7 ; }
 install -m 644 "${src_config}" "${dest_config}" || \
   { echo "Failed to copy \"${src_config}\"" ; exit 9 ; }
+
+if [ ${outdir} = ${TOPDIR} ]; then
+  echo "include \$(TOPDIR)/tools/PostConfig.mk" >> ${dest_makedefs}
+else
+  echo "-include \$(OUTDIR)/.config" > ${TOPDIR}/.config
+  echo "-include \$(OUTDIR)/Make.defs" > ${TOPDIR}/Make.defs
+  echo "include \$(TOPDIR)/tools/PostConfig.mk" >> ${TOPDIR}/Make.defs
+fi
 
 # Install any optional files
 
@@ -311,4 +332,4 @@ fi
 
 echo "  Refreshing..."
 cd ${TOPDIR} || { echo "Failed to cd to ${TOPDIR}"; exit 1; }
-make olddefconfig 1>/dev/null
+make O=${outdir} olddefconfig 1>/dev/null

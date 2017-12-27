@@ -41,97 +41,97 @@
 # Possible kernel-mode builds
 
 libc$(DELIM)libkc$(LIBEXT): context
-	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libkc$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C libc -f $(TOPDIR)$(DELIM)libc$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libc TOPDIR="$(TOPDIR)" libkc$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libkc$(LIBEXT): libc$(DELIM)libkc$(LIBEXT)
 	$(Q) install libc$(DELIM)libkc$(LIBEXT) lib$(DELIM)libkc$(LIBEXT)
 
 libnx$(DELIM)libknx$(LIBEXT): context
-	$(Q) $(MAKE) -C libnx TOPDIR="$(TOPDIR)" libknx$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C libnx -f $(TOPDIR)$(DELIM)libnx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libnx TOPDIR="$(TOPDIR)" libknx$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libknx$(LIBEXT): libnx$(DELIM)libknx$(LIBEXT)
 	$(Q) install libnx$(DELIM)libknx$(LIBEXT) lib$(DELIM)libknx$(LIBEXT)
 
 mm$(DELIM)libkmm$(LIBEXT): context
-	$(Q) $(MAKE) -C mm TOPDIR="$(TOPDIR)" libkmm$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C mm -f $(TOPDIR)$(DELIM)mm$(DELIM)Makefile -I $(TOPDIR)$(DELIM)mm TOPDIR="$(TOPDIR)" libkmm$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libkmm$(LIBEXT): mm$(DELIM)libkmm$(LIBEXT)
 	$(Q) install mm$(DELIM)libkmm$(LIBEXT) lib$(DELIM)libkmm$(LIBEXT)
 
 $(ARCH_SRC)$(DELIM)libkarch$(LIBEXT): context
-	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" libkarch$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C $(ARCH_SRC) -f $(TOPDIR)$(DELIM)$(ARCH_SRC)$(DELIM)Makefile -I $(TOPDIR)$(DELIM)$(ARCH_SRC) TOPDIR="$(TOPDIR)" libkarch$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libkarch$(LIBEXT): $(ARCH_SRC)$(DELIM)libkarch$(LIBEXT)
 	$(Q) install $(ARCH_SRC)$(DELIM)libkarch$(LIBEXT) lib$(DELIM)libkarch$(LIBEXT)
 
 sched$(DELIM)libsched$(LIBEXT): context
-	$(Q) $(MAKE) -C sched TOPDIR="$(TOPDIR)" libsched$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C sched -f $(TOPDIR)$(DELIM)sched$(DELIM)Makefile -I $(TOPDIR)$(DELIM)sched TOPDIR="$(TOPDIR)" libsched$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libsched$(LIBEXT): sched$(DELIM)libsched$(LIBEXT)
 	$(Q) install sched$(DELIM)libsched$(LIBEXT) lib$(DELIM)libsched$(LIBEXT)
 
 net$(DELIM)libnet$(LIBEXT): context
-	$(Q) $(MAKE) -C net TOPDIR="$(TOPDIR)" libnet$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C net -f $(TOPDIR)$(DELIM)net$(DELIM)Makefile -I $(TOPDIR)$(DELIM)net TOPDIR="$(TOPDIR)" libnet$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libnet$(LIBEXT): net$(DELIM)libnet$(LIBEXT)
 	$(Q) install net$(DELIM)libnet$(LIBEXT) lib$(DELIM)libnet$(LIBEXT)
 
 configs$(DELIM)libconfigs$(LIBEXT): context
-	$(Q) $(MAKE) -C configs TOPDIR="$(TOPDIR)" libconfigs$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C configs -f $(TOPDIR)$(DELIM)configs$(DELIM)Makefile -I $(TOPDIR)$(DELIM)configs TOPDIR="$(TOPDIR)" libconfigs$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libconfigs$(LIBEXT): configs$(DELIM)libconfigs$(LIBEXT)
 	$(Q) install configs$(DELIM)libconfigs$(LIBEXT) lib$(DELIM)libconfigs$(LIBEXT)
 
 crypto$(DELIM)libcrypto$(LIBEXT): context
-	$(Q) $(MAKE) -C crypto TOPDIR="$(TOPDIR)" libcrypto$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C crypto -f $(TOPDIR)$(DELIM)crypto$(DELIM)Makefile -I $(TOPDIR)$(DELIM)crypto TOPDIR="$(TOPDIR)" libcrypto$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libcrypto$(LIBEXT): crypto$(DELIM)libcrypto$(LIBEXT)
 	$(Q) install crypto$(DELIM)libcrypto$(LIBEXT) lib$(DELIM)libcrypto$(LIBEXT)
 
 fs$(DELIM)libfs$(LIBEXT): context
-	$(Q) $(MAKE) -C fs TOPDIR="$(TOPDIR)" libfs$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C fs -f $(TOPDIR)$(DELIM)fs$(DELIM)Makefile -I $(TOPDIR)$(DELIM)fs TOPDIR="$(TOPDIR)" libfs$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libfs$(LIBEXT): fs$(DELIM)libfs$(LIBEXT)
 	$(Q) install fs$(DELIM)libfs$(LIBEXT) lib$(DELIM)libfs$(LIBEXT)
 
 drivers$(DELIM)libdrivers$(LIBEXT): context
-	$(Q) $(MAKE) -C drivers TOPDIR="$(TOPDIR)" libdrivers$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C drivers -f $(TOPDIR)$(DELIM)drivers$(DELIM)Makefile -I $(TOPDIR)$(DELIM)drivers TOPDIR="$(TOPDIR)" libdrivers$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libdrivers$(LIBEXT): drivers$(DELIM)libdrivers$(LIBEXT)
 	$(Q) install drivers$(DELIM)libdrivers$(LIBEXT) lib$(DELIM)libdrivers$(LIBEXT)
 
 binfmt$(DELIM)libbinfmt$(LIBEXT): context
-	$(Q) $(MAKE) -C binfmt TOPDIR="$(TOPDIR)" libbinfmt$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C binfmt -f $(TOPDIR)$(DELIM)binfmt$(DELIM)Makefile -I $(TOPDIR)$(DELIM)binfmt TOPDIR="$(TOPDIR)" libbinfmt$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libbinfmt$(LIBEXT): binfmt$(DELIM)libbinfmt$(LIBEXT)
 	$(Q) install binfmt$(DELIM)libbinfmt$(LIBEXT) lib$(DELIM)libbinfmt$(LIBEXT)
 
 graphics$(DELIM)libgraphics$(LIBEXT): context
-	$(Q) $(MAKE) -C graphics TOPDIR="$(TOPDIR)" libgraphics$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C graphics -f $(TOPDIR)$(DELIM)graphics$(DELIM)Makefile -I $(TOPDIR)$(DELIM)graphics TOPDIR="$(TOPDIR)" libgraphics$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libgraphics$(LIBEXT): graphics$(DELIM)libgraphics$(LIBEXT)
 	$(Q) install graphics$(DELIM)libgraphics$(LIBEXT) lib$(DELIM)libgraphics$(LIBEXT)
 
 audio$(DELIM)libaudio$(LIBEXT): context
-	$(Q) $(MAKE) -C audio TOPDIR="$(TOPDIR)" libaudio$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C audio -f $(TOPDIR)$(DELIM)audio$(DELIM)Makefile -I $(TOPDIR)$(DELIM)audio TOPDIR="$(TOPDIR)" libaudio$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libaudio$(LIBEXT): audio$(DELIM)libaudio$(LIBEXT)
 	$(Q) install audio$(DELIM)libaudio$(LIBEXT) lib$(DELIM)libaudio$(LIBEXT)
 
 wireless$(DELIM)libwireless$(LIBEXT): context
-	$(Q) $(MAKE) -C wireless TOPDIR="$(TOPDIR)" libwireless$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C wireless -f $(TOPDIR)$(DELIM)wireless$(DELIM)Makefile -I $(TOPDIR)$(DELIM)wireless TOPDIR="$(TOPDIR)" libwireless$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libwireless$(LIBEXT): wireless$(DELIM)libwireless$(LIBEXT)
 	$(Q) install wireless$(DELIM)libwireless$(LIBEXT) lib$(DELIM)libwireless$(LIBEXT)
 
 $(ARCH_SRC)$(DELIM)libarch$(LIBEXT): context
-	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" libarch$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C $(ARCH_SRC) -f $(TOPDIR)$(DELIM)$(ARCH_SRC)$(DELIM)Makefile -I $(TOPDIR)$(DELIM)$(ARCH_SRC) TOPDIR="$(TOPDIR)" libarch$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libarch$(LIBEXT): $(ARCH_SRC)$(DELIM)libarch$(LIBEXT)
 	$(Q) install $(ARCH_SRC)$(DELIM)libarch$(LIBEXT) lib$(DELIM)libarch$(LIBEXT)
 
 openamp$(DELIM)libopenamp$(LIBEXT): context
-	$(Q) $(MAKE) -C openamp TOPDIR="$(TOPDIR)" libopenamp$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C openamp -f $(TOPDIR)$(DELIM)openamp$(DELIM)Makefile -I $(TOPDIR)$(DELIM)openamp TOPDIR="$(TOPDIR)" libopenamp$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libopenamp$(LIBEXT): openamp$(DELIM)libopenamp$(LIBEXT)
 	$(Q) install openamp$(DELIM)libopenamp$(LIBEXT) lib$(DELIM)libopenamp$(LIBEXT)
@@ -139,7 +139,7 @@ lib$(DELIM)libopenamp$(LIBEXT): openamp$(DELIM)libopenamp$(LIBEXT)
 # Special case
 
 syscall$(DELIM)libstubs$(LIBEXT): context
-	$(Q) $(MAKE) -C syscall TOPDIR="$(TOPDIR)" libstubs$(LIBEXT) # KERNEL=y EXTRADEFINES=$(KDEFINE)
+	$(Q) $(MAKE) -C syscall -f $(TOPDIR)$(DELIM)syscall$(DELIM)Makefile -I $(TOPDIR)$(DELIM)syscall TOPDIR="$(TOPDIR)" libstubs$(LIBEXT) # KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 lib$(DELIM)libstubs$(LIBEXT): syscall$(DELIM)libstubs$(LIBEXT)
 	$(Q) install syscall$(DELIM)libstubs$(LIBEXT) lib$(DELIM)libstubs$(LIBEXT)
@@ -147,43 +147,43 @@ lib$(DELIM)libstubs$(LIBEXT): syscall$(DELIM)libstubs$(LIBEXT)
 # Possible user-mode builds
 
 libc$(DELIM)libuc$(LIBEXT): context
-	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libuc$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C libc -f $(TOPDIR)$(DELIM)libc$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libc TOPDIR="$(TOPDIR)" libuc$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libuc$(LIBEXT): libc$(DELIM)libuc$(LIBEXT)
 	$(Q) install libc$(DELIM)libuc$(LIBEXT) lib$(DELIM)libuc$(LIBEXT)
 
 libnx$(DELIM)libunx$(LIBEXT): context
-	$(Q) $(MAKE) -C libnx TOPDIR="$(TOPDIR)" libunx$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C libnx -f $(TOPDIR)$(DELIM)libnx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libnx TOPDIR="$(TOPDIR)" libunx$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libunx$(LIBEXT): libnx$(DELIM)libunx$(LIBEXT)
 	$(Q) install libnx$(DELIM)libunx$(LIBEXT) lib$(DELIM)libunx$(LIBEXT)
 
 mm$(DELIM)libumm$(LIBEXT): context
-	$(Q) $(MAKE) -C mm TOPDIR="$(TOPDIR)" libumm$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C mm -f $(TOPDIR)$(DELIM)mm$(DELIM)Makefile -I $(TOPDIR)$(DELIM)mm TOPDIR="$(TOPDIR)" libumm$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libumm$(LIBEXT): mm$(DELIM)libumm$(LIBEXT)
 	$(Q) install mm$(DELIM)libumm$(LIBEXT) lib$(DELIM)libumm$(LIBEXT)
 
 $(ARCH_SRC)$(DELIM)libuarch$(LIBEXT): context
-	$(Q) $(MAKE) -C $(ARCH_SRC) TOPDIR="$(TOPDIR)" libuarch$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C $(ARCH_SRC) -f $(TOPDIR)$(DELIM)$(ARCH_SRC)$(DELIM)Makefile -I $(TOPDIR)$(DELIM)$(ARCH_SRC) TOPDIR="$(TOPDIR)" libuarch$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libuarch$(LIBEXT): $(ARCH_SRC)$(DELIM)libuarch$(LIBEXT)
 	$(Q) install $(ARCH_SRC)$(DELIM)libuarch$(LIBEXT) lib$(DELIM)libuarch$(LIBEXT)
 
 libxx$(DELIM)libcxx$(LIBEXT): context
-	$(Q) $(MAKE) -C libxx TOPDIR="$(TOPDIR)" libcxx$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C libxx -f $(TOPDIR)$(DELIM)libxx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libxx TOPDIR="$(TOPDIR)" libcxx$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libcxx$(LIBEXT): libxx$(DELIM)libcxx$(LIBEXT)
 	$(Q) install libxx$(DELIM)libcxx$(LIBEXT) lib$(DELIM)libcxx$(LIBEXT)
 
 $(APPDIR)$(DELIM)libapps$(LIBEXT): context
-	$(Q) $(MAKE) -C $(APPDIR) TOPDIR="$(TOPDIR)" libapps$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C $(APPDIR) -f $(TOPDIR)$(DELIM)$(APPDIR)$(DELIM)Makefile -I $(TOPDIR)$(DELIM)$(APPDIR) TOPDIR="$(TOPDIR)" libapps$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libapps$(LIBEXT): $(APPDIR)$(DELIM)libapps$(LIBEXT)
 	$(Q) install $(APPDIR)$(DELIM)libapps$(LIBEXT) lib$(DELIM)libapps$(LIBEXT)
 
 syscall$(DELIM)libproxies$(LIBEXT): context
-	$(Q) $(MAKE) -C syscall TOPDIR="$(TOPDIR)" libproxies$(LIBEXT) KERNEL=n
+	$(Q) $(MAKE) -C syscall -f $(TOPDIR)$(DELIM)syscall$(DELIM)Makefile -I $(TOPDIR)$(DELIM)syscall TOPDIR="$(TOPDIR)" libproxies$(LIBEXT) KERNEL=n
 
 lib$(DELIM)libproxies$(LIBEXT): syscall$(DELIM)libproxies$(LIBEXT)
 	$(Q) install syscall$(DELIM)libproxies$(LIBEXT) lib$(DELIM)libproxies$(LIBEXT)
@@ -191,19 +191,19 @@ lib$(DELIM)libproxies$(LIBEXT): syscall$(DELIM)libproxies$(LIBEXT)
 # Possible non-kernel builds
 
 libc$(DELIM)libc$(LIBEXT): context
-	$(Q) $(MAKE) -C libc TOPDIR="$(TOPDIR)" libc$(LIBEXT)
+	$(Q) $(MAKE) -C libc -f $(TOPDIR)$(DELIM)libc$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libc TOPDIR="$(TOPDIR)" libc$(LIBEXT)
 
 lib$(DELIM)libc$(LIBEXT): libc$(DELIM)libc$(LIBEXT)
 	$(Q) install libc$(DELIM)libc$(LIBEXT) lib$(DELIM)libc$(LIBEXT)
 
 libnx$(DELIM)libnx$(LIBEXT): context
-	$(Q) $(MAKE) -C libnx TOPDIR="$(TOPDIR)" libnx$(LIBEXT)
+	$(Q) $(MAKE) -C libnx -f $(TOPDIR)$(DELIM)libnx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libnx TOPDIR="$(TOPDIR)" libnx$(LIBEXT)
 
 lib$(DELIM)libnx$(LIBEXT): libnx$(DELIM)libnx$(LIBEXT)
 	$(Q) install libnx$(DELIM)libnx$(LIBEXT) lib$(DELIM)libnx$(LIBEXT)
 
 mm$(DELIM)libmm$(LIBEXT): context
-	$(Q) $(MAKE) -C mm TOPDIR="$(TOPDIR)" libmm$(LIBEXT)
+	$(Q) $(MAKE) -C mm -f $(TOPDIR)$(DELIM)mm$(DELIM)Makefile -I $(TOPDIR)$(DELIM)mm TOPDIR="$(TOPDIR)" libmm$(LIBEXT)
 
 lib$(DELIM)libmm$(LIBEXT): mm$(DELIM)libmm$(LIBEXT)
 	$(Q) install mm$(DELIM)libmm$(LIBEXT) lib$(DELIM)libmm$(LIBEXT)

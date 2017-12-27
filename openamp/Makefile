@@ -38,7 +38,7 @@
 ASRCS =
 CSRCS =
 
-VPATH =
+VPATH := $(SRCDIR)
 DEPPATH = --dep-path .
 
 include libmetal/Make.defs
@@ -65,7 +65,7 @@ $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: headers .depend

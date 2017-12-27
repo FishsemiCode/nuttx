@@ -70,6 +70,8 @@ endif
 
 endif # CONFIG_CRYPTO
 
+VPATH := :$(SRCDIR)
+
 ASRCS = $(CRYPTO_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 
@@ -95,7 +97,7 @@ $(BIN): $(OBJS)
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_CRYPTO),y)
-	$(Q) $(MKDEP) --dep-path . "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path . "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 endif
 	$(Q) touch $@
 

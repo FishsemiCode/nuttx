@@ -69,7 +69,8 @@ DEPSRCS = $(CSRCS)
 ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 BOARDDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src/board
 
-VPATH = chip:common:board
+VPATH = :chip:common:board
+VPATH := $(patsubst :%,:$(SRCDIR)$(DELIM)%,$(VPATH))
 
 # Libraries
 
@@ -157,11 +158,11 @@ board/libboard$(LIBEXT):
 nuttx.lnk:
 	@echo "LD: nuttx.lnk"
 	@echo "--" >nuttx.lnk						# Non-interactive
-	@echo "-k $(BOARDDIR)" >>nuttx.lnk			# Path to board library
-	@echo "-k $(TOPDIR)/lib" >>nuttx.lnk		# Path to top-level lib directory
+	@echo "-k $(OUTDIR)/arch/$(CONFIG_ARCH)/src/board" >>nuttx.lnk			# Path to board library
+	@echo "-k $(OUTDIR)/lib" >>nuttx.lnk		# Path to top-level lib directory
 	@echo "-l libboard$(LIBEXT)" >>nuttx.lnk	# Name of board library
 	$(Q) for LIB in $(LINKLIBS); do \
-		echo "-l $(TOPDIR)/lib/$$LIB" >> nuttx.lnk ;\
+		echo "-l $(OUTDIR)/lib/$$LIB" >> nuttx.lnk ;\
 	done
 	@echo "-l $(SDCCLIB)" >>nuttx.lnk			# Name of SDCC z80 library
 ifneq ($(CONFIG_LINKER_HOME_AREA),)
@@ -185,15 +186,15 @@ endif
 	@echo "$(HEAD_OBJ)" >>nuttx.lnk				# Path to head object
 	@echo "-e" >>nuttx.lnk						# End of script
 
-nuttx$(EXEEXT): asm_mem.h $(TOPDIR)/lib/$(SDCCLIB) $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.lnk
+nuttx$(EXEEXT): asm_mem.h $(OUTDIR)/lib/$(SDCCLIB) $(HEAD_OBJ) board/libboard$(LIBEXT) nuttx.lnk
 	@echo "LD: nuttx.ihx"
 	$(Q) $(LD) -f nuttx.lnk
-	$(Q) cp -f nuttx.map $(TOPDIR)/.
+	$(Q) cp -f nuttx.map $(OUTDIR)/.
 ifeq ($(EXEEXT),.cmd)
 	sed s/:00000001FF/:00520001AD/ nuttx.ihx | \
-	hex2cmd > $(TOPDIR)/nuttx.cmd
+	hex2cmd > $(OUTDIR)/nuttx.cmd
 else
-	$(Q) packihx nuttx.ihx > $(TOPDIR)/nuttx$(EXEEXT)
+	$(Q) packihx nuttx.ihx > $(OUTDIR)/nuttx$(EXEEXT)
 endif
 
 # This is part of the top-level export target
@@ -212,7 +213,7 @@ export_startup: board/libboard$(LIBEXT) $(STARTUP_OBJS)
 	$(Q) if [ -e board/Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
-	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

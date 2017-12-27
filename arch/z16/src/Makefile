@@ -77,7 +77,8 @@ COBJS = $(CSRCS:.c=$(OBJEXT))
 DEPSRCS = $(SSRCS) $(CSRCS)
 OBJS = $(AOBJS) $(COBJS)
 
-VPATH = chip:common
+VPATH = :chip:common
+VPATH := $(patsubst :%,:$(SRCDIR)$(DELIM)%,$(VPATH))
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 
@@ -109,19 +110,19 @@ ifeq ($(COMPILER),zneocc.exe)
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-	@echo "$(TOPDIR)\nuttx"= \>>nuttx.linkcmd
-	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
+	@echo "$(OUTDIR)\nuttx"= \>>nuttx.linkcmd
+	@echo   "$(OUTDIR)\arch\$(CONFIG_ARCH)\src\$(HEAD_OBJ)", \>>nuttx.linkcmd
 	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
-	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
+	@echo   "$(OUTDIR)\arch\$(CONFIG_ARCH)\src\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
 	@echo   "$(ZDSSTDLIBDIR)\chelpld$(LIBEXT)", \>>nuttx.linkcmd
 	@echo   "$(ZDSSTDLIBDIR)\fpld$(LIBEXT)">>nuttx.linkcmd
 else
-	@echo "\"${shell cygpath -w $(TOPDIR)/nuttx}\"= \\" >>nuttx.linkcmd
-	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/$(HEAD_OBJ)}\", \\" >>nuttx.linkcmd
+	@echo "\"${shell cygpath -w $(OUTDIR)/nuttx}\"= \\" >>nuttx.linkcmd
+	@echo "  \"${shell cygpath -w $(OUTDIR)/arch/$(CONFIG_ARCH)/src/$(HEAD_OBJ)}\", \\" >>nuttx.linkcmd
 	$(Q) ( for lib in $(LINKLIBS); do \
 		echo "  \"`cygpath -w $(TOPDIR)/lib/$${lib}`\", \\" >>nuttx.linkcmd; \
 	done ; )
-	@echo "  \"${shell cygpath -w $(ARCHSRCDIR)/board/libboard$(LIBEXT)}\", \\"  >>nuttx.linkcmd
+	@echo "  \"${shell cygpath -w $(OUTDIR)/arch/$(CONFIG_ARCH)/src/board/libboard$(LIBEXT)}\", \\"  >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ZDSSTDLIBDIR)/chelpld$(LIBEXT)}\", \\"  >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w $(ZDSSTDLIBDIR)/fpld$(LIBEXT)}\""  >>nuttx.linkcmd
 endif
@@ -141,7 +142,7 @@ else
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
 endif
-	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 # This is part of the top-level export target

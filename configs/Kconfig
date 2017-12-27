@@ -2193,7 +2193,7 @@ if ARCH_BOARD_SIM
 source "configs/sim/Kconfig"
 endif
 if ARCH_BOARD_CUSTOM
-source "configs/dummy/Kconfig"
+source "$OUTDIR/configs/dummy/Kconfig"
 endif
 
 config BOARD_CRASHDUMP

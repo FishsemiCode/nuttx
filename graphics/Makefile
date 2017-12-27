@@ -33,6 +33,8 @@
 #
 ############################################################################
 
+CREATEDIR := nxglib
+
 -include $(TOPDIR)/Make.defs
 
 DEPPATH = --dep-path .
@@ -43,13 +45,15 @@ endif
 
 ASRCS =
 CSRCS =
-VPATH =
+VPATH := :.
 
 include nxglib/Make.defs
 include nxbe/Make.defs
 include nxmu/Make.defs
 include nxterm/Make.defs
 include vnc/Make.defs
+
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
@@ -65,25 +69,25 @@ all: mklibgraphics
 	 gen32bppsources
 
 gen1bppsources:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=1 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=1 EXTRADEFINES=$(EXTRADEFINES)
 
 gen2bppsource:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=2 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=2 EXTRADEFINES=$(EXTRADEFINES)
 
 gen4bppsource:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=4 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=4 EXTRADEFINES=$(EXTRADEFINES)
 
 gen8bppsource:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=8 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=8 EXTRADEFINES=$(EXTRADEFINES)
 
 gen16bppsource:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=16 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=16 EXTRADEFINES=$(EXTRADEFINES)
 
 gen24bppsource:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=24 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=24 EXTRADEFINES=$(EXTRADEFINES)
 
 gen32bppsources:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=32 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=32 EXTRADEFINES=$(EXTRADEFINES)
 
 gensources: gen1bppsources gen2bppsource gen4bppsource gen8bppsource gen16bppsource gen24bppsource gen32bppsources
 
@@ -99,7 +103,7 @@ $(BIN): $(OBJS)
 mklibgraphics: $(BIN)
 
 .depend: gensources Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend
@@ -107,12 +111,12 @@ depend: .depend
 context: gensources
 
 clean:
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	$(Q) $(MAKE) -C nxglib -f Makefile.sources distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

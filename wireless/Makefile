@@ -46,12 +46,14 @@ DEPPATH = --dep-path .
 
 ASRCS =
 CSRCS =
-VPATH = .
+VPATH = :.
 
 # Add IEEE 802.15.4 files to the build
 
 include ieee802154$(DELIM)Make.defs
 include pktradio$(DELIM)Make.defs
+
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
@@ -74,7 +76,7 @@ $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

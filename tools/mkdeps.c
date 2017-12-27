@@ -128,6 +128,61 @@ static char g_posixpath[MAX_PATH];
  * Private Functions
  ****************************************************************************/
 
+static bool is_file_available(const char *file)
+{
+  /* Check the file name which can be used and filter out the unavailable,
+     1. Filter out the file which no suffix
+     2. Filter out the file is match in blacklist
+  */
+  const char *black_list[] = {
+      "Make.defs",
+      NULL
+  };
+  const char **black = black_list;
+  char *period;
+  char *delim;
+
+  delim = strrchr(file, '/');
+  if (delim)
+    {
+      period = strchr(delim, '.');
+
+      if (!period)
+        {
+          return false;
+        }
+
+      while (*black)
+        {
+          if (!strcmp(delim + 1, *black))
+            {
+              return false;
+            }
+          black++;
+        }
+    }
+  else
+    {
+      period = strchr(file, '.');
+
+      if (!period)
+        {
+          return false;
+        }
+
+      while (*black)
+        {
+          if (!strcmp(file, *black))
+            {
+              return false;
+            }
+          black++;
+        }
+    }
+
+  return true;
+}
+
 /* MinGW does not seem to provide strtok_r */
 
 #ifndef HAVE_STRTOK_R
@@ -748,7 +803,19 @@ static void do_dependency(const char *file)
           exit(EXIT_FAILURE);
         }
 
-      strcat(g_path, file);
+      if (!is_file_available(file))
+        {
+          return;
+        }
+
+      if (file[0] == '/')
+        {
+          strcpy(g_path, file);
+        }
+      else
+        {
+          strcat(g_path, file);
+        }
 
       /* Check that a file actually exists at this path */
 

@@ -56,15 +56,8 @@ if [ -e "${link}" ]; then
 		# If the path is a directory and contains the "fake link" mark, then
 		# treat it like a soft link (i.e., remove the directory)
 
-		if [ -d "${link}" -a -f "${link}/.fakelnk" ]; then
+		if [ -d "${link}" ]; then
 			rm -rf "${link}"
-		else
-
-			# It is something else (like a file) or directory that does
-			# not contain the "fake link" mark
-
-			echo "${link} already exists but is not a symbolic link"
-			exit 1
 		fi
 	fi
 fi

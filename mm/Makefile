@@ -33,6 +33,10 @@
 #
 ############################################################################
 
+BINDIR ?= bin
+
+CREATEDIR := $(BINDIR) ubin kbin
+
 -include $(TOPDIR)/Make.defs
 
 # REVISIT: Backslash causes problems in $(COBJS) target
@@ -54,7 +58,7 @@ ASRCS  =
 CSRCS  =
 
 DEPPATH = --dep-path .
-VPATH = .
+VPATH = :.
 
 include mm_heap/Make.defs
 include umm_heap/Make.defs
@@ -63,7 +67,7 @@ include mm_gran/Make.defs
 include shm/Make.defs
 include iob/Make.defs
 
-BINDIR ?= bin
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 
 AOBJS = $(patsubst %.S, $(BINDIR)$(DELIM)%$(OBJEXT), $(ASRCS))
 COBJS = $(patsubst %.c, $(BINDIR)$(DELIM)%$(OBJEXT), $(CSRCS))
@@ -109,10 +113,10 @@ endif
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
-	$(Q) $(MKDEP) --obj-path ubin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make_ubin.dep
-	$(Q) $(MKDEP) --obj-path kbin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $(SRCS) >Make_kbin.dep
+	$(Q) $(MKDEP) --obj-path ubin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make_ubin.dep
+	$(Q) $(MKDEP) --obj-path kbin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $^ >Make_kbin.dep
 else
-	$(Q) $(MKDEP) --obj-path bin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make_bin.dep
+	$(Q) $(MKDEP) --obj-path bin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make_bin.dep
 endif
 	$(Q) touch $@
 
@@ -121,9 +125,9 @@ depend: .depend
 # Clean most derived files, retaining the configuration
 
 clean:
-	$(Q) $(MAKE) -C bin  clean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C ubin clean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C kbin clean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C bin  -f $(SRCDIR)/bin/Makefile -I $(SRCDIR)/bin clean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C ubin -f $(SRCDIR)/ubin/Makefile -I $(SRCDIR)/ubin clean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C kbin -f $(SRCDIR)/kbin/Makefile -I $(SRCDIR)/kbin clean TOPDIR=$(TOPDIR)
 	$(call DELFILE, $(BIN))
 	$(call DELFILE, $(UBIN))
 	$(call DELFILE, $(KBIN))
@@ -132,9 +136,9 @@ clean:
 # Deep clean -- removes all traces of the configuration
 
 distclean: clean
-	$(Q) $(MAKE) -C bin  distclean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C ubin distclean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C kbin distclean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C bin  -f $(SRCDIR)/bin/Makefile -I $(SRCDIR)/bin distclean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C ubin -f $(SRCDIR)/ubin/Makefile -I $(SRCDIR)/ubin distclean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C kbin -f $(SRCDIR)/kbin/Makefile -I $(SRCDIR)/kbin distclean TOPDIR=$(TOPDIR)
 	$(call DELFILE, Make_bin.dep)
 	$(call DELFILE, Make_ubin.dep)
 	$(call DELFILE, Make_kbin.dep)

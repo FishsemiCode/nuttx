@@ -38,7 +38,7 @@
 ASRCS =
 CSRCS =
 
-VPATH =
+VPATH = :.
 DEPPATH = --dep-path .
 
 include clock/Make.defs
@@ -58,6 +58,8 @@ include task/Make.defs
 include timer/Make.defs
 include wdog/Make.defs
 include wqueue/Make.defs
+
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
@@ -80,7 +82,7 @@ $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

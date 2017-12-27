@@ -9,6 +9,14 @@ config APPSDIR
 	string
 	option env="APPSDIR"
 
+config APPSOUTDIR
+	string
+	option env="APPSOUTDIR"
+
+config OUTDIR
+	string
+	option env="OUTDIR"
+
 menu "Build Setup"
 
 config EXPERIMENTAL
@@ -1690,5 +1698,5 @@ source openamp/Kconfig
 endmenu
 
 menu "Application Configuration"
-source "$APPSDIR/Kconfig"
+source "$APPSOUTDIR/Kconfig"
 endmenu

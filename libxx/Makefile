@@ -67,7 +67,7 @@ endif
 # Paths
 
 DEPPATH = --dep-path .
-VPATH = .
+VPATH := :$(SRCDIR)
 
 # Include the uClibc++ Make.defs file if selected.  If it is included,
 # the uClibc++/Make.defs file will add its files to the source file list,
@@ -114,7 +114,7 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

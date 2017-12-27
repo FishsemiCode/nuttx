@@ -211,13 +211,15 @@ endif
 
 LINKLIBS ?=
 RELLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
-RELPATHS += -L"$(TOPDIR)/lib"
+RELPATHS += -L"$(OUTDIR)/lib"
 
 # Add the board-specific library and directory
 
 LIBPATHS += -L board
 RELPATHS += -L board
 RELLIBS += -lboard
+
+VPATH := :$(SRCDIR)
 
 # Make targets begin here
 
@@ -253,14 +255,14 @@ board/libboard$(LIBEXT):
 GNU:
 	$(Q) mkdir -p ./GNU
 
-GNU/Linux-names.dat: GNU nuttx-names.dat
-	$(Q) cp nuttx-names.dat $@
+GNU/Linux-names.dat: GNU $(SRCDIR)/nuttx-names.dat
+	$(Q) cp $(SRCDIR)/nuttx-names.dat $@
 
-Cygwin-names.dat: nuttx-names.dat
+Cygwin-names.dat: $(SRCDIR)/nuttx-names.dat
 ifeq ($())CONFIG_SIM_CYGWIN_DECORATED),y)
 	$(Q) cat $^ | sed -e "s/^/_/g" >$@
 else
-	$(Q) cp nuttx-names.dat $@
+	$(Q) cp $(SRCDIR)/nuttx-names.dat $@
 endif
 
 nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKOBJS)
@@ -273,10 +275,10 @@ nuttx.rel : libarch$(LIBEXT) board/libboard$(LIBEXT) $(HOSTOS)-names.dat $(LINKO
 
 nuttx$(EXEEXT): cleanrel nuttx.rel $(HOSTOBJS)
 	$(Q) echo "LD:  nuttx$(EXEEXT)"
-	$(Q) "$(CC)" $(CCLINKFLAGS) $(LIBPATHS) -o $(TOPDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
-	$(Q) $(NM) $(TOPDIR)/$@ | \
+	$(Q) "$(CC)" $(CCLINKFLAGS) $(LIBPATHS) -o $(OUTDIR)/$@ nuttx.rel $(HOSTOBJS) $(DRVLIB) $(STDLIBS)
+	$(Q) $(NM) $(OUTDIR)/$@ | \
 		grep -v '\(compiled\)\|\(\.o$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
-		sort > $(TOPDIR)/System.map
+		sort > $(OUTDIR)/System.map
 	$(Q) rm -f nuttx.rel
 
 # This is part of the top-level export target
@@ -289,7 +291,7 @@ export_startup: board/libboard$(LIBEXT) up_head.o $(HOSTOBJS)
 # Dependencies
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

@@ -47,7 +47,7 @@ USRINCLUDES = -usrinc:'.;$(WSCHEDSRCDIR);$(WARCHSRCDIR);$(WARCHSRCDIR)\common'
 INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS += -I$(ARCHSRCDIR) -I$(ZDSSTDINCDIR) -I$(ZDSZILOGINCDIR)
-LDFLAGS  += @nuttx.linkcmd
+LDFLAGS  += @$(OUTDIR)\nuttx.linkcmd
 
 ############################################################################
 # Files and directories
@@ -74,7 +74,8 @@ OBJS = $(AOBJS) $(COBJS)
 
 BOARDDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board
 
-VPATH = chip:common
+VPATH = :chip:common
+VPATH := $(patsubst :%,:$(SRCDIR)$(DELIM)%,$(VPATH))
 
 ############################################################################
 # Targets
@@ -102,10 +103,10 @@ board$(DELIM)libboard$(LIBEXT):
 
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
-	@echo "\"${shell cygpath -w "$(TOPDIR)/nuttx"}\"= \\" >>nuttx.linkcmd
+	@echo "\"${shell cygpath -w "$(OUTDIR)/nuttx"}\"= \\" >>nuttx.linkcmd
 	@echo "  \"${shell cygpath -w "$(ARCHSRCDIR)/$(HEAD_OBJ)"}\", \\" >>nuttx.linkcmd
 	$(Q) ( for lib in $(LINKLIBS); do \
-		echo "  \"`cygpath -w "$(TOPDIR)/lib/$${lib}"`\", \\" >>nuttx.linkcmd; \
+		echo "  \"`cygpath -w "$(OUTDIR)/lib/$${lib}"`\", \\" >>nuttx.linkcmd; \
 	done ; )
 	@echo "  \"${shell cygpath -w "$(ARCHSRCDIR)/board/libboard$(LIBEXT)"}\", \\"  >>nuttx.linkcmd
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
@@ -138,7 +139,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) nuttx.linkcmd
 	$(Q) if [ -e board$(DELIM)Makefile ]; then \
 		$(MAKE) -C board TOPDIR="$(TOPDIR)" depend ; \
 	fi
-	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 # This is part of the top-level export target

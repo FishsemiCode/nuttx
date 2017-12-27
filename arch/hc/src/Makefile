@@ -49,7 +49,7 @@ CXXFLAGS += $(EXTRADEFINES)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
-  NUTTX = "$(TOPDIR)\nuttx$(EXEEXT)"
+  NUTTX = "$(OUTDIR)\nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)\chip
   CFLAGS += -I$(ARCH_SRCDIR)\common
   CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
@@ -57,13 +57,13 @@ ifeq ($(CONFIG_WINDOWS_NATIVE),y)
 else
   ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
-  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx$(EXEEXT)}"
+  NUTTX = "${shell cygpath -w $(OUTDIR)/nuttx$(EXEEXT)}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
-  NUTTX = "$(TOPDIR)/nuttx$(EXEEXT)"
+  NUTTX = "$(OUTDIR)/nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)/chip
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
@@ -94,24 +94,24 @@ LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
-  LIBPATHS += -L"$(TOPDIR)\lib"
+  LIBPATHS += -L"$(OUTDIR)\lib"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"
+  LIBPATHS += -L"$(OUTDIR)\arch\$(CONFIG_ARCH)\src\board"
 endif
 
 else
   BOARDMAKE = $(if $(wildcard ./board/Makefile),y,)
 
 ifeq ($(WINTOOL),y)
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/lib"}"
+  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/lib"}"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"}"
+  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"}"
 endif
 
 else
-  LIBPATHS += -L"$(TOPDIR)/lib"
+  LIBPATHS += -L"$(OUTDIR)/lib"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"
+  LIBPATHS += -L"$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"
 endif
 endif
 endif
@@ -123,7 +123,8 @@ endif
 
 LIBGCC = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 
-VPATH = chip:common:$(ARCH_SUBDIR)
+VPATH = :chip:common:$(ARCH_SUBDIR)
+VPATH := $(patsubst :%,:$(SRCDIR)$(DELIM)%,$(VPATH))
 
 all: $(HEAD_OBJ) libarch$(LIBEXT)
 .PHONY: board/libboard$(LIBEXT)
@@ -147,7 +148,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) $(NUTTX)$(EXEEXT) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
-	sort > $(TOPDIR)/System.map
+	sort > $(OUTDIR)/System.map
 endif
 
 # This is part of the top-level export target
@@ -167,7 +168,7 @@ ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
 endif
 	$(Q) $(MKDEP) --dep-path chip --dep-path common --dep-path $(ARCH_SUBDIR) \
-	 "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	 "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

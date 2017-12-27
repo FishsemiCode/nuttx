@@ -33,6 +33,10 @@
 #
 ###########################################################################
 
+BINDIR ?= bin
+
+CREATEDIR := $(BINDIR) ubin kbin zoneinfo
+
 -include $(TOPDIR)/Make.defs
 
 # CFLAGS
@@ -59,7 +63,7 @@ ASRCS =
 CSRCS =
 
 DEPPATH := --dep-path .
-VPATH := .
+VPATH := :.
 
 include aio/Make.defs
 include audio/Make.defs
@@ -97,7 +101,8 @@ include wqueue/Make.defs
 
 # REVISIT: Backslash causes problems in $(COBJS) target
 DELIM := $(strip /)
-BINDIR ?= bin
+
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 
 AOBJS = $(patsubst %.S, $(BINDIR)$(DELIM)%$(OBJEXT), $(ASRCS))
 COBJS = $(patsubst %.c, $(BINDIR)$(DELIM)%$(OBJEXT), $(CSRCS))
@@ -125,7 +130,7 @@ $(COBJS): $(BINDIR)$(DELIM)%$(OBJEXT): %.c
 $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 ifeq ($(CONFIG_LIB_ZONEINFO_ROMFS),y)
-	$(Q) $(MAKE) -C zoneinfo all TOPDIR=$(TOPDIR) BIN=$(BIN)
+	$(Q) $(MAKE) -C zoneinfo -f $(SRCDIR)/zoneinfo/Makefile -I $(SRCDIR)/zoneinfo all TOPDIR=$(TOPDIR) BIN=$(BIN)
 endif
 
 # C library for the user phase of the two-pass kernel build
@@ -146,20 +151,20 @@ endif
 
 context:
 ifeq ($(CONFIG_LIB_ZONEINFO_ROMFS),y)
-	$(Q) $(MAKE) -C zoneinfo context TOPDIR=$(TOPDIR) BIN=$(BIN)
+	$(Q) $(MAKE) -C zoneinfo -f $(SRCDIR)/zoneinfo/Makefile -I $(SRCDIR)/zoneinfo context TOPDIR=$(TOPDIR) BIN=$(BIN)
 endif
 
 # Dependencies
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
-	$(Q) $(MKDEP) --obj-path ubin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make_ubin.dep
-	$(Q) $(MKDEP) --obj-path kbin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $(SRCS) >Make_kbin.dep
+	$(Q) $(MKDEP) --obj-path ubin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make_ubin.dep
+	$(Q) $(MKDEP) --obj-path kbin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $^ >Make_kbin.dep
 else
-	$(Q) $(MKDEP) --obj-path bin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make_bin.dep
+	$(Q) $(MKDEP) --obj-path bin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make_bin.dep
 endif
 ifeq ($(CONFIG_LIB_ZONEINFO_ROMFS),y)
-	$(Q) $(MAKE) -C zoneinfo depend TOPDIR=$(TOPDIR) BIN=$(BIN)
+	$(Q) $(MAKE) -C zoneinfo -f $(SRCDIR)/zoneinfo/Makefile -I $(SRCDIR)/zoneinfo depend TOPDIR=$(TOPDIR) BIN=$(BIN)
 endif
 	$(Q) touch $@
 
@@ -168,10 +173,10 @@ depend: .depend
 # Clean most derived files, retaining the configuration
 
 clean:
-	$(Q) $(MAKE) -C bin  clean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C ubin clean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C kbin clean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C zoneinfo clean TOPDIR=$(TOPDIR) BIN=$(BIN)
+	$(Q) $(MAKE) -C bin  -f $(SRCDIR)/bin/Makefile -I $(SRCDIR)/bin clean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C ubin -f $(SRCDIR)/ubin/Makefile -I $(SRCDIR)/ubin clean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C kbin -f $(SRCDIR)/kbin/Makefile -I $(SRCDIR)/kbin clean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C zoneinfo -f $(SRCDIR)/zoneinfo/Makefile -I $(SRCDIR)/zoneinfo clean TOPDIR=$(TOPDIR) BIN=$(BIN)
 	$(call DELFILE, $(BIN))
 	$(call DELFILE, $(UBIN))
 	$(call DELFILE, $(KBIN))
@@ -180,10 +185,10 @@ clean:
 # Deep clean -- removes all traces of the configuration
 
 distclean: clean
-	$(Q) $(MAKE) -C bin  distclean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C ubin distclean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C kbin distclean TOPDIR=$(TOPDIR)
-	$(Q) $(MAKE) -C zoneinfo distclean TOPDIR=$(TOPDIR) BIN=$(BIN)
+	$(Q) $(MAKE) -C bin  -f $(SRCDIR)/bin/Makefile -I $(SRCDIR)/bin distclean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C ubin -f $(SRCDIR)/ubin/Makefile -I $(SRCDIR)/ubin distclean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C kbin -f $(SRCDIR)/kbin/Makefile -I $(SRCDIR)/kbin distclean TOPDIR=$(TOPDIR)
+	$(Q) $(MAKE) -C zoneinfo -f $(SRCDIR)/zoneinfo/Makefile -I $(SRCDIR)/zoneinfo distclean TOPDIR=$(TOPDIR) BIN=$(BIN)
 	$(call DELFILE, Make_bin.dep)
 	$(call DELFILE, Make_ubin.dep)
 	$(call DELFILE, Make_kbin.dep)

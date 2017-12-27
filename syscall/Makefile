@@ -33,13 +33,15 @@
 #
 ###########################################################################
 
+CREATEDIR := proxies stubs
+
 -include $(TOPDIR)/Make.defs
 DELIM ?= $(strip /)
 
 include proxies$(DELIM)Make.defs
 include stubs$(DELIM)Make.defs
 
-MKSYSCALL = "$(TOPDIR)$(DELIM)tools$(DELIM)mksyscall$(HOSTEXEEXT)"
+MKSYSCALL = "$(OUTDIR)$(DELIM)tools$(DELIM)mksyscall$(HOSTEXEEXT)"
 CSVFILE = "$(TOPDIR)$(DELIM)syscall$(DELIM)syscall.csv"
 
 STUB_SRCS += syscall_funclookup.c syscall_stublookup.c syscall_nparms.c
@@ -60,7 +62,8 @@ OBJS = $(AOBJS) $(COBJS)
 ROOTDEPPATH = --dep-path .
 PROXYDEPPATH = --dep-path proxies
 STUBDEPPATH = --dep-path stubs
-VPATH = proxies:stubs
+VPATH := $(SRCDIR)$(DELIM)proxies
+VPATH += $(SRCDIR)$(DELIM)stubs
 
 BIN1 = libproxies$(LIBEXT)
 BIN2 = libstubs$(LIBEXT)
@@ -82,13 +85,13 @@ $(BIN2): $(STUB_OBJS)
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(ROOTDEPPATH) $(PROXYDEPPATH) $(STUBDEPPATH) \
-	  "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	  "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend
 
 $(MKSYSCALL):
-	$(Q) $(MAKE) -C $(TOPDIR)$(DELIM)tools -f Makefile.host mksyscall
+	$(Q) $(MAKE) -C $(OUTDIR)$(DELIM)tools -f $(TOPDIR)$(DELIM)tools$(DELIM)Makefile.host -I $(TOPDIR)$(DELIM)tools mksyscall
 
 .context: syscall.csv
 	$(Q) (cd proxies; $(MKSYSCALL) -p $(CSVFILE);)

@@ -41,7 +41,7 @@ AOBJS = $(ASRCS:.S=$(OBJEXT))
 CSRCS = fs_initialize.c
 
 DEPPATH = --dep-path .
-VPATH = .
+VPATH = :.
 
 include inode/Make.defs
 include vfs/Make.defs
@@ -76,6 +76,8 @@ include hostfs/Make.defs
 endif
 endif
 
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
+
 COBJS = $(CSRCS:.c=$(OBJEXT))
 
 SRCS = $(ASRCS) $(CSRCS)
@@ -96,7 +98,7 @@ $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 .depend: Makefile $(SRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend

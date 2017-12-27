@@ -44,7 +44,7 @@ USRINCLUDES = -usrinc:".;$(SCHEDSRCDIR);$(ARCHSRCDIR);$(ARCHSRCDIR)\common"
 INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
 CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 CPPFLAGS += -I$(ARCHSRCDIR) -I$(ZDSSTDINCDIR) -I$(ZDSZILOGINCDIR)
-LDFLAGS  += @nuttx.linkcmd
+LDFLAGS  += @$(OUTDIR)\nuttx.linkcmd
 
 # Files and directories
 
@@ -70,7 +70,8 @@ OBJS = $(AOBJS) $(COBJS)
 
 BOARDDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)board
 
-VPATH = chip:common
+VPATH = :chip:common
+VPATH := $(patsubst :%,:$(SRCDIR)$(DELIM)%,$(VPATH))
 
 # Targets
 
@@ -97,9 +98,9 @@ board$(DELIM)libboard$(LIBEXT):
 
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
-	@echo "$(TOPDIR)\nuttx"= \>>nuttx.linkcmd
+	@echo "$(OUTDIR)\nuttx"= \>>nuttx.linkcmd
 	@echo   "$(ARCHSRCDIR)\$(HEAD_OBJ)", \>>nuttx.linkcmd
-	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(TOPDIR)\lib\%%G", \>>nuttx.linkcmd )
+	$(Q) for %%G in ($(LINKLIBS)) do ( echo   "$(OUTDIR)\lib\%%G", \>>nuttx.linkcmd )
 	@echo   "$(ARCHSRCDIR)\board\libboard$(LIBEXT)", \>>nuttx.linkcmd
 ifeq ($(CONFIG_ARCH_CHIP_Z8F640X),y)
 	@echo   "$(ZDSSTDLIBDIR)\chelprevaaD$(LIBEXT)", \>>nuttx.linkcmd
@@ -129,7 +130,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) nuttx.linkcmd
 
 .depend: Makefile chip$(DELIM)Make.defs $(DEPSRCS)
 	$(Q) if exist board$(DELIM)Makefile ( $(MAKE) -C board TOPDIR="$(TOPDIR)" depend )
-	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $(DEPSRCS) >Make.dep
+	$(Q) $(MKDEP) --dep-path chip --dep-path common "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 # This is part of the top-level export target

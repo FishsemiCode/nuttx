@@ -68,18 +68,6 @@ else
 
 	if [ -d "${dest}" -a -f "${dest}/.fakelnk" ]; then
 		rm -rf "${dest}"
-	else
-
-		# Does anything exist at the destination path?
-
-		if [ -e "${dest}" ]; then
-
-			# It is something else (like a file) or directory that does
-			# not contain the "fake link" mark
-
-			echo "${dest} already exists but is not a symbolic link"
-			exit 1
-		fi
 	fi
 fi
 
@@ -90,7 +78,16 @@ if [ ! -d "${src}" ]; then
 	exit 1
 fi
 
-# Create the soft link
+if [ ! -d "${dest}" ]; then
+	mkdir -p ${dest}
+fi
 
-ln -s "${src}" "${dest}" || \
-	{ echo "Failed to create link: $dest" ; exit 1 ; }
+for i in `ls ${src}`; do
+	if [ -h "${dest}/$i" ]; then
+		if [ "${dest}/$i" = "${src}/$i" ]; then
+			continue;
+		fi
+	fi;
+
+	ln -sf "${src}/$i" "${dest}/$i";
+done

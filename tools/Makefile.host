@@ -55,6 +55,8 @@ else
 # strtok_r is used in some tools, but does not seem to be available in
 # the MinGW environment.
 
+VPATH := $(SRCDIR)
+
 HOSTCC ?= gcc
 HOSTCFLAGS ?= -O2 -Wall -Wstrict-prototypes -Wshadow -I.
 HOSTCFLAGS += -DHAVE_STRTOK_C=1
@@ -70,9 +72,9 @@ KCONFIG_CFLAGS += -DHAVE_CONFIG_H
 KCONFIG_CFLAGS += -DROOTMENU=\"Configuration\"
 KCONFIG_CFLAGS += -DCURSES_LOC=\"ncurses.h\"
 KCONFIG_CFLAGS += -DGPERF_LEN_TYPE='unsigned int'
-KCONFIG_CFLAGS += -Ikconfig-frontends/include
-KCONFIG_CFLAGS += -Ikconfig-frontends/libs
-KCONFIG_CFLAGS += -Ikconfig-frontends/libs/parser
+KCONFIG_CFLAGS += -I$(SRCDIR)/kconfig-frontends/include
+KCONFIG_CFLAGS += -I$(SRCDIR)/kconfig-frontends/libs
+KCONFIG_CFLAGS += -I$(SRCDIR)/kconfig-frontends/libs/parser
 
 # Targets
 
@@ -94,7 +96,7 @@ endif
 # b16 - Fixed precision math conversion tool
 
 b16$(HOSTEXEEXT): b16.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o b16$(HOSTEXEEXT) b16.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 b16: b16$(HOSTEXEEXT)
@@ -103,7 +105,7 @@ endif
 # configure - Instantiate a canned NuttX configuration
 
 configure$(HOSTEXEEXT): configure.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o configure$(HOSTEXEEXT) configure.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 configure: configure$(HOSTEXEEXT)
@@ -112,7 +114,7 @@ endif
 # mkconfig - Convert a .config file into a C config.h file
 
 mkconfig$(HOSTEXEEXT): mkconfig.c cfgdefine.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkconfig$(HOSTEXEEXT) mkconfig.c cfgdefine.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 mkconfig: mkconfig$(HOSTEXEEXT)
@@ -121,7 +123,7 @@ endif
 # cmpconfig - Compare the contents of two configuration files
 
 cmpconfig$(HOSTEXEEXT): cmpconfig.c cfgparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cmpconfig$(HOSTEXEEXT) cmpconfig.c cfgparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 cmpconfig: cmpconfig$(HOSTEXEEXT)
@@ -130,7 +132,7 @@ endif
 # kconfig2html - Create an HTML document describing the configuration options
 
 kconfig2html$(HOSTEXEEXT): kconfig2html.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o kconfig2html$(HOSTEXEEXT) kconfig2html.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 kconfig2html: kconfig2html$(HOSTEXEEXT)
@@ -138,8 +140,8 @@ endif
 
 # mkversion - Convert a .version file into a C version.h file
 
-mkversion$(HOSTEXEEXT): mkconfig.c cfgdefine.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkversion$(HOSTEXEEXT) mkversion.c cfgdefine.c
+mkversion$(HOSTEXEEXT): mkversion.c cfgdefine.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 mkversion: mkversion$(HOSTEXEEXT)
@@ -148,7 +150,7 @@ endif
 # mksyscall - Convert a CSV file into syscall stubs and proxies
 
 mksyscall$(HOSTEXEEXT): mksyscall.c csvparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksyscall$(HOSTEXEEXT) mksyscall.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 mksyscall: mksyscall$(HOSTEXEEXT)
@@ -157,7 +159,7 @@ endif
 # mksymtab - Convert a CSV file into a symbol table
 
 mksymtab$(HOSTEXEEXT): mksymtab.c csvparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mksymtab$(HOSTEXEEXT) mksymtab.c csvparser.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 mksymtab: mksymtab$(HOSTEXEEXT)
@@ -166,7 +168,7 @@ endif
 # bdf-converter - Converts a BDF font to the NuttX font format
 
 bdf-converter$(HOSTEXEEXT): bdf-converter.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o bdf-converter$(HOSTEXEEXT) bdf-converter.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 bdf-converter: bdf-converter$(HOSTEXEEXT)
@@ -175,7 +177,7 @@ endif
 # nxstyle - Check a file for compliance to NuttX coding style
 
 nxstyle$(HOSTEXEEXT): nxstyle.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o nxstyle$(HOSTEXEEXT) nxstyle.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 nxstyle: nxstyle$(HOSTEXEEXT)
@@ -186,7 +188,7 @@ endif
 # from scratch.
 
 initialconfig$(HOSTEXEEXT): initialconfig.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o initialconfig$(HOSTEXEEXT) initialconfig.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 initialconfig: initialconfig$(HOSTEXEEXT)
@@ -196,7 +198,7 @@ endif
 # for use in a Cygwin/POSIX build environment
 
 cnvwindeps$(HOSTEXEEXT): cnvwindeps.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o cnvwindeps$(HOSTEXEEXT) cnvwindeps.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 cnvwindeps: cnvwindeps$(HOSTEXEEXT)
@@ -205,7 +207,7 @@ endif
 # Create dependencies for a list of files
 
 mkdeps$(HOSTEXEEXT): mkdeps.c csvparser.c
-	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o mkdeps$(HOSTEXEEXT) mkdeps.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -o $@ $^
 
 ifdef HOSTEXEEXT
 mkdeps: mkdeps$(HOSTEXEEXT)
@@ -247,6 +249,10 @@ clean:
 	$(call DELFILE, mkversion.exe)
 	$(call DELFILE, bdf-converter)
 	$(call DELFILE, bdf-converter.exe)
+	$(call DELFILE, kconfig-conf)
+	$(call DELFILE, kconfig-conf.exe)
+	$(call DELFILE, kconfig-mconf)
+	$(call DELFILE, kconfig-mconf.exe)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) rm -rf *.dSYM
 endif
