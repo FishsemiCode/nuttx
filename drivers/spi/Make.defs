@@ -50,6 +50,10 @@ ifeq ($(CONFIG_SPI_BITBANG),y)
   CSRCS += spi_bitbang.c
 endif
 
+ifeq ($(CONFIG_SPI_DW),y)
+  CSRCS += spi_dw.c
+endif
+
 # Include SPI device driver build support
 
 DEPPATH += --dep-path spi

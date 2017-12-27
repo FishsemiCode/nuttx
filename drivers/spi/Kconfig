@@ -131,6 +131,20 @@ config SPI_BITBANG
 		Enable support for a generic SPI bit-bang device.
 		See include/nuttx/spi/spi_bitbang.h for further information.
 
+config SPI_DW
+	bool "Designware SPI controller driver"
+	default n
+	---help---
+		Enable support for Designware SPI controller driver
+
+config SPI_DW_MAX_CS
+	int "Max number Designware SPI controller can support"
+	default 2
+	depends on SPI_DW
+	---help---
+		Define the max number of slave device that Designware SPI
+		controller could support
+
 if SPI_BITBANG
 
 config SPI_BITBANG_VARWIDTH
