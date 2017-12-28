@@ -57,7 +57,7 @@ extern "C"
 
 #ifdef CONFIG_RTC_ARCH
 
-void up_rtc_set_lowerhalf(struct rtc_lowerhalf_s *lower);
+void up_rtc_set_lowerhalf(FAR struct rtc_lowerhalf_s *lower);
 
 #endif /* CONFIG_RTC_ARCH */
 
