@@ -197,6 +197,12 @@ void up_initialize(void)
   iob_initialize();
 #endif
 
+#ifdef CONFIG_OPENAMP
+  /* Initialize OpenAMP buffering */
+
+  up_openamp_initialize();
+#endif
+
 #if CONFIG_NFILE_DESCRIPTORS > 0
   /* Register devices */
 
