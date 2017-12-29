@@ -95,6 +95,11 @@ time_t up_rtc_time(void)
   struct rtc_time rtctime;
   time_t time = 0;
 
+  if (!g_rtc_lower)
+    {
+      return 0;
+    }
+
   if (g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime) == 0)
     {
       time = mktime((FAR struct tm *)&rtctime);
@@ -125,6 +130,11 @@ int up_rtc_gettime(FAR struct timespec *tp)
 {
   struct rtc_time rtctime;
   int ret;
+
+  if (!g_rtc_lower)
+    {
+      return -EAGAIN;
+    }
 
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
   if (ret == 0)
@@ -166,6 +176,11 @@ int up_rtc_getdatetime(FAR struct tm *tp)
   struct rtc_time rtctime;
   int ret;
 
+  if (!g_rtc_lower)
+    {
+      return -EAGAIN;
+    }
+
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
   if (ret == 0)
   {
@@ -206,6 +221,11 @@ int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
   struct rtc_time rtctime;
   int ret;
 
+  if (!g_rtc_lower)
+    {
+      return -EAGAIN;
+    }
+
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
   if (ret == 0)
     {
@@ -235,6 +255,11 @@ int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
 int up_rtc_settime(FAR const struct timespec *tp)
 {
   struct rtc_time rtctime;
+
+  if (!g_rtc_lower)
+    {
+      return -EAGAIN;
+    }
 
   gmtime_r(&tp->tv_sec, (FAR struct tm *)&rtctime);
 #if defined(CONFIG_RTC_HIRES) || defined(CONFIG_ARCH_HAVE_RTC_SUBSECONDS)
