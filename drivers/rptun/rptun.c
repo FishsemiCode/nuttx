@@ -45,6 +45,8 @@
 #include <errno.h>
 #include <stdio.h>
 
+#include "rptun_openamp.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -102,6 +104,13 @@ static int rptun_ioctl(struct file *filep, int cmd, unsigned long arg)
 int rptun_register(struct rptun_dev_s *dev, int minor)
 {
   char devname[16];
+  int ret;
+
+  ret = rptun_openamp_register(dev);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   snprintf(devname, 16, "%s%d", RPTUN_DEV_NAME, minor);
 

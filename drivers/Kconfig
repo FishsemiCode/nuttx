@@ -303,6 +303,8 @@ source drivers/power/Kconfig
 menuconfig RPTUN
 	bool "Remote Proc Tunnel Driver Support"
 	default n
+	depends on OPENAMP
+	depends on SCHED_HPWORK
 	---help---
 		RPTUN driver is used for multi-cores' communication.
 

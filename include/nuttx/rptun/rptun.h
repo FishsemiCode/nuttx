@@ -182,6 +182,26 @@ struct rptun_dev_s
   const struct rptun_ops_s *ops;
 };
 
+struct __attribute__((aligned(8))) rptun_rsc_loadstart_s
+{
+  struct resource_table    rsc_tbl_hdr;
+  unsigned int             offset[2];
+  struct fw_rsc_trace      log_trace;
+  struct fw_rsc_vdev       rpmsg_vdev;
+  struct fw_rsc_vdev_vring rpmsg_vring0;
+  struct fw_rsc_vdev_vring rpmsg_vring1;
+  unsigned int             buf_size;
+};
+
+struct __attribute__((aligned(8))) rptun_rsc_selfstart_s
+{
+  struct resource_table    rsc_tbl_hdr;
+  unsigned int             offset[1];
+  struct fw_rsc_vdev       rpmsg_vdev;
+  struct fw_rsc_vdev_vring rpmsg_vring0;
+  struct fw_rsc_vdev_vring rpmsg_vring1;
+};
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
