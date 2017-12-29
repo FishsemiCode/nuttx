@@ -173,6 +173,14 @@ config SYSLOG_CONSOLE
 	---help---
 		Use the system console as a SYSLOG output device.
 
+config SYSLOG_RPMSG
+	bool "Log to RPMSG"
+	default n
+	depends on OPENAMP
+	depends on SCHED_HPWORK
+	---help---
+		Use the rpmsg as a SYSLOG output device, send message to remote proc.
+
 config SYSLOG_NONE
 	bool "No SYSLOG device"
 	---help---
@@ -180,6 +188,18 @@ config SYSLOG_NONE
 		bit-bucket.
 
 endchoice
+
+config SYSLOG_RPMSG_WORK_DELAY
+	int "SYSLOG RPMSG work delay(ms)"
+	default 100
+	depends on SYSLOG_RPMSG
+
+config SYSLOG_RPMSG_SERVER
+	bool "Enable RPMSG server for SYSLOG"
+	default n
+	depends on SCHED_HPWORK
+	---help---
+		Use rpmsg to receive message from remote proc.
 
 config SYSLOG_FILE
 	bool "Sylog file output"
@@ -195,27 +215,6 @@ config SYSLOG_FILE
 
 		NOTE interrupt level SYSLOG output will be lost in this case unless
 		the interrupt buffer is used.
-
-config SYSLOG_RPMSG
-	bool "Use RPMSG for SYSLOG"
-	default n
-	depends on OPENAMP
-	select SCHED_HPWORK
-	select SYSLOG_NONE
-	---help---
-		Use the rpmsg as a SYSLOG output device, send message to remote proc.
-
-config SYSLOG_RPMSG_WORK_DELAY
-	int "SYSLOG RPMSG work delay(ms)"
-	default 100
-	depends on SYSLOG_RPMSG
-
-config SYSLOG_RPMSG_SERVER
-	bool "Enable RPMSG server for SYSLOG"
-	default n
-	select SCHED_HPWORK
-	---help---
-		Use rpmsg to receive message from remote proc.
 
 config CONSOLE_SYSLOG
 	bool "Use SYSLOG for /dev/console"
