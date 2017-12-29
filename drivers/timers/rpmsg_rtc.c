@@ -171,7 +171,8 @@ static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct rpmsg_rtc_header_s *header = data;
-  struct rpmsg_rtc_cookie_s *cookie = (struct rpmsg_rtc_cookie_s *)header->cookie;
+  struct rpmsg_rtc_cookie_s *cookie =
+      (struct rpmsg_rtc_cookie_s *)(uintptr_t)header->cookie;
 
   if (cookie)
     {
@@ -188,8 +189,15 @@ static int rpmsg_rtc_msg_send_recv(uint32_t command,
   struct rpmsg_rtc_cookie_s cookie = {0};
   int ret;
 
+  if (!priv->channel)
+    {
+      return -EAGAIN;
+    }
+
   nxsem_init(&cookie.sem, 0, 0);
   nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
+
+  cookie.msg = msg;
 
   msg->command = command;
   msg->result  = -ENXIO;
