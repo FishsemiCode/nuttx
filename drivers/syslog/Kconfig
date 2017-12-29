@@ -175,7 +175,6 @@ config SYSLOG_CONSOLE
 
 config SYSLOG_RPMSG
 	bool "Log to RPMSG"
-	default n
 	depends on OPENAMP
 	depends on SCHED_HPWORK
 	---help---
