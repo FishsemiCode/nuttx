@@ -130,7 +130,7 @@ static inline int vfork_stackargsetup(FAR struct tcb_s *parent,
 
       /* Get the address correction */
 
-      offset = child->cmn.xcp.regs[REG_SP] - parent->xcp.regs[REG_SP];
+      offset = child->cmn.adj_stack_ptr - parent->adj_stack_ptr;
 
       /* Change the child argv[] to point into its stack (instead of its
        * parent's stack).
