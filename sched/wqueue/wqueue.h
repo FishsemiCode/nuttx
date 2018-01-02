@@ -76,7 +76,7 @@ struct kwork_wqueue_s
 {
   systime_t         delay;     /* Delay between polling cycles (ticks) */
   struct dq_queue_s q;         /* The queue of pending work */
-  struct kworker_s  worker[1]; /* Describes a worker thread */
+  struct kworker_s  worker[0]; /* Describes a worker thread */
 };
 
 /* This structure defines the state of one high-priority work queue.  This
@@ -88,7 +88,10 @@ struct hp_wqueue_s
 {
   systime_t         delay;     /* Delay between polling cycles (ticks) */
   struct dq_queue_s q;         /* The queue of pending work */
-  struct kworker_s  worker[1]; /* Describes the single high priority worker */
+
+  /* Describes each thread in the high priority queue's thread pool */
+
+  struct kworker_s  worker[CONFIG_SCHED_HPNTHREADS];
 };
 #endif
 

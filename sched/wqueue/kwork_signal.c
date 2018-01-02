@@ -71,6 +71,8 @@
 
 int work_signal(int qid)
 {
+  struct kwork_wqueue_s *work;
+  int i, threads;
   pid_t pid;
 
   /* Get the process ID of the worker thread */
@@ -78,39 +80,16 @@ int work_signal(int qid)
 #ifdef CONFIG_SCHED_HPWORK
   if (qid == HPWORK)
     {
-      pid = g_hpwork.worker[0].pid;
+      work = (struct kwork_wqueue_s *)&g_hpwork;
+      threads = CONFIG_SCHED_HPNTHREADS;
     }
   else
 #endif
 #ifdef CONFIG_SCHED_LPWORK
   if (qid == LPWORK)
     {
-      int i;
-
-      /* Find an IDLE worker thread */
-
-      for (i = 0; i < CONFIG_SCHED_LPNTHREADS; i++)
-        {
-          /* Is this worker thread busy? */
-
-          if (!g_lpwork.worker[i].busy)
-            {
-              /* No.. select this thread */
-
-              break;
-            }
-        }
-
-      /* If all of the IDLE threads are busy, then just return successfully */
-
-      if (i >= CONFIG_SCHED_LPNTHREADS)
-        {
-          return OK;
-        }
-
-      /* Otherwise, signal the first IDLE thread found */
-
-      pid = g_lpwork.worker[i].pid;
+      work = (struct kwork_wqueue_s *)&g_lpwork;
+      threads = CONFIG_SCHED_LPNTHREADS;
     }
   else
 #endif
@@ -118,7 +97,30 @@ int work_signal(int qid)
       return -EINVAL;
     }
 
-  /* Signal the worker thread */
+  /* Find an IDLE worker thread */
+
+  for (i = 0; i < threads; i++)
+    {
+      /* Is this worker thread busy? */
+
+      if (!work->worker[i].busy)
+        {
+          /* No.. select this thread */
+
+          break;
+        }
+    }
+
+  /* If all of the IDLE threads are busy, then just return successfully */
+
+  if (i >= threads)
+    {
+      return OK;
+    }
+
+  /* Otherwise, signal the first IDLE thread found */
+
+  pid = work->worker[i].pid;
 
   return nxsig_kill(pid, SIGWORK);
 }

@@ -94,7 +94,7 @@ struct lp_wqueue_s g_lpwork;
 
 static int work_lpthread(int argc, char *argv[])
 {
-#if CONFIG_SCHED_LPNTHREADS > 0
+#if CONFIG_SCHED_LPNTHREADS > 1
   int wndx;
   pid_t me = getpid();
   int i;
@@ -117,7 +117,7 @@ static int work_lpthread(int argc, char *argv[])
 
   for (; ; )
     {
-#if CONFIG_SCHED_LPNTHREADS > 0
+#if CONFIG_SCHED_LPNTHREADS > 1
       /* Thread 0 is special.  Only thread 0 performs period garbage collection */
 
       if (wndx > 0)

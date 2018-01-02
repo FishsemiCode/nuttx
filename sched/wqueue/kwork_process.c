@@ -215,7 +215,8 @@ void work_process(FAR struct kwork_wqueue_s *wqueue, systime_t period, int wndx)
         }
     }
 
-#if defined(CONFIG_SCHED_LPWORK) && CONFIG_SCHED_LPNTHREADS > 0
+#if (defined(CONFIG_SCHED_HPWORK) && CONFIG_SCHED_HPNTHREADS > 1) \
+        || (defined(CONFIG_SCHED_LPWORK) && CONFIG_SCHED_LPNTHREADS > 1)
   /* Value of zero for period means that we should wait indefinitely until
    * signalled.  This option is used only for the case where there are
    * multiple, low-priority worker threads.  In that case, only one of
