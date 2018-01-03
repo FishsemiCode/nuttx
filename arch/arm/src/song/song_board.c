@@ -45,6 +45,16 @@
  * Public Functions
  ****************************************************************************/
 
+#ifndef CONFIG_16550_UART
+void up_earlyserialinit(void)
+{
+}
+
+void up_serialinit(void)
+{
+}
+#endif
+
 /****************************************************************************
  * Name: board_initialize
  *
