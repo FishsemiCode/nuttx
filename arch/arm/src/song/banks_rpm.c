@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/song/banks_rpm.c
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ void arm_timer_initialize(void)
     .calib_off  = 0x174,
     .c1_off     = 0x164,
     .c2_off     = 0x168,
-    .spec_off   = 0x1a4,
+    .spec_off   = 0x664,
     .intren_off = 0x150,
     .intrst_off = 0x154,
     .intr_bit   = 29,
