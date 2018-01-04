@@ -53,7 +53,7 @@ OBJS = $(AOBJS) $(COBJS)
 BIN = libopenamp$(LIBEXT)
 
 all: $(BIN)
-.PHONY: context depend clean distclean headers
+.PHONY: context depend clean distclean dirlinks
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -64,11 +64,13 @@ $(COBJS): %$(OBJEXT): %.c
 $(BIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
+dirlinks::
+
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
-depend: headers .depend
+depend: .depend
 
 clean:
 	$(foreach obj,$(OBJS),$(call DELFILE, $(obj)))

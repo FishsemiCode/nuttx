@@ -358,6 +358,7 @@ endif
 
 dirlinks: include/arch include/arch/board include/arch/chip $(ARCH_SRC)/board $(ARCH_SRC)/chip
 	$(Q) $(MAKE) -C configs -f $(TOPDIR)/configs/Makefile -I $(TOPDIR)/configs TOPDIR="$(TOPDIR)" dirlinks
+	$(Q) $(MAKE) -C openamp -f $(TOPDIR)/openamp/Makefile -I $(TOPDIR)/openamp TOPDIR="$(TOPDIR)" dirlinks
 	$(Q) $(MAKE) -C $(CONFIG_APPS_DIR) -f $(TOPDIR)/$(CONFIG_APPS_DIR)/Makefile -I $(TOPDIR)/$(CONFIG_APPS_DIR) TOPDIR="$(TOPDIR)" dirlinks
 
 # context
