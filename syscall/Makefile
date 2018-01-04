@@ -62,8 +62,9 @@ OBJS = $(AOBJS) $(COBJS)
 ROOTDEPPATH = --dep-path .
 PROXYDEPPATH = --dep-path proxies
 STUBDEPPATH = --dep-path stubs
-VPATH := $(SRCDIR)$(DELIM)proxies
-VPATH += $(SRCDIR)$(DELIM)stubs
+VPATH := :$(SRCDIR)
+VPATH += :$(SRCDIR)$(DELIM)proxies
+VPATH += :$(SRCDIR)$(DELIM)stubs
 
 BIN1 = libproxies$(LIBEXT)
 BIN2 = libstubs$(LIBEXT)
@@ -93,12 +94,12 @@ depend: .depend
 $(MKSYSCALL):
 	$(Q) $(MAKE) -C $(OUTDIR)$(DELIM)tools -f $(TOPDIR)$(DELIM)tools$(DELIM)Makefile.host -I $(TOPDIR)$(DELIM)tools mksyscall
 
-.context: syscall.csv
-	$(Q) (cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
-	$(Q) (cd stubs; $(MKSYSCALL) -s $(CSVFILE);)
+.context: $(SRCDIR)$(DELIM)syscall.csv $(MKSYSCALL)
+	$(Q) (cd $(SRCDIR)$(DELIM)proxies; $(MKSYSCALL) -p $(CSVFILE);)
+	$(Q) (cd $(SRCDIR)$(DELIM)stubs; $(MKSYSCALL) -s $(CSVFILE);)
 	$(Q) touch $@
 
-context: $(MKSYSCALL) .context
+context: .context
 
 clean:
 	$(call DELFILE, $(BIN1))
