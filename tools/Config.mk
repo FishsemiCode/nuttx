@@ -289,8 +289,8 @@ endef
 # args: $1 - temporary file to test
 #       $2 - file to replace
 define TESTANDREPLACEFILE
-	if [ -f "$2" ]; then \
-		if cmp "$1" "$2"; then \
+	if [ -f $2 ]; then \
+		if cmp $1 $2; then \
 			rm -f $1; \
 		else \
 			mv $1 $2; \
