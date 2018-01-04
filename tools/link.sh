@@ -84,7 +84,7 @@ fi
 
 for i in `ls ${src}`; do
 	if [ -h "${dest}/$i" ]; then
-		if [ "${dest}/$i" = "${src}/$i" ]; then
+		if [ "$(readlink ${dest}/$i)" = "${src}/$i" ]; then
 			continue;
 		fi
 	fi;
