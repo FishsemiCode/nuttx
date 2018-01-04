@@ -137,14 +137,14 @@ endif
 
 ifneq ($(BIN),$(UBIN))
 $(UBIN):
-	$(Q) $(MAKE) $(UBIN) BIN=$(UBIN) BINDIR=ubin TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -f $(SRCDIR)/Makefile -I $(SRCDIR) $(UBIN) BIN=$(UBIN) BINDIR=ubin TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 endif
 
 # C library for the kernel phase of the two-pass kernel build
 
 ifneq ($(BIN),$(KBIN))
 $(KBIN):
-	$(Q) $(MAKE) $(KBIN) BIN=$(KBIN) BINDIR=kbin TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -f $(SRCDIR)/Makefile -I $(SRCDIR) $(KBIN) BIN=$(KBIN) BINDIR=kbin TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 endif
 
 # Context
