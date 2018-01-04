@@ -198,7 +198,7 @@ void up_initialize(void)
 #endif
 
 #ifdef CONFIG_OPENAMP
-  /* Initialize OpenAMP buffering */
+  /* Initialize IPC subsytem */
 
   up_openamp_initialize();
 #endif

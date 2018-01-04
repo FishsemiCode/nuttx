@@ -470,12 +470,6 @@ void up_lowputc(char ch);
 void up_puts(const char *str);
 void up_lowputs(const char *str);
 
-#ifdef CONFIG_OPENAMP
-void up_openamp_initialize(void);
-#else
-#  define up_openamp_initialize()
-#endif
-
 #ifdef USE_SERIALDRIVER
 void up_serialinit(void);
 #else
@@ -500,6 +494,14 @@ void lowconsole_init(void);
 
 #ifdef CONFIG_ARCH_DMA
 void weak_function up_dmainitialize(void);
+#endif
+
+/* IPC subsystem *************************************************************/
+
+#ifdef CONFIG_OPENAMP
+void up_openamp_initialize(void);
+#else
+#  define up_openamp_initialize()
 #endif
 
 /* Cache control ************************************************************/
