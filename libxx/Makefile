@@ -67,7 +67,7 @@ endif
 # Paths
 
 DEPPATH = --dep-path .
-VPATH := :$(SRCDIR)
+VPATH := .
 
 # Include the uClibc++ Make.defs file if selected.  If it is included,
 # the uClibc++/Make.defs file will add its files to the source file list,
@@ -87,19 +87,22 @@ ifeq ($(CONFIG_LIBCXX),y)
 include libcxx/Make.defs
 endif
 
+VPATH := $(patsubst %,$(SRCDIR)$(DELIM)%,$(VPATH))
+
 # Object Files
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))
 CXXOBJS = $(CXXSRCS:.cxx=$(OBJEXT))
+CPPOBJS = $(CPPSRCS:.cpp=$(OBJEXT))
 
-SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS)
-OBJS = $(AOBJS) $(COBJS) $(CXXOBJS)
+SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS) $(CPPSRCS)
+OBJS = $(AOBJS) $(COBJS) $(CXXOBJS) $(CPPOBJS)
 
 BIN = libcxx$(LIBEXT)
 
 all: $(BIN)
-.PHONY: depend clean distclean
+.PHONY: dirlinks depend clean distclean
 
 $(AOBJS): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -110,8 +113,13 @@ $(COBJS): %$(OBJEXT): %.c
 $(CXXOBJS): %$(OBJEXT): %.cxx
 	$(call COMPILEXX, $<, $@)
 
+$(CPPOBJS): %$(OBJEXT): %.cpp
+	$(call COMPILEXX, $<, $@)
+
 $(BIN):	$(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
+
+dirlinks::
 
 .depend: Makefile $(SRCS)
 	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $^ >Make.dep
@@ -123,7 +131,7 @@ clean:
 	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
-distclean: clean
+distclean:: clean
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

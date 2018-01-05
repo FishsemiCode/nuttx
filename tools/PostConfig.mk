@@ -44,15 +44,21 @@ SRCDIR   := $(shell cygpath -m $(SRCDIR))
 
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+
+CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
 CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
 CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include$(DELIM)cxx`}
 else
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+
+CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
 CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
 CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include$(DELIM)cxx}
 endif
 
 # CREATEDIR is the list of directories which need to create

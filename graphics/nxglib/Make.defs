@@ -65,5 +65,4 @@ CSRCS += nxglib_copyrectangle_32bpp.c
 
 DEPPATH += --dep-path nxglib
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)/graphics/nxglib}
-#VPATH += :nxglib
-VPATH = nxglib
+VPATH += :nxglib

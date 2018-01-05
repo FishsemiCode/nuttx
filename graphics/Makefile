@@ -54,6 +54,11 @@ include nxterm/Make.defs
 include vnc/Make.defs
 
 VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
+VPATH += $(OUTDIR)/graphics/nxglib
+VPATH += $(OUTDIR)/graphics/nxbe
+VPATH += $(OUTDIR)/graphics/nxmu
+VPATH += $(OUTDIR)/graphics/nxterm
+VPATH += $(OUTDIR)/graphics/vnc
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))

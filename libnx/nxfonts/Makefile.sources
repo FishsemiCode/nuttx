@@ -65,7 +65,7 @@ NXFONTS_SUFFIX := _32bpp
 GEN_CSRC := nxfonts_convert_32bpp.c
 endif
 
-DEPENDENCY := nxfonts_convert.c
+DEPENDENCY := $(SRCDIR)/nxfonts_convert.c
 CPPFLAGS += -DNXFONTS_BITSPERPIXEL=$(NXFONTS_BITSPERPIXEL)
 CPPFLAGS += -DNXFONTS_SUFFIX=$(NXFONTS_SUFFIX)
 endif
@@ -303,7 +303,7 @@ NXFONTS_PREFIX := g_tom_thumb_4x6_
 GEN_CSRC = nxfonts_tom-thumb-4x6.c
 endif
 
-DEPENDENCY := nxfonts_bitmaps.c
+DEPENDENCY := $(SRCDIR)/nxfonts_bitmaps.c
 CPPFLAGS += -DNXFONTS_FONTID=$(NXFONTS_FONTID)
 CPPFLAGS += -DNXFONTS_PREFIX=$(NXFONTS_PREFIX)
 endif

@@ -112,50 +112,50 @@ RCOPY_TMP	= $(RCOPY_CSRC:.c=.i)
 GEN_CSRCS	= $(SETP_CSRC) $(RFILL_CSRC) $(RGET_CSRC) $(TFILL_CSRC) $(RMOVE_CSRC) $(RCOPY_CSRC)
 
 ifeq ($(CONFIG_NX_LCDDRIVER),y)
-BLITDIR		= lcd
+BLITDIR		= $(SRCDIR)/lcd
 else
-BLITDIR		= fb
+BLITDIR		= $(SRCDIR)/fb
 endif
 
 all:	$(GEN_CSRCS)
 .PHONY : clean distclean
 
-$(SETP_CSRC) : $(BLITDIR)/nxglib_setpixel.c nxglib_bitblit.h
+$(SETP_CSRC) : $(BLITDIR)/nxglib_setpixel.c $(SRCDIR)/nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
 	$(call PREPROCESS, $(BLITDIR)/nxglib_setpixel.c, $(SETP_TMP))
 	$(Q) cat $(SETP_TMP) | sed -e "/^#/d" >$@
 	$(Q) rm -f  $(SETP_TMP)
 endif
 
-$(RFILL_CSRC) : $(BLITDIR)/nxglib_fillrectangle.c nxglib_bitblit.h
+$(RFILL_CSRC) : $(BLITDIR)/nxglib_fillrectangle.c $(SRCDIR)/nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
 	$(call PREPROCESS, $(BLITDIR)/nxglib_fillrectangle.c, $(RFILL_TMP))
 	$(Q) cat $(RFILL_TMP) | sed -e "/^#/d" >$@
 	$(Q) rm -f  $(RFILL_TMP)
 endif
 
-$(RGET_CSRC) : $(BLITDIR)/nxglib_getrectangle.c nxglib_bitblit.h
+$(RGET_CSRC) : $(BLITDIR)/nxglib_getrectangle.c $(SRCDIR)/nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
 	$(call PREPROCESS, $(BLITDIR)/nxglib_getrectangle.c, $(RGET_TMP))
 	$(Q) cat $(RGET_TMP) | sed -e "/^#/d" >$@
 	$(Q) rm -f  $(RGET_TMP)
 endif
 
-$(TFILL_CSRC) : $(BLITDIR)/nxglib_filltrapezoid.c nxglib_bitblit.h
+$(TFILL_CSRC) : $(BLITDIR)/nxglib_filltrapezoid.c $(SRCDIR)/nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
 	$(call PREPROCESS, $(BLITDIR)/nxglib_filltrapezoid.c, $(TFILL_TMP))
 	$(Q) cat $(TFILL_TMP) | sed -e "/^#/d" >$@
 	$(Q) rm -f  $(TFILL_TMP)
 endif
 
-$(RMOVE_CSRC) : $(BLITDIR)/nxglib_moverectangle.c nxglib_bitblit.h
+$(RMOVE_CSRC) : $(BLITDIR)/nxglib_moverectangle.c $(SRCDIR)/nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
 	$(call PREPROCESS, $(BLITDIR)/nxglib_moverectangle.c, $(RMOVE_TMP))
 	$(Q) cat $(RMOVE_TMP) | sed -e "/^#/d" >$@
 	$(Q) rm -f  $(RMOVE_TMP)
 endif
 
-$(RCOPY_CSRC) : $(BLITDIR)/nxglib_copyrectangle.c nxglib_bitblit.h
+$(RCOPY_CSRC) : $(BLITDIR)/nxglib_copyrectangle.c $(SRCDIR)/nxglib_bitblit.h
 ifneq ($(NXGLIB_BITSPERPIXEL),)
 	$(call PREPROCESS, $(BLITDIR)/nxglib_copyrectangle.c, $(RCOPY_TMP))
 	$(Q) cat $(RCOPY_TMP) | sed -e "/^#/d" >$@

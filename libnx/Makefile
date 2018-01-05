@@ -64,6 +64,11 @@ include nxtk/Make.defs
 BINDIR ?= bin
 
 VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
+VPATH += $(OUTDIR)/libnx/nxglib
+VPATH += $(OUTDIR)/libnx/nx
+VPATH += $(OUTDIR)/libnx/nxmu
+VPATH += $(OUTDIR)/libnx/nxfonts
+VPATH += $(OUTDIR)/libnx/nxtk
 
 AOBJS = $(patsubst %.S, $(BINDIR)$(DELIM)%$(OBJEXT), $(ASRCS))
 COBJS = $(patsubst %.c, $(BINDIR)$(DELIM)%$(OBJEXT), $(CSRCS))
