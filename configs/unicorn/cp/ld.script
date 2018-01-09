@@ -36,7 +36,8 @@
 MEMORY
 {
 	flash (rx) : ORIGIN = 0x00000000, LENGTH = 1216K
-	sram (rwx) : ORIGIN = 0x01000000, LENGTH = 384K
+	sram (rwx) : ORIGIN = 0x01000000, LENGTH = 192K
+	shram (rw) : ORIGIN = 0xb0010000, LENGTH = 24K
 }
 
 OUTPUT_ARCH(arm)
@@ -75,6 +76,11 @@ SECTIONS
 	} > flash
 	__exidx_end = ABSOLUTE(.);
 
+	_srsctbl = LOADADDR(.resource_table);
+	.resource_table : {
+		*(.resource_table)
+	} > shram AT > flash
+
 	_eronly = LOADADDR(.data);
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -93,7 +99,10 @@ SECTIONS
 		_ebss = ABSOLUTE(.);
 	} > sram
 
-	_eheap = ORIGIN(sram) + LENGTH(sram);
+	_eheap = _slog;
+	_slog = _elog - _logsize;
+	_elog = ORIGIN(sram) + LENGTH(sram);
+	_logsize = 4096;
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }

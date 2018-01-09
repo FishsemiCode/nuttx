@@ -39,14 +39,38 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/mbox/song_mbox.h>
+#include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
 #include "up_internal.h"
+#include "song_addrenv.h"
 
 #ifdef CONFIG_ARCH_CHIP_UNICORN_AP
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define CPU_NAME_SP                 "sp"
+
+#define _LOGBUF_BASE                ((uintptr_t)&_slog)
+#define _LOGBUF_SIZE                ((uint32_t)&_logsize)
+#define _RSCTBL_BASE                ((uintptr_t)&_srsctbl)
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+extern uint32_t _slog;
+extern uint32_t _logsize;
+extern uint32_t _srsctbl;
 
 /****************************************************************************
  * Private Data
@@ -57,6 +81,39 @@ static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void up_earlyinitialize(void)
+{
+  static const struct song_addrenv_s addrenv[] =
+  {
+    {.va = 0x21000000, .pa = 0xb1000000, .size = 0x00100000},
+    {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
+  };
+
+  up_addrenv_initialize(addrenv);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_SP, (void *)_LOGBUF_BASE, _LOGBUF_SIZE);
+#endif
+}
+
+int up_rtc_initialize(void)
+{
+  static const struct song_rtc_config_s config =
+  {
+    .base  = 0xb2020000,
+    .irq   = 16,
+    .index = 1,
+  };
+
+  g_rtc_lower = song_rtc_initialize(&config);
+  if (g_rtc_lower)
+    {
+      up_rtc_set_lowerhalf(g_rtc_lower);
+    }
+
+  return 0;
+}
 
 void arm_timer_initialize(void)
 {
@@ -84,23 +141,115 @@ void arm_timer_initialize(void)
     }
 }
 
-int up_rtc_initialize(void)
+#ifdef CONFIG_OPENAMP
+void up_openamp_initialize(void)
 {
-  static const struct song_rtc_config_s config =
+  struct mbox_dev_s *mbox_ap, *mbox_sp;
+
+  static const struct song_mbox_config_s mbox_cfg_ap =
   {
-    .base  = 0xb2020000,
-    .irq   = 16,
-    .index = 1,
+    .base       = 0xb0030000,
+    .set_off    = 0x10,
+    .en_off     = 0x14,
+    .en_bit     = 16,
+    .src_en_off = 0x14,
+    .sta_off    = 0x18,
+    .chnl_count = 16,
+    .irq        = 21,
   };
 
-  g_rtc_lower = song_rtc_initialize(&config);
-  if (g_rtc_lower)
-    {
-      up_rtc_set_lowerhalf(g_rtc_lower);
-    }
+  static const struct song_mbox_config_s mbox_cfg_sp =
+  {
+    .base       = 0xb0030000,
+    .set_off    = 0x20,
+    .en_off     = 0x24,
+    .en_bit     = 16,
+    .src_en_off = 0x24,
+    .sta_off    = 0x28,
+    .chnl_count = 16,
+    .irq        = -1,
+  };
 
-  return 0;
+  static struct rptun_rsc_loadstart_s rptun_rsc_sp
+              __attribute__ ((section (".resource_table"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 2,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_loadstart_s, log_trace),
+      offsetof(struct rptun_rsc_loadstart_s, rpmsg_vdev),
+    },
+    .log_trace       =
+    {
+      .type          = RSC_TRACE,
+      .da            = _LOGBUF_BASE,
+      .len           = _LOGBUF_SIZE,
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x100,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x100,
+      .num           = 4,
+    },
+    .buf_size        = 0x600,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_sp =
+  {
+    .cpu_name    = CPU_NAME_SP,
+    .role        = RPMSG_REMOTE,
+    .ch_start_rx = 14,
+    .ch_vring_rx = 15,
+    .ch_start_tx = 14,
+    .ch_vring_tx = 15,
+    .rsc         =
+    {
+      .rsc_tab   = &rptun_rsc_sp.rsc_tbl_hdr,
+      .size      = sizeof(rptun_rsc_sp),
+    },
+    .rsc_flash   = _RSCTBL_BASE,
+  };
+
+  mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 0);
+  mbox_sp = song_mbox_initialize(&mbox_cfg_sp, 1);
+
+  song_rptun_initialize(&rptun_cfg_sp, mbox_ap, mbox_sp, 0);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
+#endif
+
+#ifdef CONFIG_RPMSG_UART
+# ifdef CONFIG_SERIAL_CONSOLE
+  uart_rpmsg_init(0, 4096, false, CPU_NAME_SP, 0, false);
+# else
+  uart_rpmsg_init(0, 4096, true, CPU_NAME_SP, 0, false);
+# endif
+  uart_rpmsg_init(1, 4096, false, CPU_NAME_SP, 1, false);
+#endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_SP);
+#endif
 }
+#endif
 
 void up_lateinitialize(void)
 {
