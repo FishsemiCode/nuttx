@@ -552,24 +552,24 @@ do_menuconfig: dirlinks apps_preconfig tools/kconfig-mconf$(HOSTEXEEXT)
 menuconfig: do_menuconfig clean_context
 
 do_qconfig: dirlinks apps_preconfig
-	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) kconfig-qconf $(KCONFIG_ROOT)
+	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-qconf $(KCONFIG_ROOT)
 
 qconfig: do_qconfig clean_context
 
 do_gconfig: dirlinks apps_preconfig
-	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) kconfig-gconf $(KCONFIG_ROOT)
+	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-gconf $(KCONFIG_ROOT)
 
 gconfig: do_gconfig clean_context
 
 do_savedefconfig: dirlinks apps_preconfig
 
 savedefconfig: do_savedefconfig
-	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) kconfig-conf --savedefconfig $(OUTDIR)/defconfig.tmp $(KCONFIG_ROOT)
+	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-conf --savedefconfig $(OUTDIR)/defconfig.tmp $(KCONFIG_ROOT) && cd -
 	$(Q) sed -i -e "/CONFIG_APPS_DIR=/d" defconfig.tmp
 	$(Q) grep "CONFIG_ARCH=" .config >> defconfig.tmp
-	-$(Q) grep "^CONFIG_ARCH_CHIP_" .config >> defconfig.tmp
-	-$(Q) grep "CONFIG_ARCH_BOARD=" .config && grep "CONFIG_ARCH_BOARD=" .config >> defconfig.tmp
-	-$(Q) grep "^CONFIG_ARCH_CUSTOM" .config && grep "^CONFIG_ARCH_CUSTOM" .config >> defconfig.tmp
+	-$(Q) if [ -n "`grep "^CONFIG_ARCH_CHIP_" .config`" ]; then grep "^CONFIG_ARCH_CHIP_" .config >> defconfig.tmp; fi
+	-$(Q) if [ -n "`grep "CONFIG_ARCH_BOARD=" .config`" ]; then grep "CONFIG_ARCH_BOARD=" .config >> defconfig.tmp; fi
+	-$(Q) if [ -n "`grep "^CONFIG_ARCH_CUSTOM" .config`" ]; then grep "^CONFIG_ARCH_CUSTOM" .config >> defconfig.tmp; fi
 	$(Q) cat defconfig.tmp | sort | uniq > defconfig
 	$(Q) rm -f defconfig.tmp
 

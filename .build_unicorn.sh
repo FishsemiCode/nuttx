@@ -15,6 +15,9 @@
 # limitations under the License.
 #
 
+config_array=()
+command_array=()
+
 NUTTX_ROOT=${PWD}/nuttx
 NUTTX_OUTDIR=${PWD}/out
 
@@ -23,7 +26,7 @@ NUTTX_BOARD_CONFIG=(\
 		"unicorn/cp" \
 		"unicorn/sp")
 
-NUTTX_ARMTOOL=(\
+NUTTX_UNICORN_ENV=(\
 		"CROSSDEV=${PWD}/prebuilts/gcc/linux/arm/bin/arm-none-eabi-" \
 		"ARCROSSDEV=${PWD}/prebuilts/gcc/linux/arm/bin/arm-none-eabi-")
 
@@ -33,7 +36,7 @@ function usage()
 	echo -e "\n----------------------------------------------------"
 	echo -e "\nUnicorn build shell: [-o product path] [\${NUTTX_BOARD_CONFIG}]\n"
 	echo    "	${j}. ARMTool Path:" && let j++
-	for tool in ${NUTTX_ARMTOOL[*]}; do
+	for tool in ${NUTTX_UNICORN_ENV[*]}; do
 		echo "		$i. ${tool}" && let i++
 	done
 	i=1
@@ -41,18 +44,18 @@ function usage()
 	for config in ${NUTTX_BOARD_CONFIG[*]}; do
 		echo "		$i. ${config}" && let i++
 	done
-	echo "		(You can only compile one of the configuration through: "
+	echo "		(You can only compile one of the configuration through:"
 	echo "-->			./build_unicorn.sh ${NUTTX_BOARD_CONFIG[0]} )"
 
 	echo -e "\n	${j}. Default Output Directory:" && let j++
-	echo -e "		${NUTTX_OUTDIR}/\${NUTTX_BOARD_CONFIG} \n"
+	echo -e "		${NUTTX_OUTDIR}/\${NUTTX_BOARD_CONFIG}\n"
 	echo "		(You can modify this path through the -o option:"
-	echo "-->			./build_unicorn.sh -o \${NUTTX_OUTDIR} "
+	echo "-->			./build_unicorn.sh -o \${NUTTX_OUTDIR}"
 	echo "-->			./build_unicorn.sh -o \${NUTTX_OUTDIR} ${NUTTX_BOARD_CONFIG[0]})"
 	i=1
 	echo -e "\n	${j}. Compile Products:" && let j++
 		for config in ${NUTTX_BOARD_CONFIG[*]}; do
-			echo "		$i. \${NUTTX_OUTDIR}/${config}/`echo ${config} | sed "s/\//-/g"`.fw" && let i++
+			echo "		$i. \${NUTTX_OUTDIR}/`echo ${config} | sed "s/\//-/g"`.fw" && let i++
 		done
 	echo -e "\n----------------------------------------------------"
 }
@@ -60,18 +63,29 @@ function usage()
 function build_board()
 {
 	local product=`echo ${2} | sed "s/\//-/g"`.fw
-
-	if [ -f ${product} ]; then rm -rf ${product};fi
+	local product_out=${NUTTX_OUTDIR}/${2}/nuttx
 
 	export ${1}
-	${NUTTX_ROOT}/tools/configure.sh -o ${NUTTX_OUTDIR}/${2}/nuttx ${2} && \
-	make -C nuttx O=${NUTTX_OUTDIR}/${2}/nuttx -j4
+	echo -e "\nCompile Command line:\n"
+	echo -e "	${NUTTX_ROOT}/tools/configure.sh -o ${product_out} ${2}"
+	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}\n"
+
+	${NUTTX_ROOT}/tools/configure.sh -o ${product_out} ${2} && \
+	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig && \
+	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}
 
 	if [ $? -ne 0 ]; then
 		echo "############# build ${2} fail ##############"
 		exit $?
 	fi
-	cp -rf ${NUTTX_OUTDIR}/${2}/nuttx/nuttx ${NUTTX_OUTDIR}/${2}/${product}
+
+	if [ -f ${product_out}/defconfig ]; then
+		cp ${product_out}/defconfig ${NUTTX_ROOT}/configs/${2}
+	fi
+
+	if [ -f ${product_out}/nuttx.bin ]; then
+		cp -f ${product_out}/nuttx.bin ${NUTTX_OUTDIR}/${product}
+	fi
 }
 
 while [ ! -z "$1" ]; do
@@ -85,13 +99,31 @@ while [ ! -z "$1" ]; do
 			exit 0
 			;;
 		* )
-			build_board "${NUTTX_ARMTOOL[*]}" ${1}
-			exit 0
-		;;
+
+			find_config=
+			for config in ${NUTTX_BOARD_CONFIG[*]}; do
+				if [ $1 == ${config} ]; then
+					config_array[${#config_array[@]}]=$1
+					find_config=true
+					break
+				fi
+			done
+
+			if [ "${find_config}" == "" ];then
+				command_array[${#command_array[@]}]=$1
+			fi
+			;;
 	esac
 	shift
 done
 
+if [ -n "${config_array[*]}" ]; then
+	for config in ${config_array[*]}; do
+		build_board "${NUTTX_UNICORN_ENV[*]}" ${config}
+	done
+	exit $?
+fi
+
 for config in ${NUTTX_BOARD_CONFIG[*]}; do
-	build_board "${NUTTX_ARMTOOL[*]}" ${config}
+	build_board "${NUTTX_UNICORN_ENV[*]}" ${config}
 done
