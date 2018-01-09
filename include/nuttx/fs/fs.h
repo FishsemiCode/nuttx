@@ -196,6 +196,7 @@
 struct file;   /* Forward reference */
 struct pollfd; /* Forward reference */
 struct inode;  /* Forward reference */
+struct stat;   /* Forward reference */
 
 struct file_operations
 {
@@ -266,7 +267,6 @@ struct block_operations
 
 struct inode;
 struct fs_dirent_s;
-struct stat;
 struct statfs;
 struct mountpt_operations
 {
