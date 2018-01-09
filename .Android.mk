@@ -24,7 +24,7 @@ NUTTX_ARMTOOL   += ARCROSSDEV=$(NUTTX_ROOT)/prebuilts/gcc/linux/arm/bin/arm-none
 $(NUTTX_OUTDIR)/banks/rpm/nuttx/nuttx: FORCE
 	$(hide) $(NUTTX_ARMTOOL) $(NUTTX_ROOT)/nuttx/tools/configure.sh -o $(dir $@) banks/rpm
 	$(hide) $(NUTTX_ARMTOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) savedefconfig
-	$(hide) $(NUTTX_ARMTOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@)
+	$(hide) $(NUTTX_ARMTOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) V=$(if $(hide),0,1)
 	$(hide) cp $(dir $@)/defconfig ${NUTTX_ROOT}/nuttx/configs/banks/rpm
 
 include $(CLEAR_VARS)
@@ -38,7 +38,7 @@ include $(BUILD_PREBUILT)
 $(NUTTX_OUTDIR)/banks/sensor/nuttx/nuttx: FORCE
 	$(hide) $(NUTTX_ARMTOOL) $(NUTTX_ROOT)/nuttx/tools/configure.sh -o $(dir $@) banks/sensor
 	$(hide) $(NUTTX_ARMTOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) savedefconfig
-	$(hide) $(NUTTX_ARMTOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@)
+	$(hide) $(NUTTX_ARMTOOL) $(MAKE) -C $(NUTTX_ROOT)/nuttx O=$(dir $@) V=$(if $(hide),0,1)
 	$(hide) cp $(dir $@)/defconfig ${NUTTX_ROOT}/nuttx/configs/banks/sensor
 
 include $(CLEAR_VARS)
