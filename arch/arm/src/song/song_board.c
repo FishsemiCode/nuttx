@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/banks/src/song_board.c
+ * arch/arm/src/song/song_board.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
