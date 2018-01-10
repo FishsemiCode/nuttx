@@ -56,6 +56,7 @@
 #include <nuttx/sched_note.h>
 #include <nuttx/syslog/syslog.h>
 #include <nuttx/init.h>
+#include <nuttx/version.h>
 
 #include "sched/sched.h"
 #include "signal/signal.h"
@@ -374,6 +375,12 @@ void os_start(void)
 # define cpu 0
 #endif
   int i;
+
+  syslog(LOG_INFO,
+        "Nuttx version %s-%s (%s@%s) %s %s\n",
+        CONFIG_VERSION_STRING, CONFIG_VERSION_BUILD,
+        CONFIG_ARCH_BOARD, CONFIG_ARCH_FAMILY,
+        __DATE__, __TIME__);
 
   sinfo("Entry\n");
 
