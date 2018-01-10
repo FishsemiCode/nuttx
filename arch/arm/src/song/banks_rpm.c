@@ -49,6 +49,7 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "song_addrenv.h"
+#include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_BANKS_RPM
 

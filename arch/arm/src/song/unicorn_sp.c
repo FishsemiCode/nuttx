@@ -44,6 +44,8 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include "up_internal.h"
+
 #ifdef CONFIG_ARCH_CHIP_UNICORN_SP
 
 /****************************************************************************
