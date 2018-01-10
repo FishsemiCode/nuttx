@@ -2,3 +2,14 @@
 # For a description of the syntax of this configuration file,
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
+
+choice
+	prompt "Select target application"
+
+config BANKS_RPM
+	bool "Banks RPM"
+
+config BANKS_SENSOR
+	bool "Banks Sensor"
+
+endchoice

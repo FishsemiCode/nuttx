@@ -2,3 +2,17 @@
 # For a description of the syntax of this configuration file,
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
+
+choice
+	prompt "Select target application"
+
+config UNICORN_AP
+	bool "Unicorn AP"
+
+config UNICORN_CP
+	bool "Unicorn CP"
+
+config UNICORN_SP
+	bool "Unicorn SP"
+
+endchoice
