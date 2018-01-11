@@ -76,6 +76,7 @@ static int song_rptun_registercallback(struct rptun_dev_s *dev,
 static int song_rptun_ioctl(struct rptun_dev_s *dev, int cmd, unsigned long arg);
 static int song_rptun_start_isr(void *arg, uintptr_t msg);
 static int song_rptun_vring_isr(void *arg, uintptr_t msg);
+static void song_rptun_copy_resource(const struct song_rptun_config_s *config);
 
 /************************************************************************************
  * Private Data
@@ -206,6 +207,24 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg)
   return 0;
 }
 
+static void song_rptun_copy_resource(const struct song_rptun_config_s *config)
+{
+  char *src, *dst;
+  size_t len;
+
+  if (config->rsc_flash)
+    {
+      len = config->rsc.size;
+      src = (char *)config->rsc_flash + len;
+      dst = (char *)config->rsc.rsc_tab + len;
+
+      while (len--)
+        {
+          *--dst = *--src;
+        }
+    }
+}
+
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -218,6 +237,8 @@ struct rptun_dev_s *song_rptun_initialize(
 {
   struct song_rptun_dev_s *priv;
   int ret;
+
+  song_rptun_copy_resource(config);
 
   priv = kmm_zalloc(sizeof(struct song_rptun_dev_s));
   if (priv == NULL)
