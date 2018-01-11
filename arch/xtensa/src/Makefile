@@ -122,6 +122,11 @@ endif
 LIBGCC = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 
 VPATH = chip:common:$(ARCH_SUBDIR)
+ifeq ($(WINTOOL),y)
+VPATH += :$(shell cygpath -w $(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip | sed 's/\\/\//g')
+else
+VPATH += :$(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip
+endif
 
 all: $(STARTUP_OBJS) libarch$(LIBEXT)
 

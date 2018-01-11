@@ -75,6 +75,9 @@ KCONFIG_CFLAGS += -DGPERF_LEN_TYPE='unsigned int'
 KCONFIG_CFLAGS += -I$(SRCDIR)/kconfig-frontends/include
 KCONFIG_CFLAGS += -I$(SRCDIR)/kconfig-frontends/libs
 KCONFIG_CFLAGS += -I$(SRCDIR)/kconfig-frontends/libs/parser
+ifeq ($(HOSTOS),Cygwin)
+KCONFIG_CFLAGS += -DKBUILD_NO_NLS
+endif
 
 # Targets
 

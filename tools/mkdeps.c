@@ -808,7 +808,7 @@ static void do_dependency(const char *file)
           return;
         }
 
-      if (file[0] == '/')
+      if (file[0] == '/' || file[1] == ':')
         {
           strcpy(g_path, file);
         }

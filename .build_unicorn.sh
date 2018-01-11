@@ -26,9 +26,23 @@ NUTTX_BOARD_CONFIG=(\
 		"unicorn/cp" \
 		"unicorn/sp")
 
+SYSTEM=`uname -s`
+HOST_FLAG=
+
+if [[ "${SYSTEM}" =~ "Linux" ]]; then
+	SYSTEM=linux
+	HOST_FLAG=-l
+elif [[ "${SYSTEM}" =~ "CYGWIN" ]]; then
+	SYSTEM=windows
+	HOST_FLAG=-c
+else
+	echo "Unsupport OS : ${SYSTEM}"
+	exit 1
+fi
+
 NUTTX_UNICORN_ENV=(\
-		"CROSSDEV=${PWD}/prebuilts/gcc/linux/arm/bin/arm-none-eabi-" \
-		"ARCROSSDEV=${PWD}/prebuilts/gcc/linux/arm/bin/arm-none-eabi-")
+		"CROSSDEV=${PWD}/prebuilts/gcc/${SYSTEM}/arm/bin/arm-none-eabi-" \
+		"ARCROSSDEV=${PWD}/prebuilts/gcc/${SYSTEM}/arm/bin/arm-none-eabi-")
 
 function usage()
 {
@@ -67,10 +81,11 @@ function build_board()
 
 	export ${1}
 	echo -e "\nCompile Command line:\n"
-	echo -e "	${NUTTX_ROOT}/tools/configure.sh -o ${product_out} ${2}"
+	echo -e "	${NUTTX_ROOT}/tools/configure.sh ${HOST_FLAG} -o ${product_out} ${2}"
+	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig"
 	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}\n"
 
-	${NUTTX_ROOT}/tools/configure.sh -o ${product_out} ${2} && \
+	${NUTTX_ROOT}/tools/configure.sh ${HOST_FLAG} -o ${product_out} ${2} && \
 	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig && \
 	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}
 

@@ -38,11 +38,22 @@ SRCDIR   := $(patsubst %$(DELIM),%,$(dir $(firstword $(MAKEFILE_LIST))))
 # override MKDEP from defconfig
 MKDEP    := $(OUTDIR)$(DELIM)tools$(DELIM)mkdeps$(HOSTEXEEXT)
 
+ifeq ($(WINTOOL),y)
+MKDEP    += --winpath
+SRCDIR   := $(shell cygpath -w $(SRCDIR) | sed 's/\\/\//g')
+
+CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
+CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include$(DELIM)cxx`}
+else
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
 CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
 CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
 CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include$(DELIM)cxx}
+endif
 
 # CREATEDIR is the list of directories which need to create
 $(if $(CREATEDIR), $(foreach DIR, $(CREATEDIR), $(call MKDIR, $(DIR))))
