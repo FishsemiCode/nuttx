@@ -568,8 +568,9 @@ gconfig: do_gconfig clean_context
 do_savedefconfig: dirlinks apps_preconfig
 
 savedefconfig: do_savedefconfig
-	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-conf --savedefconfig $(OUTDIR)/defconfig.tmp $(KCONFIG_ROOT) && cd -
+	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-conf --savedefconfig $(OUTDIR)/defconfig.tmp $(KCONFIG_ROOT)
 	$(Q) sed -i -e "/CONFIG_APPS_DIR=/d" defconfig.tmp
+	$(Q) sed -i -e "/CONFIG_HOST_[(LINUX)|(WINDOWS)|(OSX)|(OTHER)]\|CONFIG_WINDOWS_[(NATIVE)|(CYGWIN)|(MSYS)|(UBUNTU)|(OTHER)]/d" defconfig.tmp
 	$(Q) grep "CONFIG_ARCH=" .config >> defconfig.tmp
 	-$(Q) if [ -n "`grep "^CONFIG_ARCH_CHIP_" .config`" ]; then grep "^CONFIG_ARCH_CHIP_" .config >> defconfig.tmp; fi
 	-$(Q) if [ -n "`grep "CONFIG_ARCH_BOARD=" .config`" ]; then grep "CONFIG_ARCH_BOARD=" .config >> defconfig.tmp; fi
