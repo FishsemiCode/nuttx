@@ -276,8 +276,12 @@ tools/mkversion$(HOSTEXEEXT):
 
 .version:
 	$(Q) if [ ! -f .version ]; then \
-		echo "No .version file found, creating one"; \
-		$(TOPDIR)/tools/version.sh -v 0.0 -b 0 .version; \
+		if [ -f $(TOPDIR)/.version ]; then \
+			cp $(TOPDIR)/.version .version; \
+		else \
+			echo "No .version file found, creating one"; \
+			$(TOPDIR)/tools/version.sh -c $(TOPDIR) .version; \
+		fi; \
 		chmod 755 .version; \
 	fi
 

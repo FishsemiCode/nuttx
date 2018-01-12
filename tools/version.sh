@@ -36,12 +36,13 @@ WD=`pwd`
 
 # Get command line parameters
 
-USAGE="USAGE: $0 [-d|-h] [-b <build>] -v <major.minor> <outfile-path>"
+USAGE="USAGE: $0 [-d|-h] [-b <build>] [-c <source>] -v <major.minor> <outfile-path>"
 ADVICE="Try '$0 -h' for more information"
 
 unset VERSION
 unset BUILD
 unset OUTFILE
+unset GITDIR
 
 while [ ! -z "$1" ]; do
 	case $1 in
@@ -65,6 +66,8 @@ while [ ! -z "$1" ]; do
 		echo "	-b <build>"
 		echo "		Use this build identification string.  Default: use GIT build ID"
 		echo "		NOTE: GIT build information may not be available in a snapshot"
+		echo "	-c <source>"
+		echo "		Run as if git was started in <source> instead of the current working directory."
 		echo "	-d"
 		echo "		Enable script debug"
 		echo "	-h"
@@ -76,6 +79,10 @@ while [ ! -z "$1" ]; do
 		echo "		The full path to the version file to be created"
 		exit 0
 		;;
+	-c )
+		shift
+		GITDIR=$1
+		;;
 	* )
 		break;
 		;;
@@ -85,8 +92,21 @@ done
 
 OUTFILE=$1
 
-# Make sure we know what is going on
+if [ -z ${GITDIR} ] ; then
+	GITDIR=${WD}
+fi
 
+if [ -z ${VERSION} ] ; then
+	GITINFO=`git -C ${GITDIR} log --tags --pretty="format:%D" -1 | cut -d'-' -f2`
+	if [ -z "${GITINFO}" ]; then
+		echo "GIT tag is not available"
+		exit 5
+	else
+		VERSION=${GITINFO}
+	fi
+fi
+
+# Make sure we know what is going on
 if [ -z ${VERSION} ] ; then
 	echo "Missing versioning information"
 	echo $USAGE
@@ -115,7 +135,7 @@ MINOR=`echo ${VERSION} | cut -d'.' -f2`
 # Get GIT information (if not provided on the command line)
 
 if [ -z "${BUILD}" ]; then
-	GITINFO=`git log 2>/dev/null | head -1`
+	GITINFO=`git -C ${GITDIR} log 2>/dev/null | head -1`
 	if [ -z "${GITINFO}" ]; then
 		echo "GIT version information is not available"
 		exit 3
