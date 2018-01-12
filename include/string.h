@@ -49,6 +49,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if CHAR_BIT == 8
+#  define CHAR_SHIFT 0
+#elif CHAR_BIT == 16
+#  define CHAR_SHIFT 1
+#elif CHAR_BIT == 32
+#  define CHAR_SHIFT 2
+#endif
+
 /* Macros convert between chars and bytes */
 #define B2C(x) ((8 * (x) + CHAR_BIT - 1) / CHAR_BIT)
 #define C2B(x) ((CHAR_BIT * (x) + 8 - 1) / 8)
@@ -57,6 +65,9 @@
 #define C2B_OFF(x) ((CHAR_BIT * (x)) / 8)
 
 #define B2C_REM(x) ((x) - C2B_OFF(B2C_OFF(x)))
+
+#define B2C_SHIFT(x) ((x) - CHAR_SHIFT)
+#define C2B_SHIFT(x) ((x) + CHAR_SHIFT)
 
 /****************************************************************************
  * Public Function Prototypes
