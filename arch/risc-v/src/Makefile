@@ -151,7 +151,7 @@ VPATH += $(ARCH_SUBDIR)
 VPATH += $(CHIP_DIR)
 VPATH := $(patsubst %,:$(SRCDIR)$(DELIM)%,$(VPATH))
 ifeq ($(WINTOOL),y)
-VPATH += :$(shell cygpath -w $(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip | sed 's/\\/\//g')
+VPATH += :$(shell cygpath -m $(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip)
 else
 VPATH += :$(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip
 endif

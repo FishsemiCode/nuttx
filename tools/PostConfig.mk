@@ -40,7 +40,7 @@ MKDEP    := $(OUTDIR)$(DELIM)tools$(DELIM)mkdeps$(HOSTEXEEXT)
 
 ifeq ($(WINTOOL),y)
 MKDEP    += --winpath
-SRCDIR   := $(shell cygpath -w $(SRCDIR) | sed 's/\\/\//g')
+SRCDIR   := $(shell cygpath -m $(SRCDIR))
 
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
 CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
