@@ -44,9 +44,18 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_UNICORN_SP
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define PWR_AP_POR_CTL              0xb00400e0
+#define PWR_CP_POR_CTL              0xb00400dc
+#define SECURITY_CFG_0              0xb0150030
 
 /****************************************************************************
  * Private Data
@@ -57,6 +66,19 @@ static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void up_earlyinitialize(void)
+{
+  /* SP <--shram0--> AP
+   * SP <--shram1--> CP
+   * SP should enable shram1 for IPC, (shram0 default enabled)
+   * then boot AP & CP
+   */
+
+  putreg32(0x00010000, SECURITY_CFG_0);
+  putreg32(0x00010000, PWR_AP_POR_CTL);
+  putreg32(0x00010000, PWR_CP_POR_CTL);
+}
 
 void arm_timer_initialize(void)
 {
