@@ -61,6 +61,7 @@
 
 int vsyslog(int priority, FAR const IPTR char *fmt, va_list ap)
 {
+  va_list copy;
   int ret = 0;
 
   /* Check if this priority is enabled */
@@ -74,7 +75,8 @@ int vsyslog(int priority, FAR const IPTR char *fmt, va_list ap)
        * of structures in the NuttX sycalls does not work.
        */
 
-      ret = _vsyslog(priority, fmt, &ap);
+      va_copy(copy, ap);
+      ret = _vsyslog(priority, fmt, &copy);
     }
 
   return ret;
