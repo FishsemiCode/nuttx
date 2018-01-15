@@ -379,7 +379,7 @@ void os_start(void)
   syslog(LOG_INFO,
         "Nuttx version %s-%s (%s@%s) %s %s\n",
         CONFIG_VERSION_STRING, CONFIG_VERSION_BUILD,
-        CONFIG_ARCH_BOARD, CONFIG_ARCH_FAMILY,
+        CONFIG_ARCH, CONFIG_ARCH_BOARD,
         __DATE__, __TIME__);
 
   sinfo("Entry\n");
