@@ -82,12 +82,12 @@ function build_board()
 	export ${1}
 	echo -e "\nCompile Command line:\n"
 	echo -e "	${NUTTX_ROOT}/tools/configure.sh ${HOST_FLAG} -o ${product_out} ${2}"
-	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig"
-	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}\n"
+	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}"
+	echo -e "	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig\n"
 
 	${NUTTX_ROOT}/tools/configure.sh ${HOST_FLAG} -o ${product_out} ${2} && \
-	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig && \
-	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]}
+	make -C ${NUTTX_ROOT} O=${product_out} ${command_array[*]} && \
+	make -C ${NUTTX_ROOT} O=${product_out} savedefconfig
 
 	if [ $? -ne 0 ]; then
 		echo "############# build ${2} fail ##############"
