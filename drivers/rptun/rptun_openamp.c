@@ -48,6 +48,10 @@
 
 #include <openamp/open_amp.h>
 
+#ifndef MAX
+#  define MAX(a,b) ((a)>(b)?(a):(b))
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -56,6 +60,7 @@ struct rptun_openamp_s
 {
   struct rptun_dev_s           *dev;
   struct remote_proc           *rproc;
+  struct proc_shm              shm;
   struct work_s                work_start;
   struct work_s                work_vring;
 };
@@ -155,7 +160,7 @@ static int rptun_openamp_init(struct hil_proc *proc)
 {
   struct rptun_openamp_s *priv = proc->pdata;
 
-  RPTUN_GET_SHAREMEM(priv->dev, &proc->sh_buff);
+  memcpy(&proc->sh_buff, &priv->shm, sizeof(priv->shm));
 
   proc->rsc_io = metal_io_get_region();
   proc->sh_buff.io = metal_io_get_region();
@@ -175,6 +180,45 @@ static void rptun_openamp_release(struct hil_proc *proc)
   RPTUN_UNREGISTER_CALLBACK(priv->dev);
 }
 
+static void rptun_openamp_alloc_mem(
+                            struct rptun_openamp_s *priv,
+                            struct rsc_table_info *rsc_info)
+{
+  struct rptun_rsc_loadstart_s *rsc_tab =
+                            (struct rptun_rsc_loadstart_s *)rsc_info->rsc_tab;
+  uint32_t vring0_size, vring1_size, tb_size, max_align;
+  volatile uint32_t *check_ver;
+
+  /* RPMSG_MASTER need wait remote core load resource table,
+   * then calculating address with following order:
+   *    resource table
+   *    vring0
+   *    vring1
+   *    share mem buffer
+   * Attention:
+   * The buffers' total size shouldn't bigger then the original
+   * size which given by user
+   */
+
+  check_ver = (volatile uint32_t *)&rsc_tab->rsc_tbl_hdr.ver;
+  while (*check_ver != 1);
+
+  vring0_size = vring_size(rsc_tab->rpmsg_vring0.num, rsc_tab->rpmsg_vring0.align);
+  vring1_size = vring_size(rsc_tab->rpmsg_vring1.num, rsc_tab->rpmsg_vring1.align);
+
+  max_align   = MAX(rsc_tab->rpmsg_vring0.align, rsc_tab->rpmsg_vring1.align);
+  tb_size     = (sizeof(*rsc_tab) + max_align - 1) & ~(max_align - 1);
+
+  rsc_tab->rpmsg_vring0.da       = (uint32_t)rsc_tab + tb_size;
+  rsc_tab->rpmsg_vring0.notifyid = 1;
+  rsc_tab->rpmsg_vring1.da       = rsc_tab->rpmsg_vring0.da + vring0_size;
+  rsc_tab->rpmsg_vring1.notifyid = 2;
+
+  priv->shm.start_addr           = (void *)(rsc_tab->rpmsg_vring1.da + vring1_size);
+  priv->shm.size                 = rsc_tab->buf_size * (rsc_tab->rpmsg_vring0.num
+                                                       + rsc_tab->rpmsg_vring1.num);
+}
+
 static int rptun_openamp_resource_init(
                             struct rptun_openamp_s *priv, int cpu_id)
 {
@@ -190,6 +234,11 @@ static int rptun_openamp_resource_init(
   if (ret)
     {
       return ret;
+    }
+
+  if (role == RPMSG_MASTER)
+    {
+      rptun_openamp_alloc_mem(priv, &rsc_info);
     }
 
   if (cpu_id == -1)
