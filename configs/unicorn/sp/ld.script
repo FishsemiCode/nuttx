@@ -46,6 +46,14 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
+
+		/* explictly specify the offset of link tags */
+		. = 0x400;
+		/* image magic */
+		LONG(0x21494350)
+		LONG(_stext)
+		LONG(_eflash)
+
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -90,6 +98,8 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
+
+	_eflash = LOADADDR(.data) + SIZEOF(.data) - _stext;
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
