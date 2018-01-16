@@ -531,10 +531,10 @@ KCONFIG_ENV += KCONFIG_CONFIG=$(OUTDIR)/.config
 KCONFIG_ROOT := $(TOPDIR)/Kconfig
 
 tools/kconfig-conf$(HOSTEXEEXT):
-	$(Q) $(MAKE) -C tools -f $(TOPDIR)/tools/Makefile.host -I $(TOPDIR)/tools TOPDIR="$(TOPDIR)" kconfig-conf$(HOSTEXEEXT)
+	$(Q) $(MAKE) -r -C tools -f $(TOPDIR)/tools/Makefile.host -I $(TOPDIR)/tools TOPDIR="$(TOPDIR)" kconfig-conf$(HOSTEXEEXT)
 
 tools/kconfig-mconf$(HOSTEXEEXT):
-	$(Q) $(MAKE) -C tools -f $(TOPDIR)/tools/Makefile.host -I $(TOPDIR)/tools TOPDIR="$(TOPDIR)" kconfig-mconf$(HOSTEXEEXT)
+	$(Q) $(MAKE) -r -C tools -f $(TOPDIR)/tools/Makefile.host -I $(TOPDIR)/tools TOPDIR="$(TOPDIR)" kconfig-mconf$(HOSTEXEEXT)
 
 do_config: dirlinks apps_preconfig tools/kconfig-conf$(HOSTEXEEXT)
 	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-conf $(KCONFIG_ROOT)
