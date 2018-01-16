@@ -63,8 +63,8 @@ ROOTDEPPATH = --dep-path .
 PROXYDEPPATH = --dep-path proxies
 STUBDEPPATH = --dep-path stubs
 VPATH := :$(SRCDIR)
-VPATH += :$(SRCDIR)$(DELIM)proxies
-VPATH += :$(SRCDIR)$(DELIM)stubs
+VPATH += :proxies
+VPATH += :stubs
 
 BIN1 = libproxies$(LIBEXT)
 BIN2 = libstubs$(LIBEXT)
@@ -95,8 +95,8 @@ $(MKSYSCALL):
 	$(Q) $(MAKE) -C $(OUTDIR)$(DELIM)tools -f $(TOPDIR)$(DELIM)tools$(DELIM)Makefile.host -I $(TOPDIR)$(DELIM)tools mksyscall
 
 .context: $(SRCDIR)$(DELIM)syscall.csv $(MKSYSCALL)
-	$(Q) (cd $(SRCDIR)$(DELIM)proxies; $(MKSYSCALL) -p $(CSVFILE);)
-	$(Q) (cd $(SRCDIR)$(DELIM)stubs; $(MKSYSCALL) -s $(CSVFILE);)
+	$(Q) (cd proxies; $(MKSYSCALL) -p $(CSVFILE);)
+	$(Q) (cd stubs; $(MKSYSCALL) -s $(CSVFILE);)
 	$(Q) touch $@
 
 context: .context

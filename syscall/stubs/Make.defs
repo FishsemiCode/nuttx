@@ -33,6 +33,6 @@
 #
 ############################################################################
 
-STUB_SRCS := ${shell cd $(SRCDIR)$(DELIM)stubs; ls *.c 2>/dev/null }
+STUB_SRCS := ${shell cd stubs; ls *.c 2>/dev/null }
 
 
