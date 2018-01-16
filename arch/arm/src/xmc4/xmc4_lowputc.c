@@ -47,9 +47,11 @@
 
 #include "up_internal.h"
 #include "up_arch.h"
+#include <debug.h>
 
 #include "xmc4_config.h"
 #include "chip/xmc4_usic.h"
+#include "chip/xmc4_ports.h"
 #include "chip/xmc4_pinmux.h"
 #include "xmc4_usic.h"
 #include "xmc4_gpio.h"
@@ -199,28 +201,28 @@ void xmc4_lowsetup(void)
    */
 
 #ifdef HAVE_UART0
-  (void)xmc4_gpio_config(GPIO_UART0_RXD0);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD0);
+  (void)xmc4_gpio_config(GPIO_UART0_RXD);
+  (void)xmc4_gpio_config(GPIO_UART0_TXD);
 #endif
 #ifdef HAVE_UART1
-  (void)xmc4_gpio_config(GPIO_UART0_RXD1);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD1);
+  (void)xmc4_gpio_config(GPIO_UART1_RXD);
+  (void)xmc4_gpio_config(GPIO_UART1_TXD);
 #endif
 #ifdef HAVE_UART2
-  (void)xmc4_gpio_config(GPIO_UART0_RXD2);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD2);
+  (void)xmc4_gpio_config(GPIO_UART2_RXD);
+  (void)xmc4_gpio_config(GPIO_UART2_TXD);
 #endif
 #ifdef HAVE_UART3
-  (void)xmc4_gpio_config(GPIO_UART0_RXD3);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD3);
+  (void)xmc4_gpio_config(GPIO_UART3_RXD);
+  (void)xmc4_gpio_config(GPIO_UART3_TXD);
 #endif
 #ifdef HAVE_UART4
-  (void)xmc4_gpio_config(GPIO_UART0_RXD4);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD4);
+  (void)xmc4_gpio_config(GPIO_UART4_RXD);
+  (void)xmc4_gpio_config(GPIO_UART4_TXD);
 #endif
 #ifdef HAVE_UART5
-  (void)xmc4_gpio_config(GPIO_UART0_RXD5);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD5);
+  (void)xmc4_gpio_config(GPIO_UART5_RXD);
+  (void)xmc4_gpio_config(GPIO_UART5_TXD);
 #endif
 
 #ifdef HAVE_UART_CONSOLE
@@ -286,11 +288,15 @@ int xmc4_uart_configure(enum usic_channel_e channel,
 
   regval = USIC_PCR_ASCMODE_PLBIT | USIC_PCR_ASCMODE_SMD;
 
-   /*  - Sampling point set equal to the half of the oversampling period */
+  /* Enable the receive and transmit status */
+
+  regval |= USIC_PCR_ASCMODE_RSTEN | USIC_PCR_ASCMODE_TSTEN;
+
+  /* Sampling point set equal to the half of the oversampling period */
 
   regval |= USIC_PCR_ASCMODE_SP((UART_OVERSAMPLING >> 1) + 1);
 
-  /*   - Configure the number of stop bits */
+  /* Configure the number of stop bits */
 
   if (config->stop2)
     {
@@ -309,7 +315,7 @@ int xmc4_uart_configure(enum usic_channel_e channel,
    *   - Set frame length equal to the word length
    */
 
-  regval = USIC_SCTR_PDL0 | USIC_SCTR_TRM_1LEVEL |
+  regval = USIC_SCTR_PDL1 | USIC_SCTR_TRM_1LEVEL |
            USIC_SCTR_FLE(config->nbits) | USIC_SCTR_WLE(config->nbits);
   putreg32(regval, base + XMC4_USIC_SCTR_OFFSET);
 
@@ -372,8 +378,8 @@ int xmc4_uart_configure(enum usic_channel_e channel,
    *     a data word
    */
 
-  regval &= ~(USIC_TBCTR_DPTR_MASK | USIC_TBCTR_LIMIT_MASK | USIC_RBCTR_SRBTEN |
-              USIC_TBCTR_SIZE_MASK | USIC_RBCTR_LOF);
+  regval &= ~(USIC_TBCTR_DPTR_MASK | USIC_TBCTR_LIMIT_MASK | USIC_TBCTR_STBTEN |
+              USIC_TBCTR_SIZE_MASK | USIC_TBCTR_LOF);
   regval |=  (USIC_TBCTR_DPTR(16) | USIC_TBCTR_LIMIT(1) | USIC_TBCTR_SIZE_16);
   putreg32(regval, base + XMC4_USIC_TBCTR_OFFSET);
 
@@ -386,8 +392,8 @@ int xmc4_uart_configure(enum usic_channel_e channel,
   /* Configure receive FIFO.
    *
    *   - DPTR = 0
-   *   - LIMIT = 15
-   *   - SIZE = 16
+   *   - LIMIT = 16
+   *   - SIZE = 15
    *   - LOF = 1, A standard receive buffer event occurs when the filling
    *     level equals the limit value and gets bigger due to the reception
    *     of a new data word
@@ -411,15 +417,18 @@ int xmc4_uart_configure(enum usic_channel_e channel,
    */
 
   regval  = getreg32(base + XMC4_USIC_INPR_OFFSET);
-  regval &= ~(USIC_INPR_TBINP_MASK | USIC_INPR_RINP_MASK | USIC_INPR_PINP_MASK);
+  regval &= ~(USIC_INPR_TBINP_MASK | USIC_INPR_RINP_MASK |
+              USIC_INPR_AINP_MASK | USIC_INPR_PINP_MASK);
 
   if (((unsigned int)channel & 1) != 0)
     {
-      regval |= (USIC_INPR_TBINP_SR1 | USIC_INPR_RINP_SR1 | USIC_INPR_PINP_SR1);
+      regval |= (USIC_INPR_TBINP_SR1 | USIC_INPR_RINP_SR1 |
+                 USIC_INPR_AINP_SR1 | USIC_INPR_PINP_SR1);
     }
   else
     {
-      regval |= (USIC_INPR_TBINP_SR0 | USIC_INPR_RINP_SR0 | USIC_INPR_PINP_SR0);
+      regval |= (USIC_INPR_TBINP_SR0 | USIC_INPR_RINP_SR0 |
+                 USIC_INPR_AINP_SR0 | USIC_INPR_PINP_SR0);
     }
 
   putreg32(regval, base + XMC4_USIC_INPR_OFFSET);

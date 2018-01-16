@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated October 15, 2017)
+NuttX TODO List (Last updated November 27, 2017)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
@@ -14,18 +14,18 @@ nuttx/:
   (1)  Memory Management (mm/)
   (0)  Power Management (drivers/pm)
   (3)  Signals (sched/signal, arch/)
-  (4)  pthreads (sched/pthread)
+  (2)  pthreads (sched/pthread)
   (0)  Message Queues (sched/mqueue)
   (8)  Kernel/Protected Build
   (3)  C++ Support
   (6)  Binary loaders (binfmt/)
- (16)  Network (net/, drivers/net)
+ (17)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
   (0)  Other drivers (drivers/)
  (12)  Libraries (libc/, libm/)
  (10)  File system/Generic drivers (fs/, drivers/)
-  (9)  Graphics Subsystem (graphics/)
-  (3)  Build system / Toolchains
+ (10)  Graphics Subsystem (graphics/)
+  (1)  Build system / Toolchains
   (3)  Linux/Cywgin simulation (arch/sim)
   (4)  ARM (arch/arm/)
 
@@ -300,12 +300,13 @@ o Task/Scheduler (sched/)
                   ./risc-v/src/common/up_internal.h:EXTERN uint32_t g_idle_topstack;
                   ./x86/src/common/up_internal.h:extern uint32_t g_idle_topstack;
 
-                  That omits there architectures: sh1, sim, xtensa, z16, z80,
+                  That omits these architectures: sh1, sim, xtensa, z16, z80,
                   ez80, and z8.  All would have to support this common
                   globlal variable.
 
                   Also, the stack itself may be 8-, 16-, or 32-bits wide,
-                  depending upon the architecture.
+                  depending upon the architecture and do have differing
+                  alignment requirements.
 
                2. Another problem is colorizing that stack to use with
                  stack usage monitoring logic.  There is logic in some
@@ -551,59 +552,10 @@ o pthreads (sched/pthreads)
                 solution. So I discarded a few hours of programming. Not a
                 big loss from the experience I gained."
 
-  Title:       ISSUES WITH CANCELLATION POINTS
-  Description: According to POSIX cancellation points must occur when a
-               thread is executing the following functions.  There are some
-               exceptions as noted:
-
-                accept()             mq_timedsend()           NA putpmsg()          sigtimedwait()
-             04 aio_suspend()     NA msgrcv()                    pwrite()        NA sigwait()
-             NA clock_nanosleep() NA msgsnd()                    read()             sigwaitinfo()
-                close()           NA msync()                  NA readv()         01 sleep()
-                connect()            nanosleep()                 recv()          02 system()
-             -- creat()              open()                      recvfrom()         tcdrain()
-                fcntl()              pause()                  NA recvmsg()       01 usleep()
-             NA fdatasync()          poll()                      select()        -- wait()
-                fsync()              pread()                     sem_timedwait()    waitid()
-             NA getmsg()          NA pselect()                   sem_wait()         waitpid()
-             NA getpmsg()            pthread_cond_timedwait()    send()             write()
-             NA lockf()              pthread_cond_wait()      NA sendmsg()       NA writev()
-                mq_receive()         pthread_join()              sendto()
-                mq_send()            pthread_testcancel()     03 sigpause()
-                mq_timedreceive() NA putmsg()                    sigsuspend()
-
-                  NA Not supported
-                  -- Doesn't need instrumentation.  Handled by lower level calls.
-                  nn See note nn
-
-               NOTE 01: sleep() and usleep() are user-space functions in the C library and cannot
-               serve as cancellation points.  They are, however, simple wrappers around nanosleep
-               which is a true cancellation point.
-               NOTE 02: system() is actually implemented in apps/ as part of NSH.  It cannot be
-               a cancellation point.
-               NOTE 03: sigpause() is a user-space function in the C library and cannot serve as
-               cancellation points.  It is, however, a simple wrapper around sigsuspend()
-               which is a true cancellation point.
-               NOTE 04: aio_suspend() is a user-space function in the C library and cannot serve as
-               cancellation points.  It does call around sigtimedwait() which is a true cancellation
-               point.
-  Status:      Not really open.  This is just the way it is.
-  Priority:    Nothing additional is planned.
-
-  Title:       PTHREAD FILES IN WRONG LOCATION
-  Description: There are many pthread interface functions in files located in
-               sched/pthread.  These should be moved from that location to
-               libc/pthread.  In the flat build, this really does not matter,
-               but in the protected build that location means that system calls
-               are required to access the pthread interface functions.
-  Status:      Open
-  Priority:    Medium-low. Priority may be higher if system call overheade becomes
-               an issue.
-
   Title:       INAPPROPRIATE USE OF sched_lock() BY pthreads
   Description: In implementation of standard pthread functions, the non-
                standard, NuttX function sched_lock() is used.  This is very
-               strong sense it disables pre-emption for all threads in all
+               strong since it disables pre-emption for all threads in all
                task groups.  I believe it is only really necessary in most
                cases to lock threads in the task group with a new non-
                standard interface, say pthread_lock().
@@ -618,7 +570,7 @@ o pthreads (sched/pthreads)
                This is an easy change:  pthread_lock() and pthread_unlock()
                would simply operate on a semaphore retained in the task
                group structure.  I am, however, hesitant to make this change:
-               I the flat build model, there is nothing that prevents people
+               In the FLAT build model, there is nothing that prevents people
                from accessing the inter-thread controls from threads in
                differnt task groups.  Making this change, while correct,
                might introduce subtle bugs in code by people who are not
@@ -646,8 +598,6 @@ o Kernel/Protected Build
                COMMAND  KERNEL INTERFACE(s)
                -------- ----------------------------------------------
                mkrd     ramdisk_register()
-               ping6    icmpv6_ping()
-               mount    foreach_mountpoint()
 
   Status:      Open
   Priority:    Medium/High -- the kernel build configuration is not fully fielded
@@ -663,11 +613,9 @@ o Kernel/Protected Build
                These functions still call directly into operating system
                functions:
 
-                 - cdcacm_classobject - Called from apps/system/composite.
                  - usbmsc_configure - Called from apps/system/usbmsc and
                    apps/system/composite
-                 - usbmsc_bindlun - Called from apps/system/usbmsc and
-                   apps/system/composite
+                 - usbmsc_bindlun - Called from apps/system/usbmsc
                  - usbmsc_exportluns - Called from apps/system/usbmsc.
 
   Status:      Open
@@ -1091,14 +1039,6 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low.
 
-  Title:       UNFINISHED CRYSTALLAN CS89X0 DRIVER
-  Description: I started coding a CrystalLan CS89x0 driver (drivers/net/cs89x0.c),
-               but never finished it.
-  Status:      Closed.
-  Priority:    Low.  I don't plan to finish the CS89x0 driver.  It is just
-               history now.  The unfinished coded is retained in case someone
-               needs to resurrect it.
-
   Title:       INTERFACES TO LEAVE/JOIN IGMP MULTICAST GROUP
   Description: The interfaces used to leave/join IGMP multicast groups is non-standard.
                RFC3678 (IGMPv3) suggests ioctl() commands to do this (SIOCSIPMSFILTER) but
@@ -1332,6 +1272,52 @@ o Network (net/, drivers/net)
                ioctl(_socket_fd, SIOCGIFBRDADDR, &bc_addr);
   Status:      Open
   Priority:    Medium
+
+  Title:       TCP ISSUES WITH QUICK CLOSE
+  Description: This failure has been reported in the accept() logic:
+
+               - psock_tcp_accept() waits on net_lockedwait() below
+               - The accept operation completes, the socket is in the connected
+                 state and psock_accept() is awakened.  It cannot run,
+                 however, because its priority is low and so it is blocked
+                 from execution.
+               - In the mean time, the remote host sends a
+                 packet which is presumeably caught in the read-ahead buffer.
+              - Then the remote host closes the socket.  Nothing happens on
+                 the target side because net_start_monitor() has not yet been
+                 called.
+               - Then accept() finally runs, but not with a connected but
+                 rather with a disconnected socket.  This fails when it
+                 attempts to start the network monitor on the disconnected
+                socket below.
+               - It is also impossible to read the buffered TCP data from a
+                 disconnected socket.  The TCP recvfrom() logic would also
+                 need to permit reading buffered data from a disconnected
+                 socket.
+
+               This problem was report when the target hosted an FTP server
+               and files were being accessed by FileZilla.
+
+               connect() most likely has this same issue.
+
+               A work-around might be to raise the priority of the thread
+               that calls accept().  accept() might also need to check the
+               tcpstateflags in the connection structure before returning
+               in order to assure that the socket truly is connected.
+  Status:      Open
+  Priority:    Medium.  I have never heard of this problem being reported
+               before, so I suspect it might not be so prevalent as one
+               might expect.
+
+  Title:       LOCAL DATAGRAM RECVFROM RETURNS WRONG SENDER ADDRESS
+  Description: The recvfrom logic for local datagram sockets returns the
+               incorrect sender "from" address.  Instead, it returns the
+               receiver's "to" address.  This means that returning a reply
+               to the "from" address receiver sending a packet to itself.
+  Status:      Open
+  Priority:    Medium High.  This makes using local datagram sockets in
+               anything but a well-known point-to-point configuration
+               impossible.
 
 o USB (drivers/usbdev, drivers/usbhost)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1711,7 +1697,6 @@ o Libraries (libc/, libm/)
 
                Generates this incorrect output:
 
-
                NuttShell (NSH) NuttX-7.20
                nsh> hello
                Hello, World!!
@@ -2029,6 +2014,27 @@ o Graphics Subsystem (graphics/)
   Status:      Open
   Priority:    Low for many, but I imagine higher in countries that use wide fonts
 
+  Title:       LOW-RES FRAMEBUFFER RENDERERING
+  Description: There are obvious issues in the low-res, < 8 BPP, implemenation of
+               the framebuffer rendereing logic of graphics/nxglib/fb.  I see two
+               obvious problems in reviewing nxglib_copyrectangle():
+
+               1. The masking logic might work 1 BPP, but is insufficient for other
+                  resolutions like 2-BPP and 4-BPP.
+               2. The use of lnlen will not handle multiple bits per pixel.  It
+                  would need to be converted to a byte count.
+
+               The function PDC_copy_glyph() in the file apps/graphics/pdcurs34/nuttx/pdcdisp.c
+               derives from nxglib_copyrectangle() and all of those issues have been
+               resolved in that file.
+
+               Other frambuffer rendering functions probably have similary issues.
+  Status:      Open
+  Priority:    Low.  It is not surprising that there would be bugs in this logic:
+               I have never encountered a hardware framebuffer with sub-byte pixel
+               depth.  If such a beast ever shows up, then this priority would be
+               higher.
+
 o Build system
   ^^^^^^^^^^^^
 
@@ -2044,109 +2050,6 @@ o Build system
                   some new argument, perhaps -u.
   Status:      Open
   Priority:    Low.
-
-  Title:       CONTROL-C CAN BREAK DEPENDENCIES
-  Description: If you control C out of a make, then there are things that can go
-               wrong.  For one, you can break the dependencies in this scenario:
-
-               - The build in a given directory begins with all of the compilations.
-                 On terminal, this the long phase with CC: on each line.  As each
-                 .o file is created, it is timestamped with the current time.
-
-               - The dependencies on each .o are such that the C file will be re-
-                 compile if the .o file is OLDER that the corresponding .a archive
-                 file.
-
-               - The compilation phase is followed by a single, relatively short
-                 AR: phase that adds each of the file to the .a archive file.  As
-                 each file is added to archive, the timestamp of the of archive is
-                 updated to the current time.  After the first .o file has been
-                 added, then archive file will have a newer timestamp than any of
-                 the newly compiled .o file.
-
-               - If the user aborts with control-C during this AR: phase, then we
-                 are left with:  (1) not all of the files have bee added to the
-                 archive, and (2) the archive file has a newer timestamp than any
-                 of the .o file.
-
-               So when the make is restarted after a control, the dependencies will
-               see that the .a archive file has the newer time stamp and those .o
-               file will never be added to the archive until the directory is cleaned
-               or some other dependency changes.
-
-               NOTE: This may not really be an issue because the the timestamp on
-               libapps.a is not really used but rather the timestamp on an empty
-               file:
-
-               .built: $(OBJS)
-                   $(call ARCHIVE, $(BIN), $(OBJS))
-                   $(Q) touch $@
-
-               UPDATE: But there is another way that Control-C can break dependencies:
-               If you control-c out of the make during the apps/ part of the build,
-               the archive at apps/libapps.a is deleted (but all of the .built files
-               remain in place).  You can see this in the make outout, for example:
-
-                 CC:  ieee802154_getsaddr.c
-                 make[2]: *** [Makefile:104: ieee802154_getsaddr.o] Interrupt
-                 make: *** Deleting file '../apps/libapps.a'
-
-               When you rebuild the system, the first file archived will recreate
-               libapps.a and set the timestamp to the current time.  Then, none of
-               the other object files will be added to the archive because they are
-               all older.. or, more correctly, none of the other object files will
-               be addred because .built files remained and say that there is no
-               need to update the libapps.a file.
-
-               The typical symptom of such an issue is a link time error like:
-
-                 LD: nuttx libsched.a(os_bringup.o): In function `os_bringup':
-                 os_bringup.c:(.text+0x34): undefined reference to `nsh_main'
-
-               This is becuase the libapps.a file was deleted and an new empty
-               libapps.a file was created (which the object containing nsh_main()).
-               The object containing nsh_main() will not be added because the
-               .built file exists and says that there is not need to add the
-               nsh_main() object to libapps.a.
-
-               The work-around for now is:
-
-                 $ make apps_distclean
-
-               One solution to this might be to making the special target
-               .PRECIOUS depend on apps/libapps.a.  Then if make receives a
-               signal, it will not delete apps/libapps.a.  This would have to
-               be done in all Makefiles.
-
-   Status      Open
-   Priority:   Medium-High.  It is a rare event that control-C happens at just the
-               point in time.  However, when it does occur the resulting code may
-               have binary incompatiblies in the code taken from the out-of-sync
-               archives and cost a lot of debug time before you realize the issue.
-
-               The first stated problem is not really an issue:  There is already
-               the spurious .built file that should handle the described case:
-               If you control-C out of the build then the timestamp on the .built
-               file will not be updated and the archiving should be okay on the
-               next build.
-
-               A work-around for the second stated problem is to do 'make clean'
-               if you ever decide to control-C out of a make and see that the
-               libapps.a file was deleted.
-
-               UPDATE:  This is a potential fix for the second problem in place
-               in in all Makefiles under apps/.  This fix adds
-
-                 .PRECIOUS: $(BIN)
-
-               to all Makefiles.  It has not yet been confirmed that this fix
-               eliminates the dependency issue or not.
-
-  Title:      DEPENDENCIES OBJECT SUB-DIRECTORIES
-  Descripton: Dependencies do not work in directories that keep binaries in
-              a sub-directory like bin, ubin, kbin.
-  Status:     Open
-  Priority:   Medium-Low.  Definitely a build issue once in awhile.
 
 o Other drivers (drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^

@@ -45,6 +45,10 @@
 #include <stdbool.h>
 #include <syslog.h>
 
+#ifdef CONFIG_RNDIS
+#  include <nuttx/usb/rndis.h>
+#endif
+
 #ifdef CONFIG_WATCHDOG
 #  include "lc823450_wdt.h"
 #endif
@@ -81,8 +85,31 @@ int lc823450_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_FS_FAT
+  ret = mount("/dev/mtdblock0p10", "/mnt/sd0", "vfat", 0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to mount vfat at /mnt/sd0: %d\n", ret);
+    }
+#endif
+
 #ifdef CONFIG_BMA250
   lc823450_bma250initialize("/dev/accel");
+#endif
+
+#ifdef CONFIG_AUDIO_WM8776
+  lc823450_wm8776initialize(0);
+#endif
+
+#if defined(CONFIG_RNDIS) && defined(CONFIG_NSH_MACADDR)
+  uint8_t mac[6];
+  mac[0] = 0xaa; /* TODO */
+  mac[1] = (CONFIG_NSH_MACADDR >> (8 * 4)) & 0xff;
+  mac[2] = (CONFIG_NSH_MACADDR >> (8 * 3)) & 0xff;
+  mac[3] = (CONFIG_NSH_MACADDR >> (8 * 2)) & 0xff;
+  mac[4] = (CONFIG_NSH_MACADDR >> (8 * 1)) & 0xff;
+  mac[5] = (CONFIG_NSH_MACADDR >> (8 * 0)) & 0xff;
+  usbdev_rndis_initialize(mac);
 #endif
 
   /* If we got here then perhaps not all initialization was successful, but

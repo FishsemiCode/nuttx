@@ -2,7 +2,8 @@
  * net/icmp/icmp_input.c
  * Handling incoming ICMP input
  *
- *   Copyright (C) 2007-2009, 2012, 2014-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2012, 2014-2015, 2017 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Adapted for NuttX from logic in uIP which also has a BSD-like license:
@@ -72,7 +73,7 @@
 #define ICMPSIZE  ((dev)->d_len - IPv4_HDRLEN)
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
@@ -95,8 +96,8 @@
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMP_SOCKET
-uint16_t icmp_datahandler(FAR struct net_driver_s *dev,
-                          FAR struct icmp_conn_s *conn)
+static uint16_t icmp_datahandler(FAR struct net_driver_s *dev,
+                                 FAR struct icmp_conn_s *conn)
 {
   FAR struct ipv4_hdr_s *ipv4;
   struct sockaddr_in inaddr;
@@ -123,7 +124,7 @@ uint16_t icmp_datahandler(FAR struct net_driver_s *dev,
   ipv4 = IPv4BUF;
 
   inaddr.sin_family = AF_INET;
-  inaddr.sin_port   = INADDR_ANY;
+  inaddr.sin_port   = 0;
 
   net_ipv4addr_copy(inaddr.sin_addr.s_addr,
                     net_ip4addr_conv32(ipv4->srcipaddr));
@@ -286,7 +287,7 @@ void icmp_input(FAR struct net_driver_s *dev)
     {
       uint16_t flags;
 
-      flags = devif_conn_event(dev, ipicmp, ICMP_ECHOREPLY, dev->d_conncb);
+      flags = devif_conn_event(dev, NULL, ICMP_ECHOREPLY, dev->d_conncb);
       if ((flags & ICMP_ECHOREPLY) != 0)
         {
           FAR struct icmp_conn_s *conn;
@@ -333,11 +334,15 @@ void icmp_input(FAR struct net_driver_s *dev)
   return;
 
 typeerr:
+
 #ifdef CONFIG_NET_STATISTICS
   g_netstats.icmp.typeerr++;
 #endif
 
+#ifdef CONFIG_NET_ICMP_SOCKET
 drop:
+#endif
+
 #ifdef CONFIG_NET_STATISTICS
   g_netstats.icmp.drop++;
 #endif

@@ -550,7 +550,7 @@ ipforward
     +CONFIG_EXAMPLES_IPFORWARD_ICMPv6=y
 
     +CONFIG_NET_ICMPv6=y
-    +CONFIG_NET_ICMPv6_PING=y
+    +CONFIG_NET_ICMPv6_SOCKET=y
     +CONFIG_NET_ETHERNET=y
     +CONFIG_NET_IPFORWARD_BROADCAST=y
 
@@ -954,12 +954,8 @@ udgram
 
   To use the test:
 
-    nsh> mount -t binfs /bin
     nsh> server &
     nsh> client
-
-  For the sake of sanity, binfs and logins are disabled in this
-  configuration.
 
 unionfs
 
@@ -1037,6 +1033,20 @@ unionfs
 
   You can see the files in the two file systems before they were unified at
   apps/examples/unionfs/atestdir and btestdir.
+
+userfs
+
+  This is another NSH configuration that includes the built-in application of apps/examples/userfs to support test of the UserFS on the simulation platform.
+
+  To use the test:
+
+    nsh> userfs                 # Mounts the UserFS test file system at
+                                # /mnt/ufstest
+    nsh> mount                  # Testing is then performed by exercising the
+                                # file system from the command line
+    nsh> ls -l /mnt/ufstest
+    nsh> cat /mnt/ufstest/File1
+    etc.
 
 ustream
 

@@ -1685,6 +1685,8 @@ nuttx/
  |   |   `- README.txt
  |   |- mbed/
  |   |   `- README.txt
+ |   |- mcb1700/
+ |   |   `- README.txt
  |   |- mcu123-lpc214x/
  |   |   `- README.txt
  |   |- micropendous3/
@@ -1696,8 +1698,6 @@ nuttx/
  |   |- misoc/
  |   |   `- README.txt
  |   |- moteino-mega/
- |   |   `- README.txt
- |   |- mx1ads/
  |   |   `- README.txt
  |   |- ne63badge/
  |   |   `- README.txt
@@ -1829,8 +1829,8 @@ nuttx/
  |   |- stm32f411e-disco/
  |   |   `- README.txt
  |   |- stm32f429i-disco/
+ |   |   |- fb/README.txt
  |   |   |- ide/ltcd/uvision/README.txt
- |   |   |- ltdc/README.txt
  |   |   `- README.txt
  |   |- stm32f746g-disco/
  |   |   `- README.txt
@@ -1869,8 +1869,6 @@ nuttx/
  |   |- viewtool-stm32f107/
  |   |   `- README.txt
  |   |- xmc5400-relax/
- |   |   `- README.txt
- |   |- xtrs/
  |   |   `- README.txt
  |   |- z16f2800100zcog/
  |   |   |- ostest/README.txt
@@ -1924,6 +1922,8 @@ nuttx/
  |   |   `- README.txt
  |   `- README.txt
  |- libnx/
+ |   |- nxfongs
+ |   |   `- README.txt
  |   `- README.txt
  |- libxx/
  |   `- README.txt

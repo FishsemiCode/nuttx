@@ -1494,6 +1494,8 @@ config STM32_STM32F33XX
 	select STM32_HAVE_TIM16
 	select STM32_HAVE_TIM17
 	select STM32_HAVE_ADC2
+	select STM32_HAVE_ADC1_DMA
+	select STM32_HAVE_ADC2_DMA
 	select STM32_HAVE_CAN1
 	select STM32_HAVE_DAC1
 	select STM32_HAVE_DAC2
@@ -6969,6 +6971,15 @@ config STM32_USART_SINGLEWIRE
 		Enable single wire UART support.  The option enables support for the
 		TIOCSSINGLEWIRE ioctl in the STM32 serial driver.
 
+if PM
+config PM_SERIAL_ACTIVITY
+	int "PM serial activity"
+	default 10
+	---help---
+		PM activity reported to power management logic on every serial
+		interrupt.
+endif
+
 endif # STM32_SERIALDRIVER
 endmenu # U[S]ART Configuration
 
@@ -7821,7 +7832,7 @@ endmenu
 endif # STM32_DMA2D
 
 menu "QEncoder Driver"
-	depends on QENCODER
+	depends on SENSORS_QENCODER
 	depends on STM32_TIM1 || STM32_TIM2 || STM32_TIM3 || STM32_TIM4 || STM32_TIM5 || STM32_TIM8
 
 config STM32_TIM1_QE

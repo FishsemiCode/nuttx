@@ -226,9 +226,9 @@
 /* Event sets */
 
 #ifdef CONFIG_DEBUG_FEATURES
-#  define CCR_RX_EVENTS       (USIC_CCR_RIEN | USIC_CCR_DLIEN)
+#  define CCR_RX_EVENTS       (USIC_CCR_RIEN | USIC_CCR_AIEN | USIC_CCR_DLIEN)
 #else
-#  define CCR_RX_EVENTS       (USIC_CCR_RIEN)
+#  define CCR_RX_EVENTS       (USIC_CCR_RIEN | USIC_CCR_AIEN)
 #endif
 
 #define CCR_TX_EVENTS         (USIC_CCR_TBIEN)
@@ -644,7 +644,7 @@ static int xmc4_setup(struct uart_dev_s *dev)
 
   /* Configure the UART as an RS-232 UART */
 
-  xmc4_uart_configure(priv->uartbase, &priv->config);
+  xmc4_uart_configure(priv->channel, &priv->config);
 #endif
 
   /* Make sure that all interrupts are disabled */

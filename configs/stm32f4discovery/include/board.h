@@ -47,12 +47,6 @@
 #  include <stdbool.h>
 #endif
 
-#ifdef __KERNEL__
-#  include "stm32_rcc.h"
-#  include "stm32_sdio.h"
-#  include "stm32.h"
-#endif
-
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
@@ -318,13 +312,6 @@
 
 #define DMACHAN_I2S3_RX  DMAMAP_SPI3_RX_2
 #define DMACHAN_I2S3_TX  DMAMAP_SPI3_TX_2
-
-/* I2C config to use with Nunchuk PB7 (SDA) and PB8 (SCL) */
-
-#if 0
-#define GPIO_I2C1_SCL  GPIO_I2C1_SCL_2
-#define GPIO_I2C1_SDA  GPIO_I2C1_SDA_1
-#endif
 
 /* I2C.  Only I2C1 is available on the stm32f4discovery.  I2C1_SCL and I2C1_SDA are
  * available on the following pins:

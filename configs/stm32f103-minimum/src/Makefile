@@ -101,6 +101,14 @@ ifeq ($(CONFIG_SENSORS_HCSR04),y)
   CSRCS += stm32_hcsr04.c
 endif
 
+ifeq ($(CONFIG_LCD_MAX7219),y)
+  CSRCS += stm32_max7219.c
+endif
+
+ifeq ($(CONFIG_INPUT_NUNCHUCK),y)
+  CSRCS += stm32_nunchuck.c
+endif
+
 ifeq ($(CONFIG_LCD_ST7567),y)
   CSRCS += stm32_lcd.c
 endif
@@ -127,6 +135,10 @@ endif
 
 ifeq ($(CONFIG_USBDEV),y)
   CSRCS += stm32_usbdev.c
+endif
+
+ifeq ($(CONFIG_USBMSC),y)
+CSRCS += stm32_usbmsc.c
 endif
 
 include $(TOPDIR)/configs/Board.mk

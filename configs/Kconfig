@@ -253,6 +253,7 @@ config ARCH_BOARD_HYMINI_STM32V
 config ARCH_BOARD_LC823450_XGEVK
 	bool "ON Semiconductor LC823450-XGEVK development board"
 	depends on ARCH_CHIP_LC823450
+	select ARCH_HAVE_LEDS
 	---help---
 		This port uses the ON Semiconductor LC823450-XGEVK development board.
 
@@ -386,6 +387,13 @@ config ARCH_BOARD_MBED
 		that features the NXP LPC1768 microcontroller. This OS is also built
 		with the arm-nuttx-elf toolchain*.  STATUS:  Contributed.
 
+config ARCH_BOARD_MCB1700
+	bool "Keil MCB1700"
+	depends on ARCH_CHIP_LPC1768
+	select ARCH_HAVE_LEDS
+	---help---
+		The configurations in this directory support the Keil MCB1700.
+
 config ARCH_BOARD_MCU123_LPC214X
 	bool "mcu123.com LPC2148 Development Board"
 	depends on ARCH_CHIP_LPC214X
@@ -411,16 +419,6 @@ config ARCH_BOARD_MOTEINO_MEGA
 		This is placeholder for the LowPowerLab MoteinoMEGA that is based
 		on the Atmel AVR ATMega1284P MCU.  There is not much there yet and what is
 		there is untested due to tool-related issues.
-
-config ARCH_BOARD_MX1ADS
-	bool "Motorola MX1ADS development board"
-	depends on ARCH_CHIP_IMX1
-	select ARCH_HAVE_LEDS
-	---help---
-		This is a port to the Motorola MX1ADS development board.  That board
-		is based on the NXP/FreeScale i.MX1 processor.  The i.MX1 is an ARM920T.
-		STATUS:  This port is nearly code complete but was never fully
-		integrated due to tool-related issues.
 
 config ARCH_BOARD_NE64BADGE
 	bool "FEG NE64 /PoE Badge board"
@@ -714,7 +712,7 @@ config ARCH_BOARD_NR5M100_NEXYS4
 
 config ARCH_BOARD_NUCLEO_144
 	bool "STMicro NUCLEO-144"
-	depends on ARCH_CHIP_STM32F746ZG || ARCH_CHIP_STM32F767ZI
+	depends on ARCH_CHIP_STM32F722ZE || ARCH_CHIP_STM32F746ZG || ARCH_CHIP_STM32F767ZI
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS
@@ -728,6 +726,7 @@ config ARCH_BOARD_NUCLEO_144
 			STM32F303ZET6   NUCLEO-F303ZE
 			STM32F429ZIT6   NUCLEO-F429ZI
 			STM32F446ZET6   NUCLEO-F446ZE
+			STM32F722ZET6   NUCLEO-F722ZE
 			STM32F746ZGT6   NUCLEO-F746ZG
 			STM32F767ZIT6   NUCLEO-F767ZI
 			STM32L496ZGT6   NUCLEO-L496ZG
@@ -735,6 +734,8 @@ config ARCH_BOARD_NUCLEO_144
 
 		Supported in this configuration are:
 
+			NUCLEO-F722ZE - STM32F722ZET6 a 216MHz Cortex-M7, w/FPU -
+				512KiB Flash memory and 256KiB SRAM.
 			NUCLEO-F746ZG - STM32F746ZGT6 a 216MHz Cortex-M7, w/FPU -
 				1024KiB Flash memory and 320KiB SRAM.
 			NUCLEO-F767ZI - STM32F767ZIT6 a 216MHz Cortex-M7, w/DPFPU -
@@ -1438,15 +1439,6 @@ config ARCH_BOARD_XMC4500RELAX
 	---help---
 		Infineon XMC4000 Relax Lite v1
 
-config ARCH_BOARD_XTRS
-	bool "XTRS TRS80 Model 3 emulation"
-	depends on ARCH_CHIP_Z80
-	select UART_SERIALDRIVER
-	---help---
-		TRS80 Model 3.  This port uses a vintage computer based on the Z80.
-		An emulator for this computer is available to run TRS80 programs on a
-		linux platform (http://www.tim-mann.org/xtrs.html).
-
 config ARCH_BOARD_Z16F2800100ZCOG
 	bool "Zilog Z16F2800100ZCOG Development Kit"
 	depends on ARCH_CHIP_Z16F2811
@@ -1618,11 +1610,11 @@ config ARCH_BOARD
 	default "lpcxpresso-lpc1768"       if ARCH_BOARD_LPCXPRESSO
 	default "maple"                    if ARCH_BOARD_MAPLE
 	default "mbed"                     if ARCH_BOARD_MBED
+	default "mcb1700"                  if ARCH_BOARD_MCB1700
 	default "mcu123-lpc214x"           if ARCH_BOARD_MCU123_LPC214X
 	default "micropendous3"            if ARCH_BOARD_MICROPENDOUS3
 	default "mirtoo"                   if ARCH_BOARD_MIRTOO
 	default "moteino-mega"             if ARCH_BOARD_MOTEINO_MEGA
-	default "mx1ads"                   if ARCH_BOARD_MX1ADS
 	default "ne64badge"                if ARCH_BOARD_NE64BADGE
 	default "ntosd-dm320"              if ARCH_BOARD_NTOSD_DM320
 	default "nucleo-144"               if ARCH_BOARD_NUCLEO_144
@@ -1715,7 +1707,6 @@ config ARCH_BOARD
 	default "us7032evb1"               if ARCH_BOARD_US7032EVB1
 	default "viewtool-stm32f107"       if ARCH_BOARD_VIEWTOOL_STM32F107
 	default "xmc4500-relax"            if ARCH_BOARD_XMC4500RELAX
-	default "xtrs"                     if ARCH_BOARD_XTRS
 	default "z16f2800100zcog"          if ARCH_BOARD_Z16F2800100ZCOG
 	default "z80sim"                   if ARCH_BOARD_Z80SIM
 	default "z8encore000zco"           if ARCH_BOARD_Z8ENCORE000ZCO
@@ -1883,6 +1874,9 @@ endif
 if ARCH_BOARD_MBED
 source "configs/mbed/Kconfig"
 endif
+if ARCH_BOARD_MCB1700
+source "configs/mcb1700/Kconfig"
+endif
 if ARCH_BOARD_MCU123_LPC214X
 source "configs/mcu123-lpc214x/Kconfig"
 endif
@@ -1900,9 +1894,6 @@ source "configs/moteino-mega/Kconfig"
 endif
 if ARCH_BOARD_MOXA
 source "configs/moxa/Kconfig"
-endif
-if ARCH_BOARD_MX1ADS
-source "configs/mx1ads/Kconfig"
 endif
 if ARCH_BOARD_NE64BADGE
 source "configs/ne64badge/Kconfig"
@@ -2167,9 +2158,6 @@ source "configs/viewtool-stm32f107/Kconfig"
 endif
 if ARCH_BOARD_XMC4500RELAX
 source "configs/xmc4500-relax/Kconfig"
-endif
-if ARCH_BOARD_XTRS
-source "configs/xtrs/Kconfig"
 endif
 if ARCH_BOARD_Z16F2800100ZCOG
 source "configs/z16f2800100zcog/Kconfig"

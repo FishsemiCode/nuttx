@@ -11,6 +11,7 @@
  *   Authors: Gregroy Nutt <gnutt@nuttx.org>
  *            John Wharington
  *            David Sidrane <david_s5@nscdg.com>
+ *            Bob Feretich <bob.feretich@rafresearch.com>
  *
  * Major rewrite of ISR and supporting methods, including support
  * for NACK and RELOAD by:
@@ -159,6 +160,8 @@
  *
  *  One of:
  *
+ *    CONFIG_STM32F7_STM32F72XX
+ *    CONFIG_STM32F7_STM32F73XX
  *    CONFIG_STM32F7_STM32F74XX
  *    CONFIG_STM32F7_STM32F75XX
  *    CONFIG_STM32F7_STM32F76XX
@@ -194,6 +197,10 @@
  * ------------------------------------------------------------------------------
  *
  * References:
+ *
+ *  RM0431:
+ *     ST STM32F72xxx and STM32F73xxx Reference Manual
+ *     Document ID: DocID029480 Revision 1, Jan 2017.
  *
  *  RM0316:
  *     ST STM32F76xxx and STM32F77xxx Reference Manual
@@ -2522,6 +2529,7 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
   unsigned int stretch_count;
   uint32_t scl_gpio;
   uint32_t sda_gpio;
+  uint32_t frequency;
   int ret = ERROR;
 
   ASSERT(dev);
@@ -2537,6 +2545,10 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
   /* Lock out other clients */
 
   stm32_i2c_sem_wait(dev);
+
+  /* Save the current frequency */
+
+  frequency = priv->frequency;
 
   /* De-init the port */
 
@@ -2613,6 +2625,10 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
   /* Re-init the port */
 
   stm32_i2c_init(priv);
+
+  /* Restore the frequency */
+
+  stm32_i2c_setclock(priv, frequency);
   ret = OK;
 
 out:

@@ -42,6 +42,8 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/clock.h>
+#include <nuttx/board.h>
+#include <arch/board/board.h>
 
 #include "nvic.h"
 #include "up_internal.h"
@@ -128,6 +130,8 @@ void up_idle(void)
 
   leave_critical_section(flags);
 #endif /* CONFIG_LC823450_SLEEP_MODE */
+
+  board_autoled_off(LED_CPU0 + up_cpu_index());
 
   /* Sleep until an interrupt occurs to save power */
 

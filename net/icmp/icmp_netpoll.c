@@ -59,7 +59,8 @@
 
 struct icmp_poll_s
 {
-  struct pollfd *fds;              /* Needed to handle poll events */
+  FAR struct socket *psock;        /* IPPROTO_ICMP socket structure */
+  FAR struct pollfd *fds;          /* Needed to handle poll events */
   FAR struct devif_callback_s *cb; /* Needed to teardown the poll */
 };
 
@@ -92,20 +93,34 @@ static uint16_t icmp_poll_eventhandler(FAR struct net_driver_s *dev,
                                        FAR void *pvpriv, uint16_t flags)
 {
   FAR struct icmp_poll_s *info = (FAR struct icmp_poll_s *)pvpriv;
-  FAR struct icmp_conn_s *conn = (FAR struct icmp_conn_s *)pvconn;
+  FAR struct icmp_conn_s *conn;
+  FAR struct socket *psock;
   pollevent_t eventset;
 
   ninfo("flags: %04x\n", flags);
 
-  DEBUGASSERT(info == NULL || (info->fds != NULL && conn != NULL));
+  DEBUGASSERT(info == NULL || info->fds != NULL);
 
   /* 'priv' might be null in some race conditions (?).  Only process the
    * the event if this poll is from the same device that the request was
    * sent out on.
    */
 
-  if (info != NULL && dev == conn->dev)
+  if (info != NULL)
     {
+       /* Is this a response on the same device that we sent the request out
+        * on?
+        */
+
+       psock = info->psock;
+       DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
+       conn  = psock->s_conn;
+       if (dev != conn->dev)
+         {
+           ninfo("Wrong device\n");
+           return flags;
+         }
+
       /* Check for data or connection availability events. */
 
       eventset = 0;
@@ -116,7 +131,7 @@ static uint16_t icmp_poll_eventhandler(FAR struct net_driver_s *dev,
 
       /*  ICMP_POLL is a sign that we are free to send data. */
 
-      if ((flags & ICMP_POLL) != 0)
+      if ((flags & DEVPOLL_MASK) == ICMP_POLL)
         {
           eventset |= (POLLOUT & info->fds->events);
         }
@@ -148,10 +163,10 @@ static uint16_t icmp_poll_eventhandler(FAR struct net_driver_s *dev,
  * Name: icmp_pollsetup
  *
  * Description:
- *   Setup to monitor events on one UDP/IP socket
+ *   Setup to monitor events on one ICMP socket
  *
  * Input Parameters:
- *   psock - The UDP/IP socket of interest
+ *   psock - The IPPROTO_ICMP socket of interest
  *   fds   - The structure describing the events to be monitored, OR NULL if
  *           this is a request to stop monitoring events.
  *
@@ -197,8 +212,9 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
 
   /* Initialize the poll info container */
 
-  info->fds = fds;
-  info->cb  = cb;
+  info->psock = psock;
+  info->fds   = fds;
+  info->cb    = cb;
 
   /* Initialize the callback structure.  Save the reference to the info
    * structure as callback private data so that it will be available during
@@ -261,7 +277,7 @@ errout_with_lock:
  * Name: icmp_pollteardown
  *
  * Description:
- *   Teardown monitoring of events on an UDP/IP socket
+ *   Teardown monitoring of events on an ICMP socket
  *
  * Input Parameters:
  *   psock - The IPPROTO_ICMP socket of interest

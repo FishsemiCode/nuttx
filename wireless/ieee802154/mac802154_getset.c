@@ -123,7 +123,13 @@ int mac802154_req_get(MACHANDLE mac, enum ieee802154_attr_e attr,
         {
           attrval->mac.resp_waittime = priv->resp_waittime;
         }
-        break;;
+        break;
+
+      case IEEE802154_ATTR_MAC_PROMISCUOUS_MODE:
+        {
+          attrval->mac.promisc_mode = priv->promisc;
+        }
+        break;
 
       default:
         {
@@ -198,10 +204,21 @@ int mac802154_req_set(MACHANDLE mac, enum ieee802154_attr_e attr,
         {
           priv->resp_waittime = attrval->mac.resp_waittime;
         }
+        break;
       case IEEE802154_ATTR_MAC_RX_ON_WHEN_IDLE:
         {
           mac802154_setrxonidle(priv, attrval->mac.rxonidle);
         }
+        break;
+      case IEEE802154_ATTR_MAC_PROMISCUOUS_MODE:
+        {
+          ret = priv->radio->setattr(priv->radio, attr, attrval);
+          if (ret == 0)
+            {
+              priv->promisc = attrval->mac.promisc_mode;
+            }
+        }
+        break;
       default:
         {
           /* The attribute may be handled soley in the radio driver, so pass

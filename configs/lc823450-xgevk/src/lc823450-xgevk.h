@@ -94,5 +94,9 @@ int lc823450_bringup(void);
 int lc823450_bma250initialize(FAR const char *devpath);
 #endif
 
+#ifdef CONFIG_AUDIO_WM8776
+int lc823450_wm8776initialize(int minor);
+#endif
+
 #endif /* __ASSEMBLY__ */
 #endif /* __CONFIGS_LC823450_XGEVK_SRC_LC823450_XGEVK_H */

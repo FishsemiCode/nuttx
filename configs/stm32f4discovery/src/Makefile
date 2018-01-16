@@ -68,6 +68,14 @@ ifeq ($(CONFIG_SENSORS_BMP180),y)
 CSRCS += stm32_bmp180.c
 endif
 
+ifeq ($(CONFIG_LCD_ST7567),y)
+  CSRCS += stm32_st7567.c
+endif
+
+ifeq ($(CONFIG_INPUT_NUNCHUCK),y)
+  CSRCS += stm32_nunchuck.c
+endif
+
 ifeq ($(CONFIG_SENSORS_MAX31855),y)
 CSRCS += stm32_max31855.c
 endif
@@ -166,6 +174,12 @@ endif
 
 ifeq ($(CONFIG_USBMSC),y)
 CSRCS += stm32_usbmsc.c
+endif
+
+ifneq ($(CONFIG_STM32_ETHMAC),y)
+ifeq ($(CONFIG_NETDEVICES),y)
+CSRCS += stm32_netinit.c
+endif
 endif
 
 include $(TOPDIR)/configs/Board.mk

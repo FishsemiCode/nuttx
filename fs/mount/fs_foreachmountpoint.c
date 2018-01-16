@@ -50,6 +50,7 @@
 #include <nuttx/fs/fs.h>
 
 #include "inode/inode.h"
+#include "mount/mount.h"
 
 #ifndef CONFIG_DISABLE_MOUNTPOINT
 

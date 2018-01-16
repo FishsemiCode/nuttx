@@ -25,7 +25,7 @@ NOTE:  Includes basic NSH command support with full 8MByte SDRAM + the
 
        The NSH configuration / testing that has been done so far was
        performed by connecting an external RS-232 line driver to pins
-       PA9 (TX) and PA10 (RX) and configuring UART1 as the NSH console.
+       PA9 (TX) and PA10 (RX) and configuring USART1 as the NSH console.
 
 Refer to the http://www.st.com website for further information about this
 board (search keyword: 429i-disco)
@@ -667,20 +667,47 @@ Where <subdir> is one of the following:
     1. This configuration assumes an SST25VF064C 8Mbyte SPI FLASH is
        connected to SPI4 on the following Discovery board Pins:
 
-       SCK:   Port PE2   Board Connector P1, Pin 15
-       MOSI:  Port PE6   Board Connector P1, Pin 11
-       MISO:  Port PE5   Board Connector P1, Pin 14
-       CS:    Port PE4   Board Connector P1, Pin 13
+         SCK:   Port PE2   Board Connector P1, Pin 15
+         MOSI:  Port PE6   Board Connector P1, Pin 11
+         MISO:  Port PE5   Board Connector P1, Pin 14
+         CS:    Port PE4   Board Connector P1, Pin 13
 
     2. This configuration does have UART1 output enabled and set up as
        the system logging device.  To use this UART, you must add an
        external RS-232 line driver to the UART1 pins of the DISCO board
        on PA9 and PA10 of connector P1.
 
-  ltdc:
-  ----
-    STM32F429I-DISCO LTDC Framebuffer demo example.  See
-    configs/stm32f429i-disco/ltdc/README.txt for additional information.
+  fb
+  --
+
+    STM32F429I-DISCO LTDC Framebuffer demo example.  This is a simple
+    configuration used for some basic (non-graphic) debug of the framebuffer
+    character drivers using apps/examples/fb.  It simply opens the framebuffer
+    device and draws concentric rectangles of different colors in the
+    framebuffer:
+
+      nsh> fb
+
+    Also included is the touchscreen test of apps/examples/touchscreen.  This
+    example will simply open the touchscreen driver then collect and display
+    touch inputs:
+
+      nsh> tc 1
+      tc_main: nsamples: 1
+      tc_main: Initializing external touchscreen device
+      tc_main: Opening /dev/input0
+      Sample     :
+         npoints : 1
+      Point 1    :
+              id : 0
+           flags : 3c
+               x : 2296
+               y : 2311
+               h : 0
+               w : 0
+        pressure : 1
+      Terminating!
+      nsh>
 
   nsh:
   ---
@@ -922,12 +949,20 @@ Where <subdir> is one of the following:
        2015-04-30
           Appears to be fully functional.
 
+  nx
+  --
+
+    This a simple test using the graphic example at apps/example/nx.  This
+    configuration illustrates the use of the LCD with the lower performance
+    SPI interface.
+
   nxwm
   ----
     This is a special configuration setup for the NxWM window manager
     UnitTest.
 
     NOTES:
+
     1. The NxWM window manager can be found here:
 
          nuttx-code/NxWidgets/nxwm
@@ -945,12 +980,15 @@ Where <subdir> is one of the following:
 
        1. Install the nxwm configuration
 
-          $ cd ~/nuttx-code/nuttx/tools
-          $ ./configure.sh stm32f429i-disco/nxwm
+          $ cd ~/nuttx-code/nuttx
+          $ tools/configure.sh -l stm32f429i-disco/nxwm
+
+          When the -l option on configure.sh indicates that you are
+          configuring for a Linux host build environment.   Try
+          'tools/configure.sh -h' for other options.
 
        2. Make the build context (only)
 
-          $ cd ..
           $ make context
           ...
 
@@ -959,8 +997,8 @@ Where <subdir> is one of the following:
           $ cd ~/nuttx-code/NxWidgets
           $ tools/install.sh ~/nuttx-code/apps nxwm
           Creating symbolic link
-        - To ~/nuttx-code/NxWidgets/UnitTests/nxwm
-        - At ~/nuttx-code/apps/external
+           - To ~/nuttx-code/NxWidgets/UnitTests/nxwm
+           - At ~/nuttx-code/apps/external
 
        4. Build the NxWidgets library
 
@@ -979,19 +1017,25 @@ Where <subdir> is one of the following:
           $ cd ~/nuttx-code/nuttx
           $ make
 
-    3. Performance is not so good in this example configuration because it
-       uses the slower SPI interfaces.
-
     STATUS:
       17-01-08:  There are instabilities in this configuration that make it
-      not usable on this platform.  While the equivalent configuration works
-      on other platforms, this one does not:  The calculator display does
-      not form properly.  There are fails in the NxTerm display, usually around
-      the point where the display should scroll up.
+        not usable on this platform.  While the equivalent configuration works
+        on other platforms, this one does not:  The calculator display does
+        not form properly.  There are fails in the NxTerm display, usually
+        around the point where the display should scroll up.
 
-      Update:  With all optimizations disabled, the issue seems to go away.
-      So this is most likely due to using high levels of optimization with a
-      bleeding edge GCC toolchain.
+        Update:  With all optimizations disabled, the issue seems to go away.
+        So this is most likely due to using high levels of optimization with a
+        bleeding edge GCC toolchain.
+      17-11-15: The original configuration used the slower SPI LCD interface.
+        The configuration was converted to use the high performance LTDC frame
+        buffer interface.  Performance is now excellent and I see none of the
+        instabilities mentioned above even at high levels of optimization.
+
+        The difficulty that I experienced was touching the tiny icons on the
+        menus.  The touscreen controller (along with my fat fingers) does not
+        appear to have sufficient precision to work in this way.  Larger icons
+        would likely make the interface easier to use.
 
   usbnsh:
   ------

@@ -342,6 +342,9 @@ configs/mbed
   that features the NXP LPC1768 microcontroller. This OS is also built
   with the arm-nuttx-elf toolchain*.  STATUS:  Contributed.
 
+configs/mcb1700
+  Board support for the Keil MCB1700
+
 configs/mikroe-stm32f4
   This is the port of NuttX to the MikroElektronika Mikromedia for STM32F4
   development board.  Contributed by Ken Petit.
@@ -367,12 +370,6 @@ configs/moteino-mega
 
 configs/moxa
   Moxa NP51x0 series of 2-port advanced RS-232/422/485 serial device servers.
-
-configs/mx1ads
-  This is a port to the Motorola MX1ADS development board.  That board
-  is based on the NXP/FreeScale i.MX1 processor.  The i.MX1 is an ARM920T.
-  STATUS:  This port is nearly code complete but was never fully
-  integrated due to tool-related issues.
 
 configs/ne64badge
   Future Electronics Group NE64 /PoE Badge board based on the
@@ -782,11 +779,6 @@ configs/viewtool-stm32f107
 
 config/xmc4500-relax
   Infineon XMC4000 Relax Lite v1
-
-configs/xtrs
-  TRS80 Model 3.  This port uses a vintage computer based on the Z80.
-  An emulator for this computer is available to run TRS80 programs on a
-  linux platform (http://www.tim-mann.org/xtrs.html).
 
 configs/z16f2800100zcog
   z16f Microcontroller.  This port use the Zilog z16f2800100zcog

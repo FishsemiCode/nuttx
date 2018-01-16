@@ -525,7 +525,7 @@ ssize_t icmp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
     {
       inaddr             = (FAR struct sockaddr_in *)from;
       inaddr->sin_family = AF_INET;
-      inaddr->sin_port   = INADDR_ANY;
+      inaddr->sin_port   = 0;
 
       net_ipv4addr_copy(inaddr->sin_addr.s_addr, state.recv_from);
     }

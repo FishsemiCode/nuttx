@@ -230,6 +230,30 @@ int stm32_apds9960initialize(FAR const char *devpath);
 void stm32_spidev_initialize(void);
 
 /************************************************************************************
+ * Name: stm32_mmcsd_initialize
+ *
+ * Description:
+ *   Initializes SPI-based SD card
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_MMCSD
+int stm32_mmcsd_initialize(int minor);
+#endif
+
+/****************************************************************************
+ * Name: nunchuck_initialize
+ *
+ * Description:
+ *   Initialize and register the button joystick driver
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_INPUT_NUNCHUCK
+int nunchuck_initialize(FAR char *devname);
+#endif
+
+/************************************************************************************
  * Name: stm32_hcsr04_initialize
  *
  * Description:

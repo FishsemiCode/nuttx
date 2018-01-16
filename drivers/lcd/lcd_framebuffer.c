@@ -201,8 +201,6 @@ static void lcdfb_update(FAR struct lcdfb_dev_s *priv,
       endx = priv->xres-1;
     }
 
-  width = endx - startx + 1;
-
   starty = rect->pt1.y;
   if (starty < 0)
     {
@@ -214,6 +212,18 @@ static void lcdfb_update(FAR struct lcdfb_dev_s *priv,
     {
       endy = priv->yres-1;
     }
+
+  /* If the display uses a value of BPP < 8, then we may have to extend the
+   * rectangle on the left so that it is byte aligned.  Works for BPP={1,2,4}
+   */
+
+  if (pinfo->bpp < 8)
+    {
+      unsigned int pixperbyte = 8 / pinfo->bpp;
+      startx &= ~(pixperbyte - 1);
+    }
+
+  width = endx - startx + 1;
 
   /* Get the starting position in the framebuffer */
 
@@ -486,6 +496,16 @@ int up_fbinitialize(int display)
   priv->vtable.setcursor    = lcdfb_setcursor,
 #endif
 
+#ifdef  CONFIG_LCD_EXTERNINIT
+  /* Use external graphics driver initialization */
+
+  lcd = board_graphics_setup(display);
+  if (lcd == NULL)
+    {
+      gerr("ERROR: board_graphics_setup failed, devno=%d\n", display);
+      return EXIT_FAILURE;
+    }
+#else
   /* Initialize the LCD device */
 
   ret = board_lcd_initialize();
@@ -504,6 +524,7 @@ int up_fbinitialize(int display)
       ret = -ENODEV;
       goto errout_with_lcd;
     }
+#endif
 
   priv->lcd = lcd;
 
@@ -561,9 +582,11 @@ int up_fbinitialize(int display)
   return OK;
 
 errout_with_lcd:
+#ifndef CONFIG_LCD_EXTERNINIT
   board_lcd_uninitialize();
 
 errout_with_state:
+#endif
   kmm_free(priv);
   return ret;
 }
@@ -646,9 +669,11 @@ void up_fbuninitialize(int display)
               g_lcdfb = priv->flink;
             }
 
+#ifndef  CONFIG_LCD_EXTERNINIT
           /* Uninitialize the LCD */
 
           board_lcd_uninitialize();
+#endif
 
           /* Free the frame buffer allocation */
 
@@ -666,7 +691,7 @@ void up_fbuninitialize(int display)
  * Name: nx_notify_rectangle
  *
  * Description:
- *   When CONFIG_NX_UPDATE=y, then the graphics system will callout to
+ *   When CONFIG_LCD_UPDATE=y, then the graphics system will callout to
  *   inform some external module that the display has been updated.  This
  *   would be useful in a couple for cases.
  *
@@ -677,13 +702,17 @@ void up_fbuninitialize(int display)
  *   - When VNC is enabled.  This is case, this callout is necessary to
  *     update the remote frame buffer to match the local framebuffer.
  *
- * When this feature is enabled, some external logic must provide this
- * interface.  This is the function that will handle the notification.  It
- * receives the rectangular region that was updated on the provided plane.
+ *   When this feature is enabled, some external logic must provide this
+ *   interface.  This is the function that will handle the notification.  It
+ *   receives the rectangular region that was updated on the provided plane.
+ *
+ *   NOTE: This function is also required for use with the LCD framebuffer
+ *   driver front end when CONFIG_LCD_UPDATE=y, although that use does not
+ *   depend on CONFIG_NX (and this function seems misnamed in that case).
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NX_UPDATE
+#if defined(CONFIG_LCD_UPDATE) || defined(CONFIG_NX_UPDATE)
 void nx_notify_rectangle(FAR NX_PLANEINFOTYPE *pinfo,
                          FAR const struct nxgl_rect_s *rect)
 {

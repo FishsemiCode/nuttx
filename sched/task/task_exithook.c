@@ -98,25 +98,31 @@ static inline void task_atexit(FAR struct tcb_s *tcb)
         {
           if (group->tg_atexitfunc[index])
             {
-              /* Call the atexit function */
-
-              (*group->tg_atexitfunc[index])();
+              atexitfunc_t func;
 
               /* Nullify the atexit function to prevent its reuse. */
 
+              func = group->tg_atexitfunc[index];
               group->tg_atexitfunc[index] = NULL;
+
+              /* Call the atexit function */
+
+              (*func)();
             }
         }
 #else
       if (group->tg_atexitfunc)
         {
-          /* Call the atexit function */
-
-          (*group->tg_atexitfunc)();
+          atexitfunc_t func;
 
           /* Nullify the atexit function to prevent its reuse. */
 
+          func = group->tg_atexitfunc;
           group->tg_atexitfunc = NULL;
+
+          /* Call the atexit function */
+
+          (*func)();
         }
 #endif
     }
@@ -166,25 +172,31 @@ static inline void task_onexit(FAR struct tcb_s *tcb, int status)
         {
           if (group->tg_onexitfunc[index])
             {
-              /* Call the on_exit function */
-
-              (*group->tg_onexitfunc[index])(status, group->tg_onexitarg[index]);
+              onexitfunc_t func;
 
               /* Nullify the on_exit function to prevent its reuse. */
 
+              func = group->tg_onexitfunc[index];
               group->tg_onexitfunc[index] = NULL;
+
+              /* Call the on_exit function */
+
+              (*func)(status, group->tg_onexitarg[index]);
             }
         }
 #else
       if (group->tg_onexitfunc)
         {
-          /* Call the on_exit function */
-
-          (*group->tg_onexitfunc)(status, group->tg_onexitarg);
+          onexitfunc_t func;
 
           /* Nullify the on_exit function to prevent its reuse. */
 
+          func = group->tg_onexitfunc;
           group->tg_onexitfunc = NULL;
+
+          /* Call the on_exit function */
+
+          (*func)(status, group->tg_onexitarg);
         }
 #endif
     }
@@ -215,7 +227,6 @@ static inline void task_exitstatus(FAR struct task_group_s *group, int status)
       /* No.. Find the exit status entry for this task in the parent TCB */
 
       child = group_findchild(group, getpid());
-      DEBUGASSERT(child);
       if (child)
         {
 #ifndef HAVE_GROUP_MEMBERS
@@ -260,7 +271,6 @@ static inline void task_groupexit(FAR struct task_group_s *group)
       /* No.. Find the exit status entry for this task in the parent TCB */
 
       child = group_findchild(group, getpid());
-      DEBUGASSERT(child);
       if (child)
         {
           /* Mark that all members of the child task group has exited */

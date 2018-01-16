@@ -322,6 +322,17 @@
 #  define GPIO_OLED_DC    GPIO_OLED_A0
 #endif
 
+/* Display JLX12864G */
+
+#define STM32_LCD_RST   (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN6)
+
+#define STM32_LCD_CS    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN7)
+
+#define STM32_LCD_RS    (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTB|GPIO_PIN8)
+
 /* STM32F4DIS-BB MicroSD
  *
  * ---------- ------------- ------------------------------
@@ -440,6 +451,18 @@ int stm32_bmp180initialize(FAR const char *devpath);
 
 #ifdef CONFIG_STM32F4DISCO_LIS3DSH
 int stm32_lis3dshinitialize(FAR const char *devpath);
+#endif
+
+/****************************************************************************
+ * Name: nunchuck_initialize
+ *
+ * Description:
+ *   Initialize and register the button joystick driver
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_INPUT_NUNCHUCK
+int nunchuck_initialize(FAR char *devname);
 #endif
 
 /****************************************************************************

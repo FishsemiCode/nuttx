@@ -1,7 +1,8 @@
 ############################################################################
 # fs/Makefile
 #
-#   Copyright (C) 2007, 2008, 2011-2014, 2016-2017 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007, 2008, 2011-2014, 2016-2017 Gregory Nutt. All rights
+#     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -71,6 +72,7 @@ include smartfs/Make.defs
 include binfs/Make.defs
 include procfs/Make.defs
 include unionfs/Make.defs
+include userfs/Make.defs
 include hostfs/Make.defs
 
 endif

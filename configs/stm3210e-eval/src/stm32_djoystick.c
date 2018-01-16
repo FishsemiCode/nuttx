@@ -78,7 +78,7 @@ static void djoy_enable(FAR const struct djoy_lowerhalf_s *lower,
                          djoy_interrupt_t handler, FAR void *arg);
 
 static void djoy_disable(void);
-static int djoy_interrupt(int irq, FAR void *context);
+static int djoy_interrupt(int irq, FAR void *context, FAR void *arg);
 
 /****************************************************************************
  * Private Data
@@ -258,7 +258,7 @@ static void djoy_disable(void)
  *
  ****************************************************************************/
 
-static int djoy_interrupt(int irq, FAR void *context)
+static int djoy_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   DEBUGASSERT(g_djoyhandler);
   if (g_djoyhandler)

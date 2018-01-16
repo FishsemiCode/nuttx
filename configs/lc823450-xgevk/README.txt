@@ -11,14 +11,22 @@ LC823450 related documents are available at
 
   http://www.onsemi.com/PowerSolutions/supportDoc.do?type=AppNotes&rpn=LC823450
 
+OpenOCD for NuttX thread and LC823450 support is available at
+
+  https://github.com/sony/openocd-nuttx/wiki
+
+MakeIPL2 Tool for eMMC boot is available at
+
+  http://www.onsemi.com/PowerSolutions/supportDoc.do?type=software&rpn=LC823450
+
 This port is intended to test LC823450 features including SMP.
 Supported peripherals:
-UART, TIMER, RTC, GPIO, DMA, I2C, SPI, LCD, eMMC, USB, WDT, ADC.
+UART, TIMER, RTC, GPIO, DMA, I2C, SPI, LCD, eMMC, USB, WDT, ADC, Audio.
 
 Settings
 ^^^^^^^^
 
-1. Currently only SRAM boot via ICE is supported.
+1. eMMC boot and SRAM boot via openocd are supported.
 2. If SWD connection is lost, please specify lower adaptor clock.
 3. Both CPUs are running at 160MHz.
 4. Internal SRAMs (seg0 to seg5) are used.
@@ -31,6 +39,8 @@ SMP related Status
 Currently SMP feature works on the board but might not be stable.
 In addition, console output might be corrupted if the both CPUs
 output into the console because UART operates in FIFO mode.
+
+CPU activities are shown at D9 (CPU0) and D10 (CPU1) respectively.
 
 1. "nsh> smp" works but the result will be corrupted.
 2. "nsh> ostest" works but might cause a deadlock or assertion.
@@ -128,9 +138,71 @@ nsh> wdog
   NO ping elapsed=5500
   NO ping elapsed=6000
 
+9. IPL2 and eMMC boot
+
+IPL2 is the 2nd boot loader based on NuttX and can be built as follows.
+
+  $ make distclean
+  $ ./tools/configure.sh lc823450-xgevk/ipl2
+  $ make V=1
+  $ MakeIPL2 ./nuttx.bin 0 2 0 0 0
+  $ cp LC8234xx_17S_start_data.boot_bin /tmp/
+
+To write the IPL2 (LC8234xx_17S_start_data.boot_bin),
+firstly build USB configuration image.
+
+  $ make distclean
+  $ ./tools/configure.sh lc823450-xgevk/usb
+  $ make V=1
+
+Load the nuttx.bin with openocd + gdb
+
+  $ cd openocd-nuttx
+  $ ./bootstrap
+  $ ./configure
+  $ make
+  $ sudo ./src/openocd -s ./tcl -f ./tcl/board/lc823450_xgevk.cfg  -c init -c "reset halt"
+
+  $ arm-none-eabi-gdb
+  (gdb) target extended-remote :3333
+  (gdb) load ./nuttx
+  (gdb) symbol-file ./nuttx
+  (gdb) c
+
+Start USB MSC to copy nuttx.bin and the IPL2 to the FAT32 partition (/dev/mtdblock0p10)
+then dd the files to the kernel partition (/dev/mtdblock0p4) and the IPL2 partition
+(/dev/mtdblock0p1) respectively.
+
+  nsh> mkfatfs -F 32 /dev/mtdblock0p10
+  nsh> msconn
+
+  $ sudo cp ./nuttx.bin /media/usb0/
+  $ sudo cp /tmp/LC8234xx_17S_start_data.boot_bin /media/usb0/
+  $ sudo sync
+
+  nsh> msdis
+  nsh> mount -t vfat /dev/mtdblock0p10 /mnt/sd0
+  nsh> dd if=/mnt/sd0/nuttx.bin of=/dev/mtdblock0p4
+  nsh> dd if=/mnt/sd0/LC8234xx_17S_start_data.boot_bin of=/dev/mtdblock0p1
+  nsh> reboot
+
+10. Audio playback (WAV/44.1k/16bit/2ch only)
+
+Firstly, please check the jumper pin settings as follows.
+
+  JP1, JP2 => short
+  JP3, JP4 => open
+
+To play WAV file on uSD card,
+
+  nsh> mount -t vfat /dev/mtdblock1 /mnt/sd1
+  nsh> nxplayer
+  nxplayer> play /mnt/sd1/sample.wav
+  nxplayer> volume 50
+
 
 TODO
 ^^^^
 
 The following features will be supported.
-IPL2 (eMMC boot), Audio, etc.
+Accelerometer, etc.

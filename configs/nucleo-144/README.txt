@@ -10,6 +10,7 @@ Contents
 ========
 
   - Nucleo-144 Boards
+  - Nucleo F722ZE
   - Nucleo F746ZG
   - Nucleo F767ZI
   - Development Environment
@@ -38,6 +39,7 @@ LQFP144 package.  Variants include
   STM32F303ZET6  NUCLEO-F303ZE
   STM32F429ZIT6  NUCLEO-F429ZI
   STM32F446ZET6  NUCLEO-F446ZE
+  STM32F722ZET6  NUCLEO-F722ZE
   STM32F746ZGT6  NUCLEO-F746ZG
   STM32F767ZIT6  NUCLEO-F767ZI
   STM32L496ZGT6  NUCLEO-L496ZG
@@ -229,10 +231,11 @@ Hardware
   debugging. Because so many pins can be multiplexed with so many functions,
   the above mentioned graphic may be helpful in indentifying a serial port.
 
-  There are 4 choices that can be made from the menuconfig:
+  There are 5 choices that can be made from the menuconfig:
 
   CONFIG_NUCLEO_CONSOLE_ARDUINO or CONFIG_NUCLEO_CONSOLE_MORPHO or
-  CONFIG_NUCLEO_CONSOLE_VIRTUAL or CONFIG_NUCLEO_CONSOLE_NONE
+  CONFIG_NUCLEO_CONSOLE_MORPHO_UART4 or CONFIG_NUCLEO_CONSOLE_VIRTUAL or
+  CONFIG_NUCLEO_CONSOLE_NONE
 
   The CONFIG_NUCLEO_CONSOLE_NONE makes no preset for the console. YOu shuld still visit
   the U[S]ART selection and Device Drivers to disable any U[S]ART reamaing.
@@ -255,6 +258,14 @@ Hardware
             ------
             SERIAL_RX         PE_0
             SERIAL_TX         PE_1
+
+  The CONFIG_NUCLEO_CONSOLE_MORPHO_UART4 configurations uses Serial Port 4 (UART4)
+  with TX on PA1 and RX on PA0. Zero Ohm resistor / solder short at
+  SB13 must be removed/open. (Disables Ethernet MII clocking.)
+          Serial
+          ------
+          SERIAL_RX         PA_1  CN11 30
+          SERIAL_TX         PA_0  CN11 28
 
   The CONFIG_NUCLEO_CONSOLE_VIRTUAL configurations uses Serial Port 3 (USART3)
   with TX on PD8 and RX on PD9.
@@ -514,10 +525,29 @@ f7xx-nsh:
      CONFIG_HOST_LINUX=y                     : Builds under Linux
      CONFIG_ARMV7M_TOOLCHAIN_GNU_EABIL=y     : ARM GNU for Linux
 
-  3. Although the default console is USART3 (which would correspond to
-     the Virtual COM port) I have done all testing with the console
-     device configured for UART8 (see instruction above under "Serial
-     Consoles).
+  3. The serial console may be configured to use either USART3 (which would
+     correspond to the Virtual COM port) or with the console device
+     configured for USART6 to support an Arduino serial shield (see
+     instructions above under "Serial Consoles).  You will need to check the
+     defconfig file to see how the console is set up and, perhaps, modify
+     the configuration accordingly.
+
+     To select the Virtual COM port:
+
+       -CONFIG_NUCLEO_CONSOLE_ARDUINO
+       +CONFIG_NUCLEO_CONSOLE_VIRTUAL=y
+       -CONFIG_USART6_SERIAL_CONSOLE=y
+       +CONFIG_USART3_SERIAL_CONSOLE=y
+
+     To select the Arduino serial shield:
+
+       -CONFIG_NUCLEO_CONSOLE_VIRTUAL=y
+       +CONFIG_NUCLEO_CONSOLE_ARDUINO
+       -CONFIG_USART3_SERIAL_CONSOLE=y
+       +CONFIG_USART6_SERIAL_CONSOLE=y
+
+     Default values for other settings associated with the select USART should
+     be correct.
 
 f7xx-evalos:
 -------

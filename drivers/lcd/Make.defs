@@ -83,6 +83,10 @@ ifeq ($(CONFIG_LCD_MIO283QT2),y)
   CSRCS += mio283qt2.c
 endif
 
+ifeq ($(CONFIG_LCD_MAX7219),y)
+  CSRCS += max7219.c
+endif
+
 ifeq ($(CONFIG_LCD_MIO283QT9A),y)
   CSRCS += mio283qt9a.c
 endif
@@ -110,7 +114,7 @@ endif
 ifeq ($(CONFIG_LCD_RA8875),y)
   CSRCS += ra8875.c
 endif
-endif # CONFIG_NX_LCDDRIVER
+endif # CONFIG_LCD
 
 ifeq ($(CONFIG_SLCD),y)
 
