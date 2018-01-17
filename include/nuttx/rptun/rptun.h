@@ -91,23 +91,6 @@
 #define RPTUN_GET_RESOURCE(d,r,rl) ((d)->ops->get_resource(d,r,rl))
 
 /****************************************************************************
- * Name: RPTUN_GET_SHAREMEM
- *
- * Description:
- *   Get rptun share memory
- *
- * Input Parameters:
- *   dev - Device-specific state data
- *   shm - Share memory pointer to get
- *
- * Returned Value:
- *   OK unless an error occurs.  Then a negated errno value is returned
- *
- ****************************************************************************/
-
-#define RPTUN_GET_SHAREMEM(d,s) ((d)->ops->get_sharemem(d,s))
-
-/****************************************************************************
  * Name: RPTUN_NOTIFY
  *
  * Description:
@@ -170,7 +153,6 @@ struct rptun_ops_s
   const char *(*get_cpuname)(struct rptun_dev_s *dev);
   int (*get_resource)(struct rptun_dev_s *dev,
                     struct rsc_table_info *rsc, uint32_t *role);
-  int (*get_sharemem)(struct rptun_dev_s *dev, struct proc_shm *shm);
   int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
   int (*register_callback)(struct rptun_dev_s *dev,
                     rptun_callback_t callback, void *arg);
@@ -182,7 +164,7 @@ struct rptun_dev_s
   const struct rptun_ops_s *ops;
 };
 
-struct __attribute__((aligned(8))) rptun_rsc_loadstart_s
+struct __attribute__((aligned(8))) rptun_rsc_s
 {
   struct resource_table    rsc_tbl_hdr;
   unsigned int             offset[2];

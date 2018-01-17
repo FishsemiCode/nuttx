@@ -170,7 +170,7 @@ void up_openamp_initialize(void)
     .irq        = -1,
   };
 
-  static struct rptun_rsc_loadstart_s rptun_rsc_sp
+  static struct rptun_rsc_s rptun_rsc_sp
               __attribute__ ((section (".resource_table"))) =
   {
     .rsc_tbl_hdr     =
@@ -180,8 +180,8 @@ void up_openamp_initialize(void)
     },
     .offset          =
     {
-      offsetof(struct rptun_rsc_loadstart_s, log_trace),
-      offsetof(struct rptun_rsc_loadstart_s, rpmsg_vdev),
+      offsetof(struct rptun_rsc_s, log_trace),
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
     },
     .log_trace       =
     {

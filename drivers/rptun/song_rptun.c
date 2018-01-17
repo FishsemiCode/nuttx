@@ -68,8 +68,6 @@ struct song_rptun_dev_s
 static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev);
 static int song_rptun_get_resource(struct rptun_dev_s *dev,
                                     struct rsc_table_info *rsc, uint32_t *role);
-static int song_rptun_get_sharemem(struct rptun_dev_s *dev,
-                                    struct proc_shm *shm);
 static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid);
 static int song_rptun_registercallback(struct rptun_dev_s *dev,
                                     rptun_callback_t callback, void *arg);
@@ -86,7 +84,6 @@ static const struct rptun_ops_s g_song_rptun_ops =
 {
   .get_cpuname       = song_rptun_get_cpuname,
   .get_resource      = song_rptun_get_resource,
-  .get_sharemem      = song_rptun_get_sharemem,
   .notify            = song_rptun_notify,
   .register_callback = song_rptun_registercallback,
   .ioctl             = song_rptun_ioctl,
@@ -112,17 +109,6 @@ static int song_rptun_get_resource(struct rptun_dev_s *dev,
 
   memcpy(rsc, &config->rsc, sizeof(config->rsc));
   *role = config->role;
-
-  return 0;
-}
-
-static int song_rptun_get_sharemem(struct rptun_dev_s *dev,
-                                    struct proc_shm *shm)
-{
-  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
-  const struct song_rptun_config_s *config = priv->config;
-
-  memcpy(shm, &config->shm, sizeof(config->shm));
 
   return 0;
 }

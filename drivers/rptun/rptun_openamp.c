@@ -184,8 +184,7 @@ static void rptun_openamp_alloc_mem(
                             struct rptun_openamp_s *priv,
                             struct rsc_table_info *rsc_info)
 {
-  struct rptun_rsc_loadstart_s *rsc_tab =
-                            (struct rptun_rsc_loadstart_s *)rsc_info->rsc_tab;
+  struct rptun_rsc_s *rsc_tab = (struct rptun_rsc_s *)rsc_info->rsc_tab;
   uint32_t vring0_size, vring1_size, tb_size, max_align;
   volatile uint32_t *check_ver;
 

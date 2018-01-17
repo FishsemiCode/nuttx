@@ -60,9 +60,6 @@ struct song_rptun_config_s
   int32_t               ch_start_tx;
   int32_t               ch_vring_tx;
 
-  /* for talk between peer processor, like tl420 and cp */
-  struct proc_shm       shm;
-
   /* the resource table info */
   struct rsc_table_info rsc;
 

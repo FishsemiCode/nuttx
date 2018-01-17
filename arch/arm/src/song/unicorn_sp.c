@@ -195,7 +195,7 @@ void up_openamp_initialize(void)
     .rsc         =
     {
       .rsc_tab   = (void *)0xb0000000,
-      .size      = sizeof(struct rptun_rsc_loadstart_s),
+      .size      = sizeof(struct rptun_rsc_s),
     },
   };
 
@@ -210,7 +210,7 @@ void up_openamp_initialize(void)
     .rsc         =
     {
       .rsc_tab   = (void *)0xb0010000,
-      .size      = sizeof(struct rptun_rsc_loadstart_s),
+      .size      = sizeof(struct rptun_rsc_s),
     },
   };
 
