@@ -279,19 +279,7 @@ EXTERN uint32_t _edata;           /* End+1 of .data */
 EXTERN uint32_t _sbss;            /* Start of .bss */
 EXTERN uint32_t _ebss;            /* End+1 of .bss */
 
-/* Sometimes, functions must be executed from RAM.  In this case, the following
- * macro may be used (with GCC!) to specify a function that will execute from
- * RAM.  For example,
- *
- *   int __ramfunc__ foo (void);
- *   int __ramfunc__ foo (void) { return bar; }
- *
- * will create a function named foo that will execute from RAM.
- */
-
 #ifdef CONFIG_ARCH_RAMFUNCS
-
-#  define __ramfunc__ __attribute__ ((section(".ramfunc"),long_call,noinline))
 
 /* Functions declared in the .ramfunc section will be packaged together
  * by the linker script and stored in FLASH.  During boot-up, the start
@@ -304,14 +292,6 @@ EXTERN uint32_t _ebss;            /* End+1 of .bss */
 EXTERN const uint32_t _framfuncs; /* Copy source address in FLASH */
 EXTERN uint32_t _sramfuncs;       /* Copy destination start address in RAM */
 EXTERN uint32_t _eramfuncs;       /* Copy destination end address in RAM */
-
-#else /* CONFIG_ARCH_RAMFUNCS */
-
-/* Otherwise, a null definition is provided so that condition compilation is
- * not necessary in code that may operate with or without RAM functions.
- */
-
-#  define __ramfunc__
 
 #endif /* CONFIG_ARCH_RAMFUNCS */
 #endif /* __ASSEMBLY__ */

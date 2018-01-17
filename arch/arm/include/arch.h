@@ -119,6 +119,30 @@ do { \
 #  endif
 #endif /* CONFIG_ARCH_ADDRENV */
 
+/* Sometimes, functions must be executed from RAM.  In this case, the following
+ * macro may be used (with GCC!) to specify a function that will execute from
+ * RAM.  For example,
+ *
+ *   int __ramfunc__ foo (void);
+ *   int __ramfunc__ foo (void) { return bar; }
+ *
+ * will create a function named foo that will execute from RAM.
+ */
+
+#ifdef CONFIG_ARCH_RAMFUNCS
+
+#  define __ramfunc__ __attribute__ ((section(".ramfunc"),long_call,noinline))
+
+#else /* CONFIG_ARCH_RAMFUNCS */
+
+/* Otherwise, a null definition is provided so that condition compilation is
+ * not necessary in code that may operate with or without RAM functions.
+ */
+
+#  define __ramfunc__
+
+#endif /* CONFIG_ARCH_RAMFUNCS */
+
 /****************************************************************************
  * Inline functions
  ****************************************************************************/
