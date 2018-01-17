@@ -226,8 +226,10 @@ void up_openamp_initialize(void)
 #endif
 
 #ifdef CONFIG_RPMSG_UART
-  uart_rpmsg_init(0, 4096, false, NULL, 0, true);
-  uart_rpmsg_init(1, 4096, false, NULL, 1, true);
+  uart_rpmsg_init(NULL, "AP", 1024, false, true);
+  uart_rpmsg_init(NULL, "CP", 1024, false, true);
+  uart_rpmsg_init(NULL, "AT", 1024, false, true);
+  uart_rpmsg_init(NULL, "GPS", 1024, false, true);
 #endif
 
 #ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER

@@ -59,8 +59,8 @@ extern "C"
 #define EXTERN extern
 #endif
 
-int uart_rpmsg_init(int dev_id, int buf_size,
-        bool isconsole, const char *cpu_name, int ipc_id, bool server);
+int uart_rpmsg_init(const char *cpu_name, const char *dev_name,
+                        int buf_size, bool isconsole, bool server);
 
 #undef EXTERN
 #ifdef __cplusplus

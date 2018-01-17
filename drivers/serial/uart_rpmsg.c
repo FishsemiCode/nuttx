@@ -55,7 +55,7 @@
  ****************************************************************************/
 
 #define UART_RPMSG_DEV_CONSOLE          "/dev/console"
-#define UART_RPMSG_DEV_PREFIX           "/dev/ttyR"
+#define UART_RPMSG_DEV_PREFIX           "/dev/tty"
 #define UART_RPMSG_CHANNEL_PREFIX       "rpmsg-tty"
 
 #define UART_RPMSG_TTY_WRITE            0
@@ -91,7 +91,6 @@ struct uart_rpmsg_priv_s
   struct rpmsg_channel *channel;
   bool                 server;
   char                 channel_name[RPMSG_NAME_SIZE];
-  int                  dev_id;
   const char           *cpu_name;
   void                 *recv_data;
   bool                 last_upper;
@@ -387,8 +386,8 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
  * Public Funtions
  ****************************************************************************/
 
-int uart_rpmsg_init(int dev_id, int buf_size,
-        bool isconsole, const char *cpu_name, int ipc_id, bool server)
+int uart_rpmsg_init(const char *cpu_name, const char *dev_name_,
+                        int buf_size, bool isconsole, bool server)
 {
   struct uart_rpmsg_priv_s *priv;
   struct uart_dev_s *dev;
@@ -425,12 +424,11 @@ int uart_rpmsg_init(int dev_id, int buf_size,
     }
 
   priv->server   = server;
-  priv->dev_id   = dev_id;
   priv->cpu_name = cpu_name;
 
   dev->priv = priv;
 
-  sprintf(priv->channel_name, "%s%d", UART_RPMSG_CHANNEL_PREFIX, ipc_id);
+  sprintf(priv->channel_name, "%s%s", UART_RPMSG_CHANNEL_PREFIX, dev_name_);
   ret = rpmsg_register_callback(priv->channel_name, dev,
               uart_rpmsg_device_created,
               NULL,
@@ -442,7 +440,7 @@ int uart_rpmsg_init(int dev_id, int buf_size,
       goto fail;
     }
 
-  sprintf(dev_name, "%s%d", UART_RPMSG_DEV_PREFIX, priv->dev_id);
+  sprintf(dev_name, "%s%s", UART_RPMSG_DEV_PREFIX, dev_name_);
   uart_register(dev_name, dev);
 
   if (dev->isconsole)

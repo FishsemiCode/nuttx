@@ -215,9 +215,9 @@ void up_openamp_initialize(void)
 
 #ifdef CONFIG_RPMSG_UART
 # ifdef CONFIG_SERIAL_CONSOLE
-  uart_rpmsg_init(0, 4096, false, CPU_NAME_AP, 0, false);
+  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, false, false);
 # else
-  uart_rpmsg_init(0, 4096, true, CPU_NAME_AP, 0, false);
+  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, true, false);
 # endif
 #endif
 
