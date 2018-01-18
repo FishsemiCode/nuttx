@@ -329,7 +329,7 @@ static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
 
   if (priv->channel)
     {
-      syslog(LOG_ERR, "%s duplicate uart rpmsg device\n", __func__);
+      serr("%s duplicate uart rpmsg device\n", __func__);
       return;
     }
 
