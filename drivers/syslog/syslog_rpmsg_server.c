@@ -1,6 +1,6 @@
 /****************************************************************************
- * include/nuttx/syslog/syslog_rpmsg.h
- * Syslog driver for rpmsg syslog
+ * drivers/syslog/syslog_rpmsg_server.c
+ * Syslog driver for rpmsg syslog server
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Guiding Li<liguiding@pinecone.net>
@@ -34,39 +34,62 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H
-#define __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
+#include <nuttx/syslog/syslog.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
+
+#include <openamp/open_amp.h>
+
+#include "syslog.h"
+#include "syslog_rpmsg.h"
+
 /****************************************************************************
- * Public Function Prototypes
+ * Private Function Prototypes
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
+                    void *data, int len, void *priv_, unsigned long src);
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
+                    void *data, int len, void *priv_, unsigned long src)
 {
-#else
-#define EXTERN extern
-#endif
+  struct syslog_rpmsg_header_s *header = data;
+  struct syslog_rpmsg_transfer_s *msg = data;
+  struct syslog_rpmsg_header_s done;
 
-#ifdef CONFIG_SYSLOG_RPMSG
-int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size);
-int syslog_rpmsg_init(void);
-#endif
 
-#ifdef CONFIG_SYSLOG_RPMSG_SERVER
-int syslog_rpmsg_server_init(void);
-#endif
+  if (header->command == SYSLOG_RPMSG_TRANSFER)
+    {
+      syslog_write(msg->data, msg->count);
 
-#undef EXTERN
-#ifdef __cplusplus
+      memset(&done, 0, sizeof(done));
+      done.command = SYSLOG_RPMSG_TRANSFER_DONE;
+      done.result  = msg->count;
+      rpmsg_send(channel, &done, sizeof(done));
+    }
 }
-#endif
 
-#endif /* __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H */
+/****************************************************************************
+ * Public Funtions
+ ****************************************************************************/
+
+int syslog_rpmsg_server_init(void)
+{
+  return rpmsg_register_callback(
+                SYSLOG_RPMSG_CHANNEL_NAME,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                NULL,
+                syslog_rpmsg_channel_received);
+}

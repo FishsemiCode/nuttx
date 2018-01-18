@@ -86,10 +86,10 @@ endif
 
 ifeq ($(CONFIG_SYSLOG_RPMSG),y)
   CSRCS += syslog_rpmsg.c
-else
-  ifeq ($(CONFIG_SYSLOG_RPMSG_SERVER),y)
-    CSRCS += syslog_rpmsg.c
-  endif
+endif
+
+ifeq ($(CONFIG_SYSLOG_RPMSG_SERVER),y)
+  CSRCS += syslog_rpmsg_server.c
 endif
 
 ifeq ($(CONFIG_CONSOLE_SYSLOG),y)

@@ -52,6 +52,7 @@
 #include <nuttx/wqueue.h>
 
 #include "syslog.h"
+#include "syslog_rpmsg.h"
 
 /****************************************************************************
  * Pre-processor definitions
@@ -61,13 +62,7 @@
 #define CONFIG_SYSLOG_RPMSG_WORK_DELAY 0
 #endif
 
-#define SYSLOG_RPMSG_CHANNEL_NAME       "rpmsg-syslog"
 #define SYSLOG_RPMSG_WORK_DELAY         MSEC2TICK(CONFIG_SYSLOG_RPMSG_WORK_DELAY)
-
-#define SYSLOG_RPMSG_TRANSFER           0
-#define SYSLOG_RPMSG_TRANSFER_DONE      1
-#define SYSLOG_RPMSG_SUSPEND            2
-#define SYSLOG_RPMSG_RESUME             3
 
 #define SYSLOG_RPMSG_COUNT(h, t, size)  ((B2C(h)>=(t)) ? B2C(h)-(t) : (size)-((t)-B2C(h)))
 #define SYSLOG_RPMSG_SPACE(h, t, size)  ((size) - 1 - SYSLOG_RPMSG_COUNT(h, t, size))
@@ -75,19 +70,6 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-
-begin_packed_struct struct syslog_rpmsg_header_s
-{
-  uint32_t command;
-  int32_t  result;
-} end_packed_struct;
-
-begin_packed_struct struct syslog_rpmsg_transfer_s
-{
-  struct syslog_rpmsg_header_s header;
-  int32_t                      count;
-  char                         data[0];
-} end_packed_struct;
 
 struct syslog_rpmsg_s
 {
@@ -359,7 +341,6 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
  * Public Funtions
  ****************************************************************************/
 
-#ifdef CONFIG_SYSLOG_RPMSG
 int up_putc(int ch)
 {
   return syslog_rpmsg_putc(ch);
@@ -410,7 +391,6 @@ int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size)
 
   return syslog_channel(&g_syslog_rpmsg_channel);
 }
-#endif
 
 int syslog_rpmsg_init(void)
 {

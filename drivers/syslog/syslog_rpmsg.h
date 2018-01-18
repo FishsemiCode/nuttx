@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/syslog/syslog_rpmsg.h
+ * drivers/syslog/syslog_rpmsg.h
  * Syslog driver for rpmsg syslog
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
@@ -34,39 +34,35 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H
-#define __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H
+#ifndef __DRIVERS_SYSLOG_SYSLOG_RPMSG_H
+#define __DRIVERS_SYSLOG_SYSLOG_RPMSG_H
 
 /****************************************************************************
- * Included Files
+ * Pre-processor definitions
  ****************************************************************************/
 
-#include <nuttx/config.h>
+#define SYSLOG_RPMSG_CHANNEL_NAME       "rpmsg-syslog"
+
+#define SYSLOG_RPMSG_TRANSFER           0
+#define SYSLOG_RPMSG_TRANSFER_DONE      1
+#define SYSLOG_RPMSG_SUSPEND            2
+#define SYSLOG_RPMSG_RESUME             3
 
 /****************************************************************************
- * Public Function Prototypes
+ * Private Types
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+begin_packed_struct struct syslog_rpmsg_header_s
 {
-#else
-#define EXTERN extern
-#endif
+  uint32_t command;
+  int32_t  result;
+} end_packed_struct;
 
-#ifdef CONFIG_SYSLOG_RPMSG
-int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size);
-int syslog_rpmsg_init(void);
-#endif
+begin_packed_struct struct syslog_rpmsg_transfer_s
+{
+  struct syslog_rpmsg_header_s header;
+  int32_t                      count;
+  char                         data[0];
+} end_packed_struct;
 
-#ifdef CONFIG_SYSLOG_RPMSG_SERVER
-int syslog_rpmsg_server_init(void);
-#endif
-
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __INCLUDE_NUTTX_SYSLOG_SYSLOG_RPMSG_H */
+#endif /* __DRIVERS_SYSLOG_SYSLOG_RPMSG_H */

@@ -222,7 +222,7 @@ void up_openamp_initialize(void)
   song_rptun_initialize(&rptun_cfg_cp, mbox_sp, mbox_cp, 1);
 
 #ifdef CONFIG_SYSLOG_RPMSG_SERVER
-  syslog_rpmsg_init();
+  syslog_rpmsg_server_init();
 #endif
 
 #ifdef CONFIG_RPMSG_UART
