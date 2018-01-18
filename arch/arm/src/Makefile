@@ -216,9 +216,12 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT)
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
-	$(Q) $(NM) $(NUTTX) | \
-	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
-	sort > $(OUTDIR)$(DELIM)System.map
+	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
+	$(Q) $(OBJDUMP) -t $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.sym
+	$(Q) $(OBJDUMP) -t $(NUTTX) | sort > $(OUTDIR)$(DELIM)nuttx.sym.sorted
+	$(Q) $(OBJDUMP) -Mreg-names-raw -d $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.lst
+	$(Q) $(OBJDUMP) -Mreg-names-raw -S $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.debug.lst
+	$(Q) $(OBJDUMP) -Mreg-names-raw -x $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.dump
 endif
 
 # This is part of the top-level export target
