@@ -566,7 +566,7 @@ do_gconfig: dirlinks apps_preconfig
 
 gconfig: do_gconfig clean_context
 
-do_savedefconfig: dirlinks apps_preconfig
+do_savedefconfig: dirlinks apps_preconfig tools/kconfig-conf$(HOSTEXEEXT)
 
 savedefconfig: do_savedefconfig
 	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-conf --savedefconfig $(OUTDIR)/defconfig.tmp $(KCONFIG_ROOT)
