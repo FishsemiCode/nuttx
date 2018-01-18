@@ -37,6 +37,26 @@
 
 -include $(TOPDIR)/Make.defs
 
+GENROMFS := $(OUTDIR)$(DELIM)tools$(DELIM)genromfs$(HOSTEXEEXT)
+
+$(GENROMFS):
+	$(Q) $(MAKE) -C $(OUTDIR)$(DELIM)tools -f $(TOPDIR)$(DELIM)tools$(DELIM)Makefile.host -I $(TOPDIR)$(DELIM)tools genromfs
+
+ifeq ($(CONFIG_NSH_ROMFSETC),y)
+ETCDIR := $(patsubst "/%",%,$(CONFIG_NSH_ROMFSMOUNTPT))
+ETCSRC := $(ETCDIR:%=%.c)
+
+CSRCS += $(ETCSRC)
+
+$(ETCSRC): $(GENROMFS) $(RCSRCS) $(RCRAWS)
+	$(foreach src,$(RCSRCS), \
+		$(call PREPROCESS, $(src), $(ETCDIR)$(DELIM)$(src)))
+	$(foreach raw,$(RCRAWS), \
+		$(shell cp --parents -fLp $(raw) $(ETCDIR)))
+	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR) -V "$(basename $<)" && xxd -i romfs.img > $@
+
+endif
+
 ifneq ($(ZDSVERSION),)
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 else
