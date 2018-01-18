@@ -103,11 +103,7 @@ void sched_ufree(FAR void *address)
       sq_addlast((FAR sq_entry_t *)address,
                  (FAR sq_queue_t *)&g_delayed_kufree);
 
-      /* Signal the worker thread that is has some clean up to do */
-
-#ifdef CONFIG_SCHED_WORKQUEUE
-      work_signal(LPWORK);
-#endif
+      sched_signal_free();
       leave_critical_section(flags);
     }
   else
@@ -144,11 +140,7 @@ void sched_kfree(FAR void *address)
       sq_addlast((FAR sq_entry_t *)address,
                  (FAR sq_queue_t *)&g_delayed_kfree);
 
-      /* Signal the worker thread that is has some clean up to do */
-
-#ifdef CONFIG_SCHED_WORKQUEUE
-      work_signal(LPWORK);
-#endif
+      sched_signal_free();
       leave_critical_section(flags);
     }
   else
@@ -160,3 +152,12 @@ void sched_kfree(FAR void *address)
     }
 }
 #endif
+
+void sched_signal_free(void)
+{
+  /* Signal the worker thread that is has some clean up to do */
+
+#ifdef CONFIG_SCHED_WORKQUEUE
+  work_signal(LPWORK);
+#endif
+}

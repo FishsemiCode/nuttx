@@ -203,6 +203,8 @@ void sched_kfree(FAR void *address);
 #  define sched_kfree(a) sched_ufree(a)
 #endif
 
+void sched_signal_free(void);
+
 /* Functions defined in sched/sched_garbage *********************************/
 
 /* Must be called periodically to clean up deallocations delayed by

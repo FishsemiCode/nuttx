@@ -731,6 +731,14 @@ void up_allocate_pgheap(FAR void **heap_start, size_t *heap_size);
 uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
 #endif
 
+#ifdef CONFIG_ARCH_HAVE_GARBAGE
+bool up_sched_have_garbage(void);
+void up_sched_garbage_collection(void);
+#else
+#  define up_sched_have_garbage() false
+#  define up_sched_garbage_collection()
+#endif
+
 /****************************************************************************
  * Name: up_setpicbase, up_getpicbase
  *
