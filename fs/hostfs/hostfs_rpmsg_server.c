@@ -557,7 +557,7 @@ static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
   struct hostfs_rpmsg_server_s *priv;
 
-  priv = kmm_malloc(sizeof(*priv));
+  priv = kmm_zalloc(sizeof(*priv));
   if (!priv)
     {
       return;
