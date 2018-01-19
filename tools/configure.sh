@@ -263,9 +263,13 @@ install -m 644 "${src_config}" "${dest_config}" || \
 if [ ${outdir} = ${TOPDIR} ]; then
   echo "include \$(TOPDIR)/tools/PostConfig.mk" >> ${dest_makedefs}
 else
-  echo "-include \$(OUTDIR)/.config" > ${TOPDIR}/.config
-  echo "-include \$(OUTDIR)/Make.defs" > ${TOPDIR}/Make.defs
-  echo "include \$(TOPDIR)/tools/PostConfig.mk" >> ${TOPDIR}/Make.defs
+  if [ ! -f ${TOPDIR}/.config ]; then
+    echo "-include \$(OUTDIR)/.config" > ${TOPDIR}/.config
+  fi
+  if [ ! -f ${TOPDIR}/Make.defs ]; then
+    echo "-include \$(OUTDIR)/Make.defs" > ${TOPDIR}/Make.defs
+    echo "include \$(TOPDIR)/tools/PostConfig.mk" >> ${TOPDIR}/Make.defs
+  fi
 fi
 
 # Install any optional files
