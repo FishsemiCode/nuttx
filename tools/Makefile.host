@@ -85,13 +85,15 @@ all: b16$(HOSTEXEEXT) bdf-converter$(HOSTEXEEXT) cmpconfig$(HOSTEXEEXT) \
     configure$(HOSTEXEEXT) mkconfig$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) \
     mksymtab$(HOSTEXEEXT)  mksyscall$(HOSTEXEEXT) mkversion$(HOSTEXEEXT) \
     cnvwindeps$(HOSTEXEEXT) nxstyle$(HOSTEXEEXT) initialconfig$(HOSTEXEEXT) \
-    kconfig-conf$(HOSTEXEEXT) kconfig-mconf$(HOSTEXEEXT)
+    kconfig-conf$(HOSTEXEEXT) kconfig-mconf$(HOSTEXEEXT) genromfs$(HOSTEXEEXT)
 default: mkconfig$(HOSTEXEEXT) mksyscall$(HOSTEXEEXT) mkdeps$(HOSTEXEEXT) \
-    cnvwindeps$(HOSTEXEEXT) kconfig-conf$(HOSTEXEEXT) kconfig-mconf$(HOSTEXEEXT)
+    cnvwindeps$(HOSTEXEEXT) kconfig-conf$(HOSTEXEEXT) kconfig-mconf$(HOSTEXEEXT) \
+    genromfs$(HOSTEXEEXT)
 
 ifdef HOSTEXEEXT
 .PHONY: b16 bdf-converter cmpconfig clean configure kconfig2html mkconfig \
-    mkdeps cnvwindeps mksymtab mksyscall mkversion
+    mkdeps cnvwindeps mksymtab mksyscall mkversion kconfig-conf kconfig-mconf \
+    genromfs
 else
 .PHONY: clean
 endif
@@ -238,6 +240,13 @@ ifdef HOSTEXEEXT
 kconfig-mconf: kconfig-mconf$(HOSTEXEEXT)
 endif
 
+genromfs$(HOSTEXEEXT): mkromfs/genromfs.c
+	$(Q) $(HOSTCC) $(HOSTCFLAGS) -DVERSION=\"0.5.7\" -o $@ $^
+
+ifdef HOSTEXEEXT
+genromfs: genromfs$(HOSTEXEEXT)
+endif
+
 clean:
 	$(call DELFILE, mkdeps)
 	$(call DELFILE, mkdeps.exe)
@@ -256,6 +265,8 @@ clean:
 	$(call DELFILE, kconfig-conf.exe)
 	$(call DELFILE, kconfig-mconf)
 	$(call DELFILE, kconfig-mconf.exe)
+	$(call DELFILE, genromfs)
+	$(call DELFILE, genromfs.exe)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) rm -rf *.dSYM
 endif
