@@ -18,7 +18,9 @@
 config_array=()
 command_array=()
 
-NUTTX_ROOT=${PWD}/nuttx
+ROOTDIR=$(cd "$( dirname "$0"  )" && pwd)
+
+NUTTX_ROOT=${ROOTDIR}/nuttx
 NUTTX_OUTDIR=${PWD}/out
 
 NUTTX_BOARD_CONFIG=(\
@@ -41,8 +43,8 @@ else
 fi
 
 NUTTX_UNICORN_ENV=(\
-		"CROSSDEV=${PWD}/prebuilts/gcc/${SYSTEM}/arm/bin/arm-none-eabi-" \
-		"ARCROSSDEV=${PWD}/prebuilts/gcc/${SYSTEM}/arm/bin/arm-none-eabi-")
+		"CROSSDEV=${ROOTDIR}/prebuilts/gcc/${SYSTEM}/arm/bin/arm-none-eabi-" \
+		"ARCROSSDEV=${ROOTDIR}/prebuilts/gcc/${SYSTEM}/arm/bin/arm-none-eabi-")
 
 function usage()
 {
