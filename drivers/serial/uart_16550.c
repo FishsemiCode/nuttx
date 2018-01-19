@@ -80,6 +80,7 @@ struct u16550_s
   uint8_t          parity;    /* 0=none, 1=odd, 2=even */
   uint8_t          bits;      /* Number of bits (7 or 8) */
   bool             stopbits2; /* true: Configure with 2 stop bits instead of 1 */
+  bool             supress;   /* true: jump over setup */
 #endif
 };
 
@@ -438,6 +439,11 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
   uint16_t div;
   uint32_t lcr;
+
+  if (priv->supress)
+    {
+      return OK;
+    }
 
   /* Clear fifos */
 
@@ -956,6 +962,19 @@ void up_earlyserialinit(void)
 #endif
 #ifdef CONFIG_16550_UART3
   u16550_disableuartint(&g_uart3priv, NULL);
+#endif
+
+#ifdef CONFIG_16550_UART0_SUPRESS_SETUP
+  g_uart0priv.supress = true;
+#endif
+#ifdef CONFIG_16550_UART1_SUPRESS_SETUP
+  g_uart1priv.supress = true;
+#endif
+#ifdef CONFIG_16550_UART2_SUPRESS_SETUP
+  g_uart2priv.supress = true;
+#endif
+#ifdef CONFIG_16550_UART3_SUPRESS_SETUP
+  g_uart3priv.supress = true;
 #endif
 
   /* Configuration whichever one is the console */
