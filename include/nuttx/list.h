@@ -42,7 +42,7 @@
     struct list_node *__nod = list_remove_head(list);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -52,7 +52,7 @@
     struct list_node *__nod = list_remove_tail(list);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -62,7 +62,7 @@
     struct list_node *__nod = list_peek_head(list);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -72,7 +72,7 @@
     struct list_node *__nod = list_peek_tail(list);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -82,7 +82,7 @@
     struct list_node *__nod = list_prev(list, item);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -92,7 +92,7 @@
     struct list_node *__nod = list_prev_wrap(list, item);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -102,7 +102,7 @@
     struct list_node *__nod = list_next(list, item);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -112,7 +112,7 @@
     struct list_node *__nod = list_next_wrap(list, item);\
     type *__t;\
     if(__nod)\
-        __t = containerof(__nod, type, element);\
+        __t = container_of(__nod, type, element);\
     else\
         __t = (type *)0;\
     __t;\
@@ -131,17 +131,17 @@
 
 // iterates over the list, entry should be the container structure type *
 #define list_for_every_entry(list, entry, type, member) \
-    for((entry) = containerof((list)->next, type, member);\
+    for((entry) = container_of((list)->next, type, member);\
         &(entry)->member != (list);\
-        (entry) = containerof((entry)->member.next, type, member))
+        (entry) = container_of((entry)->member.next, type, member))
 
 // iterates over the list in a safe way for deletion of current node
 // entry and temp_entry should be the container structure type *
 #define list_for_every_entry_safe(list, entry, temp_entry, type, member) \
-    for(entry = containerof((list)->next, type, member),\
-        temp_entry = containerof((entry)->member.next, type, member);\
+    for(entry = container_of((list)->next, type, member),\
+        temp_entry = container_of((entry)->member.next, type, member);\
         &(entry)->member != (list);\
-        entry = temp_entry, temp_entry = containerof((temp_entry)->member.next, type, member))
+        entry = temp_entry, temp_entry = container_of((temp_entry)->member.next, type, member))
 
 /****************************************************************************
  * Public Type Definitions
