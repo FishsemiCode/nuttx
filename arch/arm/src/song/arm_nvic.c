@@ -43,6 +43,8 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
+#include "sched/sched.h"
+
 #include "chip.h"
 #include "nvic.h"
 #include "ram_vectors.h"
@@ -294,7 +296,15 @@ int up_prioritize_irq(int irq, int priority)
 
 void up_irqinitialize(void)
 {
+  struct tcb_s *idle;
   int i;
+
+  /* Initialize the idle task stack info */
+
+  idle = this_task(); /* It should be idle task */
+  idle->stack_alloc_ptr = _END_BSS;
+  idle->adj_stack_ptr   = (FAR void *)g_idle_topstack;
+  idle->adj_stack_size  = CONFIG_IDLETHREAD_STACKSIZE;
 
   /* Disable all interrupts */
 
