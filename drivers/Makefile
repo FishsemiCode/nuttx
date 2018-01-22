@@ -53,6 +53,7 @@ include analog$(DELIM)Make.defs
 include audio$(DELIM)Make.defs
 include bch$(DELIM)Make.defs
 include can$(DELIM)Make.defs
+include clk$(DELIM)Make.defs
 include crypto$(DELIM)Make.defs
 include i2c$(DELIM)Make.defs
 include input$(DELIM)Make.defs

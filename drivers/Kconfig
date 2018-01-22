@@ -192,6 +192,8 @@ if BCH
 source drivers/bch/Kconfig
 endif # BCH
 
+source drivers/clk/Kconfig
+
 menuconfig INPUT
 	bool "Input Device Support"
 	default n
