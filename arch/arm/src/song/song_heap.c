@@ -44,9 +44,9 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
-#include <nuttx/userspace.h>
 
 #include "arm_mpu.h"
+#include "song_userspace.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -54,7 +54,6 @@
  ****************************************************************************/
 
 #define _START_HEAP                     ((uintptr_t)&_ebss + CONFIG_IDLETHREAD_STACKSIZE)
-#define _END_HEAP                       ((uintptr_t)&_eheap)
 #define _START_HEAP2                    ((uintptr_t)&_sheap2)
 #define _END_HEAP2                      ((uintptr_t)&_eheap2)
 
@@ -68,7 +67,6 @@
  * Public Data
  ****************************************************************************/
 
-extern uint32_t _eheap;           /* End+1 of heap */
 extern uint32_t _sheap2;          /* Start of heap2 */
 extern uint32_t _eheap2;          /* End+1 of heap2 */
 
@@ -126,7 +124,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
   /* Return the user-space heap settings */
 
   *heap_start = (FAR void *)USERSPACE->us_bssend;
-  *heap_size  = _END_HEAP - USERSPACE->us_bssend;
+  *heap_size  = USERSPACE2->us_heapend - USERSPACE->us_bssend;
 
   /* Allow user-mode access to the user heap memory */
 
@@ -156,17 +154,10 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 #ifdef CONFIG_MM_KERNEL_HEAP
 void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
 {
-#ifdef CONFIG_BUILD_PROTECTED
   /* Return the kernel-space heap settings */
 
   *heap_start = (FAR void *)_START_HEAP;
-  *heap_size  = USERSPACE->us_datastart - _START_HEAP;
-#else
-  /* Return the heap settings */
-
-  *heap_start = (FAR void *)_START_HEAP;
   *heap_size  = _END_HEAP - _START_HEAP;
-#endif
 
   DEBUGASSERT(*heap_size >= CONFIG_MM_KERNEL_HEAPSIZE);
 
