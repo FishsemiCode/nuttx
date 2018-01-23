@@ -41,6 +41,7 @@
 
 #include <nuttx/init.h>
 #include <nuttx/userspace.h>
+#include <arch/board/board.h>
 
 #include "arm_fpu.h"
 #include "arm_mpu.h"
@@ -104,12 +105,15 @@ static void init_kernelspace(void)
    * end of all of the other read-only data (.text, .rodata) at _eronly.
    */
 
-#ifdef CONFIG_BOOT_RUNFROMFLASH
-  for (src = &_eronly, dest = &_sdata; dest < &_edata; )
+  src = &_eronly;
+  dest = &_sdata;
+  if (src != dest)
     {
-      *dest++ = *src++;
+      while (dest < &_edata)
+        {
+          *dest++ = *src++;
+        }
     }
-#endif
 
   /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
    * certain that there are no issues with the state of global variables.

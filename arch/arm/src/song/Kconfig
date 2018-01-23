@@ -15,20 +15,17 @@ choice
 
 config ARCH_CHIP_BANKS_RPM
 	bool "Banks RPM"
-	select BOOT_RUNFROMISRAM
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_BANKS_SENSOR
 	bool "Banks Sensor"
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_HEAP2
-	select BOOT_RUNFROMISRAM
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_UNICORN_AP
 	bool "Unicorn AP"
 	select ARCH_HAVE_FPU
-	select BOOT_RUNFROMFLASH
 	select SONG_CORTEXM4
 	select SONG_ICACHE
 
@@ -36,7 +33,6 @@ config ARCH_CHIP_UNICORN_CP
 	bool "Unicorn CP"
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_RAMFUNCS
-	select BOOT_RUNFROMFLASH
 	select SONG_CORTEXM4
 	select SONG_ICACHE
 	select SONG_COPY_TABLE
@@ -45,7 +41,6 @@ config ARCH_CHIP_UNICORN_CP
 config ARCH_CHIP_UNICORN_SP
 	bool "Unicorn SP"
 	select ARCH_HAVE_RAMFUNCS
-	select BOOT_RUNFROMFLASH
 	select SONG_CORTEXM4
 	select SONG_HAVE_RNG
 	select SONG_ICACHE
