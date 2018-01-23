@@ -42,23 +42,23 @@ ifeq ($(WINTOOL),y)
 MKDEP    += --winpath
 SRCDIR   := $(shell cygpath -m $(SRCDIR))
 
-CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
-CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`} $(CFLAGS)
+CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`} $(CFLAGS)
 
-CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
-CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`} $(CPPFLAGS)
+CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`} $(CPPFLAGS)
 
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
+CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`} $(CXXFLAGS)
+CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`} $(CXXFLAGS)
 else
-CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
-CFLAGS   += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)} $(CFLAGS)
+CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include} $(CFLAGS)
 
-CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
-CPPFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)} $(CPPFLAGS)
+CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include} $(CPPFLAGS)
 
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
-CXXFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
+CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)} $(CXXFLAGS)
+CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include} $(CXXFLAGS)
 endif
 
 # CREATEDIR is the list of directories which need to create

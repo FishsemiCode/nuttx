@@ -43,12 +43,28 @@ ifeq ($(WINTOOL),y)
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
   ARCHSCRIPT = -T "${shell cygpath -w $(LDSCRIPT)}"
+
+  ifeq ($(CONFIG_UCLIBCXX),y)
+    ARCHXXINCLUDES += -isystem "${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)uClibc++}"
+  endif
+  ifeq ($(CONFIG_LIBCXX),y)
+    ARCHXXINCLUDES += -isystem "${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)libcxx}"
+    ARCHXXINCLUDES += -isystem "${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)machine}"
+  endif
 else
   # Linux/Cygwin-native toolchain
   MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
   ARCHSCRIPT = -T$(LDSCRIPT)
+
+  ifeq ($(CONFIG_UCLIBCXX),y)
+    ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)uClibc++
+  endif
+  ifeq ($(CONFIG_LIBCXX),y)
+    ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)libcxx
+    ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)machine
+  endif
 endif
 
 CC = $(CROSSDEV)gcc
@@ -76,7 +92,10 @@ ifneq ($(CONFIG_DEBUG_NOOPT),y)
 endif
 
 ARCHCFLAGS = -fno-builtin
-ARCHCXXFLAGS = -fno-builtin -fno-exceptions -fcheck-new -fno-rtti
+ARCHCXXFLAGS = -fno-builtin -fexceptions -fcheck-new -fno-rtti -fpermissive
+ifeq ($(CONFIG_LIBCXX),y)
+  ARCHCXXFLAGS += -std=c++11 -D__NuttX__
+endif
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHWARNINGSXX = -Wall -Wshadow -Wundef
 ARCHDEFINES =
@@ -127,6 +146,11 @@ endif
 LIBM = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libm.a}"
 ifeq ($(filter $(LIBM), $(EXTRA_LIBS)),)
   EXTRA_LIBS += $(LIBM)
+endif
+
+LIBSUPPORT = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libsupc++.a}"
+ifeq ($(filter $(LIBSUPPORT), $(EXTRA_LIBS)),)
+  EXTRA_LIBS += $(LIBSUPPORT)
 endif
 
 HOSTCC = gcc
