@@ -42,10 +42,12 @@
 #include <stdlib.h>
 #include <sched.h>
 #include <debug.h>
+#include <string.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
 
+#include "group/group.h"
 #include "sched/sched.h"
 #include "task/task.h"
 
@@ -57,6 +59,31 @@
  */
 
 #define MAX_START_ARGS 256
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+#ifdef CONFIG_SIG_SIGKILL
+static void task_sigkill_action(int signo, siginfo_t *siginfo, void *arg)
+{
+#ifdef HAVE_GROUP_MEMBERS
+  FAR struct task_tcb_s *tcb = (FAR struct task_tcb_s *)this_task();
+  group_killchildren(tcb);
+#endif
+  exit(EXIT_FAILURE);
+}
+
+static inline void task_setup_sigkill(void)
+{
+  struct sigaction sa;
+
+  memset(&sa, 0, sizeof(sa));
+  sa.sa_sigaction = task_sigkill_action;
+  sa.sa_flags     = SA_SIGINFO;
+  sigaction(SIGKILL, &sa, NULL);
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -85,6 +112,10 @@ void task_start(void)
   int argc;
 
   DEBUGASSERT((tcb->cmn.flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_PTHREAD);
+
+#ifdef CONFIG_SIG_SIGKILL
+  task_setup_sigkill();
+#endif
 
   /* Execute the start hook if one has been registered */
 

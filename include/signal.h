@@ -113,6 +113,14 @@
 #  endif
 #endif
 
+#ifdef CONFIG_SIG_SIGKILL
+#  ifndef CONFIG_SIG_KILL
+#    define SIGKILL     9  /* Sent when ctrl-c envent  */
+#  else
+#    define SIGKILL     CONFIG_SIG_KILL
+#  endif
+#endif
+
 /* The following are non-standard signal definitions */
 
 #ifndef CONFIG_DISABLE_PTHREAD
