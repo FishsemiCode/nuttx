@@ -89,5 +89,9 @@ for i in `ls ${src}`; do
 		fi
 	fi;
 
-	ln -sf "${src}/$i" "${dest}/$i";
+	if [ -d "${src}/$i" ]; then
+		sh $0 "${src}/$i" "${dest}/$i";
+	else
+		ln -sf "${src}/$i" "${dest}/$i";
+	fi
 done
