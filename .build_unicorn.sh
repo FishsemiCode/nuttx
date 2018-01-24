@@ -136,11 +136,13 @@ done
 
 if [ -n "${config_array[*]}" ]; then
 	for config in ${config_array[*]}; do
-		build_board "${NUTTX_UNICORN_ENV[*]}" ${config}
+		build_board "${NUTTX_UNICORN_ENV[*]}" ${config} &
 	done
+	wait
 	exit $?
 fi
 
 for config in ${NUTTX_BOARD_CONFIG[*]}; do
-	build_board "${NUTTX_UNICORN_ENV[*]}" ${config}
+	build_board "${NUTTX_UNICORN_ENV[*]}" ${config} &
 done
+wait
