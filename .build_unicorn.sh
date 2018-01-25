@@ -21,7 +21,7 @@ command_array=()
 ROOTDIR=$(cd "$( dirname "$0"  )" && pwd)
 
 NUTTX_ROOT=${ROOTDIR}/nuttx
-NUTTX_OUTDIR=${PWD}/out
+NUTTX_OUTDIR=${ROOTDIR}/out
 
 NUTTX_BOARD_CONFIG=(\
 		"unicorn/ap" \
