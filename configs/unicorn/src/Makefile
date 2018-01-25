@@ -34,4 +34,5 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
+RCSRCS := init.d/rcS
 include $(TOPDIR)/configs/Board.mk

@@ -69,7 +69,7 @@ endif
 
 CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++
-CPP = $(CROSSDEV)gcc -E
+CPP = $(CROSSDEV)gcc -E -P -x c
 LD = $(CROSSDEV)ld
 AR = $(ARCROSSDEV)ar rcs
 NM = $(ARCROSSDEV)nm
