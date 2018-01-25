@@ -49,6 +49,46 @@
 #ifdef CONFIG_SERIAL_DMA
 
 /************************************************************************************
+ * Private Functions
+ ************************************************************************************/
+
+#ifdef CONFIG_SIG_SIGKILL
+static bool uart_check_sigkill(const char *buf, size_t size)
+{
+  size_t i;
+
+  for (i = 0; i < size; i++)
+    {
+      if (buf[i] == CONFIG_SERIAL_SIGKILL_CHAR)
+        {
+          return true;
+        }
+    }
+
+  return false;
+}
+
+static bool uart_recvchars_sigkill(FAR uart_dev_t *dev)
+{
+  FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
+
+  if (xfer->nbytes <= xfer->length)
+    {
+      return uart_check_sigkill(xfer->buffer, xfer->nbytes);
+    }
+  else
+    {
+      if (uart_check_sigkill(xfer->buffer, xfer->length))
+        {
+          return true;
+        }
+
+      return uart_check_sigkill(xfer->nbuffer, xfer->nbytes - xfer->length);
+    }
+}
+#endif
+
+/************************************************************************************
  * Public Functions
  ************************************************************************************/
 
@@ -250,6 +290,14 @@ void uart_recvchars_done(FAR uart_dev_t *dev)
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
   FAR struct uart_buffer_s *rxbuf = &dev->recv;
   size_t nbytes = xfer->nbytes;
+
+#ifdef CONFIG_SIG_SIGKILL
+  if (dev->pid != -1 && uart_recvchars_sigkill(dev))
+    {
+      kill(dev->pid, SIGKILL);
+      uart_reset_sem(dev);
+    }
+#endif
 
   /* Move head for nbytes. */
 

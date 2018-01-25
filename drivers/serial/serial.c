@@ -676,13 +676,7 @@ static int uart_close(FAR struct file *filep)
    * a thread currently blocking on any of them.
    */
 
-  nxsem_reset(&dev->xmitsem,  0);
-  nxsem_reset(&dev->recvsem,  0);
-  nxsem_reset(&dev->xmit.sem, 1);
-  nxsem_reset(&dev->recv.sem, 1);
-#ifndef CONFIG_DISABLE_POLL
-  nxsem_reset(&dev->pollsem,  1);
-#endif
+  uart_reset_sem(dev);
 
   uart_givesem(&dev->closesem);
   return OK;
@@ -1348,6 +1342,11 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             }
             break;
 #endif
+          case TIOCSCTTY:
+            {
+              dev->pid = arg;
+            }
+            break;
         }
     }
 
@@ -1556,6 +1555,10 @@ errout:
 
 int uart_register(FAR const char *path, FAR uart_dev_t *dev)
 {
+  /* Initialize pid */
+
+  dev->pid = -1;
+
   /* Initialize semaphores */
 
   nxsem_init(&dev->xmit.sem, 0, 1);
@@ -1700,3 +1703,23 @@ void uart_connected(FAR uart_dev_t *dev, bool connected)
   leave_critical_section(flags);
 }
 #endif
+
+/************************************************************************************
+ * Name: uart_reset_sem
+ *
+ * Description:
+ *   This function is called when need reset uart semphore, this may used in kill one
+ *   process, but this process was reading/writing with the semphore.
+ *
+ ************************************************************************************/
+
+void uart_reset_sem(FAR uart_dev_t *dev)
+{
+  nxsem_reset(&dev->xmitsem,  0);
+  nxsem_reset(&dev->recvsem,  0);
+  nxsem_reset(&dev->xmit.sem, 1);
+  nxsem_reset(&dev->recv.sem, 1);
+#ifndef CONFIG_DISABLE_POLL
+  nxsem_reset(&dev->pollsem,  1);
+#endif
+}

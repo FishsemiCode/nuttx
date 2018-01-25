@@ -323,6 +323,10 @@ struct uart_dev_s
 #ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
 #endif
+
+  /* Thread pid who use uart */
+
+  pid_t                 pid;
 };
 
 typedef struct uart_dev_s uart_dev_t;
@@ -480,6 +484,17 @@ void uart_recvchars_dma(FAR uart_dev_t *dev);
 #ifdef CONFIG_SERIAL_DMA
 void uart_recvchars_done(FAR uart_dev_t *dev);
 #endif
+
+/************************************************************************************
+ * Name: uart_reset_sem
+ *
+ * Description:
+ *   This function is called when need reset uart semphore, this may used in kill one
+ *   process, but this process was reading/writing with the semphore.
+ *
+ ************************************************************************************/
+
+void uart_reset_sem(FAR uart_dev_t *dev);
 
 #undef EXTERN
 #if defined(__cplusplus)

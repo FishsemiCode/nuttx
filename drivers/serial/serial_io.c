@@ -195,6 +195,13 @@ void uart_recvchars(FAR uart_dev_t *dev)
 #endif
 
       ch = uart_receive(dev, &status);
+#ifdef CONFIG_SIG_SIGKILL
+      if (dev->pid != -1 && ch == CONFIG_SERIAL_SIGKILL_CHAR)
+        {
+          kill(dev->pid, SIGKILL);
+          uart_reset_sem(dev);
+        }
+#endif
 
       /* If the RX buffer becomes full, then the serial data is discarded.  This is
        * necessary because on most serial hardware, you must read the data in order
