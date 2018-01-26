@@ -102,6 +102,12 @@ ifeq ($(CONFIG_LIB_SLCDCODEC),y)
 CSRCS += lib_slcdencode.c lib_slcddecode.c
 endif
 
+# Compensation for newlib
+
+ifeq ($(CONFIG_LIB_NEWLIB),y)
+CSRCS += lib_newlib.c
+endif
+
 # Add the misc directory to the build
 
 DEPPATH += --dep-path misc

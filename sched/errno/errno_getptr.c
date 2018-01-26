@@ -123,16 +123,3 @@ FAR int *get_errno_ptr(void)
 
   return &g_irqerrno;
 }
-
-/****************************************************************************
- * Name: __errno
- *
- * Description:
- *  See newlib/libc/errno/errno.c which is required to use libm.a from newlib.
- *
- ****************************************************************************/
-
-int *__errno(void)
-{
-  return get_errno_ptr();
-}
