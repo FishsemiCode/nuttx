@@ -325,6 +325,17 @@ void pm_worker(FAR void *arg)
             }
         }
     }
+
+  /* Consider the possible power state lock here */
+
+  for (index = 0; index < pdom->recommended; index++)
+    {
+      if (pdom->stay[index] != 0)
+        {
+          pdom->recommended = index;
+          break;
+        }
+    }
 }
 
 /****************************************************************************

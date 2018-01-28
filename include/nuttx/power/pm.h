@@ -267,6 +267,7 @@ enum pm_state_e
                     *
                     * PM_SLEEP may be following by PM_NORMAL
                     */
+  PM_COUNT,
 };
 
 /* This structure contain pointers callback functions in the driver.  These
@@ -420,6 +421,9 @@ int pm_register(FAR struct pm_callback_s *callbacks);
  ****************************************************************************/
 
 void pm_activity(int domain, int priority);
+
+void pm_stay(int domain, enum pm_state_e state);
+void pm_relax(int domain, enum pm_state_e state);
 
 /****************************************************************************
  * Name: pm_checkstate
