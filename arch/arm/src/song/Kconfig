@@ -38,6 +38,7 @@ config ARCH_CHIP_UNICORN_CP
 	select BOOT_RUNFROMFLASH
 	select SONG_CORTEXM4
 	select SONG_ICACHE
+	select SONG_COPY_TABLE
 
 config ARCH_CHIP_UNICORN_SP
 	bool "Unicorn SP"
@@ -57,6 +58,9 @@ config SONG_CORTEXM4
 	select ARM_HAVE_MPU_UNIFIED
 	select ARMV7M_CMNVECTOR
 	select ARMV7M_HAVE_STACKCHECK
+
+config SONG_COPY_TABLE
+	bool
 
 config SONG_ICACHE
 	bool

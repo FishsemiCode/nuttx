@@ -84,6 +84,11 @@ SECTIONS
 	} > flash
 	__exidx_end = ABSOLUTE(.);
 
+	.copy.table : {
+		_scopytable = ABSOLUTE(.);
+		_ecopytable = ABSOLUTE(.);
+	} > flash
+
 	_srsctbl = LOADADDR(.resource_table);
 	.resource_table : {
 		*(.resource_table)

@@ -62,6 +62,11 @@ static void color_start(FAR void *stack, unsigned int size)
   __attribute__ ((naked, no_instrument_function, noreturn));
 #endif
 
+#ifdef CONFIG_SONG_COPY_TABLE
+extern uint32_t _scopytable;
+extern uint32_t _ecopytable;
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -70,6 +75,10 @@ static void init_kernelspace(void)
 {
   const uint32_t *src;
   uint32_t *dest;
+
+#ifdef CONFIG_SONG_COPY_TABLE
+  uint32_t *table;
+#endif
 
   /* Copy any necessary code sections from FLASH to RAM.  The correct
    * destination in SRAM is given by _sramfuncs and _eramfuncs.  The
@@ -105,6 +114,24 @@ static void init_kernelspace(void)
     {
       *dest++ = 0;
     }
+
+#ifdef CONFIG_SONG_COPY_TABLE
+  /* Between symbol address _scopytable and _ecopytable, there are
+   * array of triplets, each of which specify:
+   *    offset 0: Start LMA of a section
+   *    offset 4: Start VMA of a section
+   *    offset 8: End VMA of a section
+   */
+
+  for (table = &_scopytable; table < &_ecopytable; table += 3)
+    {
+      for (src = (uint32_t *)table[0], dest = (uint32_t *)table[1];
+          dest < (uint32_t *)table[2]; )
+        {
+          *dest++ = *src++;
+        }
+    }
+#endif
 }
 
 #ifdef CONFIG_BUILD_PROTECTED
