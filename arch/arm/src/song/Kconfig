@@ -35,6 +35,7 @@ config ARCH_CHIP_UNICORN_AP
 config ARCH_CHIP_UNICORN_CP
 	bool "Unicorn CP"
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_RAMFUNCS
 	select BOOT_RUNFROMFLASH
 	select SONG_CORTEXM4
 	select SONG_ICACHE

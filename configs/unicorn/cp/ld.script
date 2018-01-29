@@ -37,6 +37,8 @@ MEMORY
 {
 	flash (rx) : ORIGIN = 0x00000000, LENGTH = 1216K
 	sram (rwx) : ORIGIN = 0x01000000, LENGTH = 192K
+	cpram0(rw) : ORIGIN = 0x60000000, LENGTH = 336K
+	cpram1(rw) : ORIGIN = 0x60024000, LENGTH = 128K
 	shram (rw) : ORIGIN = 0xb0010000, LENGTH = 24K
 }
 
@@ -86,11 +88,18 @@ SECTIONS
 
 	.copy.table : {
 		_scopytable = ABSOLUTE(.);
+		LONG(LOADADDR(.cpram1.data))
+		LONG(ADDR(.cpram1.data))
+		LONG(ADDR(.cpram1.data) + SIZEOF(.cpram1.data))
 		_ecopytable = ABSOLUTE(.);
 	} > flash
 
 	.zero.table : {
 		_szerotable = ABSOLUTE(.);
+		LONG(ADDR(.cpram0.bss))
+		LONG(ADDR(.cpram0.bss) + SIZEOF(.cpram0.bss))
+		LONG(ADDR(.cpram1.bss))
+		LONG(ADDR(.cpram1.bss) + SIZEOF(.cpram1.bss))
 		_ezerotable = ABSOLUTE(.);
 	} > flash
 
@@ -98,6 +107,13 @@ SECTIONS
 	.resource_table : {
 		*(.resource_table)
 	} > shram AT > flash
+
+	_framfuncs = LOADADDR(.ramfunc);
+	.ramfunc : {
+		_sramfuncs = ABSOLUTE(.);
+		*(.ramfunc .ramfunc.*)
+		_eramfuncs = ABSOLUTE(.);
+	} > sram AT > flash
 
 	_eronly = LOADADDR(.data);
 	.data : {
@@ -107,8 +123,6 @@ SECTIONS
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
-
-	_eflash = LOADADDR(.data) + SIZEOF(.data) - _stext;
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -123,6 +137,40 @@ SECTIONS
 	_slog = _elog - _logsize;
 	_elog = ORIGIN(sram) + LENGTH(sram);
 	_logsize = 4096;
+
+	.cpram0.nozero(NOLOAD) : {
+		*(.cpram0.acc)
+	} > cpram0
+
+	.cpram0.bss(NOLOAD) : {
+		*(.cpram0.bss)
+	} > cpram0
+
+	.cpram1.data : {
+		_cpram1_srsvd = ABSOLUTE(.);
+		/*
+		 * struct reserved_data {
+		 *  uint32_t magic;
+		 *  uint32_t size;
+		 *  uint32_t checksum;
+		 *  uint8_t  data[0];
+		 * }
+		 */
+		LONG(0x1234abcd)
+		LONG(_cpram1_ersvd - _cpram1_srsvd - 12)
+		LONG(0)
+		*(.cpram1.rsvd)
+		_cpram1_ersvd = ABSOLUTE(.);
+
+		*(.cpram1.const)
+		*(.cpram1.data)
+	} > cpram1 AT > flash
+
+	_eflash = LOADADDR(.cpram1.data) + SIZEOF(.cpram1.data) - _stext;
+
+	.cpram1.bss(NOLOAD) : {
+		*(.cpram1.bss)
+	} > cpram1
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }
