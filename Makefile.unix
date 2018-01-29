@@ -340,8 +340,9 @@ include/arch/board: include/arch
 
 # Link the configs/<board-name>/src dir to arch/<arch-name>/src/board
 
-$(ARCH_SRC)/board: .config
+$(ARCH_SRC)/board: .config $(BOARD_DIR)/src
 	@echo "LN: $(ARCH_SRC)/board to $(BOARD_DIR)/src"
+	$(Q) $(DIRUNLINK) $(ARCH_SRC)/board
 	$(Q) $(DIRLINK) $(BOARD_DIR)/src $(ARCH_SRC)/board
 
 # Link arch/<arch-name>/include/<chip-name> to arch/<arch-name>/include/chip
