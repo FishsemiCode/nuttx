@@ -78,6 +78,7 @@
 
 void up_enable_icache(void)
 {
+  modifyreg32(SONG_ICACHE_CTL, SONG_ICACHE_EN, 0);
   up_invalidate_icache_all();
   modifyreg32(SONG_ICACHE_CTL, 0,
     SONG_ICACHE_LP_EN | SONG_ICACHE_EN);
