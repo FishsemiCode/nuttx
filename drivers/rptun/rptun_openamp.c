@@ -290,14 +290,14 @@ int rptun_openamp_register(struct rptun_dev_s *dev)
 
   priv->dev = dev;
 
+  RPTUN_NOTIFY(dev, RPTUN_NOTIFY_START);
+
   ret = rptun_openamp_resource_init(priv, -1);
   if (ret)
     {
       kmm_free(priv);
       return ret;
     }
-
-  RPTUN_NOTIFY(dev, RPTUN_NOTIFY_START);
 
   return 0;
 }

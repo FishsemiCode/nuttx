@@ -56,7 +56,7 @@ struct song_rptun_dev_s
   const struct song_rptun_config_s *config;
   struct mbox_dev_s                *mbox_rx;
   struct mbox_dev_s                *mbox_tx;
-  uint32_t                         count_rx;
+  uint32_t                         count_start;
   rptun_callback_t                 callback;
   void                             *arg;
 };
@@ -168,14 +168,15 @@ static int song_rptun_start_isr(void *arg, uintptr_t msg)
 {
   struct song_rptun_dev_s *priv = arg;
 
-  if (priv->count_rx != 0)
+  if (priv->count_start != 0)
     {
-      priv->count_rx = 0;
       if (priv->callback)
         {
           priv->callback(priv->arg, RPTUN_NOTIFY_START);
         }
     }
+
+  priv->count_start++;
 
   return 0;
 }
@@ -184,7 +185,6 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg)
 {
   struct song_rptun_dev_s *priv = arg;
 
-  priv->count_rx++;
   if (priv->callback)
     {
       priv->callback(priv->arg, RPTUN_NOTIFY_ALL);
