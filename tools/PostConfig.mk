@@ -42,24 +42,16 @@ ifeq ($(WINTOOL),y)
 MKDEP    += --winpath
 SRCDIR   := $(shell cygpath -m $(SRCDIR))
 
-CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`} $(CFLAGS)
-CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`} $(CFLAGS)
-
-CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`} $(CPPFLAGS)
-CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`} $(CPPFLAGS)
-
-CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`} $(CXXFLAGS)
-CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`} $(CXXFLAGS)
+POSTFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(SRCDIR)`}
+POSTFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" `cygpath -w $(OUTDIR)$(DELIM)include`}
 else
-CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)} $(CFLAGS)
-CFLAGS   := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include} $(CFLAGS)
-
-CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)} $(CPPFLAGS)
-CPPFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include} $(CPPFLAGS)
-
-CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)} $(CXXFLAGS)
-CXXFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include} $(CXXFLAGS)
+POSTFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
+POSTFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
 endif
+
+CFLAGS   += $(POSTFLAGS)
+CPPFLAGS += $(POSTFLAGS)
+CXXFLAGS += $(POSTFLAGS)
 
 # CREATEDIR is the list of directories which need to create
 $(if $(CREATEDIR), $(foreach DIR, $(CREATEDIR), $(call MKDIR, $(DIR))))
