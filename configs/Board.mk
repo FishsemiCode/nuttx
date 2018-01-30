@@ -42,7 +42,7 @@ GENROMFS := $(OUTDIR)$(DELIM)tools$(DELIM)genromfs$(HOSTEXEEXT)
 $(GENROMFS):
 	$(Q) $(MAKE) -C $(OUTDIR)$(DELIM)tools -f $(TOPDIR)$(DELIM)tools$(DELIM)Makefile.host -I $(TOPDIR)$(DELIM)tools genromfs
 
-ifeq ($(CONFIG_NSH_ROMFSETC),y)
+ifneq ($(RCSRCS)$(RCRAWS),)
 ETCDIR := $(patsubst "/%",%,$(CONFIG_NSH_ROMFSMOUNTPT))
 ETCSRC := $(ETCDIR:%=%.c)
 
@@ -54,7 +54,6 @@ $(ETCSRC): $(GENROMFS) $(RCSRCS) $(RCRAWS)
 	$(foreach raw,$(RCRAWS), \
 		$(shell cp --parents -fLp $(raw) $(ETCDIR)))
 	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR) -V "$(basename $<)" && xxd -i romfs.img > $@
-
 endif
 
 ifneq ($(ZDSVERSION),)
