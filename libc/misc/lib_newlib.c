@@ -33,6 +33,7 @@
  *
  ****************************************************************************/
 
+#include <errno.h>
 #include <reent.h>
 #include <nuttx/compiler.h>
 
