@@ -67,6 +67,11 @@ extern uint32_t _scopytable;
 extern uint32_t _ecopytable;
 #endif
 
+#ifdef CONFIG_SONG_ZERO_TABLE
+extern uint32_t _szerotable;
+extern uint32_t _ezerotable;
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -76,7 +81,7 @@ static void init_kernelspace(void)
   const uint32_t *src;
   uint32_t *dest;
 
-#ifdef CONFIG_SONG_COPY_TABLE
+#if defined CONFIG_SONG_COPY_TABLE || defined CONFIG_SONG_ZERO_TABLE
   uint32_t *table;
 #endif
 
@@ -129,6 +134,21 @@ static void init_kernelspace(void)
           dest < (uint32_t *)table[2]; )
         {
           *dest++ = *src++;
+        }
+    }
+#endif
+
+#ifdef CONFIG_SONG_ZERO_TABLE
+  /* Between symbol address _szerotable and _ezerotable is an array
+   * of pairs, and each pair specifies:
+   *    offset 0: start address of the section to clear
+   *    offset 4: end address (exclusive) of the section to clear
+   */
+  for (table = &_szerotable; table < &_ezerotable; table += 2)
+    {
+      for (dest = (uint32_t *)table[0]; dest < (uint32_t *)table[1]; )
+        {
+          *dest++ = 0;
         }
     }
 #endif

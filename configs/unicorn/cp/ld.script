@@ -89,6 +89,11 @@ SECTIONS
 		_ecopytable = ABSOLUTE(.);
 	} > flash
 
+	.zero.table : {
+		_szerotable = ABSOLUTE(.);
+		_ezerotable = ABSOLUTE(.);
+	} > flash
+
 	_srsctbl = LOADADDR(.resource_table);
 	.resource_table : {
 		*(.resource_table)

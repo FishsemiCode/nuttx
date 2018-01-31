@@ -39,6 +39,7 @@ config ARCH_CHIP_UNICORN_CP
 	select SONG_CORTEXM4
 	select SONG_ICACHE
 	select SONG_COPY_TABLE
+	select SONG_ZERO_TABLE
 
 config ARCH_CHIP_UNICORN_SP
 	bool "Unicorn SP"
@@ -60,6 +61,9 @@ config SONG_CORTEXM4
 	select ARMV7M_HAVE_STACKCHECK
 
 config SONG_COPY_TABLE
+	bool
+
+config SONG_ZERO_TABLE
 	bool
 
 config SONG_ICACHE
