@@ -282,6 +282,11 @@ void up_timer_set_lowerhalf(FAR struct timer_lowerhalf_s *lower)
 #ifdef CONFIG_CLOCK_TIMEKEEPING
 int up_timer_getcounter(FAR uint64_t *cycles)
 {
+  if (!g_timer.lower)
+    {
+      return -EAGAIN;
+    }
+
   *cycles = current_usec() / USEC_PER_TICK;
   return 0;
 }
@@ -304,6 +309,11 @@ void up_timer_getmask(FAR uint64_t *mask)
 #elif defined(CONFIG_SCHED_TICKLESS)
 int up_timer_gettime(FAR struct timespec *ts)
 {
+  if (!g_timer.lower)
+  {
+    return -EAGAIN;
+  }
+
   timespec_from_usec(ts, current_usec());
   return 0;
 }
@@ -348,6 +358,11 @@ int up_timer_gettime(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_timer_cancel(FAR struct timespec *ts)
 {
+  if (!g_timer.lower)
+    {
+      return -EAGAIN;
+    }
+
   timespec_from_usec(ts, update_timeout(g_timer.maxtimeout));
   return 0;
 }
@@ -381,6 +396,11 @@ int up_timer_cancel(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_timer_start(FAR const struct timespec *ts)
 {
+  if (!g_timer.lower)
+    {
+      return -EAGAIN;
+    }
+
   if (g_timer.next_interval)
     {
       /* If the timer interrupt is in the process,
