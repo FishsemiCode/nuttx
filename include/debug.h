@@ -431,6 +431,24 @@
 #  define audinfo(x...)
 #endif
 
+#ifdef CONFIG_DEBUG_CLK_ERROR
+#  define clkerr(format, ...)    _err(format, ##__VA_ARGS__)
+#else
+#  define clkerr(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_CLK_WARN
+#  define clkwarn(format, ...)   _warn(format, ##__VA_ARGS__)
+#else
+#  define clkwarn(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_CLK_INFO
+#  define clkinfo(format, ...)  _info(format, ##__VA_ARGS__)
+#else
+#  define clkinfo(x...)
+#endif
+
 #ifdef CONFIG_DEBUG_DMA_ERROR
 #  define dmaerr(format, ...)     _err(format, ##__VA_ARGS__)
 #else
@@ -1011,6 +1029,24 @@
 #  define audinfo     (void)
 #endif
 
+#ifdef CONFIG_DEBUG_CLK_ERROR
+#  define clkerr      _err
+#else
+#  define clkerr      (void)
+#endif
+
+#ifdef CONFIG_DEBUG_CLK_WARN
+#  define clkwarn     _warn
+#else
+#  define clkwarn     (void)
+#endif
+
+#ifdef CONFIG_DEBUG_CLK_INFO
+#  define clkinfo     _info
+#else
+#  define clkinfo     (void)
+#endif
+
 #ifdef CONFIG_DEBUG_DMA_ERROR
 #  define dmaerr       _err
 #else
@@ -1417,6 +1453,14 @@
 #else
 #  define auderrdumpbuffer(m,b,n)
 #  define audinfodumpbuffer(m,b,n)
+#endif
+
+#ifdef CONFIG_DEBUG_CLK
+#  define clkerrdumpbuffer(m,b,n)  errdumpbuffer(m,b,n)
+#  define clkinfodumpbuffer(m,b,n) infodumpbuffer(m,b,n)
+#else
+#  define clkerrdumpbuffer(m,b,n)
+#  define clkinfodumpbuffer(m,b,n)
 #endif
 
 #ifdef CONFIG_DEBUG_DMA
