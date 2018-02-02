@@ -50,19 +50,24 @@
  ****************************************************************************/
 
 #if CHAR_BIT == 8
+#  define CHAR_BYTE  1
 #  define CHAR_SHIFT 0
 #elif CHAR_BIT == 16
+#  define CHAR_BYTE  2
 #  define CHAR_SHIFT 1
 #elif CHAR_BIT == 32
+#  define CHAR_BYTE  4
 #  define CHAR_SHIFT 2
+#else
+#  error unsupport CHAR_BIT value
 #endif
 
 /* Macros convert between chars and bytes */
-#define B2C(x) ((8 * (x) + CHAR_BIT - 1) / CHAR_BIT)
-#define C2B(x) ((CHAR_BIT * (x) + 8 - 1) / 8)
+#define B2C(x) (((x) + CHAR_BYTE - 1) >> CHAR_SHIFT)
+#define C2B(x) ((x) << CHAR_SHIFT)
 
-#define B2C_OFF(x) ((8 * (x)) / CHAR_BIT)
-#define C2B_OFF(x) ((CHAR_BIT * (x)) / 8)
+#define B2C_OFF(x) ((x) >> CHAR_SHIFT)
+#define C2B_OFF(x) ((x) << CHAR_SHIFT)
 
 #define B2C_REM(x) ((x) - C2B_OFF(B2C_OFF(x)))
 
