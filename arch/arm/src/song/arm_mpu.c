@@ -47,11 +47,12 @@
 #include "mpu.h"
 #include "up_internal.h"
 
+#ifdef CONFIG_ARM_MPU
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#ifdef CONFIG_ARM_MPU
 void up_mpuinitialize(void)
 {
   /* Show MPU information */
@@ -71,8 +72,8 @@ void up_mpuinitialize(void)
 #endif
 
   DEBUGASSERT((uintptr_t)_END_BSS >= (uintptr_t)_START_DATA);
-  mpu_priv_intsram((uintptr_t)_START_DATA,
-                   (uintptr_t)_END_BSS - (uintptr_t)_START_DATA);
+  mpu_priv_intsram((uintptr_t)_START_DATA, (uintptr_t)_END_BSS +
+                    CONFIG_IDLETHREAD_STACKSIZE - (uintptr_t)_START_DATA);
 
 #ifdef CONFIG_BUILD_PROTECTED
   /* Configure user flash and SRAM space */
@@ -94,5 +95,10 @@ void up_mpuinitialize(void)
 void up_mpu_user_heap(uintptr_t start, size_t size)
 {
   mpu_user_intsram(start, size);
+}
+
+void up_mpu_priv_heap(uintptr_t start, size_t size)
+{
+  mpu_priv_intsram(start, size);
 }
 #endif

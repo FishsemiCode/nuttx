@@ -52,9 +52,11 @@
 #ifdef CONFIG_ARM_MPU
 void up_mpuinitialize(void);
 void up_mpu_user_heap(uintptr_t start, size_t size);
+void up_mpu_priv_heap(uintptr_t start, size_t size);
 #else
 #  define up_mpuinitialize()
 #  define up_mpu_user_heap(start, size)
+#  define up_mpu_priv_heap(start, size)
 #endif
 
 #endif /* __ARCH_ARM_SRC_SONG_ARM_MPU_H */

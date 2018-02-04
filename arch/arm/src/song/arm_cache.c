@@ -59,6 +59,9 @@
  * Returned Value:
  *   None
  *
+ * Caution:
+ *   The writable global variables aren't initialized yet.
+ *
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_ICACHE
@@ -149,6 +152,9 @@ void up_invalidate_icache_all(void)
  *
  * Returned Value:
  *   None
+ *
+ * Caution:
+ *   The writable global variables aren't initialized yet.
  *
  ****************************************************************************/
 

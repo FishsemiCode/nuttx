@@ -83,6 +83,9 @@ extern "C"
  * Returned Value:
  *   None
  *
+ * Caution:
+ *   The writable global variables aren't initialized yet.
+ *
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_ICACHE
@@ -171,6 +174,9 @@ static inline void up_invalidate_icache_all(void)
  *
  * Returned Value:
  *   None
+ *
+ * Caution:
+ *   The writable global variables aren't initialized yet.
  *
  ****************************************************************************/
 

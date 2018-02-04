@@ -134,6 +134,8 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 
   *heap_start = (FAR void *)_START_HEAP;
   *heap_size  = _END_HEAP - _START_HEAP;
+
+   up_mpu_priv_heap(_START_HEAP, *heap_size);
 #endif
 
   /* Colorize the heap for debug */
@@ -158,6 +160,8 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
 
   *heap_start = (FAR void *)_START_HEAP;
   *heap_size  = _END_HEAP - _START_HEAP;
+
+   up_mpu_priv_heap(_START_HEAP, *heap_size);
 
   DEBUGASSERT(*heap_size >= CONFIG_MM_KERNEL_HEAPSIZE);
 

@@ -276,21 +276,21 @@ void __start(void)
   __asm__ volatile ("sub r10, sp, %0" : : "r" (CONFIG_IDLETHREAD_STACKSIZE - 64) : );
 #endif
 
-  init_kernelspace();
-
   /* Will be enabled again by up_irqinitialize */
   up_irq_disable();
+
+  up_enable_icache();
+  up_enable_dcache();
+
+  init_kernelspace();
+  init_userspace();
+
+  up_mpuinitialize();
+  up_fpuinitialize();
 
   up_earlyserialinit();
   up_earlyinitialize();
   board_earlyinitialize();
-
-  up_enable_icache();
-  up_enable_dcache();
-  up_fpuinitialize();
-
-  init_userspace();
-  up_mpuinitialize();
 
   color_start((FAR void *)&_ebss, CONFIG_IDLETHREAD_STACKSIZE);
 }

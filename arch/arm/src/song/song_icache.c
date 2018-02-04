@@ -74,6 +74,9 @@
  * Returned Value:
  *   None
  *
+ * Caution:
+ *   The writable global variables aren't initialized yet.
+ *
  ****************************************************************************/
 
 void up_enable_icache(void)
