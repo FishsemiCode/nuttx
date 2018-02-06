@@ -252,7 +252,7 @@ static void ptohex(FAR struct lib_outstream_s *obj, uint8_t flags,
   u.dw = 0;
   u.p  = p;
 
-  for (bits = 8*sizeof(void *); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT*sizeof(void *); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((u.dw >> (bits - 4)) & 0xf);
       if (nibble < 10)
@@ -310,7 +310,7 @@ static void utohex(FAR struct lib_outstream_s *obj, unsigned int n,
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = 8*sizeof(unsigned int); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT*sizeof(unsigned int); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((n >> (bits - 4)) & 0xf);
       if (nibble || nonzero)
@@ -580,7 +580,7 @@ static void lutohex(FAR struct lib_outstream_s *obj, unsigned long n,
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = 8*sizeof(unsigned long); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT*sizeof(unsigned long); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((n >> (bits - 4)) & 0xf);
       if (nibble || nonzero)
@@ -832,7 +832,7 @@ static void llutohex(FAR struct lib_outstream_s *obj, unsigned long long n,
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = 8*sizeof(unsigned long long); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT*sizeof(unsigned long long); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((n >> (bits - 4)) & 0xf);
       if (nibble || nonzero)
