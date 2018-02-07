@@ -15,4 +15,15 @@ config CLK_RPMSG
 		Rpmsg clk is clock proxy in client processor operate clks belong
 		server processor.
 
+menuconfig SONG_CLK
+	bool "song clk driver and wrapper for basic clks"
+	default n
+	---help---
+		Sng clk contain song platfrom clk module (clk-pll) and clk wrapper (song-clk)
+		for all basic clks
+
+if SONG_CLK
+source drivers/clk/song/Kconfig
+endif # SONG_CLK
+
 endif

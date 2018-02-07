@@ -1,5 +1,5 @@
 ############################################################################
-# drivers/clk/Make.defs
+# drivers/clk/song/Make.defs
 #
 #   Copyright (C) 2017 Pinecone Inc. All rights reserved.
 #   Author: zhuyanlin<zhuyanlin@pinecone.net>
@@ -33,23 +33,16 @@
 #
 ############################################################################
 
-# Include clk core and base clk module
-
-ifeq ($(CONFIG_CLK),y)
-
-CSRCS += clk.c clk-divider.c clk-fixed-factor.c clk-fractional-divider.c
-CSRCS += clk-fixed-rate.c clk-gate.c clk-multiplier.c clk-mux.c clk-phase.c
-
-ifeq ($(CONFIG_CLK_RPMSG),y)
-CSRCS += clk-rpmsg.c
-endif
-# Include clk core and base clk in the build
-
-DEPPATH += --dep-path clk
-VPATH += :clk
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)clk}
+# Include song clk management sources
 
 ifeq ($(CONFIG_SONG_CLK),y)
-include $(TOPDIR)$(DELIM)drivers$(DELIM)clk$(DELIM)song$(DELIM)Make.defs
-endif
+
+CSRCS += song-clk.c clk-pll.c
+
+# Include song clk management in the build
+
+DEPPATH += --dep-path clk$(DELIM)song
+VPATH += :clk$(DELIM)song
+CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)clk$(DELIM)song}
+
 endif
