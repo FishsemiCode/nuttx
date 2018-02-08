@@ -212,20 +212,19 @@ static inline size_t vfork_argsize(FAR struct tcb_s *parent)
   if ((parent->flags & TCB_FLAG_TTYPE_MASK) != TCB_FLAG_TTYPE_PTHREAD)
     {
       FAR struct task_tcb_s *ptcb = (FAR struct task_tcb_s *)parent;
-      FAR void *argv = (FAR void *)ptcb->argv;
+      size_t strtablen = 0;
+      int argc = 0;
 
-      /* Is it a push-down stack? */
-
-      if (argv >= parent->adj_stack_ptr)
+      while (ptcb->argv[argc])
         {
-          return argv - parent->adj_stack_ptr;
-        }
-      /* No, it's a push-up stack. */
+          /* Add the size of this argument (with NUL terminator) */
 
-      else
-        {
-          return parent->adj_stack_ptr - argv;
+          strtablen += strlen(ptcb->argv[argc++]) + 1;
         }
+
+      /* Return the size to hold argv[] array and the strings. */
+
+      return (argc + 1) * sizeof(FAR char *) + strtablen;
     }
   else
     {
