@@ -44,7 +44,36 @@
 #include <nuttx/power/pm.h>
 
 #include "chip.h"
+#include "nvic.h"
+#include "up_arch.h"
 #include "up_internal.h"
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void up_cpu_idle(void);
+void weak_function up_cpu_normal(void)
+{
+  up_cpu_idle();
+}
+
+void weak_function up_cpu_idle(void)
+{
+  modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
+  __asm__ __volatile__("wfe");
+}
+
+void weak_function up_cpu_standby(void)
+{
+  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
+  __asm__ __volatile__("wfe");
+}
+
+void weak_function up_cpu_sleep(void)
+{
+  up_cpu_standby();
+}
 
 /****************************************************************************
  * Private Functions
@@ -59,30 +88,11 @@
  ****************************************************************************/
 
 #ifdef CONFIG_PM
-void weak_function up_cpu_normal(void)
-{
-}
-
-void weak_function up_cpu_idle(void)
-{
-}
-
-void weak_function up_cpu_standby(void)
-{
-}
-
-void weak_function up_cpu_sleep(void)
-{
-}
-
 static void up_idlepm(void)
 {
   static enum pm_state_e oldstate = PM_NORMAL;
   enum pm_state_e newstate;
-  irqstate_t flags;
   int ret;
-
-  flags = enter_critical_section();
 
   /* Decide, which power saving level can be obtained */
 
@@ -126,11 +136,9 @@ static void up_idlepm(void)
             }
         }
     }
-
-  leave_critical_section(flags);
 }
 #else
-#  define up_idlepm()
+#  define up_idlepm() up_cpu_idle()
 #endif
 
 /****************************************************************************
@@ -153,13 +161,13 @@ static void up_idlepm(void)
 
 void up_idle(void)
 {
+  irqstate_t flags;
+
   /* Perform IDLE mode power management */
 
+  flags = enter_critical_section();
   up_idlepm();
-
-  /* Sleep until an interrupt occurs to save power. */
-
-  __asm__ __volatile__("wfi");
+  leave_critical_section(flags);
 }
 
 /****************************************************************************

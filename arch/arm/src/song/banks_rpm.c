@@ -48,7 +48,9 @@
 #include <nuttx/timers/rpmsg_rtc.h>
 #include <nuttx/timers/song_oneshot.h>
 
+#include "nvic.h"
 #include "song_addrenv.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_BANKS_RPM
@@ -58,6 +60,8 @@
  ****************************************************************************/
 
 #define CPU_NAME_AP                 "ap"
+
+#define DDR_PWR_SLP_CTL0            0xf9210410
 
 #define _LOGBUF_BASE                ((uintptr_t)&_slog)
 #define _LOGBUF_SIZE                ((uint32_t)&_logsize)
@@ -82,6 +86,9 @@ void up_earlyinitialize(void)
   };
 
   up_addrenv_initialize(addrenv);
+
+  /* Always enable SLEEPDEEP and control the sleep through PWR */
+  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)_LOGBUF_BASE, _LOGBUF_SIZE);
@@ -229,6 +236,18 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+}
+
+void up_cpu_idle(void)
+{
+  putreg32(0x00010000, DDR_PWR_SLP_CTL0);
+  __asm__ __volatile__("wfe");
+}
+
+void up_cpu_standby(void)
+{
+  putreg32(0x00010001, DDR_PWR_SLP_CTL0);
+  __asm__ __volatile__("wfe");
 }
 
 #endif

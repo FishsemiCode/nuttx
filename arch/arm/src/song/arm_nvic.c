@@ -352,6 +352,10 @@ void up_irqinitialize(void)
   irq_attach(NVIC_IRQ_MEMFAULT, up_memfault, NULL);
   up_enable_irq(NVIC_IRQ_MEMFAULT);
 
+  /* Exit WFE regardless PRIMASK/BASEPRI if any interrupt pending */
+
+  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SEVONPEND);
+
   /* And finally, enable interrupts */
 
   up_irq_enable();
