@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/z16/src/common/up_releasestack.c
+ * libc/pthread/pthread_attr_getstack.c
  *
- *   Copyright (C) 2008-2009, 2013 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2018 Pinecone. All rights reserved.
+ *   Author:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,68 +37,52 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <sched.h>
+#include <sys/types.h>
+#include <pthread.h>
+#include <string.h>
 #include <debug.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/kmalloc.h>
-
-#include "up_internal.h"
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Function Prototypes
- ****************************************************************************/
+#include <errno.h>
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_release_stack
+ * Name:  pthread_attr_getstack
  *
  * Description:
- *   A task has been stopped. Free all stack related resources retained in
- *   the defunct TCB.
  *
- * Input Parmeters
- *   - dtcb:  The TCB containing information about the stack to be released
- *   - ttype:  The thread type.  This may be one of following (defined in
- *     include/nuttx/sched.h):
+ * Parameters:
+ *   attr
+ *   stacksize
  *
- *       TCB_FLAG_TTYPE_TASK     Normal user task
- *       TCB_FLAG_TTYPE_PTHREAD  User pthread
- *       TCB_FLAG_TTYPE_KERNEL   Kernel thread
+ * Return Value:
+ *   0 if successful.  Otherwise, an error code.
  *
- *     This thread type is normally available in the flags field of the TCB,
- *     however, there are certain error recovery contexts where the TCB may
- *     not be fully initialized when up_release_stack is called.
- *
- * Returned Value:
- *   None
+ * Assumptions:
  *
  ****************************************************************************/
 
-void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
+int pthread_attr_getstack(FAR pthread_attr_t *attr,
+                          void **stackaddr, long *stacksize)
 {
-  /* Is there a stack allocated? */
+  int ret;
 
-  if (dtcb->stack_alloc_ptr)
+  linfo("attr=0x%p stackaddr=0x%p stacksize=0x%p\n", attr, stackaddr, stacksize);
+
+  if (!attr || !stackaddr || !stacksize)
     {
-      if (umm_heapmember(dtcb->stack_alloc_ptr))
-        sched_ufree(dtcb->stack_alloc_ptr);
-
-      /* Mark the stack freed */
-
-      dtcb->stack_alloc_ptr = NULL;
+      ret = EINVAL;
+    }
+  else
+    {
+      *stackaddr = attr->stackaddr;
+      *stacksize = attr->stacksize;
+      ret = OK;
     }
 
-  /* The size of the allocated stack is now zero */
-
-  dtcb->adj_stack_size = 0;
+  linfo("Returning %d\n", ret);
+  return ret;
 }
+
+

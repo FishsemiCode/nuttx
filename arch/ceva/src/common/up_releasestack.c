@@ -192,14 +192,19 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
       if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {
-          irqstate_t flags = enter_critical_section();
+          if (kmm_heapmember(dtcb->stack_alloc_ptr) ||
+              mm_heapmember(KMM_HEAP(CONFIG_ARCH_KERNEL_STACK_HEAP),
+                            dtcb->stack_alloc_ptr))
+          {
+            irqstate_t flags = enter_critical_section();
 
-          /* Delay the deallocation until a more appropriate time. */
+            /* Delay the deallocation until a more appropriate time. */
 
-          sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_kfree);
+            sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_kfree);
 
-          sched_signal_free();
-          leave_critical_section(flags);
+            sched_signal_free();
+            leave_critical_section(flags);
+          }
         }
       else
 #endif
@@ -216,23 +221,29 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
            */
 
           ASSERT(!up_interrupt_context());
-          if (umm_heapmember(address))
+          if (umm_heapmember(dtcb->stack_alloc_ptr))
             {
-              kumm_free(address);
+              kumm_free(dtcb->stack_alloc_ptr);
             }
-          else
+          else if (mm_heapmember(UMM_HEAP(CONFIG_ARCH_STACK_HEAP),
+                                 dtcb->stack_alloc_ptr))
             {
-              mm_free(UMM_HEAP(CONFIG_ARCH_STACK_HEAP), address);
+              mm_free(UMM_HEAP(CONFIG_ARCH_STACK_HEAP), dtcb->stack_alloc_ptr);
             }
 #else
-          irqstate_t flags = enter_critical_section();
+          if (umm_heapmember(dtcb->stack_alloc_ptr) ||
+              mm_heapmember(UMM_HEAP(CONFIG_ARCH_STACK_HEAP),
+                            dtcb->stack_alloc_ptr))
+          {
+            irqstate_t flags = enter_critical_section();
 
-          /* Delay the deallocation until a more appropriate time. */
+            /* Delay the deallocation until a more appropriate time. */
 
-          sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_ufree);
+            sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_ufree);
 
-          sched_signal_free();
-          leave_critical_section(flags);
+            sched_signal_free();
+            leave_critical_section(flags);
+          }
 #endif
         }
 
