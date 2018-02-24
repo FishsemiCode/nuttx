@@ -62,15 +62,50 @@
 #define CPU_NAME_AP                 "ap"
 #define CPU_NAME_CP                 "cp"
 
+#define RSCTBL_BASE_AP              ((uintptr_t)&_srsctbl_ap)
+#define RSCTBL_BASE_CP              ((uintptr_t)&_srsctbl_cp)
+
 #define PWR_AP_POR_CTL              0xb00400e0
 #define PWR_CP_POR_CTL              0xb00400dc
 #define SECURITY_CFG_0              0xb0150030
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+extern uint32_t _srsctbl_ap;
+extern uint32_t _srsctbl_cp;
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int ap_boot(const struct song_rptun_config_s *config)
+{
+  /* SP <--shram0--> AP
+   * shram0 default enabled
+   */
+
+  putreg32(0x00010000, PWR_AP_POR_CTL);
+  return 0;
+}
+
+static int cp_boot(const struct song_rptun_config_s *config)
+{
+  /* SP <--shram1--> CP
+   * enable shram1 for IPC
+   */
+
+  putreg32(0x00010000, SECURITY_CFG_0);
+  putreg32(0x00010000, PWR_CP_POR_CTL);
+  return 0;
+}
 
 /****************************************************************************
  * Public Functions
@@ -83,16 +118,6 @@ void up_earlyinitialize(void)
     {.va = 0x21000000, .pa = 0xc1000000, .size = 0x00100000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
-
-  /* SP <--shram0--> AP
-   * SP <--shram1--> CP
-   * SP should enable shram1 for IPC, (shram0 default enabled)
-   * then boot AP & CP
-   */
-
-  putreg32(0x00010000, SECURITY_CFG_0);
-  putreg32(0x00010000, PWR_AP_POR_CTL);
-  putreg32(0x00010000, PWR_CP_POR_CTL);
 
   /* Set up addrenv */
 
@@ -184,6 +209,40 @@ void up_openamp_initialize(void)
     .irq        = 21,
   };
 
+  static struct rptun_rsc_s rptun_rsc_ap
+              __attribute__ ((section (".resource_table.ap"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x600,
+  };
+
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
     .cpu_name    = CPU_NAME_AP,
@@ -194,9 +253,45 @@ void up_openamp_initialize(void)
     .ch_vring_tx = 15,
     .rsc         =
     {
-      .rsc_tab   = (void *)0xb0000000,
-      .size      = sizeof(struct rptun_rsc_s),
+      .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
+      .size      = sizeof(rptun_rsc_ap),
     },
+    .rsc_flash   = RSCTBL_BASE_AP,
+    .boot        = ap_boot,
+  };
+
+  static struct rptun_rsc_s rptun_rsc_cp
+              __attribute__ ((section (".resource_table.cp"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 8,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x600,
   };
 
   static const struct song_rptun_config_s rptun_cfg_cp =
@@ -209,9 +304,11 @@ void up_openamp_initialize(void)
     .ch_vring_tx = 1,
     .rsc         =
     {
-      .rsc_tab   = (void *)0xb0010000,
-      .size      = sizeof(struct rptun_rsc_s),
+      .rsc_tab   = &rptun_rsc_cp.rsc_tbl_hdr,
+      .size      = sizeof(rptun_rsc_cp),
     },
+    .rsc_flash   = RSCTBL_BASE_CP,
+    .boot        = cp_boot,
   };
 
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 0);

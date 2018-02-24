@@ -35,11 +35,10 @@
 
 MEMORY
 {
-	flash (rx) : ORIGIN = 0x00000000, LENGTH = 1216K
-	sram (rwx) : ORIGIN = 0x01000000, LENGTH = 192K
-	cpram0(rw) : ORIGIN = 0x60000000, LENGTH = 336K
-	cpram1(rw) : ORIGIN = 0x60024000, LENGTH = 128K
-	shram (rw) : ORIGIN = 0xb0010000, LENGTH = 24K
+	flash (rx)  : ORIGIN = 0x00000000, LENGTH = 1216K
+	sram (rwx)  : ORIGIN = 0x01000000, LENGTH = 192K
+	cpram0 (rw) : ORIGIN = 0x60000000, LENGTH = 336K
+	cpram1 (rw) : ORIGIN = 0x60024000, LENGTH = 128K
 }
 
 OUTPUT_ARCH(arm)
@@ -55,7 +54,7 @@ SECTIONS
 		/* image magic */
 		LONG(0x21494350)
 		LONG(_stext)
-		LONG(_eflash)
+		LONG(_eflash - _stext)
 
 		*(.text .text.*)
 		*(.fixup)
@@ -102,11 +101,6 @@ SECTIONS
 		LONG(ADDR(.cpram1.bss) + SIZEOF(.cpram1.bss))
 		_ezerotable = ABSOLUTE(.);
 	} > flash
-
-	_srsctbl = LOADADDR(.resource_table);
-	.resource_table : {
-		*(.resource_table)
-	} > shram AT > flash
 
 	_framfuncs = LOADADDR(.ramfunc);
 	.ramfunc : {
@@ -166,7 +160,7 @@ SECTIONS
 		*(.cpram1.data)
 	} > cpram1 AT > flash
 
-	_eflash = LOADADDR(.cpram1.data) + SIZEOF(.cpram1.data) - _stext;
+	_eflash = LOADADDR(.cpram1.data) + SIZEOF(.cpram1.data);
 
 	.cpram1.bss(NOLOAD) : {
 		*(.cpram1.bss)

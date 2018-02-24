@@ -65,6 +65,9 @@ struct song_rptun_config_s
 
   /* the resource table flash address */
   uintptr_t             rsc_flash;
+
+  /* boot callback */
+  int (*boot)(const struct song_rptun_config_s *config);
 };
 
 /****************************************************************************

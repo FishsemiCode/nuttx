@@ -60,9 +60,8 @@
 
 #define CPU_NAME_SP                 "sp"
 
-#define _LOGBUF_BASE                ((uintptr_t)&_slog)
-#define _LOGBUF_SIZE                ((uint32_t)&_logsize)
-#define _RSCTBL_BASE                ((uintptr_t)&_srsctbl)
+#define LOGBUF_BASE                 ((uintptr_t)&_slog)
+#define LOGBUF_SIZE                 ((uint32_t)&_logsize)
 
 /****************************************************************************
  * Public Data
@@ -70,7 +69,6 @@
 
 extern uint32_t _slog;
 extern uint32_t _logsize;
-extern uint32_t _srsctbl;
 
 /****************************************************************************
  * Private Data
@@ -93,7 +91,7 @@ void up_earlyinitialize(void)
   up_addrenv_initialize(addrenv);
 
 #ifdef CONFIG_SYSLOG_RPMSG
-  syslog_rpmsg_init_early(CPU_NAME_SP, (void *)_LOGBUF_BASE, _LOGBUF_SIZE);
+  syslog_rpmsg_init_early(CPU_NAME_SP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
 #endif
 }
 
@@ -170,47 +168,6 @@ void up_openamp_initialize(void)
     .irq        = -1,
   };
 
-  static struct rptun_rsc_s rptun_rsc_sp
-              __attribute__ ((section (".resource_table"))) =
-  {
-    .rsc_tbl_hdr     =
-    {
-      .ver           = 1,
-      .num           = 2,
-    },
-    .offset          =
-    {
-      offsetof(struct rptun_rsc_s, log_trace),
-      offsetof(struct rptun_rsc_s, rpmsg_vdev),
-    },
-    .log_trace       =
-    {
-      .type          = RSC_TRACE,
-      .da            = _LOGBUF_BASE,
-      .len           = _LOGBUF_SIZE,
-    },
-    .rpmsg_vdev      =
-    {
-      .type          = RSC_VDEV,
-      .id            = VIRTIO_ID_RPMSG,
-      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
-                     | 1 << VIRTIO_RPMSG_F_BIND
-                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
-      .num_of_vrings = 2,
-    },
-    .rpmsg_vring0    =
-    {
-      .align         = 0x100,
-      .num           = 4,
-    },
-    .rpmsg_vring1    =
-    {
-      .align         = 0x100,
-      .num           = 4,
-    },
-    .buf_size        = 0x600,
-  };
-
   static const struct song_rptun_config_s rptun_cfg_sp =
   {
     .cpu_name    = CPU_NAME_SP,
@@ -221,10 +178,9 @@ void up_openamp_initialize(void)
     .ch_vring_tx = 15,
     .rsc         =
     {
-      .rsc_tab   = &rptun_rsc_sp.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_sp),
+      .rsc_tab   = (void *)0xb0000000,
+      .size      = sizeof(struct rptun_rsc_s),
     },
-    .rsc_flash   = _RSCTBL_BASE,
   };
 
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 0);

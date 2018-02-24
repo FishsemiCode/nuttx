@@ -37,7 +37,6 @@ MEMORY
 {
 	flash (rx) : ORIGIN = 0x00000000, LENGTH = 704K
 	sram (rwx) : ORIGIN = 0x21000000, LENGTH = 192K
-	shram (rw) : ORIGIN = 0xb0000000, LENGTH = 16K
 }
 
 OUTPUT_ARCH(arm)
@@ -53,7 +52,7 @@ SECTIONS
 		/* image magic */
 		LONG(0x21494350)
 		LONG(_stext)
-		LONG(_eflash)
+		LONG(_eflash - _stext)
 
 		*(.text .text.*)
 		*(.fixup)
@@ -84,11 +83,6 @@ SECTIONS
 	} > flash
 	__exidx_end = ABSOLUTE(.);
 
-	_srsctbl = LOADADDR(.resource_table);
-	.resource_table : {
-		*(.resource_table)
-	} > shram AT > flash
-
 	_eronly = LOADADDR(.data);
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -98,7 +92,7 @@ SECTIONS
 		_edata = ABSOLUTE(.);
 	} > sram AT > flash
 
-	_eflash = LOADADDR(.data) + SIZEOF(.data) - _stext;
+	_eflash = LOADADDR(.data) + SIZEOF(.data);
 
 	.bss : {
 		_sbss = ABSOLUTE(.);

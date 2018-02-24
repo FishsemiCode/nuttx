@@ -68,13 +68,13 @@ struct song_rptun_dev_s
 static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev);
 static int song_rptun_get_resource(struct rptun_dev_s *dev,
                                     struct rsc_table_info *rsc, uint32_t *role);
+static int song_rptun_boot(struct rptun_dev_s *dev);
 static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid);
 static int song_rptun_registercallback(struct rptun_dev_s *dev,
                                     rptun_callback_t callback, void *arg);
 static int song_rptun_ioctl(struct rptun_dev_s *dev, int cmd, unsigned long arg);
 static int song_rptun_start_isr(void *arg, uintptr_t msg);
 static int song_rptun_vring_isr(void *arg, uintptr_t msg);
-static void song_rptun_copy_resource(const struct song_rptun_config_s *config);
 
 /************************************************************************************
  * Private Data
@@ -84,6 +84,7 @@ static const struct rptun_ops_s g_song_rptun_ops =
 {
   .get_cpuname       = song_rptun_get_cpuname,
   .get_resource      = song_rptun_get_resource,
+  .boot              = song_rptun_boot,
   .notify            = song_rptun_notify,
   .register_callback = song_rptun_registercallback,
   .ioctl             = song_rptun_ioctl,
@@ -109,6 +110,19 @@ static int song_rptun_get_resource(struct rptun_dev_s *dev,
 
   memcpy(rsc, &config->rsc, sizeof(config->rsc));
   *role = config->role;
+
+  return 0;
+}
+
+static int song_rptun_boot(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  if (config->boot)
+    {
+      return config->boot(config);
+    }
 
   return 0;
 }
@@ -193,24 +207,6 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg)
   return 0;
 }
 
-static void song_rptun_copy_resource(const struct song_rptun_config_s *config)
-{
-  char *src, *dst;
-  size_t len;
-
-  if (config->rsc_flash)
-    {
-      len = config->rsc.size;
-      src = (char *)config->rsc_flash + len;
-      dst = (char *)config->rsc.rsc_tab + len;
-
-      while (len--)
-        {
-          *--dst = *--src;
-        }
-    }
-}
-
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
@@ -224,7 +220,10 @@ struct rptun_dev_s *song_rptun_initialize(
   struct song_rptun_dev_s *priv;
   int ret;
 
-  song_rptun_copy_resource(config);
+  if (config->rsc_flash)
+    {
+      memcpy(config->rsc.rsc_tab, (void *)config->rsc_flash, config->rsc.size);
+    }
 
   priv = kmm_zalloc(sizeof(struct song_rptun_dev_s));
   if (priv == NULL)
