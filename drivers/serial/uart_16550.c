@@ -754,6 +754,95 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
       }
       break;
 
+#ifdef CONFIG_SERIAL_TERMIOS
+    case TCGETS:
+      {
+        FAR struct termios *termiosp = (FAR struct termios *)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+#ifndef CONFIG_16550_SUPRESS_CONFIG
+        cfsetispeed(termiosp, priv->baud);
+        termiosp->c_cflag = ((priv->parity != 0) ? PARENB : 0) |
+                            ((priv->parity == 1) ? PARODD : 0);
+        termiosp->c_cflag |= (priv->stopbits2) ? CSTOPB : 0;
+
+        switch (priv->bits)
+          {
+          case 5:
+            termiosp->c_cflag |= CS5;
+            break;
+
+          case 6:
+            termiosp->c_cflag |= CS6;
+            break;
+
+          case 7:
+            termiosp->c_cflag |= CS7;
+            break;
+
+          case 8:
+          default:
+            termiosp->c_cflag |= CS8;
+            break;
+          }
+#endif
+      }
+      break;
+
+    case TCSETS:
+      {
+        FAR struct termios *termiosp = (FAR struct termios *)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+#ifndef CONFIG_16550_SUPRESS_CONFIG
+        switch (termiosp->c_cflag & CSIZE)
+          {
+          case CS5:
+            priv->bits = 5;
+            break;
+
+          case CS6:
+            priv->bits = 6;
+            break;
+
+          case CS7:
+            priv->bits = 7;
+            break;
+
+          case CS8:
+          default:
+            priv->bits = 8;
+            break;
+          }
+
+        if ((termiosp->c_cflag & PARENB) != 0)
+          {
+            priv->parity = (termiosp->c_cflag & PARODD) ? 1 : 2;
+          }
+        else
+          {
+            priv->parity = 0;
+          }
+
+        priv->baud      = cfgetispeed(termiosp);
+        priv->stopbits2 = (termiosp->c_cflag & CSTOPB) != 0;
+
+        u16550_setup(dev);
+#endif
+      }
+      break;
+#endif
+
     default:
       ret = -ENOTTY;
       break;
