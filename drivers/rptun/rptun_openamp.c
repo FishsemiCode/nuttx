@@ -59,6 +59,7 @@
 struct rptun_openamp_s
 {
   struct rptun_dev_s           *dev;
+  struct hil_proc              *proc;
   struct remote_proc           *rproc;
   struct proc_shm              shm;
   struct work_s                work_start;
@@ -77,6 +78,9 @@ static void rptun_openamp_notify(struct hil_proc *proc,
                             struct proc_intr *intr_info);
 static int  rptun_openamp_init(struct hil_proc *proc);
 static void rptun_openamp_release(struct hil_proc *proc);
+static int  rptun_openamp_config_and_boot(
+                            struct rptun_openamp_s *priv,
+                            struct rsc_table_info *rsc_info);
 static int  rptun_openamp_resource_init(
                             struct rptun_openamp_s *priv, int cpu_id);
 
@@ -105,8 +109,8 @@ static struct hil_platform_ops rptun_openamp_ops =
 
 static void rptun_openamp_start_work(void *arg)
 {
-  struct hil_proc *proc = arg;
-  struct rptun_openamp_s *priv = proc->pdata;
+  struct rptun_openamp_s *priv = arg;
+  struct hil_proc *proc = priv->proc;
   int cpu_id = proc->cpu_id;
 
   remoteproc_resource_deinit(priv->rproc);
@@ -115,25 +119,26 @@ static void rptun_openamp_start_work(void *arg)
 
 static void rptun_openamp_vring_work(void *arg)
 {
-  struct hil_proc *proc = arg;
+  struct rptun_openamp_s *priv = arg;
+  struct hil_proc *proc = priv->proc;
+
   hil_notified(proc, RPTUN_NOTIFY_ALL);
 }
 
 static int rptun_openamp_callback(void *arg, uint32_t vqid)
 {
-  struct hil_proc *proc = arg;
-  struct rptun_openamp_s *priv = proc->pdata;
+  struct rptun_openamp_s *priv = arg;
   int ret;
 
   if (vqid == RPTUN_NOTIFY_START)
     {
       ret = work_queue(HPWORK, &priv->work_start,
-                            rptun_openamp_start_work, proc, 0);
+                            rptun_openamp_start_work, priv, 0);
     }
   else
    {
       ret = work_queue(HPWORK, &priv->work_vring,
-                            rptun_openamp_vring_work, proc, 0);
+                            rptun_openamp_vring_work, priv, 0);
    }
 
   return ret;
@@ -145,7 +150,7 @@ static int rptun_openamp_enable_interrupt(struct proc_intr *intr)
   struct rptun_openamp_s *priv = proc->pdata;
 
   return RPTUN_REGISTER_CALLBACK(priv->dev,
-                            rptun_openamp_callback, proc);
+                            rptun_openamp_callback, priv);
 }
 
 static void rptun_openamp_notify(struct hil_proc *proc,
@@ -180,27 +185,24 @@ static void rptun_openamp_release(struct hil_proc *proc)
   RPTUN_UNREGISTER_CALLBACK(priv->dev);
 }
 
-static void rptun_openamp_alloc_mem(
+static int rptun_openamp_config_and_boot(
                             struct rptun_openamp_s *priv,
                             struct rsc_table_info *rsc_info)
 {
   struct rptun_rsc_s *rsc_tab = (struct rptun_rsc_s *)rsc_info->rsc_tab;
   uint32_t vring0_size, vring1_size, tb_size, max_align;
-  volatile uint32_t *check_ver;
 
-  /* RPMSG_MASTER need wait remote core load resource table,
-   * then calculating address with following order:
+  /* 1. Calcule address with following order:
    *    resource table
    *    vring0
    *    vring1
    *    share mem buffer
+   * 2. Boot remote core
+   *
    * Attention:
    * The buffers' total size shouldn't bigger then the original
    * size which given by user
    */
-
-  check_ver = (volatile uint32_t *)&rsc_tab->rsc_tbl_hdr.ver;
-  while (*check_ver != 1);
 
   vring0_size = vring_size(rsc_tab->rpmsg_vring0.num, rsc_tab->rpmsg_vring0.align);
   vring1_size = vring_size(rsc_tab->rpmsg_vring1.num, rsc_tab->rpmsg_vring1.align);
@@ -214,8 +216,11 @@ static void rptun_openamp_alloc_mem(
   rsc_tab->rpmsg_vring1.notifyid = 2;
 
   priv->shm.start_addr           = (void *)(rsc_tab->rpmsg_vring1.da + vring1_size);
+  priv->shm.buff_size            = rsc_tab->buf_size;
   priv->shm.size                 = rsc_tab->buf_size * (rsc_tab->rpmsg_vring0.num
                                                        + rsc_tab->rpmsg_vring1.num);
+
+  return RPTUN_BOOT(priv->dev);
 }
 
 static int rptun_openamp_resource_init(
@@ -237,7 +242,7 @@ static int rptun_openamp_resource_init(
 
   if (role == RPMSG_MASTER)
     {
-      rptun_openamp_alloc_mem(priv, &rsc_info);
+      rptun_openamp_config_and_boot(priv, &rsc_info);
     }
 
   if (cpu_id == -1)
@@ -254,6 +259,7 @@ static int rptun_openamp_resource_init(
     }
 
   proc->pdata = priv;
+  priv->proc  = proc;
 
   ret = remoteproc_resource_init(&rsc_info, proc, NULL, NULL, NULL, &rproc, role);
   if (ret)

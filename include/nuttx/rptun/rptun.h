@@ -91,6 +91,22 @@
 #define RPTUN_GET_RESOURCE(d,r,rl) ((d)->ops->get_resource(d,r,rl))
 
 /****************************************************************************
+ * Name: RPTUN_BOOT
+ *
+ * Description:
+ *   Boot remote cpu
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   OK unless an error occurs.  Then a negated errno value is returned
+ *
+ ****************************************************************************/
+
+#define RPTUN_BOOT(d) ((d)->ops->boot(d))
+
+/****************************************************************************
  * Name: RPTUN_NOTIFY
  *
  * Description:
@@ -153,6 +169,7 @@ struct rptun_ops_s
   const char *(*get_cpuname)(struct rptun_dev_s *dev);
   int (*get_resource)(struct rptun_dev_s *dev,
                     struct rsc_table_info *rsc, uint32_t *role);
+  int (*boot)(struct rptun_dev_s *dev);
   int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
   int (*register_callback)(struct rptun_dev_s *dev,
                     rptun_callback_t callback, void *arg);
