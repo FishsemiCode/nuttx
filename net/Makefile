@@ -79,6 +79,7 @@ include utils/Make.defs
 endif
 
 VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
+VPATH += :$(SRCDIR)
 
 ASRCS = $(SOCK_ASRCS) $(NETDEV_ASRCS) $(NET_ASRCS)
 AOBJS = $(ASRCS:.S=$(OBJEXT))

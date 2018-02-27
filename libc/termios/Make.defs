@@ -47,7 +47,7 @@ CSRCS += lib_tcflow.c lib_tcgetattr.c lib_tcsetattr.c
 # Add the termios directory to the build
 
 DEPPATH += --dep-path termios
-VPATH += termios
+VPATH += :termios
 
 endif
 endif
