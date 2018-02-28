@@ -130,10 +130,6 @@ static void init_kernelspace(void);
 static void init_userspace(void);
 #endif
 
-#ifdef CONFIG_STACK_COLORATION
-static void color_start(void);
-#endif
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -250,7 +246,7 @@ static void init_kernelspace(void)
 
   void *const bssend[] =
   {
-    _START_HEAP, _END_BSS2, _END_BSS3, _END_BSS4, NULL,
+    _END_BSS, _END_BSS2, _END_BSS3, _END_BSS4, NULL,
   };
 
   init_text_section(true, textstart, textend);
@@ -268,6 +264,15 @@ static void init_kernelspace(void)
    */
 
   init_bss_section(true, bssstart, bssend);
+
+  /* Initialize the idle stack */
+
+  mpu_priv_data(g_idle_basestack,
+    g_idle_topstack - g_idle_basestack);
+#ifdef CONFIG_STACK_COLORATION
+  up_stack_color(g_idle_basestack,
+    g_idle_topstack - g_idle_basestack - B2C(256));
+#endif
 }
 
 #ifdef CONFIG_BUILD_PROTECTED
@@ -304,26 +309,6 @@ static void init_userspace(void)
 #endif
 
 /****************************************************************************
- * Name: color_start
- *
- * Description:
- *   Set the IDLE stack to the coloration value and jump to os_start
- *
- ****************************************************************************/
-
-#ifdef CONFIG_STACK_COLORATION
-static void color_start(void)
-{
-
-  up_stack_color(g_idle_basestack,
-    g_idle_topstack - g_idle_basestack - B2C(256));
-  os_start();
-}
-#else
-#  define color_start() os_start()
-#endif
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -349,5 +334,5 @@ void up_start(void)
   up_earlyinitialize();
   board_earlyinitialize();
 
-  color_start();
+  os_start();
 }
