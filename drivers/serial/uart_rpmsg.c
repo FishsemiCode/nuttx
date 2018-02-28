@@ -46,6 +46,7 @@
 
 #include <openamp/open_amp.h>
 
+#include <nuttx/fs/ioctl.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -167,6 +168,12 @@ static void uart_rpmsg_detach(FAR struct uart_dev_s *dev)
 
 static int uart_rpmsg_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
+#ifdef CONFIG_SERIAL_TERMIOS
+  if (cmd == TCGETS || cmd == TCSETS)
+  {
+    return OK;
+  }
+#endif
   return -ENOTTY;
 }
 
