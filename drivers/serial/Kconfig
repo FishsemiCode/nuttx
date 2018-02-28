@@ -98,11 +98,6 @@ config 16550_UART0_OFLOWCONTROL
 	---help---
 		Enable 16550 UART0 CTS flow control
 
-config 16550_UART0_SUPRESS_SETUP
-	bool "Suppress 16550 UART0 setup"
-	depends on !16550_SUPRESS_CONFIG
-	default n
-
 endif # 16550_UART0
 
 config 16550_UART1
@@ -168,11 +163,6 @@ config 16550_UART1_OFLOWCONTROL
 	select SERIAL_OFLOWCONTROL
 	---help---
 		Enable 16550 UART1 CTS flow control
-
-config 16550_UART1_SUPRESS_SETUP
-	bool "Suppress 16550 UART1 setup"
-	depends on !16550_SUPRESS_CONFIG
-	default n
 
 endif # 16550_UART1
 
@@ -240,11 +230,6 @@ config 16550_UART2_OFLOWCONTROL
 	---help---
 		Enable 16550 UART2 CTS flow control
 
-config 16550_UART2_SUPRESS_SETUP
-	bool "Suppress 16550 UART2 setup"
-	depends on !16550_SUPRESS_CONFIG
-	default n
-
 endif # 16550_UART2
 
 config 16550_UART3
@@ -310,11 +295,6 @@ config 16550_UART3_OFLOWCONTROL
 	select SERIAL_OFLOWCONTROL
 	---help---
 		Enable 16550 UART3 CTS flow control
-
-config 16550_UART3_SUPRESS_SETUP
-	bool "Suppress 16550 UART3 setup"
-	depends on !16550_SUPRESS_CONFIG
-	default n
 
 endif # 16550_UART3
 
