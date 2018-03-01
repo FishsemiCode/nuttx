@@ -34,5 +34,6 @@
 ############################################################################
 
 -include $(TOPDIR)/Make.defs
+CSRCS += sim.c
 RCSRCS := init.d/rcS
 include $(TOPDIR)/configs/Board.mk

@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/unicorn/src/init.d/rcS
+ * configs/unicorn/src/init.d/rcS.sim
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Pinecone <Pinecone@pinecone.net>
@@ -32,18 +32,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
-#include <nuttx/config.h>
 
-#include "rcS.common"
-
-#ifdef CONFIG_UNICORN_AP
-#include "rcS.ap"
-#elif CONFIG_UNICORN_CP
-#include "rcS.cp"
-#elif CONFIG_UNICORN_SP
-#include "rcS.sp"
-#elif CONFIG_UNICORN_SIM
-#include "rcS.sim"
-#else
-#error "unknow unicorn config"
+#ifdef CONFIG_FS_HOSTFS
+mount -t hostfs -o fs=. data
+mount -t hostfs -o fs=. persist
 #endif

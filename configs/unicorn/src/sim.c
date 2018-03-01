@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/unicorn/src/init.d/rcS
+ * configs/unicorn/src/sim.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Pinecone <pinecone@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,18 +32,36 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include "rcS.common"
+#ifdef CONFIG_UNICORN_SIM
 
-#ifdef CONFIG_UNICORN_AP
-#include "rcS.ap"
-#elif CONFIG_UNICORN_CP
-#include "rcS.cp"
-#elif CONFIG_UNICORN_SP
-#include "rcS.sp"
-#elif CONFIG_UNICORN_SIM
-#include "rcS.sim"
-#else
-#error "unknow unicorn config"
+#ifdef CONFIG_BOARD_INITIALIZE
+#include "sim_boot.c"
 #endif
+
+#ifdef CONFIG_LIB_BOARDCTL
+#include "sim_appinit.c"
+#endif
+
+#if defined(CONFIG_BOARD_INITIALIZE) || defined(CONFIG_LIB_BOARDCTL)
+#include "sim_bringup.c"
+#ifdef CONFIG_LIB_ZONEINFO_ROMFS
+#include "sim_zoneinfo.c"
+#endif
+#endif // defined(CONFIG_BOARD_INITIALIZE) || defined(CONFIG_LIB_BOARDCTL)
+
+#if defined(CONFIG_SIM_X11FB) && defined(CONFIG_SIM_TOUCHSCREEN)
+#include "sim_touchscreen.c"
+#endif
+
+#ifdef CONFIG_EXAMPLES_GPIO
+#ifdef CONFIG_GPIO_LOWER_HALF
+#include "sim_ioexpander.c"
+#else
+#include "sim_gpio.c"
+#endif
+#endif // CONFIG_EXAMPLES_GPIO
+
+#endif // CONFIG_UNICORN_SIM

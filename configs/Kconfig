@@ -1413,7 +1413,7 @@ config ARCH_BOARD_UBW32
 
 config ARCH_BOARD_UNICORN
 	bool "Pinecone Unicorn"
-	depends on ARCH_CHIP_SONG
+	depends on ARCH_SIM || ARCH_CHIP_SONG
 	---help---
 		Pinecone Unicorn MCU.
 
