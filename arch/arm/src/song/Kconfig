@@ -40,6 +40,7 @@ config ARCH_CHIP_UNICORN_CP
 
 config ARCH_CHIP_UNICORN_SP
 	bool "Unicorn SP"
+	select ARCH_HAVE_POWEROFF
 	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4
 	select SONG_HAVE_RNG

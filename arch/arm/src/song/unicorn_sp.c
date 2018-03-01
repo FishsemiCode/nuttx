@@ -65,9 +65,20 @@
 #define RSCTBL_BASE_AP              ((uintptr_t)&_srsctbl_ap)
 #define RSCTBL_BASE_CP              ((uintptr_t)&_srsctbl_cp)
 
-#define PWR_AP_POR_CTL              0xb00400e0
-#define PWR_CP_POR_CTL              0xb00400dc
-#define SECURITY_CFG_0              0xb0150030
+#define TOP_MAILBOX_BASE            (0xb0030000)
+
+#define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
+#define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
+#define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
+#define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
+#define TOP_PWR_SLPST               (TOP_PWR_BASE + 0x368)
+
+#define PMIC_FSM_BASE               (0xb2010000)
+#define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
+
+#define SECURITY_BASE               (0xb0150000)
+#define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
 
 /****************************************************************************
  * Public Data
@@ -86,13 +97,14 @@ static FAR struct rtc_lowerhalf_s *g_rtc_lower;
  * Private Functions
  ****************************************************************************/
 
+#ifdef CONFIG_OPENAMP
 static int ap_boot(const struct song_rptun_config_s *config)
 {
   /* SP <--shram0--> AP
    * shram0 default enabled
    */
 
-  putreg32(0x00010000, PWR_AP_POR_CTL);
+  putreg32(0x00010000, TOP_PWR_AP_M4_RSTCTL);
   return 0;
 }
 
@@ -103,9 +115,10 @@ static int cp_boot(const struct song_rptun_config_s *config)
    */
 
   putreg32(0x00010000, SECURITY_CFG_0);
-  putreg32(0x00010000, PWR_CP_POR_CTL);
+  putreg32(0x00010000, TOP_PWR_CP_M4_RSTCTL);
   return 0;
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -146,7 +159,7 @@ void arm_timer_initialize(void)
 {
   static const struct song_oneshot_config_s config =
   {
-    .base       = 0xb0040000,
+    .base       = TOP_PWR_BASE,
     .irq        = 18,
     .c1_max     = 2048,
     .c1_freq    = 32768000,
@@ -175,7 +188,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_ap =
   {
-    .base       = 0xb0030000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = 0x10,
     .en_off     = 0x14,
     .en_bit     = 16,
@@ -187,7 +200,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_cp =
   {
-    .base       = 0xb0030000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = 0x0,
     .en_off     = 0x4,
     .en_bit     = 16,
@@ -199,7 +212,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_sp =
   {
-    .base       = 0xb0030000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = 0x20,
     .en_off     = 0x24,
     .en_bit     = 16,
@@ -340,4 +353,35 @@ void up_lateinitialize(void)
   rtc_initialize(0, g_rtc_lower);
 }
 
-#endif
+int board_app_initialize(uintptr_t arg)
+{
+  return 0;
+}
+
+int board_power_off(int status)
+{
+  modifyreg32(PMIC_FSM_CONFIG1, 1, 1);
+  putreg32(0x1, TOP_PWR_SLPST);
+  return 0;
+}
+
+int board_reset(int status)
+{
+  if (status == 0)
+    {
+      /* Reset board */
+
+      putreg32(0x0, TOP_PWR_RES_REG2);
+    }
+  else
+    {
+      /* Reset board to bootloader */
+
+      putreg32(0xaaaa1234, TOP_PWR_RES_REG2);
+    }
+
+  putreg32(0x10001, TOP_PWR_SFRST_CTL);
+  return 0;
+}
+
+#endif /* CONFIG_ARCH_CHIP_UNICORN_SP */

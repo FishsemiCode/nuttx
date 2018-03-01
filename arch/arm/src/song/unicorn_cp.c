@@ -63,6 +63,8 @@
 #define LOGBUF_BASE                 ((uintptr_t)&_slog)
 #define LOGBUF_SIZE                 ((uint32_t)&_logsize)
 
+#define TOP_MAILBOX_BASE            (0xb0030000)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -146,7 +148,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_cp =
   {
-    .base       = 0xb0030000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = 0x0,
     .en_off     = 0x4,
     .en_bit     = 16,
@@ -158,7 +160,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_sp =
   {
-    .base       = 0xb0030000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = 0x20,
     .en_off     = 0x24,
     .en_bit     = 16,
