@@ -72,7 +72,7 @@ ARCHCPUFLAGS += -Xassembler -ignoreWarnings,w628,w672
 # cofflib -r will core dump if the library contain an object file
 # without any public symbol, so let's always generate a dummy global
 # function to overcome this issue.
-ARCHCPUFLAGS += -DCKSUM_SELF=$(word 1, $(shell cksum $<))
+ARCHCPUFLAGS += -DCKSUM_SELF=$(word 1, $(if $<,$(shell cksum $<),dummy))
 ARCHCPUFLAGS += -include dummy.h
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
