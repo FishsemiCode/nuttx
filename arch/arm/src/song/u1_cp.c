@@ -49,8 +49,10 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
-#include "up_internal.h"
+#include "nvic.h"
 #include "song_addrenv.h"
+#include "up_arch.h"
+#include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U1_CP
 
@@ -64,6 +66,20 @@
 #define LOGBUF_SIZE                 ((uint32_t)&_logsize)
 
 #define TOP_MAILBOX_BASE            (0xb0030000)
+
+#define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
+#define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
+#define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
+
+#define TOP_PWR_CP_M4_PD_MK         (1 << 3)
+#define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
+#define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
+
+#define TOP_PWR_CP_M4_SLP_EN        (1 << 0)
+#define TOP_PWR_CP_M4_DS_SLP_EN     (1 << 2)
+
+#define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)
 
 /****************************************************************************
  * Public Data
@@ -91,6 +107,9 @@ void up_earlyinitialize(void)
   };
 
   up_addrenv_initialize(addrenv);
+
+  /* config cp_tcm */
+  putreg32(TOP_PWR_CP_M4_TCM_AU_PD_MK << 16, TOP_PWR_CP_M4_TCM_PD_CTL0);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_SP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
@@ -213,6 +232,68 @@ void up_openamp_initialize(void)
 void up_lateinitialize(void)
 {
   rtc_initialize(0, g_rtc_lower);
+}
+
+void up_cpu_idle(void);
+void up_cpu_normal(void)
+{
+  /* PM_NORMAL means cp can't enter any lp_state, but cpu is idle, so enter wfe.
+  now PM_IDLE is also just wfe, so call up_cpu_idle here. */
+
+  up_cpu_idle();
+}
+
+/* up_cpu_idle for wfe */
+
+void up_cpu_idle(void)
+{
+  /* config PWR_SLPCTL_CP_M4 */
+
+  putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+
+  /* config PWR_CP_UNIT_PD_CTL */
+
+  putreg32(TOP_PWR_CP_M4_PD_MK << 16 | TOP_PWR_CP_M4_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* config NVIC_SYSCON_SLEEPDEEP=0 */
+
+  putreg32((getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP), NVIC_SYSCON);
+}
+
+/* up_cpu_standby for CP_PD */
+
+void up_cpu_standby(void)
+{
+  /* config PWR_SLPCTL_CP_M4 */
+
+  putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+
+  /* config PWR_CP_UNIT_PD_CTL */
+
+  putreg32(TOP_PWR_CP_M4_PD_MK << 16 |
+          TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* config NVIC_SYSCON_SLEEPDEEP=1 */
+
+  putreg32((getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP), NVIC_SYSCON);
+}
+
+/* up_cpu_sleep for SOC_PD */
+
+void up_cpu_sleep(void)
+{
+  /* config PWR_SLPCTL_CP_M4 */
+
+  putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16 | TOP_PWR_CP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
+
+  /* config PWR_CP_UNIT_PD_CTL */
+
+  putreg32(TOP_PWR_CP_M4_PD_MK << 16 |
+          TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* config NVIC_SYSCON_SLEEPDEEP=1 */
+
+  putreg32((getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP), NVIC_SYSCON);
 }
 
 #endif

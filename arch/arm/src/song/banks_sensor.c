@@ -244,13 +244,11 @@ void up_lateinitialize(void)
 void up_cpu_idle(void)
 {
   putreg32(0x00010000, SEN_PWR_SLPCTL0);
-  __asm__ __volatile__("wfe");
 }
 
 void up_cpu_standby(void)
 {
   putreg32(0x00010001, SEN_PWR_SLPCTL0);
-  __asm__ __volatile__("wfe");
 }
 
 #endif
