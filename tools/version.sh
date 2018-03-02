@@ -135,12 +135,12 @@ MINOR=`echo ${VERSION} | cut -d'.' -f2`
 # Get GIT information (if not provided on the command line)
 
 if [ -z "${BUILD}" ]; then
-	GITINFO=`git -C ${GITDIR} log 2>/dev/null | head -1`
+	GITINFO=`git -C ${GITDIR} log --oneline -1 2>/dev/null`
 	if [ -z "${GITINFO}" ]; then
 		echo "GIT version information is not available"
 		exit 3
 	fi
-	BUILD=`echo ${GITINFO} | cut -d' ' -f2`
+	BUILD=`echo ${GITINFO} | cut -d' ' -f1`
 	if [ -z "${BUILD}" ]; then
 		echo "GIT build information not found"
 		exit 4
