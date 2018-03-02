@@ -307,7 +307,6 @@ if [ ! -z "$host" ]; then
   sed -i -e "/CONFIG_WINDOWS_OTHER/d" ${dest_config}
   sed -i -e "/CONFIG_SIM_X8664_MICROSOFT/d" ${dest_config}
   sed -i -e "/CONFIG_SIM_X8664_SYSTEMV/d" ${dest_config}
-  sed -i -e "/CONFIG_SIM_M32/d" ${dest_config}
 
   case "$host" in
     "linux")
