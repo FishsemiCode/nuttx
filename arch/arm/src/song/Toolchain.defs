@@ -33,10 +33,9 @@
 #
 ############################################################################
 
-include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
-
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
+  HOST = windows
   DIRLINK = $(TOPDIR)/tools/copydir.sh
   DIRUNLINK = $(TOPDIR)/tools/unlink.sh
   MKDEP = $(TOPDIR)/tools/mkwindeps.sh
@@ -53,6 +52,7 @@ ifeq ($(WINTOOL),y)
   endif
 else
   # Linux/Cygwin-native toolchain
+  HOST = linux
   MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
@@ -66,6 +66,10 @@ else
     ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)machine
   endif
 endif
+
+CROSSDEV   ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/arm/bin/arm-none-eabi-
+ARCROSSDEV ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/arm/bin/arm-none-eabi-
+include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
 CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++

@@ -33,10 +33,9 @@
 #
 ############################################################################
 
-include ${TOPDIR}/arch/ceva/src/tl4/Toolchain.defs
-
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
+  HOST = windows
   DIRLINK = $(TOPDIR)/tools/copydir.sh
   DIRUNLINK = $(TOPDIR)/tools/unlink.sh
   MKDEP = $(TOPDIR)/tools/mkwindeps.sh
@@ -45,11 +44,15 @@ ifeq ($(WINTOOL),y)
   ARCHSCRIPT = "${shell cygpath -w $(LDSCRIPT)}"
 else
   # Linux/Cygwin-native toolchain
+  HOST = linux
   MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -I$(TOPDIR)/include
   ARCHXXINCLUDES = -I. -I$(TOPDIR)/include -I$(TOPDIR)/include/cxx
   ARCHSCRIPT = $(LDSCRIPT)
 endif
+
+CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/tl4)/
+include ${TOPDIR}/arch/ceva/src/tl4/Toolchain.defs
 
 LD = $(CROSSDEV)cofflnk -quiet
 AR = $(ARCROSSDEV)cofflib -quiet
