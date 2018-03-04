@@ -40,21 +40,17 @@
  * Included Files
  ****************************************************************************/
 
+#include_next <stdarg.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Can't use stdarg.h from toolchain since va_copy doesn't provide in tl4 */
-
-#define va_start(v,l)   __builtin_va_start(v,l)
-#define va_end(v)       __builtin_va_end(v)
-#define va_arg(v,l)     __builtin_va_arg(v,l)
-#define va_copy(d,s)    __builtin_va_copy(d,s)
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-typedef __builtin_va_list va_list;
+/* Redefine va_copy since:
+ * 1.TL4 doesn't define it at all
+ * 2.XM6/X2 generate the wrong code
+ */
+#undef  va_copy
+#define va_copy(d,s)  ((d) = (s))
 
 #endif /* __ARCH_CEVA_INCLUDE_STDARG_H */

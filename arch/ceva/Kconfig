@@ -20,7 +20,6 @@ endchoice
 
 config ARCH_TL420
 	bool
-	select ARCH_STDARG_H
 	default n
 	---help---
 		CEVA-TL420 is a high-performance fixed-point DSP Core architecture.
@@ -30,7 +29,6 @@ config ARCH_TL420
 
 config ARCH_TL421
 	bool
-	select ARCH_STDARG_H
 	default n
 	---help---
 		CEVA-TL421 is a high-performance fixed-point DSP Core architecture.
