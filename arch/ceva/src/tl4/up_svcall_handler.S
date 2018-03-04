@@ -106,7 +106,9 @@ _up_svcall_handler:
 	popdw		retreg
 
 	/* Execute the SYS_syscall_return SVCall (will not return) */
-	mov		#SYS_syscall_return, r2
+						/* Save return value in b0 */
+	mov		a0, b0			/* will restore in up_svcall */
+	mov		#SYS_syscall_return, a0
 	trap0
 
 	.func_end	3 _up_svcall_handler

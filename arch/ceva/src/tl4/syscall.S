@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/src/tl4/up_signal_handler.S
+ * arch/ceva/src/tl4/syscall.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -34,72 +34,79 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Included Files
+ * Public Symbols
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include "svcall.h"
-
-#if (defined(CONFIG_BUILD_PROTECTED) && !defined(__KERNEL__)) && \
-    !defined(CONFIG_DISABLE_SIGNALS)
-
-/****************************************************************************
- * File info
- ****************************************************************************/
-
-	.file		"up_signal_handler.S"
+	.file		"syscall.S"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_signal_handler
+ * Name: sys_callx
  *
  * Description:
- *   This function is the user-space, signal handler trampoline function.  It
- *   is called from up_signal_dispatch() in user-mode.
+ *   This function generate the trap exception with the specified number of
+ *   parameters.
  *
- * Inputs:
- *   a0 = sighand
- *     The address user-space signal handling function
- *   a1, b0, b1 = signo, info, and ucontext
- *     Standard arguments to be passed to the signal handling function.
- *
- * Return:
- *   None.  This function does not return in the normal sense.  It returns
- *   via the SYS_signal_handler_return (see svcall.h)
+ *     a0 = SYS_ call number
+ *     a1 = parm0
+ *     b0 = parm1
+ *     b1 = parm2
+ *     r0 = parm3(pop from stack)
+ *     r1 = parm4(pop from stack)
+ *     r2 = parm5(pop from stack)
  *
  ****************************************************************************/
 
 	.text
-	.public		_up_signal_handler
-	.func_start	3 _up_signal_handler
 
-_up_signal_handler:
+	.public		_sys_call0
+	.public		_sys_call1
+	.public		_sys_call2
+	.public		_sys_call3
 
-	/* Save some register */
+	.func_start	3 _sys_call0
 
-	pushdw		retreg			/* Save LR on the stack */
-
-	/* Call the signal handler */
-
-	mov		a0, r0			/* r0=sighand */
-	mov		a1, a0			/* a0=signo */
-	mov		b0, a1			/* a1=info */
-	mov		b1, b0			/* b0=ucontext */
-	callar		r0			/* Call the signal handler */
-
-	/* Restore the registers */
-
-	popdw		retreg
-
-	/* Execute the SYS_signal_handler_return SVCall (will not return) */
-
-	mov		#SYS_signal_handler_return, a0
+_sys_call0:
+_sys_call1:
+_sys_call2:
+_sys_call3:
 	trap0
+	ret
 
-	.func_end	3 _up_signal_handler
+	.func_end	3 _sys_call0
 
-#endif
+	.public		_sys_call4
+	.func_start	3 _sys_call4
+
+_sys_call4:
+	popdw		r0
+	trap0
+	ret
+
+	.func_end	3 _sys_call4
+
+	.public		_sys_call5
+	.func_start	3 _sys_call5
+
+_sys_call5:
+	popdw		r0
+	popdw		r1
+	trap0
+	ret
+
+	.func_end	3 _sys_call5
+
+	.public		_sys_call6
+	.func_start	3 _sys_call6
+
+_sys_call6:
+	popdw		r0
+	popdw		r1
+	popdw		r2
+	trap0
+	ret
+
+	.func_end	3 _sys_call6

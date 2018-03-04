@@ -48,10 +48,10 @@ CMN_UCSRCS += up_userspace.c
 
 # arch/ceva/src/tl4
 #
-CMN_ASRCS  += up_svcall_handler.S vfork.S
+CMN_ASRCS  += syscall.S up_svcall_handler.S vfork.S
 CMN_CSRCS  += up_cache.c up_hardfault.c up_initialstate.c
 CMN_CSRCS  += up_intc.c up_mpu.c up_psu.c
-CMN_UASRCS += up_signal_handler.S
+CMN_UASRCS += syscall.S up_signal_handler.S
 HEAD_ASRC  += up_head.S
 
 # arch/ceva/src/song

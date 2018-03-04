@@ -105,8 +105,8 @@ _vfork:
 
 	/* Save the volatile registers by svcall(SYS_save_context) */
 
-	mov		#SYS_save_context, r2
-	mov		sp, a0
+	mov		#SYS_save_context, a0
+	mov		sp, a1
 	trap0
 
 	/* Then, call up_vfork(), passing it a pointer to the stack structure */

@@ -155,10 +155,10 @@ all: $(HEAD_OBJ) $(BIN)
 
 .PHONY: board$(DELIM)libboard$(LIBEXT)
 
-$(AOBJS) $(UAOBJS) $(HEAD_OBJ): %$(OBJEXT): %.S
+$(sort $(AOBJS) $(UAOBJS) $(HEAD_OBJ)): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
 
-$(COBJS) $(UCOBJS): %$(OBJEXT): %.c
+$(sort $(COBJS) $(UCOBJS)): %$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
 
 $(BIN) $(KBIN): $(OBJS)

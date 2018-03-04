@@ -68,10 +68,10 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
   uint32_t cmd;
 
   DEBUGASSERT(regs && regs == CURRENT_REGS);
-  cmd = regs[REG_A6];
+  cmd = regs[REG_A0];
 
-  /* The SVCall software interrupt is called with A6 = system call command
-   * and A0..A5 =  variable number of arguments depending on the system call.
+  /* The SVCall software interrupt is called with A0 = system call command
+   * and A1..A6 =  variable number of arguments depending on the system call.
    */
 
 #ifdef CONFIG_DEBUG_SYSCALL_INFO
@@ -93,83 +93,83 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
     }
 #endif
 
-  /* Handle the SVCall according to the command in A6 */
+  /* Handle the SVCall according to the command in A0 */
 
   switch (cmd)
     {
-      /* A6=SYS_save_context:  This is a save context command:
+      /* A0=SYS_save_context:  This is a save context command:
        *
        *   int up_saveusercontext(uint32_t *saveregs);
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_save_context
-       *   A0 = saveregs
+       *   A0 = SYS_save_context
+       *   A1 = saveregs
        *
        * In this case, we simply need to copy the current regsters to the
-       * save register space references in the saved A0 and return.
+       * save register space references in the saved A1 and return.
        */
 
       case SYS_save_context:
         {
-          DEBUGASSERT(regs[REG_A0] != 0);
-          memcpy((uint32_t *)regs[REG_A0], regs, XCPTCONTEXT_SIZE);
+          DEBUGASSERT(regs[REG_A1] != 0);
+          memcpy((uint32_t *)regs[REG_A1], regs, XCPTCONTEXT_SIZE);
         }
         break;
 
-      /* A6=SYS_restore_context:  This a restore context command:
+      /* A0=SYS_restore_context:  This a restore context command:
        *
        *   void up_fullcontextrestore(uint32_t *restoreregs) noreturn_function;
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_restore_context
-       *   A0 = restoreregs
+       *   A0 = SYS_restore_context
+       *   A1 = restoreregs
        *
        * In this case, we simply need to set CURRENT_REGS to restore register
-       * area referenced in the saved A0. context == CURRENT_REGS is the normal
-       * exception return.  By setting CURRENT_REGS = context[A0], we force
-       * the return to the saved context referenced in A0.
+       * area referenced in the saved A1. context == CURRENT_REGS is the normal
+       * exception return.  By setting CURRENT_REGS = context[A1], we force
+       * the return to the saved context referenced in A1.
        */
 
       case SYS_restore_context:
         {
-          DEBUGASSERT(regs[REG_A0] != 0);
-          CURRENT_REGS = (uint32_t *)regs[REG_A0];
+          DEBUGASSERT(regs[REG_A1] != 0);
+          CURRENT_REGS = (uint32_t *)regs[REG_A1];
         }
         break;
 
-      /* A6=SYS_switch_context:  This a switch context command:
+      /* A0=SYS_switch_context:  This a switch context command:
        *
        *   void up_switchcontext(uint32_t **saveregs, uint32_t *restoreregs);
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_switch_context
-       *   A0 = saveregs
-       *   A1 = restoreregs
+       *   A0 = SYS_switch_context
+       *   A1 = saveregs
+       *   A2 = restoreregs
        *
        * In this case, we do both: We save the context registers to the save
-       * register area reference by the saved contents of A0 and then set
+       * register area reference by the saved contents of A1 and then set
        * CURRENT_REGS to to the save register area referenced by the saved
-       * contents of A1.
+       * contents of A2.
        */
 
       case SYS_switch_context:
         {
-          DEBUGASSERT(regs[REG_A0] != 0 && regs[REG_A1] != 0);
-          *(uint32_t **)regs[REG_A0] = regs;
-          CURRENT_REGS = (uint32_t *)regs[REG_A1];
+          DEBUGASSERT(regs[REG_A1] != 0 && regs[REG_A2] != 0);
+          *(uint32_t **)regs[REG_A1] = regs;
+          CURRENT_REGS = (uint32_t *)regs[REG_A2];
         }
         break;
 
-      /* A6=SYS_syscall_return:  This a syscall return command:
+      /* A0=SYS_syscall_return:  This a syscall return command:
        *
        *   void up_syscall_return(void);
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_syscall_return
+       *   A0 = SYS_syscall_return
        *
        * We need to restore the saved return address and return in
        * unprivileged thread mode.
@@ -194,20 +194,26 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
           regs[REG_OM] = rtcb->xcp.syscall[index].saved_om;
 #endif
           rtcb->xcp.nsyscalls = index;
+
+          /* The return value must be in A0-A1.  up_svcall_handler() temporarily
+           * moved the value for A0 into A2.
+           */
+
+          regs[REG_A0] = regs[REG_A2];
         }
         break;
 #endif
 
-      /* A6=SYS_task_start:  This a user task start
+      /* A0=SYS_task_start:  This a user task start
        *
        *   void up_task_start(main_t taskentry, int argc, FAR char *argv[]) noreturn_function;
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_task_start
-       *   A0 = taskentry
-       *   A1 = argc
-       *   A2 = argv
+       *   A0 = SYS_task_start
+       *   A1 = taskentry
+       *   A2 = argc
+       *   A3 = argv
        */
 
 #ifdef CONFIG_BUILD_PROTECTED
@@ -222,19 +228,27 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
           regs[REG_OM] &= ~REG_OM_MASK;
           regs[REG_OM] |=  REG_OM_USER;
 #endif
+
+          /* Change the parameter ordering to match the expectation of struct
+           * userpace_s task_startup:
+           */
+
+          regs[REG_A0]  = regs[REG_A1]; /* Task entry */
+          regs[REG_A1]  = regs[REG_A2]; /* argc */
+          regs[REG_A2]  = regs[REG_A3]; /* argv */
         }
         break;
 #endif
 
-      /* A6=SYS_pthread_start:  This a user pthread start
+      /* A0=SYS_pthread_start:  This a user pthread start
        *
        *   void up_pthread_start(pthread_startroutine_t entrypt, pthread_addr_t arg) noreturn_function;
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_pthread_start
-       *   A0 = entrypt
-       *   A1 = arg
+       *   A0 = SYS_pthread_start
+       *   A1 = entrypt
+       *   A2 = arg
        */
 
 #if defined(CONFIG_BUILD_PROTECTED) && !defined(CONFIG_DISABLE_PTHREAD)
@@ -249,22 +263,29 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
           regs[REG_OM] &= ~REG_OM_MASK;
           regs[REG_OM] |=  REG_OM_USER;
 #endif
+
+          /* Change the parameter ordering to match the expectation of struct
+           * userpace_s pthread_startup:
+           */
+
+          regs[REG_A0]  = regs[REG_A1]; /* pthread entry */
+          regs[REG_A1]  = regs[REG_A2]; /* arg */
         }
         break;
 #endif
 
-      /* A6=SYS_signal_handler:  This a user signal handler callback
+      /* A0=SYS_signal_handler:  This a user signal handler callback
        *
        * void signal_handler(_sa_sigaction_t sighand, int signo,
        *                     FAR siginfo_t *info, FAR void *ucontext);
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_signal_handler
-       *   A0 = sighand
-       *   A1 = signo
-       *   A2 = info
-       *   A3 = ucontext
+       *   A0 = SYS_signal_handler
+       *   A1 = sighand
+       *   A2 = signo
+       *   A3 = info
+       *   A4 = ucontext
        */
 
 #if defined(CONFIG_BUILD_PROTECTED) && !defined(CONFIG_DISABLE_SIGNALS)
@@ -286,17 +307,26 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
           regs[REG_OM] &= ~REG_OM_MASK;
           regs[REG_OM] |=  REG_OM_USER;
 #endif
+
+          /* Change the parameter ordering to match the expectation of struct
+           * userpace_s signal_handler.
+           */
+
+          regs[REG_A0]  = regs[REG_A1]; /* sighand */
+          regs[REG_A1]  = regs[REG_A2]; /* signal */
+          regs[REG_A2]  = regs[REG_A3]; /* info */
+          regs[REG_A3]  = regs[REG_A4]; /* ucontext */
         }
         break;
 #endif
 
-      /* R6=SYS_signal_handler_return:  This a user signal handler callback
+      /* A0=SYS_signal_handler_return:  This a user signal handler callback
        *
        *   void signal_handler_return(void);
        *
        * At this point, the following values are saved in context:
        *
-       *   A6 = SYS_signal_handler_return
+       *   A0 = SYS_signal_handler_return
        */
 
 #if defined(CONFIG_BUILD_PROTECTED) && !defined(CONFIG_DISABLE_SIGNALS)
@@ -348,19 +378,11 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
           regs[REG_OM] |=  REG_OM_KERNEL;
 #endif
 
-          /* Rotate A6(cmd) to A0 to account for the stub prototype
-           * Offset A6(cmd) to account for the reserved values
-           */
+          /* Offset A0 to account for the reserved values */
 
-          regs[REG_A6] = regs[REG_A5];
-          regs[REG_A5] = regs[REG_A4];
-          regs[REG_A4] = regs[REG_A3];
-          regs[REG_A3] = regs[REG_A2];
-          regs[REG_A2] = regs[REG_A1];
-          regs[REG_A1] = regs[REG_A0];
-          regs[REG_A0] = cmd - CONFIG_SYS_RESERVED;
+          regs[REG_A0] -= CONFIG_SYS_RESERVED;
 #else
-          svcerr("ERROR: Bad SYS call: %d\n", regs[REG_A6]);
+          svcerr("ERROR: Bad SYS call: %d\n", regs[REG_A0]);
 #endif
         }
         break;

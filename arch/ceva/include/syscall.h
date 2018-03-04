@@ -44,10 +44,10 @@
  * Included Files
  ****************************************************************************/
 
-/* Include CEVA architecture-specific syscall macros */
+#include <nuttx/config.h>
 
-#if defined(CONFIG_ARCH_TL420) || defined(CONFIG_ARCH_TL421)
-#  include <arch/tl4/syscall.h>
+#ifndef __ASSEMBLY__
+#  include <stdint.h>
 #endif
 
 /****************************************************************************
@@ -78,6 +78,43 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
+
+/* TRAP call with SYS_ call number and no parameters */
+
+uintptr_t sys_call0(unsigned int nbr);
+
+/* TRAP call with SYS_ call number and one parameter */
+
+uintptr_t sys_call1(unsigned int nbr, uintptr_t parm1);
+
+/* TRAP call with SYS_ call number and two parameters */
+
+uintptr_t sys_call2(unsigned int nbr, uintptr_t parm1,
+                    uintptr_t parm2);
+
+/* TRAP call with SYS_ call number and three parameters */
+
+uintptr_t sys_call3(unsigned int nbr, uintptr_t parm1,
+                    uintptr_t parm2, uintptr_t parm3);
+
+/* TRAP call with SYS_ call number and four parameters */
+
+uintptr_t sys_call4(unsigned int nbr, uintptr_t parm1,
+                    uintptr_t parm2, uintptr_t parm3,
+                    uintptr_t parm4);
+
+/* TRAP call with SYS_ call number and five parameters */
+
+uintptr_t sys_call5(unsigned int nbr, uintptr_t parm1,
+                    uintptr_t parm2, uintptr_t parm3,
+                    uintptr_t parm4, uintptr_t parm5);
+
+/* TRAP call with SYS_ call number and six parameters */
+
+uintptr_t sys_call6(unsigned int nbr, uintptr_t parm1,
+                    uintptr_t parm2, uintptr_t parm3,
+                    uintptr_t parm4, uintptr_t parm5,
+                    uintptr_t parm6);
 
 #undef EXTERN
 #ifdef __cplusplus
