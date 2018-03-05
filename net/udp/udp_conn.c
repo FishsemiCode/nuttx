@@ -117,7 +117,7 @@ static inline void _udp_semtake(FAR sem_t *sem)
        * the wait was awakened by a signal.
        */
 
-      ASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR);
     }
 
   UNUSED(ret);

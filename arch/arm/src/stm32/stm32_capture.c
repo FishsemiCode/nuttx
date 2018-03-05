@@ -710,7 +710,7 @@ static int stm32_cap_setisr(FAR struct stm32_cap_dev_s *dev, xcpt_t handler, voi
   int irq_of;
 #endif
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   irq = priv->irq;
 #ifdef USE_ADVENCED_TIM
@@ -769,7 +769,7 @@ static void stm32_cap_enableint(FAR struct stm32_cap_dev_s *dev,
 {
   const struct stm32_cap_priv_s *priv = (const struct stm32_cap_priv_s *)dev;
   uint16_t mask = 0;
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   if (src & STM32_CAP_FLAG_IRQ_COUNTER)
     {
@@ -931,7 +931,7 @@ static int stm32_cap_setchannel(FAR struct stm32_cap_dev_s *dev, uint8_t channel
   uint16_t regval;
   uint16_t ccer_en_bit;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   gpio = stm32_cap_gpio(priv,channel);
 
@@ -1032,7 +1032,7 @@ static uint32_t stm32_cap_getcapture(FAR struct stm32_cap_dev_s *dev, uint8_t ch
 {
   const struct stm32_cap_priv_s *priv = (const struct stm32_cap_priv_s *)dev;
   uint32_t offset;
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   switch (channel)
     {
@@ -1329,7 +1329,7 @@ int stm32_cap_deinit(FAR struct stm32_cap_dev_s * dev)
 {
   const struct stm32_cap_priv_s *priv = (struct stm32_cap_priv_s *)dev;
   uint32_t gpio;
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Disable timer while is not configured */
 

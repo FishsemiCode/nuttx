@@ -337,7 +337,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
       else
         {
           leave_critical_section(flags);
-          ASSERT(nxsig_add_pendingsignal(stcb, info));
+          DEBUGASSERT(nxsig_add_pendingsignal(stcb, info));
         }
     }
 

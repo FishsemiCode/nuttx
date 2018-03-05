@@ -981,7 +981,7 @@ static int lc823450_i2c_transfer(FAR struct i2c_master_s *dev,
   irqstate_t irqs;
   int ret = 0;
 
-  ASSERT(count);
+  DEBUGASSERT(count);
 
   priv->timedout = false;
 
@@ -1108,7 +1108,7 @@ FAR struct i2c_master_s *lc823450_i2cbus_initialize(int port)
         break;
 #endif
     default:
-      ASSERT(false);
+      DEBUGASSERT(false);
       return NULL;
     }
 
@@ -1145,7 +1145,7 @@ int lc823450_i2cbus_uninitialize(FAR struct i2c_master_s *dev)
   irqstate_t flags;
   int port = -1;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Decrement refs and check for underflow */
 

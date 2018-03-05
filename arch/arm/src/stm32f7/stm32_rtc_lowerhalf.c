@@ -428,7 +428,7 @@ static int stm32_setrelative(FAR struct rtc_lowerhalf_s *lower,
   time_t seconds;
   int ret = -EINVAL;
 
-  ASSERT(lower != NULL && alarminfo != NULL);
+  DEBUGASSERT(lower != NULL && alarminfo != NULL);
   DEBUGASSERT(alarminfo->id == RTC_ALARMA || alarminfo->id == RTC_ALARMB);
 
   if ((alarminfo->id == RTC_ALARMA || alarminfo->id == RTC_ALARMB) &&
@@ -545,7 +545,7 @@ static int stm32_rdalarm(FAR struct rtc_lowerhalf_s *lower,
   struct alm_rdalarm_s lowerinfo;
   int ret = -EINVAL;
 
-  ASSERT(lower != NULL && alarminfo != NULL && alarminfo->time != NULL);
+  DEBUGASSERT(lower != NULL && alarminfo != NULL && alarminfo->time != NULL);
   DEBUGASSERT(alarminfo->id == RTC_ALARMA || alarminfo->id == RTC_ALARMB);
 
   if (alarminfo->id == RTC_ALARMA || alarminfo->id == RTC_ALARMB)

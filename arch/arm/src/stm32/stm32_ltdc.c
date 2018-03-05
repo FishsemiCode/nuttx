@@ -1232,7 +1232,7 @@ static int stm32_ltdc_reload(uint8_t value, bool waitvblank)
 
       flags = enter_critical_section();
 
-      ASSERT(priv->handled == true);
+      DEBUGASSERT(priv->handled == true);
 
       /* Reset the handled flag */
 

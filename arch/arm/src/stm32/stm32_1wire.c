@@ -1259,7 +1259,7 @@ int stm32_1wireuninitialize(FAR struct onewire_dev_s *dev)
   struct stm32_1wire_priv_s *priv = ((struct stm32_1wire_inst_s *)dev)->priv;
   int irqs;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Decrement reference count and check for underflow */
 

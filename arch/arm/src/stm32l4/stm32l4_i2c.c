@@ -2437,7 +2437,7 @@ static int stm32l4_i2c_process(FAR struct i2c_master_s *dev,
   int         errval = 0;
   int         waitrc = 0;
 
-  ASSERT(count);
+  DEBUGASSERT(count);
 
   /* Wait for any STOP in progress */
 
@@ -2682,7 +2682,7 @@ static int stm32l4_i2c_reset(FAR struct i2c_master_s * dev)
   uint32_t frequency;
   int ret = ERROR;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Get I2C private structure */
 
@@ -2690,7 +2690,7 @@ static int stm32l4_i2c_reset(FAR struct i2c_master_s * dev)
 
   /* Our caller must own a ref */
 
-  ASSERT(priv->refs > 0);
+  DEBUGASSERT(priv->refs > 0);
 
   /* Lock out other clients */
 
@@ -2881,7 +2881,7 @@ int stm32l4_i2cbus_uninitialize(FAR struct i2c_master_s * dev)
 {
   int irqs;
 
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Decrement refs and check for underflow */
 

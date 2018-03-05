@@ -530,7 +530,7 @@ FAR struct cc1101_dev_s *
 {
   FAR struct cc1101_dev_s *dev;
 
-  ASSERT(spi);
+  DEBUGASSERT(spi);
 
   if ((dev = kmm_malloc(sizeof(struct cc1101_dev_s))) == NULL)
     {
@@ -594,7 +594,7 @@ FAR struct cc1101_dev_s *
 
 int cc1101_deinit(struct cc1101_dev_s *dev)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Release the external GPIO interrupt
    *
@@ -614,20 +614,20 @@ int cc1101_deinit(struct cc1101_dev_s *dev)
 
 int cc1101_powerup(struct cc1101_dev_s *dev)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
   return 0;
 }
 
 int cc1101_powerdown(struct cc1101_dev_s *dev)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
   return 0;
 }
 
 int cc1101_setgdo(struct cc1101_dev_s *dev, uint8_t pin, uint8_t function)
 {
-  ASSERT(dev);
-  ASSERT(pin <= CC1101_IOCFG0);
+  DEBUGASSERT(dev);
+  DEBUGASSERT(pin <= CC1101_IOCFG0);
 
   if (function >= CC1101_GDO_CLK_XOSC1)
     {
@@ -660,8 +660,8 @@ int cc1101_setgdo(struct cc1101_dev_s *dev, uint8_t pin, uint8_t function)
 
 int cc1101_setrf(struct cc1101_dev_s *dev, const struct c1101_rfsettings_s *settings)
 {
-  ASSERT(dev);
-  ASSERT(settings);
+  DEBUGASSERT(dev);
+  DEBUGASSERT(settings);
 
   if (cc1101_access(dev, CC1101_FSCTRL1, (FAR uint8_t *)&settings->FSCTRL1, -11) < 0)
     {
@@ -698,7 +698,7 @@ int cc1101_setrf(struct cc1101_dev_s *dev, const struct c1101_rfsettings_s *sett
 
 int cc1101_setchannel(struct cc1101_dev_s *dev, uint8_t channel)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* Store localy in further checks */
 
@@ -721,7 +721,7 @@ int cc1101_setchannel(struct cc1101_dev_s *dev, uint8_t channel)
 
 uint8_t cc1101_setpower(struct cc1101_dev_s *dev, uint8_t power)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   if (power > dev->rfsettings->PAMAX)
     {
@@ -767,7 +767,7 @@ int cc1101_calcRSSIdBm(int rssi)
 
 int cc1101_receive(struct cc1101_dev_s *dev)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   /* \todo Wait for IDLE before going into another state? */
 
@@ -780,7 +780,7 @@ int cc1101_receive(struct cc1101_dev_s *dev)
 
 int cc1101_read(struct cc1101_dev_s *dev, uint8_t * buf, size_t size)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   if (buf == NULL)
     {
@@ -832,8 +832,8 @@ int cc1101_write(struct cc1101_dev_s *dev, const uint8_t *buf, size_t size)
 {
   uint8_t packetlen;
 
-  ASSERT(dev);
-  ASSERT(buf);
+  DEBUGASSERT(dev);
+  DEBUGASSERT(buf);
 
   if (dev->flags & FLAGS_RXONLY)
     {
@@ -859,7 +859,7 @@ int cc1101_write(struct cc1101_dev_s *dev, const uint8_t *buf, size_t size)
 
 int cc1101_send(struct cc1101_dev_s *dev)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
 
   if (dev->flags & FLAGS_RXONLY)
     {
@@ -879,7 +879,7 @@ int cc1101_send(struct cc1101_dev_s *dev)
 
 int cc1101_idle(struct cc1101_dev_s *dev)
 {
-  ASSERT(dev);
+  DEBUGASSERT(dev);
   cc1101_strobe(dev, CC1101_SIDLE);
   return 0;
 }

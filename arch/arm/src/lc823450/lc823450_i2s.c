@@ -172,7 +172,7 @@ extern unsigned int XT1OSC_CLK;
 
 static void _setup_audio_pll(uint32_t freq)
 {
-  ASSERT(24000000 == XT1OSC_CLK);
+  DEBUGASSERT(24000000 == XT1OSC_CLK);
 
   uint32_t m;
   uint32_t n;
@@ -190,7 +190,7 @@ static void _setup_audio_pll(uint32_t freq)
         break;
 
       default:
-        ASSERT(false);
+        DEBUGASSERT(false);
     }
 
   /* Set divider */

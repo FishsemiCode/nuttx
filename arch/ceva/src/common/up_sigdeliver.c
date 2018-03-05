@@ -78,7 +78,7 @@ void up_sigdeliver(void)
 
   sinfo("rtcb=%p sigdeliver=%p sigpendactionq.head=%p\n",
         rtcb, rtcb->xcp.sigdeliver, rtcb->sigpendactionq.head);
-  ASSERT(rtcb->xcp.sigdeliver != NULL);
+  DEBUGASSERT(rtcb->xcp.sigdeliver != NULL);
 
   /* Get a local copy of the sigdeliver function pointer. We do this so that
    * we can nullify the sigdeliver function pointer in the TCB and accept

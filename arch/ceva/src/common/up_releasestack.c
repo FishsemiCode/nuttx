@@ -220,7 +220,7 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
            * collect garbage on a group-by-group basis.
            */
 
-          ASSERT(!up_interrupt_context());
+          DEBUGASSERT(!up_interrupt_context());
           if (umm_heapmember(dtcb->stack_alloc_ptr))
             {
               kumm_free(dtcb->stack_alloc_ptr);

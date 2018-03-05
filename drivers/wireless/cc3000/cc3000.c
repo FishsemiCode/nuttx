@@ -613,7 +613,7 @@ static void *cc3000_worker(FAR void *arg)
   FAR struct cc3000_dev_s *priv = (FAR struct cc3000_dev_s *)arg;
   int ret;
 
-  ASSERT(priv != NULL && priv->config != NULL);
+  DEBUGASSERT(priv != NULL && priv->config != NULL);
 
   /* We have started, release our creator */
 
