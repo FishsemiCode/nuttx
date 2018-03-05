@@ -33,7 +33,7 @@
 #
 ############################################################################
 
-ifeq ($(WINTOOL),y)
+ifeq ($(CONFIG_WINDOWS_CYGWIN),y)
   # Windows-native toolchains
   HOST = windows
   DIRLINK = $(TOPDIR)/tools/copydir.sh
