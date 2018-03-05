@@ -44,3 +44,9 @@ mount -t binfs /bin
 #ifdef CONFIG_FS_TMPFS
 mount -t tmpfs /tmp
 #endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG
+mount -t hostfs -o fs=/data /data
+mount -t hostfs -o fs=/system /system
+mount -t hostfs -o fs=/vendor /vendor
+#endif
