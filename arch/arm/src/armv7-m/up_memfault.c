@@ -52,7 +52,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#undef DEBUG_MEMFAULTS         /* Define to debug memory management faults */
+#define DEBUG_MEMFAULTS         /* Define to debug memory management faults */
 
 #ifdef DEBUG_MEMFAULTS
 # define mferr(format, ...)  _alert(format, ##__VA_ARGS__)
@@ -79,6 +79,10 @@
 
 int up_memfault(int irq, FAR void *context, FAR void *arg)
 {
+#ifdef DEBUG_MEMFAULTS
+  uint32_t *regs = (uint32_t *)context;
+#endif
+
   /* Dump some memory management fault info */
 
   (void)up_irq_save();
