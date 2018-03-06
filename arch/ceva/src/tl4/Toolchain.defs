@@ -148,9 +148,11 @@ ifeq ($(CONFIG_WINDOWS_CYGWIN),y)
   WINTOOL = y
 endif
 
-CC  = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet
-CXX = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -cxx
-CPP = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -E -P -x c
+CC   = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet
+CXX  = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -cxx
+CPP  = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -E -P
+CPP += -DCPP_SELF=$(strip $1) -D_ACC_T_H_
+CPP += $(TOPDIR)/arch/$(CONFIG_ARCH)/src/tl4/dummy.c
 
 # disable all built-in rules
 .SUFFIXES:

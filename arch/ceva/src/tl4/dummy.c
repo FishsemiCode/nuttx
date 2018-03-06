@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/src/tl4/acc.h
+ * arch/ceva/src/tl4/dummy.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,21 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_SRC_TL4_ACC_H
-#define __ARCH_CEVA_SRC_TL4_ACC_H
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-/* tl4cc always automatically include acc.h which contain some syntax that
- * tl4asm doesn't support, so let's:
- * 1.Add our own acc.h and redirect all inclusion to this header file.
- * 2.Include the system acc.h only when __ASSEMBLY__ isn't defined.
- */
-
-  #include_next <acc.h>
+#ifdef CPP_SELF
+#define _STRINGIZING(s) #s
+#define STRINGIZING(s) _STRINGIZING(s)
+#include STRINGIZING(CPP_SELF)
 #endif
-
-#endif /* __ARCH_CEVA_SRC_TL4_ACC_H */
