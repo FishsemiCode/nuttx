@@ -66,19 +66,6 @@
 #define MAX_TASKS_MASK           (CONFIG_MAX_TASKS-1)
 #define PIDHASH(pid)             ((pid) & MAX_TASKS_MASK)
 
-/* These are macros to access the current CPU and the current task on a CPU.
- * These macros are intended to support a future SMP implementation.
- */
-
-#ifdef CONFIG_SMP
-#  define current_task(cpu)      ((FAR struct tcb_s *)g_assignedtasks[cpu].head)
-#  define this_cpu()             up_cpu_index()
-#else
-#  define current_task(cpu)      ((FAR struct tcb_s *)g_readytorun.head)
-#  define this_cpu()             (0)
-#endif
-#define this_task()              (current_task(this_cpu()))
-
 /* List attribute flags */
 
 #define TLIST_ATTR_PRIORITIZED   (1 << 0) /* Bit 0: List is prioritized */
@@ -361,6 +348,32 @@ extern volatile spinlock_t g_cpu_locksetlock SP_SECTION;
 extern volatile cpu_set_t g_cpu_lockset SP_SECTION;
 
 #endif /* CONFIG_SMP */
+
+/****************************************************************************
+ * Inline functions
+ ****************************************************************************/
+
+#ifdef CONFIG_SMP
+static inline FAR struct tcb_s *current_task(int cpu)
+{
+  return (FAR struct tcb_s *)g_assignedtasks[cpu].head;
+}
+#else
+static inline FAR struct tcb_s *current_task(int cpu)
+{
+  return (FAR struct tcb_s *)g_readytorun.head;
+}
+#endif
+
+static inline uint32_t this_cpu(void)
+{
+  return up_cpu_index();
+}
+
+static inline FAR struct tcb_s *this_task(void)
+{
+  return current_task(this_cpu());
+}
 
 /****************************************************************************
  * Public Function Prototypes
