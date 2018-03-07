@@ -176,6 +176,7 @@ struct sock_intf_s
                     size_t len, int flags, FAR struct sockaddr *from,
                     FAR socklen_t *fromlen);
   CODE int        (*si_close)(FAR struct socket *psock);
+  CODE int        (*si_ioctl)(FAR struct socket *psock, int cmd, FAR void *arg, size_t arglen);
 };
 
 /* This is the internal representation of a socket reference by a file

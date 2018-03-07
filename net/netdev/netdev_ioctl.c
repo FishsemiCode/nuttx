@@ -63,10 +63,8 @@
 #  include <nuttx/net/sixlowpan.h>
 #endif
 
-#ifdef CONFIG_NET_IGMP
-#  include <sys/sockio.h>
-#  include <nuttx/net/igmp.h>
-#endif
+#include <sys/sockio.h>
+#include <nuttx/net/igmp.h>
 
 #ifdef CONFIG_NETDEV_WIRELESS_IOCTL
 #  include <nuttx/wireless/wireless.h>
@@ -1345,6 +1343,95 @@ static int netdev_rt_ioctl(FAR struct socket *psock, int cmd,
 #endif
 
 /****************************************************************************
+ * Name: netdev_sock_ioctl
+ *
+ * Description:
+ *   Perform user private ioctl operations.
+ *
+ * Parameters:
+ *   psock    Socket structure
+ *   cmd      The ioctl command
+ *   arg      The argument of the ioctl cmd
+ *
+ * Return:
+ *   >=0 on success (positive non-zero values are cmd-specific)
+ *   Negated errno returned on failure.
+ *
+ ****************************************************************************/
+static int netdev_sock_ioctl(FAR struct socket *psock, int cmd,
+                                   unsigned long arg)
+{
+  if (psock->s_sockif && psock->s_sockif->si_ioctl)
+    {
+      size_t arglen;
+
+      switch (cmd)
+        {
+        case SIOCGIFADDR:
+        case SIOCSIFADDR:
+        case SIOCGIFDSTADDR:
+        case SIOCSIFDSTADDR:
+        case SIOCGIFBRDADDR:
+        case SIOCSIFBRDADDR:
+        case SIOCGIFNETMASK:
+        case SIOCSIFNETMASK:
+        case SIOCGIFMTU:
+        case SIOCGIFHWADDR:
+        case SIOCSIFHWADDR:
+        case SIOCDIFADDR:
+        case SIOCGIFCOUNT:
+        case SIOCSIFFLAGS:
+        case SIOCGIFFLAGS:
+        case SIOCMIINOTIFY:
+        case SIOCGMIIPHY:
+        case SIOCGMIIREG:
+        case SIOCSMIIREG:
+          arglen = sizeof(struct ifreq);
+          break;
+        case SIOCGLIFADDR:
+        case SIOCSLIFADDR:
+        case SIOCGLIFDSTADDR:
+        case SIOCSLIFDSTADDR:
+        case SIOCGLIFBRDADDR:
+        case SIOCSLIFBRDADDR:
+        case SIOCGLIFNETMASK:
+        case SIOCSLIFNETMASK:
+        case SIOCGLIFMTU:
+        case SIOCIFAUTOCONF:
+          arglen = sizeof(struct lifreq);
+          break;
+        case SIOCGIFCONF:
+          arglen = sizeof(struct ifconf);
+          break;
+        case SIOCGLIFCONF:
+          arglen = sizeof(struct lifconf);
+          break;
+        case SIOCSIPMSFILTER:
+        case SIOCGIPMSFILTER:
+          arglen = sizeof(struct ip_msfilter);
+          break;
+        case SIOCSARP:
+        case SIOCDARP:
+        case SIOCGARP:
+          arglen = sizeof(struct arpreq);
+          break;
+        case SIOCADDRT:
+        case SIOCDELRT:
+          arglen = sizeof(struct rtentry);
+          break;
+        default:
+          return -ENOTTY;
+        }
+
+      return psock->s_sockif->si_ioctl(psock, cmd, (FAR void *)(uintptr_t)arg, arglen);
+    }
+  else
+    {
+      return -ENOTTY;
+    }
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -1390,9 +1477,14 @@ int psock_ioctl(FAR struct socket *psock, int cmd, unsigned long arg)
       return -EBADF;
     }
 
+  ret = netdev_sock_ioctl(psock, cmd, arg);
+
   /* Execute the command.  First check for a standard network IOCTL command. */
 
-  ret = netdev_ifr_ioctl(psock, cmd, (FAR struct ifreq *)((uintptr_t)arg));
+  if (ret == -ENOTTY)
+    {
+      ret = netdev_ifr_ioctl(psock, cmd, (FAR struct ifreq *)((uintptr_t)arg));
+    }
 
 #if defined(CONFIG_NETDEV_IOCTL) && defined(CONFIG_NETDEV_WIRELESS_IOCTL)
   /* Check for a wireless network command */

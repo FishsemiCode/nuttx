@@ -44,9 +44,7 @@ endif
 
 # Routing table support
 
-ifeq ($(CONFIG_NET_ROUTE),y)
 CSRCS += lib_addroute.c lib_delroute.c
-endif
 
 # Add the net directory to the build
 
