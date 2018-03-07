@@ -342,7 +342,6 @@ include/arch/board: include/arch
 
 $(ARCH_SRC)/board: .config $(BOARD_DIR)/src
 	@echo "LN: $(ARCH_SRC)/board to $(BOARD_DIR)/src"
-	$(Q) $(DIRUNLINK) $(ARCH_SRC)/board
 	$(Q) $(DIRLINK) $(BOARD_DIR)/src $(ARCH_SRC)/board
 
 # Link arch/<arch-name>/include/<chip-name> to arch/<arch-name>/include/chip
@@ -550,7 +549,7 @@ oldconfig: do_oldconfig clean_context
 do_olddefconfig: dirlinks apps_preconfig tools/kconfig-conf$(HOSTEXEEXT)
 	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-conf --olddefconfig $(KCONFIG_ROOT)
 
-olddefconfig: do_olddefconfig clean_context
+olddefconfig: do_olddefconfig
 
 do_menuconfig: dirlinks apps_preconfig tools/kconfig-mconf$(HOSTEXEEXT)
 	$(Q) cd $(TOPDIR) && $(KCONFIG_ENV) $(OUTDIR)/tools/kconfig-mconf $(KCONFIG_ROOT)
