@@ -61,10 +61,13 @@
 
 #define CPU_NAME_AP                 "ap"
 
-#define DDR_PWR_SLP_CTL0            0xf9210410
-
 #define _LOGBUF_BASE                ((uintptr_t)&_slog)
 #define _LOGBUF_SIZE                ((uint32_t)&_logsize)
+
+#define TOP_MAILBOX_BASE            (0xf9000000)
+
+#define DDR_PWR_BASE                (0xf9210000)
+#define DDR_PWR_SLP_CTL0            (DDR_PWR_BASE + 0x410)
 
 /****************************************************************************
  * Public Data
@@ -99,7 +102,7 @@ void arm_timer_initialize(void)
 {
   static const struct song_oneshot_config_s config =
   {
-    .base       = 0xf9210000,
+    .base       = DDR_PWR_BASE,
     .irq        = 18,
     .c1_max     = 2600,
     .c1_freq    = 26000000,
@@ -128,7 +131,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_ap =
   {
-    .base       = 0xf9000000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = 0x40,
     .en_off     = UINT32_MAX,
     .en_bit     = UINT32_MAX,
@@ -140,7 +143,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_rpm =
   {
-    .base       = 0xf9000000,
+    .base       = TOP_MAILBOX_BASE,
     .set_off    = UINT32_MAX,
     .en_off     = 0x324,
     .en_bit     = 16,

@@ -61,10 +61,11 @@
 
 #define CPU_NAME_AP                 "ap"
 
-#define SEN_PWR_SLPCTL0             0xf8b14000
-
 #define _LOGBUF_BASE                ((uintptr_t)&_slog)
 #define _LOGBUF_SIZE                ((uint32_t)&_logsize)
+
+#define SEN_PWR_BASE                (0xf8b14000)
+#define SEN_PWR_SLPCTL0             (SEN_PWR_BASE + 0x000)
 
 /****************************************************************************
  * Public Data
@@ -100,7 +101,7 @@ void arm_timer_initialize(void)
 {
   static const struct song_oneshot_config_s config =
   {
-    .base       = 0xf8b14000,
+    .base       = SEN_PWR_BASE,
     .irq        = 21,
     .c1_max     = 2600,
     .c1_freq    = 26000000,
@@ -129,7 +130,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_ap =
   {
-    .base       = 0xf8b14000,
+    .base       = SEN_PWR_BASE,
     .set_off    = 0x120,
     .en_off     = UINT32_MAX,
     .en_bit     = UINT32_MAX,
@@ -141,7 +142,7 @@ void up_openamp_initialize(void)
 
   static const struct song_mbox_config_s mbox_cfg_sensor =
   {
-    .base       = 0xf8b14000,
+    .base       = SEN_PWR_BASE,
     .set_off    = UINT32_MAX,
     .en_off     = 0x12c,
     .en_bit     = 16,
