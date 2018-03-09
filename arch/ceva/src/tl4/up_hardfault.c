@@ -49,8 +49,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define ERRPC                                   0x0330
-#define DPCON                                   0x03b8
+#define REG_ERRPC                               0x0330
+#define REG_DPCON                               0x03b8
 
 #ifdef CONFIG_DEBUG_HARDFAULT
 # define hfalert(format, ...)  _alert(format, ##__VA_ARGS__)
@@ -58,26 +58,27 @@
 # define hfalert(x...)
 #endif
 
-#define hfdumpreg(reg)                      \
-  hfalert("%s: %08x", #reg, getcpm(reg))
+#define hfdumpreg1(reg1)                           \
+  hfalert("%s: %08x\n",                           \
+          #reg1, getcpm(REG_##reg1))
 
-#define hfdumpreg1(reg1)                    \
-  hfdumpreg(reg1); hfalert("\n")
+#define hfdumpreg2(reg1, reg2)                    \
+  hfalert("%s: %08x %s: %08x\n",                  \
+          #reg1, getcpm(REG_##reg1),              \
+          #reg2, getcpm(REG_##reg2))
 
-#define hfdumpreg2(reg1, reg2)              \
-  hfdumpreg(reg1); hfalert(" ");            \
-  hfdumpreg(reg2); hfalert("\n")
+#define hfdumpreg3(reg1, reg2, reg3)              \
+  hfalert("%s: %08x %s: %08x %s: %08x\n",         \
+          #reg1, getcpm(REG_##reg1),              \
+          #reg2, getcpm(REG_##reg2),              \
+          #reg3, getcpm(REG_##reg3))
 
-#define hfdumpreg3(reg1, reg2, reg3)        \
-  hfdumpreg(reg1); hfalert(" ");            \
-  hfdumpreg(reg2); hfalert(" ");            \
-  hfdumpreg(reg3); hfalert("\n")
-
-#define hfdumpreg4(reg1, reg2, reg3, reg4)  \
-  hfdumpreg(reg1); hfalert(" ");            \
-  hfdumpreg(reg2); hfalert(" ");            \
-  hfdumpreg(reg3); hfalert(" ");            \
-  hfdumpreg(reg4); hfalert("\n")
+#define hfdumpreg4(reg1, reg2, reg3, reg4)        \
+  hfalert("%s: %08x %s: %08x %s: %08x %s: %08x\n",\
+          #reg1, getcpm(REG_##reg1),              \
+          #reg2, getcpm(REG_##reg2),              \
+          #reg3, getcpm(REG_##reg3),              \
+          #reg4, getcpm(REG_##reg4))
 
 /****************************************************************************
  * Public Functions
