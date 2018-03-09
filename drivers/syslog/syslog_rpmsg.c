@@ -64,7 +64,9 @@
 
 #define SYSLOG_RPMSG_WORK_DELAY         MSEC2TICK(CONFIG_SYSLOG_RPMSG_WORK_DELAY)
 
-#define SYSLOG_RPMSG_COUNT(h, t, size)  ((B2C(h)>=(t)) ? B2C(h)-(t) : (size)-((t)-B2C(h)))
+#define SYSLOG_RPMSG_COUNT(h, t, size)  ((B2C_OFF(h)>=(t)) ? \
+                                          B2C_OFF(h)-(t) : \
+                                          (size)-((t)-B2C_OFF(h)))
 #define SYSLOG_RPMSG_SPACE(h, t, size)  ((size) - 1 - SYSLOG_RPMSG_COUNT(h, t, size))
 
 /****************************************************************************
@@ -366,7 +368,7 @@ int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size)
 
           if (!isascii(cur))
             {
-              break;
+              goto out;
             }
 
           if (prev && !cur)
@@ -383,6 +385,7 @@ int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size)
         }
     }
 
+out:
   if (i != size)
     {
       priv->head = priv->tail = 0;
