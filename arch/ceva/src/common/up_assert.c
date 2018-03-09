@@ -63,26 +63,15 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_getfp
- ****************************************************************************/
-
-/* Utilize the builtin to get FP */
-
-static inline uintptr_t up_getfp(void)
-{
-  return (uintptr_t)__builtin_frame_address(0);
-}
-
-/****************************************************************************
  * Name: up_stackdump
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_STACKDUMP
-static void up_stackdump(uintptr_t fp, uintptr_t stack_base)
+static void up_stackdump(uint32_t sp, uint32_t stack_base)
 {
-  uintptr_t stack;
+  uint32_t stack;
 
-  for (stack = fp; stack < stack_base; stack += 8 * sizeof(uint32_t))
+  for (stack = sp; stack < stack_base; stack += 8 * sizeof(uint32_t))
     {
       uint32_t *ptr = (uint32_t *)stack;
       _alert("%08x: %08x %08x %08x %08x %08x %08x %08x %08x\n",
@@ -91,7 +80,7 @@ static void up_stackdump(uintptr_t fp, uintptr_t stack_base)
     }
 }
 #else
-#  define up_stackdump(fp, stack_base)
+#  define up_stackdump(sp, stack_base)
 #endif
 
 /****************************************************************************
@@ -192,18 +181,18 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 static void up_dumpstate(void)
 {
   struct tcb_s *rtcb = this_task();
-  uintptr_t fp = up_getfp();
-  uintptr_t stackbase;
-  size_t stacksize;
+  uint32_t sp = up_getsp();
+  uint32_t stackbase;
+  uint32_t stacksize;
 
   /* Get the limits on the user stack memory */
 
-  stackbase = (uintptr_t)rtcb->adj_stack_ptr;
+  stackbase = (uint32_t)rtcb->adj_stack_ptr;
   stacksize = rtcb->adj_stack_size;
 
   /* Show user stack info */
 
-  _alert("fp:         %08x\n", fp);
+  _alert("sp:         %08x\n", sp);
   _alert("stack base: %08x\n", stackbase);
   _alert("stack size: %08x\n", stacksize);
 #ifdef CONFIG_STACK_COLORATION
@@ -214,13 +203,13 @@ static void up_dumpstate(void)
    * stack memory.
    */
 
-  if (fp > stackbase || fp < stackbase - stacksize)
+  if (sp > stackbase || sp < stackbase - stacksize)
     {
       _alert("ERROR: Stack pointer is not within the allocated stack\n");
     }
   else
     {
-      up_stackdump(fp, stackbase);
+      up_stackdump(sp, stackbase);
     }
 
 #ifdef CONFIG_SMP
@@ -299,7 +288,7 @@ void up_assert(const uint8_t *filename, int lineno)
   up_dumpstate();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getfp(), this_task(), filename, lineno);
+  board_crashdump(up_getsp(), this_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

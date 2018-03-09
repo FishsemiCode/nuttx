@@ -183,6 +183,13 @@ struct xcptcontext
 
 #ifndef __ASSEMBLY__
 
+static inline uint32_t up_getsp(void)
+{
+  uint32_t sp;
+  __asm__ __volatile__("mov sp, %0" : "=r"(sp));
+  return sp;
+}
+
 /* Name: up_irq_save, up_irq_restore, and friends.
  *
  * NOTE: This function should never be called from application code and,

@@ -41,10 +41,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
 #include <assert.h>
-#include <string.h>
-
 #include <nuttx/arch.h>
 #include <nuttx/tls.h>
 
@@ -53,18 +50,6 @@
 /****************************************************************************
  * Inline Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: up_tls_get_stackbase
- ****************************************************************************/
-
-/* Utilize the builtin to get the stack base */
-
-static inline uintptr_t up_tls_get_stackbase(void)
-{
-  FAR void *fp = __builtin_frame_address(0);
-  return (uintptr_t)fp & (B2C(TLS_STACK_ALIGN) - 1);
-}
 
 /****************************************************************************
  * Name: up_tls_info
@@ -97,7 +82,7 @@ static inline uintptr_t up_tls_get_stackbase(void)
 static inline FAR struct tls_info_s *up_tls_info(void)
 {
   DEBUGASSERT(!up_interrupt_context());
-  return (FAR struct tls_info_s *)up_tls_get_stackbase();
+  return TLS_INFO((uintptr_t)up_getsp());
 }
 
 #endif /* CONFIG_TLS */
