@@ -128,8 +128,6 @@ KBIN = libkarch$(LIBEXT)
 UBIN = libuarch$(LIBEXT)
 BIN  = libarch$(LIBEXT)
 
-LDFLAGS += $(ARCHSCRIPT)
-
 # Override in Make.defs if linker is not 'ld'
 
 LDSTARTGROUP ?= --start-group
@@ -210,10 +208,13 @@ $(UBIN): $(UOBJS)
 board$(DELIM)libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
-nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT)
+$(notdir $(LDSCRIPT)): $(LDSCRIPT)
+	$(call PREPROCESS, $<, $@)
+
+nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(notdir $(LDSCRIPT))
 	$(Q) echo "LD: nuttx"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
-		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
+		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) -T $(notdir $(LDSCRIPT)) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
 	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
 	$(Q) $(OBJDUMP) -t $(NUTTX) | sort > $(OUTDIR)$(DELIM)nuttx.sym

@@ -104,8 +104,6 @@ KBIN = libkarch$(LIBEXT)
 UBIN = libuarch$(LIBEXT)
 BIN  = libarch$(LIBEXT)
 
-LDFLAGS += $(ARCHSCRIPT)
-
 EXTRA_LIBS ?=
 EXTRA_LIBPATHS ?=
 LINKLIBS ?=
@@ -170,12 +168,15 @@ $(UBIN): $(UOBJS)
 board$(DELIM)libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
-nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT)
+$(notdir $(LDSCRIPT)): $(LDSCRIPT)
+	$(call PREPROCESS, $<, $@)
+
+nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(notdir $(LDSCRIPT))
 	$(Q) echo "LD: nuttx"
 	$(Q) $(LD) $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		$(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) \
-		-l $(OUTDIR)$(DELIM)nuttx.lin
+		-l $(OUTDIR)$(DELIM)nuttx.lin $(notdir $(LDSCRIPT))
 	$(Q) $(DISASM) -o $(OUTDIR)$(DELIM)nuttx.lst $(NUTTX)
 	$(Q) $(OBJDUMP) $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.dump
 	$(Q) $(OBJCOPY) -b $(OUTDIR)$(DELIM)nuttx -c -split $(NUTTX)
