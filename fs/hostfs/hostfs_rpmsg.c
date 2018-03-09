@@ -390,7 +390,6 @@ ssize_t host_write(int fd, const void *buf, size_t count)
   uint32_t space;
   int ret = 0;
 
-
   while (written < count)
     {
       msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
@@ -532,7 +531,8 @@ int host_readdir(void *dirp, struct dirent* entry)
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg));
   if (ret == 0)
     {
-      memcpy(entry, &msg.entry, sizeof(*entry));
+      entry->d_type = msg.type;
+      bstr2cstr(entry->d_name, msg.name);
     }
 
   return ret;

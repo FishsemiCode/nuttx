@@ -421,7 +421,8 @@ static void hostfs_rpmsg_readdir_handler(struct rpmsg_channel *channel,
   entry = readdir((void *)(uintptr_t)msg->dirp);
   if (entry)
     {
-      memcpy(&msg->entry, entry, sizeof(*entry));
+      msg->type = entry->d_type;
+      memcpy(msg->name, entry->d_name, sizeof(msg->name));
       ret = 0;
     }
 

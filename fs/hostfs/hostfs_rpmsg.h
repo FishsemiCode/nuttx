@@ -148,8 +148,8 @@ begin_packed_struct struct hostfs_rpmsg_readdir_s
 {
   struct hostfs_rpmsg_header_s header;
   uint32_t                     dirp;
-  uint32_t                     reserved;
-  struct dirent                entry;
+  uint32_t                     type;
+  char                         name[NAME_MAX];
 } end_packed_struct;
 
 begin_packed_struct struct hostfs_rpmsg_rewinddir_s
