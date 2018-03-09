@@ -58,4 +58,4 @@ HEAD_ASRC  += up_head.S
 #
 CHIP_CSRCS += abies_adsp.c banks_adsp.c
 CHIP_CSRCS += dw_vintc.c
-CHIP_CSRCS += song_board.c
+CHIP_CSRCS += song_addrenv.c song_board.c

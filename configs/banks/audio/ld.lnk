@@ -32,10 +32,13 @@
 ; POSSIBILITY OF SUCH DAMAGE.
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+#include <nuttx/config.h>
+
 classes:
 	code	[C:00000000, C:0001ffff] internal ;[0xf8600000, 0xf863ffff] 256KB
 	data	[D:00000000, D:0001ffff] internal ;[0xf8400000, 0xf843ffff] 256KB
-	sram	[C:7c008000, C:7c047fff] external ;[0xf8010000, 0xf808ffff] 512KB
+	sram	[C:7c008000, C:7c046fff] external ;[0xf8010000, 0xf808dfff] 504KB (512 - 8)
 
 code:
 	__stext symbol
@@ -67,7 +70,9 @@ sram:
 	__sdata2 symbol
 	.data
 	__edata2 symbol
+	resource_table
 	__sbss2 symbol
 	.bss
 	__ebss2 symbol
-	__eheap2 at hi symbol
+	__eheap2 at hi - CONFIG_LOGBUF_SIZE symbol
+	__slog at hi - CONFIG_LOGBUF_SIZE symbol

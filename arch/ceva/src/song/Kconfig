@@ -41,6 +41,10 @@ config SONG_TL421
 config SONG_NR_IRQS
 	int "Interrupt Number"
 
+config LOGBUF_SIZE
+	int "Logbuf size"
+	default 1024
+
 config VINTC_DW
 	bool "DesignWare Interrupt Controller"
 	select ARCH_HAVE_IRQPRIO
