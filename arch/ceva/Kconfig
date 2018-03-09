@@ -136,6 +136,15 @@ config ARCH_RTL_MINOR
 config ARCH_RTL_REVISION
 	int "RTL Version Revision Number"
 
+config DEBUG_HARDFAULT
+	bool "Verbose Hard-Fault Debug"
+	default n
+	depends on DEBUG_FEATURES
+	---help---
+		Enables verbose debug output when a hard fault is occurs.  This verbose
+		output is sometimes helpful when debugging difficult hard fault problems,
+		but may be more than you typically want to see.
+
 if ARCH_TL420 || ARCH_TL421
 source arch/ceva/src/tl4/Kconfig
 endif
