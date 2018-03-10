@@ -87,7 +87,7 @@ endef
 
 ARCHOPTIMIZATION =
 ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
-  ARCHOPTIMIZATION = -g3
+  ARCHOPTIMIZATION = -g -mrelative-path -Wa,-relativePath
 endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
