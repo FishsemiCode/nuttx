@@ -186,7 +186,7 @@ struct xcptcontext
 static inline uint32_t up_getsp(void)
 {
   uint32_t sp;
-  __asm__ __volatile__("mov sp, %0" : "=r"(sp));
+  __asm__ __volatile__("nop\nmov sp, %0" : "=r"(sp));
   return sp;
 }
 
