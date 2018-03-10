@@ -74,9 +74,9 @@ include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++
 CPP = $(CROSSDEV)gcc -E -P -x c
-LD = $(CROSSDEV)ld
-AR = $(ARCROSSDEV)ar rcs
-NM = $(ARCROSSDEV)nm
+LD = $(CROSSDEV)gcc
+AR = $(ARCROSSDEV)gcc-ar rcs
+NM = $(ARCROSSDEV)gcc-nm
 OBJCOPY = $(CROSSDEV)objcopy
 OBJDUMP = $(CROSSDEV)objdump
 
@@ -92,7 +92,7 @@ endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
   ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
-  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections
+  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections -flto -fuse-linker-plugin
 endif
 
 ARCHCFLAGS = -fno-builtin
@@ -136,6 +136,9 @@ OBJEXT = .o
 LIBEXT = .a
 EXEEXT =
 
+LDSTARTGROUP = -Wl,--start-group
+LDENDGROUP   = -Wl,--end-group
+
 ifeq ($(filter -nuttx-, $(CROSSDEV)),)
   LDFLAGS += -nostartfiles -nodefaultlibs
 endif
@@ -144,7 +147,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
 endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
-  LDFLAGS += --gc-sections
+  LDFLAGS += -Wl,--gc-sections
 endif
 
 LIBM = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libm.a}"

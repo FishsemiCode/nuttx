@@ -60,7 +60,7 @@ static void init_userspace(void);
 
 #ifdef CONFIG_STACK_COLORATION
 static void color_start(FAR void *stack, unsigned int size)
-  __attribute__ ((naked, no_instrument_function, noreturn));
+  __attribute__ ((naked, no_instrument_function));
 #endif
 
 #ifdef CONFIG_SONG_COPY_TABLE
@@ -235,7 +235,8 @@ static void color_start(FAR void *stack, unsigned int size)
 
     "2:\n"
     "\tmov  r14, #0\n"          /* LR = return address (none) */
-    "\tb    os_start\n"         /* Branch to os_start */
+    "\tbx   %0\n"               /* Branch to os_start */
+     : : "r"(os_start)
   );
 }
 #else
@@ -293,4 +294,9 @@ void __start(void)
   board_earlyinitialize();
 
   color_start((FAR void *)&_ebss, CONFIG_IDLETHREAD_STACKSIZE);
+
+  /* Force link functions from libgcc.lib when LTO turn on */
+
+  extern void arm_lto(void);
+  arm_lto();
 }
