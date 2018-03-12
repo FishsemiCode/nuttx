@@ -67,11 +67,6 @@
  *   is enabled, then the following options can also be used:
  * CONFIG_SCHED_HPWORKPRIORITY - The execution priority of the high-
  *   priority worker thread.  Default: 224
- * CONFIG_SCHED_HPWORKPERIOD - How often the worker thread checks for
- *   work in units of microseconds.  If the high priority worker thread is
- *   performing garbage collection, then the default is 50*1000 (50 MS).
- *   Otherwise, if the lower priority worker thread is performing garbage
- *   collection, the default is 100*1000.
  * CONFIG_SCHED_HPWORKSTACKSIZE - The stack size allocated for the worker
  *   thread.  Default: 2048.
  * CONFIG_SIG_SIGWORK - The signal number that will be used to wake-up
@@ -87,8 +82,6 @@
  *   priority worker thread.  Default: 50
  * CONFIG_SCHED_LPWORKPRIOMAX - The maximum execution priority of the lower
  *   priority worker thread.  Default: 176
- * CONFIG_SCHED_LPWORKPERIOD - How often the lower priority worker thread
- *  checks for work in units of microseconds.  Default: 50*1000 (50 MS).
  * CONFIG_SCHED_LPWORKSTACKSIZE - The stack size allocated for the lower
  *   priority worker thread.  Default: 2048.
  *
@@ -154,14 +147,6 @@
 #    define CONFIG_SCHED_HPWORKPRIORITY 224
 #  endif
 
-#  ifndef CONFIG_SCHED_HPWORKPERIOD
-#    ifdef CONFIG_SCHED_LPWORK
-#      define CONFIG_SCHED_HPWORKPERIOD (100*1000) /* 100 milliseconds */
-#    else
-#      define CONFIG_SCHED_HPWORKPERIOD (50*1000)  /* 50 milliseconds */
-#    endif
-#  endif
-
 #  ifndef CONFIG_SCHED_HPWORKSTACKSIZE
 #    define CONFIG_SCHED_HPWORKSTACKSIZE CONFIG_IDLETHREAD_STACKSIZE
 #  endif
@@ -199,10 +184,6 @@
 
 #  if CONFIG_SCHED_LPWORKPRIORITY > CONFIG_SCHED_LPWORKPRIOMAX
 #    error CONFIG_SCHED_LPWORKPRIORITY > CONFIG_SCHED_LPWORKPRIOMAX
-#  endif
-
-#  ifndef CONFIG_SCHED_LPWORKPERIOD
-#    define CONFIG_SCHED_LPWORKPERIOD (50*1000) /* 50 milliseconds */
 #  endif
 
 #  ifndef CONFIG_SCHED_LPWORKSTACKSIZE
