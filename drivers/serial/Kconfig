@@ -22,10 +22,10 @@ config SERIAL_CONSOLE
 config SERIAL_SIGKILL_CHAR
 	int "Serial check sigkill use CHAR X"
 	default 3 if SERIAL_CONSOLE
-	default 24 if !SERIAL_CONSOLE
+	default 4 if !SERIAL_CONSOLE
 	depends on SIG_SIGKILL
 	---help---
-		Use ASCII 3(ctrl-c) 24(ctrl-x) check the input, to decide whether
+		Use ASCII 3(ctrl-c) 4(ctrl-d) check the input, to decide whether
 		send a sigkill event, or you can use other char
 
 config 16550_UART
