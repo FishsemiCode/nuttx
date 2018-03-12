@@ -45,6 +45,8 @@
 #include <nuttx/config.h>
 #include <openamp/open_amp.h>
 
+#include <string.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -181,7 +183,7 @@ struct rptun_dev_s
   const struct rptun_ops_s *ops;
 };
 
-struct __attribute__((aligned(8))) rptun_rsc_s
+struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
 {
   struct resource_table    rsc_tbl_hdr;
   unsigned int             offset[2];
