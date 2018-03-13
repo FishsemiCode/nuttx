@@ -40,6 +40,8 @@
 	.syntax		unified
 	.thumb
 	.file		"arm_lto.S"
+	.globl		__aeabi_d2iz
+	.globl		__aeabi_d2uiz
 	.globl		__aeabi_ldivmod
 	.globl		__aeabi_uldivmod
 
@@ -64,6 +66,8 @@
 
 arm_lto:
 	bx		lr
+	bl		__aeabi_d2iz
+	bl		__aeabi_d2uiz
 	bl		__aeabi_ldivmod
 	bl		__aeabi_uldivmod
 
