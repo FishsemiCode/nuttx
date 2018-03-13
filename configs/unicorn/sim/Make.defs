@@ -87,9 +87,9 @@ CXXELFFLAGS = $(CXXFLAGS)
 
 LDELFFLAGS = -r -e main
 ifeq ($(WINTOOL),y)
-  LDELFFLAGS += -T "${shell cygpath -w $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/gnu-elf.ld}"
+  LDELFFLAGS += -T "${shell cygpath -w $(TOPDIR)/configs/unicorn/sim/gnu-elf.ld}"
 else
-  LDELFFLAGS += -T $(TOPDIR)/configs/$(CONFIG_ARCH_BOARD)/scripts/gnu-elf.ld
+  LDELFFLAGS += -T $(TOPDIR)/configs/unicorn/sim/gnu-elf.ld
 endif
 
 
