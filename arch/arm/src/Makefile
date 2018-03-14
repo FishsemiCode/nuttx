@@ -87,6 +87,7 @@ ifeq ($(WINTOOL),y)
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(CONFIG_ARCH_CHIP)}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
+  LDSCRIPT := ${shell cygpath -m $(LDSCRIPT)}
 else
   NUTTX = "$(OUTDIR)/nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)/chip
@@ -208,11 +209,9 @@ $(UBIN): $(UOBJS)
 board$(DELIM)libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
-$(notdir $(LDSCRIPT)): $(LDSCRIPT)
-	$(call PREPROCESS, $<, $@)
-
-nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(notdir $(LDSCRIPT))
+nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(LDSCRIPT)
 	$(Q) echo "LD: nuttx"
+	$(Q) $(call PREPROCESS, $(LDSCRIPT), $(notdir $(LDSCRIPT)))
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) -T $(notdir $(LDSCRIPT)) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
@@ -251,6 +250,7 @@ clean:
 ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" clean
 endif
+	$(call DELFILE, $(notdir $(LDSCRIPT)))
 	$(call DELFILE, $(KBIN))
 	$(call DELFILE, $(UBIN))
 	$(call DELFILE, $(BIN))
