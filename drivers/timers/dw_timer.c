@@ -181,18 +181,18 @@ static int dw_timer_settimeout(FAR struct timer_lowerhalf_s *lower_,
 
       *lower->next_interval = timeout;
     }
-  else if (load_count != lower->tim->CURRENT_VALUE)
+  else if (lower->tim->CONTROL & DW_TIMER_ENABLE)
     {
-      if (lower->tim->CONTROL & DW_TIMER_ENABLE)
+      if (load_count != lower->tim->CURRENT_VALUE)
         {
           lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
           lower->tim->LOAD_COUNT = load_count;
           lower->tim->CONTROL |= DW_TIMER_ENABLE;
         }
-      else
-        {
-          lower->tim->LOAD_COUNT = load_count;
-        }
+    }
+  else
+    {
+      lower->tim->LOAD_COUNT = load_count;
     }
   leave_critical_section(flags);
 
