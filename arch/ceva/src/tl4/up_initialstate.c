@@ -91,8 +91,6 @@ void up_initial_state(struct tcb_s *tcb)
       xcp->regs[REG_OFF_LC1] = REG_OFF_LC_DEFAULT;
       xcp->regs[REG_OFF_LC2] = REG_OFF_LC_DEFAULT;
       xcp->regs[REG_OFF_LC3] = REG_OFF_LC_DEFAULT;
-      xcp->regs[REG_IRQ]     = REG_IRQ_DEFAULT;
-
       xcp->regs[REG_MOD2]    = REG_MOD2_DEFAULT;
     }
 }

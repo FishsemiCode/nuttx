@@ -129,12 +129,19 @@ extern "C"
  */
 
 int up_cpu_index(void); /* See include/nuttx/arch.h */
+
+EXTERN uint32_t  g_current_irqs[CONFIG_SMP_NCPUS];
 EXTERN uint32_t *g_current_regs[CONFIG_SMP_NCPUS];
+
+#  define CURRENT_IRQS (g_current_irqs[up_cpu_index()])
 #  define CURRENT_REGS (g_current_regs[up_cpu_index()])
 
 #else
 
+EXTERN uint32_t  g_current_irqs[1];
 EXTERN uint32_t *g_current_regs[1];
+
+#  define CURRENT_IRQS (g_current_irqs[0])
 #  define CURRENT_REGS (g_current_regs[0])
 
 #endif

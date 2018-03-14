@@ -68,53 +68,52 @@
 #define REG_STREAMBUFF0     15
 #define REG_X               16
 #define REG_MOD2            17
-#define REG_MOD1            18
-#define REG_STS0            19
-#define REG_OFF_LC3         20
-#define REG_FIA3            21
-#define REG_OFF_LC2         22
-#define REG_FIA2            23
-#define REG_OFF_LC1         24
-#define REG_FIA1            25
-#define REG_OFF_LC0         26
-#define REG_FIA0            27
-#define REG_MCFGJ           28
-#define REG_MCFGI           29
-#define REG_MIXP            30
-#define REG_LC_PTR          31
-#define REG_P1              32
-#define REG_P1E             33
-#define REG_P0              34
-#define REG_P0E             35
-#define REG_Y               36
-#define REG_SV_SK           37
-#define REG_B1              38
-#define REG_B1E             39
-#define REG_B0              40
-#define REG_B0E             41
-#define REG_A1              42
-#define REG_A1E             43
-#define REG_A0              44
-#define REG_A0E             45
-#define REG_R7              46
-#define REG_R6              47
-#define REG_R5              48
-#define REG_R4              49
-#define REG_R3              50
-#define REG_R2              51
-#define REG_R1              52
-#define REG_R0              53
-#define REG_RETREG          54
+#define REG_STS0            18
+#define REG_OFF_LC3         19
+#define REG_FIA3            20
+#define REG_OFF_LC2         21
+#define REG_FIA2            22
+#define REG_OFF_LC1         23
+#define REG_FIA1            24
+#define REG_OFF_LC0         25
+#define REG_FIA0            26
+#define REG_MCFGJ           27
+#define REG_MCFGI           28
+#define REG_MIXP            29
+#define REG_LC_PTR          30
+#define REG_P1              31
+#define REG_P1E             32
+#define REG_P0              33
+#define REG_P0E             34
+#define REG_Y               35
+#define REG_SV_SK           36
+#define REG_B1              37
+#define REG_B1E             38
+#define REG_B0              39
+#define REG_B0E             40
+#define REG_A1              41
+#define REG_A1E             42
+#define REG_A0              43
+#define REG_A0E             44
+#define REG_R7              45
+#define REG_R6              46
+#define REG_R5              47
+#define REG_R4              48
+#define REG_R3              49
+#define REG_R2              50
+#define REG_R1              51
+#define REG_R0              52
+#define REG_RETREG          53
 
 /* On entry into an IRQ, the hardware automatically saves the following
  * registers on the stack in this (address) order:
  */
 
-#define REG_PC              55
-#define REG_REPC            56
+#define REG_PC              54
+#define REG_REPC            55
 
 /* The total number of registers is saved on the stack */
-#define XCPTCONTEXT_REGS    57
+#define XCPTCONTEXT_REGS    56
 #define XCPTCONTEXT_SIZE    (2 * XCPTCONTEXT_REGS)
 
 /****************************************************************************

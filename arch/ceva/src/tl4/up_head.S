@@ -177,7 +177,6 @@ exception_common:
 	bkstfia
 	bkstlc
 	pushdw		sts0
-	pushdw		mod1
 	pushdw		mod2
 	mov		x, y
 	pushdw		y
@@ -247,7 +246,6 @@ exception_common:
 	popdw		y
 	mov		y, x
 	popdw		mod2
-	popdw		mod1
 	popdw		sts0
 	bkrest
 	bkrest

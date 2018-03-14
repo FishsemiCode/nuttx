@@ -56,4 +56,29 @@
 #  include <arch/tl4/irq.h>
 #endif
 
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+void up_irq_disable(void);
+irqstate_t up_irq_save(void);
+
+void up_irq_enable(void);
+void up_irq_restore(irqstate_t flags);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+#endif
+
 #endif /* __ARCH_CEVA_INCLUDE_IRQ_H */
