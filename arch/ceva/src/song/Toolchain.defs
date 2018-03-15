@@ -70,6 +70,7 @@ define ASSEMBLE
 	$(call MKDIR, $(dir $2))
 	$(Q) $(CPP) $(AFLAGS) $1 -o $2.asm
 	$(Q) $(CC) -c $(AFLAGS) $2.asm -o $2
+	$(call DELFILE, $2.asm)
 endef
 
 define ARNOEMP
@@ -83,6 +84,7 @@ define AREMPTY
 	$(Q) touch $1.c
 	$(call COMPILE, $1.c, $1.o)
 	$(call ARNOEMP, $1, $1.o)
+	$(call DELFILE, $1.c)
 endef
 
 define ARCHIVE
