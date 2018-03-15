@@ -50,6 +50,46 @@
 #ifdef CONFIG_PM
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static void pm_evaluateall(int domain)
+{
+  FAR struct pm_domain_s *pdom;
+  FAR sq_entry_t *entry;
+  enum pm_state_e ret = PM_SLEEP;
+  enum pm_state_e cb_ret = PM_SLEEP;
+
+  DEBUGASSERT(domain >= 0 && domain < CONFIG_PM_NDOMAINS);
+  pdom = &g_pmglobals.domain[domain];
+
+  /* Visit each registered callback structure */
+
+  for (entry = sq_peek(&g_pmglobals.registry);
+       entry;
+       entry = sq_next(entry))
+    {
+      /* Is the evaluate callback supported? */
+
+      FAR struct pm_callback_s *cb = (FAR struct pm_callback_s *)entry;
+      if (cb->evaluate)
+        {
+          /* Yes.. evaluate driver state */
+
+          cb_ret = cb->evaluate(cb, domain);
+          if (cb_ret < ret)
+            {
+              ret = cb_ret;
+            }
+        }
+    }
+  if (ret < pdom->recommended)
+    {
+      pdom->recommended = ret;
+    }
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -89,6 +129,7 @@ enum pm_state_e pm_checkstate(int domain)
   FAR struct pm_domain_s *pdom;
   systime_t now;
   irqstate_t flags;
+  int index;
 
   /* Get a convenience pointer to minimize all of the indexing */
 
@@ -110,8 +151,8 @@ enum pm_state_e pm_checkstate(int domain)
    * estimated.
    */
 
-   now = clock_systimer();
-   if (now - pdom->stime >= TIME_SLICE_TICKS)
+  now = clock_systimer();
+  if (now - pdom->stime >= TIME_SLICE_TICKS)
     {
       int16_t accum;
 
@@ -125,6 +166,21 @@ enum pm_state_e pm_checkstate(int domain)
       pdom->accum = 0;
 
       (void)pm_update(domain, accum);
+    }
+
+  /* evaluate all drivers state */
+
+  (void)pm_evaluateall(domain);
+
+  /* Consider the possible power state lock here */
+
+  for (index = 0; index < pdom->recommended; index++)
+    {
+      if (pdom->stay[index] != 0)
+        {
+          pdom->recommended = index;
+          break;
+        }
     }
 
   leave_critical_section(flags);

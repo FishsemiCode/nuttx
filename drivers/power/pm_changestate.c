@@ -196,7 +196,7 @@ int pm_changestate(int domain, enum pm_state_e newstate)
        * the preceding state.
        */
 
-      newstate =  g_pmglobals.domain[domain].state;
+      newstate = g_pmglobals.domain[domain].state;
       (void)pm_prepall(domain, newstate);
     }
 
