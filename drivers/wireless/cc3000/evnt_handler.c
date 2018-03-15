@@ -485,7 +485,7 @@ uint8_t *hci_event_handler(void *pRetParams, uint8_t *from, uint8_t *fromlen)
                       break;
 
                     default:
-                      PANIC();
+                      DEBUGPANIC();
                       break;
                     }
                 }
