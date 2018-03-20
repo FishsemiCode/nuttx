@@ -136,7 +136,7 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
 {
   unsigned int i;
   unsigned int j;
-  int ret;
+  int ret = OK;
 
   /* Process each descriptor in the list */
 
@@ -157,29 +157,61 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
        * spec, that appears to be the correct behavior.
        */
 
-      if (fds[i].fd >= 0)
+      switch (fds[i].events & POLLMASK)
         {
-          /* Set up the poll on this valid file descriptor */
-
-          ret = poll_fdsetup(fds[i].fd, &fds[i], true);
-          if (ret < 0)
+        case POLLFD:
+          if (fds[i].fd >= 0)
             {
-              /* Setup failed for fds[i]. We now need to teardown previously
-               * setup fds[0 .. (i - 1)] to release allocated resources and
-               * to prevent memory corruption by access to freed/released 'fds'
-               * and 'sem'.
-               */
-
-              for (j = 0; j < i; j++)
-                {
-                  (void)poll_fdsetup(fds[j].fd, &fds[j], false);
-                }
-
-              /* Indicate an error on the file descriptor */
-
-              fds[i].revents |= POLLERR;
-              return ret;
+              ret = poll_fdsetup(fds[i].fd, &fds[i], true);
             }
+          break;
+        case POLLFILE:
+          if (fds[i].ptr != NULL)
+            {
+              ret = file_poll(fds[i].ptr, &fds[i], true);
+            }
+          break;
+        case POLLSOCK:
+          if (fds[i].ptr != NULL)
+            {
+              ret = psock_poll(fds[i].ptr, &fds[i], true);
+            }
+          break;
+        default:
+          ret = -EINVAL;
+          break;
+        }
+
+      if (ret < 0)
+        {
+          /* Setup failed for fds[i]. We now need to teardown previously
+           * setup fds[0 .. (i - 1)] to release allocated resources and
+           * to prevent memory corruption by access to freed/released 'fds'
+           * and 'sem'.
+           */
+
+          for (j = 0; j < i; j++)
+            {
+              switch (fds[j].events & POLLMASK)
+                {
+                case POLLFD:
+                  (void)poll_fdsetup(fds[j].fd, &fds[j], false);
+                  break;
+                case POLLFILE:
+                  (void)file_poll(fds[j].ptr, &fds[j], false);
+                  break;
+                case POLLSOCK:
+                  (void)psock_poll(fds[j].ptr, &fds[j], false);
+                  break;
+                default:
+                  break;
+                }
+            }
+
+          /* Indicate an error on the file descriptor */
+
+          fds[i].revents |= POLLERR;
+          return ret;
         }
     }
 
@@ -201,24 +233,41 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds, int *count,
                                 int ret)
 {
   unsigned int i;
-  int status;
+  int status = OK;
 
   /* Process each descriptor in the list */
 
   *count = 0;
   for (i = 0; i < nfds; i++)
     {
-      /* Ignore negative descriptors */
-
-      if (fds[i].fd >= 0)
+      switch (fds[i].events & POLLMASK)
         {
-          /* Teardown the poll */
-
-          status = poll_fdsetup(fds[i].fd, &fds[i], false);
-          if (status < 0)
+        case POLLFD:
+          if (fds[i].fd >= 0)
             {
-              ret = status;
+              status = poll_fdsetup(fds[i].fd, &fds[i], false);
             }
+          break;
+        case POLLFILE:
+          if (fds[i].ptr != NULL)
+            {
+              status = file_poll(fds[i].ptr, &fds[i], false);
+            }
+          break;
+        case POLLSOCK:
+            if (fds[i].ptr != NULL)
+            {
+              status = psock_poll(fds[i].ptr, &fds[i], false);
+            }
+          break;
+        default:
+          status = -EINVAL;
+          break;
+        }
+
+      if (status < 0)
+        {
+          ret = status;
         }
 
       /* Check if any events were posted */

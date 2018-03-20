@@ -88,6 +88,11 @@
 #define POLLHUP      (0x08)
 #define POLLNVAL     (0x10)
 
+#define POLLFD       (0x00)
+#define POLLFILE     (0x40)
+#define POLLSOCK     (0x80)
+#define POLLMASK     (0xC0)
+
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
@@ -107,7 +112,11 @@ typedef uint8_t pollevent_t;
 
 struct pollfd
 {
-  int         fd;       /* The descriptor being polled */
+  union
+    {
+      int     fd;       /* The descriptor being polled */
+      void   *ptr;      /* The psock or file being polled */
+    };
   sem_t      *sem;      /* Pointer to semaphore used to post output event */
   pollevent_t events;   /* The input event flags */
   pollevent_t revents;  /* The output event flags */
