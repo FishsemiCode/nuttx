@@ -95,8 +95,8 @@ SECTIONS
 
 	.zero.table : {
 		_szerotable = ABSOLUTE(.);
-		LONG(ADDR(.cpram0.bss))
-		LONG(ADDR(.cpram0.bss) + SIZEOF(.cpram0.bss))
+		LONG(_cpram0_sbss)
+		LONG(_cpram0_ebss)
 		LONG(ADDR(.cpram1.bss))
 		LONG(ADDR(.cpram1.bss) + SIZEOF(.cpram1.bss))
 		_ezerotable = ABSOLUTE(.);
@@ -133,12 +133,18 @@ SECTIONS
 	_logsize = 4096;
 
 	.cpram0.nozero(NOLOAD) : {
-		*(.cpram0.acc)
+		*(.cpram0.nozero)
 	} > cpram0
 
-	.cpram0.bss(NOLOAD) : {
-		*(.cpram0.bss)
-	} > cpram0
+	/* cpram0 bss section is overlayed by NBIOT & GPS. */
+	_cpram0_sbss = .;
+	.cpram0.nbiot.bss _cpram0_sbss(NOLOAD) : {
+		*(.cpram0.nbiot.bss)
+	}
+	.cpram0.gps.bss _cpram0_sbss(NOLOAD) : {
+		*(.cpram0.gps.bss)
+	}
+	_cpram0_ebss = _cpram0_sbss + MAX(SIZEOF(.cpram0.nbiot.bss), SIZEOF(.cpram0.gps.bss));
 
 	.cpram1.data : {
 		_cpram1_srsvd = ABSOLUTE(.);
