@@ -49,9 +49,10 @@ POSTFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(SRCDIR)}
 POSTFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(OUTDIR)$(DELIM)include}
 endif
 
-CFLAGS   += $(POSTFLAGS)
-CPPFLAGS += $(POSTFLAGS)
-CXXFLAGS += $(POSTFLAGS)
+AFLAGS   += $(POSTFLAGS) $($(strip $(1))_AFLAGS)
+CFLAGS   += $(POSTFLAGS) $($(strip $(1))_CFLAGS)
+CPPFLAGS += $(POSTFLAGS) $($(strip $(1))_CPPFLAGS)
+CXXFLAGS += $(POSTFLAGS) $($(strip $(1))_CXXFLAGS)
 
 # CREATEDIR is the list of directories which need to create
 $(if $(CREATEDIR), $(foreach DIR, $(CREATEDIR), $(call MKDIR, $(DIR))))
