@@ -40,12 +40,13 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/hostfs_rpmsg.h>
-#include <nuttx/irq.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
+#include <nuttx/timers/arch_rtc.h>
+#include <nuttx/timers/rpmsg_rtc.h>
 #include <nuttx/timers/song_oneshot.h>
 
 #include <string.h>
@@ -211,6 +212,10 @@ void up_openamp_initialize(void)
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
+#endif
+
+#ifdef CONFIG_RTC_RPMSG
+  up_rtc_set_lowerhalf(rpmsg_rtc_initialize(CPU_NAME_AP, 0));
 #endif
 
 #ifdef CONFIG_RPMSG_UART
