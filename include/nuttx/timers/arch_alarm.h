@@ -59,6 +59,10 @@ extern "C"
 
 void up_alarm_set_lowerhalf(FAR struct oneshot_lowerhalf_s *lower);
 
+#else
+
+#  define up_alarm_set_lowerhalf(lower)
+
 #endif
 
 #undef EXTERN

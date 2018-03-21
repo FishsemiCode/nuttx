@@ -59,6 +59,10 @@ extern "C"
 
 void up_timer_set_lowerhalf(struct timer_lowerhalf_s *lower);
 
+#else
+
+#  define up_timer_set_lowerhalf(lower)
+
 #endif
 
 #undef EXTERN
