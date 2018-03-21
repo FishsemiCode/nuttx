@@ -90,16 +90,10 @@ static inline uint32_t romfs_swap32(uint32_t value)
 
 static uint32_t romfs_devread32(struct romfs_mountpt_s *rm, int ndx)
 {
-  /* Extract the value */
-
-  uint32_t value = *(FAR uint32_t *)&rm->rm_buffer[ndx];
-
-  /* Value is begin endian -- return the native host endian-ness. */
-#ifdef CONFIG_ENDIAN_BIG
-  return value;
-#else
-  return romfs_swap32(value);
-#endif
+  return (((rm->rm_buffer[ndx] & 0xff) << 24)
+          | ((rm->rm_buffer[ndx + 1] & 0xff) << 16)
+          | ((rm->rm_buffer[ndx + 2] & 0xff) << 8)
+          | (rm->rm_buffer[ndx + 3] & 0xff));
 }
 
 /****************************************************************************
