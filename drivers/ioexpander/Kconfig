@@ -172,6 +172,23 @@ config IOEXPANDER_MULTIPIN
 		This settings enable the definition of routines for
 		optimized simultaneous access to multiple pins.
 
+config SONG_IOE
+	bool "Song IO expander driver"
+	default n
+	select IOEXPANDER_INT_ENABLE
+	---help---
+		Enable Song platfrom IOE driver and Gpio driver. This will generate
+		gpio device follow the song configuration.
+
+if SONG_IOE
+
+config SONG_IOE_INTCALLBACKS
+	int "Max number of interrupt callbacks"
+	default 8
+	---help---
+		This is the maximum number of interrupt callbacks supported
+endif # SONG_IOE
+
 endif # IOEXPANDER
 
 config DEV_GPIO
