@@ -156,13 +156,11 @@ while [ ! -z "$1" ]; do
 		* )
 
 			find_config=
-			for config in ${CONFIGS[*]}; do
-				if [ $1 == ${config} ]; then
-					configs[${#configs[@]}]=$1
-					find_config=true
-					break
-				fi
-			done
+			if [ -d "${ROOTDIR}/configs/$1" ]; then
+				configs[${#configs[@]}]=$1
+				find_config=true
+			fi
+
 
 			if [ "${find_config}" == "" ];then
 				commands[${#commands[@]}]=$1
