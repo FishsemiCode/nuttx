@@ -206,7 +206,7 @@ void up_timerhook(void);
 
 /* Defined in board/up_network.c */
 
-#ifdef CONFIG_NET
+#ifdef CONFIG_NETDEVICES
 int  up_netinitialize(void);
 void up_netuninitialize(void);
 # ifdef CONFIG_ARCH_MCFILTER

@@ -265,7 +265,7 @@ void mips_timer_initialize(void);
 
 /* Network */
 
-#ifdef CONFIG_NET
+#ifdef CONFIG_NETDEVICES
 void up_netinitialize(void);
 #else
 # define up_netinitialize()

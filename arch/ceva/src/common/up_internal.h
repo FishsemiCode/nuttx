@@ -281,7 +281,7 @@ void up_wdtinit(void);
 
 /* Networking ***************************************************************/
 
-#ifdef CONFIG_NET
+#ifdef CONFIG_NETDEVICES
 void up_netinitialize(void);
 #else
 # define up_netinitialize()

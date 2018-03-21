@@ -211,7 +211,7 @@ void weak_function up_dmainitialize(void);
 
 void up_wdtinit(void);
 
-#ifdef CONFIG_NET
+#ifdef CONFIG_NETDEVICES
 void up_netinitialize(void);
 #else
 # define up_netinitialize()

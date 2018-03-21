@@ -211,7 +211,7 @@ void up_lcdputc(char ch);
 
 /* Defined in board/xyz_network.c */
 
-#ifdef CONFIG_NET
+#ifdef CONFIG_NETDEVICES
 void up_netinitialize(void);
 #else
 # define up_netinitialize()
