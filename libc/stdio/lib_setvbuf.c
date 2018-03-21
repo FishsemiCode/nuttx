@@ -235,6 +235,8 @@ int setvbuf(FAR FILE *stream, FAR char *buffer, int mode, size_t size)
 
       default:
         DEBUGPANIC();
+        errcode = EINVAL;
+        goto errout_with_semaphore;
     }
 
    /* Do not release the previous buffer if it was allocated by the user
