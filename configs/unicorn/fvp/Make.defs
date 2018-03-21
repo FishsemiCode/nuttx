@@ -1,7 +1,7 @@
 ############################################################################
-# configs/unicorn/ap/Make.defs
+# configs/unicorn/fvp/Make.defs
 #
-#   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+#   Copyright (C) 2018 Pinecone Inc. All rights reserved.
 #   Author: Xiang Xiao <xiaoxiang@pinecone.net>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,4 +37,4 @@ include ${TOPDIR}/.config
 include ${TOPDIR}/tools/Config.mk
 include ${TOPDIR}/arch/arm/src/song/Toolchain.defs
 
-LDSCRIPT = $(TOPDIR)/configs/unicorn/ap/ld.script
+LDSCRIPT = $(TOPDIR)/configs/unicorn/fvp/ld.script

@@ -15,6 +15,9 @@ config UNICORN_CP
 config UNICORN_SP
 	bool "Unicorn SP"
 
+config UNICORN_FVP
+	bool "Unicorn FVP"
+
 config UNICORN_SIM
 	bool "Unicorn SIM"
 

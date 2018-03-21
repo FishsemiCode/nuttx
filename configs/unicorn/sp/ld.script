@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/banks/sp/ld.script
+ * configs/unicorn/sp/ld.script
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>

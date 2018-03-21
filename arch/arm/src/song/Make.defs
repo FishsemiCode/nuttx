@@ -35,9 +35,10 @@
 
 # arch/arm/src/common
 #
-CMN_CSRCS += up_checkstack.c up_createstack.c up_exit.c up_initialize.c
-CMN_CSRCS += up_interruptcontext.c up_modifyreg8.c up_modifyreg16.c
-CMN_CSRCS += up_modifyreg32.c up_pthread_start.c up_puts.c up_releasestack.c
+CMN_CSRCS += up_checkstack.c up_createstack.c up_exit.c up_hostfs.c
+CMN_CSRCS += up_initialize.c up_interruptcontext.c up_modifyreg8.c
+CMN_CSRCS += up_modifyreg16.c up_modifyreg32.c up_pthread_start.c
+CMN_CSRCS += up_puts.c up_releasestack.c up_semi_syslog.c
 CMN_CSRCS += up_stackframe.c up_task_start.c up_usestack.c up_vfork.c
 
 # arch/arm/src/armv7-m
@@ -61,13 +62,14 @@ CMN_CSRCS += up_doirq.c up_hardfault.c up_initialstate.c up_itm_syslog.c
 CMN_CSRCS += up_memfault.c up_mpu.c up_ramvec_attach.c up_ramvec_initialize.c
 CMN_CSRCS += up_releasepending.c up_reprioritizertr.c up_schedulesigaction.c
 CMN_CSRCS += up_sigdeliver.c up_signal_dispatch.c up_stackcheck.c up_svcall.c
-CMN_CSRCS += up_unblocktask.c up_vectors.c
+CMN_CSRCS += up_systick.c up_unblocktask.c up_vectors.c
 
 # arch/arm/src/song
 #
 CHIP_ASRCS += arm_start.S
 CHIP_CSRCS += arm_cache.c arm_fpu.c arm_mpu.c arm_nvic.c
 CHIP_CSRCS += banks_sensor.c banks_rpm.c
+CHIP_CSRCS += fvp_mps2_m4.c
 CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
 CHIP_CSRCS += unicorn_ap.c unicorn_cp.c unicorn_sp.c

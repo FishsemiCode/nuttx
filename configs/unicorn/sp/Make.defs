@@ -1,5 +1,5 @@
 ############################################################################
-# configs/banks/sp/Make.defs
+# configs/unicorn/sp/Make.defs
 #
 #   Copyright (C) 2017 Pinecone Inc. All rights reserved.
 #   Author: Xiang Xiao <xiaoxiang@pinecone.net>

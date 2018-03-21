@@ -1,7 +1,7 @@
 /****************************************************************************
- * configs/unicorn/cp/ld.script
+ * configs/unicorn/fvp/ld.script
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,10 +35,8 @@
 
 MEMORY
 {
-	flash (rx)  : ORIGIN = 0x00000000, LENGTH = 1216K
-	sram (rwx)  : ORIGIN = 0x01000000, LENGTH = 192K
-	cpram0 (rw) : ORIGIN = 0x60000000, LENGTH = 336K
-	cpram1 (rw) : ORIGIN = 0x60054000, LENGTH = 128K
+	flash (rx) : ORIGIN = 0x00000000, LENGTH = 4M
+	sram (rwx) : ORIGIN = 0x20000000, LENGTH = 4M
 }
 
 OUTPUT_ARCH(arm)
@@ -48,14 +46,6 @@ SECTIONS
 	.text : {
 		_stext = ABSOLUTE(.);
 		*(.vectors)
-
-		/* explictly specify the offset of link tags */
-		. = 0x400;
-		/* image magic */
-		LONG(0x21494350)
-		LONG(_stext)
-		LONG(_eflash - _stext)
-
 		*(.text .text.*)
 		*(.fixup)
 		*(.gnu.warning)
@@ -85,30 +75,6 @@ SECTIONS
 	} > flash
 	__exidx_end = ABSOLUTE(.);
 
-	.copy.table : {
-		_scopytable = ABSOLUTE(.);
-		LONG(LOADADDR(.cpram1.data))
-		LONG(ADDR(.cpram1.data))
-		LONG(ADDR(.cpram1.data) + SIZEOF(.cpram1.data))
-		_ecopytable = ABSOLUTE(.);
-	} > flash
-
-	.zero.table : {
-		_szerotable = ABSOLUTE(.);
-		LONG(ADDR(.cpram0.bss))
-		LONG(ADDR(.cpram0.bss) + SIZEOF(.cpram0.bss))
-		LONG(ADDR(.cpram1.bss))
-		LONG(ADDR(.cpram1.bss) + SIZEOF(.cpram1.bss))
-		_ezerotable = ABSOLUTE(.);
-	} > flash
-
-	_framfuncs = LOADADDR(.ramfunc);
-	.ramfunc : {
-		_sramfuncs = ABSOLUTE(.);
-		*(.ramfunc .ramfunc.*)
-		_eramfuncs = ABSOLUTE(.);
-	} > sram AT > flash
-
 	_eronly = LOADADDR(.data);
 	.data : {
 		_sdata = ABSOLUTE(.);
@@ -116,7 +82,7 @@ SECTIONS
 		*(.gnu.linkonce.d.*)
 		CONSTRUCTORS
 		_edata = ABSOLUTE(.);
-	} > sram AT > flash
+	} > sram
 
 	.bss : {
 		_sbss = ABSOLUTE(.);
@@ -127,44 +93,7 @@ SECTIONS
 		_ebss = ABSOLUTE(.);
 	} > sram
 
-	_eheap = _slog;
-	_slog = _elog - _logsize;
-	_elog = ORIGIN(sram) + LENGTH(sram);
-	_logsize = 4096;
-
-	.cpram0.nozero(NOLOAD) : {
-		*(.cpram0.acc)
-	} > cpram0
-
-	.cpram0.bss(NOLOAD) : {
-		*(.cpram0.bss)
-	} > cpram0
-
-	.cpram1.data : {
-		_cpram1_srsvd = ABSOLUTE(.);
-		/*
-		 * struct reserved_data {
-		 *  uint32_t magic;
-		 *  uint32_t size;
-		 *  uint32_t checksum;
-		 *  uint8_t  data[0];
-		 * }
-		 */
-		LONG(0x1234abcd)
-		LONG(_cpram1_ersvd - _cpram1_srsvd - 12)
-		LONG(0)
-		*(.cpram1.rsvd)
-		_cpram1_ersvd = ABSOLUTE(.);
-
-		*(.cpram1.const)
-		*(.cpram1.data)
-	} > cpram1 AT > flash
-
-	_eflash = LOADADDR(.cpram1.data) + SIZEOF(.cpram1.data);
-
-	.cpram1.bss(NOLOAD) : {
-		*(.cpram1.bss)
-	} > cpram1
+	_eheap = ORIGIN(sram) + LENGTH(sram);
 
 	/* Stabs debugging sections. */
 	.stab 0 : { *(.stab) }

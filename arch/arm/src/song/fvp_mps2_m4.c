@@ -1,8 +1,8 @@
 /****************************************************************************
- * configs/unicorn/src/init.d/rcS
+ * arch/arm/src/song/fvp_mps.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Pinecone <Pinecone@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -32,20 +32,27 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include "rcS.common"
+#include <nuttx/timers/arch_timer.h>
 
-#ifdef CONFIG_UNICORN_AP
-#include "rcS.ap"
-#elif CONFIG_UNICORN_CP
-#include "rcS.cp"
-#elif CONFIG_UNICORN_SP
-#include "rcS.sp"
-#elif CONFIG_UNICORN_FVP
-#include "rcS.fvp"
-#elif CONFIG_UNICORN_SIM
-#include "rcS.sim"
-#else
-#error "unknow unicorn config"
-#endif
+#include "systick.h"
+#include "up_internal.h"
+
+#ifdef CONFIG_ARCH_CHIP_FVP_MPS2_M4
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void arm_timer_initialize(void)
+{
+  up_timer_set_lowerhalf(systick_initialize(true, 25000000, -1));
+}
+
+#endif /* CONFIG_ARCH_CHIP_FVP_MPS2_M4 */
