@@ -171,12 +171,14 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
               ret = file_poll(fds[i].ptr, &fds[i], true);
             }
           break;
+#ifdef CONFIG_NET
         case POLLSOCK:
           if (fds[i].ptr != NULL)
             {
               ret = psock_poll(fds[i].ptr, &fds[i], true);
             }
           break;
+#endif
         default:
           ret = -EINVAL;
           break;
@@ -200,9 +202,11 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
                 case POLLFILE:
                   (void)file_poll(fds[j].ptr, &fds[j], false);
                   break;
+#ifdef CONFIG_NET
                 case POLLSOCK:
                   (void)psock_poll(fds[j].ptr, &fds[j], false);
                   break;
+#endif
                 default:
                   break;
                 }
@@ -254,12 +258,14 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds, int *count,
               status = file_poll(fds[i].ptr, &fds[i], false);
             }
           break;
+#ifdef CONFIG_NET
         case POLLSOCK:
             if (fds[i].ptr != NULL)
             {
               status = psock_poll(fds[i].ptr, &fds[i], false);
             }
           break;
+#endif
         default:
           status = -EINVAL;
           break;
