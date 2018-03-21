@@ -378,4 +378,54 @@ int gpio_pin_register(FAR struct gpio_dev_s *dev, int minor)
   return register_driver(devname, &g_gpio_drvrops, 0666, dev);
 }
 
+/****************************************************************************
+ * Name: gpio_pin_unregister
+ *
+ * Description:
+ *   Unregister GPIO pin device driver.
+ *
+ *   - Input pin types will be registered at /dev/gpinN
+ *   - Output pin types will be registered at /dev/gpoutN
+ *   - Interrupt pin types will be registered at /dev/gpintN
+ *
+ *   Where N is the provided minor number in the range of 0-99.
+ *
+ *
+ ****************************************************************************/
+
+void gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor)
+{
+  FAR const char *fmt;
+  char devname[16];
+
+  switch (dev->gp_pintype)
+    {
+      case GPIO_INPUT_PIN:
+        {
+          fmt = "/dev/gpin%u";
+        }
+        break;
+
+      case GPIO_OUTPUT_PIN:
+        {
+          fmt = "/dev/gpout%u";
+        }
+        break;
+
+      case GPIO_INTERRUPT_PIN:
+        {
+          fmt = "/dev/gpint%u";
+        }
+        break;
+
+      default:
+        return;
+    }
+
+  snprintf(devname, 16, fmt, (unsigned int)minor);
+  gpioinfo("Unregistering %s\n", devname);
+
+  (void)unregister_driver(devname);
+}
+
 #endif /* CONFIG_DEV_GPIO */

@@ -178,6 +178,23 @@ extern "C"
 int gpio_pin_register(FAR struct gpio_dev_s *dev, int minor);
 
 /****************************************************************************
+ * Name: gpio_pin_unregister
+ *
+ * Description:
+ *   Unregister GPIO pin device driver.
+ *
+ *   - Input pin types will be registered at /dev/gpinN
+ *   - Output pin types will be registered at /dev/gpoutN
+ *   - Interrupt pin types will be registered at /dev/gpintN
+ *
+ *   Where N is the provided minor number in the range of 0-99.
+ *
+ *
+ ****************************************************************************/
+
+void gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor);
+
+/****************************************************************************
  * Name: gpio_lower_half
  *
  * Description:
