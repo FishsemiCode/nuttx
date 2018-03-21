@@ -65,7 +65,7 @@ CMN_CSRCS += up_unblocktask.c up_vectors.c
 
 # arch/arm/src/song
 #
-CHIP_ASRCS += arm_lto.S
+CHIP_ASRCS += arm_start.S
 CHIP_CSRCS += arm_cache.c arm_fpu.c arm_mpu.c arm_nvic.c
 CHIP_CSRCS += banks_sensor.c banks_rpm.c
 CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/arm_lto.S
+ * arch/arm/src/song/arm_start.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -39,16 +39,26 @@
 
 	.syntax		unified
 	.thumb
-	.file		"arm_lto.S"
+	.file		"arm_start.S"
+	.globl		up_start
 	.globl		__aeabi_d2iz
 	.globl		__aeabi_d2uiz
 	.globl		__aeabi_ldivmod
 	.globl		__aeabi_uldivmod
 
 /****************************************************************************
- * Name: arm_lto
- *
- * Description:
+ * Name: __start
+ ****************************************************************************/
+
+	.text
+	.thumb_func
+	.globl		__start
+	.type		__start, function
+
+__start:
+	bl		up_start
+
+/****************************************************************************
  *   GCC in LTO mode interoperates poorly with non-standard libraries that
  *   provide implementations of compiler intrinsics such as memcpy/memset
  *   or the stack protector entry points.
@@ -59,17 +69,10 @@
  *   pruned again if no other references to them exist.
  ****************************************************************************/
 
-	.text
-	.thumb_func
-	.globl		arm_lto
-	.type		arm_lto, function
-
-arm_lto:
-	bx		lr
 	bl		__aeabi_d2iz
 	bl		__aeabi_d2uiz
 	bl		__aeabi_ldivmod
 	bl		__aeabi_uldivmod
 
-	.size		arm_lto, .-arm_lto
+	.size		__start, .-__start
 	.end

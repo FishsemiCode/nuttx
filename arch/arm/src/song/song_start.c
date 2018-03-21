@@ -266,10 +266,10 @@ void weak_function board_earlyinitialize(void)
 #ifdef CONFIG_ARMV7M_STACKCHECK
 /* we need to get r10 set before we can allow instrumentation calls */
 
-void __start(void) __attribute__ ((no_instrument_function));
+void up_start(void) __attribute__ ((no_instrument_function));
 #endif
 
-void __start(void)
+void up_start(void)
 {
 #ifdef CONFIG_ARMV7M_STACKCHECK
   /* Set the stack limit before we attempt to call any functions */
@@ -294,9 +294,4 @@ void __start(void)
   board_earlyinitialize();
 
   color_start((FAR void *)&_ebss, CONFIG_IDLETHREAD_STACKSIZE);
-
-  /* Force link functions from libgcc.lib when LTO turn on */
-
-  extern void arm_lto(void);
-  arm_lto();
 }
