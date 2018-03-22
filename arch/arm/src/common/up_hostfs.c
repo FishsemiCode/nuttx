@@ -312,7 +312,8 @@ int host_stat(const char *path, struct stat *buf)
       ret = host_fstat(fd, buf);
       host_close(fd);
     }
-  else
+
+  if (ret < 0)
     {
       /* Since semihosting doesn't support directory yet, */
       ret = 0; /* we have to assume it's a directory here. */
