@@ -151,42 +151,42 @@ static struct mm_heap_s g_mmheap4;
 
 static const void *const g_textstart[] =
 {
-  _START_TEXT, _START_TEXT2, _START_TEXT3, _START_TEXT4, NULL,
+  _START_TEXT, _START_TEXT2, _START_TEXT3, _START_TEXT4, _END_MEM,
 };
 
 static const void *const g_textend[] =
 {
-  _END_TEXT, _END_TEXT2, _END_TEXT3, _END_TEXT4, NULL,
+  _END_TEXT, _END_TEXT2, _END_TEXT3, _END_TEXT4, _END_MEM,
 };
 
 static const void *const g_datasource[] =
 {
-  _DATA_INIT, _DATA_INIT2, _DATA_INIT3, _DATA_INIT4, NULL,
+  _DATA_INIT, _DATA_INIT2, _DATA_INIT3, _DATA_INIT4, _END_MEM,
 };
 
 static void *const g_datastart[] =
 {
-  _START_DATA, _START_DATA2, _START_DATA3, _START_DATA4, NULL,
+  _START_DATA, _START_DATA2, _START_DATA3, _START_DATA4, _END_MEM,
 };
 
 static void *const g_dataend[] =
 {
-  _END_DATA, _END_DATA2, _END_DATA3, _END_DATA4, NULL,
+  _END_DATA, _END_DATA2, _END_DATA3, _END_DATA4, _END_MEM,
 };
 
 static void *const g_bssstart[] =
 {
-  _START_BSS, _START_BSS2, _START_BSS3, _START_BSS4, NULL,
+  _START_BSS, _START_BSS2, _START_BSS3, _START_BSS4, _END_MEM,
 };
 
 static void *const g_bssend[] =
 {
-  _END_BSS, _END_BSS2, _END_BSS3, _END_BSS4, NULL,
+  _END_BSS, _END_BSS2, _END_BSS3, _END_BSS4, _END_MEM,
 };
 
 static void *const g_heapend[] =
 {
-  _END_HEAP, _END_HEAP2, _END_HEAP3, _END_HEAP4, NULL,
+  _END_HEAP, _END_HEAP2, _END_HEAP3, _END_HEAP4, _END_MEM,
 };
 
 /****************************************************************************

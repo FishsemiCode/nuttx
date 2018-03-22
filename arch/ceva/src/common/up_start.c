@@ -140,7 +140,7 @@ static void init_bss_section(bool priv,
 {
   int i;
 
-  for (i = 0; bssstart[i] || bssend[i]; i++)
+  for (i = 0; bssstart[i] != _END_MEM || bssend[i] != _END_MEM; i++)
     {
       uint32_t *dest = bssstart[i];
       uint32_t *end = bssend[i];
@@ -168,7 +168,9 @@ static void init_data_section(bool priv,
 {
   int i;
 
-  for (i = 0; datasource[i] || datastart[i] || dataend[i]; i++)
+  for (i = 0; datasource[i] != _END_MEM
+              || datastart[i] != _END_MEM
+              || dataend[i] != _END_MEM; i++)
     {
       const uint32_t *src = datasource[i];
       uint32_t *dest = datastart[i];
@@ -199,7 +201,7 @@ static void init_text_section(bool priv,
 {
   int i;
 
-  for (i = 0; textstart[i] || textend[i]; i++)
+  for (i = 0; textstart[i] != _END_MEM || textend[i] != _END_MEM; i++)
     {
       if (priv)
         {
@@ -216,37 +218,37 @@ static void init_kernelspace(void)
 {
   const void *const textstart[] =
   {
-    _START_TEXT, _START_TEXT2, _START_TEXT3, _START_TEXT4, NULL,
+    _START_TEXT, _START_TEXT2, _START_TEXT3, _START_TEXT4, _END_MEM,
   };
 
   const void *const textend[] =
   {
-    _END_TEXT, _END_TEXT2, _END_TEXT3, _END_TEXT4, NULL,
+    _END_TEXT, _END_TEXT2, _END_TEXT3, _END_TEXT4, _END_MEM,
   };
 
   const void *const datasource[] =
   {
-    _DATA_INIT, _DATA_INIT2, _DATA_INIT3, _DATA_INIT4, NULL,
+    _DATA_INIT, _DATA_INIT2, _DATA_INIT3, _DATA_INIT4, _END_MEM,
   };
 
   void *const datastart[] =
   {
-    _START_DATA, _START_DATA2, _START_DATA3, _START_DATA4, NULL,
+    _START_DATA, _START_DATA2, _START_DATA3, _START_DATA4, _END_MEM,
   };
 
   void *const dataend[] =
   {
-    _END_DATA, _END_DATA2, _END_DATA3, _END_DATA4, NULL,
+    _END_DATA, _END_DATA2, _END_DATA3, _END_DATA4, _END_MEM,
   };
 
   void *const bssstart[] =
   {
-    _START_BSS, _START_BSS2, _START_BSS3, _START_BSS4, NULL,
+    _START_BSS, _START_BSS2, _START_BSS3, _START_BSS4, _END_MEM,
   };
 
   void *const bssend[] =
   {
-    _END_BSS, _END_BSS2, _END_BSS3, _END_BSS4, NULL,
+    _END_BSS, _END_BSS2, _END_BSS3, _END_BSS4, _END_MEM,
   };
 
   init_text_section(true, textstart, textend);
