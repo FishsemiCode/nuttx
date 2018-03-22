@@ -40,7 +40,6 @@ CONFIGS=(\
 		unicorn/ap
 		unicorn/cp
 		unicorn/sp
-		unicorn/sim
 		" \
 		)
 
