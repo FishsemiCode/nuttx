@@ -48,9 +48,14 @@ ETCSRC := $(ETCDIR:%=%.c)
 
 CSRCS += $(ETCSRC)
 
-$(ETCSRC): $(GENROMFS) $(RCSRCS) $(RCRAWS)
-	$(foreach src,$(RCSRCS), \
-		$(call PREPROCESS, $(src), $(ETCDIR)$(DELIM)$(src)))
+RCOBJS = $(RCSRCS:%=%$(OBJEXT))
+
+$(RCOBJS): %$(OBJEXT): %
+	$(call PREPROCESS, $<, $@)
+	$(Q) mkdir -p $(dir $(ETCDIR)$(DELIM)$<)
+	$(Q) cp -r $@ $(ETCDIR)$(DELIM)$<
+
+$(ETCSRC): $(GENROMFS) $(RCRAWS) $(RCOBJS)
 	$(foreach raw,$(RCRAWS), \
 		$(shell cp --parents -fLp $(raw) $(ETCDIR)))
 	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR) -V "$(basename $<)" && xxd -i romfs.img > $@
@@ -69,7 +74,9 @@ OBJS = $(AOBJS) $(COBJS)
 
 SCHEDSRCDIR = $(TOPDIR)$(DELIM)sched
 ARCHSRCDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
-VPATH += :$(CURDIR)
+DEPPATH += --dep-path .
+VPATH += :.
+VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 ifneq ($(CONFIG_ARCH_FAMILY),)
   ARCH_FAMILY = $(patsubst "%",%,$(CONFIG_ARCH_FAMILY))
 endif
@@ -138,18 +145,23 @@ $(CXXOBJS) $(LINKOBJS): %$(OBJEXT): %.cxx
 libboard$(LIBEXT): $(OBJS) $(CXXOBJS)
 	$(call ARCHIVE, $@, $(OBJS) $(CXXOBJS))
 
-.depend: Makefile $(SRCS) $(CXXSRCS)
+.cdepend: Makefile $(SRCS)
 ifneq ($(ZDSVERSION),)
-	$(Q) $(MKDEP) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >CMake.dep
 else
-	$(Q) $(MKDEP) $(CC) -- $(CFLAGS) -- $(SRCS) >Make.dep
-endif
-ifneq ($(CXXSRCS),)
-	$(Q) $(MKDEP) "$(CXX)" -- $(CXXFLAGS) -- $(CXXSRCS) >>Make.dep
+	$(Q) $(MKDEP) $(DEPPATH) $(CC) -- $(CFLAGS) -- $^ >CMake.dep
 endif
 	$(Q) touch $@
 
-depend: .depend
+.cxxdepend: $(CXXSRCS)
+	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $^ >CXXMake.dep
+	$(Q) touch $@
+
+.rcdepend: $(RCSRCS)
+	$(Q) $(MKDEP) $(DEPPATH) "$(CPP)" --obj-path . -- $(CPPFLAGS) -- $^ >RCMake.dep
+	$(Q) touch $@
+
+depend: .cdepend .cxxdepend .rcdepend
 
 ifneq ($(BOARD_CONTEXT),y)
 context:
@@ -162,7 +174,11 @@ clean:
 
 distclean: clean
 	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
+	$(call DELFILE, .cdepend)
+	$(call DELFILE, .cxxdepend)
+	$(call DELFILE, .rcdepend)
 	$(EXTRA_DISTCLEAN)
 
--include Make.dep
+-include CMake.dep
+-include CXXMake.dep
+-include RCMake.dep

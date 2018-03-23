@@ -130,53 +130,25 @@ static char g_posixpath[MAX_PATH];
 
 static bool is_file_available(const char *file)
 {
-  /* Check the file name which can be used and filter out the unavailable,
-     1. Filter out the file which no suffix
-     2. Filter out the file is match in blacklist
-  */
-  const char *black_list[] = {
+  const char *black_list[] =
+    {
+      "Makefile",
       "Make.defs",
+      "board",
       NULL
-  };
+    };
+
   const char **black = black_list;
-  char *period;
-  char *delim;
+  const char *delim, *name;
 
   delim = strrchr(file, '/');
-  if (delim)
-    {
-      period = strchr(delim, '.');
+  name = delim ? delim + 1 : file;
 
-      if (!period)
+  while (*black)
+    {
+      if (!strcmp(name, *black++))
         {
           return false;
-        }
-
-      while (*black)
-        {
-          if (!strcmp(delim + 1, *black))
-            {
-              return false;
-            }
-          black++;
-        }
-    }
-  else
-    {
-      period = strchr(file, '.');
-
-      if (!period)
-        {
-          return false;
-        }
-
-      while (*black)
-        {
-          if (!strcmp(file, *black))
-            {
-              return false;
-            }
-          black++;
         }
     }
 
@@ -835,9 +807,7 @@ static void do_dependency(const char *file)
 
       if (!S_ISREG(buf.st_mode))
         {
-          fprintf(stderr, "ERROR: File %s exists but is not a regular file\n",
-                  g_path);
-          exit(EXIT_FAILURE);
+          return;
         }
 
       /* Append the expanded path to the command */
