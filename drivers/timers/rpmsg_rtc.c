@@ -171,7 +171,7 @@ static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel)
   struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
   struct remote_device *rdev = channel->rdev;
 
-  if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
+  if (lower && strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
     {
       lower->channel = NULL;
     }
@@ -187,7 +187,6 @@ static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
   if (cookie)
     {
       memcpy(cookie->msg, data, len);
-
       nxsem_post(&cookie->sem);
     }
 }
