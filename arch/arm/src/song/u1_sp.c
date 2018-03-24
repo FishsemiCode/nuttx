@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/unicorn_sp.c
+ * arch/arm/src/song/u1_sp.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -53,7 +53,7 @@
 #include "up_internal.h"
 #include "song_addrenv.h"
 
-#ifdef CONFIG_ARCH_CHIP_UNICORN_SP
+#ifdef CONFIG_ARCH_CHIP_U1_SP
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -384,4 +384,4 @@ int board_reset(int status)
   return 0;
 }
 
-#endif /* CONFIG_ARCH_CHIP_UNICORN_SP */
+#endif /* CONFIG_ARCH_CHIP_U1_SP */

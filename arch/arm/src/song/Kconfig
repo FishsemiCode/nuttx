@@ -33,14 +33,14 @@ config ARCH_CHIP_FVP_MPS2_M4
 	select ARMV7M_CMNVECTOR
 	select ARMV7M_HAVE_STACKCHECK
 
-config ARCH_CHIP_UNICORN_AP
-	bool "Unicorn AP"
+config ARCH_CHIP_U1_AP
+	bool "U1 AP"
 	select ARCH_HAVE_FPU
 	select SONG_CORTEXM4
 	select SONG_ICACHE
 
-config ARCH_CHIP_UNICORN_CP
-	bool "Unicorn CP"
+config ARCH_CHIP_U1_CP
+	bool "U1 CP"
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4
@@ -48,8 +48,8 @@ config ARCH_CHIP_UNICORN_CP
 	select SONG_COPY_TABLE
 	select SONG_ZERO_TABLE
 
-config ARCH_CHIP_UNICORN_SP
-	bool "Unicorn SP"
+config ARCH_CHIP_U1_SP
+	bool "U1 SP"
 	select ARCH_HAVE_POWEROFF
 	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4

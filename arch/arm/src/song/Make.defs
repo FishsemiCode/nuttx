@@ -72,6 +72,6 @@ CHIP_CSRCS += banks_sensor.c banks_rpm.c
 CHIP_CSRCS += fvp_mps2_m4.c
 CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
-CHIP_CSRCS += unicorn_ap.c unicorn_cp.c unicorn_sp.c
+CHIP_CSRCS += u1_ap.c u1_cp.c u1_sp.c
 
 CHIP_UCSRCS += song_userspace.c

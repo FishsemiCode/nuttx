@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/unicorn_ap.c
+ * arch/arm/src/song/u1_cp.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -52,7 +52,7 @@
 #include "up_internal.h"
 #include "song_addrenv.h"
 
-#ifdef CONFIG_ARCH_CHIP_UNICORN_AP
+#ifdef CONFIG_ARCH_CHIP_U1_CP
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -86,7 +86,7 @@ void up_earlyinitialize(void)
 {
   static const struct song_addrenv_s addrenv[] =
   {
-    {.va = 0x21000000, .pa = 0xb1000000, .size = 0x00100000},
+    {.va = 0x01000000, .pa = 0x00000000, .size = 0x00100000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 
@@ -103,7 +103,7 @@ int up_rtc_initialize(void)
   {
     .base  = 0xb2020000,
     .irq   = 16,
-    .index = 1,
+    .index = 0,
   };
 
   g_rtc_lower = song_rtc_initialize(&config);
@@ -127,10 +127,10 @@ void arm_timer_initialize(void)
     .calib_off  = 0x194,
     .c1_off     = 0x174,
     .c2_off     = 0x178,
-    .spec_off   = 0x1a8,
-    .intren_off = 0x128,
-    .intrst_off = 0x134,
-    .intr_bit   = 1,
+    .spec_off   = 0x1a4,
+    .intren_off = 0x12c,
+    .intrst_off = 0x138,
+    .intr_bit   = 0,
   };
   FAR struct oneshot_lowerhalf_s *lower;
 
@@ -144,16 +144,16 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_OPENAMP
 void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_ap, *mbox_sp;
+  struct mbox_dev_s *mbox_cp, *mbox_sp;
 
-  static const struct song_mbox_config_s mbox_cfg_ap =
+  static const struct song_mbox_config_s mbox_cfg_cp =
   {
     .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x10,
-    .en_off     = 0x14,
+    .set_off    = 0x0,
+    .en_off     = 0x4,
     .en_bit     = 16,
-    .src_en_off = 0x14,
-    .sta_off    = 0x18,
+    .src_en_off = 0x4,
+    .sta_off    = 0x8,
     .chnl_count = 16,
     .irq        = 21,
   };
@@ -174,21 +174,21 @@ void up_openamp_initialize(void)
   {
     .cpu_name    = CPU_NAME_SP,
     .role        = RPMSG_REMOTE,
-    .ch_start_rx = 14,
-    .ch_vring_rx = 15,
-    .ch_start_tx = 14,
-    .ch_vring_tx = 15,
+    .ch_start_rx = 0,
+    .ch_vring_rx = 1,
+    .ch_start_tx = 0,
+    .ch_vring_tx = 1,
     .rsc         =
     {
-      .rsc_tab   = (void *)0xb0000000,
+      .rsc_tab   = (void *)0xb0010000,
       .size      = sizeof(struct rptun_rsc_s),
     },
   };
 
-  mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 0);
+  mbox_cp = song_mbox_initialize(&mbox_cfg_cp, 0);
   mbox_sp = song_mbox_initialize(&mbox_cfg_sp, 1);
 
-  song_rptun_initialize(&rptun_cfg_sp, mbox_ap, mbox_sp, 0);
+  song_rptun_initialize(&rptun_cfg_sp, mbox_cp, mbox_sp, 0);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
@@ -196,10 +196,12 @@ void up_openamp_initialize(void)
 
 #ifdef CONFIG_RPMSG_UART
 # ifdef CONFIG_SERIAL_CONSOLE
-  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, false);
+  uart_rpmsg_init(CPU_NAME_SP, "CP", 1024, false);
 # else
-  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, true);
+  uart_rpmsg_init(CPU_NAME_SP, "CP", 1024, true);
 # endif
+  uart_rpmsg_init(CPU_NAME_SP, "AT", 1024, false);
+  uart_rpmsg_init(CPU_NAME_SP, "GPS", 1024, false);
 #endif
 
 #ifdef CONFIG_FS_HOSTFS_RPMSG
