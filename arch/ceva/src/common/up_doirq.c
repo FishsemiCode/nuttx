@@ -54,11 +54,11 @@
  */
 
 #ifdef CONFIG_SMP
-uint32_t  g_current_irqs[CONFIG_SMP_NCPUS];
-uint32_t *g_current_regs[CONFIG_SMP_NCPUS];
+uint32_t  volatile g_current_irqs[CONFIG_SMP_NCPUS];
+uint32_t *volatile g_current_regs[CONFIG_SMP_NCPUS];
 #else
-uint32_t  g_current_irqs[1];
-uint32_t *g_current_regs[1];
+uint32_t  volatile g_current_irqs[1];
+uint32_t *volatile g_current_regs[1];
 #endif
 
 /****************************************************************************
