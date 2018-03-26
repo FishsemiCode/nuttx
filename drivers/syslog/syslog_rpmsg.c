@@ -240,20 +240,24 @@ static int syslog_rpmsg_flush(void)
 
 static void syslog_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
-  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
+  struct syslog_rpmsg_s *priv = priv_;
+  struct rpmsg_channel *channel;
 
   if (priv->buffer && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      rpmsg_create_channel(rdev, SYSLOG_RPMSG_CHANNEL_NAME);
+      channel = rpmsg_create_channel(rdev, SYSLOG_RPMSG_CHANNEL_NAME);
+      if (channel != NULL)
+        {
+          rpmsg_set_privdata(channel, priv);
+        }
     }
 }
 
 static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
-  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
-  struct remote_device *rdev = channel->rdev;
+  struct syslog_rpmsg_s *priv = rpmsg_get_privdata(channel);
 
-  if (priv->buffer && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (priv != NULL)
     {
       priv->channel = channel;
       work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv, SYSLOG_RPMSG_WORK_DELAY);
@@ -262,10 +266,9 @@ static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel)
 
 static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 {
-  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
-  struct remote_device *rdev = channel->rdev;
+  struct syslog_rpmsg_s *priv = rpmsg_get_privdata(channel);
 
-  if (priv->buffer && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (priv != NULL)
     {
       work_cancel(HPWORK, &priv->work);
       priv->channel = NULL;
@@ -275,8 +278,13 @@ static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
-  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
+  struct syslog_rpmsg_s *priv = rpmsg_get_privdata(channel);
   struct syslog_rpmsg_header_s *header = data;
+
+  if (priv == NULL)
+    {
+      return;
+    }
 
   if (header->command == SYSLOG_RPMSG_SUSPEND)
     {
@@ -399,7 +407,7 @@ int syslog_rpmsg_init(void)
 {
   return rpmsg_register_callback(
                 SYSLOG_RPMSG_CHANNEL_NAME,
-                NULL,
+                &g_syslog_rpmsg,
                 syslog_rpmsg_device_created,
                 NULL,
                 syslog_rpmsg_channel_created,

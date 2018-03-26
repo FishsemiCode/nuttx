@@ -141,23 +141,25 @@ static const struct rtc_ops_s g_rpmsg_rtc_ops =
 static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv)
 {
   struct rpmsg_rtc_lowerhalf_s *lower = priv;
+  struct rpmsg_channel *channel;
 
   if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      rpmsg_create_channel(rdev, RPMSG_RTC_CHANNEL_NAME);
+      channel = rpmsg_create_channel(rdev, RPMSG_RTC_CHANNEL_NAME);
+      if (channel != NULL)
+        {
+          rpmsg_set_privdata(channel, lower);
+        }
     }
 }
 
 static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
 {
-  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_callback_privdata(channel->name);
-  struct remote_device *rdev = channel->rdev;
+  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
 
-  if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
+  if (lower != NULL)
     {
-      rpmsg_set_privdata(channel, lower);
       lower->channel = channel;
-
       if (!lower->synced)
         {
           lower->synced = true;
@@ -169,9 +171,8 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
 static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel)
 {
   struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
-  struct remote_device *rdev = channel->rdev;
 
-  if (lower && strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
+  if (lower != NULL)
     {
       lower->channel = NULL;
     }

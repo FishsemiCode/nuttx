@@ -322,29 +322,30 @@ static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
   struct uart_dev_s *dev = priv_;
   struct uart_rpmsg_priv_s *priv = dev->priv;
+  struct rpmsg_channel *channel;
 
   if (priv->cpu_name && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      rpmsg_create_channel(rdev, priv->channel_name);
+      channel = rpmsg_create_channel(rdev, priv->channel_name);
+      if (channel != NULL)
+        {
+          rpmsg_set_privdata(channel, dev);
+        }
     }
 }
 
 static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
-  struct uart_dev_s *dev = rpmsg_get_callback_privdata(channel->name);
+  struct uart_dev_s *dev = rpmsg_get_privdata(channel);
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (priv->channel)
+  if (dev != NULL)
     {
-      serr("%s duplicate uart rpmsg device\n", __func__);
-      return;
+      priv->channel = channel;
+
+      uart_connected(dev, true);
+      uart_xmitchars_dma(dev);
     }
-
-  priv->channel = channel;
-  rpmsg_set_privdata(channel, dev);
-
-  uart_connected(dev, true);
-  uart_xmitchars_dma(dev);
 }
 
 static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
@@ -352,13 +353,11 @@ static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
   struct uart_dev_s *dev = rpmsg_get_privdata(channel);
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (priv->channel != channel)
+  if (dev != NULL)
     {
-      return;
+      uart_connected(dev, false);
+      priv->channel = NULL;
     }
-
-  uart_connected(dev, false);
-  priv->channel = NULL;
 }
 
 static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
@@ -369,7 +368,7 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
   struct uart_rpmsg_header_s *header = data;
   struct uart_rpmsg_write_s *msg = data;
 
-  if (priv->channel != channel)
+  if (dev == NULL)
     {
       return;
     }

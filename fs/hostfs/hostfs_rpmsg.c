@@ -216,20 +216,24 @@ static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
 
 static void hostfs_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
+  struct hostfs_rpmsg_s *priv = priv_;
+  struct rpmsg_channel *channel;
 
   if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      rpmsg_create_channel(rdev, HOSTFS_RPMSG_CHANNEL_NAME);
+      channel = rpmsg_create_channel(rdev, HOSTFS_RPMSG_CHANNEL_NAME);
+      if (channel != NULL)
+        {
+          rpmsg_set_privdata(channel, priv);
+        }
     }
 }
 
 static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct remote_device *rdev = channel->rdev;
+  struct hostfs_rpmsg_s *priv = rpmsg_get_privdata(channel);
 
-  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (priv != NULL)
     {
       priv->channel = channel;
     }
@@ -237,10 +241,9 @@ static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
 
 static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct remote_device *rdev = channel->rdev;
+  struct hostfs_rpmsg_s *priv = rpmsg_get_privdata(channel);
 
-  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (priv != NULL)
     {
       priv->channel = NULL;
     }
@@ -749,7 +752,7 @@ int hostfs_rpmsg_init(const char *cpu_name)
 
   return rpmsg_register_callback(
                 HOSTFS_RPMSG_CHANNEL_NAME,
-                NULL,
+                priv,
                 hostfs_rpmsg_device_created,
                 NULL,
                 hostfs_rpmsg_channel_created,

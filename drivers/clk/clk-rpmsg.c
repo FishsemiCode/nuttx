@@ -132,31 +132,38 @@ static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
   return cookie.result;
 }
 
-static void clk_rpmsg_device_created(struct remote_device *rdev, void *priv)
+static void clk_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
-  if (strcmp(g_clk_rpmsg.cpu_name, rdev->proc->cpu_name) == 0)
+  struct clk_rpmsg_priv_s *priv = priv_;
+  struct rpmsg_channel *channel;
+
+  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      rpmsg_create_channel(rdev, CLK_RPMSG_NAME);
+      channel = rpmsg_create_channel(rdev, CLK_RPMSG_NAME);
+      if (channel != NULL)
+        {
+          rpmsg_set_privdata(channel, priv);
+        }
     }
 }
 
 static void clk_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
-  struct remote_device *rdev = channel->rdev;
+  struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
 
-  if (strcmp(g_clk_rpmsg.cpu_name, rdev->proc->cpu_name) == 0)
+  if (priv != NULL)
     {
-      g_clk_rpmsg.channel = channel;
+      priv->channel = channel;
     }
 }
 
 static void clk_rpmsg_channel_destoryed(struct rpmsg_channel *channel)
 {
-  struct remote_device *rdev = channel->rdev;
+  struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
 
-  if (strcmp(g_clk_rpmsg.cpu_name, rdev->proc->cpu_name) == 0)
+  if (priv != NULL)
     {
-      g_clk_rpmsg.channel = NULL;
+      priv->channel = NULL;
     }
 }
 
@@ -305,7 +312,7 @@ int clk_rpmsg_initialize(const char *cpu_name)
 {
   g_clk_rpmsg.cpu_name = cpu_name;
   rpmsg_register_callback(CLK_RPMSG_NAME,
-                 NULL,
+                 &g_clk_rpmsg,
                  clk_rpmsg_device_created,
                  NULL,
                  clk_rpmsg_channel_created,
