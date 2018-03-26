@@ -34,6 +34,14 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
+#include <nuttx/config.h>
+
+#include "up_internal.h"
+
+/****************************************************************************
  * Public Symbols
  ****************************************************************************/
 
@@ -41,6 +49,7 @@
 	.thumb
 	.file		"arm_start.S"
 	.globl		up_start
+	.globl		_ebss
 	.globl		__aeabi_d2iz
 	.globl		__aeabi_d2uiz
 	.globl		__aeabi_ldivmod
@@ -56,6 +65,28 @@
 	.type		__start, function
 
 __start:
+#ifdef CONFIG_STACK_COLORATION
+	/* Set the IDLE stack to the stack coloration value then jump to
+	 * up_start().  We take extreme care here because were currently
+	 * executing on this stack.
+	 */
+
+	ldr		r0, =#_ebss
+	ldr		r1, =#(CONFIG_IDLETHREAD_STACKSIZE >> 2)
+	ldr		r2, =#STACK_COLOR
+1:
+	sub		r1, r1, #1
+	cmp		r1, #0
+	str		r2, [r0], #4
+	bne		1b
+#endif
+
+#ifdef CONFIG_ARMV7M_STACKCHECK
+	/* Set the stack limit before we attempt to call any functions */
+
+	sub 		r10, sp, #(CONFIG_IDLETHREAD_STACKSIZE - 64)
+#endif
+
 	bl		up_start
 
 /****************************************************************************
