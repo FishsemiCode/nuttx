@@ -12,12 +12,6 @@ choice
 		be available for selection.  Use ARCH_BOARD_CUSTOM to create a new
 		board configuration.
 
-config ARCH_BOARD_ABIES
-	bool "Pinecone Abies"
-	depends on ARCH_CHIP_SONG
-	---help---
-		Pinecone Abies SoC.
-
 config ARCH_BOARD_AMBER
 	bool "Amber Web Server"
 	depends on ARCH_CHIP_ATMEGA128
@@ -54,12 +48,6 @@ config ARCH_BOARD_AVR32DEV1
 		AVR32 family.  That patched GNU toolchain is available only from the
 		Atmel website.  STATUS: This port is functional but very basic.  There
 		are configurations for NSH and the OS test.
-
-config ARCH_BOARD_BANKS
-	bool "Pinecone Banks"
-	depends on ARCH_CHIP_SONG
-	---help---
-		Pinecone Banks SoC.
 
 config ARCH_BOARD_C5471EVM
 	bool "Spectrum Digital C5471 evaluation board"
@@ -1411,12 +1399,6 @@ config ARCH_BOARD_UBW32
 		with this board http://www.sparkfun.com/products/9713. See also
 		http://www.schmalzhaus.com/UBW32/.
 
-config ARCH_BOARD_UNICORN
-	bool "Pinecone Unicorn"
-	depends on ARCH_SIM || ARCH_CHIP_SONG
-	---help---
-		Pinecone Unicorn MCU.
-
 config ARCH_BOARD_US7032EVB1
 	bool "Hitachi SH-1/US7032EVB1 board"
 	depends on ARCH_CHIP_SH7032
@@ -1574,13 +1556,11 @@ endif #ARCH_BOARD_CUSTOM
 
 config ARCH_BOARD
 	string
-	default "abies"                    if ARCH_BOARD_ABIES
 	default "amber"                    if ARCH_BOARD_AMBER
 	default "arduino-mega2560"         if ARCH_BOARD_ARDUINO_MEGA2560
 	default "arduino-due"              if ARCH_BOARD_ARDUINO_DUE
 	default "avr32dev1"                if ARCH_BOARD_AVR32DEV1
 	default "bambino-200e"             if ARCH_BOARD_BAMBINO_200E
-	default "banks"                    if ARCH_BOARD_BANKS
 	default "c5471evm"                 if ARCH_BOARD_C5471EVM
 	default "clicker2-stm32"           if ARCH_BOARD_CLICKER2_STM32
 	default "cloudctrl"                if ARCH_BOARD_CLOUDCTRL
@@ -1710,7 +1690,6 @@ config ARCH_BOARD
 	default "twr-k64f120m"             if ARCH_BOARD_TWR_K64F120M
 	default "u-blox-c027"              if ARCH_BOARD_U_BLOX_C027
 	default "ubw32"                    if ARCH_BOARD_UBW32
-	default "unicorn"                  if ARCH_BOARD_UNICORN
 	default "us7032evb1"               if ARCH_BOARD_US7032EVB1
 	default "viewtool-stm32f107"       if ARCH_BOARD_VIEWTOOL_STM32F107
 	default "xmc4500-relax"            if ARCH_BOARD_XMC4500RELAX
@@ -1757,9 +1736,6 @@ config ARCH_IRQBUTTONS
 
 comment "Board-Specific Options"
 
-if ARCH_BOARD_ABIES
-source "configs/abies/Kconfig"
-endif
 if ARCH_BOARD_AMBER
 source "configs/amber/Kconfig"
 endif
@@ -1774,9 +1750,6 @@ source "configs/avr32dev1/Kconfig"
 endif
 if ARCH_BOARD_BAMBINO_200E
 source "configs/bambino-200e/Kconfig"
-endif
-if ARCH_BOARD_BANKS
-source "configs/banks/Kconfig"
 endif
 if ARCH_BOARD_C5471EVM
 source "configs/c5471evm/Kconfig"
@@ -2155,9 +2128,6 @@ source "configs/u-blox-c027/Kconfig"
 endif
 if ARCH_BOARD_UBW32
 source "configs/ubw32/Kconfig"
-endif
-if ARCH_BOARD_UNICORN
-source "configs/unicorn/Kconfig"
 endif
 if ARCH_BOARD_US7032EVB1
 source "configs/us7032evb1/Kconfig"
