@@ -92,7 +92,10 @@ endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
   ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
-  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections -flto -fuse-linker-plugin
+  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections
+ifneq ($(CONFIG_ARMV7M_STACKCHECK),y)
+  ARCHOPTIMIZATION += -flto -fuse-linker-plugin
+endif
 endif
 
 ARCHCFLAGS = -fno-builtin
