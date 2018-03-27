@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -99,6 +100,7 @@ void up_earlyinitialize(void)
 
 void arm_timer_initialize(void)
 {
+#ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
     .base       = SEN_PWR_BASE,
@@ -114,13 +116,9 @@ void arm_timer_initialize(void)
     .intrst_off = 0x13c,
     .intr_bit   = 0,
   };
-  FAR struct oneshot_lowerhalf_s *lower;
 
-  lower = song_oneshot_initialize(&config, -1);
-  if (lower)
-    {
-      up_alarm_set_lowerhalf(lower);
-    }
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+#endif
 }
 
 #ifdef CONFIG_OPENAMP
@@ -251,4 +249,4 @@ void up_cpu_standby(void)
   putreg32(0x00010001, SEN_PWR_SLPCTL0);
 }
 
-#endif
+#endif  /* CONFIG_ARCH_CHIP_BANKS_SENSOR */

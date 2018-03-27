@@ -49,9 +49,9 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include "song_addrenv.h"
 #include "up_arch.h"
 #include "up_internal.h"
-#include "song_addrenv.h"
 
 #ifdef CONFIG_ARCH_CHIP_U1_SP
 
@@ -91,11 +91,66 @@ extern uint32_t _srsctbl_cp;
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_RTC_SONG
 static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+#endif
 
 /****************************************************************************
- * Private Functions
+ * Public Functions
  ****************************************************************************/
+
+void up_earlyinitialize(void)
+{
+  static const struct song_addrenv_s addrenv[] =
+  {
+    {.va = 0x21000000, .pa = 0xc1000000, .size = 0x00100000},
+    {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
+  };
+
+  /* Set up addrenv */
+
+  up_addrenv_initialize(addrenv);
+}
+
+#ifdef CONFIG_RTC_SONG
+int up_rtc_initialize(void)
+{
+  static const struct song_rtc_config_s config =
+  {
+    .base  = 0xb2020000,
+    .irq   = 16,
+    .index = 2,
+  };
+
+  g_rtc_lower = song_rtc_initialize(&config);
+  up_rtc_set_lowerhalf(g_rtc_lower);
+
+  return 0;
+}
+#endif
+
+void arm_timer_initialize(void)
+{
+#ifdef CONFIG_ONESHOT_SONG
+  static const struct song_oneshot_config_s config =
+  {
+    .base       = TOP_PWR_BASE,
+    .irq        = 18,
+    .c1_max     = 2048,
+    .c1_freq    = 8192000,
+    .ctl_off    = 0x170,
+    .calib_off  = 0x194,
+    .c1_off     = 0x174,
+    .c2_off     = 0x178,
+    .spec_off   = 0x1ac,
+    .intren_off = 0x124,
+    .intrst_off = 0x130,
+    .intr_bit   = 2,
+  };
+
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+#endif
+}
 
 #ifdef CONFIG_OPENAMP
 static int ap_boot(const struct song_rptun_config_s *config)
@@ -118,70 +173,7 @@ static int cp_boot(const struct song_rptun_config_s *config)
   putreg32(0x00010000, TOP_PWR_CP_M4_RSTCTL);
   return 0;
 }
-#endif
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-void up_earlyinitialize(void)
-{
-  static const struct song_addrenv_s addrenv[] =
-  {
-    {.va = 0x21000000, .pa = 0xc1000000, .size = 0x00100000},
-    {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
-  };
-
-  /* Set up addrenv */
-
-  up_addrenv_initialize(addrenv);
-}
-
-int up_rtc_initialize(void)
-{
-  static const struct song_rtc_config_s config =
-  {
-    .base  = 0xb2020000,
-    .irq   = 16,
-    .index = 2,
-  };
-
-  g_rtc_lower = song_rtc_initialize(&config);
-  if (g_rtc_lower)
-    {
-      up_rtc_set_lowerhalf(g_rtc_lower);
-    }
-
-  return 0;
-}
-
-void arm_timer_initialize(void)
-{
-  static const struct song_oneshot_config_s config =
-  {
-    .base       = TOP_PWR_BASE,
-    .irq        = 18,
-    .c1_max     = 2048,
-    .c1_freq    = 8192000,
-    .ctl_off    = 0x170,
-    .calib_off  = 0x194,
-    .c1_off     = 0x174,
-    .c2_off     = 0x178,
-    .spec_off   = 0x1ac,
-    .intren_off = 0x124,
-    .intrst_off = 0x130,
-    .intr_bit   = 2,
-  };
-  FAR struct oneshot_lowerhalf_s *lower;
-
-  lower = song_oneshot_initialize(&config, -1);
-  if (lower)
-    {
-      up_alarm_set_lowerhalf(lower);
-    }
-}
-
-#ifdef CONFIG_OPENAMP
 void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_ap, *mbox_cp, *mbox_sp;
@@ -350,7 +342,9 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
+#endif
 }
 
 int board_app_initialize(uintptr_t arg)

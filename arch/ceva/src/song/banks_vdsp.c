@@ -57,19 +57,16 @@ void up_earlyinitialize(void)
 
 void ceva_timer_initialize(void)
 {
+#ifdef CONFIG_ONESHOT_SONG
   static const struct dw_timer_config_s config =
   {
     .base       = 0xfd020000,
     .irq        = IRQ_INT1,
     .freq       = 1000000,
   };
-  FAR struct timer_lowerhalf_s *lower;
 
-  lower = dw_timer_initialize(&config, -1);
-  if (lower)
-    {
-      up_timer_set_lowerhalf(lower);
-    }
+  up_timer_set_lowerhalf(dw_timer_initialize(&config, -1));
+#endif
 }
 
 void up_lateinitialize(void)
@@ -85,4 +82,4 @@ void up_cpu_sleep(void)
   up_cpu_standby();
 }
 
-#endif
+#endif /* CONFIG_ARCH_CHIP_BANKS_VDSP */

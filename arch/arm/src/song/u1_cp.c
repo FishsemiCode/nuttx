@@ -92,7 +92,9 @@ extern uint32_t _logsize;
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_RTC_SONG
 static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -116,6 +118,7 @@ void up_earlyinitialize(void)
 #endif
 }
 
+#ifdef CONFIG_RTC_SONG
 int up_rtc_initialize(void)
 {
   static const struct song_rtc_config_s config =
@@ -126,16 +129,15 @@ int up_rtc_initialize(void)
   };
 
   g_rtc_lower = song_rtc_initialize(&config);
-  if (g_rtc_lower)
-    {
-      up_rtc_set_lowerhalf(g_rtc_lower);
-    }
+  up_rtc_set_lowerhalf(g_rtc_lower);
 
   return 0;
 }
+#endif
 
 void arm_timer_initialize(void)
 {
+#ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
     .base       = 0xb0040000,
@@ -151,13 +153,9 @@ void arm_timer_initialize(void)
     .intrst_off = 0x138,
     .intr_bit   = 0,
   };
-  FAR struct oneshot_lowerhalf_s *lower;
 
-  lower = song_oneshot_initialize(&config, -1);
-  if (lower)
-    {
-      up_alarm_set_lowerhalf(lower);
-    }
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+#endif
 }
 
 #ifdef CONFIG_OPENAMP
@@ -231,7 +229,9 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
+#endif
 }
 
 void up_cpu_idle(void);
@@ -296,4 +296,4 @@ void up_cpu_sleep(void)
   putreg32((getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP), NVIC_SYSCON);
 }
 
-#endif
+#endif /* CONFIG_ARCH_CHIP_U1_CP */

@@ -67,6 +67,8 @@
 
 #define TOP_MAILBOX_BASE            (0xf9000000)
 
+#define DDR_PWR_BASE                (0xf9210000)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -95,9 +97,10 @@ void up_earlyinitialize(void)
 
 void ceva_timer_initialize(void)
 {
+#ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
-    .base       = B2C(0xf9210000),
+    .base       = B2C(DDR_PWR_BASE),
     .irq        = IRQ_INT3,
     .c1_max     = 2600,
     .c1_freq    = 26000000,
@@ -110,13 +113,8 @@ void ceva_timer_initialize(void)
     .intrst_off = 0x484,
     .intr_bit   = 28,
   };
-  FAR struct oneshot_lowerhalf_s *lower;
-
-  lower = song_oneshot_initialize(&config, -1);
-  if (lower)
-    {
-      up_alarm_set_lowerhalf(lower);
-    }
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+#endif
 }
 
 #ifdef CONFIG_OPENAMP
@@ -245,4 +243,4 @@ void up_cpu_sleep(void)
   up_cpu_standby();
 }
 
-#endif
+#endif /* CONFIG_ARCH_CHIP_BANKS_ADSP */
