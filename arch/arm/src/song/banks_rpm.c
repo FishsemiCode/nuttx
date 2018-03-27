@@ -51,6 +51,7 @@
 
 #include "nvic.h"
 #include "song_addrenv.h"
+#include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -119,6 +120,10 @@ void arm_timer_initialize(void)
   };
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+#endif
+
+#ifdef CONFIG_CPULOAD_PERIOD
+  sched_period_extclk(systick_initialize(false, 26000000, -1));
 #endif
 }
 
