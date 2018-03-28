@@ -1,0 +1,5 @@
+ifeq ($(CONFIG_SONG_DMAS),y)
+  CSRCS += song_dmas.c
+endif
+DEPPATH += --dep-path dma
+VPATH += :dma

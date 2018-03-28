@@ -193,6 +193,7 @@ source drivers/bch/Kconfig
 endif # BCH
 
 source drivers/clk/Kconfig
+source drivers/dma/Kconfig
 
 menuconfig INPUT
 	bool "Input Device Support"
