@@ -36,3 +36,6 @@ endif # AUDIO_I2SCHAR
 
 config SONG_I2S
         bool "Song I2S"
+
+config SONG_PDM
+        bool "Song PDM"
