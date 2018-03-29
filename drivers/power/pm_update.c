@@ -79,35 +79,38 @@ static const int16_t g_pmcoeffs[CONFIG_PM_MEMORY-1] =
 #endif
 
 /* Threshold activity values to enter into the next lower power consumption
- * state. Indexing is next state 0:IDLE, 1:STANDBY, 2:SLEEP.
+ * state. Indexing is next state 0:IDLE, 1:STANDBY, 2:DOZE, 3:SLEEP.
  */
 
-static const int16_t g_pmenterthresh[3] =
+static const int16_t g_pmenterthresh[4] =
 {
   CONFIG_PM_IDLEENTER_THRESH,
   CONFIG_PM_STANDBYENTER_THRESH,
+  CONFIG_PM_DOZEENTER_THRESH,
   CONFIG_PM_SLEEPENTER_THRESH
 };
 
 /* Threshold activity values to leave the current low power consdumption
- * state. Indexing is current state 0:IDLE, 1: STANDBY, 2: SLEEP.
+ * state. Indexing is current state 0:IDLE, 1: STANDBY, 2: DOZE, 3:SLEEP.
  */
 
-static const int16_t g_pmexitthresh[3] =
+static const int16_t g_pmexitthresh[4] =
 {
   CONFIG_PM_IDLEEXIT_THRESH,
   CONFIG_PM_STANDBYEXIT_THRESH,
+  CONFIG_PM_DOZEEXIT_THRESH,
   CONFIG_PM_SLEEPEXIT_THRESH
 };
 
 /* Threshold time slice count to enter the next low power consdumption
- * state. Indexing is next state 0:IDLE, 1: STANDBY, 2: SLEEP.
+ * state. Indexing is next state 0:IDLE, 1: STANDBY, 2: DOZE, 3:SLEEP.
  */
 
-static const uint16_t g_pmcount[3] =
+static const uint16_t g_pmcount[4] =
 {
   CONFIG_PM_IDLEENTER_COUNT,
   CONFIG_PM_STANDBYENTER_COUNT,
+  CONFIG_PM_DOZEENTER_COUNT,
   CONFIG_PM_SLEEPENTER_COUNT
 };
 

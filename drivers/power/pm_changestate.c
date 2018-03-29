@@ -193,10 +193,14 @@ int pm_changestate(int domain, enum pm_state_e newstate)
   if (ret != OK)
     {
       /* One or more drivers is not ready for this state change.  Revert to
-       * the preceding state.
+       * the CONFIG_PM_REVERT_STATE.
        */
 
+#if CONFIG_PM_REVERT_STATE < 0
       newstate = g_pmglobals.domain[domain].state;
+#else
+      newstate = CONFIG_PM_REVERT_STATE;
+#endif
       (void)pm_prepall(domain, newstate);
     }
 
@@ -211,6 +215,11 @@ int pm_changestate(int domain, enum pm_state_e newstate)
 
   leave_critical_section(flags);
   return ret;
+}
+
+enum pm_state_e pm_querystate(int domain)
+{
+  return g_pmglobals.domain[domain].state;
 }
 
 #endif /* CONFIG_PM */
