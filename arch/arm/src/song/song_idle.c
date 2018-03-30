@@ -177,7 +177,7 @@ void up_idle(void)
 
   /* Quit wfe, include PM_IDLE and PM_STANDBY/PM_SLEEP interrupted, restore PM_NORMAL */
 
-  (void)pm_changestate(PM_CPU_DOMAIN, PM_NORMAL);
+  pm_changestate(PM_CPU_DOMAIN, PM_NORMAL);
   leave_critical_section(flags);
 }
 
