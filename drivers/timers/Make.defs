@@ -57,6 +57,12 @@ ifeq ($(CONFIG_TIMER_ARCH),y)
   TMRVPATH = :timers
 endif
 
+ifeq ($(CONFIG_TIMER_CMSDK),y)
+  CSRCS += cmsdk_timer.c
+  TMRDEPPATH = --dep-path timers
+  TMRVPATH = :timers
+endif
+
 ifeq ($(CONFIG_TIMER_DW),y)
   CSRCS += dw_timer.c
   TMRDEPPATH = --dep-path timers

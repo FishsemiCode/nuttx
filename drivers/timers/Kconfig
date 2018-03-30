@@ -22,6 +22,11 @@ config TIMER_ARCH
 	---help---
 		Implement timer arch API on top of timer driver interface.
 
+config TIMER_CMSDK
+	bool "CMSDK Driver"
+	---help---
+		Enables support for the CMSDK timer.
+
 config TIMER_DW
 	bool "DesignWare Timer Driver"
 	---help---
