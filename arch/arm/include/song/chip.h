@@ -101,7 +101,7 @@
 #  define NVIC_SYSH_DISABLE_PRIORITY  0x80
 #endif
 
-#define PM_CPU_DOMAIN                 0
+#define PM_IDLE_DOMAIN                0
 
 /****************************************************************************
  * Public Types

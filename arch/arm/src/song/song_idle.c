@@ -52,12 +52,6 @@
  * Public Functions
  ****************************************************************************/
 
-void up_cpu_idle(void);
-void weak_function up_cpu_normal(void)
-{
-  up_cpu_idle();
-}
-
 void weak_function up_cpu_idle(void)
 {
   modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
@@ -68,9 +62,14 @@ void weak_function up_cpu_standby(void)
   modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
 }
 
-void weak_function up_cpu_sleep(void)
+void weak_function up_cpu_doze(void)
 {
   up_cpu_standby();
+}
+
+void weak_function up_cpu_sleep(void)
+{
+  up_cpu_doze();
 }
 
 /****************************************************************************
@@ -89,51 +88,49 @@ void weak_function up_cpu_sleep(void)
 static void up_idlepm(void)
 {
   enum pm_state_e newstate;
-  int ret;
 
   /* Decide, which power saving level can be obtained */
 
-  newstate = pm_checkstate(PM_CPU_DOMAIN);
+  newstate = pm_checkstate(PM_IDLE_DOMAIN);
 
-  /* Check for state changes */
+  /* Perform board-specific, state-dependent logic here */
+  /* Enter idle loop means cpu is idle, so the newstate should be PM_IDLE at least. */
 
-  /* PM_NORMAL means can't enter any lp_state, but CPU is idle, so enter wfe */
-
-  if (newstate == PM_NORMAL)
+  if (newstate < PM_IDLE)
     {
-      up_cpu_normal();
+      newstate = PM_IDLE;
     }
-  else
+
+  /* Then force the global state change */
+
+  pm_changestate(PM_IDLE_DOMAIN, newstate);
+
+  /* The change may fail, let's get the final state from power manager */
+
+  newstate = pm_querystate(PM_IDLE_DOMAIN);
+
+  /* MCU-specific power management logic */
+
+  switch (newstate)
     {
-      /* Then force the global state change */
+    case PM_IDLE:
+      up_cpu_idle();
+      break;
 
-      ret = pm_changestate(PM_CPU_DOMAIN, newstate);
+    case PM_STANDBY:
+      up_cpu_standby();
+      break;
 
-      /* changestate successful and state is different, update oldstate and config */
+    case PM_DOZE:
+      up_cpu_doze();
+      break;
 
-      if (ret == 0)
-        {
-          /* MCU-specific power management logic */
+    case PM_SLEEP:
+      up_cpu_sleep();
+      break;
 
-          switch (newstate)
-            {
-            case PM_IDLE:
-              up_cpu_idle();
-              break;
-
-            case PM_STANDBY:
-              up_cpu_standby();
-              break;
-
-            case PM_SLEEP:
-              up_cpu_sleep();
-              break;
-
-            default:
-              break;
-            }
-        }
-      /* changestate fail (assume backoff oldstate successfully), don't need to config (configed before), just enter wfe */
+    default:
+      break;
     }
 }
 #else
@@ -162,22 +159,25 @@ void up_idle(void)
 {
   irqstate_t flags;
 
-  /* Clear event reg, exceptions before should not prevent entering sleeping */
+  flags = enter_critical_section();
+
+  /* Clear event reg */
+
   __asm__ __volatile__("sev");
   __asm__ __volatile__("wfe");
 
   /* Perform IDLE mode power management */
 
-  flags = enter_critical_section();
   up_idlepm();
 
   /* If there is interrupt in up_idlepm(), can't enter sleeping */
 
   __asm__ __volatile__("wfe");
 
-  /* Quit wfe, include PM_IDLE and PM_STANDBY/PM_SLEEP interrupted, restore PM_NORMAL */
+  /* Quit WFE, restore to PM_NORMAL */
 
-  pm_changestate(PM_CPU_DOMAIN, PM_NORMAL);
+  pm_changestate(PM_IDLE_DOMAIN, PM_NORMAL);
+
   leave_critical_section(flags);
 }
 
