@@ -194,7 +194,7 @@ void up_openamp_initialize(void)
       .align         = 8,
       .num           = 16,
     },
-    .buf_size = 0xe0,
+    .buf_size        = 0xe0,
   };
 
   static const struct song_rptun_config_s rptun_cfg_ap =
