@@ -56,10 +56,10 @@
 #define PF_UNIX        1 /* Local communication */
 #define PF_LOCAL       1 /* Local communication */
 #define PF_INET        2 /* IPv4 Internet protocols */
-#define PF_INET6       3 /* IPv6 Internet protocols */
-#define PF_PACKET      4 /* Low level packet interface */
-#define PF_IEEE802154  5 /* Low level IEEE 802.15.4 radio frame interface */
-#define PF_PKTRADIO    6 /* Low level packet radio interface */
+#define PF_INET6      10 /* IPv6 Internet protocols */
+#define PF_PACKET     17 /* Low level packet interface */
+#define PF_IEEE802154 36 /* Low level IEEE 802.15.4 radio frame interface */
+#define PF_PKTRADIO   64 /* Low level packet radio interface */
 
 /* Supported Address Families. Opengroup.org requires only AF_UNSPEC,
  * AF_UNIX, AF_INET and AF_INET6.
