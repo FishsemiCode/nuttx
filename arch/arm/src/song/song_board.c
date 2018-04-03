@@ -48,7 +48,7 @@
  * Public Functions
  ****************************************************************************/
 
-#ifndef CONFIG_16550_UART
+#if !defined (CONFIG_16550_UART) && !defined (CONFIG_CMSDK_UART)
 #ifdef USE_EARLYSERIALINIT
 void up_earlyserialinit(void)
 {
