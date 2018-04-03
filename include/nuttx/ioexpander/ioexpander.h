@@ -55,10 +55,6 @@
 #  define CONFIG_IOEXPANDER_NPINS 16
 #endif
 
-#if CONFIG_IOEXPANDER_NPINS > 64
-#  error No support for devices with more than 64 pins
-#endif
-
 /* Pin definitions **********************************************************/
 
 #define IOEXPANDER_DIRECTION_IN    0
@@ -301,8 +297,12 @@ typedef uint8_t ioe_pinset_t;
 typedef uint16_t ioe_pinset_t;
 #elif CONFIG_IOEXPANDER_NPINS <= 32
 typedef uint32_t ioe_pinset_t;
-#else /* if CONFIG_IOEXPANDER_NPINS <= 64 */
+#elif CONFIG_IOEXPANDER_NPINS <= 64
 typedef uint64_t ioe_pinset_t;
+#else
+/* for IOE NPINS greater than 64, ioe_pinset_t represent
+ * one interrupt pin number instead of a bitmap of pins */
+typedef uint16_t ioe_pinset_t;
 #endif
 
 #ifdef CONFIG_IOEXPANDER_INT_ENABLE

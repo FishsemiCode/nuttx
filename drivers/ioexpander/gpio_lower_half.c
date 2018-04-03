@@ -258,7 +258,11 @@ static int gplh_enable(FAR struct gpio_dev_s *gpio, bool enable)
 
       else if (priv->handle == NULL)
         {
+#if CONFIG_IOEXPANDER_NPINS <= 64
           ioe_pinset_t pinset = ((ioe_pinset_t)1 << priv->pin);
+#else
+          ioe_pinset_t pinset = ((ioe_pinset_t)priv->pin);
+#endif
 
           /* We have a callback and the callback is not yet attached.
            * do it now.
