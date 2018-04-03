@@ -88,6 +88,7 @@ static void uart_cmsdk_detach(FAR struct uart_dev_s *dev);
 static int  uart_cmsdk_rx_interrupt(int irq, FAR void *context, FAR void *arg);
 static int  uart_cmsdk_ov_interrupt(int irq, FAR void *context, FAR void *arg);
 static int  uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg);
+static int  uart_cmsdk_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 static int  uart_cmsdk_receive(FAR struct uart_dev_s *dev, uint32_t *status);
 static void uart_cmsdk_rxint(FAR struct uart_dev_s *dev, bool enable);
 static bool uart_cmsdk_rxavailable(FAR struct uart_dev_s *dev);
@@ -105,6 +106,7 @@ static const struct uart_ops_s g_uart_ops =
   .shutdown       = uart_cmsdk_shutdown,
   .attach         = uart_cmsdk_attach,
   .detach         = uart_cmsdk_detach,
+  .ioctl          = uart_cmsdk_ioctl,
   .receive        = uart_cmsdk_receive,
   .rxint          = uart_cmsdk_rxint,
   .rxavailable    = uart_cmsdk_rxavailable,
@@ -451,6 +453,19 @@ static int uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg)
   uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_TX);
   uart_xmitchars(dev);
 
+  return OK;
+}
+
+/****************************************************************************
+ * Name: uart_cmsdk_ioctl
+ *
+ * Description:
+ *   All ioctl calls will be routed through this method
+ *
+ ****************************************************************************/
+
+static int uart_cmsdk_ioctl(struct file *filep, int cmd, unsigned long arg)
+{
   return OK;
 }
 
