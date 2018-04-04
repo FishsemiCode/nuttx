@@ -42,6 +42,7 @@
 #include <errno.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/timers/song_rtc.h>
 
 /****************************************************************************
@@ -97,6 +98,9 @@ struct song_rtc_lowerhalf_s
   rtc_alarm_callback_t cb;  /* Callback when the alarm expires */
   FAR void *priv;           /* Private argument to accompany callback */
 #endif
+#ifdef CONFIG_PM
+  struct pm_callback_s pm_cb;
+#endif
 };
 
 /****************************************************************************
@@ -148,6 +152,36 @@ static const struct rtc_ops_s g_song_rtc_ops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+#ifdef CONFIG_PM
+static enum pm_state_e song_rtc_pm_evaluate(FAR struct pm_callback_s *cb, int domain)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = container_of(cb, struct song_rtc_lowerhalf_s, pm_cb);
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+  FAR struct song_rtc_alarm_s *alarm = &base->ALARM[lower->config->index];
+  uint32_t diff;
+
+  if (alarm->INT_EN == 0)
+    {
+      return PM_SLEEP;
+    }
+  /* RTC alarm is set. */
+
+  diff = alarm->CNT_HI - base->SET_CNT2;
+  if (diff >= CONFIG_RTC_SONG_SLEEPENTER_THRESH)
+    {
+      return PM_SLEEP;
+    }
+  else if (diff >= CONFIG_RTC_SONG_DOZEENTER_THRESH)
+    {
+      return PM_DOZE;
+    }
+  else
+    {
+      return PM_STANDBY;
+    }
+}
+#endif
 
 static uint32_t song_rtc_nsec2cnt(uint32_t nsec)
 {
@@ -343,6 +377,11 @@ FAR struct rtc_lowerhalf_s *song_rtc_initialize(FAR const struct song_rtc_config
       lower->config = config;
       lower->ops = &g_song_rtc_ops;
     }
+
+#ifdef CONFIG_PM
+  lower->pm_cb.evaluate = song_rtc_pm_evaluate;
+  pm_register(&lower->pm_cb);
+#endif
 
   return (FAR struct rtc_lowerhalf_s *)lower;
 }
