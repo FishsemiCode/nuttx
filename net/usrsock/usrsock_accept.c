@@ -464,7 +464,7 @@ int usrsock_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
     }
   while (ret == -EAGAIN);
 
-  if (ret => 0)
+  if (ret >= 0)
     {
       goto errout_unlock;
     }
