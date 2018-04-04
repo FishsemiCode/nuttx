@@ -79,7 +79,7 @@
 #define UART_CTRL_TX_OVERRUN_INT_ENABLE    (1 << 4)
 #define UART_CTRL_RX_OVERRUN_INT_ENABLE    (1 << 5)
 #define UART_CTRL_TSTMODE_ENABLE           (1 << 6)
-#define UART_CTRL_ALLIE                    (0x3C)
+#define UART_CTRL_ALLIE                    (0x0C)
 
 /************************************************************************************
  * Public Types
