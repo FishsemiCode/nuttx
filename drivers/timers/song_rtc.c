@@ -276,7 +276,7 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   cnt_lo = song_rtc_nsec2cnt(alarminfo->time.tm_nsec);
 
   flags = enter_critical_section();
-  first_alarm       = !!lower->cb;
+  first_alarm       = !lower->cb;
   lower->cb         = alarminfo->cb;
   lower->priv       = alarminfo->priv;
   alarm->CNT_HI     = cnt_hi;
