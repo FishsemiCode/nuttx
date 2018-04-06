@@ -65,6 +65,8 @@ DISASM  = $(CROSSDEV)disasm -q
 OBJCOPY = $(CROSSDEV)coffutil -quiet
 OBJDUMP = $(CROSSDEV)coffdump -quiet
 
+# compiler doesn't preprocess the assembler file
+# so we have to invoke the preprocessor manually
 define ASSEMBLE
 	@echo "AS: $1"
 	$(call MKDIR, $(dir $2))
@@ -73,6 +75,9 @@ define ASSEMBLE
 	$(call DELFILE, $2.asm)
 endef
 
+# since cofflib doesn't support replace, we have to:
+# 1.remove old object files one by one from the library
+# 2.and then add new object files into the library
 define ARNOEMP
 	$(Q) for obj in $2; do \
 		$(AR) -r $$obj $1 1>/dev/null || true; \
@@ -80,6 +85,8 @@ define ARNOEMP
 	$(Q) $(AR) -a $2 $1
 endef
 
+# we have to generate a dummy object file here since
+# cofflib can't create a library without object file
 define AREMPTY
 	$(Q) touch $1.c
 	$(call COMPILE, $1.c, $1.o)

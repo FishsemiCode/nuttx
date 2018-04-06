@@ -72,7 +72,7 @@ ARCHCPUFLAGS += -Xassembler -ignoreWarnings,w628,w672
 # cofflib -r will core dump if the library contain an object file
 # without any public symbol, so let's always generate a dummy global
 # function to overcome this issue.
-ARCHCPUFLAGS += -DCKSUM_SELF=$(word 1, $(if $<,$(shell cksum $<),dummy))
+ARCHCPUFLAGS += -DCKSUM_SELF=$(if $<,$(word 1,$(shell cksum $<)))
 ARCHCPUFLAGS += -include dummy.h
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
@@ -151,8 +151,19 @@ endif
 CC   = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet
 CXX  = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -cxx
 CPP  = $(CROSSDEV)tl4cc -mquiet -Wa,-quiet -E -P
-CPP += -DCPP_SELF=$(strip $1) -D_ACC_T_H_
-CPP += $(TOPDIR)/arch/$(CONFIG_ARCH)/src/tl4/dummy.c
+# tl4cc preprosseor always include acc.h automatically
+# let's define _ACC_T_H_ to skip the content of acc.h
+CPP += -D_ACC_T_H_
+
+# since tl4cc doesn't support -x c option
+# ensure input file with .c suffix by copying
+define PREPROCESS
+	@echo "CPP: $1->$2"
+	$(call MKDIR, $(dir $2))
+	$(Q) cp -f $1 $2.c
+	$(Q) $(CPP) $(CPPFLAGS) $2.c -o $2
+	$(call DELFILE, $2.c)
+endef
 
 # disable all built-in rules
 .SUFFIXES:
