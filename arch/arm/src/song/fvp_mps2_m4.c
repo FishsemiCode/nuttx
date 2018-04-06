@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clock.h>
+#include <nuttx/net/lan91c111.h>
 #include <nuttx/timers/arch_timer.h>
 #include <nuttx/timers/cmsdk_timer.h>
 
@@ -69,5 +70,14 @@ void arm_timer_initialize(void)
   sched_period_extclk(systick_initialize(false, 25000, -1));
 #endif
 }
+
+#ifdef CONFIG_NETDEVICES
+void up_netinitialize(void)
+{
+#  ifdef CONFIG_NET_LAN91C111
+  lan91c111_initialize(0x40200000, 29);
+#  endif
+}
+#endif
 
 #endif /* CONFIG_ARCH_CHIP_FVP_MPS2_M4 */
