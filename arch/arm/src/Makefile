@@ -215,10 +215,12 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(LDSCRIPT)
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) -T $(notdir $(LDSCRIPT)) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
+ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
-	$(Q) $(OBJDUMP) -t $(NUTTX) | sort > $(OUTDIR)$(DELIM)nuttx.sym
-	$(Q) $(OBJDUMP) -Mreg-names-raw -S $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.lst
+	$(Q) $(NM) -S --numeric-sort $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.sym
+	$(Q) $(OBJDUMP) -S $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.lst
 	$(Q) $(OBJDUMP) -s -x $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.dump
+endif
 
 # This is part of the top-level export target
 # Note that there may not be a head object if layout is handled
