@@ -322,26 +322,22 @@ static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
   struct uart_dev_s *dev = priv_;
   struct uart_rpmsg_priv_s *priv = dev->priv;
-  struct rpmsg_channel *channel;
 
   if (priv->cpu_name && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
     {
-      channel = rpmsg_create_channel(rdev, priv->channel_name);
-      if (channel != NULL)
-        {
-          rpmsg_set_privdata(channel, dev);
-        }
+      rpmsg_create_channel(rdev, priv->channel_name);
     }
 }
 
 static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
-  struct uart_dev_s *dev = rpmsg_get_privdata(channel);
+  struct uart_dev_s *dev = rpmsg_get_callback_privdata(channel->name);
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (dev != NULL)
+  if (priv->channel == NULL)
     {
       priv->channel = channel;
+      rpmsg_set_privdata(channel, dev);
 
       uart_connected(dev, true);
       uart_xmitchars_dma(dev);
@@ -351,10 +347,11 @@ static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
 static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 {
   struct uart_dev_s *dev = rpmsg_get_privdata(channel);
-  struct uart_rpmsg_priv_s *priv = dev->priv;
 
   if (dev != NULL)
     {
+      struct uart_rpmsg_priv_s *priv = dev->priv;
+
       uart_connected(dev, false);
       priv->channel = NULL;
     }
@@ -364,7 +361,6 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
   struct uart_dev_s *dev = rpmsg_get_privdata(channel);
-  struct uart_rpmsg_priv_s *priv = dev->priv;
   struct uart_rpmsg_header_s *header = data;
   struct uart_rpmsg_write_s *msg = data;
 
@@ -387,11 +383,11 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
         {
           uart_rpmsg_dmacontinue(dev);
         }
-      return;
-    }
-
-  if (header->command == UART_RPMSG_TTY_WRITE)
+     }
+  else if (header->command == UART_RPMSG_TTY_WRITE)
     {
+      struct uart_rpmsg_priv_s *priv = dev->priv;
+
       priv->recv_data = data;
       uart_recvchars_dma(dev);
       priv->recv_data = NULL;
