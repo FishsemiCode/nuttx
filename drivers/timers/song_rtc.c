@@ -68,9 +68,10 @@ struct song_rtc_s
   volatile uint32_t SET_CYC;
   volatile uint32_t SET_CLK32K_ADJ;
   volatile uint32_t CALI_UPDATE;
-  volatile uint32_t TIME_VALID;
+  volatile uint32_t VERSION;
   volatile uint32_t RTC_CTL;
-  volatile uint32_t RESERVED1[7];
+  volatile uint32_t USER_DEFINED;
+  volatile uint32_t RESERVED1[6];
   struct song_rtc_alarm_s ALARM[];
 };
 
@@ -196,10 +197,10 @@ static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
   cnt1 = song_rtc_nsec2cnt(rtctime->tm_nsec);
 
   flags = enter_critical_section();
-  base->SET_CNT2   = cnt2;
-  base->SET_CNT1   = cnt1;
-  base->SET_UPDATE = 1; /* Trigger the update */
-  base->TIME_VALID = 1; /* Mark the change */
+  base->SET_CNT2     = cnt2;
+  base->SET_CNT1     = cnt1;
+  base->SET_UPDATE   = 1; /* Trigger the update */
+  base->USER_DEFINED = 1; /* Mark the change */
   leave_critical_section(flags);
 
   return 0;
@@ -210,7 +211,7 @@ static bool song_rtc_havesettime(FAR struct rtc_lowerhalf_s *lower_)
   FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
   FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
 
-  return base->TIME_VALID != 0;
+  return base->USER_DEFINED != 0;
 }
 
 #ifdef CONFIG_RTC_ALARM
