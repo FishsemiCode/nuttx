@@ -67,7 +67,7 @@ HOSTEXEEXT ?= .exe
 endif
 endif
 
-KCONFIG_CFLAGS += $(filter-out -Wshadow,$(HOSTCFLAGS))
+KCONFIG_CFLAGS += $(filter-out -Wshadow -m32 -m64,$(HOSTCFLAGS))
 KCONFIG_CFLAGS += -DHAVE_CONFIG_H
 KCONFIG_CFLAGS += -DROOTMENU=\"Configuration\"
 KCONFIG_CFLAGS += -DCURSES_LOC=\"ncurses.h\"
