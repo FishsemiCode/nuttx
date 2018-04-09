@@ -208,9 +208,9 @@ void up_pminitialize(void);
 #  define up_pminitialize()
 #endif
 
-void up_cpu_normal(void);
 void up_cpu_idle(void);
 void up_cpu_standby(void);
+void up_cpu_doze(void);
 void up_cpu_sleep(void);
 
 /* Interrupt handling *******************************************************/

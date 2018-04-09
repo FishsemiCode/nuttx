@@ -60,51 +60,49 @@
 #ifdef CONFIG_PM
 static void up_idlepm(void)
 {
-  static enum pm_state_e oldstate = PM_NORMAL;
   enum pm_state_e newstate;
-  int ret;
 
   /* Decide, which power saving level can be obtained */
 
-  newstate = pm_checkstate(PM_CPU_DOMAIN);
+  newstate = pm_checkstate(PM_IDLE_DOMAIN);
 
-  /* Check for state changes */
+  /* Enter idle loop means cpu is idle, so the newstate should be PM_IDLE at least. */
 
-  if (newstate != oldstate)
+  if (newstate < PM_IDLE)
     {
-      /* Then force the global state change */
+      newstate = PM_IDLE;
+    }
 
-      ret = pm_changestate(PM_CPU_DOMAIN, newstate);
-      if (ret == 0)
-        {
-          /* Save the new state */
+  /* Then force the global state change */
 
-          oldstate = newstate;
+  pm_changestate(PM_IDLE_DOMAIN, newstate);
 
-          /* MCU-specific power management logic */
+  /* The change may fail, let's get the final state from power manager */
 
-          switch (newstate)
-            {
-            case PM_NORMAL:
-              up_cpu_normal();
-              break;
+  newstate = pm_querystate(PM_IDLE_DOMAIN);
 
-            case PM_IDLE:
-              up_cpu_idle();
-              break;
+  /* MCU-specific power management logic */
 
-            case PM_STANDBY:
-              up_cpu_standby();
-              break;
+  switch (newstate)
+    {
+    case PM_IDLE:
+      up_cpu_idle();
+      break;
 
-            case PM_SLEEP:
-              up_cpu_sleep();
-              break;
+    case PM_STANDBY:
+      up_cpu_standby();
+      break;
 
-            default:
-              break;
-            }
-        }
+    case PM_DOZE:
+      up_cpu_doze();
+      break;
+
+    case PM_SLEEP:
+      up_cpu_sleep();
+      break;
+
+    default:
+      break;
     }
 }
 #else
@@ -119,12 +117,13 @@ static void up_idlepm(void)
  * Name: up_idle
  *
  * Description:
- *   up_idle() is the logic that will be executed when their is no other
- *   ready-to-run task.  This is processor idle time and will continue until
- *   some interrupt occurs to cause a context switch from the idle task.
+ *   up_idle() is the logic that will be executed
+ *   when their is no other ready-to-run task.  This is processor
+ *   idle time and will continue until some interrupt occurs to
+ *   cause a context switch from the idle task.
  *
- *   Processing in this state may be processor-specific. e.g., this is where
- *   power management operations might be performed.
+ *   Processing in this state may be processor-specific. e.g.,
+ *   this is where power management operations might be performed.
  *
  ****************************************************************************/
 
@@ -132,10 +131,16 @@ void up_idle(void)
 {
   irqstate_t flags;
 
+  flags = enter_critical_section();
+
   /* Perform IDLE mode power management */
 
-  flags = enter_critical_section();
   up_idlepm();
+
+  /* Quit lower power mode, restore to PM_NORMAL */
+
+  pm_changestate(PM_IDLE_DOMAIN, PM_NORMAL);
+
   leave_critical_section(flags);
 }
 
