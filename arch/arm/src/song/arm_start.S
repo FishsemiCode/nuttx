@@ -52,8 +52,12 @@
 	.globl		_ebss
 	.globl		__aeabi_d2iz
 	.globl		__aeabi_d2uiz
+	.globl		__aeabi_ddiv
+	.globl		__aeabi_dmul
 	.globl		__aeabi_ldivmod
+	.globl		__aeabi_ui2d
 	.globl		__aeabi_uldivmod
+
 
 /****************************************************************************
  * Name: __start
@@ -102,7 +106,10 @@ __start:
 
 	bl		__aeabi_d2iz
 	bl		__aeabi_d2uiz
+	bl		__aeabi_ddiv
+	bl		__aeabi_dmul
 	bl		__aeabi_ldivmod
+	bl		__aeabi_ui2d
 	bl		__aeabi_uldivmod
 
 	.size		__start, .-__start
