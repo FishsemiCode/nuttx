@@ -256,13 +256,14 @@ void up_lateinitialize(void)
 {
 }
 
-void up_cpu_normal(void)
+void up_cpu_doze(void)
 {
+  up_cpu_standby();
 }
 
 void up_cpu_sleep(void)
 {
-  up_cpu_standby();
+  up_cpu_doze();
 }
 
 #endif /* CONFIG_ARCH_CHIP_ABIES_ADSP */
