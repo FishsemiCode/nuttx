@@ -38,6 +38,9 @@
 #
 ############################################################################
 
+# disable all built-in rules
+.SUFFIXES:
+
 # These are configuration variables that are quoted by configuration tool
 # but which must be unquoated when used in the build system.
 

@@ -86,6 +86,3 @@ endif
 CC  = $(CROSSDEV)/cevaxm6cc -mquiet -Wa,-quiet
 CXX = $(CROSSDEV)/cevaxm6cc -mquiet -Wa,-quiet -x c++
 CPP = $(CROSSDEV)/cevaxm6cc -mquiet -Wa,-quiet -E -P -x c
-
-# disable all built-in rules
-.SUFFIXES:
