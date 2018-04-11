@@ -56,7 +56,7 @@
 static void pm_evaluateall(int domain)
 {
   FAR struct pm_domain_s *pdom;
-  FAR sq_entry_t *entry;
+  FAR dq_entry_t *entry;
   enum pm_state_e ret = PM_SLEEP;
   enum pm_state_e cb_ret = PM_SLEEP;
 
@@ -65,9 +65,9 @@ static void pm_evaluateall(int domain)
 
   /* Visit each registered callback structure */
 
-  for (entry = sq_peek(&g_pmglobals.registry);
+  for (entry = dq_peek(&g_pmglobals.registry);
        entry;
-       entry = sq_next(entry))
+       entry = dq_next(entry))
     {
       /* Is the evaluate callback supported? */
 
