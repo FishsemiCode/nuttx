@@ -146,7 +146,7 @@ ifeq ($(CONFIG_SMP),y)
 endif
 
 ifeq ($(CONFIG_FS_HOSTFS),y)
-  HOSTSRCS += $(SRCDIR)/up_hostfs.c
+  HOSTSRCS += up_hostfs.c
 
 $(SRCDIR)/up_hostfs.c: hostfs.h
 
