@@ -137,7 +137,6 @@ void arm_timer_initialize(void)
   {
     .base       = TOP_PWR_BASE,
     .irq        = 18,
-    .c1_max     = 2048,
     .c1_freq    = 8192000,
     .ctl_off    = 0x170,
     .calib_off  = 0x194,

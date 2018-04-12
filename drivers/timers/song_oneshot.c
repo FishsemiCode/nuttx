@@ -51,6 +51,9 @@
  ****************************************************************************/
 
 #define SONG_ONESHOT_RESET_BIT    0
+#define SONG_ONESHOT_C1_MAX_BIT   16
+#define SONG_ONESHOT_C1_MAX_MASK  0xffff
+
 #define SONG_ONESHOT_CALIB_BIT    0
 
 /****************************************************************************
@@ -71,6 +74,7 @@ struct song_oneshot_lowerhalf_s
 
   FAR const struct song_oneshot_config_s *config;
   uint64_t offset;
+  uint32_t c1_max;
 
   oneshot_callback_t callback;
   FAR void *arg;
@@ -126,19 +130,31 @@ static inline void song_oneshot_putreg(uintptr_t base, uint32_t off, uint32_t va
    *(FAR volatile uint32_t *)(base + B2C(off)) = val;
 }
 
-static inline bool song_oneshot_getbit(uintptr_t base, uint32_t off, uint32_t bit)
+static inline uint32_t song_oneshot_getbits(uintptr_t base, uint32_t off,
+                                           uint32_t bit, uint32_t mask)
 {
-  return !!(song_oneshot_getreg(base, off) & (1 << bit));
+  return (song_oneshot_getreg(base, off) >> bit) & mask;
 }
 
-static inline void song_oneshot_putbit(uintptr_t base, uint32_t off, uint32_t bit, bool val)
+static inline bool song_oneshot_getbit(uintptr_t base, uint32_t off, uint32_t bit)
+{
+  return song_oneshot_getbits(base, off, bit, 1);
+}
+
+static inline void song_oneshot_putbits(uintptr_t base, uint32_t off, uint32_t bit,
+                                        uint32_t mask, uint32_t val)
 {
   uint32_t temp;
 
   temp  = song_oneshot_getreg(base, off);
-  temp &= ~(1 << bit);
+  temp &= ~(mask << bit);
   temp |= val << bit;
   song_oneshot_putreg(base, off, temp);
+}
+
+static inline void song_oneshot_putbit(uintptr_t base, uint32_t off, uint32_t bit, bool val)
+{
+  song_oneshot_putbits(base, off, bit, 1, val);
 }
 
 static inline bool song_oneshot_getintr(FAR struct song_oneshot_lowerhalf_s *lower)
@@ -174,6 +190,18 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
 
   if (song_oneshot_getbit(config->base, config->ctl_off, SONG_ONESHOT_RESET_BIT))
     {
+      if (config->c1_max)
+        {
+          lower->c1_max = config->c1_max;
+          song_oneshot_putbits(config->base, config->ctl_off,
+            SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK, config->c1_max);
+        }
+      else
+        {
+          lower->c1_max = song_oneshot_getbits(config->base, config->c1_off,
+                             SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK);
+        }
+
       /* Start 32KHz clock calibration first */
 
       song_oneshot_putbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_BIT, true);
@@ -210,7 +238,7 @@ static void song_oneshot_gettime(FAR struct song_oneshot_lowerhalf_s *lower,
   uint64_t count;
 
   song_oneshot_getcount(lower, &c2, &c1);
-  count = (uint64_t)c2 * config->c1_max + c1;
+  count = (uint64_t)c2 * lower->c1_max + c1;
 
   /* Don't need sync since it's called very early */
   if (lower->offset == UINT64_MAX)
@@ -229,7 +257,7 @@ static void song_oneshot_getspec(FAR struct song_oneshot_lowerhalf_s *lower,
   uint32_t spec;
 
   spec = song_oneshot_getreg(config->base, config->spec_off);
-  count = (uint64_t)spec * config->c1_max;
+  count = (uint64_t)spec * lower->c1_max;
   timespec_from_count(ts, count - lower->offset, config->c1_freq);
 }
 
@@ -242,7 +270,7 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
   count += (uint64_t)ts->tv_sec * config->c1_freq;
   count += (uint64_t)ts->tv_nsec * config->c1_freq / NSEC_PER_SEC;
 
-  song_oneshot_putreg(config->base, config->spec_off, count / config->c1_max);
+  song_oneshot_putreg(config->base, config->spec_off, count / lower->c1_max);
 }
 
 static int song_oneshot_interrupt(int irq, FAR void *context, FAR void *arg)
@@ -268,7 +296,7 @@ static int song_oneshot_max_delay(FAR struct oneshot_lowerhalf_s *lower_,
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
   FAR const struct song_oneshot_config_s *config = lower->config;
 
-  timespec_from_count(ts, (UINT32_MAX + 1ull) * config->c1_max - 1, config->c1_freq);
+  timespec_from_count(ts, (UINT32_MAX + 1ull) * lower->c1_max - 1, config->c1_freq);
   return 0;
 }
 
