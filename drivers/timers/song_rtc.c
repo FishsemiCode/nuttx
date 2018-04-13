@@ -376,12 +376,11 @@ FAR struct rtc_lowerhalf_s *song_rtc_initialize(FAR const struct song_rtc_config
     {
       lower->config = config;
       lower->ops = &g_song_rtc_ops;
-    }
-
 #ifdef CONFIG_PM
-  lower->pm_cb.evaluate = song_rtc_pm_evaluate;
-  pm_register(&lower->pm_cb);
+      lower->pm_cb.evaluate = song_rtc_pm_evaluate;
+      pm_register(&lower->pm_cb);
 #endif
+    }
 
   return (FAR struct rtc_lowerhalf_s *)lower;
 }
