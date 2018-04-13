@@ -41,6 +41,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/timers/song_oneshot.h>
 
 #include <stdio.h>
@@ -78,6 +79,10 @@ struct song_oneshot_lowerhalf_s
 
   oneshot_callback_t callback;
   FAR void *arg;
+
+#ifdef CONFIG_PM
+  struct pm_callback_s pm_cb;
+#endif
 };
 
 /****************************************************************************
@@ -111,6 +116,11 @@ static const struct oneshot_operations_s g_song_oneshot_ops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+static inline uint64_t msec_from_count(uint64_t count, uint32_t freq)
+{
+  return count * MSEC_PER_SEC / freq;
+}
 
 static inline void timespec_from_count(FAR struct timespec *ts,
                                        uint64_t count, uint32_t freq)
@@ -358,6 +368,43 @@ static int song_oneshot_current(FAR struct oneshot_lowerhalf_s *lower_,
   return 0;
 }
 
+#ifdef CONFIG_PM
+static enum pm_state_e song_oneshot_pm_evaluate(FAR struct pm_callback_s *cb, int domain)
+{
+  FAR struct song_oneshot_lowerhalf_s *lower =
+    container_of(cb, struct song_oneshot_lowerhalf_s, pm_cb);
+  FAR const struct song_oneshot_config_s *config = lower->config;
+
+  if (song_oneshot_getbit(config->base, config->intren_off, config->intr_bit))
+    {
+      uint32_t c2 = song_oneshot_getreg(config->base, config->c2_off);
+      uint32_t spec = song_oneshot_getreg(config->base, config->spec_off);
+      uint64_t count = 1ull * (spec - c2) * lower->c1_max;
+      uint64_t ms = msec_from_count(count, config->c1_freq);
+
+      if (ms >= CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH)
+        {
+          return PM_SLEEP;
+        }
+      else if (ms >= CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH)
+        {
+          return PM_STANDBY;
+        }
+      else if (ms >= CONFIG_ONESHOT_SONG_IDLEENTER_THRESH)
+        {
+          return PM_IDLE;
+        }
+      else
+        {
+          return PM_NORMAL;
+        }
+    }
+  /* There is no OS timer. */
+
+  return PM_SLEEP;
+}
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -373,6 +420,10 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config, int mino
       lower->config = config;
       lower->offset = UINT64_MAX;
       lower->ops = &g_song_oneshot_ops;
+#ifdef CONFIG_PM
+      lower->pm_cb.evaluate = song_oneshot_pm_evaluate;
+      pm_register(&lower->pm_cb);
+#endif
 
       song_oneshot_disableintr(lower);
       irq_attach(config->irq, song_oneshot_interrupt, lower);

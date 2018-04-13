@@ -55,6 +55,31 @@ config ONESHOT_SONG
 	bool "Song Oneshot Timer Driver"
 	depends on ARCH_CHIP_SONG
 
+if ONESHOT_SONG && PM
+
+config ONESHOT_SONG_SLEEPENTER_THRESH
+	int "Song oneshot SLEEP enter threshold(millisecond)"
+	default 28800000
+	---help---
+		According to flash writing lifetime, interval between two
+		writes should more than 8 hours.
+
+config ONESHOT_SONG_STANDBYENTER_THRESH
+	int "Song oneshot STANDBY enter threshold(millisecond)"
+	default 1000
+	---help---
+		According to comsumption and warmreset time,
+		PM_STANDBY is suitable when idle time is more than 1 s.
+
+config ONESHOT_SONG_IDLEENTER_THRESH
+	int "Song oneshot IDLE enter threshold(millisecond)"
+	default 10
+	---help---
+		According to comsumption and clock gating time,
+		PM_IDLE is suitable when idle time is more than 10 ms.
+
+endif # ONESHOT_SONG && PM
+
 endif # ONESHOT
 
 menuconfig RTC
@@ -281,7 +306,7 @@ config RTC_SONG_SLEEPENTER_THRESH
 		writes should more than 8 hours.
 
 config RTC_SONG_STANDBYENTER_THRESH
-	int "Song RTC DOZE enter threshold(second)"
+	int "Song RTC STANDBY enter threshold(second)"
 	default 1
 	---help---
 		According to comsumption and warmreset time,
