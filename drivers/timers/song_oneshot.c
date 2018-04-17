@@ -198,7 +198,7 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
         }
       else
         {
-          lower->c1_max = song_oneshot_getbits(config->base, config->c1_off,
+          lower->c1_max = song_oneshot_getbits(config->base, config->ctl_off,
                              SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK);
         }
 
