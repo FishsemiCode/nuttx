@@ -150,6 +150,10 @@ CSRCS += smart.c
 endif
 endif
 
+ifeq ($(CONFIG_SONG_ONCHIP_FLASH),y)
+CSRCS += song_onchip_flash.c
+endif
+
 ifeq ($(CONFIG_FS_PROCFS),y)
 ifneq ($(CONFIG_FS_PROCFS_EXCLUDE_MTD),y)
 CSRCS += mtd_procfs.c

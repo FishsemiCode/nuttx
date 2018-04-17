@@ -824,6 +824,12 @@ config RAMTRON_CHUNKING
 
 endif # MTD_RAMTRON
 
+config SONG_ONCHIP_FLASH
+	bool "Song on-chip flash"
+	default n
+	---help---
+		Song on-chip flash controller/flash cell mtd driver.
+
 config MTD_SST25
 	bool "SPI-based SST25 FLASH"
 	default n
