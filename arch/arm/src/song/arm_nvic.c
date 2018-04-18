@@ -42,6 +42,7 @@
 #include <assert.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
+#include <nuttx/power/pm.h>
 
 #include "sched/sched.h"
 
@@ -88,8 +89,117 @@ volatile uint32_t *g_current_regs[1];
 extern uint32_t _vectors[];
 
 /****************************************************************************
+ * Private Function Declarations
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void up_nvic_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate);
+#endif
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+/* Saved SCB registers. */
+
+static const uint32_t g_nvic_scb_regaddr[] =
+{
+    NVIC_VECTAB,
+    NVIC_SYSCON,
+    NVIC_SYSH4_7_PRIORITY,
+    NVIC_SYSH8_11_PRIORITY,
+    NVIC_SYSH12_15_PRIORITY,
+    NVIC_SYSHCON,
+};
+
+#define NVIC_REGSAVE_SCB_NUM \
+            (sizeof(g_nvic_scb_regaddr) / sizeof(g_nvic_scb_regaddr[0]))
+
+/* Saved NVIC registers: ISER, IPR. */
+
+#define NVIC_REGSAVE_ISER_NUM  (((NR_IRQS - NVIC_IRQ_FIRST) + 31) / 32)
+#define NVIC_REGSAVE_IPR_NUM   (((NR_IRQS - NVIC_IRQ_FIRST) + 3) / 4)
+
+static uint32_t g_nvic_regsave[NVIC_REGSAVE_ISER_NUM + NVIC_REGSAVE_IPR_NUM + \
+                               NVIC_REGSAVE_SCB_NUM];
+
+static struct pm_callback_s g_up_nvic_pm_cb =
+{
+  .notify  = up_nvic_pm_notify,
+};
+#endif
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void up_nvic_backup(void)
+{
+  int i = 0;
+  int j;
+
+  for (j = 0; j < NVIC_REGSAVE_SCB_NUM; j++)
+    {
+      g_nvic_regsave[i++] = getreg32(g_nvic_scb_regaddr[j]);
+    }
+
+  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 32)
+    {
+      g_nvic_regsave[i++] = getreg32(NVIC_IRQ_ENABLE(j));
+    }
+
+  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 4)
+    {
+      g_nvic_regsave[i++] = getreg32(NVIC_IRQ_PRIORITY(j));
+    }
+}
+
+static void up_nvic_restore(void)
+{
+  int i = 0;
+  int j;
+
+  for (j = 0; j < NVIC_REGSAVE_SCB_NUM; j++)
+    {
+      putreg32(g_nvic_regsave[i++], g_nvic_scb_regaddr[j]);
+    }
+
+  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 32)
+    {
+      putreg32(g_nvic_regsave[i++], NVIC_IRQ_ENABLE(j));
+    }
+
+  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 4)
+    {
+      putreg32(g_nvic_regsave[i++], NVIC_IRQ_PRIORITY(j));
+    }
+}
+
+static void up_nvic_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate)
+{
+  switch (pmstate)
+    {
+      case PM_DOZE:
+      case PM_SLEEP:
+        up_nvic_backup();
+        break;
+
+      case PM_NORMAL:
+        if (pm_querystate(PM_IDLE_DOMAIN) >= PM_DOZE)
+          {
+            up_nvic_restore();
+          }
+        break;
+
+      default:
+        break;
+    }
+}
+#endif
 
 /****************************************************************************
  * Name: nvic_irqinfo
@@ -355,6 +465,10 @@ void up_irqinitialize(void)
   /* Exit WFE regardless PRIMASK/BASEPRI if any interrupt pending */
 
   modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SEVONPEND);
+
+#ifdef CONFIG_PM
+  pm_register(&g_up_nvic_pm_cb);
+#endif
 
   /* And finally, enable interrupts */
 

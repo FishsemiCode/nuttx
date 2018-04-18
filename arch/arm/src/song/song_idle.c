@@ -43,34 +43,24 @@
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
 
+#include "arm_fpu.h"
 #include "chip.h"
 #include "nvic.h"
+#include "song_idle.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
-void weak_function up_cpu_idle(void)
-{
-  modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
-}
+void up_cpu_wake(void);
 
-void weak_function up_cpu_standby(void)
-{
-  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
-}
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
 
-void weak_function up_cpu_doze(void)
-{
-  up_cpu_standby();
-}
-
-void weak_function up_cpu_sleep(void)
-{
-  up_cpu_doze();
-}
+static uint32_t g_up_cpu_regs[XCPTCONTEXT_REGS];
 
 /****************************************************************************
  * Private Functions
@@ -179,6 +169,68 @@ void up_idle(void)
   pm_changestate(PM_IDLE_DOMAIN, PM_NORMAL);
 
   leave_critical_section(flags);
+}
+
+void weak_function up_cpu_idle(void)
+{
+  modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
+}
+
+void weak_function up_cpu_standby(void)
+{
+  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
+}
+
+void weak_function up_cpu_doze(void)
+{
+  up_cpu_standby();
+}
+
+void weak_function up_cpu_sleep(void)
+{
+  up_cpu_doze();
+}
+
+void up_cpu_save(void)
+{
+  /* Save core context. */
+
+  up_saveusercontext(g_up_cpu_regs);
+
+  /* Point context PC to where we should wake up. */
+
+  g_up_cpu_regs[REG_PC] = (uint32_t)up_cpu_wake;
+
+  /* Clear event bit. */
+
+  __asm__ __volatile__ ("sev");
+  __asm__ __volatile__ ("wfe");
+
+  /* Enter standby. */
+
+  __asm__ __volatile__ ("dsb");
+  __asm__ __volatile__ ("wfe");
+
+  /* Wake up, or power up from standby mode. */
+
+  __asm__ __volatile__ ("up_cpu_wake:");
+
+  /* Set a fake event because up_idle() will do "wfe" again. */
+
+  __asm__ __volatile__ ("sev");
+}
+
+void up_cpu_restore(void)
+{
+  /* Enable FPU first, because it will be accessed in exception
+   * handler when we issue SVC call.
+   */
+
+  up_fpuinitialize();
+
+  /* Restore core context. */
+
+  up_fullcontextrestore(g_up_cpu_regs);
 }
 
 /****************************************************************************

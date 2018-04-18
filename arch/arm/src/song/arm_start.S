@@ -58,7 +58,6 @@
 	.globl		__aeabi_ui2d
 	.globl		__aeabi_uldivmod
 
-
 /****************************************************************************
  * Name: __start
  ****************************************************************************/
@@ -69,6 +68,9 @@
 	.type		__start, function
 
 __start:
+	bl		up_earlystart
+	sub		sp, 0x100	/* top bytes are reserved for up_earlystart() */
+
 #ifdef CONFIG_STACK_COLORATION
 	/* Set the IDLE stack to the stack coloration value then jump to
 	 * up_start().  We take extreme care here because were currently
@@ -113,4 +115,18 @@ __start:
 	bl		__aeabi_uldivmod
 
 	.size		__start, .-__start
+
+/****************************************************************************
+ * Name: up_earlystart
+ ****************************************************************************/
+
+	.text
+	.thumb_func
+	.weak		up_earlystart
+	.type		up_earlystart, function
+
+up_earlystart:
+	bx		lr
+
+	.size		up_earlystart, .-up_earlystart
 	.end

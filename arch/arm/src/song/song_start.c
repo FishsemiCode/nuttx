@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/init.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/userspace.h>
 #include <arch/board/board.h>
 
@@ -58,6 +59,11 @@ static void init_kernelspace(void);
 static void init_userspace(void);
 #endif
 
+#ifdef CONFIG_PM
+static void cache_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate);
+#endif
+
 #ifdef CONFIG_SONG_COPY_TABLE
 extern uint32_t _scopytable;
 extern uint32_t _ecopytable;
@@ -69,8 +75,38 @@ extern uint32_t _ezerotable;
 #endif
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static struct pm_callback_s g_cache_pm_cb =
+{
+  .notify  = cache_pm_notify,
+};
+#endif
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
+#ifdef CONFIG_PM
+static void cache_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate)
+{
+  switch (pmstate)
+    {
+      case PM_NORMAL:
+        if (pm_querystate(PM_IDLE_DOMAIN) >= PM_DOZE)
+          {
+            up_enable_icache();
+            up_enable_dcache();
+          }
+        break;
+
+      default:
+        break;
+    }
+}
+#endif
 
 static void init_kernelspace(void)
 {
@@ -232,6 +268,10 @@ void up_start(void)
   up_earlyserialinit();
   up_earlyinitialize();
   board_earlyinitialize();
+
+#ifdef CONFIG_PM
+  pm_register(&g_cache_pm_cb);
+#endif
 
   os_start();
 }

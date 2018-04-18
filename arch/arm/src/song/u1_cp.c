@@ -51,6 +51,7 @@
 
 #include "nvic.h"
 #include "song_addrenv.h"
+#include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -70,6 +71,7 @@
 
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
+#define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
 #define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 
@@ -100,6 +102,22 @@ static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void up_earlystart(void)
+{
+  if (getreg32(TOP_PWR_BOOT_REG) & (1 << 2))
+    {
+      /* Initial power on. Clear boot flag. */
+
+      putreg32(1 << 18, TOP_PWR_BOOT_REG);
+    }
+  else
+    {
+      /* Power on from standby. Restore context (will not return). */
+
+      up_cpu_restore();
+    }
+}
 
 void up_earlyinitialize(void)
 {
@@ -274,6 +292,8 @@ void up_cpu_doze(void)
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_save();
 }
 
 void up_cpu_sleep(void)
@@ -287,6 +307,8 @@ void up_cpu_sleep(void)
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_save();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_CP */

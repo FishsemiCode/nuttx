@@ -41,6 +41,7 @@
 
 #include <assert.h>
 
+#include <nuttx/power/pm.h>
 #include <nuttx/userspace.h>
 
 #include "arm_mpu.h"
@@ -48,6 +49,75 @@
 #include "up_internal.h"
 
 #ifdef CONFIG_ARM_MPU
+
+/****************************************************************************
+ * Private Function Declarations
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void up_mpu_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate);
+#endif
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static struct pm_callback_s g_up_mpu_pm_cb =
+{
+  .notify  = up_mpu_pm_notify,
+};
+#endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void up_mpu_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate)
+{
+  static uint32_t mpu_regsave[2 * CONFIG_ARM_MPU_NREGIONS + 1];
+  int region;
+  int i;
+
+  switch (pmstate)
+    {
+      case PM_DOZE:
+      case PM_SLEEP:
+        /* Following MPU registers are saved during standby:
+          *  RBAR & RASR[8]
+          *  CONTROL
+          */
+
+        for (region = 0, i = 0; region < CONFIG_ARM_MPU_NREGIONS; region++)
+          {
+            putreg32(region, MPU_RNR);
+            mpu_regsave[i++] = getreg32(MPU_RBAR);
+            mpu_regsave[i++] = getreg32(MPU_RASR);
+          }
+        mpu_regsave[i] = getreg32(MPU_CTRL);
+        break;
+
+      case PM_NORMAL:
+        if (pm_querystate(PM_IDLE_DOMAIN) >= PM_DOZE)
+          {
+            for (region = 0, i = 0; region < CONFIG_ARM_MPU_NREGIONS; region++)
+              {
+                putreg32(region, MPU_RNR);
+                putreg32(mpu_regsave[i++], MPU_RBAR);
+                putreg32(mpu_regsave[i++], MPU_RASR);
+              }
+            putreg32(mpu_regsave[i], MPU_CTRL);
+          }
+        break;
+
+      default:
+        break;
+    }
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -85,6 +155,10 @@ void up_mpuinitialize(void)
   DEBUGASSERT(USERSPACE->us_bssend >= USERSPACE->us_datastart);
   mpu_user_intsram(USERSPACE->us_datastart,
                    USERSPACE->us_bssend - USERSPACE->us_datastart);
+#endif
+
+#ifdef CONFIG_PM
+  pm_register(&g_up_mpu_pm_cb);
 #endif
 
   /* Then enable the MPU */
