@@ -239,6 +239,7 @@ static int lib_localhost(FAR const char *name, FAR struct hostent *host,
   socklen_t addrlen;
   FAR const char *src;
   FAR char *dest;
+  int addrtype;
   int namelen;
 
   if (strcmp(name, "localhost") == 0)
@@ -248,16 +249,16 @@ static int lib_localhost(FAR const char *name, FAR struct hostent *host,
 #ifdef CONFIG_NET_IPv4
       /* Setup to transfer the IPv4 address */
 
-      addrlen          = sizeof(struct in_addr);
-      src              = (FAR const char *)&g_lo_ipv4addr;
-      host->h_addrtype = AF_INET;
+      addrlen  = sizeof(struct in_addr);
+      src      = (FAR const char *)&g_lo_ipv4addr;
+      addrtype = AF_INET;
 
 #else /* CONFIG_NET_IPv6 */
       /* Setup to transfer the IPv6 address */
 
-      addrlen          = sizeof(struct in6_addr);
-      src              = (FAR const char *)&g_lo_ipv6addr;
-      host->h_addrtype = AF_INET6;
+      addrlen  = sizeof(struct in6_addr);
+      src      = (FAR const char *)&g_lo_ipv6addr;
+      addrtype = AF_INET6;
 #endif
 
       /* Make sure that space remains to hold the hostent structure and
@@ -280,6 +281,7 @@ static int lib_localhost(FAR const char *name, FAR struct hostent *host,
       info->hi_addrlist[0] = dest;
       host->h_addr_list    = info->hi_addrlist;
       host->h_length       = addrlen;
+      host->h_addrtype     = addrtype;
 
       dest                += addrlen;
       buflen              -= addrlen;
