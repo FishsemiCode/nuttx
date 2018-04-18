@@ -190,16 +190,12 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
 
   if (song_oneshot_getbit(config->base, config->ctl_off, SONG_ONESHOT_RESET_BIT))
     {
+      /* Setup C1 period if caller provide one */
+
       if (config->c1_max)
         {
-          lower->c1_max = config->c1_max;
           song_oneshot_putbits(config->base, config->ctl_off,
             SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK, config->c1_max);
-        }
-      else
-        {
-          lower->c1_max = song_oneshot_getbits(config->base, config->ctl_off,
-                             SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK);
         }
 
       /* Start 32KHz clock calibration first */
@@ -213,6 +209,18 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
 
   while (song_oneshot_getbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_BIT))
     ; /* Wait until the calibration finish */
+
+  /* Remember C1 period for later use */
+
+  if (config->c1_max)
+    {
+      lower->c1_max = config->c1_max;
+    }
+  else
+    {
+      lower->c1_max = song_oneshot_getbits(config->base, config->ctl_off,
+                         SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK);
+    }
 }
 
 static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
