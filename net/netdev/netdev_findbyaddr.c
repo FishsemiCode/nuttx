@@ -212,13 +212,9 @@ FAR struct net_driver_s *netdev_findby_ipv4addr(in_addr_t lipaddr,
            * broadcast packet out ALL locally available networks.  I am not
            * sure of that and, in any event, there is nothing we can do
            * about that here.
-           *
-           * REVISIT:  For now, arbitrarily return the first network
-           * interface in the list of network devices.  The broadcast
-           * will be sent on that device only.
            */
 
-          return g_netdevices;
+          return netdev_default();
         }
       else
         {
@@ -316,13 +312,9 @@ FAR struct net_driver_s *netdev_findby_ipv6addr(const net_ipv6addr_t lipaddr,
            * broadcast packet out ALL locally available networks.  I am not
            * sure of that and, in any event, there is nothing we can do
            * about that here.
-           *
-           * REVISIT:  For now, arbitrarily return the first network
-           * interface in the list of network devices.  The broadcast
-           * will be sent on that device only.
            */
 
-          return g_netdevices;
+          return netdev_default();
         }
       else
         {

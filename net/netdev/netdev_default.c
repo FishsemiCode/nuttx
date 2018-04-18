@@ -75,6 +75,7 @@
 
 FAR struct net_driver_s *netdev_default(void)
 {
+  FAR struct net_driver_s *ret = NULL;
   FAR struct net_driver_s *dev;
 
   /* Examine each registered network device */
@@ -86,17 +87,19 @@ FAR struct net_driver_s *netdev_default(void)
 
       if ((dev->d_flags & IFF_UP) != 0)
         {
-          /* Return a reference to the first device we find that is in the UP
-           * state.
-           */
-
-          net_unlock();
-          return dev;
+          ret = dev;
+          if (dev->d_lltype != NET_LL_LOOPBACK)
+            {
+              /* Return a reference to the first device(not lo)
+               * we find that is in the UP state.
+               */
+              break;
+            }
         }
     }
 
   net_unlock();
-  return NULL;
+  return ret;
 }
 
 #endif /* CONFIG_NET  */
