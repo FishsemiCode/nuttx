@@ -344,6 +344,12 @@ void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_NETDEVICES
+void up_netinitialize(void)
+{
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_RTC_SONG
