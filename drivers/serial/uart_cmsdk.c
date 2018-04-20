@@ -425,6 +425,7 @@ static int uart_cmsdk_rx_interrupt(int irq, FAR void *context, FAR void *arg)
 
   return OK;
 }
+
 static int uart_cmsdk_ov_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;
@@ -432,13 +433,20 @@ static int uart_cmsdk_ov_interrupt(int irq, FAR void *context, FAR void *arg)
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (FAR struct uart_cmsdk_s *)dev->priv;
 
-  sinfo("cmsdk uart ov error!\n");
-  uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_RX_OVERRUN);
-
-  ASSERT(false);
+  if(uart_cmsdk_serialin(priv, UART_INTSTS_OFFSET) && UART_INTSTATUS_RX_OVERRUN)
+    {
+      uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_RX_OVERRUN);
+      uart_cmsdk_serialout(priv, UART_STATE_OFFSET, UART_STATE_RX_BUF_OVERRUN);
+    }
+  if(uart_cmsdk_serialin(priv, UART_INTSTS_OFFSET) && UART_INTSTATUS_TX_OVERRUN)
+    {
+      uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_TX_OVERRUN);
+      uart_cmsdk_serialout(priv, UART_STATE_OFFSET, UART_STATE_TX_BUF_OVERRUN);
+    }
 
   return OK;
 }
+
 static int uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;
