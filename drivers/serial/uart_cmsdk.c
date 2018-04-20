@@ -74,6 +74,7 @@ struct uart_cmsdk_s
   uint32_t         bauddiv;
   uint8_t          tx_irq;
   uint8_t          rx_irq;
+  uint8_t          ov_irq;
 };
 
 /****************************************************************************
@@ -85,6 +86,7 @@ static void uart_cmsdk_shutdown(FAR struct uart_dev_s *dev);
 static int  uart_cmsdk_attach(FAR struct uart_dev_s *dev);
 static void uart_cmsdk_detach(FAR struct uart_dev_s *dev);
 static int  uart_cmsdk_rx_interrupt(int irq, FAR void *context, FAR void *arg);
+static int  uart_cmsdk_ov_interrupt(int irq, FAR void *context, FAR void *arg);
 static int  uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg);
 static int  uart_cmsdk_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 static int  uart_cmsdk_receive(FAR struct uart_dev_s *dev, uint32_t *status);
@@ -139,6 +141,7 @@ static struct uart_cmsdk_s g_uart0priv =
   .bauddiv        = CONFIG_CMSDK_UART0_BAUDDIV,
   .tx_irq         = CONFIG_CMSDK_UART0_TX_IRQ,
   .rx_irq         = CONFIG_CMSDK_UART0_RX_IRQ,
+  .ov_irq         = CONFIG_CMSDK_UART0_OV_IRQ,
 };
 
 static uart_dev_t g_uart0port =
@@ -167,6 +170,7 @@ static struct uart_cmsdk_s g_uart1priv =
   .bauddiv        = CONFIG_CMSDK_UART1_BAUDDIV,
   .tx_irq         = CONFIG_CMSDK_UART1_TX_IRQ,
   .rx_irq         = CONFIG_CMSDK_UART1_RX_IRQ,
+  .ov_irq         = CONFIG_CMSDK_UART1_OV_IRQ,
 };
 
 static uart_dev_t g_uart1port =
@@ -193,6 +197,7 @@ static struct uart_cmsdk_s g_uart2priv =
   .bauddiv        = CONFIG_CMSDK_UART2_BAUDDIV,
   .tx_irq         = CONFIG_CMSDK_UART2_TX_IRQ,
   .rx_irq         = CONFIG_CMSDK_UART2_RX_IRQ,
+  .ov_irq         = CONFIG_CMSDK_UART2_OV_IRQ,
 };
 
 static uart_dev_t g_uart2port =
@@ -355,6 +360,7 @@ static int uart_cmsdk_attach(struct uart_dev_s *dev)
   /* Attach and enable the IRQ */
   ret = irq_attach(priv->tx_irq, uart_cmsdk_tx_interrupt, dev);
   ret |= irq_attach(priv->rx_irq, uart_cmsdk_rx_interrupt, dev);
+  ret |= irq_attach(priv->ov_irq, uart_cmsdk_ov_interrupt, dev);
 #ifndef CONFIG_ARCH_NOINTC
   if (ret == OK)
     {
@@ -363,6 +369,7 @@ static int uart_cmsdk_attach(struct uart_dev_s *dev)
        */
       up_enable_irq(priv->tx_irq);
       up_enable_irq(priv->rx_irq);
+      up_enable_irq(priv->ov_irq);
     }
 #endif
 
@@ -387,6 +394,8 @@ static void uart_cmsdk_detach(FAR struct uart_dev_s *dev)
   irq_detach(priv->tx_irq);
   up_disable_irq(priv->rx_irq);
   irq_detach(priv->rx_irq);
+  up_disable_irq(priv->ov_irq);
+  irq_detach(priv->ov_irq);
 }
 
 /****************************************************************************
@@ -416,7 +425,20 @@ static int uart_cmsdk_rx_interrupt(int irq, FAR void *context, FAR void *arg)
 
   return OK;
 }
+static int uart_cmsdk_ov_interrupt(int irq, FAR void *context, FAR void *arg)
+{
+  FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;
+  FAR struct uart_cmsdk_s *priv;
+  DEBUGASSERT(dev != NULL && dev->priv != NULL);
+  priv = (FAR struct uart_cmsdk_s *)dev->priv;
 
+  sinfo("cmsdk uart ov error!\n");
+  uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_RX_OVERRUN);
+
+  ASSERT(false);
+
+  return OK;
+}
 static int uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;

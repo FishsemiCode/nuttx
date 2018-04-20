@@ -394,6 +394,9 @@ config CMSDK_UART0_TX_IRQ
 config CMSDK_UART0_RX_IRQ
 	int "CMSDK UART0 RX IRQ number"
 
+config CMSDK_UART0_OV_IRQ
+	int "CMSDK UART0 OVERRUN IRQ number"
+
 config CMSDK_UART0_RXBUFSIZE
 	int "CMSDK UART0 Rx buffer size"
 	default 256
@@ -426,6 +429,9 @@ config CMSDK_UART1_TX_IRQ
 config CMSDK_UART1_RX_IRQ
 	int "CMSDK UART1 RX IRQ number"
 
+config CMSDK_UART1_OV_IRQ
+	int "CMSDK UART1 OVERRUN IRQ number"
+
 config CMSDK_UART1_RXBUFSIZE
 	int "CMSDK UART1 Rx buffer size"
 	default 256
@@ -457,6 +463,9 @@ config CMSDK_UART2_TX_IRQ
 
 config CMSDK_UART2_RX_IRQ
 	int "CMSDK UART2 RX IRQ number"
+
+config CMSDK_UART2_OV_IRQ
+	int "CMSDK UART2 OVERRUN IRQ number"
 
 config CMSDK_UART2_RXBUFSIZE
 	int "CMSDK UART2 Rx buffer size"
