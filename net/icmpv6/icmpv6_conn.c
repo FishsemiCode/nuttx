@@ -269,7 +269,7 @@ FAR struct icmpv6_conn_s *icmpv6_nextconn(FAR struct icmpv6_conn_s *conn)
  *
  ****************************************************************************/
 
-FAR struct icmpv6_conn_s *icmpv6_findconn(FAR struct net_driver_s *dev, uint8_t id)
+FAR struct icmpv6_conn_s *icmpv6_findconn(FAR struct net_driver_s *dev, uint16_t id)
 {
   FAR struct icmpv6_conn_s *conn;
 
