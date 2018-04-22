@@ -112,15 +112,6 @@ void timer_reset(struct timer *t)
   t->start += t->interval;
 }
 
-#ifdef CONFIG_NET_PROMISCUOUS
-# define up_comparemac(a,b) (0)
-#else
-static inline int up_comparemac(uint8_t *paddr1, struct ether_addr *paddr2)
-{
-  return memcmp(paddr1, paddr2->ether_addr_octet, ETHER_ADDR_LEN);
-}
-#endif
-
 static int sim_txpoll(struct net_driver_s *dev)
 {
   /* If the polling resulted in data that should be sent out on the network,
@@ -197,30 +188,18 @@ void netdriver_loop(void)
       eth = BUF;
       if (g_sim_dev.d_len > ETH_HDRLEN)
         {
-         int is_ours;
-
-         /* Figure out if this ethernet frame is addressed to us.  This affects
-           * what we're willing to receive.   Note that in promiscuous mode, the
-           * up_comparemac will always return 0.
-           */
-
-         is_ours = (up_comparemac(eth->dest, &g_sim_dev.d_mac.ether) == 0);
-
 #ifdef CONFIG_NET_PKT
           /* When packet sockets are enabled, feed the frame into the packet
            * tap.
            */
 
-          if (is_ours)
-            {
-              pkt_input(&g_sim_dev);
-            }
+          pkt_input(&g_sim_dev);
 #endif /* CONFIG_NET_PKT */
 
           /* We only accept IP packets of the configured type and ARP packets */
 
 #ifdef CONFIG_NET_IPv4
-          if (eth->type == HTONS(ETHTYPE_IP) && is_ours)
+          if (eth->type == HTONS(ETHTYPE_IP))
             {
               ninfo("IPv4 frame\n");
 
@@ -261,7 +240,7 @@ void netdriver_loop(void)
           else
 #endif /* CONFIG_NET_IPv4 */
 #ifdef CONFIG_NET_IPv6
-          if (eth->type == HTONS(ETHTYPE_IP6) && is_ours)
+          if (eth->type == HTONS(ETHTYPE_IP6))
             {
               ninfo("Iv6 frame\n");
 
