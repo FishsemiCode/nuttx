@@ -68,8 +68,15 @@
 	.type		__start, function
 
 __start:
+	/* Use a dedicated stack for early process to avoid
+	 * corrupt the idle stack during restoring from the
+	 * partial powerdown state.
+	 */
+
+	mov		r4, sp
+	ldr		sp, =g_early_stack
 	bl		up_earlystart
-	sub		sp, 0x100	/* top bytes are reserved for up_earlystart() */
+	mov		sp, r4
 
 #ifdef CONFIG_STACK_COLORATION
 	/* Set the IDLE stack to the stack coloration value then jump to
@@ -129,4 +136,17 @@ up_earlystart:
 	bx		lr
 
 	.size		up_earlystart, .-up_earlystart
+
+/***************************************************************************
+ * Name: g_early_stack
+ ***************************************************************************/
+
+	.bss
+	.local		g_early_stack
+	.type		g_early_stack, object
+
+	.align		8
+	.space		0x100
+g_early_stack:
+	.size		g_early_stack, 0x100
 	.end
