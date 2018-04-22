@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/fvp_mps.c
+ * arch/arm/src/song/fvp_mps2_m4.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -39,7 +39,9 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clock.h>
 #include <nuttx/timers/arch_timer.h>
+#include <nuttx/timers/cmsdk_timer.h>
 
 #include "systick.h"
 #include "up_internal.h"
@@ -52,7 +54,20 @@
 
 void arm_timer_initialize(void)
 {
-  up_timer_set_lowerhalf(systick_initialize(true, 25000000, -1));
+#ifdef CONFIG_TIMER_CMSDK
+  static const struct cmsdk_timer_config_s config =
+  {
+    .base = 0x40000000,
+    .irq  = 24,
+    .freq = 25000000,
+  };
+
+  up_timer_set_lowerhalf(cmsdk_timer_initialize(&config, -1));
+#endif
+
+#ifdef CONFIG_CPULOAD_PERIOD
+  sched_period_extclk(systick_initialize(false, 25000, -1));
+#endif
 }
 
 #endif /* CONFIG_ARCH_CHIP_FVP_MPS2_M4 */
