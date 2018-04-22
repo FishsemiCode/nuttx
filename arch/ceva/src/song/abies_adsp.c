@@ -116,7 +116,7 @@ void ceva_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config0, -1));
 
-#ifdef CONFIG_CPULOAD_PERIOD
+#  ifdef CONFIG_CPULOAD_ONESHOT
   static const struct song_oneshot_config_s config1 =
   {
     .base       = B2C(DDR_PWR_BASE),
@@ -134,7 +134,7 @@ void ceva_timer_initialize(void)
   };
 
   sched_oneshot_extclk(song_oneshot_initialize(&config1, -1));
-#endif
+#  endif
 
 #endif
 }

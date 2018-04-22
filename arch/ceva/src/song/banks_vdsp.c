@@ -57,7 +57,7 @@ void up_earlyinitialize(void)
 
 void ceva_timer_initialize(void)
 {
-#ifdef CONFIG_ONESHOT_SONG
+#ifdef CONFIG_TIMER_DW
   static const struct dw_timer_config_s config =
   {
     .base       = 0xfd020000,
