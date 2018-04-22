@@ -38,10 +38,12 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <nuttx/clock.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
-#include "up_arch.h"
+#include "systick.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U2_AP
@@ -70,6 +72,7 @@
 
 void arm_timer_initialize(void)
 {
+#ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
     .base       = TOP_PWR_BASE,
@@ -86,6 +89,11 @@ void arm_timer_initialize(void)
   };
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+#endif
+
+#ifdef CONFIG_CPULOAD_PERIOD
+  sched_period_extclk(systick_initialize(false, 32768, -1));
+#endif
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */
