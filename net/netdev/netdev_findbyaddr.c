@@ -255,15 +255,11 @@ FAR struct net_driver_s *netdev_findby_ipv4addr(in_addr_t lipaddr,
 #endif /* CONFIG_NET_ROUTE */
 
   /* The above lookup will fail if the packet is being sent out of our
-   * out subnet to a router and there is no routing information.
+   * out subnet to a router and there is no routing information. Let's
+   * try the default network device.
    */
 
-  /* If we will did not find the network device, then we might as well fail
-   * because we are not configured properly to determine the route to the
-   * destination.
-   */
-
-  return dev;
+  return netdev_default();
 }
 #endif /* CONFIG_NET_IPv4 */
 
@@ -355,15 +351,11 @@ FAR struct net_driver_s *netdev_findby_ipv6addr(const net_ipv6addr_t lipaddr,
 #endif /* CONFIG_NET_ROUTE */
 
   /* The above lookup will fail if the packet is being sent out of our
-   * out subnet to a router and there is no routing information.
+   * out subnet to a router and there is no routing information. Let's
+   * try the default network device.
    */
 
-  /* If we will did not find the network device, then we might as well fail
-   * because we are not configured properly to determine the route to the
-   * destination.
-   */
-
-  return dev;
+  return netdev_default();
 }
 #endif /* CONFIG_NET_IPv6 */
 
