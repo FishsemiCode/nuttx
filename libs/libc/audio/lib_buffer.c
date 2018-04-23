@@ -112,7 +112,7 @@ int apb_alloc(FAR struct audio_buf_desc_s *bufdesc)
 
   bufsize = sizeof(struct ap_buffer_s) + bufdesc->numbytes;
   apb = lib_umalloc(bufsize);
-  *bufdesc->u.ppBuffer = apb;
+  *bufdesc->u.ppBuffer = (uint8_t *)(apb + 1);
 
   /* Test if the allocation was successful or not */
 
