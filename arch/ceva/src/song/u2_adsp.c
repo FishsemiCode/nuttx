@@ -39,12 +39,17 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/irq.h>
+#include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/mbox/song_mbox.h>
+#include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
 #include <string.h>
 
+#include "song_addrenv.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U2_ADSP
@@ -53,7 +58,18 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define TOP_PWR_BASE                (0xa00e0000)
+#define CPU_NAME_AP                 "ap"
+
+#define LOGBUF_BASE                 ((uintptr_t)&_slog)
+
+#define TOP_MAILBOX_BASE            0xa0050000
+#define TOP_PWR_BASE                0xa00e0000
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+extern uint32_t _slog;
 
 /****************************************************************************
  * Public Functions
@@ -61,6 +77,17 @@
 
 void up_earlyinitialize(void)
 {
+  static const struct song_addrenv_s addrenv[] =
+  {
+    {.va = 0x00000000, .pa = 0x80000000, .size = 0x00010000},
+    {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
+  };
+
+  up_addrenv_initialize(addrenv);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, CONFIG_LOGBUF_SIZE);
+#endif
 }
 
 void ceva_timer_initialize(void)
@@ -69,7 +96,7 @@ void ceva_timer_initialize(void)
   static const struct song_oneshot_config_s config0 =
   {
     .base       = B2C(TOP_PWR_BASE),
-    .irq        = IRQ_VINT_FIRST + 3, /* VINT3 */
+    .irq        = IRQ_VINT_FIRST + 5, /* VINT5 */
     .c1_freq    = 19200000, /* 19.2Mhz */
     .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
     .calib_off  = 0x2b4, /* TOP_PWR_AT_CALIB_CTL */
@@ -87,7 +114,7 @@ void ceva_timer_initialize(void)
   static const struct song_oneshot_config_s config1 =
   {
     .base       = B2C(TOP_PWR_BASE),
-    .irq        = IRQ_VINT_FIRST + 3, /* VINT3 */
+    .irq        = IRQ_VINT_FIRST + 5, /* VINT5 */
     .c1_freq    = 19200000, /* 19.2Mhz */
     .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
     .calib_off  = 0x2b4, /* TOP_PWR_AT_CALIB_CTL */
@@ -104,6 +131,73 @@ void ceva_timer_initialize(void)
 
 #endif
 }
+
+#ifdef CONFIG_OPENAMP
+void up_openamp_initialize(void)
+{
+  struct mbox_dev_s *mbox_adsp, *mbox_ap;
+
+  static const struct song_mbox_config_s mbox_cfg_adsp =
+  {
+    .base       = B2C(TOP_MAILBOX_BASE),
+    .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
+    .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
+    .en_bit     = 16,
+    .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
+    .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
+    .chnl_count = 16,
+    .irq        = IRQ_VINT_FIRST + 12, /* VINT12 */
+  };
+
+  static const struct song_mbox_config_s mbox_cfg_ap =
+  {
+    .base       = B2C(TOP_MAILBOX_BASE),
+    .set_off    = 0x0, /* MAILBOX_M4_INTR_SET */
+    .en_off     = 0x4, /* MAILBOX_M4_INTR_EN */
+    .en_bit     = 16,
+    .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
+    .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
+    .chnl_count = 16,
+    .irq        = -1,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_ap =
+  {
+    .cpu_name    = CPU_NAME_AP,
+    .role        = RPMSG_REMOTE,
+    .ch_start_rx = 0,
+    .ch_vring_rx = 1,
+    .ch_start_tx = 0,
+    .ch_vring_tx = 1,
+    .rsc         =
+    {
+      .rsc_tab   = (void *)B2C(0x6001f000),
+      .size      = sizeof(struct rptun_rsc_s),
+    },
+  };
+
+  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp, 0);
+  mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 1);
+
+  song_rptun_initialize(&rptun_cfg_ap, mbox_adsp, mbox_ap, 0);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
+#endif
+
+#ifdef CONFIG_RPMSG_UART
+# ifdef CONFIG_SERIAL_CONSOLE
+  uart_rpmsg_init(CPU_NAME_AP, "ADSP", B2C(1024), false);
+# else
+  uart_rpmsg_init(CPU_NAME_AP, "ADSP", B2C(1024), true);
+# endif
+#endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_AP);
+#endif
+}
+#endif
 
 void up_lateinitialize(void)
 {
