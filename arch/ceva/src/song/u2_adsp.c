@@ -50,6 +50,12 @@
 #ifdef CONFIG_ARCH_CHIP_U2_ADSP
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define TOP_PWR_BASE                (0xa00e0000)
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -59,9 +65,10 @@ void up_earlyinitialize(void)
 
 void ceva_timer_initialize(void)
 {
-  static const struct song_oneshot_config_s config =
+#ifdef CONFIG_ONESHOT_SONG
+  static const struct song_oneshot_config_s config0 =
   {
-    .base       = B2C(0xa00e0000), /* TOP_PWR_BASE */
+    .base       = B2C(TOP_PWR_BASE),
     .irq        = IRQ_VINT_FIRST + 3, /* VINT3 */
     .c1_freq    = 19200000, /* 19.2Mhz */
     .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
@@ -74,8 +81,28 @@ void ceva_timer_initialize(void)
     .intr_bit   = 0,     /* TOP_PWR_AT_SPEC_TIM0_BIT */
   };
 
-  up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config0, -1));
 
+#  ifdef CONFIG_CPULOAD_ONESHOT
+  static const struct song_oneshot_config_s config1 =
+  {
+    .base       = B2C(TOP_PWR_BASE),
+    .irq        = IRQ_VINT_FIRST + 3, /* VINT3 */
+    .c1_freq    = 19200000, /* 19.2Mhz */
+    .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
+    .calib_off  = 0x2b4, /* TOP_PWR_AT_CALIB_CTL */
+    .c1_off     = 0x294, /* TOP_PWR_AT_C1 */
+    .c2_off     = 0x298, /* TOP_PWR_AT_C2 */
+    .spec_off   = 0x2c8, /* TOP_PWR_AT_SPEC_TIM1 */
+    .intren_off = 0x218, /* TOP_PWR_INTR_EN_TL421 */
+    .intrst_off = 0x220, /* TOP_PWR_INTR_ST_TL421 */
+    .intr_bit   = 1,     /* TOP_PWR_AT_SPEC_TIM1_BIT */
+  };
+
+  sched_oneshot_extclk(song_oneshot_initialize(&config1, -1));
+#  endif
+
+#endif
 }
 
 void up_lateinitialize(void)
@@ -92,4 +119,4 @@ void up_cpu_sleep(void)
   up_cpu_doze();
 }
 
-#endif
+#endif /* CONFIG_ARCH_CHIP_U2_ADSP */
