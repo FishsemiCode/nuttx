@@ -48,6 +48,7 @@
 
 #include <devif/devif.h>
 #include "icmp/icmp.h"
+#include "netdev/netdev.h"
 
 #ifdef CONFIG_MM_IOB
 
@@ -182,7 +183,7 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
   FAR struct devif_callback_s *cb;
   int ret;
 
-  DEBUGASSERT(conn != NULL && fds != NULL && conn->dev != NULL);
+  DEBUGASSERT(conn != NULL && fds != NULL);
 
   /* Allocate a container to hold the poll information */
 
@@ -202,6 +203,11 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
    */
 
   /* Allocate a ICMP callback structure */
+
+  if (conn->dev == NULL)
+    {
+      conn->dev = netdev_default();
+    }
 
   cb = icmp_callback_alloc(conn->dev);
   if (cb == NULL)
@@ -227,12 +233,12 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
 
   if ((info->fds->events & POLLOUT) != 0)
     {
-      cb->flags |= UDP_POLL;
+      cb->flags |= ICMP_POLL;
     }
 
   if ((info->fds->events & POLLIN) != 0)
     {
-      cb->flags |= UDP_NEWDATA;
+      cb->flags |= ICMP_NEWDATA;
     }
 
   if ((info->fds->events & (POLLHUP | POLLERR)) != 0)
