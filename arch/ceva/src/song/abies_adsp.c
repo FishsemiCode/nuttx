@@ -83,7 +83,6 @@ void up_earlyinitialize(void)
   static const struct song_addrenv_s addrenv[] =
   {
     {.va = 0x00000000, .pa = 0xf8400000, .size = 0x00020000},
-    {.va = 0x7c010000, .pa = 0xf8020000, .size = 0x00070000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 

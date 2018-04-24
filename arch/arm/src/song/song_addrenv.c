@@ -45,10 +45,11 @@
  * Private Data
  ****************************************************************************/
 
-static const struct song_addrenv_s *g_addrenv;
+static const struct song_addrenv_s g_addrenv_dummy;
+static const struct song_addrenv_s *g_addrenv = &g_addrenv_dummy;
 
 /****************************************************************************
- * Public Funtions
+ * Public Functions
  ****************************************************************************/
 
 void up_addrenv_initialize(const struct song_addrenv_s *addrenv)
@@ -59,11 +60,6 @@ void up_addrenv_initialize(const struct song_addrenv_s *addrenv)
 void *up_addrenv_pa_to_va(uintptr_t pa)
 {
   uint32_t i;
-
-  if (!g_addrenv)
-    {
-      return (void *)pa;
-    }
 
   for (i = 0; g_addrenv[i].size; i++)
     {
@@ -79,22 +75,16 @@ void *up_addrenv_pa_to_va(uintptr_t pa)
 
 uintptr_t up_addrenv_va_to_pa(void *va)
 {
-  uintptr_t pa = (uintptr_t)va;
   uint32_t i;
-
-  if (!g_addrenv)
-    {
-      return pa;
-    }
 
   for (i = 0; g_addrenv[i].size; i++)
     {
-      if (pa - g_addrenv[i].va < g_addrenv[i].size)
+      if (va - (void *)g_addrenv[i].va < g_addrenv[i].size)
         {
-          pa = g_addrenv[i].pa + (pa - g_addrenv[i].va);
+          va = g_addrenv[i].pa + (va - g_addrenv[i].va);
           break;
         }
     }
 
-  return pa;
+  return (uintptr_t)va;
 }
