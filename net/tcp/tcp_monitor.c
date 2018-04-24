@@ -395,6 +395,7 @@ void tcp_close_monitor(FAR struct socket *psock)
         }
     }
 #endif
+    net_unlock();
 }
 
 /****************************************************************************
