@@ -94,8 +94,8 @@ static void cache_pm_notify(struct pm_callback_s *cb, int domain,
 {
   switch (pmstate)
     {
-      case PM_NORMAL:
-        if (pm_querystate(PM_IDLE_DOMAIN) >= PM_DOZE)
+      case PM_RESTORE:
+        if (pm_querystate(PM_IDLE_DOMAIN) >= PM_STANDBY)
           {
             up_enable_icache();
             up_enable_dcache();

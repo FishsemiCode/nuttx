@@ -172,13 +172,13 @@ static enum pm_state_e song_rtc_pm_evaluate(FAR struct pm_callback_s *cb, int do
     {
       return PM_SLEEP;
     }
-  else if (diff >= CONFIG_RTC_SONG_DOZEENTER_THRESH)
+  else if (diff >= CONFIG_RTC_SONG_STANDBYENTER_THRESH)
     {
-      return PM_DOZE;
+      return PM_STANDBY;
     }
   else
     {
-      return PM_STANDBY;
+      return PM_IDLE;
     }
 }
 #endif

@@ -254,14 +254,14 @@ void up_lateinitialize(void)
 {
 }
 
-void up_cpu_doze(void)
+void up_cpu_standby(void)
 {
-  up_cpu_standby();
+  up_cpu_idle();
 }
 
 void up_cpu_sleep(void)
 {
-  up_cpu_doze();
+  up_cpu_standby();
 }
 
 #endif /* CONFIG_ARCH_CHIP_ABIES_ADSP */

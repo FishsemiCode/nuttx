@@ -83,14 +83,6 @@ static void up_idlepm(void)
 
   newstate = pm_checkstate(PM_IDLE_DOMAIN);
 
-  /* Perform board-specific, state-dependent logic here */
-  /* Enter idle loop means cpu is idle, so the newstate should be PM_IDLE at least. */
-
-  if (newstate < PM_IDLE)
-    {
-      newstate = PM_IDLE;
-    }
-
   /* Then force the global state change */
 
   pm_changestate(PM_IDLE_DOMAIN, newstate);
@@ -103,16 +95,16 @@ static void up_idlepm(void)
 
   switch (newstate)
     {
+    case PM_NORMAL:
+      up_cpu_doze();
+      break;
+
     case PM_IDLE:
       up_cpu_idle();
       break;
 
     case PM_STANDBY:
       up_cpu_standby();
-      break;
-
-    case PM_DOZE:
-      up_cpu_doze();
       break;
 
     case PM_SLEEP:
@@ -166,29 +158,29 @@ void up_idle(void)
 
   /* Quit WFE, restore to PM_NORMAL */
 
-  pm_changestate(PM_IDLE_DOMAIN, PM_NORMAL);
+  pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
   leave_critical_section(flags);
 }
 
-void weak_function up_cpu_idle(void)
+void weak_function up_cpu_doze(void)
 {
   modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
 }
 
-void weak_function up_cpu_standby(void)
+void weak_function up_cpu_idle(void)
 {
   modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
 }
 
-void weak_function up_cpu_doze(void)
+void weak_function up_cpu_standby(void)
 {
-  up_cpu_standby();
+  up_cpu_idle();
 }
 
 void weak_function up_cpu_sleep(void)
 {
-  up_cpu_doze();
+  up_cpu_standby();
 }
 
 void up_cpu_save(void)

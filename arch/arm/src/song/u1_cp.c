@@ -256,7 +256,7 @@ void up_lateinitialize(void)
 #endif
 }
 
-void up_cpu_idle(void)
+void up_cpu_doze(void)
 {
   /* Forbid the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
@@ -269,7 +269,7 @@ void up_cpu_idle(void)
   putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
 }
 
-void up_cpu_standby(void)
+void up_cpu_idle(void)
 {
   /* Forbid the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
@@ -282,7 +282,7 @@ void up_cpu_standby(void)
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
 }
 
-void up_cpu_doze(void)
+void up_cpu_standby(void)
 {
   /* Forbid the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);

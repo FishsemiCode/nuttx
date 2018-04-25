@@ -280,12 +280,12 @@ config RTC_SONG_SLEEPENTER_THRESH
 		According to flash writing lifetime, interval between two
 		writes should more than 8 hours.
 
-config RTC_SONG_DOZEENTER_THRESH
+config RTC_SONG_STANDBYENTER_THRESH
 	int "Song RTC DOZE enter threshold(second)"
 	default 1
 	---help---
 		According to comsumption and warmreset time,
-		PM_DOZE is suitable when idle time is more than 1 s.
+		PM_STANDBY is suitable when idle time is more than 1 s.
 
 endif # RTC_SONG && PM
 

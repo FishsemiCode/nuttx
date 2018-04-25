@@ -85,16 +85,16 @@ static void up_idlepm(void)
 
   switch (newstate)
     {
+    case PM_NORMAL:
+      up_cpu_doze();
+      break;
+
     case PM_IDLE:
       up_cpu_idle();
       break;
 
     case PM_STANDBY:
       up_cpu_standby();
-      break;
-
-    case PM_DOZE:
-      up_cpu_doze();
       break;
 
     case PM_SLEEP:

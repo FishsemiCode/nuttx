@@ -208,24 +208,6 @@
                                              */
 #endif
 
-#ifndef CONFIG_PM_DOZEENTER_THRESH
-#  define CONFIG_PM_DOZEENTER_THRESH 1   /*  <=1: Essentially no activity */
-#endif
-
-#ifndef CONFIG_PM_DOZEEXIT_THRESH
-#  define CONFIG_PM_DOZEEXIT_THRESH  2   /* >=2: Active */
-#endif
-
-#if CONFIG_PM_DOZEENTER_THRESH >= CONFIG_PM_DOZEEXIT_THRESH
-#  error "Must have CONFIG_PM_DOZEENTER_THRESH < CONFIG_PM_DOZEEXIT_THRESH"
-#endif
-
-#ifndef CONFIG_PM_DOZEENTER_COUNT
-#  define CONFIG_PM_DOZEENTER_COUNT  60  /* Sixty IDLE slices to enter
-                                             * DOZE mode from STANDBY
-                                             */
-#endif
-
 #ifndef CONFIG_PM_SLEEPENTER_THRESH
 #  define CONFIG_PM_SLEEPENTER_THRESH   1   /*  <=1: Essentially no activity */
 #endif
@@ -240,7 +222,7 @@
 
 #ifndef CONFIG_PM_SLEEPENTER_COUNT
 #  define CONFIG_PM_SLEEPENTER_COUNT    70  /* 70 IDLE slices to enter SLEEP
-                                             * mode from DOZE
+                                             * mode from STANDBY
                                              */
 #endif
 
@@ -275,11 +257,7 @@ enum pm_state_e
                     * modes. In this state, the system should still be able
                     * to resume normal activity almost immediately.
                     *
-                    * PM_STANDBY may be followed PM_DOZE or by PM_NORMAL
-                    */
-  PM_DOZE,         /* The system may power off some subsystem in doze mode.
-                    *
-                    * PM_DOZE may be followed PM_SLEEP or by PM_NORMAL
+                    * PM_STANDBY may be followed PM_SLEEP or by PM_NORMAL
                     */
   PM_SLEEP,        /* The system is entering deep sleep mode.  The most drastic
                     * power reduction measures possible should be taken in this
@@ -288,6 +266,10 @@ enum pm_state_e
                     * through reset).
                     *
                     * PM_SLEEP may be following by PM_NORMAL
+                    */
+  PM_RESTORE,       /* PM_RESTORE is not a low power state.
+                    *
+                    * PM_RESTORE is just used for restore from a low power state.
                     */
   PM_COUNT,
 };
