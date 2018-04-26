@@ -536,6 +536,11 @@ ssize_t pipecommon_write(FAR struct file *filep, FAR const char *buffer,
       return 0;
     }
 
+  if (dev->d_nreaders <= 0)
+    {
+      return -EPIPE;
+    }
+
   /* At present, this method cannot be called from interrupt handlers.  That
    * is because it calls nxsem_wait (via pipecommon_semtake below) and
    * nxsem_wait cannot be called from interrupt level.  This actually
