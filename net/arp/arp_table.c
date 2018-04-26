@@ -54,11 +54,13 @@
 #include <net/ethernet.h>
 
 #include <nuttx/net/netconfig.h>
+#include <nuttx/net/net.h>
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/arp.h>
 #include <nuttx/net/ip.h>
 
 #include <arp/arp.h>
+#include <netdev/netdev.h>
 
 #ifdef CONFIG_NET_ARP
 
@@ -70,6 +72,28 @@
 
 static struct arp_entry g_arptable[CONFIG_NET_ARPTAB_SIZE];
 static uint8_t g_arptime;
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int arp_match(FAR struct net_driver_s *dev, FAR void *arg)
+{
+  FAR struct arp_entry *entry = arg;
+
+  if (dev->d_lltype != NET_LL_ETHERNET)
+    {
+      return 0;
+    }
+
+  if (!net_ipv4addr_cmp(dev->d_ipaddr, entry->at_ipaddr))
+    {
+      return 0;
+    }
+
+  memcpy(&entry->at_ethaddr, &dev->d_mac.ether, ETHER_ADDR_LEN);
+  return 1;
+}
 
 /****************************************************************************
  * Public Functions
@@ -266,6 +290,7 @@ void arp_hdr_update(FAR uint16_t *pipaddr, FAR uint8_t *ethaddr)
 
 FAR struct arp_entry *arp_find(in_addr_t ipaddr)
 {
+  static struct arp_entry entry;
   FAR struct arp_entry *tabptr;
   int i;
 
@@ -276,6 +301,12 @@ FAR struct arp_entry *arp_find(in_addr_t ipaddr)
         {
           return tabptr;
         }
+    }
+
+  entry.at_ipaddr = ipaddr;
+  if (netdev_foreach(arp_match, &entry))
+    {
+      return &entry;
     }
 
   return NULL;
