@@ -108,6 +108,17 @@ static const struct gpio_operations_s g_gplh_ops =
 #endif
 };
 
+static const uint32_t g_gplh_inttype[] =
+{
+  [GPIO_INPUT_PIN]              = IOEXPANDER_VAL_DISABLE,
+  [GPIO_INTERRUPT_PIN]          = CONFIG_GPIO_LOWER_HALF_INTTYPE,
+  [GPIO_INTERRUPT_HIGH_PIN]     = IOEXPANDER_VAL_HIGH,
+  [GPIO_INTERRUPT_LOW_PIN]      = IOEXPANDER_VAL_LOW,
+  [GPIO_INTERRUPT_RISING_PIN]   = IOEXPANDER_VAL_RISING,
+  [GPIO_INTERRUPT_FALLING_PIN]  = IOEXPANDER_VAL_FALLING,
+  [GPIO_INTERRUPT_BOTH_PIN]     = IOEXPANDER_VAL_BOTH,
+};
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -364,7 +375,18 @@ int gpio_lower_half(FAR struct ioexpander_dev_s *ioe, unsigned int pin,
   gpio->gp_pintype = (uint8_t)pintype;
   gpio->gp_ops     = &g_gplh_ops;
 
-  /* Register the GPIO driver */
+  if (pintype == GPIO_OUTPUT_PIN)
+    {
+      IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_OUT);
+    }
+  else
+    {
+      IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_IN);
+      IOEXP_SETOPTION(ioe, pin, IOEXPANDER_OPTION_INTCFG,
+        (FAR void *)g_gplh_inttype[pintype]);
+    }
+
+   /* Register the GPIO driver */
 
   ret = gpio_pin_register(gpio, minor);
   if (ret < 0)
