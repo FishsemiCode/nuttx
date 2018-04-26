@@ -41,6 +41,7 @@
  ****************************************************************************/
 
 #include <sys/types.h>
+#include <sys/uio.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -203,6 +204,54 @@ struct linger
   int  l_linger;  /* Linger time, in seconds. */
 };
 
+struct msghdr
+{
+  void *msg_name;               /* Socket name      */
+  int msg_namelen;              /* Length of name   */
+  struct iovec *msg_iov;        /* Data blocks      */
+  unsigned long msg_iovlen;     /* Number of blocks   */
+  void *msg_control;            /* Per protocol magic (eg BSD file descriptor passing) */
+  unsigned long msg_controllen; /* Length of cmsg list */
+  unsigned int msg_flags;
+};
+
+struct cmsghdr
+{
+  unsigned long cmsg_len;       /* data byte count, including hdr */
+  int cmsg_level;               /* originating protocol */
+  int cmsg_type;                /* protocol-specific type */
+};
+
+#define CMSG_NXTHDR(mhdr, cmsg) cmsg_nxthdr((mhdr), (cmsg))
+
+#define CMSG_ALIGN(len) (((len)+sizeof(long)-1) & ~(sizeof(long)-1))
+#define CMSG_DATA(cmsg) ((void *)((char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
+#define CMSG_SPACE(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#define CMSG_LEN(len)   (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+
+#define __CMSG_FIRSTHDR(ctl, len) ((len) >= sizeof(struct cmsghdr) ? \
+                                  (struct cmsghdr *)(ctl) : \
+                                  (struct cmsghdr *)NULL)
+#define CMSG_FIRSTHDR(msg) __CMSG_FIRSTHDR((msg)->msg_control, (msg)->msg_controllen)
+
+static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, unsigned int __size, struct cmsghdr *__cmsg)
+{
+  struct cmsghdr *__ptr;
+
+  __ptr = (struct cmsghdr *)(((unsigned char *)__cmsg) + CMSG_ALIGN(__cmsg->cmsg_len));
+  if ((unsigned long)((char *)(__ptr + 1) - (char *)__ctl) > __size)
+    {
+      return (struct cmsghdr *)0;
+    }
+
+  return __ptr;
+}
+
+static inline struct cmsghdr *cmsg_nxthdr(struct msghdr *__msg, struct cmsghdr *__cmsg)
+{
+  return __cmsg_nxthdr(__msg->msg_control, __msg->msg_controllen, __cmsg);
+}
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -240,6 +289,9 @@ int getsockopt(int sockfd, int level, int option,
 
 int getsockname(int sockfd, FAR struct sockaddr *addr,
                 FAR socklen_t *addrlen);
+
+ssize_t recvmsg(int sockfd, FAR struct msghdr *msg, int flags);
+ssize_t sendmsg(int sockfd, FAR struct msghdr *msg, int flags);
 
 #undef EXTERN
 #if defined(__cplusplus)
