@@ -269,14 +269,20 @@ EXTERN int h_errno;
 void                 endhostent(void);
 void                 endnetent(void);
 void                 endprotoent(void);
+#endif
+
 void                 endservent(void);
 void                 freeaddrinfo(FAR struct addrinfo *);
+
+#if 0 /* None of these are yet supported */
 FAR const char      *gai_strerror(int);
+#endif
+
 int                  getaddrinfo(FAR const char *restrict,
                                  FAR const char *restrict,
                                  FAR const struct addrinfo *restrict,
                                  FAR struct addrinfo **restrict);
-#endif
+
 
 FAR struct hostent  *gethostbyaddr(FAR const void *addr, socklen_t len,
                                    int type);
@@ -293,15 +299,23 @@ FAR struct netent   *getnetent(void);
 FAR struct protoent *getprotobyname(FAR const char *);
 FAR struct protoent *getprotobynumber(int);
 FAR struct protoent *getprotoent(void);
+#endif
+
 FAR struct servent  *getservbyname(FAR const char *, FAR const char *);
+
+#if 0 /* None of these are yet supported */
 FAR struct servent  *getservbyport(int, FAR const char *);
+#endif
+
 FAR struct servent  *getservent(void);
+
+#if 0 /* None of these are yet supported */
 void                 sethostent(int);
 void                 setnetent(int);
 void                 setprotoent(int);
-void                 setservent(int);
-
 #endif /* None of these are yet supported */
+
+void                 setservent(int);
 
 /* Non-standard interfaces similar to Glibc 2 interfaces */
 
