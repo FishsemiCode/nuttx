@@ -160,8 +160,10 @@ static void    pty_semtake(FAR struct pty_devpair_s *devpair);
 static void    pty_destroy(FAR struct pty_devpair_s *devpair);
 #endif
 
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
 static int     pty_open(FAR struct file *filep);
 static int     pty_close(FAR struct file *filep);
+#endif
 static ssize_t pty_read(FAR struct file *filep, FAR char *buffer,
                  size_t buflen);
 static ssize_t pty_write(FAR struct file *filep, FAR const char *buffer,
