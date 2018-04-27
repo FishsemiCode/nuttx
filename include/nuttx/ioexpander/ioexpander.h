@@ -303,7 +303,7 @@ typedef uint64_t ioe_pinset_t;
 #else
 /* for IOE NPINS greater than 64, ioe_pinset_t represent
  * one interrupt pin number instead of a bitmap of pins */
-typedef uint16_t ioe_pinset_t;
+typedef uint8_t ioe_pinset_t;
 #endif
 
 #ifdef CONFIG_IOEXPANDER_INT_ENABLE
