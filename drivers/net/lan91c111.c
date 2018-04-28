@@ -1120,9 +1120,12 @@ static int lan91c111_ifdown(FAR struct net_driver_s *dev)
   flags = enter_critical_section();
   up_disable_irq(priv->irq);
 
-  /* Cancel the TX poll timer */
+  /* Cancel the TX poll timer and work */
 
   wd_cancel(priv->txpoll);
+
+  work_cancel(&priv->irqwork);
+  work_cancel(&priv->pollwork);
 
   /* Put the EMAC in its reset, non-operational state.  This should be
    * a known configuration that will guarantee the lan91c111_ifup() always
