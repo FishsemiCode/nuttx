@@ -51,6 +51,7 @@
 
 #include "nvic.h"
 #include "song_addrenv.h"
+#include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -247,11 +248,15 @@ void up_lateinitialize(void)
 void up_cpu_idle(void)
 {
   putreg32(0x00010000, DDR_PWR_SLP_CTL0);
+
+  up_cpu_wfi();
 }
 
 void up_cpu_standby(void)
 {
   putreg32(0x00010001, DDR_PWR_SLP_CTL0);
+
+  up_cpu_wfi();
 }
 
 #endif /* CONFIG_ARCH_CHIP_BANKS_RPM */

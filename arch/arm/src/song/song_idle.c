@@ -51,12 +51,6 @@
 #include "up_internal.h"
 
 /****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-void up_cpu_wake(void);
-
-/****************************************************************************
  * Private Data
  ****************************************************************************/
 
@@ -139,38 +133,57 @@ static void up_idlepm(void)
 
 void up_idle(void)
 {
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  __asm__ __volatile__("cpsid i");
+#else
   irqstate_t flags;
 
   flags = enter_critical_section();
-
-  /* Clear event reg */
-
-  __asm__ __volatile__("sev");
-  __asm__ __volatile__("wfe");
+#endif
 
   /* Perform IDLE mode power management */
 
   up_idlepm();
 
-  /* If there is interrupt in up_idlepm(), can't enter sleeping */
-
-  __asm__ __volatile__("wfe");
-
-  /* Quit WFE, restore to PM_NORMAL */
+  /* Quit WFI, restore the power state */
 
   pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+  __asm__ __volatile__("cpsie i");
+#else
   leave_critical_section(flags);
+#endif
+}
+
+void up_cpu_wfi(void)
+{
+  /* Change BASEPRI to the minimal priority
+   * value for waking up from PRIMASK == 1
+   */
+
+  __asm__ __volatile__
+    (
+      "\tmsr basepri, %0\n"
+      "\tdsb\n"
+      "\twfi\n"
+      :
+      : "r" (0xff)
+      : "memory");
 }
 
 void weak_function up_cpu_doze(void)
 {
   modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
+
+  up_cpu_wfi();
 }
 
 void weak_function up_cpu_idle(void)
 {
   modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
+
+  up_cpu_wfi();
 }
 
 void weak_function up_cpu_standby(void)
@@ -191,25 +204,12 @@ void up_cpu_save(void)
 
   /* Point context PC to where we should wake up. */
 
-  g_up_cpu_regs[REG_PC] = (uint32_t)up_cpu_wake;
+  g_up_cpu_regs[REG_PC] = (uint32_t)&&wakeup;
 
-  /* Clear event bit. */
+  up_cpu_wfi();
 
-  __asm__ __volatile__ ("sev");
-  __asm__ __volatile__ ("wfe");
-
-  /* Enter standby. */
-
-  __asm__ __volatile__ ("dsb");
-  __asm__ __volatile__ ("wfe");
-
-  /* Wake up, or power up from standby mode. */
-
-  __asm__ __volatile__ ("up_cpu_wake:");
-
-  /* Set a fake event because up_idle() will do "wfe" again. */
-
-  __asm__ __volatile__ ("sev");
+wakeup:
+  /* Wake up, or power up from standby mode. */;
 }
 
 void up_cpu_restore(void)

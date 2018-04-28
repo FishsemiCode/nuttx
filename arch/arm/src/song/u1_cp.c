@@ -267,6 +267,8 @@ void up_cpu_doze(void)
 
   /* Forbid the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
@@ -280,6 +282,8 @@ void up_cpu_idle(void)
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
 }
 
 void up_cpu_standby(void)

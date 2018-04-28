@@ -54,6 +54,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
+void up_cpu_wfi(void);
 void up_cpu_doze(void);
 void up_cpu_idle(void);
 void up_cpu_standby(void);

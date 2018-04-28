@@ -462,10 +462,6 @@ void up_irqinitialize(void)
   irq_attach(NVIC_IRQ_MEMFAULT, up_memfault, NULL);
   up_enable_irq(NVIC_IRQ_MEMFAULT);
 
-  /* Exit WFE regardless PRIMASK/BASEPRI if any interrupt pending */
-
-  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SEVONPEND);
-
 #ifdef CONFIG_PM
   pm_register(&g_up_nvic_pm_cb);
 #endif
