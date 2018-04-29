@@ -1358,72 +1358,21 @@ static int netdev_rt_ioctl(FAR struct socket *psock, int cmd,
  *   Negated errno returned on failure.
  *
  ****************************************************************************/
+
 static int netdev_sock_ioctl(FAR struct socket *psock, int cmd,
                                    unsigned long arg)
 {
   if (psock->s_sockif && psock->s_sockif->si_ioctl)
     {
-      size_t arglen;
+      ssize_t arglen;
 
-      switch (cmd)
+      arglen = net_ioctl_arglen(cmd);
+      if (arglen < 0)
         {
-        case SIOCGIFADDR:
-        case SIOCSIFADDR:
-        case SIOCGIFDSTADDR:
-        case SIOCSIFDSTADDR:
-        case SIOCGIFBRDADDR:
-        case SIOCSIFBRDADDR:
-        case SIOCGIFNETMASK:
-        case SIOCSIFNETMASK:
-        case SIOCGIFMTU:
-        case SIOCGIFHWADDR:
-        case SIOCSIFHWADDR:
-        case SIOCDIFADDR:
-        case SIOCGIFCOUNT:
-        case SIOCSIFFLAGS:
-        case SIOCGIFFLAGS:
-        case SIOCMIINOTIFY:
-        case SIOCGMIIPHY:
-        case SIOCGMIIREG:
-        case SIOCSMIIREG:
-          arglen = sizeof(struct ifreq);
-          break;
-        case SIOCGLIFADDR:
-        case SIOCSLIFADDR:
-        case SIOCGLIFDSTADDR:
-        case SIOCSLIFDSTADDR:
-        case SIOCGLIFBRDADDR:
-        case SIOCSLIFBRDADDR:
-        case SIOCGLIFNETMASK:
-        case SIOCSLIFNETMASK:
-        case SIOCGLIFMTU:
-        case SIOCIFAUTOCONF:
-          arglen = sizeof(struct lifreq);
-          break;
-        case SIOCGIFCONF:
-          arglen = sizeof(struct ifconf);
-          break;
-        case SIOCGLIFCONF:
-          arglen = sizeof(struct lifconf);
-          break;
-        case SIOCSIPMSFILTER:
-        case SIOCGIPMSFILTER:
-          arglen = sizeof(struct ip_msfilter);
-          break;
-        case SIOCSARP:
-        case SIOCDARP:
-        case SIOCGARP:
-          arglen = sizeof(struct arpreq);
-          break;
-        case SIOCADDRT:
-        case SIOCDELRT:
-          arglen = sizeof(struct rtentry);
-          break;
-        default:
-          return -ENOTTY;
+          return arglen;
         }
 
-      return psock->s_sockif->si_ioctl(psock, cmd, (FAR void *)(uintptr_t)arg, arglen);
+      return psock->s_sockif->si_ioctl(psock, cmd, (FAR void *)arg, arglen);
     }
   else
     {
@@ -1434,6 +1383,97 @@ static int netdev_sock_ioctl(FAR struct socket *psock, int cmd,
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: net_ioctl_arglen
+ *
+ * Description:
+ *   Calculate the ioctl argument buffer length.
+ *
+ * Input Parameters:
+ *
+ *   cmd      The ioctl command
+ *
+ * Returned Value:
+ *   The argument buffer length, or error code.
+ *
+ ****************************************************************************/
+
+ssize_t net_ioctl_arglen(int cmd)
+{
+  switch (cmd)
+    {
+      case SIOCGIFADDR:
+      case SIOCSIFADDR:
+      case SIOCGIFDSTADDR:
+      case SIOCSIFDSTADDR:
+      case SIOCGIFBRDADDR:
+      case SIOCSIFBRDADDR:
+      case SIOCGIFNETMASK:
+      case SIOCSIFNETMASK:
+      case SIOCGIFMTU:
+      case SIOCGIFHWADDR:
+      case SIOCSIFHWADDR:
+      case SIOCDIFADDR:
+      case SIOCGIFCOUNT:
+      case SIOCSIFFLAGS:
+      case SIOCGIFFLAGS:
+        return sizeof(struct ifreq);
+      case SIOCGLIFADDR:
+      case SIOCSLIFADDR:
+      case SIOCGLIFDSTADDR:
+      case SIOCSLIFDSTADDR:
+      case SIOCGLIFBRDADDR:
+      case SIOCSLIFBRDADDR:
+      case SIOCGLIFNETMASK:
+      case SIOCSLIFNETMASK:
+      case SIOCGLIFMTU:
+      case SIOCIFAUTOCONF:
+        return sizeof(struct lifreq);
+      case SIOCGIFCONF:
+        return sizeof(struct ifconf);
+      case SIOCGLIFCONF:
+        return sizeof(struct lifconf);
+      case SIOCGIPMSFILTER:
+      case SIOCSIPMSFILTER:
+        return sizeof(struct ip_msfilter);
+      case SIOCSARP:
+      case SIOCDARP:
+      case SIOCGARP:
+        return sizeof(struct arpreq);
+      case SIOCADDRT:
+      case SIOCDELRT:
+        return sizeof(struct rtentry);
+      case SIOCMIINOTIFY:
+        return sizeof(struct mii_iotcl_notify_s);
+      case SIOCGMIIPHY:
+      case SIOCGMIIREG:
+      case SIOCSMIIREG:
+        return sizeof(struct mii_ioctl_data_s);
+      default:
+#ifdef CONFIG_NETDEV_IOCTL
+#  ifdef CONFIG_NETDEV_WIRELESS_IOCTL
+        if (_WLIOCVALID(cmd) && _IOC_NR(cmd) <= WL_NNETCMDS)
+          {
+            return sizeof(struct iwreq);
+          }
+#  endif
+#  ifdef CONFIG_WIRELESS_IEEE802154
+        if (_MAC802154IOCVALID(cmd))
+          {
+            return sizeof(struct ieee802154_netmac_s);
+          }
+#  endif
+#  ifdef CONFIG_WIRELESS_PKTRADIO
+        if (WL_ISPKTRADIOCMD(cmd))
+          {
+            return sizeof(struct pktradio_ifreq_s);
+          }
+#  endif
+#endif
+        return -ENOTTY;
+    }
+}
 
 /****************************************************************************
  * Name: psock_ioctl
