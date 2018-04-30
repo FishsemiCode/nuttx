@@ -537,15 +537,18 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
+      if (!loopback_out(&priv->dev))
+        {
+          /* Send the packet */
 
-      lan91c111_transmit(priv);
+          lan91c111_transmit(priv);
 
-      /* Check if there is room in the device to hold another packet. If not,
-       * return a non-zero value to terminate the poll.
-       */
+          /* Check if there is room in the device to hold another packet. If not,
+           * return a non-zero value to terminate the poll.
+           */
 
-      return !(getreg16(priv, MIR_REG) & MIR_FREE_MASK);
+          return !(getreg16(priv, MIR_REG) & MIR_FREE_MASK);
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -624,10 +627,7 @@ static void lan91c111_receive(FAR struct lan91c111_driver_s *priv)
 #ifdef CONFIG_NET_PKT
       /* When packet sockets are enabled, feed the frame into the packet tap */
 
-      if (pkt_input(&priv->dev) == OK)
-        {
-          continue; /* Handled by raw socket, skip the following process */
-        }
+      pkt_input(&priv->dev);
 #endif
 
       /* We only accept IP packets of the configured type and ARP packets */
