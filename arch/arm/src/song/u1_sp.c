@@ -41,6 +41,7 @@
 
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
@@ -348,6 +349,7 @@ void up_openamp_initialize(void)
 #ifdef CONFIG_NETDEVICES
 void up_netinitialize(void)
 {
+  net_rpmsg_drv_init(CPU_NAME_CP, "sl0", NET_LL_SLIP);
 }
 #endif
 
