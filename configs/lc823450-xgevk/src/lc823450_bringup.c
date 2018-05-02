@@ -45,12 +45,22 @@
 #include <stdbool.h>
 #include <syslog.h>
 
+#ifdef CONFIG_SMP
+#  include <sched.h>
+#endif
+
+#include <nuttx/sched.h>
+
 #ifdef CONFIG_RNDIS
 #  include <nuttx/usb/rndis.h>
 #endif
 
 #ifdef CONFIG_WATCHDOG
 #  include "lc823450_wdt.h"
+#endif
+
+#ifdef CONFIG_DVFS
+#  include "lc823450_dvfs2.h"
 #endif
 
 #include "lc823450-xgevk.h"
@@ -76,6 +86,11 @@ int lc823450_bringup(void)
 #endif
 
 #ifdef CONFIG_FS_PROCFS
+
+#ifdef CONFIG_DVFS
+  (void)dvfs_procfs_register();
+#endif
+
   /* Mount the procfs file system */
 
   ret = mount(NULL, "/proc", "procfs", 0, NULL);
@@ -110,6 +125,16 @@ int lc823450_bringup(void)
   mac[4] = (CONFIG_NSH_MACADDR >> (8 * 1)) & 0xff;
   mac[5] = (CONFIG_NSH_MACADDR >> (8 * 0)) & 0xff;
   usbdev_rndis_initialize(mac);
+#endif
+
+#if defined(CONFIG_SMP) && defined (CONFIG_RNDIS)
+  cpu_set_t cpuset;
+  CPU_ZERO(&cpuset);
+  CPU_SET(1, &cpuset); /* assigned to CPU1 */
+
+  /* NOTE: pid=4 is assumed to be lpwork */
+
+  (void)nxsched_setaffinity(4, sizeof(cpu_set_t), &cpuset);
 #endif
 
   /* If we got here then perhaps not all initialization was successful, but

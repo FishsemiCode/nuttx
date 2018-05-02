@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched/sched_setpriority.c
  *
- *   Copyright (C) 2009, 2013, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,10 +59,10 @@
  * Description:
  *   Get the next highest priority ready-to-run task.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - the TCB of task to reprioritize.
  *
- * Return Value:
+ * Returned Value:
  *   TCB of the next highest priority ready-to-run task.
  *
  ****************************************************************************/
@@ -83,7 +83,7 @@ static FAR struct tcb_s *sched_nexttcb(FAR struct tcb_s *tcb)
    * then use the 'nxttcb' which will probably be the IDLE thread.
    */
 
-  if (!spin_islocked(&g_cpu_schedlock) && !irq_cpu_locked(cpu))
+  if (!sched_islocked_global() && !irq_cpu_locked(cpu))
     {
       /* Search for the highest priority task that can run on this CPU. */
 
@@ -124,11 +124,11 @@ static FAR struct tcb_s *sched_nexttcb(FAR struct tcb_s *tcb)
  *   to sched_yield() -- The task will be moved to after all other tasks
  *   with the same priority.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - the TCB of task to reprioritize.
  *   sched_priority - The new task priority
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -178,11 +178,11 @@ static inline void sched_running_setpriority(FAR struct tcb_s *tcb,
  *   the position of the task in the ready-to-run list and if the priority
  *   is increased, may cause the task to become running.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - the TCB of task to reprioritize.
  *   sched_priority - The new task priority
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -267,11 +267,11 @@ static void sched_readytorun_setpriority(FAR struct tcb_s *tcb,
  *   Change the priority of a blocked tasks.  The only issue here is that
  *   the task may like in a prioritized or an non-prioritized queue.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - the TCB of task to reprioritize.
  *   sched_priority - The new task priority
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -315,7 +315,7 @@ static inline void sched_blocked_setpriority(FAR struct tcb_s *tcb,
  ****************************************************************************/
 
 /****************************************************************************
- * Name:  sched_setpriority
+ * Name:  nxsched_setpriority
  *
  * Description:
  *   This function sets the priority of a specified task.
@@ -324,24 +324,22 @@ static inline void sched_blocked_setpriority(FAR struct tcb_s *tcb,
  *   to sched_yield() -- The task will be moved to after all other tasks
  *   with the same priority.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - the TCB of task to reprioritize.
  *   sched_priority - The new task priority
  *
- * Return Value:
- *   On success, sched_setparam() returns 0 (OK). On error, -1 (ERROR) is
- *   returned, and errno is set appropriately.
+ * Returned Value:
+ *   On success, nxsched_setpriority() returns 0 (OK). On error, a negated
+ *   errno value is returned.
  *
  *  EINVAL The parameter 'param' is invalid or does not make sense for the
  *         current scheduling policy.
  *  EPERM  The calling task does not have appropriate privileges.
  *  ESRCH  The task whose ID is pid could not be found.
  *
- * Assumptions:
- *
  ****************************************************************************/
 
-int sched_setpriority(FAR struct tcb_s *tcb, int sched_priority)
+int nxsched_setpriority(FAR struct tcb_s *tcb, int sched_priority)
 {
   irqstate_t flags;
 
@@ -350,8 +348,7 @@ int sched_setpriority(FAR struct tcb_s *tcb, int sched_priority)
   if (sched_priority < SCHED_PRIORITY_MIN ||
       sched_priority > SCHED_PRIORITY_MAX)
     {
-      set_errno(EINVAL);
-      return ERROR;
+      return -EINVAL;
     }
 
   /* We need to assure that there there is no interrupt activity while
@@ -382,7 +379,6 @@ int sched_setpriority(FAR struct tcb_s *tcb, int sched_priority)
 #endif
         sched_readytorun_setpriority(tcb, sched_priority);
         break;
-
 
       /* CASE 3. The task is not in the ready to run list.  Changing its
        * Priority cannot effect the currently executing task.

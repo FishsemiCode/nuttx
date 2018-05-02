@@ -30,6 +30,7 @@ Contents
   o ViewTool DP83848 Ethernet Module
   o Freescale MPL115A barometer sensor
   o LCD/Touchscreen Interface
+  o FT80x Integration
   o Toolchains
     - NOTE about Windows native toolchains
   o Configurations
@@ -276,7 +277,7 @@ microSD Card Interface
     Device Drivers -> MMC/SD Driver Support
       CONFIG_MMCSD=y                        : Enable MMC/SD support
       CONFIG_MMSCD_NSLOTS=1                 : One slot per driver instance
-      CONFIG_MMCSD_HAVECARDDETECT=y         : Supports card-detect PIOs
+      CONFIG_MMCSD_HAVE_CARDDETECT=y         : Supports card-detect PIOs
       CONFIG_MMCSD_MMCSUPPORT=n             : Interferes with some SD cards
       CONFIG_MMCSD_SPI=n                    : No SPI-based MMC/SD support
       CONFIG_MMCSD_SDIO=y                   : SDIO-based MMC/SD support
@@ -498,6 +499,177 @@ LCD/Touchscreen Interface
        LO  LO  LO  LO  HI
        LO  HI  LO  HI  LO
 
+FT80x Integration
+=================
+
+  I have used the ViewTool F107 for initial testing of the three displays
+  based on FTDI/BridgeTek FT80x GUIs:
+
+  Haoyu 5"
+  --------
+  I purchased a Haoyu 5" FT800 display on eBay.  Pin out and board
+  connectivity is as follows:
+
+  2x5 Connector J2 using SPI1:
+  PIN  NAME   VIEWTOOL    STM32      PIN  NAME   VIEWTOOL   STM32
+   1   5V     J18 Pin  2              2   GND    J8 Pin  8
+   3   SCK    J8  Pin 11  PA5/SCK1    4   MISO   J8 Pin  9  PA6/MISO1
+   5   MOSI   J8  Pin 10  PA7/MOSI1   6   CS     J8 Pin 12  PA4/NSS1
+   7   INT    J18 Pin  8  PA1         8   PD     J18 Pin 6  PC5
+   9   AUDIO-L                       10   GND
+
+  2x5 Connector J2 using SPI2:
+  PIN  NAME   VIEWTOOL    STM32      PIN  NAME   VIEWTOOL   STM32
+   1   5V     J18 Pin  2              2   GND    J8  Pin 2
+   3   SCK    J8  Pin  5  PB13/SCK2   4   MISO   J8  Pin 3  PB14/MISO2
+   5   MOSI   J8  Pin  4  PB15/MOSI2  6   CS     J8  Pin 6  PB12/NSS2
+   7   INT    J18 Pin  8  PA1         8   PD     J18 Pin 6  PC5
+   9   AUDIO-L                       10   GND    J18 Pin 4
+
+  The Haoyu display has no audio amplifier on board;  Output is raw PWM
+  audio.  MikroElektronkia ConnectEVE FT800.
+
+  GPIO0 and MODE are pulled low meaning that SPI is the default interface
+  with slave address bit 0 = 0.  GPIO1 is not connected.
+
+  MikroElektronkia ConnectEVE FT800
+  ---------------------------------
+
+  2x5 Connector CN2 using SPI1:
+  ---- ------ ----------- ---------- ---- ------ ---------- ----------
+  PIN  NAME   VIEWTOOL    STM32      PIN  NAME   VIEWTOOL   STM32
+  ---- ------ ----------- ---------- ---- ------ ---------- ----------
+   1   PD#    J18 Pin 6   PC5         2   INT#   J18 Pin  8 PA1
+   3   CS#    J8  Pin 12  PA4/NSS1    4   SCK    8   Pin 11 PA5/SCK1
+   5   MISO   J8  Pin  9  PA6/MISO1   6   MOSI   J8  Pin 10 PA7/MOSI1
+   7   N/C                            8   N/C
+   9   3.3V   J8  Pin 7              10   GND    J8  Pin  8
+
+  2x5 Connector CN2 using SPI2:
+  ---- ------ ----------- ---------- ---- ------ ---------- ----------
+  PIN  NAME   VIEWTOOL    STM32      PIN  NAME   VIEWTOOL   STM32
+  ---- ------ ----------- ---------- ---- ------ ---------- ----------
+   1   PD#    J18 Pin 6   PC5         2   INT#   J18 Pin  8 PA1
+   3   CS#    J8  Pin 6   PB12/NSS2   4   SCK    J8  Pin  5 PB13/SCK2
+   5   MISO   J8  Pin 3   PB14/MISO2  6   MOSI   J8  Pin  4 PB15/MOSI2
+   7   N/C                            8   N/C
+   9   3.3V   J8  Pin 1              10   GND    J8  Pin  2
+
+  1x10 Connector CN3 using SPI1:
+  ---- ------ ----------- -----------
+  PIN  NAME   VIEWTOOL    STM32
+  ---- ------ ----------- -----------
+   1   CS#    J8  Pin 12  PA4/NSS1
+   2   SCK    J8  Pin 11  PA5/SCK1
+   3   MISO   J8  Pin  9  PA6/MISO1
+   4   MOSI   J8  Pin 10  PA7/MOSI1
+   5   INT#   J18 Pin  8  PA1
+   6   PD#    J18 Pin  6  PC5
+   7   AUDIO+
+   8   AUDIO-
+   9   3.3V   J8  Pin 7
+  10   GND    J8  Pin 8
+
+  1x10 Connector CN3 using SPI2:
+  ---- ------ ----------- -----------
+  PIN  NAME   VIEWTOOL    STM32
+  ---- ------ ----------- -----------
+   1   CS#    J8  Pin  6  PB12/NSS2
+   2   SCK    J8  Pin  5  PB13/SCK2
+   3   MISO   J8  Pin  3  PB14/MISO2
+   4   MOSI   J8  Pin  4  PB15/MOSI2
+   5   INT#   J18 Pin  8  PA1
+   6   PD#    J18 Pin  6  PC5
+   7   AUDIO+
+   8   AUDIO-
+   9   3.3V   J8  Pin 1
+  10   GND    J8  Pin 2
+
+  Configurations using FT80x should not enable Ethernet, CAN2 or LED
+  support.  The LCD connector, J28 pin 9,  and the upper row of J18 are
+  also assumed to be unused:
+
+  J8 upper row (SPI2) conflicts:
+
+    Pin  2 PB14 also used by LCD
+    Pin  4 PB15 also used by LCD
+    Pin  5 PB13 also used by Ethernet, CAN2, LCD and LED4
+    Pin  6 PB12 also used by Ethernet, CAN2, J28 pin 9, and LED3
+
+  J8 lower row (SPI1) conflicts:
+
+    Pin  9 PA6 also used by J8 pin 9 and LED1
+    Pin 10 PA7 also used Ethernet
+    Pin 11 PA5 also used by J8 pin 7
+    Pin 12 PA4 also used by J8 pin 5 (J8 pin 5 not used)
+
+  J18 upper row is not used in this configuration.  Cannot be used with
+  SPI1.  Not used with SPI2 because SPI2 has the same conflicts as the
+  lower row so why bother?
+
+    Pin  5 PA4 also used by SPI1/NSS1
+    Pin  7 PA5 also used by SPI1/SCK1
+    Pin  9 PA6 also used by SPI1/MOSI1 and LED1
+
+  J18 lower row conflicts:
+
+    Pin  6 PC5 also used by Ethernet and the LCD interface
+    Pin  8 PA1 also used by Ethernet
+    Pin 10 PA0 also used by Ethernet and Wake-up button (not used)
+
+  Remapped SPI1 pins are not supported, but that would permit these options:
+
+    PA15/NSS1 also used by LCD
+    PB3/SCK1  also used by USART1 and JTAG
+    PB4/MISO1 also used by JTAG
+    PB5/MOSI1 also used by USART1, Ethernet, and J28 pin 10
+
+  There is a LM4864 audio amplifier on board so audio outputs are ready for
+  use with a small 1W 8Ohm speaker.    GPIO0 should be configured as an
+  output because it is used to control the shutdown pin of the LM4864 audio
+  output.
+
+  GPIO0 is not connected.
+
+  Reverdi RVT43ULFNWC01
+  ---------------------
+
+  I used this FT801 board with a 20 pin breakout module.
+
+  re
+  2x10 Connector CN2 using SPI1:
+  ---- --------- ----------- ----------- ---- --------- ----------- -----------
+  PIN  NAME      VIEWTOOL    STM32       PIN  NAME      VIEWTOOL    STM32
+  ---- --------- ----------- ----------- ---- --------- ----------- -----------
+    1  VDD       J8  Pin  7 *             2  GND        J8  Pin  8
+    3  SPI_CLK   J8  Pin 11  PA5/SCK1     4  MISO       J8  Pin  9  PA6/MISO1
+    5  MOSI/IO1  J8  Pin 10  PA7/MOSI1    6  CS         J8  Pin 12  PA4/NSS1
+    7  INT       J18 Pin  8  PA1         8  PD         J18 Pin  6  PC5
+    9  NC        N/C                     10  AUDIO OUT  N/C
+   11  GPIO0/IO2 N/C                     12  GPIO0/IO3  N/C
+   13  GPIO2     N/C                     14  GPIO3      N/C
+   15  NC        N/C                     16  NC         N/C
+   17  BLVDD     N/C **                  18  BLVDD      N/C **
+   19  BLGND     N/C                     20  BLGND      N/C
+
+  2x10 Connector CN2 using SPI2:
+  ---- --------- ----------- ----------- ---- --------- ----------- -----------
+  PIN  NAME      VIEWTOOL    STM32       PIN  NAME      VIEWTOOL    STM32
+  ---- --------- ----------- ---------- ---- --------- ----------- -----------
+    1  VDD       J8  Pin  1 *             2  GND        J8  Pin  2
+    3  SPI_CLK   J8  Pin  5  PB13/SCK2    4  MISO       J8  Pin  3  PB14/MISO2
+    5  MOSI/IO1  J8  Pin  4  PB15/MOSI2   6  CS         J8  Pin  6  PB12/NSS2
+    7  INT       J18 Pin  8  PA1          8  PD         J18 Pin  6  PC5
+    9  NC        N/C                     10  AUDIO OUT  N/C
+   11  GPIO0/IO2 N/C                     12  GPIO0/IO3  N/C
+   13  GPIO2     N/C                     14  GPIO3      N/C
+   15  NC        N/C                     16  NC         N/C
+   17  BLVDD     N/C **                  18  BLVDD      N/C **
+   19  BLGND     N/C                     20  BLGND      N/C
+
+  *  0.0-4.0V
+  ** May be connected to VDD, 0.0-7.0V
+
 Toolchains
 ==========
 
@@ -587,10 +759,16 @@ Configurations
   5. These configurations all assume that you are loading code using
      something like the ST-Link v2 JTAG.  None of these configurations are
      setup to use the DFU bootloader but should be easily reconfigured to
-     use that bootloader is so desired.
+     use that bootloader if so desired.
 
   Configuration Sub-directories
   -----------------------------
+
+  f80x:
+
+    This configuration was added in order to verify the FTDI/Bridgetick
+    Ft80x driver.  At this point, I have no hardware in that.  So this
+    configuration is totally unverified.
 
   netnsh:
 
@@ -629,12 +807,6 @@ Configurations
 
     6. USB support is disabled by default.  See the section above entitled,
        "USB Interface"
-
-    STATUS.  The first time I build the configuration, I get some undefined
-    external references.  No idea why.  Simply cleaning the apps/ directory
-    and rebuilding fixes the problem:
-
-      make apps_clean all
 
   nsh:
 

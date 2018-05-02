@@ -45,11 +45,16 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/sched.h>
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/audio/audio.h>
 #include <nuttx/audio/i2s.h>
+
+#ifdef CONFIG_SMP
+#  include <nuttx/signal.h>
+#endif
 
 #include "up_arch.h"
 #include "lc823450_dma.h"
@@ -280,9 +285,9 @@ static uint32_t lc823450_i2s_txdatawidth(struct i2s_dev_s *dev, int bits)
 
 static int _i2s_isr(int irq, FAR void *context, FAR void *arg)
 {
-  /* disable interrupt */
+  /* Disable Buffer F Under Level IRQ */
 
-  up_disable_irq(LC823450_IRQ_AUDIOBUF0);
+  putreg32(0, ABUFIRQEN0);
 
   /* post semaphore for the waiter */
 
@@ -298,9 +303,9 @@ static int lc823450_i2s_send(struct i2s_dev_s *dev, struct ap_buffer_s *apb,
                              i2s_callback_t callback, void *arg,
                              uint32_t timeout)
 {
-  /* Enable IRQ for Audio Buffer */
+  /* Enable Buffer F Under Level IRQ */
 
-  up_enable_irq(LC823450_IRQ_AUDIOBUF0);
+  putreg32(ABUFIRQEN0_BFULIRQEN, ABUFIRQEN0);
 
   /* Wait for Audio Buffer */
 
@@ -373,10 +378,6 @@ static int lc823450_i2s_configure(void)
   /* Buffer Under Level = 1KB */
 
   putreg32(1024, BUF_F_ULVL);
-
-  /* Enable Buffer F Under Level IRQ */
-
-  putreg32(ABUFIRQEN0_BFULIRQEN, ABUFIRQEN0);
 
   /* Clear Audio Buffer */
 
@@ -464,7 +465,35 @@ FAR struct i2s_dev_s *lc823450_i2sdev_initialize(void)
   nxsem_init(&_sem_txdma, 0, 0);
   nxsem_init(&_sem_buf_under, 0, 0);
 
+#ifdef CONFIG_SMP
+  cpu_set_t cpuset0;
+  cpu_set_t cpuset1;
+
+  CPU_ZERO(&cpuset1);
+  CPU_SET(0, &cpuset1);
+
+  /* Backup the current affinity */
+
+  (void)nxsched_getaffinity(getpid(), sizeof(cpuset0), &cpuset0);
+
+  /* Set the new affinity which assigns to CPU0 */
+
+  (void)nxsched_setaffinity(getpid(), sizeof(cpuset1), &cpuset1);
+  nxsig_usleep(10 * 1000);
+#endif
+
   irq_attach(LC823450_IRQ_AUDIOBUF0, _i2s_isr, NULL);
+
+  /* Enable IRQ for Audio Buffer */
+
+  up_enable_irq(LC823450_IRQ_AUDIOBUF0);
+
+#ifdef CONFIG_SMP
+  /* Restore the original affinity */
+
+  (void)nxsched_setaffinity(getpid(), sizeof(cpuset0), &cpuset0);
+  nxsig_usleep(10 * 1000);
+#endif
 
   /* Success exit */
 

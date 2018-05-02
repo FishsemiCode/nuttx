@@ -1,7 +1,8 @@
 /****************************************************************************
  * fs/nxffs/nxffs_initialize.c
  *
- *   Copyright (C) 2011, 2013, 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013, 2015, 2017-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: Linux/Documentation/filesystems/romfs.txt
@@ -74,6 +75,11 @@ const struct mountpt_operations nxffs_operations =
   NULL,              /* sync -- No buffered data */
   nxffs_dup,         /* dup */
   nxffs_fstat,       /* fstat */
+#ifdef __NO_TRUNCATE_SUPPORT__
+  nxffs_truncate,    /* truncate */
+#else
+  NULL,              /* truncate */
+#endif
 
   nxffs_opendir,     /* opendir */
   NULL,              /* closedir */

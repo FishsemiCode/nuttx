@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/procfs/fs_procfs.c
  *
- *   Copyright (C) 2013-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,6 +77,7 @@
  ****************************************************************************/
 
 extern const struct procfs_operations proc_operations;
+extern const struct procfs_operations irq_operations;
 extern const struct procfs_operations cpuload_operations;
 extern const struct procfs_operations meminfo_operations;
 extern const struct procfs_operations module_operations;
@@ -124,8 +125,12 @@ static const struct procfs_entry_s g_procfs_entries[] =
   { "cpuload",       &cpuload_operations,         PROCFS_FILE_TYPE   },
 #endif
 
+#ifdef CONFIG_SCHED_IRQMONITOR
+  { "irqs",          &irq_operations,             PROCFS_FILE_TYPE   },
+#endif
+
 #ifndef CONFIG_FS_PROCFS_EXCLUDE_MEMINFO
-  { "meminfo",        &meminfo_operations,        PROCFS_FILE_TYPE   },
+  { "meminfo",       &meminfo_operations,         PROCFS_FILE_TYPE   },
 #endif
 
 #if defined(CONFIG_MODULE) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
@@ -133,15 +138,15 @@ static const struct procfs_entry_s g_procfs_entries[] =
 #endif
 
 #ifndef CONFIG_FS_PROCFS_EXCLUDE_BLOCKS
-  { "fs/blocks",     &mount_procfsoperations,     PROCFS_FILE_TYPE },
+  { "fs/blocks",     &mount_procfsoperations,     PROCFS_FILE_TYPE   },
 #endif
 
 #ifndef CONFIG_FS_PROCFS_EXCLUDE_MOUNT
-  { "fs/mount",      &mount_procfsoperations,     PROCFS_FILE_TYPE },
+  { "fs/mount",      &mount_procfsoperations,     PROCFS_FILE_TYPE   },
 #endif
 
 #ifndef CONFIG_FS_PROCFS_EXCLUDE_USAGE
-  { "fs/usage",      &mount_procfsoperations,     PROCFS_FILE_TYPE },
+  { "fs/usage",      &mount_procfsoperations,     PROCFS_FILE_TYPE   },
 #endif
 
 #if defined(CONFIG_FS_SMARTFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_SMARTFS)
@@ -257,6 +262,7 @@ const struct mountpt_operations procfs_operations =
   NULL,              /* sync */
   procfs_dup,        /* dup */
   procfs_fstat,      /* fstat */
+  NULL,              /* truncate */
 
   procfs_opendir,    /* opendir */
   procfs_closedir,   /* closedir */

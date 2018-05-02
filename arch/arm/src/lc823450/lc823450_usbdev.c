@@ -487,7 +487,7 @@ static int lc823450_epclearreq(struct usbdev_ep_s *ep)
   struct lc823450_ep_s *privep = (struct lc823450_ep_s *)ep;
   irqstate_t flags;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
   while (privep->req_q.tail)
     {
       struct usbdev_req_s *req;
@@ -504,7 +504,7 @@ static int lc823450_epclearreq(struct usbdev_ep_s *ep)
       req->callback(ep, req);
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
   return 0;
 }
 
@@ -666,27 +666,27 @@ static int lc823450_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 
   if (privep->epphy == 0)
     {
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       req->xfrd = epbuf_write(privep->epphy, req->buf, req->len);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
       req->callback(ep, req);
     }
   else if (privep->in)
     {
       /* Send packet requst from function driver */
 
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
 
       if ((getreg32(USB_EPCOUNT(privep->epphy * 2)) &
           USB_EPCOUNT_PHYCNT_MASK) >> USB_EPCOUNT_PHYCNT_SHIFT ||
           privep->req_q.tail)
         {
           sq_addfirst(&privreq->q_ent, &privep->req_q); /* non block */
-          leave_critical_section(flags);
+          spin_unlock_irqrestore(flags);
         }
        else
         {
-          leave_critical_section(flags);
+          spin_unlock_irqrestore(flags);
           req->xfrd = epbuf_write(privep->epphy, req->buf, req->len);
           req->callback(ep, req);
         }
@@ -695,9 +695,9 @@ static int lc823450_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
     {
       /* receive packet buffer from function driver */
 
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       sq_addfirst(&privreq->q_ent, &privep->req_q); /* non block */
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
       lc823450_epack(privep->epphy, 1);
     }
 
@@ -716,10 +716,13 @@ static int lc823450_epcancel(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 {
   struct lc823450_req_s *privreq = (struct lc823450_req_s *)req;
   struct lc823450_ep_s *privep = (struct lc823450_ep_s *)ep;
+  irqstate_t flags;
 
   /* remove request from req_queue */
 
+  flags = spin_lock_irqsave();
   sq_remafter(&privreq->q_ent, &privep->req_q);
+  spin_unlock_irqrestore(flags);
   return 0;
 }
 
@@ -738,7 +741,7 @@ static int lc823450_epstall(struct usbdev_ep_s *ep, bool resume)
 
   /* STALL or RESUME the endpoint */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
   usbtrace(resume ? TRACE_EPRESUME : TRACE_EPSTALL, privep->epphy);
 
   if (resume)
@@ -752,7 +755,7 @@ static int lc823450_epstall(struct usbdev_ep_s *ep, bool resume)
       epcmd_write(privep->epphy, USB_EPCMD_STALL_SET | USB_EPCMD_TGL_SET);
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
   return OK;
 }
 
@@ -761,11 +764,11 @@ void up_epignore_clear_stall(struct usbdev_ep_s *ep, bool ignore)
 {
   struct lc823450_ep_s *privep = (struct lc823450_ep_s *)ep;
   irqstate_t flags;
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   privep->ignore_clear_stall = ignore;
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 }
 #endif /* CONFIG_USBMSC_IGNORE_CLEAR_STALL */
 
@@ -922,7 +925,7 @@ static void usb_suspend_work_func(void *arg)
     }
 #endif
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
   if (getreg32(USB_DEVS) & USB_DEVS_SUSPEND)
     {
       uinfo("USB BUS SUSPEND\n");
@@ -936,7 +939,7 @@ static void usb_suspend_work_func(void *arg)
       g_usbsuspend = 1;
       wake_unlock(&priv->wlock);
     }
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 }
 #endif
 
@@ -1251,6 +1254,9 @@ static void subintr_epin(uint8_t epnum, struct lc823450_ep_s *privep)
 {
   /* Send packet done */
 
+  irqstate_t flags;
+  flags = spin_lock_irqsave();
+
   if (privep->req_q.tail)
     {
       struct usbdev_req_s *req;
@@ -1259,6 +1265,9 @@ static void subintr_epin(uint8_t epnum, struct lc823450_ep_s *privep)
       /* Dequeue from TXQ */
 
       q_ent = sq_remlast(&privep->req_q);
+
+      spin_unlock_irqrestore(flags);
+
       req = &container_of(q_ent, struct lc823450_req_s, q_ent)->req;
 
       /* Write to TX FIFO */
@@ -1272,6 +1281,7 @@ static void subintr_epin(uint8_t epnum, struct lc823450_ep_s *privep)
     }
   else
     {
+      spin_unlock_irqrestore(flags);
       epcmd_write(epnum, USB_EPCMD_EMPTY_CLR);
     }
 }
@@ -1288,6 +1298,9 @@ static void subintr_epout(uint8_t epnum, struct lc823450_ep_s *privep)
 {
   /* Packet receive from host */
 
+  irqstate_t flags;
+  flags = spin_lock_irqsave();
+
   if (privep->req_q.tail)
     {
       struct usbdev_req_s *req;
@@ -1296,6 +1309,7 @@ static void subintr_epout(uint8_t epnum, struct lc823450_ep_s *privep)
       /* Dequeue from Reqbuf poll */
 
       q_ent = sq_remlast(&privep->req_q);
+
       req = &container_of(q_ent, struct lc823450_req_s, q_ent)->req;
       if (privep->req_q.tail == NULL)
         {
@@ -1303,6 +1317,8 @@ static void subintr_epout(uint8_t epnum, struct lc823450_ep_s *privep)
 
           lc823450_epack(epnum, 0);
         }
+
+      spin_unlock_irqrestore(flags);
 
       /* PIO */
 
@@ -1315,6 +1331,7 @@ static void subintr_epout(uint8_t epnum, struct lc823450_ep_s *privep)
     }
   else
     {
+      spin_unlock_irqrestore(flags);
       uinfo("REQ Buffer Exhault\n");
       epcmd_write(epnum, USB_EPCMD_READY_CLR);
     }
@@ -1630,7 +1647,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
    * canceled while the class driver is still bound.
    */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
 #ifdef CONFIG_WAKELOCK
   /* cancel USB suspend work */
@@ -1666,7 +1683,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
   pm_unregister(&pm_cb);
 #endif /* CONFIG_PM */
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 
 #ifdef CONFIG_LC823450_LSISTBY
   /* disable USB */
@@ -1915,7 +1932,7 @@ static void usbdev_pmnotify(struct pm_callback_s *cb, enum pm_state_e pmstate)
 {
   irqstate_t flags;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   switch (pmstate)
     {
@@ -1936,6 +1953,6 @@ static void usbdev_pmnotify(struct pm_callback_s *cb, enum pm_state_e pmstate)
       default:
         break;
     }
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 }
 #endif

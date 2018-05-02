@@ -1189,7 +1189,7 @@ errout_without_sem:
 }
 
 /****************************************************************************
- * Name:cc3000_write
+ * Name: cc3000_write
  *
  * Bit of non standard buffer management ahead
  * The buffer is memory allocated in the user space with space for the spi
@@ -1286,7 +1286,7 @@ static ssize_t cc3000_write(FAR struct file *filep, FAR const char *usrbuffer, s
 
           cc3000_deselect_and_unlock(priv->spi);
           ninfo("nxsem_wait: %d\n", ret);
-          DEBUGASSERT(ret == -EINTR);
+          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
           nwritten = ret;
           goto errout_without_sem;
         }
@@ -1306,7 +1306,7 @@ errout_without_sem:
 }
 
 /****************************************************************************
- * Name:cc3000_ioctl
+ * Name: cc3000_ioctl
  ****************************************************************************/
 
 static int cc3000_ioctl(FAR struct file *filep, int cmd, unsigned long arg)

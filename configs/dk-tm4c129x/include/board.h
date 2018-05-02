@@ -250,24 +250,12 @@
 #ifndef __ASSEMBLY__
 
 /************************************************************************************
- * Name: tiva_boardinitialize
- *
- * Description:
- *   All Tiva architectures must provide the following entry point.  This entry
- *   point is called early in the initialization -- after all memory has been
- *   configured and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void tiva_boardinitialize(void);
-
-/************************************************************************************
  * Name: tiva_tmp100_initialize
  *
  * Description:
  *   Initialize and register the TMP-100 Temperature Sensor driver.
  *
- * Input parameters:
+ * Input Parameters:
  *   devpath - The full path to the driver to register. E.g., "/dev/temp0"
  *
  * Returned Value:

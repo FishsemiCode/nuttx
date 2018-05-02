@@ -58,7 +58,7 @@
 #include "lc823450_intc.h"
 
 #ifdef CONFIG_DVFS
-#  include "lc823450_dvfs.h"
+#  include "lc823450_dvfs2.h"
 #endif
 
 /****************************************************************************
@@ -632,6 +632,7 @@ void up_enable_irq(int irq)
   uintptr_t regaddr;
   uint32_t regval;
   uint32_t bit;
+  irqstate_t flags;
 
 #ifdef CONFIG_LC823450_VIRQ
   if (irq >= LC823450_IRQ_VIRTUAL &&
@@ -657,6 +658,8 @@ void up_enable_irq(int irq)
        * set the bit in the System Handler Control and State Register.
        */
 
+      flags = spin_lock_irqsave();
+
       if (irq >= LC823450_IRQ_NIRQS)
         {
           /* Clear already asserted IRQ */
@@ -677,6 +680,8 @@ void up_enable_irq(int irq)
           regval |= bit;
           putreg32(regval, regaddr);
         }
+
+      spin_unlock_irqrestore(flags);
     }
 
   /* lc823450_dumpnvic("enable", irq); */
@@ -697,16 +702,21 @@ void up_ack_irq(int irq)
       return;
     }
 
-  board_autoled_on(LED_CPU0 + up_cpu_index());
-
 #ifdef CONFIG_DVFS
   lc823450_dvfs_exit_idle(irq);
 #endif
 
-#ifdef CONFIG_LC823450_SLEEP_MODE
-  extern void up_update_idle_time(void);
-  up_update_idle_time();
+  board_autoled_on(LED_CPU0 + up_cpu_index());
+
+#ifdef CONFIG_SMP
+  if (irq > LC823450_IRQ_LPDSP0 && 1 == up_cpu_index())
+    {
+      /* IRQ should be handled on CPU0 */
+
+      ASSERT(false);
+    }
 #endif
+
 }
 
 /****************************************************************************
@@ -798,7 +808,7 @@ int lc823450_irq_srctype(int irq, enum lc823450_srctype_e srctype)
   port = (irq & 0x70) >> 4;
   gpio = irq & 0xf;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   regaddr = INTC_REG(EXTINTnCND_BASE, port);
   regval = getreg32(regaddr);
@@ -808,7 +818,7 @@ int lc823450_irq_srctype(int irq, enum lc823450_srctype_e srctype)
 
   putreg32(regval, regaddr);
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 
   return OK;
 }

@@ -47,6 +47,7 @@
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 
 #include "route/fileroute.h"
@@ -169,7 +170,7 @@ int net_routesize(FAR const char *path, size_t entrysize)
        * created yet?
        */
 
-      errcode = errno;
+      errcode = get_errno();
       if (errcode == ENOENT)
         {
           /* The routing table file has not been created.  Return size zero. */
@@ -716,7 +717,7 @@ int net_lockroute_ipv6(void)
       ret = nxsem_wait(&g_ipv6_exclsem);
       if (ret < 0)
         {
-          nerr("ERROR: nxsem_wait() failed: %d\n", errcode);
+          nerr("ERROR: nxsem_wait() failed: %d\n", ret);
         }
       else
         {

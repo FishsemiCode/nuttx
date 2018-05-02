@@ -150,9 +150,11 @@ static int dma_interrupt_core(void *context)
   struct lc823450_phydmach_s *pdmach;
   struct lc823450_dmach_s *dmach;
   sq_entry_t *q_ent;
+  irqstate_t flags;
 
   pdmach = (struct lc823450_phydmach_s *)context;
 
+  flags = spin_lock_irqsave();
   q_ent = pdmach->req_q.tail;
   DEBUGASSERT(q_ent);
   dmach = (struct lc823450_dmach_s *)q_ent;
@@ -160,10 +162,16 @@ static int dma_interrupt_core(void *context)
   if (dmach->nxfrs == 0)
     {
       /* finish one transfer */
+
       sq_remlast(&pdmach->req_q);
+      spin_unlock_irqrestore(flags);
 
       if (dmach->callback)
         dmach->callback((DMA_HANDLE)dmach, dmach->arg, 0);
+    }
+  else
+    {
+      spin_unlock_irqrestore(flags);
     }
 
   up_disable_clk(LC823450_CLOCK_DMA);
@@ -218,14 +226,14 @@ static int phydmastart(struct lc823450_phydmach_s *pdmach)
   struct lc823450_dmach_s *dmach;
   sq_entry_t *q_ent;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   q_ent = pdmach->req_q.tail;
 
   if (!q_ent)
     {
       pdmach->inprogress = 0;
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
       return 0;
     }
 
@@ -288,7 +296,7 @@ static int phydmastart(struct lc823450_phydmach_s *pdmach)
 
   modifyreg32(DMACCFG(dmach->chn), 0, DMACCFG_ITC | DMACCFG_E);
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
   return 0;
 }
 
@@ -614,7 +622,7 @@ int lc823450_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg)
 
   /* select physical channel */
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   sq_addfirst(&dmach->q_ent, &g_dma.phydmach[dmach->chn].req_q);
 
@@ -628,7 +636,7 @@ int lc823450_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg)
       phydmastart(&g_dma.phydmach[dmach->chn]);
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 
   return OK;
 }
@@ -645,7 +653,7 @@ void lc823450_dmastop(DMA_HANDLE handle)
 
   DEBUGASSERT(dmach);
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   modifyreg32(DMACCFG(dmach->chn), DMACCFG_ITC | DMACCFG_E, 0);
 
@@ -660,6 +668,6 @@ void lc823450_dmastop(DMA_HANDLE handle)
       sq_rem(&dmach->q_ent, &pdmach->req_q);
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
   return;
 }

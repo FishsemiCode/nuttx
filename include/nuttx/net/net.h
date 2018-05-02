@@ -209,8 +209,8 @@ struct socket
 
   FAR const struct sock_intf_s *s_sockif;
 
-#ifdef CONFIG_NET_TCP_WRITE_BUFFERS
-  /* Callback instance for TCP send */
+#if defined(CONFIG_NET_TCP_WRITE_BUFFERS) || defined(CONFIG_NET_UDP_WRITE_BUFFERS)
+  /* Callback instance for TCP send() or UDP sendto() */
 
   FAR struct devif_callback_s *s_sndcb;
 #endif
@@ -307,7 +307,7 @@ void net_initialize(void);
  * Input Parameters:
  *   None
  *
- * Returned value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -323,7 +323,7 @@ void net_lock(void);
  * Input Parameters:
  *   None
  *
- * Returned value:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/
@@ -341,7 +341,7 @@ void net_unlock(void);
  *   sem     - A reference to the semaphore to be taken.
  *   abstime - The absolute time to wait until a timeout is declared.
  *
- * Returned value:
+ * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
  *   any failure.
  *
@@ -359,7 +359,7 @@ int net_timedwait(sem_t *sem, FAR const struct timespec *abstime);
  * Input Parameters:
  *   sem - A reference to the semaphore to be taken.
  *
- * Returned value:
+ * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
  *   any failure.
  *
@@ -394,7 +394,7 @@ void net_setipid(uint16_t id);
 int net_checksd(int fd, int oflags);
 
 /****************************************************************************
- * Name:
+ * Name: net_initlist
  *
  * Description:
  *   Initialize a list of sockets for a new task
@@ -1075,7 +1075,7 @@ int psock_getsockname(FAR struct socket *psock, FAR struct sockaddr *addr, FAR s
  *   cmd      The ioctl command
  *   arg      The argument of the ioctl cmd
  *
- * Return:
+ * Returned Value:
  *   A non-negative value is returned on success; a negated errno value is
  *   returned on any failure to indicate the nature of the failure:
  *
@@ -1108,7 +1108,7 @@ int psock_ioctl(FAR struct socket *psock, int cmd, unsigned long arg);
  *   cmd      The ioctl command
  *   arg      The argument of the ioctl cmd
  *
- * Return:
+ * Returned Value:
  *   A non-negative value is returned on success; a negated errno value is
  *   returned on any failure to indicate the nature of the failure:
  *

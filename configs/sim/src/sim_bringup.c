@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/sim/src/sam_bringup.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,9 @@
 
 #include <nuttx/board.h>
 #include <nuttx/clock.h>
+#include <nuttx/kmalloc.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/fs/nxffs.h>
 #include <nuttx/video/fb.h>
 #include <nuttx/timers/oneshot.h>
 #include <nuttx/wireless/pktradio.h>
@@ -65,8 +68,7 @@ int trv_mount_world(int minor, FAR const char *mountpoint);
 #define NEED_FRAMEBUFFER 1
 
 /* If we are using the X11 touchscreen simulation, then the frame buffer
- * initialization happens in board_tsc_setup.  Otherwise, we will need to
- * do that here.
+ * initialization will need to be done here.
  */
 
 #if defined(CONFIG_SIM_X11FB) && defined(CONFIG_SIM_TOUCHSCREEN)
@@ -98,6 +100,9 @@ int sim_bringup(void)
 #ifdef CONFIG_ONESHOT
   FAR struct oneshot_lowerhalf_s *oneshot;
 #endif
+#ifdef CONFIG_RAMMTD
+  FAR uint8_t *ramstart;
+#endif
   int ret;
 
 #ifdef CONFIG_LIB_ZONEINFO_ROMFS
@@ -112,13 +117,61 @@ int sim_bringup(void)
   (void)sim_gpio_initialize();
 #endif
 
+#ifdef CONFIG_RAMMTD
+  /* Create a RAM MTD device if configured */
+
+  ramstart = (FAR uint8_t *)kmm_malloc(32 * 1024);
+  if (ramstart == NULL)
+    {
+      syslog(LOG_ERR, "ERROR: Allocation for RAM MTD failed\n");
+    }
+  else
+    {
+      /* Initialized the RAM MTD */
+
+      FAR struct mtd_dev_s *mtd = rammtd_initialize(ramstart, 32 * 1024);
+      if (mtd == NULL)
+        {
+          syslog(LOG_ERR, "ERROR: rammtd_initialize failed\n");
+          kmm_free(ramstart);
+        }
+      else
+        {
+          /* Erase the RAM MTD */
+
+          ret = mtd->ioctl(mtd, MTDIOC_BULKERASE, 0);
+          if (ret < 0)
+            {
+              syslog(LOG_ERR, "ERROR: IOCTL MTDIOC_BULKERASE failed\n");
+            }
+
+#if defined(CONFIG_MTD_SMART) && defined(CONFIG_FS_SMARTFS)
+          /* Initialize a SMART Flash block device and bind it to the MTD
+           * device.
+           */
+
+          smart_initialize(0, mtd, NULL);
+#elif defined(CONFIG_FS_NXFFS)
+          /* Initialize to provide NXFFS on the MTD interface */
+
+          ret = nxffs_initialize(mtd);
+          if (ret < 0)
+            {
+              syslog(LOG_ERR, "ERROR: NXFFS initialization failed: %d\n",
+                     ret);
+            }
+#endif
+        }
+    }
+#endif
+
 #ifdef CONFIG_ONESHOT
   /* Get an instance of the simulated oneshot timer */
 
   oneshot = oneshot_initialize(0, 0);
   if (oneshot == NULL)
     {
-      syslog(LOG_ERR, "ERROR: oneshot_initialize faile\n");
+      syslog(LOG_ERR, "ERROR: oneshot_initialize failed\n");
     }
   else
     {
@@ -144,6 +197,16 @@ int sim_bringup(void)
   /* Initialize the simulated analog joystick input device */
 
   sim_ajoy_initialize();
+#endif
+
+#if defined(CONFIG_SIM_X11FB) && defined(CONFIG_SIM_TOUCHSCREEN)
+  /* Initialize the touchscreen */
+
+  ret = sim_tsc_setup(0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: sim_tsc_setup failed: %d\n", ret);
+    }
 #endif
 
 #ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO

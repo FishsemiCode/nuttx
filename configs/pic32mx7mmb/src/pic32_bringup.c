@@ -1,7 +1,7 @@
 /****************************************************************************
  * config/pic32mx7mmb/src/pic32_bringup.c
  *
- *   Copyright (C) 2012, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <nuttx/kthread.h>
 #include <nuttx/board.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/mmcsd.h>
@@ -320,9 +321,9 @@ static int nsh_usbhostinitialize(void)
 
       syslog(LOG_INFO, "Start nsh_waiter\n");
 
-      pid = task_create("usbhost", CONFIG_USBHOST_DEFPRIO,
-                        CONFIG_USBHOST_STACKSIZE,
-                        (main_t)nsh_waiter, (FAR char * const *)NULL);
+      pid = kthread_create("usbhost", CONFIG_USBHOST_DEFPRIO,
+                           CONFIG_USBHOST_STACKSIZE,
+                           (main_t)nsh_waiter, (FAR char * const *)NULL);
       return pid < 0 ? -ENOEXEC : OK;
     }
   return -ENODEV;
@@ -406,6 +407,16 @@ int pic32mx_bringup(void)
 
       ret = nsh_usbdevinitialize();
     }
+
+#ifdef CONFIG_INPUT
+  /* Initialize the touchscreen */
+
+  ret = pic32mx_tsc_setup(0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: pic32mx_tsc_setup failed: %d\n", ret);
+    }
+#endif
 
   return ret;
 }

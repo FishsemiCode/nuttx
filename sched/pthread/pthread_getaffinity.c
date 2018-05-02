@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/pthread/pthread_getaffinity.c
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,8 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/sched.h>
+
 #include "pthread/pthread.h"
 
 #ifdef CONFIG_SMP
@@ -69,7 +71,7 @@
  *   cpusetsize - Size of cpuset.  MUST be sizeofcpu_set_t().
  *   cpuset     - The location to return the thread's new affinity set.
  *
- * Return Value:
+ * Returned Value:
  *   0 if successful.  Otherwise, an errno value is returned indicating the
  *   nature of the failure.
  *
@@ -86,15 +88,14 @@ int pthread_getaffinity_np(pthread_t thread, size_t cpusetsize,
   DEBUGASSERT(thread > 0 && cpusetsize == sizeof(cpu_set_t) &&
               cpuset != NULL);
 
-  /* Let sched_getaffinity do all of the work */
+  /* Let nxsched_getaffinity do all of the work */
 
-  ret = sched_getaffinity((pid_t)thread, cpusetsize, cpuset);
+  ret = nxsched_getaffinity((pid_t)thread, cpusetsize, cpuset);
   if (ret < 0)
     {
-      /* If sched_getaffinity() fails, return the errno */
+      /* If nxsched_getaffinity() fails, return the positive errno */
 
-      ret = get_errno();
-      DEBUGASSERT(ret > 0);
+      ret = -ret;
     }
 
   return ret;

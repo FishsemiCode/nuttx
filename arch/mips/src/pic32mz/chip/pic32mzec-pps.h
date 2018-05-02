@@ -47,6 +47,8 @@
  ********************************************************************************************/
 /* PPS Register Offsets *********************************************************************/
 
+/* Peripheral pin select input register map */
+
 #define PIC32MZ_INTnR_OFFSET(n)          (0x1400 + ((n << 2)) /* n=1..4 */
 #  define PIC32MZ_INT1R_OFFSET           0x1404
 #  define PIC32MZ_INT2R_OFFSET           0x1408
@@ -93,7 +95,7 @@
 #  define PIC32MZ_SDI4R_OFFSET           0x14c0
 #  define PIC32MZ_SDI5R_OFFSET           0x14cc
 #  define PIC32MZ_SDI6R_OFFSET           0x14d8
-#define PIC32MZ_SSnR_OFFSET(n)           (0x1490 + 12*(n)) /* n=1..6 */
+#define PIC32MZ_SSnR_OFFSET(n)           (0x1494 + 12*(n)) /* n=1..6 */
 #  define PIC32MZ_SS1R_OFFSET            0x14a0
 #  define PIC32MZ_SS2R_OFFSET            0x14ac
 #  define PIC32MZ_SS3R_OFFSET            0x14b8
@@ -107,6 +109,9 @@
 #  define PIC32MZ_REFCLKI1R_OFFSET       0x14e8
 #  define PIC32MZ_REFCLKI3R_OFFSET       0x14f0
 #  define PIC32MZ_REFCLKI4R_OFFSET       0x14f4
+
+/* Peripheral pin select output register map */
+
 #define PIC32MZ_RPAnR_OFFSET(n)          (0x1500 + ((n) << 2)) /* n=14,15 */
 #  define PIC32MZ_RPA14R_OFFSET          0x1538
 #  define PIC32MZ_RPA15R_OFFSET          0x153c
@@ -236,6 +241,9 @@
 #  define PIC32MZ_REFCLKI1R              (PIC32MZ_SFR_K1BASE+PIC32MZ_REFCLKI1R_OFFSET)
 #  define PIC32MZ_REFCLKI3R              (PIC32MZ_SFR_K1BASE+PIC32MZ_REFCLKI3R_OFFSET)
 #  define PIC32MZ_REFCLKI4R              (PIC32MZ_SFR_K1BASE+PIC32MZ_REFCLKI4R_OFFSET)
+
+/* Peripheral pin select output register map */
+
 #define PIC32MZ_RPAnR(n)                 (PIC32MZ_SFR_K1BASE+PIC32MZ_RPAnR_OFFSET(n))
 #  define PIC32MZ_RPA14R                 (PIC32MZ_SFR_K1BASE+PIC32MZ_RPA14R_OFFSET)
 #  define PIC32MZ_RPA15R                 (PIC32MZ_SFR_K1BASE+PIC32MZ_RPA15R_OFFSET)
@@ -764,8 +772,8 @@
 #define T2CKR_RPF1                       4
 #define T2CKR_RPF4                       2
 #define T2CKR_RPG1                       12
-
 #define T2CKR_RPG8                       1
+
 #define T3CKR_RPB0                       5
 #define T3CKR_RPB7                       7
 #define T3CKR_RPB8                       2

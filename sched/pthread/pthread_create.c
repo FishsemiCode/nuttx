@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/pthread/pthread_create.c
  *
- *   Copyright (C) 2007-2009, 2011, 2013-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2013-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +50,7 @@
 #include <errno.h>
 #include <queue.h>
 
+#include <nuttx/sched.h>
 #include <nuttx/arch.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/kmalloc.h>
@@ -101,7 +103,7 @@ static const char g_pthreadname[] = "<pthread>";
  *   tcb        - Address of the new task's TCB
  *   arg        - The argument to provide to the pthread on startup.
  *
- * Return Value:
+ * Returned Value:
  *  None
  *
  ****************************************************************************/
@@ -131,7 +133,7 @@ static inline void pthread_argsetup(FAR struct pthread_tcb_s *tcb, pthread_addr_
  * Parameters:
  *   pjoin
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -193,7 +195,7 @@ static void pthread_start(void)
 
   if (ptcb->cmn.sched_priority > ptcb->cmn.init_priority)
     {
-      DEBUGVERIFY(sched_setpriority(&ptcb->cmn, ptcb->cmn.init_priority));
+      DEBUGVERIFY(nxsched_setpriority(&ptcb->cmn, ptcb->cmn.init_priority));
     }
 
   /* Pass control to the thread entry point. In the kernel build this has to
@@ -230,7 +232,7 @@ static void pthread_start(void)
  *    start_routine
  *    arg
  *
- * Returned value:
+ * Returned Value:
  *   OK (0) on success; a (non-negated) errno value on failure. The errno
  *   variable is not set.
  *
@@ -332,19 +334,19 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
        * thread.
        */
 
-      ret = sched_getparam(0, &param);
-      if (ret == ERROR)
+      ret = nxsched_getparam(0, &param);
+      if (ret < 0)
         {
-          errcode = get_errno();
+          errcode = -ret;
           goto errout_with_join;
         }
 
       /* Get the scheduler policy for this thread */
 
-      policy = sched_getscheduler(0);
-      if (policy == ERROR)
+      policy = nxsched_getscheduler(0);
+      if (policy < 0)
         {
-          errcode = get_errno();
+          errcode = -policy;
           goto errout_with_join;
         }
     }
@@ -538,7 +540,7 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
 
       if (ret < 0)
         {
-          ret = get_errno();
+          ret = -ret;
         }
     }
 
@@ -558,10 +560,10 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
 
       if (ptcb->cmn.sched_priority < parent->sched_priority)
         {
-          ret = sched_setpriority(&ptcb->cmn, parent->sched_priority);
+          ret = nxsched_setpriority(&ptcb->cmn, parent->sched_priority);
           if (ret < 0)
             {
-              ret = get_errno();
+              ret = -ret;
             }
         }
     }

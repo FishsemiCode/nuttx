@@ -65,8 +65,16 @@ ifeq ($(CONFIG_PWM),y)
   CSRCS += stm32_pwm.c
 endif
 
+ifeq ($(CONFIG_SENSORS_ZEROCROSS),y)
+  CSRCS += stm32_zerocross.c
+endif
+
 ifeq ($(CONFIG_LEDS_APA102),y)
   CSRCS += stm32_apa102.c
+endif
+
+ifeq ($(CONFIG_SENSORS_BMP180),y)
+  CSRCS += stm32_bmp180.c
 endif
 
 ifeq ($(CONFIG_LM75_I2C),y)
@@ -85,6 +93,12 @@ ifeq ($(CONFIG_MTD_W25),y)
   CSRCS += stm32_w25.c
 endif
 
+ifeq ($(CONFIG_MTD_AT24XX),y)
+ifeq ($(CONFIG_STM32_I2C1),y)
+CSRCS += stm32_at24.c
+endif
+endif
+
 ifeq ($(CONFIG_AUDIO_TONE),y)
   CSRCS += stm32_tone.c
 endif
@@ -101,12 +115,20 @@ ifeq ($(CONFIG_SENSORS_HCSR04),y)
   CSRCS += stm32_hcsr04.c
 endif
 
+ifeq ($(CONFIG_SENSORS_MAX6675),y)
+  CSRCS += stm32_max6675.c
+endif
+
 ifeq ($(CONFIG_LCD_MAX7219),y)
   CSRCS += stm32_max7219.c
 endif
 
 ifeq ($(CONFIG_INPUT_NUNCHUCK),y)
   CSRCS += stm32_nunchuck.c
+endif
+
+ifeq ($(CONFIG_LCD_SSD1306_I2C),y)
+CSRCS += stm32_ssd1306.c
 endif
 
 ifeq ($(CONFIG_LCD_ST7567),y)

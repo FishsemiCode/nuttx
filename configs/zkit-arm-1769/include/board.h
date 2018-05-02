@@ -194,7 +194,7 @@
 #define BOARD_BUTTON_3             2
 #define BOARD_BUTTON_4             3
 #define BOARD_BUTTON_5             4
-#define BOARD_NUM_BUTTONS          5
+#define NUM_BUTTONS                5
 
 #define BOARD_BUTTON1_BIT          (1 << BOARD_BUTTON_1)
 #define BOARD_BUTTON2_BIT          (1 << BOARD_BUTTON_2)
@@ -330,17 +330,6 @@ extern "C" {
 /************************************************************************************
  * Public Function Prototypes
  ************************************************************************************/
-/************************************************************************************
- * Name: lpc17_boardinitialize
- *
- * Description:
- *   All LPC17xx architectures must provide the following entry point.  This entry point
- *   is called early in the intitialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void lpc17_boardinitialize(void);
 
 /************************************************************************************
  * Name: lpc17_led

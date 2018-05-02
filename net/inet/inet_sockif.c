@@ -286,6 +286,10 @@ static sockcaps_t inet_sockcaps(FAR struct socket *psock)
     {
 #ifdef NET_TCP_HAVE_STACK
       case SOCK_STREAM:
+        /* REVISIT:  Non-blocking recv() depends on CONFIG_NET_TCP_READAHEAD,
+         * but non-blocking send() depends on CONFIG_NET_TCP_WRITE_BUFFERS.
+         */
+
 #ifdef CONFIG_NET_TCP_READAHEAD
         return SOCKCAP_NONBLOCKING;
 #else
@@ -295,6 +299,10 @@ static sockcaps_t inet_sockcaps(FAR struct socket *psock)
 
 #ifdef NET_UDP_HAVE_STACK
       case SOCK_DGRAM:
+        /* REVISIT:  Non-blocking recvfrom() depends on CONFIG_NET_UDP_READAHEAD,
+         * but non-blocking sendto() depends on CONFIG_NET_UDP_WRITE_BUFFERS.
+         */
+
 #ifdef CONFIG_NET_UDP_READAHEAD
         return SOCKCAP_NONBLOCKING;
 #else
@@ -1164,7 +1172,7 @@ static ssize_t inet_sendto(FAR struct socket *psock, FAR const void *buf,
 #if defined(CONFIG_NET_6LOWPAN)
   /* Try 6LoWPAN UDP packet sendto() */
 
-  nsent = psock_6lowpan_udp_sendto(psock, buf, len, flags, to, tolen);
+  nsent = psock_6lowpan_udp_sendto(psock, buf, len, flags, to, minlen);
 
 #ifdef NET_UDP_HAVE_STACK
   if (nsent < 0)

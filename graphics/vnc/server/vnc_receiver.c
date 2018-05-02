@@ -92,7 +92,6 @@ int vnc_read_remainder(FAR struct vnc_session_s *session, size_t msglen,
 {
   ssize_t nrecvd;
   size_t ntotal;
-  int errcode;
 
   /* Loop until the rest of the message is recieved. */
 
@@ -104,10 +103,8 @@ int vnc_read_remainder(FAR struct vnc_session_s *session, size_t msglen,
                           msglen - ntotal, 0);
       if (nrecvd < 0)
         {
-          errcode = get_errno();
-          gerr("ERROR: Receive message failed: %d\n", errcode);
-          DEBUGASSERT(errcode > 0);
-          return -errcode;
+          gerr("ERROR: Receive message failed: %d\n", (int)nrecvd);
+          return (int)nrecvd;
         }
     }
 
@@ -138,7 +135,6 @@ int vnc_receiver(FAR struct vnc_session_s *session)
   struct timeval tv;
 #endif
   ssize_t nrecvd;
-  int errcode;
   int ret;
 
   DEBUGASSERT(session);
@@ -155,10 +151,8 @@ int vnc_receiver(FAR struct vnc_session_s *session)
                          &tv, sizeof(struct timeval));
   if (ret < 0)
     {
-      errcode = get_errno();
-      gerr("ERROR: Failed to disable receive timeout: %d\n", errcode);
-      DEBUGASSERT(errcode > 0);
-      return -errcode;
+      gerr("ERROR: Failed to disable receive timeout: %d\n", ret);
+      return ret;
     }
 #endif
 
@@ -174,10 +168,8 @@ int vnc_receiver(FAR struct vnc_session_s *session)
       nrecvd = psock_recv(&session->connect, session->inbuf, 1, 0);
       if (nrecvd < 0)
         {
-          errcode = get_errno();
-          gerr("ERROR: Receive byte failed: %d\n", errcode);
-          DEBUGASSERT(errcode > 0);
-          return -errcode;
+          gerr("ERROR: Receive byte failed: %d\n", (int)nrecvd);
+          return (int)nrecvd;
         }
 
       /* A return value of zero means that the connection was gracefully
@@ -186,7 +178,7 @@ int vnc_receiver(FAR struct vnc_session_s *session)
 
       else if (nrecvd == 0)
         {
-          gwarn("WARNING: Connection closed\n", errcode);
+          gwarn("WARNING: Connection closed\n");
           return OK;
         }
 

@@ -81,9 +81,10 @@ Configurations
   Each XMC4500 Relax configuration is maintained in a sub-directory and
   can be selected as follow:
 
-    cd tools
-    ./configure.sh xmc5400-relax/<subdir>
-    cd -
+    .tools/configure.sh xmc5400-relax/<subdir>
+
+  See '.tools/configure.sh -h' for a list of all options.  The most typical
+  are -l to select the Linux host or -c to select the Windows Cygwin host.
 
   Before starting the build, make sure that your PATH environment variable
   includes the correct path to your toolchain.
@@ -91,7 +92,6 @@ Configurations
   And then build NuttX by simply typing the following.  At the conclusion of
   the make, the nuttx binary will reside in an ELF file called, simply, nuttx.
 
-    make oldconfig
     make
 
   The <subdir> that is provided above as an argument to the tools/configure.sh
@@ -128,21 +128,21 @@ Configurations
          CONFIG_UART0_2STOP=0
 
 
-  3. All of these configurations are set up to build under Windows using the
-     "GNU Tools for ARM Embedded Processors" that is maintained by ARM
-     (unless stated otherwise in the description of the configuration).
+    3. All of these configurations are set up to build under Windows using
+       the  "GNU Tools for ARM Embedded Processors" that is maintained by
+       ARM (unless stated otherwise in the description of the configuration).
 
-       https://developer.arm.com/open-source/gnu-toolchain/gnu-rm
+         https://developer.arm.com/open-source/gnu-toolchain/gnu-rm
 
-     That toolchain selection can easily be reconfigured using
-     'make menuconfig'.  Here are the relevant current settings:
+       That toolchain selection can easily be reconfigured using
+       'make menuconfig'.  Here are the relevant current settings:
 
-     Build Setup:
-       CONFIG_HOST_WINDOWS=y               : Window environment
-       CONFIG_WINDOWS_CYGWIN=y             : Cywin under Windows
+       Build Setup:
+         CONFIG_HOST_WINDOWS=y               : Window environment
+         CONFIG_WINDOWS_CYGWIN=y             : Cywin under Windows
 
-     System Type -> Toolchain:
-       CONFIG_ARMV7M_TOOLCHAIN_GNU_EABIW=y : GNU ARM EABI toolchain
+       System Type -> Toolchain:
+         CONFIG_ARMV7M_TOOLCHAIN_GNU_EABIW=y : GNU ARM EABI toolchain
 
   Configuration sub-directories
   -----------------------------

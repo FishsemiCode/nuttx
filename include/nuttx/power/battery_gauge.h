@@ -158,12 +158,12 @@ extern "C"
  *   Register a lower half battery driver with the common, upper-half
  *   battery driver.
  *
- * Input parameters:
+ * Input Parameters:
  *   devpath - The location in the pseudo-filesystem to create the driver.
  *     Recommended standard is "/dev/bat0", "/dev/bat1", etc.
  *   dev - An instance of the battery state structure .
  *
- * Returned value:
+ * Returned Value:
  *    Zero on success or a negated errno value on failure.
  *
  ****************************************************************************/
@@ -200,7 +200,7 @@ int battery_gauge_register(FAR const char *devpath,
 #if defined(CONFIG_I2C) && defined(CONFIG_I2C_MAX1704X)
 struct i2c_master_s; /* Forward reference */
 
-FAR struct battery_gauge_dev_s *max1704x_initialize(FAR struct i2c_master_s *i2c
+FAR struct battery_gauge_dev_s *max1704x_initialize(FAR struct i2c_master_s *i2c,
                                                     uint8_t addr,
                                                     uint32_t frequency);
 #endif

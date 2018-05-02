@@ -332,6 +332,22 @@
 #define GPIO_USART6_RX GPIO_USART6_RX_1
 #define GPIO_USART6_TX GPIO_USART6_TX_1
 
+/* USART1:
+ *
+ * USART1 is connected to the "Virtual Com Port" lines of the ST-LINK controller.
+ *
+ *   -------- ---------------
+ *               STM32F7
+ *   SIGNAME  FUNCTION  GPIO
+ *   -- ----- --------- -----
+ *   VCP_RX   USART1_RX PB7
+ *   VCP_TX   USART1_TX PA9
+ *   -- ----- --------- -----
+ */
+
+#define GPIO_USART1_RX GPIO_USART1_RX_2
+#define GPIO_USART1_TX GPIO_USART1_TX_1
+
 /* The STM32 F7 connects to a SMSC LAN8742A PHY using these pins:
  *
  *   STM32 F7 BOARD        LAN8742A
@@ -358,40 +374,4 @@
 #define GPIO_ETH_RMII_TXD0    GPIO_ETH_RMII_TXD0_2
 #define GPIO_ETH_RMII_TXD1    GPIO_ETH_RMII_TXD1_2
 
-/************************************************************************************
- * Public Data
- ************************************************************************************/
-#ifndef __ASSEMBLY__
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
-
-/************************************************************************************
- * Public Function Prototypes
- ************************************************************************************/
-
-/************************************************************************************
- * Name: stm32_boardinitialize
- *
- * Description:
- *   All STM32 architectures must provide the following entry point.  This entry point
- *   is called early in the initialization -- after all memory has been configured
- *   and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void stm32_boardinitialize(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
 #endif  /* __CONFIG_STM32F746G_DISCO_INCLUDE_BOARD_H */

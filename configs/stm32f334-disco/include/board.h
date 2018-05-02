@@ -277,11 +277,41 @@
 
 /* HRTIM configuration ******************************************************/
 
-#define HRTIM_TIMA_PRESCALER HRTIM_PRESCALER_32
+/* Timer A configuration - Buck operations */
+
+#define HRTIM_TIMA_PRESCALER HRTIM_PRESCALER_1
 #define HRTIM_TIMA_MODE      HRTIM_MODE_CONT
 
-#define HRTIM_TIMB_PRESCALER HRTIM_PRESCALER_32
+#define HRTIM_TIMA_CH1_SET   HRTIM_OUT_SET_NONE
+#define HRTIM_TIMA_CH1_RST   HRTIM_OUT_RST_NONE
+#define HRTIM_TIMA_CH2_SET   HRTIM_OUT_SET_NONE
+#define HRTIM_TIMA_CH2_RST   HRTIM_OUT_RST_NONE
+
+#define HRTIM_TIMA_DT_FSLOCK HRTIM_DT_LOCK
+#define HRTIM_TIMA_DT_RSLOCK HRTIM_DT_LOCK
+#define HRTIM_TIMA_DT_FVLOCK HRTIM_DT_RW
+#define HRTIM_TIMA_DT_RVLOCK HRTIM_DT_RW
+#define HRTIM_TIMA_DT_FSIGN  HRTIM_DT_SIGN_POSITIVE
+#define HRTIM_TIMA_DT_RSIGN  HRTIM_DT_SIGN_POSITIVE
+#define HRTIM_TIMA_DT_PRESCALER HRTIM_DEADTIME_PRESCALER_1
+
+/* Timer B configuration - Boost operations */
+
+#define HRTIM_TIMB_PRESCALER HRTIM_PRESCALER_1
 #define HRTIM_TIMB_MODE      HRTIM_MODE_CONT
+
+#define HRTIM_TIMB_CH1_SET   HRTIM_OUT_SET_NONE
+#define HRTIM_TIMB_CH1_RST   HRTIM_OUT_RST_NONE
+#define HRTIM_TIMB_CH2_SET   HRTIM_OUT_SET_NONE
+#define HRTIM_TIMB_CH2_RST   HRTIM_OUT_RST_NONE
+
+#define HRTIM_TIMB_DT_FSLOCK HRTIM_DT_LOCK
+#define HRTIM_TIMB_DT_RSLOCK HRTIM_DT_LOCK
+#define HRTIM_TIMB_DT_FVLOCK HRTIM_DT_RW
+#define HRTIM_TIMB_DT_RVLOCK HRTIM_DT_RW
+#define HRTIM_TIMB_DT_FSIGN  HRTIM_DT_SIGN_POSITIVE
+#define HRTIM_TIMB_DT_RSIGN  HRTIM_DT_SIGN_POSITIVE
+#define HRTIM_TIMB_DT_PRESCALER HRTIM_DEADTIME_PRESCALER_1
 
 #define HRTIM_ADC_TRG2       HRTIM_ADCTRG24_AC4
 
@@ -289,37 +319,4 @@
 
 #endif  /* CONFIG_EXAMPLES_SMPS */
 
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-/****************************************************************************
- * Name: stm32_boardinitialize
- *
- * Description:
- *   All STM32 architectures must provide the following entry point.  This
- *   entry point is called early in the initialization -- after all memory
- *   has been configured and mapped but before any devices have been
- *   initialized.
- *
- ****************************************************************************/
-
-void stm32_boardinitialize(void);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
 #endif /* __CONFIG_STM32F334_DISCO_INCLUDE_BOARD_H */

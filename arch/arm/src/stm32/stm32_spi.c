@@ -1122,13 +1122,6 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
   uint16_t setbits;
   uint32_t actual;
 
-  /* Limit to max possible (if STM32_SPI_CLK_MAX is defined in board.h) */
-
-  if (frequency > STM32_SPI_CLK_MAX)
-    {
-      frequency = STM32_SPI_CLK_MAX;
-    }
-
   /* Has the frequency changed? */
 
   if (frequency != priv->frequency)
@@ -1677,7 +1670,7 @@ static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *rxbuffer, size_t 
  * Description:
  *   Initialize the selected SPI bus in its default state (Master, 8-bit, mode 0, etc.)
  *
- * Input Parameter:
+ * Input Parameters:
  *   priv   - private SPI device structure
  *
  * Returned Value:
@@ -1782,7 +1775,7 @@ static void spi_bus_initialize(FAR struct stm32_spidev_s *priv)
  * Description:
  *   Initialize the selected SPI bus
  *
- * Input Parameter:
+ * Input Parameters:
  *   Port number (for hardware that has mutiple SPI interfaces)
  *
  * Returned Value:

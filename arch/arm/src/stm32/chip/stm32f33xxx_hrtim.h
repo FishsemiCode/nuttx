@@ -447,8 +447,8 @@
 #  define HRTIM_TIMDT_DTPRSC_110    (6 << HRTIM_TIMDT_DTPRSC_SHIFT)
 #  define HRTIM_TIMDT_DTPRSC_111    (7 << HRTIM_TIMDT_DTPRSC_SHIFT)
 #define HRTIM_TIMDT_DTRSLK          (1 << 14) /* Bit 14: Deadtime Rising Sign Lock */
-#define HRTIM_TIMDT_DTRLK           (1 << 14) /* Bit 15: Deadtime Rising Lock */
-#define HRTIM_TIMDT_DTF_SHIFT       0 /* Bits 16-24: Deadtime Falling Value */
+#define HRTIM_TIMDT_DTRLK           (1 << 15) /* Bit 15: Deadtime Rising Lock */
+#define HRTIM_TIMDT_DTF_SHIFT       16 /* Bits 16-24: Deadtime Falling Value */
 #define HRTIM_TIMDT_DTF_MASK        (0x1ff << HRTIM_TIMDT_DTF_SHIFT)
 #define HRTIM_TIMDT_SDTF            (1 << 25) /* Bit 25: Sign Deadtime Falling Value */
 #define HRTIM_TIMDT_DTFSLK          (1 << 30) /* Bit 30: Deadtime Falling Sign Lock */
@@ -818,7 +818,7 @@
 #define HRTIM_TIMARST_TIMCCMP4        (1 << 24) /* Bit 24 */
 #define HRTIM_TIMARST_TIMDCMP1        (1 << 25) /* Bit 25 */
 #define HRTIM_TIMARST_TIMDCMP2        (1 << 26) /* Bit 26 */
-#define HRTIM_TIMARST_TIMDCMP3        (1 << 27) /* Bit 27 */
+#define HRTIM_TIMARST_TIMDCMP4        (1 << 27) /* Bit 27 */
 #define HRTIM_TIMARST_TIMECMP1        (1 << 28) /* Bit 28 */
 #define HRTIM_TIMARST_TIMECMP2        (1 << 29) /* Bit 29 */
 #define HRTIM_TIMARST_TIMECMP4        (1 << 30) /* Bit 30 */
@@ -849,7 +849,7 @@
 #define HRTIM_TIMBRST_TIMCCMP4        (1 << 24) /* Bit 24 */
 #define HRTIM_TIMBRST_TIMDCMP1        (1 << 25) /* Bit 25 */
 #define HRTIM_TIMBRST_TIMDCMP2        (1 << 26) /* Bit 26 */
-#define HRTIM_TIMBRST_TIMDCMP3        (1 << 27) /* Bit 27 */
+#define HRTIM_TIMBRST_TIMDCMP4        (1 << 27) /* Bit 27 */
 #define HRTIM_TIMBRST_TIMECMP1        (1 << 28) /* Bit 28 */
 #define HRTIM_TIMBRST_TIMECMP2        (1 << 29) /* Bit 29 */
 #define HRTIM_TIMBRST_TIMECMP4        (1 << 30) /* Bit 30 */
@@ -880,7 +880,7 @@
 #define HRTIM_TIMCRST_TIMBCMP4        (1 << 24) /* Bit 24 */
 #define HRTIM_TIMCRST_TIMDCMP1        (1 << 25) /* Bit 25 */
 #define HRTIM_TIMCRST_TIMDCMP2        (1 << 26) /* Bit 26 */
-#define HRTIM_TIMCRST_TIMDCMP3        (1 << 27) /* Bit 27 */
+#define HRTIM_TIMCRST_TIMDCMP4        (1 << 27) /* Bit 27 */
 #define HRTIM_TIMCRST_TIMECMP1        (1 << 28) /* Bit 28 */
 #define HRTIM_TIMCRST_TIMECMP2        (1 << 29) /* Bit 29 */
 #define HRTIM_TIMCRST_TIMECMP4        (1 << 30) /* Bit 30 */
@@ -911,7 +911,7 @@
 #define HRTIM_TIMDRST_TIMBCMP4        (1 << 24) /* Bit 24 */
 #define HRTIM_TIMDRST_TIMCCMP1        (1 << 25) /* Bit 25 */
 #define HRTIM_TIMDRST_TIMCCMP2        (1 << 26) /* Bit 26 */
-#define HRTIM_TIMDRST_TIMCCMP3        (1 << 27) /* Bit 27 */
+#define HRTIM_TIMDRST_TIMCCMP4        (1 << 27) /* Bit 27 */
 #define HRTIM_TIMDRST_TIMECMP1        (1 << 28) /* Bit 28 */
 #define HRTIM_TIMDRST_TIMECMP2        (1 << 29) /* Bit 29 */
 #define HRTIM_TIMDRST_TIMECMP4        (1 << 30) /* Bit 30 */
@@ -942,7 +942,7 @@
 #define HRTIM_TIMERST_TIMBCMP4        (1 << 24) /* Bit 24 */
 #define HRTIM_TIMERST_TIMCCMP1        (1 << 25) /* Bit 25 */
 #define HRTIM_TIMERST_TIMCCMP2        (1 << 26) /* Bit 26 */
-#define HRTIM_TIMERST_TIMCCMP3        (1 << 27) /* Bit 27 */
+#define HRTIM_TIMERST_TIMCCMP4        (1 << 27) /* Bit 27 */
 #define HRTIM_TIMERST_TIMDCMP1        (1 << 28) /* Bit 28 */
 #define HRTIM_TIMERST_TIMDCMP2        (1 << 29) /* Bit 29 */
 #define HRTIM_TIMERST_TIMDCMP4        (1 << 30) /* Bit 30 */

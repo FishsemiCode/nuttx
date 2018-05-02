@@ -885,7 +885,7 @@ static int qspi_memory_dma(struct sam_qspidev_s *priv,
 
       ret = wd_start(priv->dmadog, DMA_TIMEOUT_TICKS,
                      (wdentry_t)qspi_dma_timeout, 1, (uint32_t)priv);
-      if (ret != OK)
+      if (ret < 0)
         {
            spierr("ERROR: wd_start failed: %d\n", ret);
         }
@@ -1714,7 +1714,7 @@ static int qspi_hw_initialize(struct sam_qspidev_s *priv)
  * Description:
  *   Initialize the selected QSPI port in master mode
  *
- * Input Parameter:
+ * Input Parameters:
  *   intf - Interface number(must be zero)
  *
  * Returned Value:
@@ -1737,7 +1737,7 @@ struct qspi_dev_s *sam_qspi_initialize(int intf)
 #ifdef CONFIG_SAMV7_QSPI
   if (intf == 0)
     {
-      /* If this function is called multiple times, the following operatinos
+      /* If this function is called multiple times, the following operations
        * will be performed multiple times.
        */
 

@@ -5,7 +5,7 @@
  * Univision SSD1306 controller in SPI mode and Densitron DD-12864WO-4A with SSD1309
  * in SPI mode.
  *
- *   Copyright (C) 2012-2013, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2013, 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References:
@@ -244,8 +244,10 @@ extern "C"
  *
  **************************************************************************************/
 
-struct lcd_dev_s; /* See include/nuttx/lcd/lcd.h */
-struct spi_dev_s; /* See include/nuttx/spi/spi.h */
+struct lcd_dev_s;    /* See include/nuttx/lcd/lcd.h */
+struct spi_dev_s;    /* See include/nuttx/spi/spi.h */
+struct i2c_master_s; /* See include/nuttx/i2c/i2c_master.h */
+
 #ifdef CONFIG_LCD_SSD1306_SPI
 FAR struct lcd_dev_s *ssd1306_initialize(FAR struct spi_dev_s *dev,
                                          FAR const struct ssd1306_priv_s *board_priv,
@@ -271,7 +273,7 @@ FAR struct lcd_dev_s *ssd1306_initialize(FAR struct i2c_master_s *dev,
  *
  **************************************************************************************/
 
-void ssd1306_fill(FAR struct lcd_dev_s *dev, uint8_t color);
+int ssd1306_fill(FAR struct lcd_dev_s *dev, uint8_t color);
 
 #ifdef __cplusplus
 }

@@ -1,5 +1,5 @@
 README
-^^^^^^
+======
 
   This README discusses issues unique to NuttX configurations for the
   Arduino DUE board featuring the Atmel ATSAM3X8E MCU running at 84 MHz.
@@ -17,7 +17,7 @@ README
   - ITEAD 2.4" TFT with Touch, Arduino Shield 1.0
 
 Contents
-^^^^^^^^
+========
 
   - PIO Pin Usage
   - Rev 2 vs. Rev 3
@@ -25,11 +25,11 @@ Contents
   - Buttons and LEDs
   - Serial Consoles
   - Loading Code
-  - SAM4S Xplained-specific Configuration Options
+  - Arduino Due-specific Configuration Options
   - Configurations
 
 PIO Pin Usage
-^^^^^^^^^^^^^
+=============
 
   PORTA                          PORTB                          PORTC
   ------------------------------ ------------------------------ --------------------------------
@@ -108,7 +108,7 @@ PIO Pin Usage
   ----- ---------- ---- -------- ----- ------------ ---- ------ ----- ----------- ---- ---------
 
 Rev 2 vs. Rev 3
-^^^^^^^^^^^^^^^
+===============
 
   This port was performed on the Arduino Due Rev 2 board.  NuttX users
   have reported issues with the serial port on his Arduino Due Rev 3 board.
@@ -119,7 +119,7 @@ Rev 2 vs. Rev 3
     CONFIG_ARDUINO_DUE_REV3=y
 
 ITEAD 2.4" TFT with Touch
-^^^^^^^^^^^^^^^^^^^^^^^^^
+=========================
 
   The Arduino 2.4" TFT Touch Shield is designed for all the Arduino
   compatible boards. It works in 3.3V voltage level. It can be directly
@@ -245,7 +245,7 @@ ITEAD 2.4" TFT with Touch
   - /CS is connected to ground (XPT2046 is always selected)
 
 Buttons and LEDs
-^^^^^^^^^^^^^^^^
+================
 
   Buttons
   -------
@@ -291,7 +291,7 @@ Buttons and LEDs
   has halted.
 
 Serial Consoles
-^^^^^^^^^^^^^^^
+===============
 
   The SAM3X has a UART and 4 USARTS.  The Programming port uses a USB-to-
   serial chip connected to the first UART0 of the MCU (RX0 and TX0).  The
@@ -328,39 +328,63 @@ Serial Consoles
   USB virual COM port in the case of UART0).
 
 Loading Code
-^^^^^^^^^^^^
+============
+
+  [NOTE: I believe that there have been significant changes to the more
+   recent tool environment such that Bossac may no longer be usable.  I
+   don't know that for certain and perhaps someone with more knowledge of
+   the tools than I could make this work.  See the Flip'n'Clip SAM3X README
+   file for additional information.]
 
   Installing the Arduino USB Driver under Windows:
   ------------------------------------------------
-  1.  Download the Windows version of the Arduino software, not the 1.0.x
-      release but the latest 1.5.x that supports the Due. When the download
-      finishes, unzip the downloaded file.
-  2. Connect the Due to your computer with a USB cable via the Programming port.
+
+  1. Download the Windows version of the Arduino software, not the 1.0.x
+     release but the latest (1.5.x or later) that supports the Due. When
+     the download finishes, unzip the downloaded file.
+
+     In the current 1.8.x release, the Arduino Due support is not included
+     in the base package but can be added by selecting the "Boards Manager"
+     from the "Tools" menu.
+
+  2. Connect the Due to your computer with a USB cable via the Programming
+     port.
+
   3. The Windows driver installation should fail.
+
   4. Open the Device Manger
+
   5. Look for the listing named "Ports (COM & LPT)". You should see an open
-     port named "Arduino Due Prog. Port".
-  6 Select the "Browse my computer for Driver software" option.
+     port named "Arduino Due Prog. Port".  Right click and select "Update
+     driver".
+
+  6. Select the "Browse my computer for Driver software" option.
+
   7. Right click on the "Arduino Due Prog. Port" and choose "Update Driver
      Software".
+
   8. Navigate to the folder with the Arduino IDE you downloaded and unzipped
      earlier. Locate and select the "Drivers" folder in the main Arduino folder
      (not the "FTDI USB Drivers" sub-directory).
 
-  Uploading NuttX to the Due Using Bossa:
-  ---------------------------------------
-  I don't think this can be done because the Arduino software is so dedicated
-  to "sketches".  However, Arduino uses BOSSA under the hood to load code and
-  you can use BOSSA outside of Arduino.
+  Loading NuttX to the Due Using Bossa:
+  -------------------------------------
 
-  Uploading NuttX to the Due Using Bossa:
-  ---------------------------------------
+  Arduino uses BOSSA under the hood to load code and you can use BOSSA
+  outside of Arduino.
+
   Where do you get it?
-    Generic BOSSA installation files are available here:
-    http://sourceforge.net/projects/b-o-s-s-a/?source=dlp
 
-    However, DUE uses a patched version of BOSSA available as source code here:
-    https://github.com/shumatech/BOSSA/tree/arduino
+    Generic BOSSA installation files are available here:
+    https://github.com/shumatech/BOSSA (formerly at
+    http://sourceforge.net/projects/b-o-s-s-a/?source=dlp)
+
+    Pre-built binaries are available: https://github.com/shumatech/BOSSA/releases
+
+    The original Arduino DUE used a patched version of BOSSA available
+    as source code here: https://github.com/shumatech/BOSSA/tree/arduino
+    But that has most likely been incorporated into the main github
+    repository.
 
     But, fortunately, since you already installed Arduino, you already have
     BOSSA installed.  In my installation, it is here:
@@ -368,7 +392,6 @@ Loading Code
     C:\Program Files (x86)\Arduino\arduino-1.5.2\hardware\tools\bossac.exe
 
   General Procedure
-  -----------------
 
     1) Erase the FLASH and put the Due in bootloader mode
     2) Write the file to FLASH
@@ -376,7 +399,7 @@ Loading Code
     4) Reset the DUE
 
   Erase FLASH and Put the Due in Bootloader Mode
-  ----------------------------------------------
+
     This is accomplished by simply configuring the programming port in 1200
     baud and sending something on the programming port.  Here is some sample
     output from a Windows CMD.exe shell.  NOTE that my Arduino programming
@@ -388,7 +411,7 @@ Loading Code
       C:\Program Files (x86)\Arduino\arduino-1.5.2\hardware\tools>mode com26:1200,n,8,1
 
       Status for device COM26:
-      ------------------------
+
           Baud:            1200
           Parity:          None
           Data Bits:       8
@@ -401,7 +424,7 @@ Loading Code
           DTR circuit:     ON
           RTS circuit:     ON
 
-      C:\Program Files (x86)\Arduino\arduino-1.5.2\hardware\tools>bossac.exe --port=COM26 -U false -i
+      C:\Program Files (x86)\Arduino\arduino-1.5.2\hardware\tools>bossac.exe --port=COM26 --usb-port=false -i
       Device       : ATSAM3X8
       Chip ID      : 285e0a60
       Version      : v1.1 Dec 15 2010 19:25:04
@@ -423,7 +446,7 @@ Loading Code
 
     Erasing, writing, and verifying FLASH with bossac:
 
-      $ bossac.exe --port=COM26 -U false -e -w -v -b nuttx.bin -R
+      $ bossac.exe --port=COM26 --usb-port=false -e -w -v -b nuttx.bin -R
       Erase flash
       Write 86588 bytes to flash
       [==============================] 100% (339/339 pages)
@@ -435,19 +458,19 @@ Loading Code
 
     Some things that can go wrong:
 
-      $ bossac.exe --port=COM26 -U false -e -w -v -b nuttx.bin -R
+      $ bossac.exe --port=COM26 --usb-port=false -e -w -v -b nuttx.bin -R
       No device found on COM26
 
     This error means that there is code running on the Due already so the
-    bootloader cannot connect. Pressing reset and trying again
+    bootloader cannot connect. Press reset and try again
 
-      $ bossac.exe --port=COM26 -U false -e -w -v -b nuttx.bin -R
+      $ bossac.exe --port=COM26 --usb-port=false -e -w -v -b nuttx.bin -R
       No device found on COM26
 
     Sill No connection because Duo does not jump to bootloader after reset.
     Press ERASE button and try again
 
-      $ bossac.exe --port=COM26 -U false -e -w -v -b nuttx.bin -R
+      $ bossac.exe --port=COM26 --usb-port=false -e -w -v -b nuttx.bin -R
       Erase flash
       Write 86588 bytes to flash
       [==============================] 100% (339/339 pages)
@@ -457,13 +480,13 @@ Loading Code
       Set boot flash true
       CPU reset.
 
-  Other useful bossac things operations.
-  -------------------------------------
+  Other useful bossac operations.
+
     a) Write code to FLASH don't change boot mode and don't reset.  This lets
        you examine the FLASH contents that you just loaded while the bootloader
        is still active.
 
-       $ bossac.exe --port=COM26 -U false -e -w -v --boot=0 nuttx.bin
+       $ bossac.exe --port=COM26 --usb-port=false -e -w -v --boot=0 nuttx.bin
        Write 64628 bytes to flash
        [==============================] 100% (253/253 pages)
        Verify 64628 bytes of flash
@@ -472,23 +495,23 @@ Loading Code
 
     b) Verify the FLASH contents (the bootloader must be running)
 
-       $ bossac.exe --port=COM26 -U false -v nuttx.bin
+       $ bossac.exe --port=COM26 --usb-port=false -v nuttx.bin
        Verify 64628 bytes of flash
        [==============================] 100% (253/253 pages)
        Verify successful
 
     c) Read from FLASH to a file  (the bootloader must be running):
 
-       $ bossac.exe --port=COM26 -U false --read=4096 nuttx.dump
+       $ bossac.exe --port=COM26 --usb-port=false --read=4096 nuttx.dump
        Read 4096 bytes from flash
        [==============================] 100% (16/16 pages)
 
     d) Change to boot from FLASH
 
-       $ bossac.exe --port=COM26 -U false --boot=1
+       $ bossac.exe --port=COM26 --usb-port=false --boot=1
        Set boot flash true
 
-  Uploading NuttX to the Due Using JTAG:
+  Uploading NuttX to the Due Using JTAG
   -------------------------------------
 
   The JTAG/SWD signals are brought out to a 10-pin header JTAG connector:
@@ -512,7 +535,7 @@ Loading Code
    have been unable to get the get the SAM-ICE to communicate with the Due.
 
 Arduino DUE-specific Configuration Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+==========================================
 
   CONFIG_ARCH - Identifies the arch/ subdirectory.  This should
   be set to:
@@ -550,12 +573,9 @@ Arduino DUE-specific Configuration Options
   CONFIG_ARCH_LOOPSPERMSEC - Must be calibrated for correct operation
   of delay loops
 
-  CONFIG_ENDIAN_BIG - define if big endian (default is little
-  endian)
-
   CONFIG_RAM_SIZE - Describes the installed DRAM (SRAM in this case):
 
-    CONFIG_RAM_SIZE=0x00008000 (32Kb)
+    CONFIG_RAM_SIZE=65536 (64Kb)
 
   CONFIG_RAM_START - The start address of installed DRAM
 
@@ -564,37 +584,20 @@ Arduino DUE-specific Configuration Options
   CONFIG_ARCH_LEDS - Use LEDs to show state. Unique to boards that
   have LEDs
 
-  CONFIG_ARCH_INTERRUPTSTACK - This architecture supports an interrupt
-  stack. If defined, this symbol is the size of the interrupt
-  stack in bytes.  If not defined, the user task stacks will be
-  used during interrupt handling.
-
-  CONFIG_ARCH_STACKDUMP - Do stack dumps after assertions
-
-  CONFIG_ARCH_LEDS -  Use LEDs to show state. Unique to board architecture.
-
-  CONFIG_ARCH_CALIBRATION - Enables some build in instrumentation that
-  cause a 100 second delay during boot-up.  This 100 second delay
-  serves no purpose other than it allows you to calibrate
-  CONFIG_ARCH_LOOPSPERMSEC.  You simply use a stop watch to measure
-  the 100 second delay then adjust CONFIG_ARCH_LOOPSPERMSEC until
-  the delay actually is 100 seconds.
-
   Individual subsystems can be enabled:
 
+    CONFIG_SAM34_ADC12B      - 12-bit Analog To Digital Converter
+    CONFIG_SAM34_CAN0        - CAN Controller 0
+    CONFIG_SAM34_CAN1        - CAN Controller 1
+    CONFIG_SAM34_DACC        - Digital To Analog Converter
+    CONFIG_SAM34_DMAC0       - DMA Controller
+    CONFIG_SAM34_EMAC        - Ethernet MAC
+    CONFIG_SAM34_HSMCI       - High Speed Multimedia Card Interface
+    CONFIG_SAM34_PWM         - Pulse Width Modulation
     CONFIG_SAM34_RTC         - Real Time Clock
     CONFIG_SAM34_RTT         - Real Time Timer
-    CONFIG_SAM34_WDT         - Watchdog Timer
-    CONFIG_SAM34_UART0       - UART 0
-    CONFIG_SAM34_SMC         - Static Memory Controller
     CONFIG_SAM34_SDRAMC      - SDRAM Controller
-    CONFIG_SAM34_USART0      - USART 0
-    CONFIG_SAM34_USART1      - USART 1
-    CONFIG_SAM34_USART2      - USART 2
-    CONFIG_SAM34_USART3      - USART 3
-    CONFIG_SAM34_HSMCI       - High Speed Multimedia Card Interface
-    CONFIG_SAM34_TWI0        - Two-Wire Interface 0 (master/slave)
-    CONFIG_SAM34_TWI1        - Two-Wire Interface 1 (master/slave)
+    CONFIG_SAM34_SMC         - Static Memory Controller
     CONFIG_SAM34_SPI0        - Serial Peripheral Interface 0
     CONFIG_SAM34_SPI1        - Serial Peripheral Interface 1
     CONFIG_SAM34_SSC         - Synchronous Serial Controller
@@ -607,15 +610,16 @@ Arduino DUE-specific Configuration Options
     CONFIG_SAM34_TC6         - Timer Counter 6
     CONFIG_SAM34_TC7         - Timer Counter 7
     CONFIG_SAM34_TC8         - Timer Counter 8
-    CONFIG_SAM34_PWM         - Pulse Width Modulation
-    CONFIG_SAM34_ADC12B      - 12-bit Analog To Digital Converter
-    CONFIG_SAM34_DACC        - Digital To Analog Converter
-    CONFIG_SAM34_DMAC0       - DMA Controller
-    CONFIG_SAM34_UOTGHS      - USB OTG High Speed
     CONFIG_SAM34_TRNG        - True Random Number Generator
-    CONFIG_SAM34_EMAC        - Ethernet MAC
-    CONFIG_SAM34_CAN0        - CAN Controller 0
-    CONFIG_SAM34_CAN1        - CAN Controller 1
+    CONFIG_SAM34_TWIM/S0     - Two-Wire Interface 0 (master/slave)
+    CONFIG_SAM34_TWIM/S1     - Two-Wire Interface 1 (master/slave)
+    CONFIG_SAM34_UART0       - UART 0
+    CONFIG_SAM34_UOTGHS      - USB OTG High Speed
+    CONFIG_SAM34_USART0      - USART 0
+    CONFIG_SAM34_USART1      - USART 1
+    CONFIG_SAM34_USART2      - USART 2
+    CONFIG_SAM34_USART3      - USART 3
+    CONFIG_SAM34_WDT         - Watchdog Timer
 
   Some subsystems can be configured to operate in different ways. The drivers
   need to know how to configure the subsystem.
@@ -626,33 +630,18 @@ Arduino DUE-specific Configuration Options
     CONFIG_SAM34_GPIOD_IRQ
     CONFIG_SAM34_GPIOE_IRQ
     CONFIG_SAM34_GPIOF_IRQ
-    CONFIG_USART0_SERIALDRIVER
-    CONFIG_USART1_SERIALDRIVER
-    CONFIG_USART2_SERIALDRIVER
-    CONFIG_USART3_SERIALDRIVER
-
-  ST91SAM4S specific device driver settings
-
-    CONFIG_U[S]ARTn_SERIAL_CONSOLE - selects the USARTn (n=0,1,2,3) or UART
-           m (m=4,5) for the console and ttys0 (default is the USART1).
-    CONFIG_U[S]ARTn_RXBUFSIZE - Characters are buffered as received.
-       This specific the size of the receive buffer
-    CONFIG_U[S]ARTn_TXBUFSIZE - Characters are buffered before
-       being sent.  This specific the size of the transmit buffer
-    CONFIG_U[S]ARTn_BAUD - The configure BAUD of the UART.  Must be
-    CONFIG_U[S]ARTn_BITS - The number of bits.  Must be either 7 or 8.
-    CONFIG_U[S]ARTn_PARTIY - 0=no parity, 1=odd parity, 2=even parity
-    CONFIG_U[S]ARTn_2STOP - Two stop bits
 
 Configurations
-^^^^^^^^^^^^^^
+==============
 
-  Each SAM4S Xplained configuration is maintained in a sub-directory and
+  Each Arduino Due configuration is maintained in a sub-directory and
   can be selected as follow:
 
-    cd tools
-    ./configure.sh arduino-due/<subdir>
-    cd -
+    tools/configure.sh [OPTIONS] arduino-due/<subdir>
+
+  Where typical options are -l to configure to build on Linux or -c to
+  configure for Cygwin under Linux.  'tools/configure.sh -h' will show
+  you all of the options.
 
   Before building, make sure the PATH environment variable includes the
   correct path to the directory than holds your toolchain binaries.
@@ -734,14 +723,11 @@ Configurations
      Atmel tools.  Try 'which arm-none-eabi-gcc' to make sure that you
      are selecting the right tool.
 
-     See also the "NOTE about Windows native toolchains" in the section call
-     "GNU Toolchain Options" above.
-
 Configuration sub-directories
 -----------------------------
 
   nsh:
-    This configuration directory will built the NuttShell.  See NOTES above.
+    This configuration directory will build the NuttShell.  See NOTES above.
 
     NOTES:
     1. NSH built-in applications are supported.  However, there are
@@ -750,7 +736,7 @@ Configuration sub-directories
        Binary Formats:
          CONFIG_BUILTIN=y                    : Enable support for built-in programs
 
-       Applicaton Configuration:
+       Application Configuration:
          CONFIG_NSH_BUILTIN_APPS=y           : Enable starting apps from NSH command line
 
     2. By default, this configuration uses UART0 and has support LEDs
@@ -813,7 +799,7 @@ Configuration sub-directories
          CONFIG_MMCSD=y                    : Enable MMC/SD support
          CONFIG_MMCSD_NSLOTS=1             : Only one MMC/SD card slot
          CONFIG_MMCSD_MULTIBLOCK_DISABLE=n : Should not need to disable multi-block transfers
-         CONFIG_MMCSD_HAVECARDDETECT=y     : I/O1 module as a card detect GPIO
+         CONFIG_MMCSD_HAVE_CARDDETECT=y     : I/O1 module as a card detect GPIO
          CONFIG_MMCSD_SPI=y                : Use the SPI interface to the MMC/SD card
          CONFIG_MMCSD_SPICLOCK=20000000    : This is a guess for the optimal MMC/SD frequency
          CONFIG_MMCSD_SPIMODE=0            : Mode 0 is required
@@ -865,7 +851,7 @@ Configuration sub-directories
        Library Support:
          CONFIG_SCHED_WORKQUEUE=y          : Work queue support required
 
-       Applicaton Configuration:
+       Application Configuration:
          CONFIG_EXAMPLES_TOUCHSCREEN=y     : Enable the touchscreen built-int test
 
        Defaults should be okay for related touchscreen settings.  Touchscreen

@@ -420,7 +420,7 @@ ssize_t usrsock_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
           while ((ret = net_lockedwait(&state.reqstate.recvsem)) < 0)
             {
-              DEBUGASSERT(ret == -EINTR);
+              DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
             }
 
           ret = state.reqstate.result;

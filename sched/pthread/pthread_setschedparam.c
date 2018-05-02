@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/pthread/pthread_setschedparam.c
  *
- *   Copyright (C) 2007, 2008, 2012, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2012, 2015, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,11 +38,15 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <pthread.h>
 #include <sched.h>
 #include <errno.h>
 #include <debug.h>
+
+#include <nuttx/sched.h>
 
 #include "pthread/pthread.h"
 
@@ -77,7 +82,7 @@
  *            SCHED_RR. SCHED_OTHER and SCHED_SPORADIC are not supported.
  *   param  - Provides the new priority of the thread.
  *
- * Return Value:
+ * Returned Value:
  *   0 if successful.  Otherwise, an error code identifying the cause of the
  *   failure:
  *
@@ -94,8 +99,6 @@
  *           specified.
  *   ESRCH   The value specified by thread does not refer to a existing thread.
  *
- * Assumptions:
- *
  ****************************************************************************/
 
 int pthread_setschedparam(pthread_t thread, int policy,
@@ -105,18 +108,14 @@ int pthread_setschedparam(pthread_t thread, int policy,
 
   sinfo("thread ID=%d policy=%d param=0x%p\n", thread, policy, param);
 
-  /* Set the errno to some non-zero value (failsafe) */
+  /* Let nxsched_setscheduler do all of the work */
 
-  set_errno(EINVAL);
-
-  /* Let sched_setscheduler do all of the work */
-
-  ret = sched_setscheduler((pid_t)thread, policy, param);
-  if (ret != OK)
+  ret = nxsched_setscheduler((pid_t)thread, policy, param);
+  if (ret < 0)
     {
-      /* If sched_setscheduler() fails, return the errno */
+      /* If nxsched_setscheduler() fails, return the positive errno value */
 
-      ret = get_errno();
+      ret = -ret;
     }
 
   return ret;

@@ -303,7 +303,7 @@ static ssize_t rd_write(FAR struct inode *inode, const unsigned char *buffer,
   else if (start_sector < dev->rd_nsectors &&
            start_sector + nsectors <= dev->rd_nsectors)
     {
-      finfo("Transfer %d bytes from %p\n",
+      finfo("Transfer %d bytes to %p\n",
              nsectors * dev->rd_sectsize,
              &dev->rd_buffer[start_sector * dev->rd_sectsize]);
 
@@ -428,14 +428,14 @@ static int rd_unlink(FAR struct inode *inode)
  * Description:
  *   Non-standard function to register a ramdisk or a romdisk
  *
- * Input Parmeters:
+ * Input Parameters:
  *   minor:         Selects suffix of device named /dev/ramN, N={1,2,3...}
  *   nsectors:      Number of sectors on device
  *   sectize:       The size of one sector
  *   rdflags:       See RDFLAG_* definitions
  *   buffer:        RAM disk backup memory
  *
- * Returned Valued:
+ * Returned Value:
  *   Zero on success; a negated errno value on failure.
  *
  ****************************************************************************/

@@ -1,7 +1,8 @@
 /****************************************************************************
  * fs/nxffs/nxffs.h
  *
- *   Copyright (C) 2011, 2013, 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013, 2015, 2017-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * References: Linux/Documentation/filesystems/romfs.txt
@@ -385,7 +386,7 @@ int nxffs_limits(FAR struct nxffs_volume_s *volume);
  * Input Parameters:
  *   val - A pointer to the first byte of the little endian value.
  *
- * Returned Values:
+ * Returned Value:
  *   A uint16_t representing the whole 16-bit integer value
  *
  * Defined in nxffs_util.c
@@ -404,7 +405,7 @@ uint16_t nxffs_rdle16(FAR const uint8_t *val);
  *   dest - A pointer to the first byte to save the little endian value.
  *   val - The 16-bit value to be saved.
  *
- * Returned Values:
+ * Returned Value:
  *   None
  *
  * Defined in nxffs_util.c
@@ -422,7 +423,7 @@ void nxffs_wrle16(uint8_t *dest, uint16_t val);
  * Input Parameters:
  *   val - A pointer to the first byte of the little endian value.
  *
- * Returned Values:
+ * Returned Value:
  *   A uint32_t representing the whole 32-bit integer value
  *
  * Defined in nxffs_util.c
@@ -460,7 +461,7 @@ void nxffs_wrle32(uint8_t *dest, uint32_t val);
  *   buffer - Address of the start of the memory to check.
  *   buflen - The number of bytes to check.
  *
- * Returned Values:
+ * Returned Value:
  *   The number of erased bytes found at the beginning of the memory region.
  *
  * Defined in nxffs_util.c
@@ -580,7 +581,7 @@ int nxffs_getc(FAR struct nxffs_volume_s *volume, uint16_t reserve);
  *   caller may call kmm_free upon return of this function if necessary to
  *   free the entry container.
  *
- * Input parameters:
+ * Input Parameters:
  *   entry  - The entry to be freed.
  *
  * Returned Value:
@@ -678,7 +679,7 @@ off_t nxffs_inodeend(FAR struct nxffs_volume_s *volume,
  *   volume - Describes the NXFFS volume
  *   block - The (logical) block number to load and verify.
  *
- * Returned Values:
+ * Returned Value:
  *   OK (zero( is returned on success.  Otherwise, a negated errno value is
  *   returned indicating the nature of the failure:
  *
@@ -835,7 +836,7 @@ FAR struct nxffs_wrfile_s *nxffs_findwriter(FAR struct nxffs_volume_s *volume);
  * Note that in either case, the inode name has already been written to
  * FLASH.
  *
- * Input parameters
+ * Input Parameters:
  *   volume - Describes the NXFFS volume
  *   entry  - Describes the inode header to write
  *
@@ -857,7 +858,7 @@ int nxffs_wrinode(FAR struct nxffs_volume_s *volume,
  *   The packing logic has moved an inode.  Check if any open files are using
  *   this inode and, if so, move the data in the open file structure as well.
  *
- * Input parameters
+ * Input Parameters:
  *   volume - Describes the NXFFS volume
  *   entry  - Describes the new inode entry
  *
@@ -869,6 +870,28 @@ int nxffs_wrinode(FAR struct nxffs_volume_s *volume,
 
 int nxffs_updateinode(FAR struct nxffs_volume_s *volume,
                       FAR struct nxffs_entry_s *entry);
+
+/****************************************************************************
+ * Name: nxffs_wrextend
+ *
+ * Description:
+ *   Zero-extend a file.
+ *
+ * Input Parameters:
+ *   volume - Describes the NXFFS volume
+ *   entry  - Describes the new inode entry
+ *   length - The new, extended length of the file
+ *
+ * Assumptions:
+ *   The caller holds the NXFFS semaphore.
+ *   The caller has verified that the file is writable.
+ *
+ ****************************************************************************/
+
+#ifdef __NO_TRUNCATE_SUPPORT__
+int nxffs_wrextend(FAR struct nxffs_volume_s *volume,
+                   FAR struct nxffs_wrfile_s *wrfile, off_t length);
+#endif
 
 /****************************************************************************
  * Name: nxffs_wrreserve
@@ -1051,7 +1074,7 @@ int nxffs_rminode(FAR struct nxffs_volume_s *volume, FAR const char *name);
  * Input Parameters:
  *   volume - The volume to be packed.
  *
- * Returned Values:
+ * Returned Value:
  *   Zero on success; Otherwise, a negated errno value is returned to
  *   indicate the nature of the failure.
  *
@@ -1091,12 +1114,18 @@ ssize_t nxffs_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
 ssize_t nxffs_write(FAR struct file *filep, FAR const char *buffer,
                     size_t buflen);
 int nxffs_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+
 int nxffs_dup(FAR const struct file *oldp, FAR struct file *newp);
 int nxffs_fstat(FAR const struct file *filep, FAR struct stat *buf);
+#ifdef __NO_TRUNCATE_SUPPORT__
+int nxffs_truncate(FAR struct file *filep, off_t length);
+#endif
+
 int nxffs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
                   FAR struct fs_dirent_s *dir);
 int nxffs_readdir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir);
 int nxffs_rewinddir(FAR struct inode *mountpt, FAR struct fs_dirent_s *dir);
+
 int nxffs_bind(FAR struct inode *blkdriver, FAR const void *data,
                FAR void **handle);
 int nxffs_unbind(FAR void *handle, FAR struct inode **blkdriver,

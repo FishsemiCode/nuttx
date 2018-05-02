@@ -160,6 +160,13 @@ config LIS3DSH
 	---help---
 		Enable driver support for the STMicro LIS3DSH 3-Axis accelerometer.
 
+config LIS3DH
+	bool "STMicro LIS3DH 3-Axis accelerometer support"
+	default n
+	select SPI
+	---help---
+		Enable driver support for the STMicro LIS3DH 3-Axis accelerometer.
+
 config LIS331DL
 	bool "STMicro LIS331DL device support"
 	default n
@@ -337,6 +344,34 @@ config ADXL345_REGDEBUG
 		Enable very low register-level debug output.
 
 endif # SENSORS_ADXL345
+
+config SENSORS_MAX44009
+	bool "Maxim MAX44009 ALS sensor"
+	default n
+	select I2C
+	---help---
+		Enables MAX44009 Ambient Light Sensor
+
+if SENSORS_MAX44009
+
+config MAX44009_I2C_FREQUENCY
+	int "MAX44009 I2C frequency"
+	default 400000
+	range 1 400000
+
+config DEBUG_MAX44009
+	bool "Enable debug support for the MAX44009"
+	default n
+	---help---
+		Enables debug support for the MAX44009
+
+config MAX44009_NPOLLWAITERS
+	int "Number of waiters to poll"
+	default 1
+	---help---
+		Number of waiters to poll
+
+endif # SENSORS_MAX44009
 
 config SENSORS_MAX31855
 	bool "Maxim MAX31855 Driver"

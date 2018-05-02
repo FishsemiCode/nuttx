@@ -393,6 +393,22 @@
  ****************************************************************************/
 
 /****************************************************************************
+ * Name: stm32_bringup
+ *
+ * Description:
+ *   Perform architecture-specific initialization
+ *
+ *   CONFIG_BOARD_INITIALIZE=y :
+ *     Called from board_initialize().
+ *
+ *   CONFIG_BOARD_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
+ *     Called from the NSH library
+ *
+ ****************************************************************************/
+
+int stm32_bringup(void);
+
+/****************************************************************************
  * Name: stm32_spidev_initialize
  *
  * Description:
@@ -464,22 +480,6 @@ int stm32_lis3dshinitialize(FAR const char *devpath);
 #ifdef CONFIG_INPUT_NUNCHUCK
 int nunchuck_initialize(FAR char *devname);
 #endif
-
-/****************************************************************************
- * Name: stm32_bringup
- *
- * Description:
- *   Perform architecture-specific initialization
- *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
- *
- *   CONFIG_BOARD_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
- *     Called from the NSH library
- *
- ****************************************************************************/
-
-int stm32_bringup(void);
 
 /****************************************************************************
  * Name: stm32_usbinitialize
@@ -720,7 +720,7 @@ int stm32_pca9635_initialize(void);
 #endif
 
 /****************************************************************************
- * Name stm32_rgbled_setup
+ * Name: stm32_rgbled_setup
  *
  * Description:
  *   This function is called by board initialization logic to configure the
@@ -750,7 +750,7 @@ int stm32_rgbled_setup(void);
  *             form /dev/timer0
  *   timer   - The timer's number.
  *
- * Returned Values:
+ * Returned Value:
  *   Zero (OK) is returned on success; A negated errno value is returned
  *   to indicate the nature of any failure.
  *
@@ -761,7 +761,7 @@ int stm32_timer_driver_setup(FAR const char *devpath, int timer);
 #endif
 
 /****************************************************************************
- * Name xen1210_archinitialize
+ * Name: xen1210_archinitialize
  *
  * Description:
  *   This function is called by board initialization logic to configure the

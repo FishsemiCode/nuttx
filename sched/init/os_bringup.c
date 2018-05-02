@@ -257,14 +257,14 @@ static inline void os_do_appstart(void)
 
 #ifdef CONFIG_BUILD_PROTECTED
   DEBUGASSERT(USERSPACE->us_entrypoint != NULL);
-  pid = task_create("init", SCHED_PRIORITY_DEFAULT,
-                    CONFIG_USERMAIN_STACKSIZE, USERSPACE->us_entrypoint,
-                    (FAR char * const *)NULL);
+  pid = nxtask_create("init", SCHED_PRIORITY_DEFAULT,
+                      CONFIG_USERMAIN_STACKSIZE, USERSPACE->us_entrypoint,
+                      (FAR char * const *)NULL);
 #else
-  pid = task_create("init", SCHED_PRIORITY_DEFAULT,
-                    CONFIG_USERMAIN_STACKSIZE,
-                    (main_t)CONFIG_USER_ENTRYPOINT,
-                    (FAR char * const *)NULL);
+  pid = nxtask_create("init", SCHED_PRIORITY_DEFAULT,
+                      CONFIG_USERMAIN_STACKSIZE,
+                      (main_t)CONFIG_USER_ENTRYPOINT,
+                      (FAR char * const *)NULL);
 #endif
   DEBUGASSERT(pid > 0);
   UNUSED(pid);
@@ -360,7 +360,6 @@ static inline void os_start_application(void)
                       (main_t)os_start_task, (FAR char * const *)NULL);
   DEBUGASSERT(pid > 0);
   UNUSED(pid);
-
 #else
   /* Do the board/application initialization on this thread of execution. */
 

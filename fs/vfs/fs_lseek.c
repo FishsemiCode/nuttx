@@ -65,7 +65,7 @@
  *   offset   Defines the offset to position to
  *   whence   Defines how to use offset
  *
- * Return:
+ * Returned Value:
  *   The resulting offset on success.  A negated errno value is returned on
  *   any failure (see lseek comments).
  *
@@ -97,7 +97,9 @@ off_t file_seek(FAR struct file *filep, off_t offset, int whence)
         {
           case SEEK_CUR:
             offset += filep->f_pos;
+
             /* FALLTHROUGH */
+
           case SEEK_SET:
             if (offset >= 0)
               {
@@ -146,7 +148,7 @@ off_t file_seek(FAR struct file *filep, off_t offset, int whence)
  *   offset   Defines the offset to position to
  *   whence   Defines how to use offset
  *
- * Return:
+ * Returned Value:
  *   The resulting offset on success.  -1 on failure withi errno set properly:
  *
  *   EBADF      fd is not an open file descriptor.

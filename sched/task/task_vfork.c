@@ -57,6 +57,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* vfork() requires architecture-specific support as well as waipid(). */
 
 #if defined(CONFIG_ARCH_HAVE_VFORK) && defined(CONFIG_SCHED_WAITPID)
@@ -81,7 +82,7 @@
  *   tcb        - Address of the new task's TCB
  *   name       - Name of the new task
  *
- * Return Value:
+ * Returned Value:
  *  None
  *
  ****************************************************************************/
@@ -109,7 +110,7 @@ static inline void vfork_namesetup(FAR struct tcb_s *parent,
  *   parent - Address of the parent task's TCB
  *   child  - Address of the child task's TCB
  *
- * Return Value:
+ * Returned Value:
  *   Zero (OK) on success; a negated errno on failure.
  *
  ****************************************************************************/
@@ -176,7 +177,7 @@ static inline int vfork_stackargsetup(FAR struct tcb_s *parent,
  *   parent - Address of the parent task's TCB
  *   child  - Address of the child task's TCB
  *
- * Return Value:
+ * Returned Value:
  *   Zero (OK) on success; a negated errno on failure.
  *
  ****************************************************************************/

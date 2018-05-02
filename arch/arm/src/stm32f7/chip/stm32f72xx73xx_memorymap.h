@@ -112,7 +112,6 @@
 #define STM32_TIM14_BASE     0x40002000     /* 0x40002000-0x400023ff: TIM14 */
 #define STM32_LPTIM1_BASE    0x40002400     /* 0x40002400-0x400027ff: LPTIM1 */
 #define STM32_RTC_BASE       0x40002800     /* 0x40002800-0x40002bff: RTC & BKP Registers */
-#define STM32_BKP_BASE       0x40002800     /* 0x40002800-0x40002bff: RTC & BKP Registers */
 #define STM32_WWDG_BASE      0x40002c00     /* 0x40002c00-0x40002fff: WWDG */
 #define STM32_IWDG_BASE      0x40003000     /* 0x40003000-0x400033ff: IWDG */
 #define STM32_SPI2_BASE      0x40003800     /* 0x40003800-0x40003bff: SPI2 / I2S2 */
@@ -159,6 +158,7 @@
 
 /* AHB1 Base Addresses **************************************************************/
 
+#define STM32_GPIO_INCR      0x400          /* 1K spacing between GPIO groups */
 #define STM32_GPIOA_BASE     0x40020000     /* 0x40020000-0x400203ff: GPIOA */
 #define STM32_GPIOB_BASE     0x40020400     /* 0x40020400-0x400207ff: GPIOB */
 #define STM32_GPIOC_BASE     0x40020800     /* 0x40020800-0x40020bff: GPIOC */

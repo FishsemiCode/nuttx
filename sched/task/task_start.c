@@ -97,10 +97,10 @@ static inline void task_setup_sigkill(void)
  *   execution of a task.  It receives initial control when the task is
  *   started and calls main entry point of the newly started task.
  *
- * Inputs:
+ * Input Parameters:
  *   None
  *
- * Return:
+ * Returned Value:
  *   None
  *
  ****************************************************************************/

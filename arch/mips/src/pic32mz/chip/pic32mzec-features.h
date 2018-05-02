@@ -432,10 +432,10 @@
 #  define DEVCFG1_FWDT_DISABLED  (0 << 23) /*   Bit 23=0: Watchdog disabled, can be enabled */
 #define DEVCFG1_FWDTWINSZ_SHIFT  (24)      /* Bits 24-25: Watchdog Timer Window Size bits */
 #define DEVCFG1_FWDTWINSZ_MASK   (3 << DEVCFG1_FWDTWINSZ_SHIFT)
-# define DEVCFG1_FWDTWINSZ_75    (0 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 75% */
-# define DEVCFG1_FWDTWINSZ_50    (1 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 50% */
-# define DEVCFG1_FWDTWINSZ_37p5  (2 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 37.5% */
-# define DEVCFG1_FWDTWINSZ_25    (3 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 25% */
+#  define DEVCFG1_FWDTWINSZ_75   (0 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 75% */
+#  define DEVCFG1_FWDTWINSZ_50   (1 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 50% */
+#  define DEVCFG1_FWDTWINSZ_37p5 (2 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 37.5% */
+#  define DEVCFG1_FWDTWINSZ_25   (3 << DEVCFG1_FWDTWINSZ_SHIFT) /* Window size is 25% */
 #define DEVCFG1_DMTCNT_SHIFT     (26)      /* Bits 26-30: Deadman Timer Count Select bits */
 #define DEVCFG1_DMTCNT_MASK      (31 << DEVCFG1_DMTCNT_SHIFT)
 #  define DEVCFG1_DMTCNT(n)      ((uint32_t)((n)-8) << DEVCFG1_DMTCNT_SHIFT) /* 2**n, n=8..31 */

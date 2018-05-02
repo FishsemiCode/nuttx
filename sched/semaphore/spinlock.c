@@ -140,6 +140,38 @@ void spin_lock(FAR volatile spinlock_t *lock)
 }
 
 /****************************************************************************
+ * Name: spin_lock_wo_note
+ *
+ * Description:
+ *   If this CPU does not already hold the spinlock, then loop until the
+ *   spinlock is successfully locked.
+ *
+ *   This implementation is the same as the above spin_lock() except that
+ *   it does not perform instrumentation logic.
+ *
+ * Input Parameters:
+ *   lock - A reference to the spinlock object to lock.
+ *
+ * Returned Value:
+ *   None.  When the function returns, the spinlock was successfully locked
+ *   by this CPU.
+ *
+ * Assumptions:
+ *   Not running at the interrupt level.
+ *
+ ****************************************************************************/
+
+void spin_lock_wo_note(FAR volatile spinlock_t *lock)
+{
+  while (up_testset(lock) == SP_LOCKED)
+    {
+      SP_DSB();
+    }
+
+  SP_DMB();
+}
+
+/****************************************************************************
  * Name: spin_unlock
  *
  * Description:
@@ -165,10 +197,38 @@ void spin_unlock(FAR volatile spinlock_t *lock)
   sched_note_spinunlock(this_task(), lock);
 #endif
 
-  *lock = SP_UNLOCKED;
   SP_DMB();
+  *lock = SP_UNLOCKED;
+  SP_DSB();
 }
 #endif
+
+/****************************************************************************
+ * Name: spin_unlock_wo_note
+ *
+ * Description:
+ *   Release one count on a non-reentrant spinlock.
+ *
+ *   This implementation is the same as the above spin_unlock() except that
+ *   it does not perform instrumentation logic.
+ *
+ * Input Parameters:
+ *   lock - A reference to the spinlock object to unlock.
+ *
+ * Returned Value:
+ *   None.
+ *
+ * Assumptions:
+ *   Not running at the interrupt level.
+ *
+ ****************************************************************************/
+
+void spin_unlock_wo_note(FAR volatile spinlock_t *lock)
+{
+  SP_DMB();
+  *lock = SP_UNLOCKED;
+  SP_DSB();
+}
 
 /****************************************************************************
  * Name: spin_lockr
@@ -408,7 +468,7 @@ void spin_setbit(FAR volatile cpu_set_t *set, unsigned int cpu,
   irqstate_t flags;
 
   /* Disable local interrupts to prevent being re-entered from an interrupt
-   * on the same CPU.  This does not effect the behavior on other CPUs.
+   * on the same CPU.  This may not effect interrupt behavior on other CPUs.
    */
 
   flags = up_irq_save();
@@ -467,7 +527,7 @@ void spin_clrbit(FAR volatile cpu_set_t *set, unsigned int cpu,
   irqstate_t flags;
 
   /* Disable local interrupts to prevent being re-entered from an interrupt
-   * on the same CPU.  This does not effect the behavior on other CPUs.
+   * on the same CPU.  This may not effect interrupt behavior on other CPUs.
    */
 
   flags = up_irq_save();

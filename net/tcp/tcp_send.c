@@ -54,6 +54,10 @@
 #include <nuttx/net/ip.h>
 #include <nuttx/net/tcp.h>
 
+#ifdef CONFIG_NET_TCP_RWND_CONTROL
+#  include <nuttx/semaphore.h>
+#endif
+
 #include "devif/devif.h"
 #include "inet/inet.h"
 #include "tcp/tcp.h"
@@ -82,7 +86,7 @@
  * Parameters:
  *   dev - The device driver structure to use in the send operation
  *
- * Return:
+ * Returned Value:
  *   The length of the IP header (IPv4_HDRLEN or IPv6_HDRLEN)
  *
  ****************************************************************************/
@@ -118,7 +122,7 @@ static inline FAR struct tcp_hdr_s *tcp_header(FAR struct net_driver_s *dev)
  * Parameters:
  *   dev - The device driver structure to use in the send operation
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -186,7 +190,7 @@ static inline void tcp_ipv4_sendcomplete(FAR struct net_driver_s *dev,
  * Parameters:
  *   dev - The device driver structure to use in the send operation
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -249,7 +253,7 @@ static inline void tcp_ipv6_sendcomplete(FAR struct net_driver_s *dev,
  * Parameters:
  *   dev - The device driver structure to use in the send operation
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -297,7 +301,7 @@ static void tcp_sendcomplete(FAR struct net_driver_s *dev,
  *   dev  - The device driver structure to use in the send operation
  *   conn - The TCP connection structure holding connection information
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -309,6 +313,12 @@ static void tcp_sendcommon(FAR struct net_driver_s *dev,
                            FAR struct tcp_conn_s *conn,
                            FAR struct tcp_hdr_s *tcp)
 {
+#ifdef CONFIG_NET_TCP_RWND_CONTROL
+  extern sem_t g_qentry_sem;
+  int  qentry_sem_count;
+  uint32_t rwnd;
+#endif
+
   /* Copy the IP address into the IPv6 header */
 
 #ifdef CONFIG_NET_IPv6
@@ -340,6 +350,19 @@ static void tcp_sendcommon(FAR struct net_driver_s *dev,
 
   tcp->srcport  = conn->lport;
   tcp->destport = conn->rport;
+
+#ifdef CONFIG_NET_TCP_RWND_CONTROL
+  /* Update the TCP received window based on I/O buffer */
+  /* NOTE: This algorithm is still experimental */
+
+  if (OK == nxsem_getvalue(&g_qentry_sem, &qentry_sem_count))
+    {
+      rwnd = (qentry_sem_count * CONFIG_NET_ETH_TCP_RECVWNDO)
+             / CONFIG_IOB_NCHAINS;
+
+      NET_DEV_RCVWNDO(dev) = (uint16_t)rwnd;
+    }
+#endif
 
   /* Set the TCP window */
 
@@ -380,7 +403,7 @@ static void tcp_sendcommon(FAR struct net_driver_s *dev,
  *   len    - length of the message (includes the length of the IP and TCP
  *            headers)
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -408,7 +431,7 @@ void tcp_send(FAR struct net_driver_s *dev, FAR struct tcp_conn_s *conn,
  * Parameters:
  *   dev    - The device driver structure to use in the send operation
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -525,7 +548,7 @@ void tcp_reset(FAR struct net_driver_s *dev)
  *   conn - The TCP connection structure holding connection information
  *   ack  - The ACK response to send
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:

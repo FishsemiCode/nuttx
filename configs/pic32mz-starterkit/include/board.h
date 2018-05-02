@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __CONFIGS_SURE_PIC32MZ_INCLUDE_BOARD_H
-#define __CONFIGS_SURE_PIC32MZ_INCLUDE_BOARD_H
+#ifndef __CONFIGS_PIC32MZ_STARTERKIT_INCLUDE_BOARD_H
+#define __CONFIGS_PIC32MZ_STARTERKIT_INCLUDE_BOARD_H
 
 /****************************************************************************
  * Included Files
@@ -139,7 +139,6 @@
 #define BOARD_PBCLK5_ENABLE    1         /* Enable PBCLK5 */
 #define BOARD_PB5DIV           2         /* Divider = 2 */
 #define BOARD_PBCLK5           100000000 /* PBCLK5 frequency = 200MHz/2 = 100MHz */
-
 
 /* PBCLK6
  *   Peripherals:
@@ -313,4 +312,4 @@ extern "C"
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* __CONFIGS_SURE_PIC32MZ_INCLUDE_BOARD_H */
+#endif /* __CONFIGS_PIC32MZ_STARTERKIT_INCLUDE_BOARD_H */

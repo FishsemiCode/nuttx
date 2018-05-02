@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched/sched_sporadic.c
  *
- *   Copyright (C) 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,7 +129,19 @@ static int sporadic_set_lowpriority(FAR struct tcb_s *tcb)
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
   /* If the priority was boosted above the higher priority, than just
-   * reset the base priority.
+   * reset the base priority and continue to run at the boosted priority.
+   *
+   * REVISIT:  There is a logic flaw here... If the priority was NOT
+   * boosted above the hi_priority, then it still may still need to
+   * boosted with respect to the lo_priority.  If the highest priority
+   * thread waiting on a semaphore held by the sporadic thread is greater
+   * than the low priority (but less than the hi_priority), the new
+   * sched_priority should be set to that priority, not to the lo_priority
+   *
+   * In order to do this we would need to know the highest priority from
+   * among all tasks waiting for the all semaphores held by the sporadic
+   * task.  That information could be retained by the priority inheritance
+   * logic of sem_holder.c for use here.
    */
 
   if (tcb->sched_priority > tcb->base_priority)
@@ -138,20 +150,21 @@ static int sporadic_set_lowpriority(FAR struct tcb_s *tcb)
        * state.
        */
 
-      tcb->base_priority = sporadic->low_priority;
+      tcb->base_priority = tcb->low_priority;
     }
+  else
 #endif
-
-  /* Otherwise drop the priority of thread, possible causing a context
-   * switch.
-   */
-
-  ret = sched_reprioritize(tcb, sporadic->low_priority);
-  if (ret < 0)
     {
-      int errcode = get_errno();
-      serr("ERROR: sched_reprioritize failed: %d\n", errcode);
-      return -errcode;
+      /* Otherwise drop the priority of thread, possible causing a context
+       * switch.
+       */
+
+      ret = nxsched_reprioritize(tcb, sporadic->low_priority);
+      if (ret < 0)
+        {
+          serr("ERROR: nxsched_reprioritize failed: %d\n", ret);
+          return ret;
+        }
     }
 
   return OK;
@@ -188,16 +201,27 @@ static int sporadic_set_hipriority(FAR struct tcb_s *tcb)
 #ifdef CONFIG_PRIORITY_INHERITANCE
   /* If the priority was boosted above the higher priority, than just
    * reset the base priority.
+   *
+   * First, was the priority boosted above the lo_priority which should be
+   * the same as the base_priority here? (This is an unnecessary test.
+   * sched_priority > hi_priority would be sufficient).
    */
 
   if (tcb->sched_priority > tcb->base_priority)
     {
-      /* Boosted... Do we still need to reprioritize? */
+      /* Boosted... Do we still need to reprioritize?  If we were boosted to
+       * a priority above the hi_priority then we do not need to do anything
+       * except to adjust the base_priority
+       *
+       * REVISIT:  This logic is probably okay.  But may lead to problems
+       * when the hi_priority is resumed.  See REVISIT comments in
+       * sporadic_set_lowpriority().
+       */
 
-      if (sporadic->hi_priority < sporadic->base_priority)
+      if (tcb->sched_priority > sporadic->hi_priority)
         {
-          /* No.. the current execution priority is lower than the
-           * boosted priority.  Just reset the base priority.
+          /* No.. the new execution priority is lower than the boosted
+           * priority.  Just reset the base priority.
            */
 
           tcb->base_priority = sporadic->hi_priority;
@@ -214,12 +238,11 @@ static int sporadic_set_hipriority(FAR struct tcb_s *tcb)
 
   /* Then reprioritize to the higher priority */
 
-  ret = sched_reprioritize(tcb, sporadic->hi_priority);
+  ret = nxsched_reprioritize(tcb, sporadic->hi_priority);
   if (ret < 0)
     {
-      int errcode = get_errno();
-      serr("ERROR: sched_reprioritize failed: %d\n", errcode);
-      return -errcode;
+      serr("ERROR: nxsched_reprioritize failed: %d\n", ret);
+      return ret;
     }
 
   return OK;
@@ -322,7 +345,7 @@ static int sporadic_interval_start(FAR struct replenishment_s *mrepl)
 
   /* Start the timer that will terminate the low priority cycle.  This timer
    * expiration is independent of what else may occur (except that it must
-   * be cancelled if the thread exits.
+   * be canceled if the thread exits.
    */
 
   DEBUGVERIFY(wd_start(&mrepl->timer, remainder, sporadic_interval_expire,
@@ -452,7 +475,7 @@ static void sporadic_budget_expire(int argc, wdparm_t arg1, ...)
    * this operation is needed.
    */
 
-  if (sched_islocked(tcb))
+  if (sched_islocked_tcb(tcb))
     {
       DEBUGASSERT((mrepl->flags && SPORADIC_FLAG_ALLOCED) != 0 &&
                   sporadic->nrepls > 0);
@@ -600,7 +623,7 @@ static void sporadic_replenish_expire(int argc, wdparm_t arg1, ...)
    * this operation is needed.
    */
 
-  if (sched_islocked(tcb))
+  if (sched_islocked_tcb(tcb))
     {
       /* Set the timeslice to the magic value */
 
@@ -1199,7 +1222,7 @@ uint32_t sched_sporadic_process(FAR struct tcb_s *tcb, uint32_t ticks,
       /* Does the thread have the scheduler locked? */
 
       sporadic = tcb->sporadic;
-      if (sched_islocked(tcb))
+      if (sched_islocked_tcb(tcb))
         {
           /* Yes... then we have no option but to give the thread more
            * time at the higher priority.  Dropping the priority could

@@ -70,7 +70,7 @@
  *   The error indicator and eof indicator are automatically cleared (as if
  *   clearerr was called).
  *
- * Input Paramters:
+ * Input Parameters:
  *   path   - If non-NULL, refers to the name of the file to be opened.
  *   mode   - String describing the new file access mode
  *   stream - Pointer to the type FILE to be reopened.
@@ -113,7 +113,7 @@ FAR FILE *freopen(FAR const char *path, FAR const char *mode,
       /* Convert the mode string into standard file open mode flags. */
 
       oflags = lib_mode2oflags(mode);
-      if (oflags == 0)
+      if (oflags < 0)
         {
           return NULL;
         }

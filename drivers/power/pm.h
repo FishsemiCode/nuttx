@@ -71,7 +71,7 @@
 /****************************************************************************
  * Name: pm_lock
  *
- * Descripton:
+ * Description:
  *   Lock the power management registry.  NOTE: This function may return
  *   an error if a signal is received while what (errno == EINTR).
  *
@@ -82,7 +82,7 @@
 /****************************************************************************
  * Name: pm_unlock
  *
- * Descripton:
+ * Description:
  *   Unlock the power management registry.
  *
  ****************************************************************************/

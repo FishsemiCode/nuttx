@@ -422,7 +422,7 @@ static int lib_find_answer(FAR const char *name, FAR struct hostent *host,
 /****************************************************************************
  * Name: lib_dns_query
  *
- * Descriptions:
+ * Description:
  *   Combines the operations of dns_bind(), dns_query(), and dns_free() to
  *   obtain the IP address ('ipaddr') associated with the 'hostname' in one
  *   operation.
@@ -599,7 +599,7 @@ static int lib_hostfile_lookup(FAR const char *name, FAR struct hostent *host,
   stream = fopen(CONFIG_NETDB_HOSTCONF_PATH, "r");
   if (stream == NULL)
     {
-      int errcode = errno;
+      int errcode = get_errno();
 
       nerr("ERROR:  Failed to open the hosts file %s: %d\n",
            CONFIG_NETDB_HOSTCONF_PATH, errcode);

@@ -186,7 +186,7 @@ config JULIAN_TIME
 
 config START_YEAR
 	int "Start year"
-	default 2017
+	default 2018
 	range 1970 2106
 	---help---
 		NuttX uses an unsigned 32-bit integer for time_t which provides a
@@ -248,6 +248,14 @@ config SPINLOCK
 	---help---
 		Enables suppport for spinlocks.  Spinlocks are current used only for
 		SMP suppport.
+
+config SPINLOCK_IRQ
+	bool "Support Spinlocks with IRQ control"
+	default n
+	depends on ARCH_GLOBAL_IRQDISABLE
+	---help---
+		Enables suppport for spinlocks with IRQ control. This feature can be
+		used to protect data in SMP mode.
 
 config SMP
 	bool "Symmetric Multi-Processing (SMP)"
@@ -615,6 +623,15 @@ endif # !DISABLE_PTHREAD
 endmenu # Pthread Options
 
 menu "Performance Monitoring"
+
+config SCHED_IRQMONITOR
+	bool "Enable IRQ monitoring"
+	default n
+	depends on FS_PROCFS
+	---help---
+		Enabling counting of interrupts from all interrupt sources.  These
+		counts will be available in the mounted procfs file systems at the
+		top-level file, "irqs".
 
 config SCHED_CPULOAD
 	bool "Enable CPU load monitoring"

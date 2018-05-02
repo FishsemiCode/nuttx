@@ -718,7 +718,7 @@ static int tc_waitsample(FAR struct tc_dev_s *priv,
            * the failure now.
            */
 
-          DEBUGASSERT(ret == -EINTR);
+          DEBUGASSERT(ret == -EINTR || ret  == -ECANCELED);
           goto errout;
         }
     }
@@ -1131,7 +1131,7 @@ static int tc_open(FAR struct file *filep)
     {
       /* This should only happen if the wait was canceled by an signal */
 
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret  == -ECANCELED);
       return ret;
     }
 
@@ -1186,7 +1186,7 @@ static int tc_close(FAR struct file *filep)
     {
       /* This should only happen if the wait was canceled by an signal */
 
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret  == -ECANCELED);
       return ret;
     }
 
@@ -1243,7 +1243,7 @@ static ssize_t tc_read(FAR struct file *filep, FAR char *buffer, size_t len)
     {
       /* This should only happen if the wait was canceled by an signal */
 
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1328,7 +1328,7 @@ errout:
 }
 
 /****************************************************************************
- * Name:tc_ioctl
+ * Name: tc_ioctl
  ****************************************************************************/
 
 static int tc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
@@ -1355,7 +1355,7 @@ static int tc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
       /* This should only happen if the wait was canceled by an signal */
 
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1402,7 +1402,7 @@ static int tc_poll(FAR struct file *filep, FAR struct pollfd *fds,
     {
       /* This should only happen if the wait was canceled by an signal */
 
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1474,13 +1474,12 @@ errout:
  ************************************************************************************/
 
 /****************************************************************************
- * Name: board_tsc_setup
+ * Name: stm32_tsc_setup
  *
  * Description:
- *   Each board that supports a touchscreen device must provide this function.
- *   This function is called by application-specific, setup logic to
- *   configure the touchscreen device.  This function will register the driver
- *   as /dev/inputN where N is the minor device number.
+ *   This function is called by board-bringup logic to configure the
+ *   touchscreen device.  This function will register the driver as
+ *   /dev/inputN where N is the minor device number.
  *
  * Input Parameters:
  *   minor   - The input device minor number
@@ -1491,7 +1490,7 @@ errout:
  *
  ****************************************************************************/
 
-int board_tsc_setup(int minor)
+int stm32_tsc_setup(int minor)
 {
   FAR struct tc_dev_s *priv;
   char devname[DEV_NAMELEN];
@@ -1581,27 +1580,6 @@ errout_with_priv:
   kmm_free(priv);
 #endif
   return ret;
-}
-
-/****************************************************************************
- * Name: board_tsc_teardown
- *
- * Description:
- *   Each board that supports a touchscreen device must provide this function.
- *   This function is called by application-specific, setup logic to
- *   uninitialize the touchscreen device.
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None.
- *
- ****************************************************************************/
-
-void board_tsc_teardown(void)
-{
-  /* Need to unregister the /dev/inputN device here. */
 }
 
 #endif /* CONFIG_INPUT */

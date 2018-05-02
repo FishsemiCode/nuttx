@@ -62,6 +62,7 @@
 #define PIC32MZ_IRQ_OC1          7 /* Vector: 7,   Output Compare 1 */
 #define PIC32MZ_IRQ_INT1         8 /* Vector: 8,   External Interrupt 1 */
 #define PIC32MZ_IRQ_T2           9 /* Vector: 9,   Timer 2 */
+
 #define PIC32MZ_IRQ_ICE2        10 /* Vector: 10,  Input Capture 2 Error */
 #define PIC32MZ_IRQ_IC2         11 /* Vector: 11,  Input Capture 2 */
 #define PIC32MZ_IRQ_OC2         12 /* Vector: 12,  Output Compare 2 */
@@ -72,6 +73,7 @@
 #define PIC32MZ_IRQ_OC3         17 /* Vector: 17,  Output Compare 3 */
 #define PIC32MZ_IRQ_INT3        18 /* Vector: 18,  External Interrupt 3 */
 #define PIC32MZ_IRQ_T4          19 /* Vector: 19,  Timer 4 */
+
 #define PIC32MZ_IRQ_ICE4        20 /* Vector: 20,  Input Capture 4 Error */
 #define PIC32MZ_IRQ_IC4         21 /* Vector: 21,  Input Capture 4 */
 #define PIC32MZ_IRQ_OC4         22 /* Vector: 22,  Output Compare 4 */
@@ -82,6 +84,7 @@
 #define PIC32MZ_IRQ_OC5         27 /* Vector: 27,  Output Compare 5 */
 #define PIC32MZ_IRQ_T6          28 /* Vector: 28,  Timer 6 */
 #define PIC32MZ_IRQ_ICE6        29 /* Vector: 29,  Input Capture 6 Error */
+
 #define PIC32MZ_IRQ_IC6         30 /* Vector: 30,  Input Capture 6 */
 #define PIC32MZ_IRQ_OC6         31 /* Vector: 31,  Output Compare 6 */
 #define PIC32MZ_IRQ_T7          32 /* Vector: 32,  Timer 7 */
@@ -92,6 +95,7 @@
 #define PIC32MZ_IRQ_ICE8        37 /* Vector: 37,  Input Capture 8 Error */
 #define PIC32MZ_IRQ_IC8         38 /* Vector: 38,  Input Capture 8 */
 #define PIC32MZ_IRQ_OC8         39 /* Vector: 39,  Output Compare 8 */
+
 #define PIC32MZ_IRQ_T9          40 /* Vector: 40,  Timer 9 */
 #define PIC32MZ_IRQ_ICE9        41 /* Vector: 41,  Input Capture 9 Error */
 #define PIC32MZ_IRQ_IC9         42 /* Vector: 42,  Input Capture 9 */
@@ -102,6 +106,7 @@
 #define PIC32MZ_IRQ_AD1CMP2     47 /* Vector: 47,  ADC1 Digital Comparator 2 */
 #define PIC32MZ_IRQ_AD1CMP3     48 /* Vector: 48,  ADC1 Digital Comparator 3 */
 #define PIC32MZ_IRQ_AD1CMP4     49 /* Vector: 49,  ADC1 Digital Comparator 4 */
+
 #define PIC32MZ_IRQ_AD1CMP5     50 /* Vector: 50,  ADC1 Digital Comparator 5 */
 #define PIC32MZ_IRQ_AD1CMP6     51 /* Vector: 51,  ADC1 Digital Comparator 6 */
 #define PIC32MZ_IRQ_AD1FLT1     52 /* Vector: 52,  ADC1 Digital Filter 1 */
@@ -112,6 +117,7 @@
 #define PIC32MZ_IRQ_AD1FLT6     57 /* Vector: 57,  ADC1 Digital Filter 6 */
                                    /* Vector: 58,  Reserved */
 #define PIC32MZ_IRQ_AD1DAT0     59 /* Vector: 59,  ADC1 Data 0 */
+
 #define PIC32MZ_IRQ_AD1DAT1     60 /* Vector: 60,  ADC1 Data 1 */
 #define PIC32MZ_IRQ_AD1DAT2     61 /* Vector: 61,  ADC1 Data 2 */
 #define PIC32MZ_IRQ_AD1DAT3     62 /* Vector: 62,  ADC1 Data 3 */
@@ -122,6 +128,7 @@
 #define PIC32MZ_IRQ_AD1DAT8     67 /* Vector: 67,  ADC1 Data 8 */
 #define PIC32MZ_IRQ_AD1DAT9     68 /* Vector: 68,  ADC1 Data 9 */
 #define PIC32MZ_IRQ_AD1DAT10    69 /* Vector: 69,  ADC1 Data 10 */
+
 #define PIC32MZ_IRQ_AD1DAT11    70 /* Vector: 70,  ADC1 Data 11 */
 #define PIC32MZ_IRQ_AD1DAT12    71 /* Vector: 71,  ADC1 Data 12 */
 #define PIC32MZ_IRQ_AD1DAT13    72 /* Vector: 72,  ADC1 Data 13 */
@@ -132,6 +139,7 @@
 #define PIC32MZ_IRQ_AD1DAT18    77 /* Vector: 77,  ADC1 Data 18 */
 #define PIC32MZ_IRQ_AD1DAT19    78 /* Vector: 78,  ADC1 Data 19 */
 #define PIC32MZ_IRQ_AD1DAT20    79 /* Vector: 79,  ADC1 Data 20 */
+
 #define PIC32MZ_IRQ_AD1DAT21    80 /* Vector: 80,  ADC1 Data 21 */
 #define PIC32MZ_IRQ_AD1DAT22    81 /* Vector: 81,  ADC1 Data 22 */
 #define PIC32MZ_IRQ_AD1DAT23    82 /* Vector: 82,  ADC1 Data 23 */
@@ -142,6 +150,7 @@
 #define PIC32MZ_IRQ_AD1DAT28    87 /* Vector: 87,  ADC1 Data 28 */
 #define PIC32MZ_IRQ_AD1DAT29    88 /* Vector: 88,  ADC1 Data 29 */
 #define PIC32MZ_IRQ_AD1DAT30    89 /* Vector: 89,  ADC1 Data 30 */
+
 #define PIC32MZ_IRQ_AD1DAT31    90 /* Vector: 90,  ADC1 Data 31 */
 #define PIC32MZ_IRQ_AD1DAT32    91 /* Vector: 91,  ADC1 Data 32 */
 #define PIC32MZ_IRQ_AD1DAT33    92 /* Vector: 92,  ADC1 Data 33 */
@@ -152,6 +161,7 @@
 #define PIC32MZ_IRQ_AD1DAT38    97 /* Vector: 97,  ADC1 Data 38 */
 #define PIC32MZ_IRQ_AD1DAT39    98 /* Vector: 98,  ADC1 Data 39 */
 #define PIC32MZ_IRQ_AD1DAT40    99 /* Vector: 99,  ADC1 Data 40 */
+
 #define PIC32MZ_IRQ_AD1DAT41   100 /* Vector: 100, ADC1 Data 41 */
 #define PIC32MZ_IRQ_AD1DAT42   101 /* Vector: 101, ADC1 Data 42 */
 #define PIC32MZ_IRQ_AD1DAT43   102 /* Vector: 102, ADC1 Data 43 */
@@ -162,6 +172,7 @@
 #define PIC32MZ_IRQ_CTYPTO     107 /* Vector: 107, Crypto Engine Event */
                                    /* Vector: 108, Reserved */
 #define PIC32MZ_IRQ_SPI1F      109 /* Vector: 109, SPI1 Fault */
+
 #define PIC32MZ_IRQ_SPI1RX     110 /* Vector: 110, SPI1 Receive Done */
 #define PIC32MZ_IRQ_SPI1TX     111 /* Vector: 111, SPI1 Transfer Done */
 #define PIC32MZ_IRQ_U1E        112 /* Vector: 112, UART1 Fault */
@@ -172,6 +183,7 @@
 #define PIC32MZ_IRQ_I2C1M      117 /* Vector: 117, I2C1 Master Event */
 #define PIC32MZ_IRQ_PORTA      118 /* Vector: 118, PORTA Input Change Interrupt */
 #define PIC32MZ_IRQ_PORTB      119 /* Vector: 119, PORTB Input Change Interrupt */
+
 #define PIC32MZ_IRQ_PORTC      120 /* Vector: 120, PORTC Input Change Interrupt */
 #define PIC32MZ_IRQ_PORTD      121 /* Vector: 121, PORTD Input Change Interrupt */
 #define PIC32MZ_IRQ_PORTE      122 /* Vector: 122, PORTE Input Change Interrupt */
@@ -182,6 +194,7 @@
 #define PIC32MZ_IRQ_PORTK      127 /* Vector: 127, PORTK Input Change Interrupt */
 #define PIC32MZ_IRQ_PMP        128 /* Vector: 128, Parallel Master Port */
 #define PIC32MZ_IRQ_PMPE       129 /* Vector: 129, Parallel Master Port Error */
+
 #define PIC32MZ_IRQ_CMP1       130 /* Vector: 130, Comparator 1 Interrupt */
 #define PIC32MZ_IRQ_CMP2       131 /* Vector: 131, Comparator 2 Interrupt */
 #define PIC32MZ_IRQ_USBGEN     132 /* Vector: 132, USB General Event */
@@ -192,6 +205,7 @@
 #define PIC32MZ_IRQ_DMA3       137 /* Vector: 137, DMA Channel 3 */
 #define PIC32MZ_IRQ_DMA4       138 /* Vector: 138, DMA Channel 4 */
 #define PIC32MZ_IRQ_DMA5       139 /* Vector: 139, DMA Channel 5 */
+
 #define PIC32MZ_IRQ_DMA6       140 /* Vector: 140, DMA Channel 6 */
 #define PIC32MZ_IRQ_DMA7       141 /* Vector: 141, DMA Channel 7 */
 #define PIC32MZ_IRQ_SPI2F      142 /* Vector: 142, SPI2 Fault */
@@ -202,6 +216,7 @@
 #define PIC32MZ_IRQ_U2TX       147 /* Vector: 147, UART2 Transfer Done */
 #define PIC32MZ_IRQ_I2C2COL    148 /* Vector: 148, I2C2 Bus Collision Event */
 #define PIC32MZ_IRQ_I2C2S      149 /* Vector: 149, I2C2 Slave Event */
+
 #define PIC32MZ_IRQ_I2C2M      150 /* Vector: 150, I2C2 Master Event */
 #define PIC32MZ_IRQ_CAN1       151 /* Vector: 151, Control Area Network 1 */
 #define PIC32MZ_IRQ_CAN2       152 /* Vector: 152, Control Area Network 2 */
@@ -212,7 +227,8 @@
 #define PIC32MZ_IRQ_U3E        157 /* Vector: 157, UART3 Fault */
 #define PIC32MZ_IRQ_U3RX       158 /* Vector: 158, UART3 Receive Done */
 #define PIC32MZ_IRQ_U3TX       159 /* Vector: 159, UART3 Transfer Done */
-#define PIC32MZ_IRQ_I2C3COL       160 /* Vector: 160, I2C3 Bus Collision Event */
+
+#define PIC32MZ_IRQ_I2C3COL    160 /* Vector: 160, I2C3 Bus Collision Event */
 #define PIC32MZ_IRQ_I2C3S      161 /* Vector: 161, I2C3 Slave Event */
 #define PIC32MZ_IRQ_I2C3M      162 /* Vector: 162, I2C3 Master Event */
 #define PIC32MZ_IRQ_SPI4F      163 /* Vector: 163, SPI4 Fault */
@@ -222,6 +238,7 @@
 #define PIC32MZ_IRQ_FCE        167 /* Vector: 167, Flash Control Event */
 #define PIC32MZ_IRQ_PMSEC      168 /* Vector: 168, Prefetch Module SEC Event */
 #define PIC32MZ_IRQ_SQI1       169 /* Vector: 169, SQI1 Event */
+
 #define PIC32MZ_IRQ_U4E        170 /* Vector: 170, UART4 Fault */
 #define PIC32MZ_IRQ_U4RX       171 /* Vector: 171, UART4 Receive Done */
 #define PIC32MZ_IRQ_U4TX       172 /* Vector: 172, UART4 Transfer Done */
@@ -232,6 +249,7 @@
 #define PIC32MZ_IRQ_SPI5RX     177 /* Vector: 177, SPI5 Receive Done */
 #define PIC32MZ_IRQ_SPI5TX     178 /* Vector: 178, SPI5 Transfer Done */
 #define PIC32MZ_IRQ_U5E        179 /* Vector: 179, UART5 Fault */
+
 #define PIC32MZ_IRQ_U5RX       180 /* Vector: 180, UART5 Receive Done */
 #define PIC32MZ_IRQ_U5TX       181 /* Vector: 181, UART5 Transfer Done */
 #define PIC32MZ_IRQ_I2C5COL    182 /* Vector: 182, I2C5 Bus Collision Event */
@@ -242,6 +260,7 @@
 #define PIC32MZ_IRQ_SPI6TX     187 /* Vector: 187, SPI6 Transfer Done */
 #define PIC32MZ_IRQ_U6E        188 /* Vector: 188, UART6 Fault */
 #define PIC32MZ_IRQ_U6RX       189 /* Vector: 189, UART6 Receive Done */
+
 #define PIC32MZ_IRQ_U6TX       190 /* Vector: 190, UART6 Transfer Done */
 
 #define PIC32MZ_IRQ_BAD        191 /* Not a real IRQ number */

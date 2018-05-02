@@ -1,7 +1,7 @@
 /****************************************************************************
  * config/sim/src/sim_touchscreen.c
  *
- *   Copyright (C) 2011, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -48,6 +48,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/sched.h>
 #include <nuttx/board.h>
 #include <nuttx/video/fb.h>
 #include <nuttx/input/touchscreen.h>
@@ -145,16 +146,23 @@ static FAR void *sim_listener(FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: board_tsc_setup()
+ * Name: sim_tsc_setup
  *
  * Description:
- *   Perform architecuture-specific initialization of the touchscreen
- *   hardware.  This interface must be provided by all configurations
- *   using apps/examples/touchscreen
+ *   This function is called by board-bringup logic to configure the
+ *   touchscreen device.  This function will register the driver as
+ *   /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor   - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
  *
  ****************************************************************************/
 
-int board_tsc_setup(int minor)
+int sim_tsc_setup(int minor)
 {
   struct sched_param param;
   nxgl_mxpixel_t color;
@@ -164,10 +172,10 @@ int board_tsc_setup(int minor)
   /* Set the client task priority */
 
   param.sched_priority = CONFIG_SIM_CLIENTPRIO;
-  ret = sched_setparam(0, &param);
+  ret = nxsched_setparam(0, &param);
   if (ret < 0)
     {
-      gerr("ERROR: sched_setparam failed: %d\n" , ret);
+      gerr("ERROR: nxsched_setparam failed: %d\n" , ret);
       return ret;
     }
 
@@ -261,25 +269,4 @@ errout_with_nx:
 
 errout:
   return ret;
-}
-
-/****************************************************************************
- * Name: board_tsc_teardown()
- *
- * Description:
- *   Perform architecuture-specific un-initialization of the touchscreen
- *   hardware.  This interface must be provided by all configurations
- *   using apps/examples/touchscreen
- *
- ****************************************************************************/
-
-void board_tsc_teardown(void)
-{
-  /* Shut down the touchscreen driver */
-
-  sim_tsc_uninitialize();
-
-  /* Close NX */
-
-  nx_disconnect(g_simtc.hnx);
 }

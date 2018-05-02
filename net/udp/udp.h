@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/udp/udp.h
  *
- *   Copyright (C) 2014-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,8 +43,10 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <queue.h>
 
+#include <nuttx/clock.h>
 #include <nuttx/net/ip.h>
 
 #ifdef CONFIG_NET_UDP_READAHEAD
@@ -64,6 +66,17 @@
 #if !defined(CONFIG_DISABLE_POLL) && CONFIG_NSOCKET_DESCRIPTORS > 0 && \
     defined(CONFIG_NET_UDP_READAHEAD)
 #  define HAVE_UDP_POLL
+#endif
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+/* UDP write buffer dump macros */
+
+#  ifdef CONFIG_DEBUG_FEATURES
+#    define UDP_WBDUMP(msg,wrb,len,offset) \
+       udp_wrbuffer_dump(msg,wrb,len,offset)
+#  else
+#    define UDP_WBDUMP(msg,wrb,len,offset)
+#  endif
 #endif
 
 /* Allocate a new UDP data callback */
@@ -102,10 +115,37 @@ struct udp_conn_s
   struct iob_queue_s readahead;   /* Read-ahead buffering */
 #endif
 
+#ifdef CONFIG_NET_TCP_WRITE_BUFFERS
+  /* Write buffering
+   *
+   *   write_q   - The queue of unsent I/O buffers.  The head of this
+   *               list may be partially sent.  FIFO ordering.
+   */
+
+  sq_queue_t write_q;             /* Write buffering for UDP packets */
+  FAR struct net_driver_s *dev;   /* Last device */
+#endif
+
   /* Defines the list of UDP callbacks */
 
   FAR struct devif_callback_s *list;
 };
+
+/* This structure supports UDP write buffering.  It is simply a container
+ * for a IOB list and associated destination address.
+ */
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+struct udp_wrbuffer_s
+{
+  sq_entry_t wb_node;              /* Supports a singly linked list */
+  struct sockaddr_storage wb_dest; /* Destination address */
+#ifdef CONFIG_NET_SOCKOPTS
+  systime_t wb_start;              /* Start time for timeout calculation */
+#endif
+  struct iob_s *wb_iob;            /* Head of the I/O buffer chain */
+};
+#endif
 
 /****************************************************************************
  * Public Data
@@ -268,7 +308,7 @@ void udp_ipv6_select(FAR struct net_driver_s *dev);
  *   dev  - The device driver structure to use in the send operation
  *   conn - The UDP "connection" to poll for TX data
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -288,7 +328,7 @@ void udp_poll(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
  *   dev  - The device driver structure to use in the send operation
  *   conn - The UDP "connection" structure holding port information
  *
- * Return:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -299,6 +339,92 @@ void udp_poll(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
 void udp_send(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
 
 /****************************************************************************
+ * Name: udp_wrbuffer_initialize
+ *
+ * Description:
+ *   Initialize the list of free write buffers
+ *
+ * Assumptions:
+ *   Called once early initialization.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+void udp_wrbuffer_initialize(void);
+#endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
+
+/****************************************************************************
+ * Name: udp_wrbuffer_alloc
+ *
+ * Description:
+ *   Allocate a UDP write buffer by taking a pre-allocated buffer from
+ *   the free list.  This function is called from UDP logic when a buffer
+ *   of UDP data is about to sent
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Assumptions:
+ *   Called from user logic with the network locked.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+struct udp_wrbuffer_s;
+
+FAR struct udp_wrbuffer_s *udp_wrbuffer_alloc(void);
+#endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
+
+/****************************************************************************
+ * Name: udp_wrbuffer_release
+ *
+ * Description:
+ *   Release a UDP write buffer by returning the buffer to the free list.
+ *   This function is called from user logic after it is consumed the
+ *   buffered data.
+ *
+ * Assumptions:
+ *   Called from network stack logic with the network stack locked
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+void udp_wrbuffer_release(FAR struct udp_wrbuffer_s *wrb);
+#endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
+
+/****************************************************************************
+ * Name: udp_wrbuffer_test
+ *
+ * Description:
+ *   Check if there is room in the write buffer.  Does not reserve any space.
+ *
+ * Assumptions:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+int udp_wrbuffer_test(void);
+#endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
+
+/****************************************************************************
+ * Name: udp_wrbuffer_dump
+ *
+ * Description:
+ *   Dump the contents of a write buffer.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+#ifdef CONFIG_DEBUG_FEATURES
+void udp_wrbuffer_dump(FAR const char *msg, FAR struct udp_wrbuffer_s *wrb,
+                       unsigned int len, unsigned int offset);
+#else
+#  define udp_wrbuffer_dump(msg,wrb)
+#endif
+#endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
+
+/****************************************************************************
  * Name: udp_ipv4_input
  *
  * Description:
@@ -307,7 +433,7 @@ void udp_send(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
  * Parameters:
  *   dev - The device driver structure containing the received UDP packet
  *
- * Return:
+ * Returned Value:
  *   OK  The packet has been processed  and can be deleted
  *   ERROR Hold the packet and try again later. There is a listening socket
  *         but no receive in place to catch the packet yet.
@@ -330,7 +456,7 @@ int udp_ipv4_input(FAR struct net_driver_s *dev);
  * Parameters:
  *   dev - The device driver structure containing the received UDP packet
  *
- * Return:
+ * Returned Value:
  *   OK  The packet has been processed  and can be deleted
  *   ERROR Hold the packet and try again later. There is a listening socket
  *         but no receive in place to catch the packet yet.
@@ -502,7 +628,7 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds);
  *   Teardown monitoring of events on an UDP/IP socket
  *
  * Input Parameters:
- *   psock - The TCP/IP socket of interest
+ *   psock - The UDP/IP socket of interest
  *   fds   - The structure describing the events to be monitored, OR NULL if
  *           this is a request to stop monitoring events.
  *

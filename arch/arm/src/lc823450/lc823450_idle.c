@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lc823450/lc823450_idle.c
  *
- *   Copyright (C) 2014-2017 Sony Corporation. All rights reserved.
+ *   Copyright (C) 2014-2018 Sony Corporation. All rights reserved.
  *   Author: Masayuki Ishikawa <Masayuki.Ishikawa@jp.sony.com>
  *   Author: Masatoshi Tateishi <Masatoshi.Tateishi@jp.sony.com>
  *
@@ -50,39 +50,14 @@
 #include "up_arch.h"
 
 #ifdef CONFIG_DVFS
-#  include "lc823450_dvfs.h"
+#  include "lc823450_dvfs2.h"
 #endif
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_LC823450_SLEEP_MODE
-static int32_t  g_in_sleep;
-static uint64_t g_sleep_t0;
-#endif /* CONFIG_LC823450_SLEEP_MODE */
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: up_get_current_time()
- ****************************************************************************/
-
-#ifdef CONFIG_LC823450_SLEEP_MODE
-static uint64_t up_get_current_time(void)
-{
-  struct timespec ts;
-
-#ifdef CONFIG_CLOCK_MONOTONIC
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-#else
-  clock_gettime(CLOCK_REALTIME, &ts);
-#endif
-  return (uint64_t)ts.tv_sec * NSEC_PER_SEC + (uint64_t)ts.tv_nsec;
-}
-#endif /* CONFIG_LC823450_SLEEP_MODE */
+static uint32_t g_idle_counter[2];
 
 /****************************************************************************
  * Public Functions
@@ -111,50 +86,33 @@ void up_idle(void)
   sched_process_timer();
 #else
 
-#ifdef CONFIG_LC823450_SLEEP_MODE
+  /* DVFS and LED control must be done with local interrupts disabled */
+
   irqstate_t flags;
-  flags = enter_critical_section();
+  flags = up_irq_save();
 
-  g_sleep_t0 = up_get_current_time();
-  g_in_sleep = 1;
-
+#ifdef CONFIG_LC823450_SLEEP_MODE
   /* Clear SLEEPDEEP flag */
 
   uint32_t regval  = getreg32(NVIC_SYSCON);
   regval &= ~NVIC_SYSCON_SLEEPDEEP;
   putreg32(regval, NVIC_SYSCON);
+#endif
 
 #ifdef CONFIG_DVFS
   lc823450_dvfs_enter_idle();
 #endif
 
-  leave_critical_section(flags);
-#endif /* CONFIG_LC823450_SLEEP_MODE */
-
   board_autoled_off(LED_CPU0 + up_cpu_index());
+
+  up_irq_restore(flags);
 
   /* Sleep until an interrupt occurs to save power */
 
   asm("WFI");
+
+  g_idle_counter[up_cpu_index()]++;
+
 #endif
 }
 
-/****************************************************************************
- * Name: up_update_idle_time()
- *
- * Description:
- *  up_update_idle_time() is the logic that will update idle time
- *
- ****************************************************************************/
-
-#ifdef CONFIG_LC823450_SLEEP_MODE
-void up_update_idle_time(void)
-{
-  if (g_in_sleep)
-    {
-      g_in_sleep = 0;
-      uint64_t t1 = up_get_current_time();
-      sched_add_idl_tm(t1 - g_sleep_t0);
-    }
-}
-#endif /* CONFIG_LC823450_SLEEP_MODE */

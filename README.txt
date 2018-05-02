@@ -76,10 +76,10 @@ ENVIRONMENTS
       is that it is closer to a native Windows environment and uses only a
       minimal of add-on POSIX-land tools.
 
-    - NuttX can also be installed and built on a native Windows system, but
-      with some potential tool-related issues (see the discussion "Native
-      Windows Build" under "Building NuttX" below).  GNUWin32 is used to
-      provide compatible native windows tools.
+  NuttX can also be installed and built on a native Windows system, but with
+  some potential tool-related issues (see the discussion "Native Windows
+  Build" under "Building NuttX" below).  GNUWin32 is used to provide
+  compatible native windows tools.
 
 Installing Cygwin
 -----------------
@@ -635,7 +635,7 @@ Instantiating "Canned" Configurations
       refreshing the configuration as described below.
 
       NOTE:  NuttX uses only compressed defconfig files.  For the NuttX
-      defconfig files, this refrshing step is *NOT* optional; it is also
+      defconfig files, this refreshing step is *NOT* optional; it is also
       necessary to uncompress and regenerate the full making file.  This is
       discussed further below.
 
@@ -1040,6 +1040,14 @@ NuttX Configuration Tool under DOS
   that can be used:
   http://uvc.de/posts/linux-kernel-configuration-tool-mconf-under-windows.html
 
+  The configuration steps most recent versions of NuttX require the
+  kconfig-tweak tool that is not not available in the the above.  However,
+  there has been an update to this Kconfig Windows tools that does include
+  kconfig-tweak:  http://reclonelabs.com/more-kconfig-awesomeness-for-windows/
+
+  Source code is available here: https://github.com/reclone/kconfig-frontends-win32
+  and https://github.com/reclone/kconfig-frontends-win32/releases
+
   It is also possible to use the version of kconfig-frontends built
   under Cygwin outside of the Cygwin "sandbox" in a native Windows
   environment:
@@ -1260,7 +1268,7 @@ Build Targets and Options
 
     Perform the distclean operation only in the user application directory.
     The apps/.config file is preserved so that this is not a "full" distclean
-    but more of a configuration "reset."
+    but more of a configuration "reset" for the application directory.
 
   export
 
@@ -1317,7 +1325,6 @@ Native Windows Build
 
   The windows native build logic initiated if CONFIG_WINDOWS_NATIVE=y is
   defined in the NuttX configuration file:
-
 
   This build:
 
@@ -1415,6 +1422,22 @@ Installing GNUWin32
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
 
+Performance
+-----------
+
+  Build performance under Cygwin is really not so bad, certainly not as good
+  as a Linux build.  However, often you will find that the performance is
+  not just bad but terrible.  If you are seeing awful performance.. like two
+  or three compilations per second.. the culprit is usually your Windows
+  Anti-Virus protection interfering with the build tool program execution.
+
+  I use Cygwin quite often and I use Windows Defender.  In order to get good
+  build performance, I routinely keep the Windows Defender "Virus & Threat
+  Protections Settings" screen up:  I disable "Real-Time Protection" just
+  before entering 'make' then turn "Real-Time Protection" back on when the
+  build completes.  With this additional nuisance step, I find that build
+  performance under Cygwin is completely acceptable.
+
 Strange Path Problems
 ---------------------
 
@@ -1468,6 +1491,7 @@ Window Native Toolchain Issues
      if you are using a native Windows toolchain.  That bring us to #3:
 
 General Pre-built Toolchain Issues
+----------------------------------
 
   To continue with the list of "Window Native Toolchain Issues" we can add
   the following.  These, however, are really just issues that you will have
@@ -1521,6 +1545,7 @@ General Pre-built Toolchain Issues
      binutils and possibly different ABIs.
 
 Building Original Linux Boards in Cygwin
+----------------------------------------
 
   Some default board configurations are set to build under Linux and others
   to build under Windows with Cygwin.  Various default toolchains may also
@@ -1539,6 +1564,7 @@ Building Original Linux Boards in Cygwin
   ("Run As" option, right button) you find errors like "Permission denied".
 
 Recovering from Bad Configurations
+----------------------------------
 
   Many people make the mistake of configuring NuttX with the "canned"
   configuration and then just typing 'make' with disastrous consequences;
@@ -1647,6 +1673,10 @@ nuttx/
  |   |   `- README.txt
  |   |- fire-stm32v2/
  |   |   `- README.txt
+ |   |- flipnclick-pic32mz/
+ |   |   `- README.txt
+ |   |- flipnclick-sam3x/
+ |   |   `- README.txt
  |   |- freedom-k64f/
  |   |   `- README.txt
  |   |- freedom-k66f/
@@ -1656,6 +1686,8 @@ nuttx/
  |   |- freedom-kl26z/
  |   |   `- README.txt
  |   |- hymini-stm32v/
+ |   |   `- README.txt
+ |   |- indium-f7
  |   |   `- README.txt
  |   |- kwikstik-k40/
  |   |   `- README.txt
@@ -1680,6 +1712,8 @@ nuttx/
  |   |- lpcxpresso-lpc1115/
  |   |   `- README.txt
  |   |- lpcxpresso-lpc1768/
+ |   |   `- README.txt
+ |   |- lpcxpresso-lpc54628/
  |   |   `- README.txt
  |   |- maple/
  |   |   `- README.txt

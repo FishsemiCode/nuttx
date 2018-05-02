@@ -45,7 +45,9 @@
 # include <stdint.h>
 #endif
 
+#ifdef __KERNEL__
 #include <stm32l4.h>
+#endif
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -144,9 +146,9 @@
 
 /* LEDs
  *
- * The Nucleo l476RG board provides a single user LED, LD2.  LD2
- * is the green LED connected to Arduino signal D13 corresponding to MCU I/O
- * PA5 (pin 21) or PB13 (pin 34) depending on the STM32 target.
+ * The Nucleo l432kc board provides a single user LED, LD2.  LD2
+ * is the green LED connected to Arduino signal D13 corresponding to
+ * MCU I/O PB3 (pin 26).
  *
  *   - When the I/O is HIGH value, the LED is on.
  *   - When the I/O is LOW, the LED is off.
@@ -264,4 +266,4 @@ void stm32l4_board_initialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __CONFIGS_NUCLEO_F476RG_INCLUDE_BOARD_H */
+#endif  /* __CONFIGS_NUCLEO_L432KC_INCLUDE_BOARD_H */

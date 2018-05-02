@@ -1,7 +1,7 @@
 /****************************************************************************
  * config/viewtool-stm32f107/src/stm32_bringup.c
  *
- *   Copyright (C) 2013, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -165,6 +165,16 @@ int stm32_bringup(void)
     }
 #endif
 
+#ifdef CONFIG_INPUT_ADS7843E
+  /* Initialize the touchscreen */
+
+  ret = stm32_tsc_setup(0);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: stm32_tsc_setup failed: %d\n", ret);
+    }
+#endif
+
 #ifdef CONFIG_CAN
   /* Initialize CAN and register the CAN driver. */
 
@@ -180,6 +190,14 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: stm32_mpl115ainitialize failed: %d\n", ret);
+    }
+#endif
+
+#if defined(CONFIG_VIEWTOOL_FT80X_SPI1) || defined(CONFIG_VIEWTOOL_FT80X_SPI2)
+  ret = stm32_ft80x_setup();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: stm32_ft80x_setup failed: %d\n", ret);
     }
 #endif
 

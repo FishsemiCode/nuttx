@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/pthread/pthread_setschedprio.c
  *
- *   Copyright (C) 2007, 2009, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,10 +38,14 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <sched.h>
 #include <errno.h>
+
+#include <nuttx/sched.h>
 #include <nuttx/arch.h>
+
 #include "sched/sched.h"
 
 /****************************************************************************
@@ -57,12 +61,12 @@
  *   If the  thread_setschedprio() function fails, the scheduling priority
  *   of the target thread will not be changed.
  *
- * Inputs:
+ * Input Parameters:
  *   thread - the thread ID of the task to reprioritize.
  *   prio - The new thread priority.  The range of valid priority numbers is
  *     from SCHED_PRIORITY_MIN through SCHED_PRIORITY_MAX.
  *
- * Return Value:
+ * Returned Value:
  *    OK if successful, otherwise an error number.  This function can
  *    fail for the following reasons:
  *
@@ -83,25 +87,21 @@ int pthread_setschedprio(pthread_t thread, int prio)
    * modified.
    */
 
-  ret = sched_getparam((pid_t)thread, &param);
+  ret = nxsched_getparam((pid_t)thread, &param);
   if (ret < 0)
     {
-      goto errout_with_errno;
+      return -ret;
     }
 #endif
 
-  /* Call sched_setparam() to change the priority */
+  /* Call nxsched_setparam() to change the priority */
 
   param.sched_priority = prio;
-  ret = sched_setparam((pid_t)thread, &param);
-  if (ret >= 0)
+  ret = nxsched_setparam((pid_t)thread, &param);
+  if (ret < 0)
     {
-      return OK;
+      return -ret;
     }
 
-#ifdef CONFIG_SCHED_SPORADIC
-errout_with_errno:
-#endif
-  ret = get_errno();
-  return ret;
+  return OK;
 }

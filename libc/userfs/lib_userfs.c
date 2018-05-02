@@ -428,6 +428,34 @@ static inline int userfs_fstat_dispatch(FAR struct userfs_info_s *info,
   return nsent < 0 ? nsent : OK;
 }
 
+static inline int userfs_truncate_dispatch(FAR struct userfs_info_s *info,
+                   FAR struct userfs_truncate_request_s *req, size_t reqlen)
+{
+  struct userfs_truncate_response_s resp;
+  ssize_t nsent;
+
+  /* Verify the request size */
+
+  if (reqlen != sizeof(struct userfs_truncate_request_s))
+    {
+      return -EINVAL;
+    }
+
+  /* Dispatch the request */
+
+  DEBUGASSERT(info->userops != NULL && info->userops->truncate != NULL);
+  resp.ret  = info->userops->truncate(info->volinfo, req->openinfo, req->length);
+
+  /* Send the response */
+
+  resp.resp = USERFS_RESP_FSTAT;
+  nsent     = sendto(info->sockfd, &resp,
+                     sizeof(struct userfs_truncate_response_s),
+                     0, (FAR struct sockaddr *)&info->client,
+                     sizeof(struct sockaddr_in));
+  return nsent < 0 ? nsent : OK;
+}
+
 static inline int userfs_opendir_dispatch(FAR struct userfs_info_s *info,
                    FAR struct userfs_opendir_request_s *req, size_t reqlen)
 {
@@ -873,7 +901,7 @@ static inline int userfs_destroy_dispatch(FAR struct userfs_info_s *info,
  *   NOTE:  This is a user function that is implemented as part of the
  *   NuttX C library and is intended to be called by appliation logic.
  *
- * Input parameters:
+ * Input Parameters:
  *   mountpt  - Mountpoint path
  *   userops  - The caller operations that implement the file system
  *              interface.
@@ -1033,6 +1061,11 @@ int userfs_run(FAR const char *mountpt,
           case USERFS_REQ_FSTAT:
             ret = userfs_fstat_dispatch(info,
                    (FAR struct userfs_fstat_request_s *)info->iobuffer, nread);
+            break;
+
+          case USERFS_REQ_TRUNCATE:
+            ret = userfs_truncate_dispatch(info,
+                   (FAR struct userfs_truncate_request_s *)info->iobuffer, nread);
             break;
 
           case USERFS_REQ_OPENDIR:

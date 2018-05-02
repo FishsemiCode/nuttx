@@ -91,7 +91,7 @@
  *   part of the internal implementation of each work queue; it should not
  *   be called from application level logic.
  *
- * Input parameters:
+ * Input Parameters:
  *   wqueue - Describes the work queue to be processed
  *
  * Returned Value:

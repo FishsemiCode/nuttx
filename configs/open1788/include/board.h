@@ -290,7 +290,7 @@
 #define BOARD_JOYSTICK_D           6
 #define BOARD_JOYSTICK_CTR         7
 
-#define BOARD_NUM_BUTTONS          8
+#define NUM_BUTTONS                8
 
 #define BOARD_BUTTON_USER1_BIT     (1 << BOARD_BUTTON_USER1)
 #define BOARD_BUTTON_USER2_BIT     (1 << BOARD_BUTTON_USER2)
@@ -375,7 +375,7 @@
 #define GPIO_LCD_VD6                GPIO_LCD_VD6_2
 #define GPIO_LCD_VD7                GPIO_LCD_VD7_2
 
-/* LED G:
+/* LCD G:
  *
  * VD8    --- Connected to P0[6]
  * VD9    --- Connected to P0[7]
@@ -434,43 +434,4 @@
 #define GPIO_SSP1_MOSI   GPIO_SSP1_MOSI_2
 #define GPIO_SSP1_SCK    GPIO_SSP1_SCK_2
 
-/************************************************************************************
- * Public Types
- ************************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/************************************************************************************
- * Public Data
- ************************************************************************************/
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-/************************************************************************************
- * Public Function Prototypes
- ************************************************************************************/
-/************************************************************************************
- * Name: lpc17_boardinitialize
- *
- * Description:
- *   All LPC17xx architectures must provide the following entry point.  This entry
- *   point is called early in the intitialization -- after all memory has been
- *   configured and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void lpc17_boardinitialize(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
 #endif  /* __CONFIG_OPEN1788_INCLUDE_BOARD_H */

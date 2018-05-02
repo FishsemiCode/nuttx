@@ -39,8 +39,8 @@ config ARCH_BOARD_AVR32DEV1
 	bool "Atmel AVR32DEV1 board"
 	depends on ARCH_CHIP_AT32UC3B0256
 	select ARCH_HAVE_LEDS
-	select ARCH_HAVE_BUTTONS
-	select ARCH_HAVE_IRQBUTTONS
+#	select ARCH_HAVE_BUTTONS
+#	select ARCH_HAVE_IRQBUTTONS
 	---help---
 		This is a port of NuttX to the Atmel AVR32DEV1 board.  That board is
 		based on the Atmel AT32UC3B0256 MCU and uses a specially patched
@@ -196,6 +196,30 @@ config ARCH_BOARD_FIRE_STM32
 		and 3 of the boards are supported but only version 2 has been
 		tested.
 
+config ARCH_BOARD_FLIPNCLICK_PIC32MZ
+	bool "Mikroe Flip&Click PIC32MZ"
+	depends on ARCH_CHIP_PIC32MZ2048EFH
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		This options selects the Mikroe Flip&Click PIC32MZ board.  This
+		board is an chipKit Arduino-compatible board (but can also be used
+		with the Mikroe bootloader).  It has with four Mikroe Click bus
+		interfaces in addition to standard Arduino connectors.  This board
+		features the Microchip PIC32MZ2048EFH100 MCU running at 200 MHz
+		(252Mhz capable).
+
+config ARCH_BOARD_FLIPNCLICK_SAM3X
+	bool "Mikroe Flip&Click SAM3X"
+	depends on ARCH_CHIP_ATSAM3X8E
+	select ARCH_HAVE_LEDS
+	---help---
+		This options selects the Mikroe Flip&Click STM32X board.  This board
+		is an Arduino-Due work-alike with four Mikroe Click bus interfaces.
+		Like the Arduino DUE, this board features the Atmel ATSAM3X8E MCU
+		running at 84 MHz.
+
 config ARCH_BOARD_FREEDOM_K64F
 	bool "NXP Freedom-k64f development board"
 	depends on ARCH_CHIP_MK64FN1M0VLL12
@@ -243,6 +267,21 @@ config ARCH_BOARD_HYMINI_STM32V
 	---help---
 		A configuration for the HY-Mini STM32v board.  This board is based on the
 		STM32F103VCT6 chip.
+
+config ARCH_BOARD_INDIUM_F7
+	bool "Indium-F7"
+	depends on ARCH_CHIP_STM32F722RE || ARCH_CHIP_STM32F722ZE || ARCH_CHIP_STM32F746ZG || ARCH_CHIP_STM32F767ZI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		Enables board support for the RAF Research Indium-F7 board and using
+		STMicro Nucleo-144 boards for interim support.  The Indium-F7 board
+		is a special purpose board created by RAF Research LLC.  It is
+		possible to develop basic Indium-F7 software using STMicro Nucleo-144
+		development boards. This board support directory provides support for
+		developing software on both native Indium-F7 hardware and for three
+		STM32F7 Nucleo-144 development boards.
 
 config ARCH_BOARD_LC823450_XGEVK
 	bool "ON Semiconductor LC823450-XGEVK development board"
@@ -328,6 +367,15 @@ config ARCH_BOARD_LPCXPRESSO
 	---help---
 		Embedded Artists base board with NXP LPCExpresso LPC1768.  This board
 		is based on the NXP LPC1768.  The Code Red toolchain is used by default.
+
+config ARCH_BOARD_LPCXPRESSO_LPC54628
+	bool "NXP LPCXpresso LPC54628"
+	depends on ARCH_CHIP_LPC54628
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		LPCXpresso LPC54626 board featuring the NXP LPC54628 MCU.
 
 config ARCH_BOARD_BAMBINO_200E
 	bool "Micromint Bambino 200E"
@@ -1144,14 +1192,23 @@ config ARCH_BOARD_STM3240G_EVAL
 		microcontroller (ARM Cortex-M4 with FPU).  This port uses a GNU Cortex-M4
 		toolchain (such as CodeSourcery).
 
-config ARCH_BOARD_STM32F0_DISCOVERY
-	bool "STMicro STM32F0-Discovery board"
+config ARCH_BOARD_STM32F051_DISCOVERY
+	bool "STMicro STM32F051-Discovery board"
 	depends on ARCH_CHIP_STM32F051R8
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
-		STMicro STM32F-Discovery board based on the STMicro ARCH_CHIP_STM32F051R8 MCU.
+		STMicro STM32F051-Discovery board based on the STMicro ARCH_CHIP_STM32F051R8 MCU.
+
+config ARCH_BOARD_STM32F072_DISCOVERY
+	bool "STMicro STM32F072-Discovery board"
+	depends on ARCH_CHIP_STM32F072RB
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro STM32F072-Discovery board based on the STMicro ARCH_CHIP_STM32F072RB MCU.
 
 config ARCH_BOARD_STM32F3_DISCOVERY
 	bool "STMicro STM32F3-Discovery board"
@@ -1582,11 +1639,14 @@ config ARCH_BOARD
 	default "ez80f910200kitg"          if ARCH_BOARD_EZ80F910200KITG
 	default "ez80f910200zco"           if ARCH_BOARD_EZ80F910200ZCO
 	default "fire-stm32v2"             if ARCH_BOARD_FIRE_STM32
+	default "flipnclick-pic32mz"       if ARCH_BOARD_FLIPNCLICK_PIC32MZ
+	default "flipnclick-sam3x"         if ARCH_BOARD_FLIPNCLICK_SAM3X
 	default "freedom-k64f"             if ARCH_BOARD_FREEDOM_K64F
 	default "freedom-k66f"             if ARCH_BOARD_FREEDOM_K66F
 	default "freedom-kl25z"            if ARCH_BOARD_FREEDOM_KL25Z
 	default "freedom-kl26z"            if ARCH_BOARD_FREEDOM_KL26Z
 	default "hymini-stm32v"            if ARCH_BOARD_HYMINI_STM32V
+	default "indium-f7"                if ARCH_BOARD_INDIUM_F7
 	default "kwikstik-k40"             if ARCH_BOARD_KWIKSTIK_K40
 	default "launchxl-tms57004"        if ARCH_BOARD_LAUNCHXL_TMS57004
 	default "lc823450-xgevk"           if ARCH_BOARD_LC823450_XGEVK
@@ -1601,6 +1661,7 @@ config ARCH_BOARD
 	default "lpc4370-link2"            if ARCH_BOARD_LPC4370_LINK2
 	default "lpcxpresso-lpc1115"       if ARCH_BOARD_LPCXPRESSO_LPC1115
 	default "lpcxpresso-lpc1768"       if ARCH_BOARD_LPCXPRESSO
+	default "lpcxpresso-lpc54628"      if ARCH_BOARD_LPCXPRESSO_LPC54628
 	default "maple"                    if ARCH_BOARD_MAPLE
 	default "mbed"                     if ARCH_BOARD_MBED
 	default "mcb1700"                  if ARCH_BOARD_MCB1700
@@ -1667,7 +1728,8 @@ config ARCH_BOARD
 	default "photon"                   if ARCH_BOARD_PHOTON
 	default "stm32butterfly2"          if ARCH_BOARD_STM32_BUTTERFLY2
 	default "stm32_tiny"               if ARCH_BOARD_STM32_TINY
-	default "stm32f0discovery"         if ARCH_BOARD_STM32F0_DISCOVERY
+	default "stm32f051-discovery"      if ARCH_BOARD_STM32F051_DISCOVERY
+	default "stm32f072-discovery"      if ARCH_BOARD_STM32F072_DISCOVERY
 	default "stm32f103-minimum"        if ARCH_BOARD_STM32F103_MINIMUM
 	default "stm3210e-eval"            if ARCH_BOARD_STM3210E_EVAL
 	default "stm3220g-eval"            if ARCH_BOARD_STM3220G_EVAL
@@ -1803,6 +1865,12 @@ endif
 if ARCH_BOARD_FIRE_STM32
 source "configs/fire-stm32v2/Kconfig"
 endif
+if ARCH_BOARD_FLIPNCLICK_PIC32MZ
+source "configs/flipnclick-pic32mz/Kconfig"
+endif
+if ARCH_BOARD_FLIPNCLICK_SAM3X
+source "configs/flipnclick-sam3x/Kconfig"
+endif
 if ARCH_BOARD_FREEDOM_K64F
 source "configs/freedom-k64f/Kconfig"
 endif
@@ -1817,6 +1885,9 @@ source "configs/freedom-kl26z/Kconfig"
 endif
 if ARCH_BOARD_HYMINI_STM32V
 source "configs/hymini-stm32v/Kconfig"
+endif
+if ARCH_BOARD_INDIUM_F7
+source "configs/indium-f7/Kconfig"
 endif
 if ARCH_BOARD_KWIKSTIK_K40
 source "configs/kwikstik-k40/Kconfig"
@@ -1856,6 +1927,9 @@ source "configs/lpc4370-link2/Kconfig"
 endif
 if ARCH_BOARD_LPCXPRESSO
 source "configs/lpcxpresso-lpc1768/Kconfig"
+endif
+if ARCH_BOARD_LPCXPRESSO_LPC54628
+source "configs/lpcxpresso-lpc54628/Kconfig"
 endif
 if ARCH_BOARD_MAPLE
 source "configs/maple/Kconfig"
@@ -2055,8 +2129,11 @@ endif
 if ARCH_BOARD_STM32_TINY
 source "configs/stm32_tiny/Kconfig"
 endif
-if ARCH_BOARD_STM32F0_DISCOVERY
-source "configs/stm32f0discovery/Kconfig"
+if ARCH_BOARD_STM32F051_DISCOVERY
+source "configs/stm32f051-discovery/Kconfig"
+endif
+if ARCH_BOARD_STM32F072_DISCOVERY
+source "configs/stm32f072-discovery/Kconfig"
 endif
 if ARCH_BOARD_STM32F103_MINIMUM
 source "configs/stm32f103-minimum/Kconfig"
@@ -2282,15 +2359,6 @@ config BOARDCTL_USBDEVCTRL
 	depends on USBDEV
 	---help---
 		Enables support for the BOARDIOC_USBDEV_CONTROL boardctl() command.
-
-config BOARDCTL_TSCTEST
-	bool "Enable touchscreen test interfaces"
-	default n
-	---help---
-		Enables support for the BOARDIOC_TSCTEST_SETUP and
-		BOARDIOC_TSCTEST_TEARDOWN boardctl() commands.  Architecture
-		specific logic must provide board_tsc_setup() and
-		board_tsc_teardown() interfaces.
 
 config BOARDCTL_IOCTL
 	bool "Board-specific boardctl() commands"

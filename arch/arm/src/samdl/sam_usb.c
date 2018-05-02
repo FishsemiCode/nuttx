@@ -107,17 +107,13 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#if defined(CONFIG_ARCH_FAMILY_SAMD20) || defined(CONFIG_ARCH_FAMILY_SAMD21)
-  #include "samd_periphclks.h"
-#elif defined(CONFIG_ARCH_FAMILY_SAML21)
-  #include "saml_periphclks.h"
-#endif
-
 #include "sam_gclk.h"
 #include "chip.h"
 #include "sam_port.h"
 #include "sam_pinmap.h"
 #include "sam_usb.h"
+#include "sam_fuses.h"
+#include "sam_periphclks.h"
 
 #if defined(CONFIG_USBHOST) && defined(CONFIG_SAMDL_USB)
 #  error USBHOST mode not yet implemented!
@@ -320,7 +316,6 @@ struct sam_rqhead_s
   struct sam_req_s    *head;         /* Requests are added to the head of the list */
   struct sam_req_s    *tail;         /* Requests are removed from the tail of the list */
 };
-
 
 /* This is the internal representation of an endpoint */
 
@@ -2476,8 +2471,6 @@ static void sam_ep0_dispatch(struct sam_usbdev_s *priv)
 
 static void sam_setdevaddr(struct sam_usbdev_s *priv, uint8_t address)
 {
-  uint32_t regval;
-
   DEBUGASSERT(address <= 0x7f);
   if (address)
     {
@@ -3435,6 +3428,8 @@ static int sam_usb_interrupt(int irq, void *context, void *arg)
       uwarn("WARNING: Unhandled_EP:0x%X\n", pendingep);
     }
 #endif
+
+  return OK;
 }
 
 void up_usbuninitialize(void)
@@ -3491,7 +3486,7 @@ errout:
 /****************************************************************************
  * Name: sam_ep_reset
  *
- * Description
+ * Description:
  *   Reset and disable one endpoints.
  *
  ****************************************************************************/
@@ -3528,7 +3523,7 @@ static void sam_ep_reset(struct sam_usbdev_s *priv, uint8_t epno)
 /****************************************************************************
  * Name: sam_epset_reset
  *
- * Description
+ * Description:
  *   Reset and disable a set of endpoints.
  *
  ****************************************************************************/
@@ -3782,6 +3777,10 @@ static void sam_hw_setup(struct sam_usbdev_s *priv)
   uint16_t regval;
   uint32_t padcalib;
 
+  uint8_t calib_transn;
+  uint8_t calib_transp;
+  uint8_t calib_trim;
+
   /* To use the USB, the programmer must first configure the USB clock
    * input,
    */
@@ -3792,11 +3791,21 @@ static void sam_hw_setup(struct sam_usbdev_s *priv)
 
   sam_ctrla_write(USB_CTRLA_SWRST);
 
-  /* TODO: load PAD calibration from NVM or ...
-   * now using default values
-   */
+  /* Load USB factory calibration values from NVRAM */
 
-  padcalib = USB_PADCAL_TRANSP(29) | USB_PADCAL_TRANSN(5) | USB_PADCAL_TRIM(3);
+  calib_transn = getreg32(SYSCTRL_FUSES_USBTRANSN_ADDR) & 
+                 SYSCTRL_FUSES_USBTRANSN_MASK >> SYSCTRL_FUSES_USBTRANSN_SHIFT;
+
+  calib_transp = getreg32(SYSCTRL_FUSES_USBTRANSP_ADDR) & 
+                 SYSCTRL_FUSES_USBTRANSP_MASK >> SYSCTRL_FUSES_USBTRANSP_SHIFT;
+
+  calib_trim = getreg32(SYSCTRL_FUSES_USBTRIM_ADDR) &
+               SYSCTRL_FUSES_USBTRIM_MASK >> SYSCTRL_FUSES_USBTRIM_SHIFT;
+
+  padcalib = USB_PADCAL_TRANSP(calib_transp) | 
+             USB_PADCAL_TRANSN(calib_transn) |
+             USB_PADCAL_TRIM(calib_trim);
+
   sam_putreg32(padcalib, SAM_USB_PADCAL);
 
   /* set config
@@ -3866,8 +3875,6 @@ static void sam_hw_setup(struct sam_usbdev_s *priv)
 
 static void sam_hw_shutdown(struct sam_usbdev_s *priv)
 {
-  uint16_t regval;
-
   priv->usbdev.speed = USB_SPEED_UNKNOWN;
 
   /* Disable all interrupts */

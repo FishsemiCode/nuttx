@@ -197,7 +197,7 @@ int sam_hsmci_initialize(void);
  *
  ************************************************************************************/
 
-#if defined(HAVE_HSMCI) && defined(CONFIG_MMCSD_HAVECARDDETECT)
+#if defined(HAVE_HSMCI) && defined(CONFIG_MMCSD_HAVE_CARDDETECT)
 bool sam_cardinserted(int slotno);
 #endif
 
@@ -221,7 +221,7 @@ bool sam_writeprotected(int slotno);
  * Description:
  *   Perform architecture-specific initialization of the Watchdog hardware.
  *
- * Input parameters:
+ * Input Parameters:
  *   None
  *
  * Returned Value:

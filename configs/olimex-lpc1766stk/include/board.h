@@ -194,7 +194,7 @@
 #define BOARD_JOYSTICK_LEFT        6
 #define BOARD_JOYSTICK_RIGHT       7
 
-#define BOARD_NUM_BUTTONS          8
+#define NUM_BUTTONS                8
 
 #define BOARD_BUTTON_BUTTON1_BIT   (1 << BOARD_BUTTON_1)
 #define BOARD_BUTTON_BUTTON2_BIT   (1 << BOARD_BUTTON_2)
@@ -349,43 +349,4 @@
  *  P1[31]/SCK1/AD0[5]                20  AIN5
  */
 
-/************************************************************************************
- * Public Types
- ************************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/************************************************************************************
- * Public Data
- ************************************************************************************/
-
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C" {
-#else
-#define EXTERN extern
-#endif
-
-/************************************************************************************
- * Public Function Prototypes
- ************************************************************************************/
-/************************************************************************************
- * Name: lpc17_boardinitialize
- *
- * Description:
- *   All LPC17xx architectures must provide the following entry point.  This entry
- *   point is called early in the intitialization -- after all memory has been
- *   configured and mapped but before any devices have been initialized.
- *
- ************************************************************************************/
-
-void lpc17_boardinitialize(void);
-
-#undef EXTERN
-#if defined(__cplusplus)
-}
-#endif
-
-#endif /* __ASSEMBLY__ */
 #endif  /* __ARCH_BOARD_BOARD_H */

@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched/sched.h
  *
- *   Copyright (C) 2007-2014, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2014, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -63,8 +63,31 @@
  * tasks built into the design).
  */
 
+#if CONFIG_MAX_TASKS & (CONFIG_MAX_TASKS - 1)
+#  error CONFIG_MAX_TASKS must be power of 2
+#endif
+
 #define MAX_TASKS_MASK           (CONFIG_MAX_TASKS-1)
 #define PIDHASH(pid)             ((pid) & MAX_TASKS_MASK)
+
+/* These are macros to access the current CPU and the current task on a CPU.
+ * These macros are intended to support a future SMP implementation.
+ * NOTE: this_task() for SMP is implemented in sched_thistask.c if the CPU
+ * supports disabling of inter-processor interrupts or if it supports the
+ * atomic fetch add operation.
+ */
+
+#ifdef CONFIG_SMP
+#  define current_task(cpu)      ((FAR struct tcb_s *)g_assignedtasks[cpu].head)
+#  define this_cpu()             up_cpu_index()
+#  if !defined(CONFIG_ARCH_GLOBAL_IRQDISABLE) && !defined(CONFIG_ARCH_HAVE_FETCHADD)
+#    define this_task()          (current_task(this_cpu()))
+#  endif
+#else
+#  define current_task(cpu)      ((FAR struct tcb_s *)g_readytorun.head)
+#  define this_cpu()             (0)
+#  define this_task()            (current_task(this_cpu()))
+#endif
 
 /* List attribute flags */
 
@@ -154,7 +177,7 @@ extern volatile dq_queue_t g_readytorun;
  *    and
  *  - Tasks/threads that have not been assigned to a CPU.
  *
- * Otherwise, the TCB will be reatined in an assigned task list,
+ * Otherwise, the TCB will be retained in an assigned task list,
  * g_assignedtasks.  As its name suggests, on 'g_assignedtasks queue for CPU
  * 'n' would contain only tasks/threads that are assigned to CPU 'n'.  Tasks/
  * threads would be assigned a particular CPU by one of two mechanisms:
@@ -268,7 +291,7 @@ extern struct pidhash_s g_pidhash[CONFIG_MAX_TASKS];
 /* This is a table of task lists.  This table is indexed by the task stat
  * enumeration type (tstate_t) and provides a pointer to the associated
  * static task list (if there is one) as well as a a set of attribute flags
- * indicating properities of the list, for example, if the list is an
+ * indicating properties of the list, for example, if the list is an
  * ordered list or not.
  */
 
@@ -347,33 +370,19 @@ extern volatile spinlock_t g_cpu_schedlock SP_SECTION;
 extern volatile spinlock_t g_cpu_locksetlock SP_SECTION;
 extern volatile cpu_set_t g_cpu_lockset SP_SECTION;
 
-#endif /* CONFIG_SMP */
+/* Used to lock tasklist to prevent from concurrent access */
 
-/****************************************************************************
- * Inline functions
- ****************************************************************************/
+extern volatile spinlock_t g_cpu_tasklistlock SP_SECTION;
 
-#ifdef CONFIG_SMP
-static inline FAR struct tcb_s *current_task(int cpu)
-{
-  return (FAR struct tcb_s *)g_assignedtasks[cpu].head;
-}
-#else
-static inline FAR struct tcb_s *current_task(int cpu)
-{
-  return (FAR struct tcb_s *)g_readytorun.head;
-}
+#if defined(CONFIG_ARCH_HAVE_FETCHADD) && !defined(CONFIG_ARCH_GLOBAL_IRQDISABLE)
+/* This is part of the sched_lock() logic to handle atomic operations when
+ * locking the scheduler.
+ */
+
+extern volatile int16_t g_global_lockcount;
 #endif
 
-static inline uint32_t this_cpu(void)
-{
-  return up_cpu_index();
-}
-
-static inline FAR struct tcb_s *this_task(void)
-{
-  return current_task(this_cpu());
-}
+#endif /* CONFIG_SMP */
 
 /****************************************************************************
  * Public Function Prototypes
@@ -389,15 +398,15 @@ void sched_mergeprioritized(FAR dq_queue_t *list1, FAR dq_queue_t *list2,
 bool sched_mergepending(void);
 void sched_addblocked(FAR struct tcb_s *btcb, tstate_t task_state);
 void sched_removeblocked(FAR struct tcb_s *btcb);
-int  sched_setpriority(FAR struct tcb_s *tcb, int sched_priority);
+int  nxsched_setpriority(FAR struct tcb_s *tcb, int sched_priority);
 
 /* Priority inheritance support */
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
-int  sched_reprioritize(FAR struct tcb_s *tcb, int sched_priority);
+int  nxsched_reprioritize(FAR struct tcb_s *tcb, int sched_priority);
 #else
-#  define sched_reprioritize(tcb,sched_priority) \
-     sched_setpriority(tcb,sched_priority)
+#  define nxsched_reprioritize(tcb,sched_priority) \
+     nxsched_setpriority(tcb,sched_priority)
 #endif
 
 /* Support for tickless operation */
@@ -432,13 +441,30 @@ void sched_sporadic_lowpriority(FAR struct tcb_s *tcb);
 #endif
 
 #ifdef CONFIG_SMP
+#if defined(CONFIG_ARCH_GLOBAL_IRQDISABLE) || defined(CONFIG_ARCH_HAVE_FETCHADD)
+FAR struct tcb_s *this_task(void);
+#endif
+
 int  sched_cpu_select(cpu_set_t affinity);
 int  sched_cpu_pause(FAR struct tcb_s *tcb);
-#  define sched_islocked(tcb) spin_islocked(&g_cpu_schedlock)
+
+irqstate_t sched_tasklist_lock(void);
+void sched_tasklist_unlock(irqstate_t lock);
+
+#if defined(CONFIG_ARCH_HAVE_FETCHADD) && !defined(CONFIG_ARCH_GLOBAL_IRQDISABLE)
+#  define sched_islocked_global() \
+     (spin_islocked(&g_cpu_schedlock) || g_global_lockcount > 0)
 #else
-#  define sched_cpu_select(a) (0)
-#  define sched_cpu_pause(t)  (-38)  /* -ENOSYS */
-#  define sched_islocked(tcb) ((tcb)->lockcount > 0)
+#  define sched_islocked_global() \
+     spin_islocked(&g_cpu_schedlock)
+#endif
+
+#  define sched_islocked_tcb(tcb) sched_islocked_global()
+
+#else
+#  define sched_cpu_select(a)     (0)
+#  define sched_cpu_pause(t)      (-38)  /* -ENOSYS */
+#  define sched_islocked_tcb(tcb) ((tcb)->lockcount > 0)
 #endif
 
 /* CPU load measurement support */

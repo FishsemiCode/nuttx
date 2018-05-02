@@ -102,7 +102,7 @@ uint32_t get_cpu_ver(void)
 /****************************************************************************
  * Name: mod_stby_regs
  *
- * Input parameters:
+ * Input Parameters:
  *   enabits : specify regions to be enabled
  *   disbits : specify regions to be disabled
  *
@@ -144,7 +144,7 @@ void mod_stby_regs(uint32_t enabits, uint32_t disbits)
 void up_enable_clk(enum clock_e clk)
 {
   irqstate_t flags;
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   DEBUGASSERT(clk < LC823450_CLOCK_NUM);
 
@@ -154,7 +154,7 @@ void up_enable_clk(enum clock_e clk)
                   0, lc823450_clocks[clk].regmask);
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 }
 
 /****************************************************************************
@@ -164,7 +164,7 @@ void up_enable_clk(enum clock_e clk)
 void up_disable_clk(enum clock_e clk)
 {
   irqstate_t flags;
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   DEBUGASSERT(clk < LC823450_CLOCK_NUM);
 
@@ -181,7 +181,7 @@ void up_disable_clk(enum clock_e clk)
       lc823450_clocks[clk].count = 0;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 }
 
 /****************************************************************************

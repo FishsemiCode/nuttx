@@ -351,6 +351,24 @@
 #define MII_PHYID1_LAN8720           0x0007    /* ID1 value for LAN8720 */
 #define MII_PHYID2_LAN8720           0xc0f1    /* ID2 value for LAN8720 */
 
+/* SMSC LAN8720 SPSCR register bits */
+
+#define MII_LAN8720_SPSCR_SCRMDIS    (1 << 0)  /* Bit 0:  Scramble disable */
+                                               /* Bit 1:  Reserved */
+#define MII_LAN8720_SPSCR_MODE_SHIFT (2)       /* Bits 2-4: Speed/duplex mode */
+#define MII_LAN8720_SPSCR_MODE_MASK  (7 << MII_LAN8720_SPSCR_MODE_SHIFT)
+#  define MII_LAN8720_SPSCR_10MBPS   (1 << 2)  /* Bit 2:  10MBPS speed */
+#  define MII_LAN8720_SPSCR_100MBPS  (1 << 3)  /* Bit 3:  100MBPS speed */
+#  define MII_LAN8720_SPSCR_DUPLEX   (1 << 4)  /* Bit 4:  Full duplex mode */
+                                               /* Bit 5:  Reserved */
+#define MII_LAN8720_SPSCR_ENAB4B5B   (1 << 6)  /* Bit 6:  Enable 4B5B */
+#define MII_LAN8720_SPSCR_GPIO0      (1 << 7)  /* Bit 7:  GPIO0 */
+#define MII_LAN8720_SPSCR_GPIO1      (1 << 8)  /* Bit 8:  GPIO1 */
+#define MII_LAN8720_SPSCR_GPIO2      (1 << 9)  /* Bit 9:  GPIO2 */
+                                               /* Bit 10-11: Reserved */
+#define MII_LAN8720_SPSCR_ANEGDONE   (1 << 12) /* Bit 12: Autonegotiation complete */
+                                               /* Bits 13-15: Reserved */
+
 /* SMSC LAN8740 MII ID1/2 register bits */
 
 #define MII_PHYID1_LAN8740           0x0007    /* ID1 value for LAN8740 */
@@ -565,6 +583,7 @@
 #  define MII_PHYCTRL2_MODE_BUSY     (0 << MII_PHYCTRL2_MODE_SHIFT) /* Still in autonegotiation */
 #  define MII_PHYCTRL2_MODE_10HDX    (1 << MII_PHYCTRL2_MODE_SHIFT) /* 10Base-T half-duplex */
 #  define MII_PHYCTRL2_MODE_100HDX   (2 << MII_PHYCTRL2_MODE_SHIFT) /* 100Base-T half-duplex */
+#  define MII_PHYCTRL2_MODE_DUPLEX   (4 << MII_PHYCTRL2_MODE_SHIFT) /* Full duplex */
 #  define MII_PHYCTRL2_MODE_10FDX    (5 << MII_PHYCTRL2_MODE_SHIFT) /* 10Base-T full-duplex */
 #  define MII_PHYCTRL2_MODE_100FDX   (6 << MII_PHYCTRL2_MODE_SHIFT) /* 100Base-T full-duplex */
 #define MII_PHYCTRL2_SEQTEST         (1 << 1)  /* Bit 1:  Enable SQE test */
@@ -584,6 +603,7 @@
 #  define MII_PHYCTRL1_MODE_BUSY     (0 << MII_PHYCTRL1_MODE_SHIFT) /* Still in autonegotiation */
 #  define MII_PHYCTRL1_MODE_10HDX    (1 << MII_PHYCTRL1_MODE_SHIFT) /* 10Base-T half-duplex */
 #  define MII_PHYCTRL1_MODE_100HDX   (2 << MII_PHYCTRL1_MODE_SHIFT) /* 100Base-T half-duplex */
+#  define MII_PHYCTRL1_MODE_DUPLEX   (4 << MII_PHYCTRL1_MODE_SHIFT) /* Full duplex */
 #  define MII_PHYCTRL1_MODE_10FDX    (5 << MII_PHYCTRL1_MODE_SHIFT) /* 10Base-T full-duplex */
 #  define MII_PHYCTRL1_MODE_100FDX   (6 << MII_PHYCTRL1_MODE_SHIFT) /* 100Base-T full-duplex */
 

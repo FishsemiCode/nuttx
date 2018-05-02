@@ -279,7 +279,7 @@ void clock_timespec_subtract(FAR const struct timespec *ts1,
  * Parameters:
  *   None
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -309,7 +309,7 @@ void clock_synchronize(void);
  * Parameters:
  *   diff:  amount of time system-time is adjusted forward with RTC
  *
- * Return Value:
+ * Returned Value:
  *   None
  *
  * Assumptions:
@@ -336,7 +336,7 @@ void clock_resynchronize(FAR struct timespec *rtc_diff);
  * Parameters:
  *   None
  *
- * Return Value:
+ * Returned Value:
  *   The current value of the system timer counter
  *
  * Assumptions:
@@ -357,7 +357,7 @@ systime_t clock_systimer(void);
  * Parameters:
  *   ts - Location to return the time
  *
- * Return Value:
+ * Returned Value:
  *   Current version always returns OK
  *
  * Assumptions:
@@ -376,7 +376,7 @@ int clock_systimespec(FAR struct timespec *ts);
  *   pid - The task ID of the thread of interest.  pid == 0 is the IDLE thread.
  *   cpuload - The location to return the CPU load
  *
- * Return Value:
+ * Returned Value:
  *   OK (0) on success; a negated errno value on failure.  The only reason
  *   that this function can fail is if 'pid' no longer refers to a valid
  *   thread.

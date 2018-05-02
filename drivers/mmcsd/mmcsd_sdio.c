@@ -1895,6 +1895,25 @@ static ssize_t mmcsd_writemultiple(FAR struct mmcsd_state_s *priv,
         }
     }
 
+  /* If Controller does not need DMA setup before the write then send CMD25
+   * now.
+   */
+
+  if ((priv->caps & SDIO_CAPS_DMABEFOREWRITE) == 0)
+    {
+      /* Send CMD25, WRITE_MULTIPLE_BLOCK, and verify that good R1 status
+       * is returned
+       */
+
+      mmcsd_sendcmdpoll(priv, MMCSD_CMD25, offset);
+      ret = mmcsd_recvR1(priv, MMCSD_CMD25);
+      if (ret != OK)
+        {
+          ferr("ERROR: mmcsd_recvR1 for CMD25 failed: %d\n", ret);
+          return ret;
+        }
+    }
+
   /* Configure SDIO controller hardware for the write transfer */
 
   SDIO_BLOCKSETUP(priv->dev, priv->blocksize, nblocks);
@@ -1923,24 +1942,30 @@ static ssize_t mmcsd_writemultiple(FAR struct mmcsd_state_s *priv,
 
   priv->wrbusy = true;
 
-  /* Send CMD25, WRITE_MULTIPLE_BLOCK, and verify that good R1 status
-   * is returned
-   */
+  /* If Controller needs DMA setup before write then only send CMD25 now. */
 
-  mmcsd_sendcmdpoll(priv, MMCSD_CMD25, offset);
-  ret = mmcsd_recvR1(priv, MMCSD_CMD25);
-  if (ret != OK)
+  if ((priv->caps & SDIO_CAPS_DMABEFOREWRITE) != 0)
     {
-      ferr("ERROR: mmcsd_recvR1 for CMD25 failed: %d\n", ret);
-      return ret;
+      /* Send CMD25, WRITE_MULTIPLE_BLOCK, and verify that good R1 status
+       * is returned
+       */
+
+      mmcsd_sendcmdpoll(priv, MMCSD_CMD25, offset);
+      ret = mmcsd_recvR1(priv, MMCSD_CMD25);
+      if (ret != OK)
+        {
+          ferr("ERROR: mmcsd_recvR1 for CMD25 failed: %d\n", ret);
+          return ret;
+        }
     }
 
   /* Wait for the transfer to complete */
 
-  ret = mmcsd_eventwait(priv, SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR, nblocks * MMCSD_BLOCK_WDATADELAY);
+  ret = mmcsd_eventwait(priv, SDIOWAIT_TIMEOUT | SDIOWAIT_ERROR,
+                        nblocks * MMCSD_BLOCK_WDATADELAY);
   if (ret != OK)
     {
-      ferr("ERROR: CMD18 transfer failed: %d\n", ret);
+      ferr("ERROR: CMD25 transfer failed: %d\n", ret);
       return ret;
     }
 
@@ -3011,7 +3036,7 @@ static int mmcsd_probe(FAR struct mmcsd_state_s *priv)
    * else
    */
 
-#ifdef CONFIG_MMCSD_HAVECARDDETECT
+#ifdef CONFIG_MMCSD_HAVE_CARDDETECT
   if (priv->probed && SDIO_PRESENT(priv->dev))
     {
       return OK;
@@ -3038,7 +3063,7 @@ static int mmcsd_probe(FAR struct mmcsd_state_s *priv)
       if (ret != OK)
         {
           ferr("ERROR: Failed to initialize card: %d\n", ret);
-#ifdef CONFIG_MMCSD_HAVECARDDETECT
+#ifdef CONFIG_MMCSD_HAVE_CARDDETECT
           SDIO_CALLBACKENABLE(priv->dev, SDIOMEDIA_INSERTED);
 #endif
         }
@@ -3075,7 +3100,7 @@ static int mmcsd_probe(FAR struct mmcsd_state_s *priv)
               finfo("Capacity: %lu Kbytes\n", (unsigned long)(priv->capacity / 1024));
               priv->mediachanged = true;
 
-#ifdef CONFIG_MMCSD_HAVECARDDETECT
+#ifdef CONFIG_MMCSD_HAVE_CARDDETECT
               /* Set up to receive asynchronous, media removal events */
 
               SDIO_CALLBACKENABLE(priv->dev, SDIOMEDIA_EJECTED);
@@ -3096,7 +3121,7 @@ static int mmcsd_probe(FAR struct mmcsd_state_s *priv)
       /* There is no card in the slot */
 
       finfo("No card\n");
-#ifdef CONFIG_MMCSD_HAVECARDDETECT
+#ifdef CONFIG_MMCSD_HAVE_CARDDETECT
       SDIO_CALLBACKENABLE(priv->dev, SDIOMEDIA_INSERTED);
 #endif
       ret = -ENODEV;

@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/sched/sched_setaffinity.c
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,7 +53,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: sched_getscheduler
+ * Name: nxsched_setaffinity
  *
  * Description:
  *   sched_setaffinity() sets the CPU affinity mask of the thread whose ID
@@ -62,29 +62,34 @@
  *   bytes) of the data pointed to by mask.  Normally this argument would
  *   be specified as sizeof(cpu_set_t).
  *
- *  If the thread specified by pid is not currently running on one of the
- *  CPUs specified in mask, then that thread is migrated to one of the
+ *   If the thread specified by pid is not currently running on one of the
+ *   CPUs specified in mask, then that thread is migrated to one of the
  *   CPUs specified in mask.
  *
- * Inputs:
- *   pid       - The ID of thread whose affinity set will be modified.
- *   cpusetsize - Size of cpuset.  MUST be sizeofcpu_set_t().
- *   cpuset     - The location to return the thread's new affinity set.
+ *   nxsched_setaffinity() is identical to the function sched_setparam(),
+ *   differing only in its return value:  This function does not modify
+ *   the errno variable.  This is a non-standard, internal OS function and
+ *   is not intended for use by application logic.  Applications should
+ *   use the standard sched_setparam().
  *
- * Return Value:
- *   0 if successful.  Otherwise, ERROR (-1) is returned, and errno is
- *   set appropriately:
+ * Input Parameters:
+ *   pid        - The ID of thread whose affinity set will be modified.
+ *   cpusetsize - Size of mask.  MUST be sizeofcpu_set_t().
+ *   mask       - The location to return the thread's new affinity set.
  *
- *      ESRCH  The task whose ID is pid could not be found.
+ * Returned Value:
+ *   Zero (OK) if successful.  Otherwise, a negated errno value is returned:
+ *
+ *     ESRCH  The task whose ID is pid could not be found.
  *
  ****************************************************************************/
 
-int sched_setaffinity(pid_t pid, size_t cpusetsize, FAR const cpu_set_t *mask)
+int nxsched_setaffinity(pid_t pid, size_t cpusetsize,
+                        FAR const cpu_set_t *mask)
 {
   FAR struct tcb_s *tcb;
   irqstate_t flags;
-  int errcode = 0;
-  int ret;
+  int ret = OK;
 
   DEBUGASSERT(cpusetsize == sizeof(cpu_set_t) && mask != NULL);
 
@@ -102,7 +107,7 @@ int sched_setaffinity(pid_t pid, size_t cpusetsize, FAR const cpu_set_t *mask)
 
   if (tcb == NULL)
     {
-      errcode = ESRCH;
+      ret = -ESRCH;
       goto errout_with_lock;
     }
 
@@ -113,7 +118,7 @@ int sched_setaffinity(pid_t pid, size_t cpusetsize, FAR const cpu_set_t *mask)
   flags = enter_critical_section();
   if ((tcb->flags & TCB_FLAG_CPU_LOCKED) != 0)
     {
-      errcode = EINVAL;
+      ret = -EINVAL;
       goto errout_with_csection;
     }
 
@@ -140,17 +145,13 @@ int sched_setaffinity(pid_t pid, size_t cpusetsize, FAR const cpu_set_t *mask)
           /* No.. then we will need to move the task from the assigned
            * task list to some other ready to run list.
            *
-           * sched_setpriority() will do just what we want... it will remove
+           * nxsched_setpriority() will do just what we want... it will remove
            * the task from its current position in the some assigned task list
            * and then simply put it back in the right place.  This works even
            * if the task is this task.
            */
 
-          ret = sched_setpriority(tcb, tcb->sched_priority);
-          if (ret < 0)
-            {
-              errcode = get_errno();
-            }
+          ret = nxsched_setpriority(tcb, tcb->sched_priority);
         }
     }
 
@@ -159,11 +160,47 @@ errout_with_csection:
 
 errout_with_lock:
   sched_unlock();
-  if (errcode != 0)
+  return ret;
+}
+
+/****************************************************************************
+ * Name: sched_setaffinity
+ *
+ * Description:
+ *   sched_setaffinity() sets the CPU affinity mask of the thread whose ID
+ *   is pid to the value specified by mask.  If pid is zero, then the
+ *   calling thread is used.  The argument cpusetsize is the length (i
+ *   bytes) of the data pointed to by mask.  Normally this argument would
+ *   be specified as sizeof(cpu_set_t).
+ *
+ *   If the thread specified by pid is not currently running on one of the
+ *   CPUs specified in mask, then that thread is migrated to one of the
+ *   CPUs specified in mask.
+ *
+ *   This function is a simply wrapper around nxsched_setaffinity() that sets
+ *   the errno value in the event of an error.
+ *
+ * Input Parameters:
+ *   pid        - The ID of thread whose affinity set will be modified.
+ *   cpusetsize - Size of mask.  MUST be sizeofcpu_set_t().
+ *   mask       - The location to return the thread's new affinity set.
+ *
+ * Returned Value:
+ *   0 if successful.  Otherwise, ERROR (-1) is returned, and errno is
+ *   set appropriately:
+ *
+ *     ESRCH  The task whose ID is pid could not be found.
+ *
+ ****************************************************************************/
+
+int sched_setaffinity(pid_t pid, size_t cpusetsize, FAR const cpu_set_t *mask)
+{
+  int ret = nxsched_setaffinity(pid, cpusetsize, mask);
+  if (ret < 0)
     {
-      set_errno(errcode);
-      return ERROR;
+      set_errno(-ret);
+      ret = ERROR;
     }
 
-  return OK;
+  return ret;
 }

@@ -1,7 +1,7 @@
 /****************************************************************************
  * configs/viewtool-stm32f107/src/viewtool_stm32f107.h
  *
- *   Copyright (C) 2013-2014, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013-2014, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -129,7 +129,6 @@
                          GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN12)
 #define GPIO_LED4       (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz|\
                          GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN13)
-
 
 /* Buttons ******************************************************************/
 /* All pulled high and will be sensed low when depressed.
@@ -302,6 +301,31 @@
 #define GPIO_MPL115A_CS   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
                            GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN6)
 
+/* FT80x GUI Discrete I/O (See README.txt for details):
+ *
+ * ------ ----------- --------------------
+ * NAME   VIEWTOOL    STM32
+ * ------ ----------- --------------------
+ * CS#    J8  Pin 12  PA4/NSS1  (For SPI1)
+ * CS#    J8  Pin  6  PB12/NSS2 (For SPI2)
+ * INT#   J18 Pin  8  PA1
+ * PD#    J18 Pin  6  PC5
+ */
+
+#if defined(CONFIG_VIEWTOOL_FT80X_SPI1)
+#  define FT80X_SPIBUS    1
+#  define GPIO_FT80X_CS   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+                           GPIO_OUTPUT_SET | GPIO_PORTA | GPIO_PIN4)
+#elif defined(CONFIG_VIEWTOOL_FT80X_SPI2)
+#  define FT80X_SPIBUS    2
+#  define GPIO_FT80X_CS   (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+                           GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN12)
+#endif
+#define GPIO_FT80X_INT    (GPIO_INPUT | GPIO_CNF_INFLOAT | GPIO_MODE_INPUT | \
+                           GPIO_EXTI | GPIO_PORTA | GPIO_PIN1)
+#define GPIO_FT80_PD      (GPIO_OUTPUT | GPIO_CNF_OUTPP | GPIO_MODE_50MHz | \
+                           GPIO_OUTPUT_CLEAR | GPIO_PORTC| GPIO_PIN5)
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -348,13 +372,34 @@ void stm32_led_initialize(void);
  * Name: stm32_usbdev_initialize
  *
  * Description:
- *   Called from stm32_usbdev_initialize very early in initialization to setup USB-related
- *   GPIO pins for the Viewtool STM32F107 board.
+ *   Called from stm32_usbdev_initialize very early in initialization to
+ *   setup USB-related GPIO pins for the Viewtool STM32F107 board.
  *
  ****************************************************************************/
 
 #if defined(CONFIG_STM32_OTGFS) && defined(CONFIG_USBDEV)
 void weak_function stm32_usbdev_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_tsc_setup
+ *
+ * Description:
+ *   This function is called by board-bringup logic to configure the
+ *   touchscreen device.  This function will register the driver as
+ *   /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor   - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_INPUT_ADS7843E
+int stm32_tsc_setup(int minor);
 #endif
 
 /****************************************************************************
@@ -386,7 +431,7 @@ int stm32_can_setup(void);
  * Description:
  *   Initialize and register the MPL115A Pressure Sensor driver.
  *
- * Input parameters:
+ * Input Parameters:
  *   devpath - The full path to the driver to register. E.g., "/dev/press0"
  *
  * Returned Value:
@@ -396,6 +441,27 @@ int stm32_can_setup(void);
 
 #if defined(CONFIG_SPI) && defined(CONFIG_SENSORS_MPL115A) && defined(CONFIG_STM32_SPI3)
 int stm32_mpl115ainitialize(FAR const char *devpath);
+#endif
+
+/****************************************************************************
+ * Name: stm32_ft80x_setup
+ *
+ * Description:
+ *   This function is called by board-bringup logic to configure the
+ *   touchscreen device.  This function will register the driver as
+ *   /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_VIEWTOOL_FT80X_SPI1) || defined(CONFIG_VIEWTOOL_FT80X_SPI2)
+int stm32_ft80x_setup(void);
 #endif
 
 #endif  /* __ASSEMBLY__ */

@@ -84,6 +84,9 @@
 #define ISO_nl       0x0a
 #define ISO_cr       0x0d
 
+#define TELNET_SGA   0x03  /* Suppress Go Ahead */
+#define TELNET_ECHO  0x01
+
 #define TELNET_IAC   255
 #define TELNET_WILL  251
 #define TELNET_WONT  252
@@ -251,9 +254,11 @@ static void telnet_getchar(FAR struct telnet_dev_s *priv, uint8_t ch,
 {
   register int index;
 
+#ifndef CONFIG_TELNET_CHARACTER_MODE
   /* Ignore carriage returns */
 
   if (ch != ISO_cr)
+#endif
     {
       /* Add all other characters to the destination buffer */
 
@@ -334,9 +339,32 @@ static ssize_t telnet_receive(FAR struct telnet_dev_s *priv, FAR const char *src
             break;
 
           case STATE_DO:
+#ifdef CONFIG_TELNET_CHARACTER_MODE
+            if (ch == TELNET_SGA)
+              {
+                /* If it received 'Suppress Go Ahead', reply with a WILL */
+
+                telnet_sendopt(priv, TELNET_WILL, ch);
+
+                /* Also, send 'WILL ECHO' */
+
+                telnet_sendopt(priv, TELNET_WILL, TELNET_ECHO);
+              }
+            else if (ch == TELNET_ECHO)
+              {
+                /* If it received 'ECHO', then do nothing */
+              }
+            else
+              {
+                /* Reply with a WONT */
+
+                telnet_sendopt(priv, TELNET_WONT, ch);
+              }
+#else
             /* Reply with a WONT */
 
             telnet_sendopt(priv, TELNET_WONT, ch);
+#endif
             priv->td_state = STATE_NORMAL;
             break;
 
@@ -482,7 +510,7 @@ static int telnet_open(FAR struct file *filep)
   if (ret < 0)
     {
       nerr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       goto errout;
     }
 
@@ -531,7 +559,7 @@ static int telnet_close(FAR struct file *filep)
   if (ret < 0)
     {
       nerr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       goto errout;
     }
 
@@ -662,7 +690,7 @@ static ssize_t telnet_read(FAR struct file *filep, FAR char *buffer, size_t len)
     }
   while (ret == 0);
 
-  /* Return:
+  /* Returned Value:
    *
    * ret > 0:  The number of characters copied into the user buffer by
    *           telnet_receive().
@@ -755,7 +783,7 @@ static ssize_t telnet_write(FAR struct file *filep, FAR const char *buffer, size
  *   session - On input, contains the socket descriptor that represents the
  *   new telnet connection.  On output, it holds the path to the new Telnet driver.
  *
- * Return:
+ * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/
@@ -835,7 +863,7 @@ static int telnet_session(FAR struct telnet_session_s *session)
                priv->td_minor);
 
       ret = stat(session->ts_devpath, &statbuf);
-      DEBUGASSERT(ret >= 0 || errno == ENOENT);
+      DEBUGASSERT(ret >= 0 || get_errno() == ENOENT);
     }
   while (ret >= 0 && start != g_telnet_common.tc_minor);
 
@@ -950,7 +978,7 @@ static int common_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Parameters:
  *   None
  *
- * Return:
+ * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
  *
  ****************************************************************************/

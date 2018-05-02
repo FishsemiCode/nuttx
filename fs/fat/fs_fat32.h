@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/fat/fs_fat32.h
  *
- *   Copyright (C) 2007-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,8 @@
 /****************************************************************************
  * These offsets describes the master boot record.
  *
- * The folowing fields are common to FAT12/16/32 (but all value descriptions
- * refer to the interpretation under FAT32.
+ * The following fields are common to FAT12/16/32 (but all value descriptions
+ * refer to the interpretation under FAT32).
  */
 
 #define BS_JUMP             0 /*  3@0:  Jump instruction to boot code (ignored) */
@@ -228,6 +228,17 @@
 #ifdef CONFIG_FAT_LFN
 
 /* Sizes and limits */
+
+# if CONFIG_FAT_MAXFNAME > CONFIG_NAME_MAX && CONFIG_NAME_MAX >= 12
+#   warning CONFIG_FAT_MAXFNAME may not exceed NAME_MAX (CONFIG_NAME_MAX)
+#   undef  CONFIG_FAT_MAXFNAME
+#   define CONFIG_FAT_MAXFNAME CONFIG_NAME_MAX
+# endif
+
+# if CONFIG_FAT_MAXFNAME < 12
+#   undef  CONFIG_FAT_MAXFNAME
+#   define CONFIG_FAT_MAXFNAME 12
+# endif
 
 # ifndef CONFIG_FAT_MAXFNAME   /* The maximum support filename can be limited */
 #   define LDIR_MAXFNAME   255 /* Max unicode characters in file name */
@@ -916,7 +927,11 @@ EXTERN int    fat_dirname2path(struct fat_mountpt_s *fs, struct fs_dirent_s *dir
 
 /* File creation and removal helpers */
 
-EXTERN int    fat_dirtruncate(struct fat_mountpt_s *fs, struct fat_dirinfo_s *dirinfo);
+EXTERN int    fat_dirtruncate(struct fat_mountpt_s *fs, FAR uint8_t *direntry);
+EXTERN int    fat_dirshrink(struct fat_mountpt_s *fs, FAR uint8_t *direntry,
+                            off_t length);
+EXTERN int    fat_dirextend(FAR struct fat_mountpt_s *fs, FAR struct fat_file_s *ff,
+                            off_t length);
 EXTERN int    fat_dircreate(struct fat_mountpt_s *fs, struct fat_dirinfo_s *dirinfo);
 EXTERN int    fat_remove(struct fat_mountpt_s *fs, const char *relpath, bool directory);
 

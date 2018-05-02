@@ -269,13 +269,14 @@ static int gpdma_interrupt(int irq, FAR void *context, FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lpc43_dmainitialize
+ * Name: up_dmainitialize
  *
  * Description:
- *   Initialize the GPDMA subsystem.
+ *   Initialize the GPDMA subsystem.  Called from up_initialize() early in the
+ *   boot-up sequence.  Prototyped in up_internal.h.
  *
  * Returned Value:
- *   Zero on success; A negated errno value on failure.
+ *   None
  *
  ****************************************************************************/
 
@@ -628,7 +629,7 @@ void lpc43_dmastop(DMA_HANDLE handle)
   DEBUGASSERT(dmach && dmach->inuse);
 
   /* Disable this channel and mask any further interrupts from the channel.
-   * this channel.  The channel is disabled by clearning the channel
+   * this channel.  The channel is disabled by clearing the channel
    * enable bit. Any outstanding data in the FIFOs is lost.
    */
 

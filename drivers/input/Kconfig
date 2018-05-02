@@ -37,7 +37,7 @@ config INPUT_TSC2007
 if INPUT_TSC2007
 
 config TSC2007_8BIT
-	bool "8-bit Conversions"
+	bool "TSC2007 8-bit Conversions"
 	default n
 	---help---
 		Use faster, but less accurate, 8-bit conversions.  Default: 12-bit conversions.
@@ -49,13 +49,87 @@ config TSC2007_MULTIPLE
 		Can be defined to support multiple TSC2007 devices on board.
 
 config TSC2007_NPOLLWAITERS
-	int "Number poll waiters"
+	int "Number TSC2007 poll waiters"
 	default 4
 	depends on !DISABLE_POLL
 	---help---
 		Maximum number of threads that can be waiting on poll()
 
-endif
+endif # INPUT_TSC2007
+
+config INPUT_FT5X06
+	bool "FocalTech FT5x06 multi-touch, capacitive touch panel controller"
+	default n
+	select I2C
+	---help---
+		Enable support for the FocalTech FT5x06 multi-touch, capacitive
+		touch panel controller
+
+config INPUT_FT5336
+	bool "FocalTech FT5336 multi-touch, capacitive touch panel controller"
+	default n
+	select I2C
+	select INPUT_FT5X06
+	depends on EXPERIMENTAL
+	---help---
+		Enable support for the FocalTech FT5x06 multi-touch, capacitive
+		touch panel controller
+
+if INPUT_FT5X06
+
+config FT5X06_POLLMODE
+	bool "Polled mode"
+	default n
+	---help---
+		Run the FT5x06 in a non-interrupt driven polled mode.  Events will
+		not be driven by interrupts but rather based on a timed poll.
+
+		This is a non-optimal design both because (1) it will lead to delays
+		in detecting touch related events and (2) it will consume a
+		significant amount of CPU time to perform the polling.
+
+config FT5X06_SWAPXY
+	bool "Swap X/Y"
+	default n
+	---help---
+		Reverse the meaning of X and Y to handle different LCD orientations.
+
+config FT5X06_SINGLEPOINT
+	bool "Single point"
+	default n
+	---help---
+		Do no report multi-touch events
+
+if FT5X06_SINGLEPOINT
+
+config FT5X06_THRESHX
+	int "X threshold"
+	default 12
+	---help---
+		New touch positions will only be reported when the X or Y data changes by these
+		thresholds. This trades reduced data rates for some loss in dragging accuracy.  For
+		12-bit values the raw ranges are 0-4095. So for example, if your display is
+		320x240, then THRESHX=13 and THRESHY=17 would correspond to one pixel.  Default: 12
+
+config FT5X06_THRESHY
+	int "Y threshold"
+	default 12
+	---help---
+		New touch positions will only be reported when the X or Y data changes by these
+		thresholds. This trades reduced data rates for some loss in dragging accuracy.  For
+		12-bit values the raw ranges are 0-4095. So for example, if your display is
+		320x240, then THRESHX=13 and THRESHY=17 would correspond to one pixel.  Default: 12
+
+endif # FT5X06_SINGLEPOINT
+
+config FT5X06_NPOLLWAITERS
+	int "Number FT5336/FT5x06 poll waiters"
+	default 4
+	depends on !DISABLE_POLL
+	---help---
+		Maximum number of threads that can be waiting on poll()
+
+endif # INPUT_FT5X06
 
 config INPUT_ADS7843E
 	bool "TI ADS7843/TSC2046 touchscreen controller"

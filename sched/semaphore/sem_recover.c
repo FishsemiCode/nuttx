@@ -64,10 +64,10 @@
  *   only the task, there is not mechanism to traverse all of the semaphores
  *   with counts held by the task.
  *
- * Inputs:
+ * Input Parameters:
  *   tcb - The TCB of the terminated task or thread
  *
- * Return Value:
+ * Returned Value:
  *   None.
  *
  * Assumptions:
@@ -105,7 +105,7 @@ void nxsem_recover(FAR struct tcb_s *tcb)
       nxsem_canceled(tcb, sem);
 
       /* And increment the count on the semaphore.  This releases the count
-       * that was taken by sem_post().  This count decremented the semaphore
+       * that was taken by sem_wait().  This count decremented the semaphore
        * count to negative and caused the thread to be blocked in the first
        * place.
        */

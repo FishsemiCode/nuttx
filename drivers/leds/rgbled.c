@@ -139,7 +139,7 @@ static int rgbled_open(FAR struct file *filep)
   if (ret < 0)
     {
       lcderr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       goto errout;
     }
 
@@ -191,7 +191,7 @@ static int rgbled_close(FAR struct file *filep)
   if (ret < 0)
     {
       lcderr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR);
+      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       goto errout;
     }
 
@@ -420,7 +420,7 @@ static ssize_t rgbled_write(FAR struct file *filep, FAR const char *buffer,
  *   be used by application code.
  *
  *
- * Input parameters:
+ * Input Parameters:
  *   path - The full path to the driver to be registers in the NuttX pseudo-
  *     filesystem.  The recommended convention is to name all PWM drivers
  *     as "/dev/rgdbled0", "/dev/rgbled1", etc.  where the driver path
