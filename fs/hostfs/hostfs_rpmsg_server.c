@@ -87,6 +87,8 @@ static void hostfs_rpmsg_dup_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src);
 static void hostfs_rpmsg_fstat_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src);
+static void hostfs_rpmsg_ftruncate_handler(struct rpmsg_channel *channel,
+                    void *data, int len, void *priv_, unsigned long src);
 static void hostfs_rpmsg_opendir_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src);
 static void hostfs_rpmsg_readdir_handler(struct rpmsg_channel *channel,
@@ -127,6 +129,7 @@ static const rpmsg_rx_cb_t g_hostfs_rpmsg_handler[] =
   [HOSTFS_RPMSG_SYNC]      = hostfs_rpmsg_sync_handler,
   [HOSTFS_RPMSG_DUP]       = hostfs_rpmsg_dup_handler,
   [HOSTFS_RPMSG_FSTAT]     = hostfs_rpmsg_fstat_handler,
+  [HOSTFS_RPMSG_FTRUNCATE] = hostfs_rpmsg_ftruncate_handler,
   [HOSTFS_RPMSG_OPENDIR]   = hostfs_rpmsg_opendir_handler,
   [HOSTFS_RPMSG_READDIR]   = hostfs_rpmsg_readdir_handler,
   [HOSTFS_RPMSG_REWINDDIR] = hostfs_rpmsg_rewinddir_handler,
@@ -363,6 +366,23 @@ static void hostfs_rpmsg_fstat_handler(struct rpmsg_channel *channel,
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
       ret = file_fstat(&priv->files[msg->fd], &msg->buf);
+    }
+
+  msg->header.result = ret;
+
+  rpmsg_send(channel, msg, sizeof(*msg));
+}
+
+static void hostfs_rpmsg_ftruncate_handler(struct rpmsg_channel *channel,
+                    void *data, int len, void *priv_, unsigned long src)
+{
+  struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
+  struct hostfs_rpmsg_ftruncate_s *msg = data;
+  int ret = -ENOENT;
+
+  if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
+    {
+      ret = file_truncate(&priv->files[msg->fd], msg->length);
     }
 
   msg->header.result = ret;

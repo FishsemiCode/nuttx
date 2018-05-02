@@ -109,6 +109,7 @@ static const rpmsg_rx_cb_t g_hostfs_rpmsg_handler[] =
   [HOSTFS_RPMSG_SYNC]      = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_DUP]       = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_FSTAT]     = hostfs_rpmsg_handler,
+  [HOSTFS_RPMSG_FTRUNCATE] = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_OPENDIR]   = hostfs_rpmsg_opendir_handler,
   [HOSTFS_RPMSG_READDIR]   = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_REWINDDIR] = hostfs_rpmsg_handler,
@@ -487,6 +488,17 @@ int host_fstat(int fd, struct stat *buf)
     }
 
   return ret;
+}
+
+int host_ftruncate(int fd, off_t length)
+{
+  struct hostfs_rpmsg_ftruncate_s msg;
+
+  msg.fd     = fd;
+  msg.length = length;
+
+  return hostfs_msg_send_recv(HOSTFS_RPMSG_FTRUNCATE, true, NULL,
+          (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg));
 }
 
 void *host_opendir(const char *name)

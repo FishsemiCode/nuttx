@@ -63,16 +63,17 @@
 #define HOSTFS_RPMSG_SYNC           7
 #define HOSTFS_RPMSG_DUP            8
 #define HOSTFS_RPMSG_FSTAT          9
-#define HOSTFS_RPMSG_OPENDIR        10
-#define HOSTFS_RPMSG_READDIR        11
-#define HOSTFS_RPMSG_REWINDDIR      12
-#define HOSTFS_RPMSG_CLOSEDIR       13
-#define HOSTFS_RPMSG_STATFS         14
-#define HOSTFS_RPMSG_UNLINK         15
-#define HOSTFS_RPMSG_MKDIR          16
-#define HOSTFS_RPMSG_RMDIR          17
-#define HOSTFS_RPMSG_RENAME         18
-#define HOSTFS_RPMSG_STAT           19
+#define HOSTFS_RPMSG_FTRUNCATE      10
+#define HOSTFS_RPMSG_OPENDIR        11
+#define HOSTFS_RPMSG_READDIR        12
+#define HOSTFS_RPMSG_REWINDDIR      13
+#define HOSTFS_RPMSG_CLOSEDIR       14
+#define HOSTFS_RPMSG_STATFS         15
+#define HOSTFS_RPMSG_UNLINK         16
+#define HOSTFS_RPMSG_MKDIR          17
+#define HOSTFS_RPMSG_RMDIR          18
+#define HOSTFS_RPMSG_RENAME         19
+#define HOSTFS_RPMSG_STAT           20
 
 /****************************************************************************
  * Public Types
@@ -134,6 +135,13 @@ begin_packed_struct struct hostfs_rpmsg_fstat_s
   int32_t                      fd;
   uint32_t                     reserved;
   struct stat                  buf;
+} end_packed_struct;
+
+begin_packed_struct struct hostfs_rpmsg_ftruncate_s
+{
+  struct hostfs_rpmsg_header_s header;
+  int32_t                      fd;
+  int32_t                      length;
 } end_packed_struct;
 
 begin_packed_struct struct hostfs_rpmsg_opendir_s
