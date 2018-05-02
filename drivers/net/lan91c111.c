@@ -51,8 +51,8 @@
 
 #include <nuttx/net/arp.h>
 #include <nuttx/net/lan91c111.h>
-#include <nuttx/net/pkt.h>
 #include <nuttx/net/netdev.h>
+#include <nuttx/net/pkt.h>
 
 #include "lan91c111.h"
 
@@ -66,7 +66,7 @@
 #  error Work queue support is required in this configuration (CONFIG_SCHED_WORKQUEUE)
 #else
 
-   /* Use the selected work queue */
+/* Use the selected work queue */
 
 #  if defined(CONFIG_LAN91C111_HPWORK)
 #    define LAN91C111_WORK      HPWORK
@@ -129,6 +129,7 @@ static int  lan91c111_txpoll(FAR struct net_driver_s *dev);
 
 /* Interrupt handling */
 
+static void lan91c111_reply(FAR struct lan91c111_driver_s *priv);
 static void lan91c111_receive(FAR struct lan91c111_driver_s *priv);
 static void lan91c111_txdone(FAR struct lan91c111_driver_s *priv);
 
@@ -156,12 +157,12 @@ static int  lan91c111_rmmac(FAR struct net_driver_s *dev,
               FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NET_ICMPv6
-static void lan91c111_ipv6multicast(FAR struct lan91c111_driver_s *priv);
+static void lan91c111_ipv6multicast(FAR struct net_driver_s *dev);
 #endif
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
 static int  lan91c111_ioctl(FAR struct net_driver_s *dev, int cmd,
-            unsigned long arg);
+              unsigned long arg);
 #endif
 
 /****************************************************************************
@@ -389,8 +390,7 @@ static void lan91c111_command_mmu(FAR struct lan91c111_driver_s *priv, uint16_t 
  *   OK on success; a negated errno on failure
  *
  * Assumptions:
- *   May or may not be called from an interrupt handler.  In either case,
- *   the network is locked.
+ *   The network is locked.
  *
  ****************************************************************************/
 
@@ -475,7 +475,7 @@ static int lan91c111_transmit(FAR struct lan91c111_driver_s *priv)
   priv->dev.d_buf[priv->dev.d_len + 1] = 0x00;
 
   /* Copy and enqueue the buffer */
-  putregs32(priv, DATA_REG, priv->dev.d_buf, priv->dev.d_len + 1);
+  putregs32(priv, DATA_REG, priv->dev.d_buf, priv->dev.d_len + 2);
   lan91c111_command_mmu(priv, MC_ENQUEUE);
 
   return OK;
@@ -500,8 +500,7 @@ static int lan91c111_transmit(FAR struct lan91c111_driver_s *priv)
  *   OK on success; a negated errno on failure
  *
  * Assumptions:
- *   May or may not be called from an interrupt handler.  In either case,
- *   the network is locked.
+ *   The network is locked.
  *
  ****************************************************************************/
 
@@ -559,6 +558,63 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
 }
 
 /****************************************************************************
+ * Name: lan91c111_reply
+ *
+ * Description:
+ *   After a packet has been received and dispatched to the network, it
+ *   may return return with an outgoing packet.  This function checks for
+ *   that case and performs the transmission if necessary.
+ *
+ * Parameters:
+ *   priv - Reference to the driver state structure
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   The network is locked.
+ *
+ ****************************************************************************/
+
+static void lan91c111_reply(FAR struct lan91c111_driver_s *priv)
+{
+  /* If the packet dispatch resulted in data that should be sent out on the
+   * network, the field d_len will set to a value > 0.
+   */
+
+  if (priv->dev.d_len > 0)
+    {
+      /* Update the Ethernet header with the correct MAC address */
+
+#ifdef CONFIG_NET_IPv4
+#ifdef CONFIG_NET_IPv6
+      /* Check for an outgoing IPv4 packet */
+
+      if (IFF_IS_IPv4(priv->dev.d_flags))
+#endif
+        {
+          arp_out(&priv->dev);
+        }
+#endif
+
+#ifdef CONFIG_NET_IPv6
+#ifdef CONFIG_NET_IPv4
+      /* Otherwise, it must be an outgoing IPv6 packet */
+
+      else
+#endif
+        {
+          neighbor_out(&priv->dev);
+        }
+#endif
+
+      /* And send the packet */
+
+      lan91c111_transmit(priv);
+    }
+}
+
+/****************************************************************************
  * Name: lan91c111_receive
  *
  * Description:
@@ -577,160 +633,124 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
 
 static void lan91c111_receive(FAR struct lan91c111_driver_s *priv)
 {
-  while (!(getreg8(priv, RXFIFO_REG) & RXFIFO_REMPTY))
+  FAR struct eth_hdr_s *eth = (FAR struct eth_hdr_s *)priv->dev.d_buf;
+  uint16_t status, length;
+
+  /* If the RX FIFO is empty then nothing to do */
+
+  if (getreg8(priv, RXFIFO_REG) & RXFIFO_REMPTY)
     {
-      FAR struct eth_hdr_s *eth = (FAR struct eth_hdr_s *)priv->dev.d_buf;
-      uint16_t status, length;
+      return;
+    }
 
-      /* Read from start of packet */
+  /* Read from start of packet */
 
-      putreg16(priv, PTR_REG, PTR_RCV | PTR_AUTOINC | PTR_READ);
+  putreg16(priv, PTR_REG, PTR_RCV | PTR_AUTOINC | PTR_READ);
 
-      /* Check for errors and update statistics */
+  /* Check for errors and update statistics */
 
-      status = getreg16(priv, DATA_REG);
-      if (status & RS_ERRORS)
-        {
-          lan91c111_command_mmu(priv, MC_RELEASE);
-          NETDEV_RXERRORS(&priv->dev);
-          continue;
-        }
-
-      /* Check if the packet is a valid size for the network buffer
-       * configuration.
-       */
-
-      length  = getreg16(priv, DATA_REG);
-      length &= 0x07ff; /* Mask off top bits */
-      /* Remove the header and tail space */
-      length -= status & RS_ODDFRAME ? 5 : 6;
-
-      if (length < ETH_HDRLEN || length > MAX_NET_DEV_MTU)
-        {
-          lan91c111_command_mmu(priv, MC_RELEASE);
-          NETDEV_RXERRORS(&priv->dev);
-          continue;
-        }
-
-      /* Copy the data from the hardware to priv->dev.d_buf. Set
-       * amount of data in priv->dev.d_len.
-       */
-
-      getregs32(priv, DATA_REG, priv->dev.d_buf, length);
-      priv->dev.d_len = length;
-
+  status = getreg16(priv, DATA_REG);
+  if (status & RS_ERRORS)
+    {
       lan91c111_command_mmu(priv, MC_RELEASE);
+      NETDEV_RXERRORS(&priv->dev);
+      return;
+    }
 
-      lan91c111_dumppacket("receive", priv->dev.d_buf, priv->dev.d_len);
-      NETDEV_RXPACKETS(&priv->dev);
+  /* Check if the packet is a valid size for the network buffer
+   * configuration.
+   */
+
+  length  = getreg16(priv, DATA_REG);
+  length &= 0x07ff; /* Mask off top bits */
+  /* Remove the header and tail space */
+  length -= status & RS_ODDFRAME ? 5 : 6;
+
+  if (length < ETH_HDRLEN || length > MAX_NET_DEV_MTU)
+    {
+      lan91c111_command_mmu(priv, MC_RELEASE);
+      NETDEV_RXERRORS(&priv->dev);
+      return;
+    }
+
+  /* Copy the data from the hardware to priv->dev.d_buf. Set
+   * amount of data in priv->dev.d_len.
+   */
+
+  getregs32(priv, DATA_REG, priv->dev.d_buf, length);
+  priv->dev.d_len = length;
+
+  lan91c111_command_mmu(priv, MC_RELEASE);
+
+  lan91c111_dumppacket("receive", priv->dev.d_buf, priv->dev.d_len);
+  NETDEV_RXPACKETS(&priv->dev);
 
 #ifdef CONFIG_NET_PKT
-      /* When packet sockets are enabled, feed the frame into the packet tap */
+  /* When packet sockets are enabled, feed the frame into the packet tap */
 
-      pkt_input(&priv->dev);
+  pkt_input(&priv->dev);
 #endif
 
-      /* We only accept IP packets of the configured type and ARP packets */
+  /* We only accept IP packets of the configured type and ARP packets */
 
 #ifdef CONFIG_NET_IPv4
-      if (eth->type == HTONS(ETHTYPE_IP))
-        {
-          ninfo("IPv4 frame\n");
-          NETDEV_RXIPV4(&priv->dev);
+  if (eth->type == HTONS(ETHTYPE_IP))
+    {
+      ninfo("IPv4 frame\n");
+      NETDEV_RXIPV4(&priv->dev);
 
-          /* Handle ARP on input then give the IPv4 packet to the network
-           * layer
-           */
+      /* Handle ARP on input, then dispatch IPv4 packet to the network
+       * layer.
+       */
 
-          arp_ipin(&priv->dev);
-          ipv4_input(&priv->dev);
+      arp_ipin(&priv->dev);
+      ipv4_input(&priv->dev);
 
-          /* If the above function invocation resulted in data that should be
-           * sent out on the network, the field d_len will set to a value > 0.
-           */
+      /* Check for a reply to the IPv4 packet */
 
-          if (priv->dev.d_len > 0)
-            {
-              /* Update the Ethernet header with the correct MAC address */
-
-#ifdef CONFIG_NET_IPv6
-              if (IFF_IS_IPv4(priv->dev.d_flags))
-#endif
-                {
-                  arp_out(&priv->dev);
-                }
-#ifdef CONFIG_NET_IPv6
-              else
-                {
-                  neighbor_out(&priv->dev);
-                }
-#endif
-
-              /* And send the packet */
-
-              lan91c111_transmit(priv);
-            }
-        }
-      else
+      lan91c111_reply(priv);
+    }
+  else
 #endif
 #ifdef CONFIG_NET_IPv6
-      if (eth->type == HTONS(ETHTYPE_IP6))
-        {
-          ninfo("Iv6 frame\n");
-          NETDEV_RXIPV6(&priv->dev);
+  if (eth->type == HTONS(ETHTYPE_IP6))
+    {
+      ninfo("Iv6 frame\n");
+      NETDEV_RXIPV6(&priv->dev);
 
-          /* Give the IPv6 packet to the network layer */
+      /* Dispatch IPv6 packet to the network layer */
 
-          ipv6_input(&priv->dev);
+      ipv6_input(&priv->dev);
 
-          /* If the above function invocation resulted in data that should be
-           * sent out on the network, the field d_len will set to a value > 0.
-           */
+      /* Check for a reply to the IPv6 packet */
 
-          if (priv->dev.d_len > 0)
-           {
-              /* Update the Ethernet header with the correct MAC address */
-
-#ifdef CONFIG_NET_IPv4
-              if (IFF_IS_IPv4(priv->dev.d_flags))
-                {
-                  arp_out(&priv->dev);
-                }
-              else
-#endif
-#ifdef CONFIG_NET_IPv6
-                {
-                  neighbor_out(&priv->dev);
-                }
-#endif
-
-              /* And send the packet */
-
-              lan91c111_transmit(priv);
-            }
-        }
-      else
+      lan91c111_reply(priv);
+    }
+  else
 #endif
 #ifdef CONFIG_NET_ARP
-      if (eth->type == htons(ETHTYPE_ARP))
+  if (eth->type == htons(ETHTYPE_ARP))
+    {
+      ninfo("ARP frame\n");
+      NETDEV_RXARP(&priv->dev);
+
+      /* Dispatch ARP packet to the network layer */
+
+      arp_arpin(&priv->dev);
+
+      /* If the above function invocation resulted in data that should be
+       * sent out on the network, the field d_len will set to a value > 0.
+       */
+
+      if (priv->dev.d_len > 0)
         {
-          NETDEV_RXARP(&priv->dev);
-          arp_arpin(&priv->dev);
-
-          /* If the above function invocation resulted in data that should be
-           * sent out on the network, the field d_len will set to a value > 0.
-           */
-
-          if (priv->dev.d_len > 0)
-            {
-              lan91c111_transmit(priv);
-            }
+          lan91c111_transmit(priv);
         }
-      else
+    }
+  else
 #endif
-        {
-          NETDEV_RXDROPPED(&priv->dev);
-        }
+    {
+      NETDEV_RXDROPPED(&priv->dev);
     }
 }
 
@@ -846,7 +866,7 @@ static void lan91c111_phy_notify(FAR struct lan91c111_driver_s *priv)
  *   OK on success
  *
  * Assumptions:
- *   The network is locked.
+ *   Runs on a worker thread.
  *
  ****************************************************************************/
 
@@ -865,41 +885,50 @@ static void lan91c111_interrupt_work(FAR void *arg)
 
   /* Process pending Ethernet interrupts */
 
-  /* Get interrupt status bits */
-
-  status = getreg8(priv, INT_REG);
-
-  /* Handle interrupts according to status bit settings */
-
-  /* Check if a packet transmission just completed.  If so, call lan91c111_txdone. */
-
-  if (status & IM_TX_INT)
+  while (1)
     {
-      lan91c111_txdone(priv);
+      /* Get interrupt status bits */
+
+      status  = getreg8(priv, INT_REG);
+      status &= getreg8(priv, IM_REG);
+      if (!status)
+        {
+          break;
+        }
+
+      /* Handle interrupts according to status bit settings */
+
+      /* Check if we received an incoming packet, if so, call lan91c111_receive() */
+
+      if (status & IM_RCV_INT)
+        {
+          lan91c111_receive(priv);
+        }
+
+      if (status & IM_RX_OVRN_INT)
+        {
+          NETDEV_RXERRORS(&priv->dev);
+        }
+
+      /* Check if a packet transmission just completed.  If so, call lan91c111_txdone. */
+
+      if (status & IM_TX_INT)
+        {
+          lan91c111_txdone(priv);
+        }
+
+      /* Check if we have the phy interrupt, if so, call lan91c111_phy_notify() */
+
+      if (status & IM_MDINT)
+        {
+          lan91c111_phy_notify(priv);
+        }
+
+      /* Clear interrupt status bits */
+
+      putreg8(priv, INT_REG, status);
     }
 
-  /* Check if we received an incoming packet, if so, call lan91c111_receive() */
-
-  if (status & IM_RCV_INT)
-    {
-      lan91c111_receive(priv);
-    }
-
-  if (status & IM_RX_OVRN_INT)
-    {
-      NETDEV_RXERRORS(&priv->dev);
-    }
-
-  /* Check if we have the phy interrupt, if so, call lan91c111_phy_notify() */
-
-  if (status & IM_MDINT)
-    {
-      lan91c111_phy_notify(priv);
-    }
-
-  /* Clear interrupt status bits */
-
-  putreg8(priv, INT_REG, status);
   net_unlock();
 
   /* Re-enable Ethernet interrupts */
@@ -921,6 +950,8 @@ static void lan91c111_interrupt_work(FAR void *arg)
  *   OK on success
  *
  * Assumptions:
+ *   Runs in the context of a the Ethernet interrupt handler.  Local
+ *   interrupts are disabled by the interrupt logic.
  *
  ****************************************************************************/
 
@@ -953,7 +984,7 @@ static int lan91c111_interrupt(int irq, FAR void *context, FAR void *arg)
  *   OK on success
  *
  * Assumptions:
- *   The network is locked.
+ *   Run on a work queue thread.
  *
  ****************************************************************************/
 
@@ -1006,7 +1037,8 @@ static void lan91c111_poll_work(FAR void *arg)
  *   None
  *
  * Assumptions:
- *   Global interrupts are disabled by the watchdog logic.
+ *   Runs in the context of a the timer interrupt handler.  Local
+ *   interrupts are disabled by the interrupt logic.
  *
  ****************************************************************************/
 
@@ -1033,6 +1065,7 @@ static void lan91c111_poll_expiry(int argc, wdparm_t arg, ...)
  *   None
  *
  * Assumptions:
+ *   The network is locked.
  *
  ****************************************************************************/
 
@@ -1079,7 +1112,7 @@ static int lan91c111_ifup(FAR struct net_driver_s *dev)
 #ifdef CONFIG_NET_ICMPv6
   /* Set up IPv6 multicast address filtering */
 
-  lan91c111_ipv6multicast(priv);
+  lan91c111_ipv6multicast(dev);
 #endif
 
   /* Set and activate a timer process */
@@ -1107,6 +1140,7 @@ static int lan91c111_ifup(FAR struct net_driver_s *dev)
  *   None
  *
  * Assumptions:
+ *   The network is locked.
  *
  ****************************************************************************/
 
@@ -1155,7 +1189,7 @@ static int lan91c111_ifdown(FAR struct net_driver_s *dev)
  *   None
  *
  * Assumptions:
- *   Called on the higher priority worker thread.
+ *   Runs on a work queue thread.
  *
  ****************************************************************************/
 
@@ -1203,7 +1237,7 @@ static void lan91c111_txavail_work(FAR void *arg)
  *   None
  *
  * Assumptions:
- *   Called in normal user mode
+ *   The network is locked.
  *
  ****************************************************************************/
 
@@ -1351,7 +1385,7 @@ static int lan91c111_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *   Configure the IPv6 multicast MAC address.
  *
  * Parameters:
- *   priv - A reference to the private driver state structure
+ *   dev  - Reference to the NuttX driver state structure
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
@@ -1359,9 +1393,8 @@ static int lan91c111_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMPv6
-static void lan91c111_ipv6multicast(FAR struct lan91c111_driver_s *priv)
+static void lan91c111_ipv6multicast(FAR struct net_driver_s *dev)
 {
-  FAR struct net_driver_s *dev;
   uint16_t tmp16;
   uint8_t mac[6];
 
@@ -1431,6 +1464,7 @@ static void lan91c111_ipv6multicast(FAR struct lan91c111_driver_s *priv)
  *   OK on success; Negated errno on failure.
  *
  * Assumptions:
+ *   The network is locked.
  *
  ****************************************************************************/
 
@@ -1441,6 +1475,8 @@ static int lan91c111_ioctl(FAR struct net_driver_s *dev, int cmd,
   FAR struct lan91c111_driver_s *priv = dev->d_private;
   struct mii_ioctl_data_s *req = (void *)arg;
   int ret = OK;
+
+  net_lock();
 
   /* Decode and dispatch the driver-specific IOCTL command */
 
@@ -1463,6 +1499,7 @@ static int lan91c111_ioctl(FAR struct net_driver_s *dev, int cmd,
       ret = -ENOTTY; /* Special return value for this case */
     }
 
+  net_unlock();
   return ret;
 }
 #endif
@@ -1485,6 +1522,7 @@ static int lan91c111_ioctl(FAR struct net_driver_s *dev, int cmd,
  *   OK on success; Negated errno on failure.
  *
  * Assumptions:
+ *   Called early in initialization before multi-tasking is initiated.
  *
  ****************************************************************************/
 
@@ -1545,7 +1583,7 @@ int lan91c111_initialize(uintptr_t base, int irq)
 #endif
   priv->dev.d_private = priv;              /* Used to recover private state from dev */
 
-  /* Create a watchdog for timing polling for */
+  /* Create a watchdog for timing polling for transmissions */
 
   priv->txpoll        = wd_create();       /* Create periodic poll timer */
   DEBUGASSERT(priv->txpoll != NULL);
