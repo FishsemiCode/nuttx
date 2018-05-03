@@ -76,7 +76,7 @@ void arm_timer_initialize(void)
   static const struct song_oneshot_config_s config =
   {
     .base       = TOP_PWR_BASE,
-    .irq        = 23,
+    .irq        = 25,
     .c1_freq    = 19200000,
     .ctl_off    = 0x290,
     .calib_off  = 0x2b4,
