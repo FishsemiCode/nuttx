@@ -104,7 +104,7 @@ static int dw_vintc_interrupt(int irq, FAR void *context, FAR void *arg)
   /* Dispatch request one by one */
   for (i = 0; i < NR_IRQS; i += 32)
     {
-      status = g_dw_vintc->IRQ_FINALSTATUS[i/32];
+      status = g_dw_vintc->IRQ_MASKSTATUS[i/32];
       for (j = 0; status; j++)
         {
           if (status & (1 << j))
