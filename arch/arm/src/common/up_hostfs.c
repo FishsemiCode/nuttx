@@ -235,6 +235,11 @@ int host_fstat(int fd, struct stat *buf)
   return buf->st_size < 0 ? buf->st_size : 0;
 }
 
+int host_ftruncate(int fd, off_t length)
+{
+  return -ENOSYS;
+}
+
 void *host_opendir(const char *name)
 {
   return NULL;
