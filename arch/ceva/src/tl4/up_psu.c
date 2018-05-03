@@ -84,12 +84,12 @@ static void up_cpu_pmod(uint32_t pmod)
  * Public Functions
  ****************************************************************************/
 
-void up_cpu_idle(void)
+void up_cpu_doze(void)
 {
   up_cpu_pmod(PSVM_PMOD_LIGHTSLEEP);
 }
 
-void up_cpu_standby(void)
+void up_cpu_idle(void)
 {
   up_cpu_pmod(PSVM_PMOD_STANDBY);
 }
