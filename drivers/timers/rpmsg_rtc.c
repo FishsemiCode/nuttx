@@ -41,6 +41,7 @@
 
 #include <nuttx/clock.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/kthread.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/timers/rpmsg_rtc.h>
 
@@ -153,6 +154,12 @@ static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv)
     }
 }
 
+static int rpmsg_rtc_synchronize(int argc, FAR char *argv[])
+{
+  clock_synchronize();
+  return 0;
+}
+
 static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
 {
   struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
@@ -163,7 +170,8 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
       if (!lower->synced)
         {
           lower->synced = true;
-          clock_synchronize();
+          /* Need spawn a new thread to avoid the deadlock */
+          kthread_create("rtc", 128, 1024, rpmsg_rtc_synchronize, NULL);
         }
     }
 }
