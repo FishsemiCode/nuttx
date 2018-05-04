@@ -306,7 +306,7 @@ menuconfig RPTUN
 	bool "Remote Proc Tunnel Driver Support"
 	default n
 	depends on OPENAMP
-	depends on SCHED_HPWORK
+	depends on SCHED_WORKQUEUE
 	---help---
 		RPTUN driver is used for multi-cores' communication.
 

@@ -48,6 +48,12 @@
 
 #include <openamp/open_amp.h>
 
+#ifdef CONFIG_RPTUN_HPWORK
+#  define RPTUN_WORK HPWORK
+#else
+#  define RPTUN_WORK LPWORK
+#endif
+
 #ifndef MAX
 #  define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
@@ -132,12 +138,12 @@ static int rptun_openamp_callback(void *arg, uint32_t vqid)
 
   if (vqid == RPTUN_NOTIFY_START)
     {
-      ret = work_queue(HPWORK, &priv->work_start,
+      ret = work_queue(RPTUN_WORK, &priv->work_start,
                             rptun_openamp_start_work, priv, 0);
     }
   else
    {
-      ret = work_queue(HPWORK, &priv->work_vring,
+      ret = work_queue(RPTUN_WORK, &priv->work_vring,
                             rptun_openamp_vring_work, priv, 0);
    }
 
