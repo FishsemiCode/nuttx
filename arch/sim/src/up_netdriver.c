@@ -146,7 +146,9 @@ static int sim_txpoll(struct net_driver_s *dev)
         {
           /* Send the packet */
 
+          NETDEV_TXPACKETS(dev);
           netdev_send(g_sim_dev.d_buf, g_sim_dev.d_len);
+          NETDEV_TXDONE(dev);
         }
     }
 
@@ -184,6 +186,8 @@ void netdriver_loop(void)
   sched_lock();
   if (g_sim_dev.d_len > 0)
     {
+      NETDEV_RXPACKETS(&g_sim_dev);
+
       /* Data received event.  Check for valid Ethernet header with destination == our
        * MAC address
        */
@@ -205,6 +209,7 @@ void netdriver_loop(void)
           if (eth->type == HTONS(ETHTYPE_IP))
             {
               ninfo("IPv4 frame\n");
+              NETDEV_RXIPV4(&g_sim_dev);
 
               /* Handle ARP on input then give the IPv4 packet to the network
                * layer
@@ -246,6 +251,7 @@ void netdriver_loop(void)
           if (eth->type == HTONS(ETHTYPE_IP6))
             {
               ninfo("Iv6 frame\n");
+              NETDEV_RXIPV6(&g_sim_dev);
 
               /* Give the IPv6 packet to the network layer */
 
@@ -283,6 +289,9 @@ void netdriver_loop(void)
 #ifdef CONFIG_NET_ARP
           if (eth->type == htons(ETHTYPE_ARP))
             {
+              ninfo("ARP frame\n");
+              NETDEV_RXARP(&g_sim_dev);
+
               arp_arpin(&g_sim_dev);
 
               /* If the above function invocation resulted in data that
@@ -298,8 +307,13 @@ void netdriver_loop(void)
           else
 #endif
            {
+             NETDEV_RXDROPPED(&g_sim_dev);
              nwarn("WARNING: Unsupported Ethernet type %u\n", eth->type);
            }
+        }
+      else
+        {
+          NETDEV_RXERRORS(&g_sim_dev);
         }
     }
 
