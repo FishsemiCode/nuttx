@@ -68,7 +68,7 @@ config NET_ETH_TCP_RECVWNDO
 		data quickly.
 
 config NET_SLIP_MTU
-	int # "SLIP packet buffer size (MTU)"
+	int "SLIP packet buffer size (MTU)"
 	default 296
 	depends on NET_SLIP
 	range 296 1518
