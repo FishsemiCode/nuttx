@@ -133,13 +133,9 @@ static void up_idlepm(void)
 
 void up_idle(void)
 {
-#ifdef CONFIG_ARMV7M_USEBASEPRI
-  __asm__ __volatile__("cpsid i");
-#else
   irqstate_t flags;
 
   flags = enter_critical_section();
-#endif
 
   /* Perform IDLE mode power management */
 
@@ -149,27 +145,34 @@ void up_idle(void)
 
   pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
-#ifdef CONFIG_ARMV7M_USEBASEPRI
-  __asm__ __volatile__("cpsie i");
-#else
   leave_critical_section(flags);
-#endif
 }
 
 void up_cpu_wfi(void)
 {
+  int basepri;
+
   /* Change BASEPRI to the minimal priority
    * value for waking up from PRIMASK == 1
    */
 
   __asm__ __volatile__
     (
-      "\tmsr basepri, %0\n"
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+      "\tcpsid i\n"
+#endif
+      "\tmrs %0, basepri\n"
+      "\tmsr basepri, %1\n"
       "\tdsb\n"
       "\twfi\n"
-      :
+      "\tmsr basepri, %0\n"
+#ifdef CONFIG_ARMV7M_USEBASEPRI
+      "\tcpsie i\n"
+#endif
+      : "+r" (basepri)
       : "r" (0xff)
-      : "memory");
+      : "memory"
+    );
 }
 
 void weak_function up_cpu_doze(void)
