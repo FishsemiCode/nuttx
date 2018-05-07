@@ -83,6 +83,10 @@
 #define IPPROTO_MPLS          137  /* MPLS in IP (RFC 4023) */
 #define IPPROTO_RAW           255  /* Raw IP packets */
 
+#define IP_PKTINFO            8
+#define IPV6_V6ONLY           26
+#define IPV6_PKTINFO          50
+
 /* Values used with SIOCSIFMCFILTER and SIOCGIFMCFILTER ioctl's */
 
 #define MCAST_EXCLUDE         0
@@ -182,6 +186,19 @@ struct sockaddr_in6
   uint32_t        sin6_flowinfo; /* IPv6 flow information */
   struct in6_addr sin6_addr;     /* IPv6 internet address */
   uint32_t        sin6_scope_id; /* scope id (new in RFC2553) */
+};
+
+struct in6_pktinfo
+{
+  struct in6_addr ipi6_addr;    /* src/dst IPv6 address */
+  unsigned int ipi6_ifindex;    /* send/recv interface index */
+};
+
+struct in_pktinfo
+{
+  int ipi_ifindex;
+  struct in_addr ipi_spec_dst;
+  struct in_addr ipi_addr;
 };
 
 /****************************************************************************
