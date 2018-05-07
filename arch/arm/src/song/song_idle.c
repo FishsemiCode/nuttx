@@ -150,7 +150,7 @@ void up_idle(void)
 
 void up_cpu_wfi(void)
 {
-  int basepri;
+  int basepri = 0;
 
   /* Change BASEPRI to the minimal priority
    * value for waking up from PRIMASK == 1
