@@ -75,6 +75,7 @@ const struct sock_intf_s g_usrsock_sockif =
   usrsock_sockif_addref,      /* si_addref */
   usrsock_bind,               /* si_bind */
   usrsock_getsockname,        /* si_getsockname */
+  NULL,                       /* si_getpeername */
   usrsock_listen,             /* si_listen */
   usrsock_connect,            /* si_connect */
   usrsock_accept,             /* si_accept */

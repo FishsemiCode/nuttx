@@ -289,6 +289,8 @@ int getsockopt(int sockfd, int level, int option,
 
 int getsockname(int sockfd, FAR struct sockaddr *addr,
                 FAR socklen_t *addrlen);
+int getpeername(int sockfd, FAR struct sockaddr *addr,
+                FAR socklen_t *addrlen);
 
 ssize_t recvmsg(int sockfd, FAR struct msghdr *msg, int flags);
 ssize_t sendmsg(int sockfd, FAR struct msghdr *msg, int flags);
