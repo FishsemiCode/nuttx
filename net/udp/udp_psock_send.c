@@ -64,13 +64,8 @@
 ssize_t psock_udp_send(FAR struct socket *psock, FAR const void *buf,
                        size_t len)
 {
-  FAR struct udp_conn_s *conn;
-
   DEBUGASSERT(psock != NULL && psock->s_crefs > 0);
   DEBUGASSERT(psock->s_type == SOCK_DGRAM);
-
-  conn = (FAR struct udp_conn_s *)psock->s_conn;
-  DEBUGASSERT(conn);
 
   /* Was the UDP socket connected via connect()? */
 
