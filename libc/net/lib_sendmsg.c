@@ -17,7 +17,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * net/socket/sendmsg.c
+ * libc/net/lib_sendmsg.c
  *
  *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -55,16 +55,14 @@
  * Included Files
  ****************************************************************************/
 
-#ifdef CONFIG_NET
-
 #include <nuttx/config.h>
+
+#ifdef CONFIG_NET
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
 #include <errno.h>
-
-#include "socket/socket.h"
 
 /****************************************************************************
  * Public Functions
@@ -94,10 +92,10 @@ ssize_t sendmsg(int sockfd, struct msghdr *msg, int flags)
   void *buf = msg->msg_iov->iov_base;
   size_t len = msg->msg_iov->iov_len;
   struct sockaddr *to = msg->msg_name;
-  socklen_t addrlen = msg->msg_namelen;
+  socklen_t tolen = msg->msg_namelen;
 
   return msg->msg_iovlen > 1 ? -ENOTSUP :
-      sendto(sockfd, buf, len, flags, from, addrlen);
+      sendto(sockfd, buf, len, flags, to, tolen);
 }
 
 #endif /* CONFIG_NET */
