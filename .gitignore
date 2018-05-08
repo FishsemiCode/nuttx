@@ -33,3 +33,4 @@ core
 /pcode
 /tags
 openamp
+fs/littlefs
