@@ -90,6 +90,7 @@ enum usrsock_request_types_e
   USRSOCK_REQUEST_SETSOCKOPT,
   USRSOCK_REQUEST_GETSOCKOPT,
   USRSOCK_REQUEST_GETSOCKNAME,
+  USRSOCK_REQUEST_GETPEERNAME,
   USRSOCK_REQUEST_BIND,
   USRSOCK_REQUEST_LISTEN,
   USRSOCK_REQUEST_ACCEPT,
@@ -201,6 +202,14 @@ begin_packed_struct struct usrsock_request_getsockopt_s
 } end_packed_struct;
 
 begin_packed_struct struct usrsock_request_getsockname_s
+{
+  struct usrsock_request_common_s head;
+
+  int16_t usockid;
+  uint16_t max_addrlen;
+} end_packed_struct;
+
+begin_packed_struct struct usrsock_request_getpeername_s
 {
   struct usrsock_request_common_s head;
 
