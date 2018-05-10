@@ -48,6 +48,7 @@
 
 #include "chip.h"
 #include "nvic.h"
+#include "arm_nvic.h"
 #include "ram_vectors.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -311,6 +312,7 @@ void up_disable_irq(int irq)
         {
           modifyreg32(regaddr, bit, 0);
         }
+      up_wic_disable_irq(irq);
     }
 }
 
@@ -354,6 +356,7 @@ void up_enable_irq(int irq)
         {
           modifyreg32(regaddr, 0, bit);
         }
+      up_wic_enable_irq(irq);
     }
 }
 
@@ -445,6 +448,8 @@ void up_irqinitialize(void)
     {
       putreg32(NVIC_PRIORITY_DEFAULT32, NVIC_IRQ_PRIORITY(i));
     }
+
+  up_wic_initialize();
 
   /* Attach the SVCall and Hard Fault exception handlers.  The SVCall
    * exception is used for performing context switches; The Hard Fault

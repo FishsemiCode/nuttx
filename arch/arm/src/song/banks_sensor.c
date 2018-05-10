@@ -69,6 +69,7 @@
 
 #define SEN_PWR_BASE                (0xf8b14000)
 #define SEN_PWR_SLPCTL0             (SEN_PWR_BASE + 0x000)
+#define SEN_PWR_SEN_M4_INTR2SLP_MK0 (SEN_PWR_BASE + 0x160)
 
 /****************************************************************************
  * Public Data
@@ -257,6 +258,27 @@ void up_cpu_standby(void)
   putreg32(0x00010001, SEN_PWR_SLPCTL0);
 
   up_cpu_wfi();
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, SEN_PWR_SEN_M4_INTR2SLP_MK0);
 }
 
 #endif  /* CONFIG_ARCH_CHIP_BANKS_SENSOR */

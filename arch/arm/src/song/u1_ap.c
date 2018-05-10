@@ -66,6 +66,9 @@
 
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
+#define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_AP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -215,6 +218,27 @@ void up_lateinitialize(void)
 #ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
 #endif
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_AP_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_AP */

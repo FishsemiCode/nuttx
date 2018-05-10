@@ -72,6 +72,7 @@
 #define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
+#define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPST               (TOP_PWR_BASE + 0x368)
 
@@ -386,6 +387,27 @@ int board_reset(int status)
 
   putreg32(0x10001, TOP_PWR_SFRST_CTL);
   return 0;
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_SEC_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_SP */

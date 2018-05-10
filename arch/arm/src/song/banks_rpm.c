@@ -70,6 +70,7 @@
 #define TOP_MAILBOX_BASE            (0xf9000000)
 
 #define DDR_PWR_BASE                (0xf9210000)
+#define DDR_PWR_RPM_M4_INTR2SLP_MK0 (DDR_PWR_BASE + 0x120)
 #define DDR_PWR_SLP_CTL0            (DDR_PWR_BASE + 0x410)
 
 /****************************************************************************
@@ -257,6 +258,27 @@ void up_cpu_standby(void)
   putreg32(0x00010001, DDR_PWR_SLP_CTL0);
 
   up_cpu_wfi();
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(DDR_PWR_RPM_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(DDR_PWR_RPM_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, DDR_PWR_RPM_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_BANKS_RPM */

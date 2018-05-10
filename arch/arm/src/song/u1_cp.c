@@ -70,6 +70,7 @@
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_CP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x150)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
 #define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
@@ -313,6 +314,27 @@ void up_cpu_sleep(void)
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
 
   up_cpu_save();
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_CP_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_CP */
