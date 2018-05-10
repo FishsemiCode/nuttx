@@ -236,7 +236,11 @@
 
 enum pm_state_e
 {
-  PM_NORMAL = 0,   /* Normal full power operating mode.  If the driver is in
+  PM_RESTORE = -1, /* PM_RESTORE is not a low power state.
+                    *
+                    * PM_RESTORE is just used for restore from a low power state.
+                    */
+  PM_NORMAL,       /* Normal full power operating mode.  If the driver is in
                     * a reduced power usage mode, it should immediately re-
                     * initialize for normal operatin.
                     *
@@ -266,10 +270,6 @@ enum pm_state_e
                     * through reset).
                     *
                     * PM_SLEEP may be following by PM_NORMAL
-                    */
-  PM_RESTORE,       /* PM_RESTORE is not a low power state.
-                    *
-                    * PM_RESTORE is just used for restore from a low power state.
                     */
   PM_COUNT,
 };
