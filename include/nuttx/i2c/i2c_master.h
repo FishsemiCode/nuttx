@@ -79,6 +79,12 @@
 #define I2C_M_TEN            0x0002 /* Ten bit address */
 #define I2C_M_NORESTART      0x0080 /* Message should not begin with
                                      * (re-)start of transfer */
+/* I2c bus speed */
+
+#define I2C_SPEED_STANDARD  ( 100000) /* Standard speed (100Khz) */
+#define I2C_SPEED_FAST      ( 400000) /* Fast speed     (400Khz) */
+#define I2C_SPEED_FAST_PLUS (1000000) /* Fast+ speed    (  1Mhz) */
+#define I2C_SPEED_HIGH      (3400000) /* High speed     (3.4Mhz) */
 
 /* I2C Character Driver IOCTL Commands **************************************/
 /* The I2C driver is intended to support application testing of the I2C bus.

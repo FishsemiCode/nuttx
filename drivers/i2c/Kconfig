@@ -36,4 +36,10 @@ config I2C_DRIVER
 		this driver is to support I2C testing.  It is not suitable for use
 		in any real driver application.
 
+config I2C_DW
+	bool "Designware I2C controller driver"
+	default n
+	---help---
+		Enable support for Deisgnware i2c controller Driver
+
 endif # I2C
