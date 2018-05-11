@@ -288,7 +288,7 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
   count += (uint64_t)ts->tv_sec * config->c1_freq;
   count += (uint64_t)ts->tv_nsec * config->c1_freq / NSEC_PER_SEC;
 
-  song_oneshot_putreg(config->base, config->spec_off, count / lower->c1_max);
+  song_oneshot_putreg(config->base, config->spec_off, count / lower->c1_max + 1);
 }
 
 static int song_oneshot_interrupt(int irq, FAR void *context, FAR void *arg)
