@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -82,7 +83,11 @@
 void up_enable_icache(void)
 {
   modifyreg32(SONG_ICACHE_CTL, SONG_ICACHE_EN, 0);
-  up_invalidate_icache_all();
+  modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_FLUSH);
+  while (getreg32(SONG_ICACHE_CTL) & SONG_ICACHE_FLUSH)
+    {
+      /* Wait until FLUSH bit get clear */;
+    }
   modifyreg32(SONG_ICACHE_CTL, 0,
     SONG_ICACHE_LP_EN | SONG_ICACHE_EN);
 }
@@ -143,13 +148,23 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end)
  *
  ****************************************************************************/
 
-void up_invalidate_icache_all(void)
+__ramfunc__ void up_invalidate_icache_all(void)
 {
-  modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_FLUSH);
+  uint32_t   regval;
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+
+  regval  = getreg32(SONG_ICACHE_CTL);
+  regval |= SONG_ICACHE_FLUSH;
+  putreg32(regval, SONG_ICACHE_CTL);
+
   while (getreg32(SONG_ICACHE_CTL) & SONG_ICACHE_FLUSH)
     {
       /* Wait until FLUSH bit get clear */;
     }
+
+  leave_critical_section(flags);
 }
 
 /****************************************************************************
