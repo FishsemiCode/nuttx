@@ -253,9 +253,6 @@ void weak_function board_earlyinitialize(void)
 
 void up_start(void)
 {
-  /* Will be enabled again by up_irqinitialize */
-  up_irq_disable();
-
   up_enable_icache();
   up_enable_dcache();
 
