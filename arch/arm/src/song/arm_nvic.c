@@ -146,14 +146,14 @@ static void up_nvic_backup(void)
       g_nvic_regsave[i++] = getreg32(g_nvic_scb_regaddr[j]);
     }
 
-  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 32)
-    {
-      g_nvic_regsave[i++] = getreg32(NVIC_IRQ_ENABLE(j));
-    }
-
   for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 4)
     {
       g_nvic_regsave[i++] = getreg32(NVIC_IRQ_PRIORITY(j));
+    }
+
+  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 32)
+    {
+      g_nvic_regsave[i++] = getreg32(NVIC_IRQ_ENABLE(j));
     }
 }
 
@@ -167,14 +167,14 @@ static void up_nvic_restore(void)
       putreg32(g_nvic_regsave[i++], g_nvic_scb_regaddr[j]);
     }
 
-  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 32)
-    {
-      putreg32(g_nvic_regsave[i++], NVIC_IRQ_ENABLE(j));
-    }
-
   for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 4)
     {
       putreg32(g_nvic_regsave[i++], NVIC_IRQ_PRIORITY(j));
+    }
+
+  for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 32)
+    {
+      putreg32(g_nvic_regsave[i++], NVIC_IRQ_ENABLE(j));
     }
 }
 
