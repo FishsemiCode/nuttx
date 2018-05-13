@@ -71,7 +71,7 @@
  */
 
 #if defined(CONFIG_FS_FAT) || defined(CONFIG_FS_ROMFS) || \
-    defined(CONFIG_FS_SMARTFS)
+    defined(CONFIG_FS_SMARTFS) || defined(CONFIG_FS_LITTLETFS)
 #  define BDFS_SUPPORT 1
 #endif
 
@@ -107,6 +107,9 @@ extern const struct mountpt_operations romfs_operations;
 #ifdef CONFIG_FS_SMARTFS
 extern const struct mountpt_operations smartfs_operations;
 #endif
+#ifdef CONFIG_FS_LITTLEFS
+extern const struct mountpt_operations littlefs_operations;
+#endif
 
 static const struct fsmap_t g_bdfsmap[] =
 {
@@ -118,6 +121,9 @@ static const struct fsmap_t g_bdfsmap[] =
 #endif
 #ifdef CONFIG_FS_SMARTFS
     { "smartfs", &smartfs_operations },
+#endif
+#ifdef CONFIG_FS_LITTLEFS
+    { "littlefs", &littlefs_operations },
 #endif
     { NULL,   NULL },
 };

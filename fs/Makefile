@@ -74,6 +74,7 @@ include procfs/Make.defs
 include unionfs/Make.defs
 include userfs/Make.defs
 include hostfs/Make.defs
+include littlefs/Make.defs
 
 endif
 endif
