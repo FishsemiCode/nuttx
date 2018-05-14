@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -73,6 +74,10 @@
  ****************************************************************************/
 
 extern uint32_t _slog;
+
+#ifdef CONFIG_SONG_IOE
+FAR struct ioexpander_dev_s *g_ioe[2];
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -252,6 +257,9 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_IOE
+  g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT_FIRST + 5);
+#endif
 }
 
 void up_cpu_standby(void)

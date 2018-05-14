@@ -42,6 +42,10 @@
 
 #include <nuttx/config.h>
 
+#ifndef __ASSEMBLY__
+#include <nuttx/ioexpander/ioexpander.h>
+#endif
+
 #include <arch/chip/cache.h>
 
 /****************************************************************************
@@ -118,6 +122,12 @@ extern "C"
 {
 #else
 #define EXTERN extern
+
+/* Global driver instances */
+
+/* Song general gpio instance */
+extern FAR struct ioexpander_dev_s *g_ioe[];
+
 #endif
 
 /****************************************************************************

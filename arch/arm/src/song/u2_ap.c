@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -69,6 +70,10 @@
  ****************************************************************************/
 
 extern uint32_t _srsctbl_adsp;
+
+#ifdef CONFIG_SONG_IOE
+FAR struct ioexpander_dev_s *g_ioe[2];
+#endif
 
 /****************************************************************************
  * Private Data
@@ -205,5 +210,12 @@ void up_openamp_initialize(void)
 #endif
 }
 #endif
+
+void up_lateinitialize(void)
+{
+#ifdef CONFIG_SONG_IOE
+  g_ioe[0] = song_ioe_initialize(0, 0xa00f000, 26);
+#endif
+}
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */

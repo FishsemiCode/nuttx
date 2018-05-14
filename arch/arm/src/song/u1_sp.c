@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -89,6 +90,10 @@
 
 extern uint32_t _srsctbl_ap;
 extern uint32_t _srsctbl_cp;
+
+#ifdef CONFIG_SONG_IOE
+FAR struct ioexpander_dev_s *g_ioe[2];
+#endif
 
 /****************************************************************************
  * Private Data
@@ -357,6 +362,10 @@ void up_lateinitialize(void)
 {
 #ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
+#endif
+
+#ifdef CONFIG_SONG_IOE
+  g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
 #endif
 }
 
