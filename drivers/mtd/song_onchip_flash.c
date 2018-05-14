@@ -175,7 +175,8 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
       flash_sendop_wait(priv, CMD_ERASE);
     }
 
-  up_invalidate_icache(startblock * erasesize, nblocks * erasesize);
+  up_invalidate_icache(startblock * erasesize,
+      (startblock + nblocks) * erasesize);
   return 0;
 }
 
@@ -243,7 +244,8 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
       remain--;
     }
 
-  up_invalidate_icache(startblock * BLOCK_SIZE, (nblocks - remain) * BLOCK_SIZE);
+  up_invalidate_icache(startblock * BLOCK_SIZE,
+      (startblock + nblocks) * BLOCK_SIZE);
 
   return nblocks - remain;
 }
