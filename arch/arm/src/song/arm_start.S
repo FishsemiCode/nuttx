@@ -57,6 +57,7 @@
 	.globl		__aeabi_ldivmod
 	.globl		__aeabi_ui2d
 	.globl		__aeabi_uldivmod
+	.globl		__popcountsi2
 
 /****************************************************************************
  * Name: __start
@@ -120,6 +121,7 @@ __start:
 	bl		__aeabi_ldivmod
 	bl		__aeabi_ui2d
 	bl		__aeabi_uldivmod
+	bl		__popcountsi2
 
 	.size		__start, .-__start
 
