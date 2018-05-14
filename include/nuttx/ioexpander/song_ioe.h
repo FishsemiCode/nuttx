@@ -42,6 +42,8 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/ioexpander/ioexpander.h>
+
 /****************************************************************************
  * Name:song_ioe_initialize
  *
