@@ -51,6 +51,7 @@
 
 #include "song_addrenv.h"
 #include "systick.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U1_AP
