@@ -135,16 +135,16 @@ MINOR=`echo ${VERSION} | cut -d'.' -f2`
 # Get GIT information (if not provided on the command line)
 
 if [ -z "${BUILD}" ]; then
-	GITINFO=`git -C ${GITDIR} log --oneline -1 2>/dev/null`
-	if [ -z "${GITINFO}" ]; then
+	BUILD=`git -C ${GITDIR} log --oneline -1 | cut -d' ' -f1 2>/dev/null`
+	if [ -z "${BUILD}" ]; then
 		echo "GIT version information is not available"
 		exit 3
 	fi
-	BUILD=`echo ${GITINFO} | cut -d' ' -f1`
-	if [ -z "${BUILD}" ]; then
-		echo "GIT build information not found"
-		exit 4
+
+	if [ -n "`git -C ${GITDIR} diff-index --name-only HEAD | head -1`" ]; then
+		BUILD=${BUILD}-dirty
 	fi
+
 fi
 
 # Write a version file into the NuttX directoy.  The syntax of file is such that it
