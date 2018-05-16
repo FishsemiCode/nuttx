@@ -274,18 +274,16 @@ endif
 tools/mkversion$(HOSTEXEEXT):
 	$(Q) $(MAKE) -C tools -f $(TOPDIR)/tools/Makefile.host -I $(TOPDIR)/tools TOPDIR="$(TOPDIR)"  mkversion$(HOSTEXEEXT)
 
-.version:
-	$(Q) if [ ! -f .version ]; then \
-		if [ -f $(TOPDIR)/.version ]; then \
+version:
+	$(Q) if [ -f $(TOPDIR)/.version ]; then \
 			cp $(TOPDIR)/.version .version; \
-		else \
+		 else \
 			echo "No .version file found, creating one"; \
 			$(TOPDIR)/tools/version.sh -c $(TOPDIR) .version; \
-		fi; \
-		chmod 755 .version; \
-	fi
+		 fi;
+	$(Q) chmod 755 .version
 
-include/nuttx/version.h: .version tools/mkversion$(HOSTEXEEXT)
+include/nuttx/version.h: version tools/mkversion$(HOSTEXEEXT)
 	$(Q) tools/mkversion . > include/nuttx/version.h_temp
 	$(Q) $(call TESTANDREPLACEFILE, include/nuttx/version.h_temp,$@)
 
