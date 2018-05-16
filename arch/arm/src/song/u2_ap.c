@@ -50,6 +50,7 @@
 
 #include "song_addrenv.h"
 #include "systick.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U2_AP
@@ -60,10 +61,12 @@
 
 #define CPU_NAME_ADSP               "adsp"
 
-#define RSCTBL_BASE_ADSP            ((uintptr_t)&_srsctbl_adsp)
-
 #define TOP_MAILBOX_BASE            (0xa0050000)
+
 #define TOP_PWR_BASE                (0xa00e0000)
+#define TOP_PWR_M4_INTR2SLP_MK0     (TOP_PWR_BASE + 0x224)
+
+#define RSCTBL_BASE_ADSP            ((uintptr_t)&_srsctbl_adsp)
 
 /****************************************************************************
  * Public Data
@@ -216,6 +219,27 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(0, 0xa00f000, 26);
 #endif
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */
