@@ -24,10 +24,6 @@ config NETDB_HOSTCONF_PATH
 	string "Path to host configuration file"
 	default "/etc/hosts"
 
-config NETDB_SERVICES_PATH
-	string "Path to netdb services file"
-	default "/etc/services"
-
 config NETDB_MAX_ALTNAMES
 	int "Max number of alternate host names"
 	default 4
@@ -37,6 +33,10 @@ config NETDB_BUFSIZE
 	default 128
 
 endif # NETDB_HOSTFILE
+
+config NETDB_SERVICES_PATH
+	string "Path to netdb services file"
+	default "/etc/services"
 
 menuconfig NETDB_DNSCLIENT
 	bool "DNS Name resolution"

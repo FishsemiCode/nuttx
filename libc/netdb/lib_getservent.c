@@ -56,6 +56,8 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
+#include "lib_netdb.h"
+
 #define _PATH_SERVICES      CONFIG_NETDB_SERVICES_PATH
 
 struct servent_data {
