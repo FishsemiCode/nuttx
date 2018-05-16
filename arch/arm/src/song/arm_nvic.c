@@ -265,6 +265,18 @@ static int nvic_irqinfo(int irq, uintptr_t *regaddr, uint32_t *bit,
  * Public Functions
  ****************************************************************************/
 
+void weak_function up_wic_initialize(void)
+{
+}
+
+void weak_function up_wic_enable_irq(int irq)
+{
+}
+
+void weak_function up_wic_disable_irq(int irq)
+{
+}
+
 /****************************************************************************
  * Name: up_ack_irq
  *
