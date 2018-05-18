@@ -12,7 +12,7 @@ config CLK_RPMSG
 	default n
 	depends on OPENAMP
 	---help---
-		Rpmsg clk is clock proxy in client processor operate clks belong
+		Rpmsg clk are proxy/master pairs clock that operate clks between client and
 		server processor.
 
 menuconfig SONG_CLK

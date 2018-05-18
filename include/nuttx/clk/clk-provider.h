@@ -263,6 +263,7 @@ struct clk *clk_register_rpmsg(const char *name, uint64_t flags);
 
 /* rpmsg clk must be initialize in board initialization */
 int    clk_rpmsg_initialize(const char *cpu_name);
+int    clk_rpmsg_server_initialize(void);
 #endif
 
 #undef EXTERN
