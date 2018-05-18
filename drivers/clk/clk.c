@@ -629,6 +629,16 @@ int clk_get_phase(struct clk *clk)
   return ret;
 }
 
+const char *clk_get_name(const struct clk *clk)
+{
+  return !clk ? NULL : clk->name;
+}
+
+uint32_t clk_get_enable_count(struct clk *clk)
+{
+  return !clk ? 0 : clk->enable_count;
+}
+
 struct clk *clk_get(const char *name)
 {
   struct clk *root_clk = NULL;

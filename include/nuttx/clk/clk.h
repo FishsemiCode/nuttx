@@ -84,6 +84,11 @@ int      clk_get_phase(struct clk *clk);
 struct   clk *clk_register(const char *name, int32_t num_parents, const char **parent_names,
                     uint64_t flags, const struct clk_ops *ops, void *private_data);
 
+/* Clk helper API */
+
+const char* clk_get_name(const struct clk *clk);
+uint32_t    clk_get_enable_count(struct clk *clk);
+
 #undef EXTERN
 #ifdef __cplusplus
 }
