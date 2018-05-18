@@ -50,7 +50,9 @@
 	.file		"arm_start.S"
 	.globl		up_start
 	.globl		_ebss
+	.globl		__aeabi_d2f
 	.globl		__aeabi_d2iz
+	.globl		__aeabi_d2lz
 	.globl		__aeabi_d2uiz
 	.globl		__aeabi_ddiv
 	.globl		__aeabi_dmul
@@ -114,7 +116,9 @@ __start:
  *   pruned again if no other references to them exist.
  ****************************************************************************/
 
+	bl		__aeabi_d2f
 	bl		__aeabi_d2iz
+	bl		__aeabi_d2lz
 	bl		__aeabi_d2uiz
 	bl		__aeabi_ddiv
 	bl		__aeabi_dmul
