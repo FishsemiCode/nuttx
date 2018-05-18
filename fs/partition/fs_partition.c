@@ -59,11 +59,24 @@ static int parse_partition(FAR struct partition_state_s *state,
                            FAR void *arg);
 
 /****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef CONFIG_PTABLE_PARTITION
+int parse_ptable_partition(FAR struct partition_state_s *state,
+                           partition_handler_t handler,
+                           FAR void *arg);
+#endif
+
+/****************************************************************************
  * Private Data
  ****************************************************************************/
 
 static const partition_parser_t g_parser[] =
 {
+#ifdef CONFIG_PTABLE_PARTITION
+  parse_ptable_partition,
+#endif
   NULL
 };
 

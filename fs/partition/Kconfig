@@ -6,6 +6,11 @@
 if !DISABLE_MOUNTPOINT
 
 menu "Partition Table"
+
+config PTABLE_PARTITION
+	bool "PTABLE support"
+	default n
+
 endmenu
 
 endif

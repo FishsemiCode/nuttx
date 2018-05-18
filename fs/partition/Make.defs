@@ -39,6 +39,10 @@ ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
 
 CSRCS += fs_partition.c
 
+ifeq ($(CONFIG_PTABLE_PARTITION),y)
+CSRCS += fs_ptable.c
+endif
+
 # Include partition build support
 
 DEPPATH += --dep-path partition
