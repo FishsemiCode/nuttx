@@ -47,45 +47,17 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/semaphore.h>
 
+#include "clk-rpmsg.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define CLK_RPMSG_NAME                "clk-rpmsg"
-
-#define CLK_RPMSG_ENABLE              0
-#define CLK_RPMSG_DISABLE             1
-#define CLK_RPMSG_SETRATE             2
-#define CLK_RPMSG_GETRATE             5
-
 #define CLK_RPMSG_MSGLEN(msg, clk)     (sizeof(*msg) + B2C(strlen(clk->name) + 1))
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
-
-begin_packed_struct struct clk_rpmsg_header_s
-{
-  uint32_t                      command;
-  int                           result;
-  uint64_t                      cookie;
-} end_packed_struct;
-
-begin_packed_struct struct clk_rpmsg_enable_s
-{
-  struct clk_rpmsg_header_s     header;
-  char                          name[0];
-} end_packed_struct;
-
-#define clk_rpmsg_disable_s clk_rpmsg_enable_s
-
-begin_packed_struct struct clk_rpmsg_setrate_s
-{
-  struct clk_rpmsg_header_s     header;
-  uint64_t                      rate;
-  char                          name[0];
-} end_packed_struct;
-
-#define clk_rpmsg_getrate_s clk_rpmsg_setrate_s
 
 struct clk_rpmsg_cookie_s
 {
