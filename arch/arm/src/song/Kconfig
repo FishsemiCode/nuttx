@@ -63,6 +63,10 @@ config ARCH_CHIP_U2_AP
 
 endchoice
 
+config EARLY_STACKSIZE
+	int "Early stack size"
+	default 0
+
 config SONG_CORTEXM4
 	bool
 	select ARCH_CORTEXM4
