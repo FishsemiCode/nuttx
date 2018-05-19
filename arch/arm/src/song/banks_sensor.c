@@ -44,6 +44,7 @@
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/spi/spi_dw.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
@@ -80,7 +81,17 @@ extern uint32_t _slog;
 extern uint32_t _logsize;
 
 #ifdef CONFIG_SONG_IOE
-FAR struct ioexpander_dev_s *g_ioe[3];
+FAR struct ioexpander_dev_s *g_ioe[3] =
+{
+  [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SPI_DW
+FAR struct spi_dev_s *g_spi[3] =
+{
+  [2] = DEV_END,
+};
 #endif
 
 /****************************************************************************
@@ -247,6 +258,32 @@ void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_SPI_DW
+static void up_spi_init(void)
+{
+  static const struct dw_spi_config_s configs[] =
+  {
+    {
+      .base = 0xf8b10000,
+      .irq = 17,
+      .clk_rate = 19500000,
+      .bus = 0,
+      .cs_num = 2,
+    },
+    {
+      .base = 0xf8b1c000,
+      .irq = 25,
+      .clk_rate = 19500000,
+      .bus = 1,
+      .cs_num = 2,
+    }
+  };
+
+  dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
+                        g_spi, sizeof(g_spi) / sizeof(g_spi[0]), NULL);
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_IOE
@@ -255,6 +292,10 @@ void up_lateinitialize(void)
 
   /* general gpio initialization */
   g_ioe[1] = song_ioe_initialize(4, 0xf900c000, 28);
+#endif
+
+#ifdef CONFIG_SPI_DW
+  up_spi_init();
 #endif
 }
 

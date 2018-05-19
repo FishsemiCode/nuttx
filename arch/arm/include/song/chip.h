@@ -44,6 +44,7 @@
 
 #ifndef __ASSEMBLY__
 #include <nuttx/ioexpander/ioexpander.h>
+#include <nuttx/spi/spi.h>
 #endif
 
 #include <arch/chip/cache.h>
@@ -106,6 +107,7 @@
 #endif
 
 #define PM_IDLE_DOMAIN                0
+#define DEV_END                       (void *)0xffffffff
 
 /****************************************************************************
  * Public Types
@@ -127,6 +129,9 @@ extern "C"
 
 /* Song general gpio instance */
 extern FAR struct ioexpander_dev_s *g_ioe[];
+
+/* Designware SPI controller instances */
+extern FAR struct spi_dev_s *g_spi[];
 
 #endif
 

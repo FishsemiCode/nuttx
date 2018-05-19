@@ -73,7 +73,10 @@
 extern uint32_t _slog;
 
 #ifdef CONFIG_SONG_IOE
-FAR struct ioexpander_dev_s *g_ioe[2];
+FAR struct ioexpander_dev_s *g_ioe[2] =
+{
+  [1] = DEV_END,
+};
 #endif
 
 /****************************************************************************

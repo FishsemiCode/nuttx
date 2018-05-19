@@ -45,6 +45,7 @@
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
+#include <nuttx/spi/spi_dw.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
@@ -75,7 +76,17 @@
 extern uint32_t _srsctbl_adsp;
 
 #ifdef CONFIG_SONG_IOE
-FAR struct ioexpander_dev_s *g_ioe[2];
+FAR struct ioexpander_dev_s *g_ioe[2] =
+{
+  [1] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SPI_DW
+FAR struct spi_dev_s *g_spi[2] =
+{
+  [1] = DEV_END,
+};
 #endif
 
 /****************************************************************************
@@ -214,10 +225,38 @@ void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_SPI_DW
+static void up_spi_init(void)
+{
+  static struct dw_spi_config_s configs[] =
+  {
+    {
+      .base = 0xa0130000,
+      .irq = 29,
+      .clk_rate = 78000000,
+      .bus = 0,
+      .cs_num = 1,
+      .cs_gpio[0] = 28,
+    },
+  };
+
+#ifdef CONFIG_SONG_IOE
+  dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
+                        g_spi, sizeof(g_spi) / sizeof(g_spi[0]), g_ioe[0]);
+#else
+#error !!Must include IOExpander to init spi controller
+#endif
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(0, 0xa00f0000, 26);
+#endif
+
+#ifdef CONFIG_SPI_DW
+  up_spi_init();
 #endif
 }
 
