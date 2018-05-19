@@ -44,6 +44,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if CONFIG_ARCH_INTERRUPTSTACK == 0
+#  undef CONFIG_ARCH_INTERRUPTSTACK
+#  define CONFIG_ARCH_INTERRUPTSTACK CONFIG_IDLETHREAD_STACKSIZE
+#endif
+
 	.EQU		DBG_STACK_START 0xd44
 	.EQU		DBG_STACK_END   0xd48
 
@@ -132,11 +137,15 @@ reset_handler:
 	ld		(#_g_idle_topstack).ui, r0.ui
 	ld		(#_g_idle_basestack).ui, r1.ui
 	nop		#0x01
+	mov		r0.ui, sp.ui
+
+#ifdef CONFIG_ARCH_XM6_STACKCHECK
+	/* Setup the stack violation exception registers */
 
 	out {cpm}	r0.ui, (#DBG_STACK_START).ui
 	out {cpm}	r1.ui, (#DBG_STACK_END).ui
+#endif
 
-	mov		r0.ui, sp.ui
 	br		#_up_start, #0x00, #0x00, ?prx.b
 
 /****************************************************************************
@@ -241,7 +250,23 @@ exception_common:
 	 */
 
 	mov		sp.ui, r1.ui
+
+	/* Switch to the dedicated stack */
+
+	mov		#g_int_topstack, r2.ui
+	mov		#g_int_basestack, r3.ui
+	mov		r2.ui, sp.ui
+
+#ifdef CONFIG_ARCH_XM6_STACKCHECK
+	/* Setup the stack violation exception registers */
+
+	out {cpm}	r2.ui, (#DBG_STACK_START).ui
+	out {cpm}	r3.ui, (#DBG_STACK_END).ui
+#else
 	nop		#0x02
+#endif
+	nop		#0x04
+
 	push		retreg.ui
 	callr		#_up_doirq, ?prx.b
 	pop		retreg.ui
@@ -314,3 +339,8 @@ exception_common:
 	ret		?prx.b
 
 	.func_end	3 exception_common
+
+	.bss
+g_int_basestack:
+	DD		CONFIG_ARCH_INTERRUPTSTACK/4 dup ?
+g_int_topstack:

@@ -44,6 +44,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if CONFIG_ARCH_INTERRUPTSTACK == 0
+#  undef CONFIG_ARCH_INTERRUPTSTACK
+#  define CONFIG_ARCH_INTERRUPTSTACK CONFIG_IDLETHREAD_STACKSIZE
+#endif
 
 .MACRO	IRQ_HANDLER	irq retx
 	pushdw		retreg
@@ -215,6 +219,11 @@ exception_common:
 
 	mov		r0, a0
 	mov		sp, a1
+
+	/* Switch to the dedicated stack and go */
+
+	mov		#g_int_topstack, sp
+	nop
 	pushdw		retreg
 	callr		#_up_doirq
 	popdw		retreg
@@ -276,3 +285,8 @@ exception_common:
 	ret
 
 	.func_end	3 exception_common
+
+	.bss
+g_int_basestack:
+	dd		CONFIG_ARCH_INTERRUPTSTACK/4 dup ?
+g_int_topstack:
