@@ -221,6 +221,27 @@ struct song_pll_clk
   uint32_t          ctl_shift;
 };
 
+struct song_out_clk
+{
+  const char         *name;
+  const char         **parent_name;
+  uint8_t            num_parents;
+  uint32_t           mux_reg;
+  uint32_t           ctl_reg;
+  uint8_t            mux_shift;
+  uint8_t            mux_width;
+};
+
+struct song_timer_clk
+{
+  const char         *name;
+  const char         **parent_name;
+  uint8_t            num_parents;
+  uint32_t           ctl_reg;
+  uint8_t            mux_shift;
+  uint8_t            mux_width;
+};
+
 struct song_rpmsg_clk
 {
   const char        *name;
@@ -250,6 +271,8 @@ struct song_clk_table
   const struct      song_mux_gate_clk *mux_gate_clks;
   const struct      song_phase_clk *phase_clks;
   const struct      song_pll_clk *pll_clks;
+  const struct      song_out_clk *out_clks;
+  const struct      song_timer_clk *timer_clks;
 #ifdef CONFIG_CLK_RPMSG
   const struct      song_rpmsg_clk *rpmsg_clks;
 #endif

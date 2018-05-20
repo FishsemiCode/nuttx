@@ -125,6 +125,10 @@ static int song_register_mux_sdiv_gr_clks(uint32_t reg_base,
                     const struct song_mux_sdiv_gr_clk *mux_sdiv_gr_clks);
 static int song_register_pll_clks(uint32_t reg_base,
                     const struct song_pll_clk *pll_clks);
+static int song_register_out_clks(uint32_t reg_base,
+                    const struct song_out_clk *out_clks);
+static int song_register_timer_clks(uint32_t reg_base,
+                    const struct song_timer_clk *timer_clks);
 #ifdef CONFIG_CLK_RPMSG
 static int song_register_rpmsg_clks(uint32_t reg_base,
                     const struct song_rpmsg_clk *rpmsg_clks);
@@ -815,6 +819,57 @@ static int song_register_pll_clks(uint32_t reg_base,
   return 0;
 }
 
+static int song_register_out_clks(uint32_t reg_base,
+                    const struct song_out_clk *out_clks)
+{
+  struct clk *clk = NULL;
+
+  while (out_clks->name)
+    {
+      clk = clk_register_out(
+              out_clks->name,
+              out_clks->parent_name,
+              out_clks->num_parents,
+              reg_base + out_clks->mux_reg,
+              out_clks->mux_shift,
+              out_clks->mux_width,
+              reg_base + out_clks->ctl_reg);
+      if (!clk)
+        {
+          return -EINVAL;
+        }
+
+      out_clks++;
+    }
+
+  return 0;
+}
+
+static int song_register_timer_clks(uint32_t reg_base,
+                    const struct song_timer_clk *timer_clks)
+{
+  struct clk *clk = NULL;
+
+  while (timer_clks->name)
+    {
+      clk = clk_register_timer(
+              timer_clks->name,
+              timer_clks->parent_name,
+              timer_clks->num_parents,
+              reg_base + timer_clks->ctl_reg,
+              timer_clks->mux_shift,
+              timer_clks->mux_width);
+      if (!clk)
+        {
+          return -EINVAL;
+        }
+
+      timer_clks++;
+    }
+
+  return 0;
+}
+
 static int song_set_default_rate(const struct song_default_rate_clk *def_rate)
 {
   struct clk *clk = NULL;
@@ -876,6 +931,20 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
   if (table->pll_clks)
     {
       ret = song_register_pll_clks(base, table->pll_clks);
+      if (ret)
+        return ret;
+    }
+
+  if (table->out_clks)
+    {
+      ret = song_register_out_clks(base, table->out_clks);
+      if (ret)
+        return ret;
+    }
+
+  if (table->timer_clks)
+    {
+      ret = song_register_timer_clks(base, table->timer_clks);
       if (ret)
         return ret;
     }

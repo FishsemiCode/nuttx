@@ -120,15 +120,45 @@ struct clk_pll
   uint32_t ctl_shift;
 };
 
+struct clk_out
+{
+  uint32_t mux_reg;
+  uint32_t ctl_reg;
+  uint8_t  mux_shift;
+  uint8_t  mux_width;
+  uint8_t  parent_index;
+};
+
+struct clk_timer
+{
+  uint32_t ctl_reg;
+  uint8_t  mux_shift;
+  uint8_t  mux_width;
+  uint8_t  parent_index;
+};
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 /* the song platform pll ops declaration */
 extern const struct clk_ops clk_pll_ops;
+/* the song platform out ops declaration */
+extern const struct clk_ops clk_out_ops;
+/* the song platform timer ops declaration */
+extern const struct clk_ops clk_timer_ops;
 
 /* the song platform pll register declaration */
 struct clk *clk_register_pll(const char *name, const char *parent_name, uint64_t flags,
     uint32_t cfg_reg0, uint32_t cfg_reg1, uint32_t ctl_reg, uint32_t ctl_shift);
+
+/* the song platform out register declaration */
+struct clk *clk_register_out(const char *name, const char **parent_names,
+    uint8_t num_parents, unsigned int mux_reg, uint8_t mux_shift, uint8_t mux_width,
+    unsigned int ctl_reg);
+
+/* the song platform timer register declaration */
+struct clk *clk_register_timer(const char *name, const char **parent_names,
+    uint8_t num_parents, uint8_t ctl_reg, uint8_t mux_shift, uint8_t mux_width);
 
 #undef EXTERN
 #if defined(__cplusplus)
