@@ -226,7 +226,7 @@ void up_openamp_initialize(void)
   };
 
   static struct rptun_rsc_s rptun_rsc_ap
-              __attribute__ ((section (".resource_table.ap"))) =
+    __attribute__ ((section(".resource_table.ap"))) =
   {
     .rsc_tbl_hdr     =
     {
@@ -277,7 +277,7 @@ void up_openamp_initialize(void)
   };
 
   static struct rptun_rsc_s rptun_rsc_cp
-              __attribute__ ((section (".resource_table.cp"))) =
+    __attribute__ ((section(".resource_table.cp"))) =
   {
     .rsc_tbl_hdr     =
     {

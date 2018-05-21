@@ -53,7 +53,7 @@
  * Public Data
  ****************************************************************************/
 
-const struct userspace2_s userspace __attribute__ ((section (".userspace"))) =
+const struct userspace2_s userspace __attribute__ ((section(".userspace"))) =
 {
   /* General memory map */
   .us_base            =

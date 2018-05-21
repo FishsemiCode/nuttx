@@ -172,7 +172,7 @@ void up_openamp_initialize(void)
   };
 
   static struct rptun_rsc_s rptun_rsc_ap
-      __attribute__ ((section (".DSECT resource_table"))) =
+    __attribute__ ((section(".DSECT resource_table"))) =
   {
     .rsc_tbl_hdr     =
     {
