@@ -126,7 +126,30 @@ bool netdev_verify(FAR struct net_driver_s *dev);
  ****************************************************************************/
 
 #if CONFIG_NSOCKET_DESCRIPTORS > 0
-FAR struct net_driver_s *netdev_findbyname(FAR const char *ifname);
+#define netdev_findbyname(ifname) netdev_findbyname_ext(ifname, NULL)
+#endif
+
+/****************************************************************************
+ * Name: netdev_findbyname_ext
+ *
+ * Description:
+ *   Find a previously registered network device using its assigned
+ *   network interface name
+ *
+ * Parameters:
+ *   ifname The interface name of the device of interest
+ *   index  output value, index of g_netdevices
+ *
+ * Returned Value:
+ *  Pointer to driver on success; null on failure
+ *
+ * Assumptions:
+ *  Called from normal user mode
+ *
+ ****************************************************************************/
+
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+FAR struct net_driver_s *netdev_findbyname_ext(FAR const char *ifname, int *index);
 #endif
 
 /****************************************************************************
