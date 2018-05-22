@@ -211,6 +211,7 @@ void up_openamp_initialize(void)
 # else
   uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, true);
 # endif
+  uart_rpmsg_init(CPU_NAME_SP, "ATAP", 1024, false);
 #endif
 
 #ifdef CONFIG_FS_HOSTFS_RPMSG

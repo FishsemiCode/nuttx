@@ -340,6 +340,8 @@ void up_openamp_initialize(void)
 
 #ifdef CONFIG_RPMSG_UART
   uart_rpmsg_server_init("AP", 1024);
+  uart_rpmsg_server_init("ATAP", 1024);
+
   uart_rpmsg_server_init("CP", 1024);
   uart_rpmsg_server_init("AT", 1024);
   uart_rpmsg_server_init("GPS", 1024);
