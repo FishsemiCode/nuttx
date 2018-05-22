@@ -43,6 +43,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/spi/spi_dw.h>
+#include <nuttx/spi/spi_transfer.h>
 
 #define SPI_CTRL0_DFS_MASK_V4   (0x1f << 16)
 #define SPI_CTRL0_DFS_SHIFT_V4  (16)
@@ -719,4 +720,34 @@ sem_err:
 mutex_err:
   kmm_free(spi);
   return NULL;
+}
+
+FAR void dw_spi_initialize_all(FAR const struct dw_spi_config_s *config, int config_num,
+                               FAR struct spi_dev_s **spi, int space,
+                               FAR struct ioexpander_dev_s *ioe
+                              )
+{
+  int i;
+  struct spi_dev_s *spi_dev;
+
+  for (i = 0; i < config_num; i++)
+    {
+      if (config[i].bus >= space - 1)
+        {
+          spierr("spi%d: bus number invlid, skip\n", config[i].bus);
+          continue;
+        }
+
+      spi_dev = dw_spi_initialize(&config[i], ioe);
+      if (!spi_dev)
+        {
+          spierr("spi%d initialize failed\n", config[i].bus);
+          continue;
+        }
+
+      spi[config[i].bus] = spi_dev;
+#ifdef CONFIG_SPI_DRIVER
+      spi_register(spi_dev, config[i].bus);
+#endif
+    }
 }

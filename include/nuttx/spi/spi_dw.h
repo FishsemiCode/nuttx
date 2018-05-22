@@ -76,6 +76,9 @@ extern "C"
 
 FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config,
                                         FAR struct ioexpander_dev_s *ioe);
+FAR void dw_spi_initialize_all(FAR const struct dw_spi_config_s *config, int config_num,
+                               FAR struct spi_dev_s **spi, int space,
+                               FAR struct ioexpander_dev_s *ioe);
 
 #undef EXTERN
 #ifdef __cplusplus
