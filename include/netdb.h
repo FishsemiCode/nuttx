@@ -146,15 +146,15 @@
  *   EAI_OVERFLOW    - An argument buffer overflowed.
  */
 
-#define EAI_AGAIN       1
-#define EAI_BADFLAGS    2
-#define EAI_FAMILY      3
-#define EAI_MEMORY      4
-#define EAI_NONAME      5
-#define EAI_SERVICE     6
-#define EAI_SOCKTYPE    7
-#define EAI_SYSTEM      8
-#define EAI_OVERFLOW    9
+#define EAI_AGAIN       -1
+#define EAI_BADFLAGS    -2
+#define EAI_FAMILY      -3
+#define EAI_MEMORY      -4
+#define EAI_NONAME      -5
+#define EAI_SERVICE     -6
+#define EAI_SOCKTYPE    -7
+#define EAI_SYSTEM      -8
+#define EAI_OVERFLOW    -9
 
 /* h_errno values that may be returned by gethosbyname(), gethostbyname_r(),
  * gethostbyaddr(), or gethostbyaddr_r()
@@ -269,9 +269,9 @@ EXTERN int h_errno;
 void                 endhostent(void);
 void                 endnetent(void);
 void                 endprotoent(void);
+void                 endservent(void);
 #endif
 
-void                 endservent(void);
 void                 freeaddrinfo(FAR struct addrinfo *);
 
 #if 0 /* None of these are yet supported */
@@ -282,8 +282,6 @@ int                  getaddrinfo(FAR const char *restrict,
                                  FAR const char *restrict,
                                  FAR const struct addrinfo *restrict,
                                  FAR struct addrinfo **restrict);
-
-
 FAR struct hostent  *gethostbyaddr(FAR const void *addr, socklen_t len,
                                    int type);
 FAR struct hostent  *gethostbyname(FAR const char *name);
@@ -305,17 +303,12 @@ FAR struct servent  *getservbyname(FAR const char *, FAR const char *);
 
 #if 0 /* None of these are yet supported */
 FAR struct servent  *getservbyport(int, FAR const char *);
-#endif
-
 FAR struct servent  *getservent(void);
-
-#if 0 /* None of these are yet supported */
 void                 sethostent(int);
 void                 setnetent(int);
 void                 setprotoent(int);
-#endif /* None of these are yet supported */
-
 void                 setservent(int);
+#endif /* None of these are yet supported */
 
 /* Non-standard interfaces similar to Glibc 2 interfaces */
 
@@ -324,6 +317,9 @@ int gethostbyaddr_r(FAR const void *addr, socklen_t len, int type,
                     size_t buflen, int *h_errnop);
 int gethostbyname_r(FAR const char *name, FAR struct hostent *host,
                     FAR char *buf, size_t buflen, int *h_errnop);
+int getservbyname_r(FAR const char *name, FAR const char *proto,
+                    FAR struct servent *serv, FAR char *buf,
+                    size_t buflen, int *h_errnop);
 
 #endif /* CONFIG_LIBC_NETDB */
 

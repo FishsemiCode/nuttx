@@ -58,11 +58,6 @@
 
 #ifdef CONFIG_LIBC_NETDB
 
-#ifndef CONFIG_DISABLE_PTHREAD
-#include <pthread.h>
-
-static pthread_mutex_t gai_mutex = PTHREAD_MUTEX_INITIALIZER;;
-#endif
 /*
  * Default hints for getaddrinfo().
  */
@@ -145,18 +140,13 @@ int getaddrinfo(nodename, servname, hints, res)
   struct in_addr *addr_list_buf[2];
   struct in_addr addr_buf;
   struct in_addr **ap;
-  struct servent *servent;
-  struct hostent *hostent;
+  struct servent servent;
+  struct hostent hostent;
+  char servbuffer[CONFIG_NETDB_BUFSIZE];
+  char hostbuffer[CONFIG_NETDB_BUFSIZE];
   const char *canonname = NULL;
   in_port_t port;
-  int saved_h_errno;
-  int result = 0;
-
-#ifndef CONFIG_DISABLE_PTHREAD
-  pthread_mutex_lock(&gai_mutex);
-#endif
-
-  saved_h_errno = h_errno;
+  int err, ret, result = 0;
 
   if (nodename == NULL && servname == NULL)
     {
@@ -198,15 +188,13 @@ int getaddrinfo(nodename, servname, hints, res)
 
           if (hints->ai_socktype == SOCK_DGRAM)
             {
-              servent = getservbyname(servname, "udp");
+              ret = getservbyname_r(servname, "udp",
+                      &servent, servbuffer, sizeof(servbuffer), NULL);
             }
-          else if (hints->ai_socktype == SOCK_STREAM)
+          else if (hints->ai_socktype == SOCK_STREAM || hints->ai_socktype == 0)
             {
-              servent = getservbyname(servname, "tcp");
-            }
-          else if (hints->ai_socktype == 0)
-            {
-              servent = getservbyname(servname, "tcp");
+              ret = getservbyname_r(servname, "tcp",
+                      &servent, servbuffer, sizeof(servbuffer), NULL);
             }
           else
             {
@@ -214,12 +202,12 @@ int getaddrinfo(nodename, servname, hints, res)
               goto end;
             }
 
-          if (servent == NULL)
+          if (ret)
             {
               result = EAI_SERVICE;
               goto end;
             }
-          port = servent->s_port;
+          port = servent.s_port;
         }
     }
   else
@@ -238,10 +226,11 @@ int getaddrinfo(nodename, servname, hints, res)
 
           if (hints->ai_flags & AI_CANONNAME && !(hints->ai_flags & AI_NUMERICHOST))
             {
-              hostent = gethostbyaddr((char *)&addr_buf, sizeof(struct in_addr), AF_INET);
-              if (hostent != NULL)
+              ret = gethostbyaddr_r((char *)&addr_buf, sizeof(struct in_addr), AF_INET,
+                      &hostent, hostbuffer, sizeof(hostbuffer), &err);
+              if (ret)
                 {
-                  canonname = hostent->h_name;
+                  canonname = hostent.h_name;
                 }
               else
                 {
@@ -257,10 +246,11 @@ int getaddrinfo(nodename, servname, hints, res)
               goto end;
             }
 
-          hostent = gethostbyname(nodename);
-          if (hostent == NULL)
+          ret = gethostbyname_r(nodename, &hostent,
+                  hostbuffer, sizeof(hostbuffer), &err);
+          if (ret)
             {
-              switch (h_errno)
+              switch (err)
                 {
                   case HOST_NOT_FOUND:
                   case NO_DATA:
@@ -274,11 +264,11 @@ int getaddrinfo(nodename, servname, hints, res)
                       goto end;
                 }
             }
-          addr_list = (struct in_addr **)hostent->h_addr_list;
+          addr_list = (struct in_addr **)hostent.h_addr_list;
 
           if (hints->ai_flags & AI_CANONNAME)
             {
-              canonname = hostent->h_name;
+              canonname = hostent.h_name;
             }
         }
     }
@@ -360,10 +350,6 @@ int getaddrinfo(nodename, servname, hints, res)
   *res = head_res;
 
 end:
-  h_errno = saved_h_errno;
-#ifndef CONFIG_DISABLE_PTHREAD
-  pthread_mutex_unlock(&gai_mutex);
-#endif
   return result;
 }
 
