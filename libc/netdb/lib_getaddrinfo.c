@@ -56,6 +56,8 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
+#include "netdb/lib_netdb.h"
+
 #ifdef CONFIG_LIBC_NETDB
 
 /*
