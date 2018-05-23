@@ -36,6 +36,8 @@
 #ifndef __INCLUDE_SPI_DW_H
 #define __INCLUDE_SPI_DW_H
 
+#ifdef CONFIG_SPI_DW
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -53,7 +55,6 @@ struct dw_spi_config_s
   uintptr_t base;
   uint32_t irq;
   uint32_t clk_rate;
-  struct ioexpander_dev_s *ioe;
   int bus;
   uint8_t cs_num;
   uint8_t cs_gpio[CONFIG_SPI_DW_MAX_CS];
@@ -73,11 +74,13 @@ extern "C"
 #define EXTERN extern
 #endif
 
-FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config);
+FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config,
+                                        FAR struct ioexpander_dev_s *ioe);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
+#endif /* CONFIG_SPI_DW */
 #endif /* __INCLUDE_SPI_DW_H */

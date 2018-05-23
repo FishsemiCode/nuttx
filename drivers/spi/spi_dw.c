@@ -116,6 +116,7 @@ struct dw_spi_s
 {
   struct spi_dev_s spi_dev;
   const struct dw_spi_config_s *config;
+  struct ioexpander_dev_s *ioe;
   enum dw_spi_version ver;
   mutex_t mutex;
   sem_t sem;
@@ -317,7 +318,7 @@ static void dw_spi_select(FAR struct spi_dev_s *dev,
       return;
     }
 
-  if (config->ioe)
+  if (spi->ioe)
     {
       for (i = 0; i < config->cs_num; i++)
         cs_values[i] = true;
@@ -332,7 +333,7 @@ static void dw_spi_select(FAR struct spi_dev_s *dev,
           hw->SE = 0;
         }
 
-      IOEXP_MULTIWRITEPIN(config->ioe, (uint8_t *)config->cs_gpio,
+      IOEXP_MULTIWRITEPIN(spi->ioe, (uint8_t *)config->cs_gpio,
           cs_values, config->cs_num);
     }
   else
@@ -607,11 +608,11 @@ static int dw_spi_cs_init(FAR struct dw_spi_s *spi)
   const struct dw_spi_config_s *config = spi->config;
   int i, ret;
 
-  if (config->ioe)
+  if (spi->ioe)
     {
       for (i = 0; i < config->cs_num; i++)
         {
-          ret = IOEXP_SETDIRECTION(config->ioe, config->cs_gpio[i], IOEXPANDER_DIRECTION_OUT);
+          ret = IOEXP_SETDIRECTION(spi->ioe, config->cs_gpio[i], IOEXPANDER_DIRECTION_OUT);
           if (ret)
             {
               spierr("set direction for cs gpio %d failed\n", config->cs_gpio[i]);
@@ -666,7 +667,8 @@ static void dw_spi_hw_init(struct dw_spi_s *spi)
   dw_spi_cs_init(spi);
 }
 
-FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config)
+FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config,
+                                        FAR struct ioexpander_dev_s *ioe)
 {
   struct dw_spi_s *spi;
   int ret;
@@ -684,6 +686,7 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
 
   spi->spi_dev.ops = &dw_spi_ops;
   spi->config = config;
+  spi->ioe = ioe;
 
   ret = nxmutex_init(&spi->mutex);
   if (ret)
