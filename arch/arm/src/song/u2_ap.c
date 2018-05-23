@@ -217,7 +217,7 @@ void up_openamp_initialize(void)
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(0, 0xa00f000, 26);
+  g_ioe[0] = song_ioe_initialize(0, 0xa00f0000, 26);
 #endif
 }
 
