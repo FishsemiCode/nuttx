@@ -77,7 +77,6 @@ static inline void song_mbox_modify(const struct song_mbox_config_s *config,
 static int song_mbox_send(struct mbox_dev_s *dev, uint32_t ch, uintptr_t msg);
 static int song_mbox_registercallback(struct mbox_dev_s *dev, uint32_t ch,
                                         mbox_receive_t callback, void *arg);
-static int song_mbox_ioctl(struct mbox_dev_s *dev, int cmd, unsigned long arg);
 static int song_mbox_isr(int irq, void *context, void *arg);
 
 /************************************************************************************
@@ -88,7 +87,6 @@ static const struct mbox_ops_s g_song_mbox_ops =
 {
   .send             = song_mbox_send,
   .registercallback = song_mbox_registercallback,
-  .ioctl            = song_mbox_ioctl,
 };
 
 /************************************************************************************
@@ -158,17 +156,6 @@ static int song_mbox_registercallback(struct mbox_dev_s *dev, uint32_t ch,
   return 0;
 }
 
-static int song_mbox_ioctl(struct mbox_dev_s *dev, int cmd, unsigned long arg)
-{
-  if (cmd == MBOX_USER_IOCBASE)
-    {
-      *((void **)(uintptr_t)arg) = dev;
-      return 0;
-    }
-
-  return -ENOTTY;
-}
-
 static int song_mbox_isr(int irq, void *context, void *arg)
 {
   struct song_mbox_dev_s *priv = arg;
@@ -202,7 +189,7 @@ static int song_mbox_isr(int irq, void *context, void *arg)
  * Public Functions
  ************************************************************************************/
 
-struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config, int minor)
+struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config)
 {
   struct song_mbox_dev_s *priv;
   int i, ret;
@@ -245,24 +232,8 @@ struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config,
       song_mbox_modify(config, config->en_off, config->en_bit, 1);
     }
 
-  ret = mbox_register((struct mbox_dev_s *)priv, minor);
-  if (ret < 0)
-    {
-      if (config->irq >= 0)
-      {
-        goto fail2;
-      }
-      else
-      {
-        goto fail;
-      }
-    }
-
   return (struct mbox_dev_s *)priv;
 
-fail2:
-  up_disable_irq(config->irq);
-  irq_detach(config->irq);
 fail1:
   kmm_free(priv->cb);
 fail:

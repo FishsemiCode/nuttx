@@ -223,8 +223,8 @@ void up_openamp_initialize(void)
     },
   };
 
-  mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 0);
-  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp, 1);
+  mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
+  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
 
   song_rptun_initialize(&rptun_cfg_ap, mbox_adsp, mbox_ap);
 

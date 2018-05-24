@@ -73,7 +73,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config, int minor);
+struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config);
 
 #ifdef __cplusplus
 }

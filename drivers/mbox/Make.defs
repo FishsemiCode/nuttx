@@ -37,8 +37,6 @@
 
 ifeq ($(CONFIG_MBOX),y)
 
-CSRCS += mbox.c
-
 ifeq ($(CONFIG_SONG_MBOX),y)
 CSRCS += song_mbox.c
 endif

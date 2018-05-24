@@ -49,8 +49,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MBOX_USER_IOCBASE       0x80
-
 /* Access macros ************************************************************/
 
 /****************************************************************************
@@ -119,7 +117,6 @@ struct mbox_ops_s
   int (*send)(struct mbox_dev_s *dev, uint32_t ch, uintptr_t msg);
   int (*registercallback)(struct mbox_dev_s *dev, uint32_t ch,
                     mbox_receive_t callback, void *arg);
-  int (*ioctl)(struct mbox_dev_s *dev, int cmd, unsigned long arg);
 };
 
 struct mbox_dev_s
@@ -138,9 +135,6 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
-
-int mbox_register(struct mbox_dev_s *dev, int minor);
-int mbox_unregister(int minor);
 
 #ifdef __cplusplus
 }
