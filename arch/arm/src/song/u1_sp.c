@@ -40,8 +40,10 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -371,6 +373,44 @@ void up_netinitialize(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_ONCHIP_FLASH
+static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
+{
+#ifdef CONFIG_MTD_PARTITION
+  FAR struct mtd_dev_s *mtd;
+
+  mtd = mtd_partition(arg, part->firstblock, part->nblocks);
+#  ifdef CONFIG_FS_SMARTFS
+  /* The first three(sp.bin/ap.bin/cp.bin) is always raw partition */
+  if (part->index >= 3)
+    {
+      smart_initialize(part->index - 3, mtd, NULL);
+    }
+  else
+#  endif
+    {
+      ftl_initialize(part->index, mtd);
+    }
+#endif
+}
+
+static void up_flash_init(void)
+{
+  static const struct song_onchip_flash_config_s config =
+  {
+    .base = 0xb0130000,
+    .cpu_base = 0x04000000,
+    .xaddr_shift = 4,
+    .yaddr_shift = 5,
+    .neraseblocks = 256,
+  };
+  FAR struct mtd_dev_s *mtd;
+
+  mtd = song_onchip_flash_initialize(&config);
+  parse_mtd_partition(mtd, up_partition_init, mtd);
+}
+#endif
+
 #ifdef CONFIG_SPI_DW
 static void up_spi_init(void)
 {
@@ -403,6 +443,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
+#endif
+
+#ifdef CONFIG_SONG_ONCHIP_FLASH
+  up_flash_init();
 #endif
 
 #ifdef CONFIG_SPI_DW
