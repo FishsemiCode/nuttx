@@ -166,12 +166,12 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
 {
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
   FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
-  uint32_t erasesize = (1 << (cfg->erase_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
+  uint32_t erasesize = (1 << (cfg->xaddr_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
   size_t i;
 
   for (i = 0; i < nblocks; i++)
     {
-      flash_regwrite(priv, XADDR,  (startblock + i) << cfg->erase_shift);
+      flash_regwrite(priv, XADDR, (startblock + i) << cfg->xaddr_shift);
       flash_sendop_wait(priv, CMD_ERASE);
     }
 
@@ -265,7 +265,7 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
               FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
 
               geo->blocksize    = BLOCK_SIZE;
-              geo->erasesize    = (1 << (cfg->erase_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
+              geo->erasesize    = (1 << (cfg->xaddr_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
               geo->neraseblocks = cfg->neraseblocks;
               ret = OK;
             }

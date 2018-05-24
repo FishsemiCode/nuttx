@@ -60,7 +60,7 @@ struct song_onchip_flash_config_s
 {
   uint32_t base;            /* base address of the flash controller */
   uint32_t cpu_base;        /* cpu interface flash read base address */
-  uint32_t erase_shift;     /* erase block shift in xaddr */
+  uint32_t xaddr_shift;     /* xaddr shift in erase block */
   uint32_t yaddr_shift;     /* yaddr shift in write/read block */
   uint32_t neraseblocks;    /* number of erase blocks */
 };
