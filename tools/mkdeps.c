@@ -56,7 +56,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define MAX_BUFFER  (4096)
+#define MAX_BUFFER  (8192)
 #define MAX_EXPAND  (2048)
 
 /* MAX_PATH might be defined in stdlib.h */
