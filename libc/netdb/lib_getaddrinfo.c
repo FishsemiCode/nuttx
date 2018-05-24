@@ -219,59 +219,35 @@ int getaddrinfo(nodename, servname, hints, res)
 
   if (nodename != NULL)
     {
-      if (is_address(nodename))
+      if (!is_address(nodename) && hints->ai_flags & AI_NUMERICHOST)
         {
-          addr_buf.s_addr = inet_addr(nodename);
-          addr_list_buf[0] = &addr_buf;
-          addr_list_buf[1] = NULL;
-          addr_list = addr_list_buf;
+          result = EAI_NONAME;
+          goto end;
+        }
 
-          if (hints->ai_flags & AI_CANONNAME && !(hints->ai_flags & AI_NUMERICHOST))
+      ret = gethostbyname_r(nodename, &hostent,
+              hostbuffer, sizeof(hostbuffer), &err);
+      if (ret)
+        {
+          switch (err)
             {
-              ret = gethostbyaddr_r((char *)&addr_buf, sizeof(struct in_addr), AF_INET,
-                      &hostent, hostbuffer, sizeof(hostbuffer), &err);
-              if (ret)
-                {
-                  canonname = hostent.h_name;
-                }
-              else
-                {
-                  canonname = nodename;
-                }
+              case HOST_NOT_FOUND:
+              case NO_DATA:
+                  result = EAI_NONAME;
+                  goto end;
+              case TRY_AGAIN:
+                  result = EAI_AGAIN;
+                  goto end;
+              default:
+                  result = EAI_NONAME;
+                  goto end;
             }
         }
-      else
+      addr_list = (struct in_addr **)hostent.h_addr_list;
+
+      if (hints->ai_flags & AI_CANONNAME)
         {
-          if (hints->ai_flags & AI_NUMERICHOST)
-            {
-              result = EAI_NONAME;
-              goto end;
-            }
-
-          ret = gethostbyname_r(nodename, &hostent,
-                  hostbuffer, sizeof(hostbuffer), &err);
-          if (ret)
-            {
-              switch (err)
-                {
-                  case HOST_NOT_FOUND:
-                  case NO_DATA:
-                      result = EAI_NONAME;
-                      goto end;
-                  case TRY_AGAIN:
-                      result = EAI_AGAIN;
-                      goto end;
-                  default:
-                      result = EAI_NONAME;
-                      goto end;
-                }
-            }
-          addr_list = (struct in_addr **)hostent.h_addr_list;
-
-          if (hints->ai_flags & AI_CANONNAME)
-            {
-              canonname = hostent.h_name;
-            }
+          canonname = hostent.h_name;
         }
     }
   else
