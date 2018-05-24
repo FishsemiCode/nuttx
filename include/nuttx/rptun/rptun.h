@@ -54,8 +54,6 @@
 #define RPTUN_NOTIFY_START         (UINT32_MAX - 1)
 #define RPTUN_NOTIFY_ALL           (UINT32_MAX - 0)
 
-#define RPTUN_USER_IOCBASE         0x80
-
 /* Access macros ************************************************************/
 
 /****************************************************************************
@@ -175,7 +173,6 @@ struct rptun_ops_s
   int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
   int (*register_callback)(struct rptun_dev_s *dev,
                     rptun_callback_t callback, void *arg);
-  int (*ioctl)(struct rptun_dev_s *dev, int cmd, unsigned long arg);
 };
 
 struct rptun_dev_s
@@ -206,8 +203,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-int rptun_register(struct rptun_dev_s *dev, int minor);
-int rptun_unregister(int minor);
+int rptun_initialize(struct rptun_dev_s *dev);
 
 #ifdef __cplusplus
 }

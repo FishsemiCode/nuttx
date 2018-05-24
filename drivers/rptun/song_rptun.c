@@ -72,7 +72,6 @@ static int song_rptun_boot(struct rptun_dev_s *dev);
 static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid);
 static int song_rptun_registercallback(struct rptun_dev_s *dev,
                                     rptun_callback_t callback, void *arg);
-static int song_rptun_ioctl(struct rptun_dev_s *dev, int cmd, unsigned long arg);
 static int song_rptun_start_isr(void *arg, uintptr_t msg);
 static int song_rptun_vring_isr(void *arg, uintptr_t msg);
 
@@ -87,7 +86,6 @@ static const struct rptun_ops_s g_song_rptun_ops =
   .boot              = song_rptun_boot,
   .notify            = song_rptun_notify,
   .register_callback = song_rptun_registercallback,
-  .ioctl             = song_rptun_ioctl,
 };
 
 /************************************************************************************
@@ -167,17 +165,6 @@ static int song_rptun_registercallback(struct rptun_dev_s *dev,
   return ret;
 }
 
-static int song_rptun_ioctl(struct rptun_dev_s *dev, int cmd, unsigned long arg)
-{
-  if (cmd == RPTUN_USER_IOCBASE)
-    {
-      *((void **)(uintptr_t)arg) = dev;
-      return 0;
-    }
-
-  return -ENOTTY;
-}
-
 static int song_rptun_start_isr(void *arg, uintptr_t msg)
 {
   struct song_rptun_dev_s *priv = arg;
@@ -214,8 +201,7 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg)
 struct rptun_dev_s *song_rptun_initialize(
                 const struct song_rptun_config_s *config,
                 struct mbox_dev_s *mbox_rx,
-                struct mbox_dev_s *mbox_tx,
-                int minor)
+                struct mbox_dev_s *mbox_tx)
 {
   struct song_rptun_dev_s *priv;
   int ret;
@@ -236,7 +222,7 @@ struct rptun_dev_s *song_rptun_initialize(
   priv->mbox_rx   = mbox_rx;
   priv->mbox_tx   = mbox_tx;
 
-  ret = rptun_register((struct rptun_dev_s *)priv, minor);
+  ret = rptun_initialize((struct rptun_dev_s *)priv);
   if (ret < 0)
     {
       kmm_free(priv);

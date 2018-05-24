@@ -282,7 +282,7 @@ static int rptun_openamp_resource_init(
  * Public Functions
  ************************************************************************************/
 
-int rptun_openamp_register(struct rptun_dev_s *dev)
+int rptun_initialize(struct rptun_dev_s *dev)
 {
   struct metal_init_params params = METAL_INIT_DEFAULTS;
   struct rptun_openamp_s *priv;

@@ -187,7 +187,7 @@ void up_openamp_initialize(void)
   mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp, 0);
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap, 1);
 
-  song_rptun_initialize(&rptun_cfg_ap, mbox_adsp, mbox_ap, 0);
+  song_rptun_initialize(&rptun_cfg_ap, mbox_adsp, mbox_ap);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();

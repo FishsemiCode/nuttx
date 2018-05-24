@@ -37,7 +37,7 @@
 
 ifeq ($(CONFIG_RPTUN),y)
 
-CSRCS += rptun.c rptun_openamp.c
+CSRCS += rptun_openamp.c
 
 ifeq ($(CONFIG_SONG_RPTUN),y)
 CSRCS += song_rptun.c

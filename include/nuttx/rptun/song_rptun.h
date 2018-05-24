@@ -85,8 +85,7 @@ extern "C"
 struct rptun_dev_s *song_rptun_initialize(
                 const struct song_rptun_config_s *config,
                 struct mbox_dev_s *mbox_rx,
-                struct mbox_dev_s *mbox_tx,
-                int minor);
+                struct mbox_dev_s *mbox_tx);
 
 #ifdef __cplusplus
 }
