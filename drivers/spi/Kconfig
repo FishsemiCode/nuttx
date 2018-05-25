@@ -134,6 +134,7 @@ config SPI_BITBANG
 config SPI_DW
 	bool "Designware SPI controller driver"
 	default n
+	depends on IOEXPANDER_MULTIPIN
 	---help---
 		Enable support for Designware SPI controller driver
 
