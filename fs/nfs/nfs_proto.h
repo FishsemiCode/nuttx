@@ -561,6 +561,7 @@ struct READDIR3resok
   uint32_t           value_follows;
   uint32_t           reply[1]; /* Variable length reply begins here */
 };
+#define SIZEOF_READDIR3resok(n) (sizeof(uint32_t) + sizeof(struct nfs_fattr) + NFSX_V3COOKIEVERF + sizeof(uint32_t) + (n))
 
 struct FS3args
 {
