@@ -807,12 +807,6 @@ static void lan91c111_txdone(FAR struct net_driver_s *dev)
     {
       NETDEV_TXDONE(dev);
     }
-
-  /* Check if there are pending transmissions */
-
-  /* In any event, poll the network for new TX data */
-
-  devif_poll(dev, lan91c111_txpoll);
 }
 
 /****************************************************************************
@@ -933,6 +927,13 @@ static void lan91c111_interrupt_work(FAR void *arg)
       /* Clear interrupt status bits */
 
       putreg8(priv, INT_REG, status);
+
+      /* In any event, poll the network for new TX data */
+
+      if (getreg16(priv, MIR_REG) & MIR_FREE_MASK)
+        {
+          devif_poll(dev, lan91c111_txpoll);
+        }
     }
 
   net_unlock();
