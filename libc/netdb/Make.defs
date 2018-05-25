@@ -40,6 +40,7 @@ ifeq ($(CONFIG_LIBC_NETDB),y)
 CSRCS += lib_netdb.c lib_getaddrinfo.c
 CSRCS += lib_gethostbyname.c lib_gethostbynamer.c
 CSRCS += lib_getservbyname.c lib_getservbynamer.c
+CSRCS += lib_gai_strerror.c
 
 # Add host file support
 

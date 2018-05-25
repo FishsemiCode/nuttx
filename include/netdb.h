@@ -177,6 +177,9 @@
 #define NO_RECOVERY    3
 #define TRY_AGAIN      4
 
+#define NI_MAXHOST     256
+#define NI_MAXSERV     32
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -273,11 +276,7 @@ void                 endservent(void);
 #endif
 
 void                 freeaddrinfo(FAR struct addrinfo *);
-
-#if 0 /* None of these are yet supported */
 FAR const char      *gai_strerror(int);
-#endif
-
 int                  getaddrinfo(FAR const char *restrict,
                                  FAR const char *restrict,
                                  FAR const struct addrinfo *restrict,
