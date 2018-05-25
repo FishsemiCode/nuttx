@@ -426,12 +426,8 @@ static void up_spi_init(void)
     },
   };
 
-#ifdef CONFIG_SONG_IOE
   dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
                         g_spi, sizeof(g_spi) / sizeof(g_spi[0]), g_ioe[0]);
-#else
-#error !!Must include IOExpander to init spi controller
-#endif
 }
 #endif
 
