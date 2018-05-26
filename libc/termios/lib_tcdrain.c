@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/serial/tcdrain.c
+ * libc/termios/lib_tcdrain.c
  *
  *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2017 Sebastien Lorquet. All rights reserved.
