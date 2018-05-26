@@ -290,12 +290,12 @@ void uart_recvchars_done(FAR uart_dev_t *dev)
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
   FAR struct uart_buffer_s *rxbuf = &dev->recv;
   size_t nbytes = xfer->nbytes;
-
 #ifdef CONFIG_SIG_SIGKILL
+  bool needkill = false;
+
   if (dev->pid != -1 && uart_recvchars_sigkill(dev))
     {
-      kill(dev->pid, SIGKILL);
-      uart_reset_sem(dev);
+      needkill = true;
     }
 #endif
 
@@ -313,6 +313,14 @@ void uart_recvchars_done(FAR uart_dev_t *dev)
     {
       uart_datareceived(dev);
     }
+
+#ifdef CONFIG_SIG_SIGKILL
+  if (needkill)
+    {
+      kill(dev->pid, SIGKILL);
+      uart_reset_sem(dev);
+    }
+#endif
 }
 
 #endif /* CONFIG_SERIAL_DMA */

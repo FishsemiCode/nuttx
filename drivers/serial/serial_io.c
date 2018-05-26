@@ -123,6 +123,9 @@ void uart_recvchars(FAR uart_dev_t *dev)
 #ifdef CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS
   unsigned int watermark;
 #endif
+#ifdef CONFIG_SIG_SIGKILL
+  bool needkill = false;
+#endif
   unsigned int status;
   int nexthead = rxbuf->head + 1;
   uint16_t nbytes = 0;
@@ -198,8 +201,7 @@ void uart_recvchars(FAR uart_dev_t *dev)
 #ifdef CONFIG_SIG_SIGKILL
       if (dev->pid != -1 && ch == CONFIG_SERIAL_SIGKILL_CHAR)
         {
-          kill(dev->pid, SIGKILL);
-          uart_reset_sem(dev);
+          needkill = true;
         }
 #endif
 
@@ -236,4 +238,12 @@ void uart_recvchars(FAR uart_dev_t *dev)
     {
       uart_datareceived(dev);
     }
+
+#ifdef CONFIG_SIG_SIGKILL
+  if (needkill)
+    {
+      kill(dev->pid, SIGKILL);
+      uart_reset_sem(dev);
+    }
+#endif
 }
