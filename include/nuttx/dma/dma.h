@@ -42,6 +42,7 @@
 
 #include <nuttx/config.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -268,8 +269,8 @@ struct dma_chan_s
 
 struct dma_dev_s
 {
-  FAR struct dma_chan_s *get_chan(FAR struct dma_dev_s *dev, unsigned int ident);
-  void put_chan(FAR struct dma_dev_s *dev, FAR struct dma_chan_s *chan);
+  FAR struct dma_chan_s* (*get_chan)(FAR struct dma_dev_s *dev, unsigned int ident);
+  void (*put_chan)(FAR struct dma_dev_s *dev, FAR struct dma_chan_s *chan);
 };
 
 #endif /* __INCLUDE_NUTTX_DMA_DMA_H */
