@@ -125,6 +125,8 @@ static int song_register_mux_sdiv_gr_clks(uint32_t reg_base,
                     const struct song_mux_sdiv_gr_clk *mux_sdiv_gr_clks);
 static int song_register_pll_clks(uint32_t reg_base,
                     const struct song_pll_clk *pll_clks);
+static int song_register_pll_lf_clks(uint32_t reg_base,
+                    const struct song_pll_lf_clk *pll_lf_clks);
 static int song_register_out_clks(uint32_t reg_base,
                     const struct song_out_clk *out_clks);
 static int song_register_timer_clks(uint32_t reg_base,
@@ -832,6 +834,30 @@ static int song_register_pll_clks(uint32_t reg_base,
   return 0;
 }
 
+static int song_register_pll_lf_clks(uint32_t reg_base,
+            const struct song_pll_lf_clk *pll_lf_clks)
+{
+  struct clk *clk = NULL;
+
+  while (pll_lf_clks->name)
+    {
+      clk = clk_register_pll_lf(
+              pll_lf_clks->name,
+              pll_lf_clks->parent_name,
+              pll_lf_clks->flags,
+              reg_base + pll_lf_clks->cfg_reg0_offset,
+              reg_base + pll_lf_clks->cfg_reg1_offset);
+      if (!clk)
+        {
+          return -EINVAL;
+        }
+
+      pll_lf_clks++;
+    }
+
+  return 0;
+}
+
 static int song_register_out_clks(uint32_t reg_base,
                     const struct song_out_clk *out_clks)
 {
@@ -944,6 +970,13 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
   if (table->pll_clks)
     {
       ret = song_register_pll_clks(base, table->pll_clks);
+      if (ret)
+        return ret;
+    }
+
+  if (table->pll_lf_clks)
+    {
+      ret = song_register_pll_lf_clks(base, table->pll_lf_clks);
       if (ret)
         return ret;
     }

@@ -120,6 +120,12 @@ struct clk_pll
   uint32_t ctl_shift;
 };
 
+struct clk_pll_lf
+{
+  uint32_t cfg_reg0;
+  uint32_t cfg_reg1;
+};
+
 struct clk_out
 {
   uint32_t mux_reg;
@@ -142,6 +148,8 @@ struct clk_timer
  ****************************************************************************/
 /* the song platform pll ops declaration */
 extern const struct clk_ops clk_pll_ops;
+/* the song platform pll_lf ops declaration */
+extern const struct clk_ops clk_pll_lf_ops;
 /* the song platform out ops declaration */
 extern const struct clk_ops clk_out_ops;
 /* the song platform timer ops declaration */
@@ -150,6 +158,10 @@ extern const struct clk_ops clk_timer_ops;
 /* the song platform pll register declaration */
 struct clk *clk_register_pll(const char *name, const char *parent_name, uint64_t flags,
     uint32_t cfg_reg0, uint32_t cfg_reg1, uint32_t ctl_reg, uint32_t ctl_shift);
+
+/* the song platform pll_lf register declaration */
+struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint64_t flags,
+    uint32_t cfg_reg0, uint32_t cfg_reg1);
 
 /* the song platform out register declaration */
 struct clk *clk_register_out(const char *name, const char **parent_names,

@@ -37,7 +37,7 @@
 
 ifeq ($(CONFIG_SONG_CLK),y)
 
-CSRCS += song-clk.c clk-pll.c clk-out.c clk-timer.c
+CSRCS += song-clk.c clk-pll.c clk-pll-lf.c clk-out.c clk-timer.c
 
 # Include song clk management in the build
 
