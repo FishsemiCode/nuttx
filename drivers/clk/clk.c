@@ -39,17 +39,27 @@
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/procfs.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/list.h>
 #include <nuttx/mutex.h>
 
 #include <debug.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <sys/stat.h>
 
-#ifdef CONFIG_CLK
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define CLK_PROCFS_LINELEN          80
 
 /****************************************************************************
  * Private Datas
  ****************************************************************************/
+
 static mutex_t g_clk_lock  = MUTEX_INITIALIZER;
 
 static struct list_node g_clk_root_list   = LIST_INITIAL_VALUE(g_clk_root_list);
@@ -83,9 +93,213 @@ static void __clk_disable(struct clk *clk);
 static struct clk *__clk_lookup(const char *name, struct clk *clk);
 static int __clk_register(struct clk *clk);
 
+/* File system methods */
+
+#if !defined(CONFIG_FS_PROCFS_EXCLUDE_CLK) && defined(CONFIG_FS_PROCFS)
+static int     clk_procfs_open(FAR struct file *filep, FAR const char *relpath,
+                 int oflags, mode_t mode);
+static int     clk_procfs_close(FAR struct file *filep);
+static ssize_t clk_procfs_read(FAR struct file *filep, FAR char *buffer,
+                 size_t buflen);
+static int clk_procfs_dup(FAR const struct file *oldp, FAR struct file *newp);
+static int clk_procfs_stat(const char *relpath, struct stat *buf);
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+const struct procfs_operations clk_procfsoperations =
+{
+  clk_procfs_open,       /* open */
+  clk_procfs_close,      /* close */
+  clk_procfs_read,       /* read */
+  NULL,                  /* write */
+
+  clk_procfs_dup,        /* dup */
+
+  NULL,                  /* opendir */
+  NULL,                  /* closedir */
+  NULL,                  /* readdir */
+  NULL,                  /* rewinddir */
+
+  clk_procfs_stat,       /* stat */
+};
+
 /****************************************************************************
  * Private Function
  ****************************************************************************/
+
+static int clk_procfs_open(FAR struct file *filep, FAR const char *relpath,
+                      int oflags, mode_t mode)
+{
+  FAR struct procfs_file_s *priv;
+
+  if ((oflags & O_WRONLY) != 0 || (oflags & O_RDONLY) == 0)
+    {
+      return -EACCES;
+    }
+
+  priv = kmm_zalloc(sizeof(struct procfs_file_s));
+  if (!priv)
+    {
+      return -ENOMEM;
+    }
+
+  filep->f_priv = priv;
+  return OK;
+}
+
+static int clk_procfs_close(FAR struct file *filep)
+{
+  FAR struct procfs_file_s *priv = filep->f_priv;
+
+  kmm_free(priv);
+  filep->f_priv = NULL;
+  return OK;
+}
+
+static size_t clk_procfs_printf(FAR char *buffer, size_t buflen,
+                                off_t *pos, FAR const char *fmt,
+                                ...)
+{
+  char tmp[CLK_PROCFS_LINELEN];
+  size_t tmplen;
+  va_list ap;
+
+  va_start(ap, fmt);
+  tmplen = vsnprintf(tmp, sizeof(tmp), fmt, ap);
+  va_end(ap);
+
+  return procfs_memcpy(tmp, tmplen, buffer, buflen, pos);
+}
+
+static size_t clk_procfs_show_subtree(FAR struct clk* clk, int level,
+                         FAR char *buffer, size_t buflen, off_t *pos)
+{
+  struct clk *child;
+  size_t oldlen = buflen;
+  size_t ret;
+
+  ret = clk_procfs_printf(buffer, buflen, pos, "%*s%-*s %11d %11llu %11d\n",
+                          level * 2, "", 40 - level * 2, clk->name,
+                          clk->enable_count, clk->rate, clk->phase);
+  buffer += ret;
+  buflen -= ret;
+
+  if (buflen > 0)
+    {
+      list_for_every_entry(&clk->children, child, struct clk, child_node)
+        {
+          ret = clk_procfs_show_subtree(child, level + 1, buffer, buflen, pos);
+          buffer += ret;
+          buflen -= ret;
+
+          if (buflen == 0)
+            {
+              break; /* No enough space, return */
+            }
+        }
+    }
+
+  return oldlen - buflen;
+}
+
+static size_t clk_procfs_showtree(FAR char *buffer, size_t buflen, off_t *pos)
+{
+  struct clk *clk;
+  size_t oldlen = buflen;
+  size_t ret;
+
+  clk_lock();
+
+  list_for_every_entry(&g_clk_root_list, clk, struct clk, child_node)
+    {
+      ret = clk_procfs_show_subtree(clk, 0, buffer, buflen, pos);
+      buffer += ret;
+      buflen -= ret;
+
+      if (buflen == 0)
+        {
+          goto out; /* No enough space, return */
+        }
+    }
+
+  list_for_every_entry(&g_clk_orphan_list, clk, struct clk, child_node)
+    {
+      ret = clk_procfs_show_subtree(clk, 0, buffer, buflen, pos);
+      buffer += ret;
+      buflen -= ret;
+
+      if (buflen == 0)
+        {
+          goto out; /* No enough space, return */
+        }
+    }
+
+out:
+  clk_unlock();
+  return oldlen - buflen;
+}
+
+static ssize_t clk_procfs_read(FAR struct file *filep, FAR char *buffer,
+                      size_t buflen)
+{
+  off_t pos = filep->f_pos;
+  size_t oldlen = buflen;
+  size_t ret;
+
+  ret = clk_procfs_printf(buffer, buflen, &pos,
+      /* 12345678901234567890123456789012345678901234567890123456789012345678901234567 */
+      /*          1         2         3         4         5         6         7        */
+        "  clock                                   enable_cnt        rate       phase\n");
+
+  buffer += ret;
+  buflen -= ret;
+
+  if (buflen > 0)
+    {
+      ret = clk_procfs_showtree(buffer, buflen, &pos);
+      buffer += ret;
+      buflen -= ret;
+    }
+
+  filep->f_pos += oldlen - buflen;
+  return oldlen - buflen;
+}
+
+static int clk_procfs_dup(FAR const struct file *oldp, FAR struct file *newp)
+{
+  FAR struct procfs_file_s *oldpriv;
+  FAR struct procfs_file_s *newpriv;
+
+  oldpriv = oldp->f_priv;
+  DEBUGASSERT(oldpriv);
+
+  newpriv = kmm_zalloc(sizeof(struct procfs_file_s));
+  if (!newpriv)
+    {
+      return -ENOMEM;
+    }
+
+  memcpy(newpriv, oldpriv, sizeof(struct procfs_file_s));
+
+  newp->f_priv = newpriv;
+  return OK;
+}
+
+static int clk_procfs_stat(const char *relpath, struct stat *buf)
+{
+  /* File/directory size, access block size */
+
+  buf->st_mode    = S_IFREG | S_IROTH | S_IRGRP | S_IRUSR;
+  buf->st_size    = 0;
+  buf->st_blksize = 0;
+  buf->st_blocks  = 0;
+  return OK;
+}
+
+#endif
+
 static void clk_lock(void)
 {
   nxmutex_lock(&g_clk_lock);
@@ -851,5 +1065,3 @@ fail_name:
   kmm_free(clk);
   return NULL;
 }
-
-#endif /* CONFIG_CLK */

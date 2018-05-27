@@ -89,6 +89,7 @@ extern const struct procfs_operations uptime_operations;
  * configuration.
  */
 
+extern const struct procfs_operations clk_procfsoperations;
 extern const struct procfs_operations net_procfsoperations;
 extern const struct procfs_operations net_procfs_routeoperations;
 extern const struct procfs_operations mtd_procfsoperations;
@@ -119,6 +120,10 @@ static const struct procfs_entry_s g_procfs_entries[] =
 #ifndef CONFIG_FS_PROCFS_EXCLUDE_PROCESS
   { "[0-9]*/**",     &proc_operations,            PROCFS_UNKOWN_TYPE },
   { "[0-9]*",        &proc_operations,            PROCFS_DIR_TYPE    },
+#endif
+
+#if defined(CONFIG_CLK) && !defined(CONFIG_FS_PROCFS_EXCLUDE_CLK)
+  { "clks",          &clk_procfsoperations,       PROCFS_FILE_TYPE   },
 #endif
 
 #if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_FS_PROCFS_EXCLUDE_CPULOAD)
