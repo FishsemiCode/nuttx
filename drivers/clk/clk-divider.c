@@ -58,6 +58,8 @@
 
 static uint32_t _get_maxdiv(uint8_t width, uint64_t flags)
 {
+  if (flags & CLK_DIVIDER_MAX_HALF)
+    return MASK(width - 1) + 1;
   if (flags & CLK_DIVIDER_ONE_BASED)
     return MASK(width);
   return MASK(width) + 1;
