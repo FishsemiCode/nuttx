@@ -270,20 +270,33 @@ static struct clk *song_clk_register_gr_fdiv(const char *name,
     uint64_t private_flags)
 {
   struct clk *clk;
-  char gr_clk[SONG_CLK_NAME_MAX], fixed_clk[SONG_CLK_NAME_MAX];
-  uint8_t frac_flags;
-  const char *pname = parent_name;
+  char gr_clk[SONG_CLK_NAME_MAX], fixed_clk[SONG_CLK_NAME_MAX],
+    gate_clk[SONG_CLK_NAME_MAX];
+  uint8_t frac_flags, gate_flags;
+  const char *pname = gate_clk;
 
+  snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
   snprintf(gr_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gr_fdiv");
   snprintf(fixed_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "fixed");
 
   frac_flags = (private_flags >> SONG_CLK_FRAC_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
+  gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  clk = clk_register_gate(gate_clk, parent_name, flags, reg_base + en_offset,
+      en_shift, gate_flags);
+  if (!clk)
+    return clk;
+
   if (gr_offset)
     {
+      private_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
+      SONG_CLK_FLAG_MASK;
+
       clk = song_clk_register_gr(gr_clk, pname, flags, reg_base, gr_offset,
-        SONG_CLK_GR_FDIV_EN_SHIFT, gr_offset, SONG_CLK_GR_FDIV_GR_SHIFT,
+        SONG_CLK_GR_FDIV_EN_SHIFT, 0, 0,
         SONG_CLK_GR_FDIV_GR_WIDTH, private_flags);
       if (!clk)
         return clk;
