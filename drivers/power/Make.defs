@@ -134,6 +134,34 @@ POWER_CFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$
 
 endif
 
+# Add regulator core drivers
+
+ifeq ($(CONFIG_REGULATOR), y)
+
+CSRCS += regulator.c
+
+ifeq ($(CONFIG_SONG_PMIC_APB), y)
+CSRCS += song_pmic_apb.c
+endif
+
+POWER_DEPPATH := --dep-path power
+POWER_VPATH := :power
+POWER_CFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)power}
+
+endif
+
+# Add regulator rpmsg drivers
+
+ifeq ($(CONFIG_RPMSG_REGULATOR), y)
+
+CSRCS += rpmsg_regulator.c
+
+POWER_DEPPATH := --dep-path power
+POWER_VPATH := :power
+POWER_CFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)power}
+
+endif
+
 # Include power management in the build
 
 DEPPATH += $(POWER_DEPPATH)

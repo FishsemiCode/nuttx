@@ -45,6 +45,7 @@
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
+#include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
@@ -456,6 +457,14 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SPI_DW
   up_spi_init();
+#endif
+
+#ifdef CONFIG_SONG_PMIC_APB
+  spmu_regulator_apb_initialize(0xB2010000, 0xB0180000);
+#endif
+
+#ifdef CONFIG_RPMSG_REGULATOR
+  rpmsg_regulator_init(CPU_NAME_AP, 1);
 #endif
 }
 

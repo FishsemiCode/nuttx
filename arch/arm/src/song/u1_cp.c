@@ -42,6 +42,7 @@
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
@@ -275,6 +276,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(0, 0xb0060000, 19);
+#endif
+
+#ifdef CONFIG_RPMSG_REGULATOR
+  rpmsg_regulator_init(CPU_NAME_SP, 0);
 #endif
 }
 

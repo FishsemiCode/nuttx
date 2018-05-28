@@ -353,3 +353,36 @@ config I2C_MAX1704X
 	default y if MAX1704X
 
 endif # POWER
+
+config REGULATOR
+	bool "Regulator core driver support"
+	default n
+	---help---
+		The regulator core driver implements the uper layer framework that the lower
+		layer driver can register with, and the common regulator APIs that are easy
+		for other drivers to call for the control of their power supply.
+
+config SONG_PMIC_APB
+	bool "Song pmic apb driver"
+	default n
+	depends on REGULATOR
+	---help---
+		The song pmic apb driver provides the low layer regulator implementation.
+
+config RPMSG_REGULATOR
+	bool "Regulator rpmsg driver support"
+	default n
+	---help---
+		The rpmsg regulator driver implements the common regulator APIs, inside which
+		the regulator operations are sent from the client to the remote device via
+		the rpmsg channel. The remote device(namely server) is responsible for
+		the parse and the completion.
+
+config RPMSG_REGULATOR_CLIENT
+	bool "Regulator rpmsg client driver support"
+	default n
+	depends on RPMSG_REGULATOR
+	---help---
+		This is the client version for the rpmsg regulator driver. The client is used
+		to send the regulator operations to the remote server, and response to the
+		result.
