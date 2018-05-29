@@ -417,20 +417,17 @@ static void clk_init_parent(struct clk *clk)
 
 static int __clk_register(struct clk *clk)
 {
-  int i, ret = 0;
+  int i;
   struct clk *orphan;
   struct clk *temp_orphan;
 
   if (!clk)
     return -EINVAL;
 
-  clk_lock();
-
   if (clk_get(clk->name))
     {
       clkwarn("clk %s already initialized\n", clk->name);
-      ret = -EEXIST;
-      goto out;
+      return -EEXIST;
     }
 
   if (clk->ops->set_rate &&
@@ -439,16 +436,14 @@ static int __clk_register(struct clk *clk)
     {
       clkerr("%s must implement .round_rate or .determine_rate in addition to .recalc_rate\n",
           clk->name);
-      ret = -EINVAL;
-      goto out;
+      return -EINVAL;
     }
 
   if (clk->ops->set_parent && !clk->ops->get_parent)
     {
       clkerr("%s must implement .get_parent & .set_parent\n",
           clk->name);
-      ret = -EINVAL;
-      goto out;
+      return -EINVAL;
     }
 
   if (clk->ops->set_rate_and_parent &&
@@ -456,11 +451,12 @@ static int __clk_register(struct clk *clk)
     {
       clkerr("%s must implement .set_parent & .set_rate\n",
           clk->name);
-      ret = -EINVAL;
-      goto out;
+      return -EINVAL;
     }
 
   clk_init_parent(clk);
+
+  clk_lock();
 
   if (clk->parent)
     {
@@ -509,10 +505,10 @@ static int __clk_register(struct clk *clk)
 
   if (clk->ops->init)
     clk->ops->init(clk);
-out:
+
   clk_unlock();
 
-  return ret;
+  return 0;
 }
 
 
@@ -830,7 +826,7 @@ struct clk *clk_register(const char *name, int32_t num_parents, const char **par
         }
 
       clk->parents = kmm_calloc(clk->num_parents, sizeof(struct clk *));
-      if (clk->parents)
+      if (!clk->parents)
         {
           goto fail_parent_names_copy;
         }
