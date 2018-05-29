@@ -41,9 +41,9 @@
 
 #include <nuttx/clock.h>
 #include <nuttx/kmalloc.h>
-#include <nuttx/kthread.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/timers/rpmsg_rtc.h>
+#include <nuttx/wqueue.h>
 
 #include <openamp/open_amp.h>
 
@@ -104,6 +104,7 @@ struct rpmsg_rtc_lowerhalf_s
   struct rpmsg_channel *channel;
   const char           *cpu_name;
   volatile bool        synced;
+  struct work_s        work;
 };
 
 /****************************************************************************
@@ -154,10 +155,9 @@ static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv)
     }
 }
 
-static int rpmsg_rtc_synchronize(int argc, FAR char *argv[])
+static void rpmsg_rtc_synchronize(FAR void *arg)
 {
   clock_synchronize();
-  return 0;
 }
 
 static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
@@ -170,8 +170,8 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
       if (!lower->synced)
         {
           lower->synced = true;
-          /* Need spawn a new thread to avoid the deadlock */
-          kthread_create("rtc", 128, 1024, rpmsg_rtc_synchronize, NULL);
+          /* Synchronize in background to avoid the deadlock */
+          work_queue(LPWORK, &lower->work, rpmsg_rtc_synchronize, NULL, 0);
         }
     }
 }
