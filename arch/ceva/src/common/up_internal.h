@@ -246,26 +246,24 @@ void up_earlyserialinit(void);
 #  define up_earlyserialinit()
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void);
+#else
+#  define rpmsg_serialinit()
+#endif
+
 /* Defined in drivers/lowconsole.c */
 
 #ifdef CONFIG_DEV_LOWCONSOLE
 void lowconsole_init(void);
 #else
-# define lowconsole_init()
+#  define lowconsole_init()
 #endif
 
 /* DMA **********************************************************************/
 
 #ifdef CONFIG_ARCH_DMA
 void up_dmainitialize(void);
-#endif
-
-/* IPC subsystem *************************************************************/
-
-#ifdef CONFIG_OPENAMP
-void up_openamp_initialize(void);
-#else
-#  define up_openamp_initialize()
 #endif
 
 /* Memory management ********************************************************/

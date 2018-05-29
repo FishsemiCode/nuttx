@@ -166,12 +166,6 @@ void up_initialize(void)
   iob_initialize();
 #endif
 
-#ifdef CONFIG_OPENAMP
-  /* Initialize IPC subsytem */
-
-  up_openamp_initialize();
-#endif
-
 #if CONFIG_NFILE_DESCRIPTORS > 0
   /* Register devices */
 
@@ -205,6 +199,10 @@ void up_initialize(void)
 
 #ifdef USE_SERIALDRIVER
   up_serialinit();
+#endif
+
+#ifdef CONFIG_RPMSG_UART
+  rpmsg_serialinit();
 #endif
 
   /* Initialize the console device driver (if it is other than the standard
