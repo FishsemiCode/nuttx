@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -72,6 +73,13 @@
 #define TOP_PWR_M4_INTR2SLP_MK0     (TOP_PWR_BASE + 0x224)
 
 #define RSCTBL_BASE_ADSP            ((uintptr_t)&_srsctbl_adsp)
+
+#ifdef CONFIG_SONG_DMAS
+static FAR struct dma_dev_s *g_dma[3] =
+{
+  [2] = DEV_END,
+};
+#endif
 
 /****************************************************************************
  * Public Data
@@ -300,6 +308,11 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_MTD_GD25
   up_flash_init();
+#endif
+
+#ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(0, 0xa0030000, 17, "top_dmas_hclk");
+  g_dma[1] = song_dmas_initialize(0, 0xa0080000, 16, "audio_dmas_hclk");
 #endif
 }
 

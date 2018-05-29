@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -89,6 +90,13 @@
 
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
+
+#ifdef CONFIG_SONG_DMAS
+static FAR struct dma_dev_s *g_dma[2] =
+{
+  [1] = DEV_END,
+};
+#endif
 
 /****************************************************************************
  * Public Data
@@ -447,6 +455,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
+#endif
+
+#ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(2, 0xb0020000, 28, "dmas_hclk");
 #endif
 
 #ifdef CONFIG_SONG_IOE

@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -76,6 +77,17 @@
 #define SEN_PWR_SEN_M4_INTR2SLP_MK0 (SEN_PWR_BASE + 0x160)
 
 #define SEN_PWR_SEN_M4_SLP_EN       (1 << 0)
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_SONG_DMAS
+static FAR struct dma_dev_s *g_dma[2] =
+{
+  [1] = DEV_END,
+};
+#endif
 
 /****************************************************************************
  * Public Data
@@ -304,6 +316,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
+#endif
+
+#ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(0, 0xf8b1d000, 18, "sen_dmas_hclk");
 #endif
 
 #ifdef CONFIG_SONG_IOE

@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -69,6 +70,17 @@
 #define TOP_MAILBOX_BASE            (0xf9000000)
 
 #define DDR_PWR_BASE                (0xf900a000)
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_SONG_DMAS
+static FAR struct dma_dev_s *g_dma[2] =
+{
+  [1] = DEV_END,
+};
+#endif
 
 /****************************************************************************
  * Public Data
@@ -272,6 +284,10 @@ void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
   up_openamp_initialize();
+#endif
+
+#ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(2, B2C(0xf9003000), IRQ_INT2, "ap/top_dmas_clk");
 #endif
 
 #ifdef CONFIG_SONG_IOE
