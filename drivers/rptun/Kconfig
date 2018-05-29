@@ -5,28 +5,17 @@
 
 if RPTUN
 
-choice
-	prompt "Work queue"
-	default RPTUN_HPWORK if SCHED_HPWORK
-	default RPTUN_LPWORK if SCHED_LPWORK && !SCHED_HPWORK
-	---help---
-		Work queue support is required to use the rptun driver. If the
-		high priority work queue is available, then it should be used
-		by the driver.
+config RPTUN_PRIORITY
+	int "rpturn thread priority"
+	default 224
 
-config RPTUN_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config RPTUN_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
+config RPTUN_STACKSIZE
+	int "rptun stack size"
+	default 2048
 
 config SONG_RPTUN
 	bool "Song Tunnel Support"
 	default n
 	depends on SONG_MBOX
 
-endif # RPTUN
+endif

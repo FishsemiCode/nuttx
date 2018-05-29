@@ -41,18 +41,13 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/kthread.h>
 #include <nuttx/rptun/rptun.h>
-#include <nuttx/wqueue.h>
+#include <nuttx/signal.h>
 
 #include <errno.h>
 
 #include <openamp/open_amp.h>
-
-#ifdef CONFIG_RPTUN_HPWORK
-#  define RPTUN_WORK HPWORK
-#else
-#  define RPTUN_WORK LPWORK
-#endif
 
 #ifndef MAX
 #  define MAX(a,b) ((a)>(b)?(a):(b))
@@ -68,16 +63,14 @@ struct rptun_openamp_s
   struct hil_proc              *proc;
   struct remote_proc           *rproc;
   struct proc_shm              shm;
-  struct work_s                work_start;
-  struct work_s                work_vring;
+  int                          pid;
 };
 
 /************************************************************************************
  * Private Function Prototypes
  ************************************************************************************/
 
-static void rptun_openamp_start_work(void *arg);
-static void rptun_openamp_vring_work(void *arg);
+static int  rptun_openamp_thread(int argc, FAR char *argv[]);
 static int  rptun_openamp_callback(void *arg, uint32_t vqid);
 static int  rptun_openamp_enable_interrupt(struct proc_intr *intr);
 static void rptun_openamp_notify(struct hil_proc *proc,
@@ -113,41 +106,59 @@ static struct hil_platform_ops rptun_openamp_ops =
  * Private Functions
  ************************************************************************************/
 
-static void rptun_openamp_start_work(void *arg)
+static int rptun_openamp_thread(int argc, FAR char *argv[])
 {
-  struct rptun_openamp_s *priv = arg;
-  struct hil_proc *proc = priv->proc;
-  int cpu_id = proc->cpu_id;
+  struct rptun_openamp_s *priv;
+  sigset_t set;
+  int ret;
 
-  remoteproc_resource_deinit(priv->rproc);
-  rptun_openamp_resource_init(priv, cpu_id);
-}
+  priv = (struct rptun_openamp_s *)atoi(argv[1]);
 
-static void rptun_openamp_vring_work(void *arg)
-{
-  struct rptun_openamp_s *priv = arg;
-  struct hil_proc *proc = priv->proc;
+  sigemptyset(&set);
+  sigaddset(&set, SIGUSR1);
+  sigaddset(&set, SIGUSR2);
+  nxsig_procmask(SIG_SETMASK, &set, NULL);
 
-  hil_notified(proc, RPTUN_NOTIFY_ALL);
+  /* call notified immediately, cause thread start-up
+   * at late time, and missied the IRQ killing singals.
+   */
+
+  if (priv->proc)
+    {
+      hil_notified(priv->proc, RPTUN_NOTIFY_ALL);
+    }
+
+  while(1)
+    {
+      ret = nxsig_timedwait(&set, NULL, NULL);
+      if (ret == SIGUSR1)
+        {
+          remoteproc_resource_deinit(priv->rproc);
+          rptun_openamp_resource_init(priv, priv->proc->cpu_id);
+        }
+      else if (ret == SIGUSR2)
+        {
+          hil_notified(priv->proc, RPTUN_NOTIFY_ALL);
+        }
+    }
+
+  return 0;
 }
 
 static int rptun_openamp_callback(void *arg, uint32_t vqid)
 {
   struct rptun_openamp_s *priv = arg;
-  int ret;
 
   if (vqid == RPTUN_NOTIFY_START)
     {
-      ret = work_queue(RPTUN_WORK, &priv->work_start,
-                            rptun_openamp_start_work, priv, 0);
+      kill(priv->pid, SIGUSR1);
     }
   else
    {
-      ret = work_queue(RPTUN_WORK, &priv->work_vring,
-                            rptun_openamp_vring_work, priv, 0);
+      kill(priv->pid, SIGUSR2);
    }
 
-  return ret;
+  return 0;
 }
 
 static int rptun_openamp_enable_interrupt(struct proc_intr *intr)
@@ -286,6 +297,8 @@ int rptun_initialize(struct rptun_dev_s *dev)
 {
   struct metal_init_params params = METAL_INIT_DEFAULTS;
   struct rptun_openamp_s *priv;
+  char str[16], name[16];
+  char *argv[2];
   int ret;
 
   ret = metal_init(&params);
@@ -300,6 +313,23 @@ int rptun_initialize(struct rptun_dev_s *dev)
       return -ENOMEM;
     }
 
+  sprintf(name, "rptun%s", RPTUN_GET_CPUNAME(dev));
+
+  itoa((int)priv, str, 10);
+  argv[0] = str;
+  argv[1] = NULL;
+  ret = kthread_create(name,
+                        CONFIG_RPTUN_PRIORITY,
+                        CONFIG_RPTUN_STACKSIZE,
+                        rptun_openamp_thread,
+                        argv);
+  if (ret < 0)
+    {
+      kmm_free(priv);
+      return ret;
+    }
+
+  priv->pid = ret;
   priv->dev = dev;
 
   RPTUN_NOTIFY(dev, RPTUN_NOTIFY_START);
@@ -307,6 +337,7 @@ int rptun_initialize(struct rptun_dev_s *dev)
   ret = rptun_openamp_resource_init(priv, -1);
   if (ret)
     {
+      task_delete(priv->pid);
       kmm_free(priv);
       return ret;
     }
