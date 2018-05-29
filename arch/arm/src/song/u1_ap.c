@@ -155,8 +155,20 @@ void arm_timer_initialize(void)
 #endif
 }
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+#ifdef CONFIG_SERIAL_CONSOLE
+  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, false);
+#else
+  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, true);
+#endif
+  uart_rpmsg_init(CPU_NAME_SP, "ATAP", 1024, false);
+}
+#endif
+
 #ifdef CONFIG_OPENAMP
-void up_openamp_initialize(void)
+static void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_ap, *mbox_sp;
 
@@ -208,15 +220,6 @@ void up_openamp_initialize(void)
   syslog_rpmsg_init();
 #endif
 
-#ifdef CONFIG_RPMSG_UART
-# ifdef CONFIG_SERIAL_CONSOLE
-  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, false);
-# else
-  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, true);
-# endif
-  uart_rpmsg_init(CPU_NAME_SP, "ATAP", 1024, false);
-#endif
-
 #ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
 #endif
@@ -225,6 +228,12 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_OPENAMP
+  /* Initialize IPC subsytem */
+
+  up_openamp_initialize();
+#endif
+
 #ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
 #endif

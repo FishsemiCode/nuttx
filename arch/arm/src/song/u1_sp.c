@@ -176,6 +176,18 @@ void arm_timer_initialize(void)
 #endif
 }
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_server_init("AP", 1024);
+  uart_rpmsg_server_init("ATAP", 1024);
+
+  uart_rpmsg_server_init("CP", 1024);
+  uart_rpmsg_server_init("AT", 1024);
+  uart_rpmsg_server_init("GPS", 1024);
+}
+#endif
+
 #ifdef CONFIG_OPENAMP
 static int ap_boot(const struct song_rptun_config_s *config)
 {
@@ -198,7 +210,7 @@ static int cp_boot(const struct song_rptun_config_s *config)
   return 0;
 }
 
-void up_openamp_initialize(void)
+static void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_ap, *mbox_cp, *mbox_sp;
 
@@ -351,15 +363,6 @@ void up_openamp_initialize(void)
   syslog_rpmsg_server_init();
 #endif
 
-#ifdef CONFIG_RPMSG_UART
-  uart_rpmsg_server_init("AP", 1024);
-  uart_rpmsg_server_init("ATAP", 1024);
-
-  uart_rpmsg_server_init("CP", 1024);
-  uart_rpmsg_server_init("AT", 1024);
-  uart_rpmsg_server_init("GPS", 1024);
-#endif
-
 #ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
 #endif
@@ -433,6 +436,12 @@ static void up_spi_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_OPENAMP
+  /* Initialize IPC subsytem */
+
+  up_openamp_initialize();
+#endif
+
 #ifdef CONFIG_RTC_SONG
   rtc_initialize(0, g_rtc_lower);
 #endif

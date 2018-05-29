@@ -127,8 +127,15 @@ void arm_timer_initialize(void)
 #endif
 }
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_server_init("ADSP", 1024);
+}
+#endif
+
 #ifdef CONFIG_OPENAMP
-void up_openamp_initialize(void)
+static void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_adsp, *mbox_ap;
 
@@ -215,10 +222,6 @@ void up_openamp_initialize(void)
   syslog_rpmsg_server_init();
 #endif
 
-#ifdef CONFIG_RPMSG_UART
-  uart_rpmsg_server_init("ADSP", 1024);
-#endif
-
 #ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
 #endif
@@ -247,6 +250,12 @@ static void up_spi_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_OPENAMP
+  /* Initialize IPC subsytem */
+
+  up_openamp_initialize();
+#endif
+
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(0, 0xa00f0000, 26);
 #endif

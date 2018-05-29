@@ -140,8 +140,19 @@ void ceva_timer_initialize(void)
 #endif
 }
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+#ifdef CONFIG_SERIAL_CONSOLE
+  uart_rpmsg_init(CPU_NAME_AP, "ADSP", B2C(1024), false);
+#else
+  uart_rpmsg_init(CPU_NAME_AP, "ADSP", B2C(1024), true);
+#endif
+}
+#endif
+
 #ifdef CONFIG_OPENAMP
-void up_openamp_initialize(void)
+static void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_adsp, *mbox_ap;
 
@@ -193,14 +204,6 @@ void up_openamp_initialize(void)
   syslog_rpmsg_init();
 #endif
 
-#ifdef CONFIG_RPMSG_UART
-# ifdef CONFIG_SERIAL_CONSOLE
-  uart_rpmsg_init(CPU_NAME_AP, "ADSP", B2C(1024), false);
-# else
-  uart_rpmsg_init(CPU_NAME_AP, "ADSP", B2C(1024), true);
-# endif
-#endif
-
 #ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_AP);
 #endif
@@ -209,6 +212,12 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_OPENAMP
+  /* Initialize IPC subsytem */
+
+  up_openamp_initialize();
+#endif
+
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(1, B2C(0xa00f0000), IRQ_VINT_FIRST + 6);
 #endif

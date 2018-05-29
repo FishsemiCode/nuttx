@@ -137,8 +137,19 @@ void arm_timer_initialize(void)
 #endif
 }
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+#ifdef CONFIG_SERIAL_CONSOLE
+  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, false);
+#else
+  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, true);
+#endif
+}
+#endif
+
 #ifdef CONFIG_OPENAMP
-void up_openamp_initialize(void)
+static void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_ap, *mbox_rpm;
 
@@ -236,14 +247,6 @@ void up_openamp_initialize(void)
   up_rtc_set_lowerhalf(rpmsg_rtc_initialize(CPU_NAME_AP, 0));
 #endif
 
-#ifdef CONFIG_RPMSG_UART
-# ifdef CONFIG_SERIAL_CONSOLE
-  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, false);
-# else
-  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, true);
-# endif
-#endif
-
 #ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_AP);
 #endif
@@ -252,6 +255,12 @@ void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_OPENAMP
+  /* Initialize IPC subsytem */
+
+  up_openamp_initialize();
+#endif
+
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(1, 0xf900c000, 23);
 #endif
