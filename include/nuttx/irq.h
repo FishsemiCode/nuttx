@@ -53,11 +53,11 @@
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
-/* IRQ detach is a convenience definition.  Detaching an interrupt handler
- * is equivalent to setting a NULL interrupt handler.
+/* IRQ detach is a convenience definition, it detach all the handlers sharing the same irq.
+ * Detaching an interrupt handler is equivalent to setting a NULL interrupt handler.
  */
 
-#  define irq_detach(isr) irq_attach(isr, NULL, NULL)
+#  define irq_detach(irq) irq_attach(irq, NULL, NULL)
 
 /* Maximum/minimum values of IRQ integer types */
 
@@ -162,6 +162,12 @@ extern "C"
  ****************************************************************************/
 
 int irq_attach(int irq, xcpt_t isr, FAR void *arg);
+
+#ifdef CONFIG_IRQCHAIN
+int irqchain_detach(int irq, xcpt_t isr, FAR void *arg);
+#else
+#  define irqchain_detach(irq, isr, arg) irq_detach(irq)
+#endif
 
 /****************************************************************************
  * Name: enter_critical_section
