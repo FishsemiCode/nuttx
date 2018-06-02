@@ -55,6 +55,7 @@
 #define INT_EN                0x2c
 #define INT_MASK              0x30
 #define INT_STATUS            0x34
+#define PRIO_CTRL             0x3c
 #define OP_START              0x44
 #define XADDR                 0x48
 #define YADDR                 0x4c
@@ -66,6 +67,9 @@
 #define CPU1_ACCESS_MEM_SIZE  0x70
 #define CPU2_ACCESS_MEM_SIZE  0x74
 #define CTRL_STATE            0x78
+
+/* Identifies the flash write priority */
+#define PRIO_WR_LOW           (1 << 1)
 
 /* Identifies the flash operation commands */
 #define CMD_WRITE_PREPARE     (1 << 0)
@@ -154,8 +158,11 @@ __ramfunc__ static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *pr
 __ramfunc__ static int song_onchip_flash_mas_erase(FAR struct mtd_dev_s *dev)
 {
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
+  irqstate_t flags;
 
+  flags = enter_critical_section();
   flash_sendop_wait(priv, CMD_MAS_ERASE);
+  leave_critical_section(flags);
   up_invalidate_icache_all();
 
   return 0;
@@ -167,16 +174,24 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
   FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
   uint32_t erasesize = (1 << (cfg->xaddr_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
+  uint32_t prio;
+  irqstate_t flags;
   size_t i;
 
   for (i = 0; i < nblocks; i++)
     {
+      flags = enter_critical_section();
+      prio = flash_regread(priv, PRIO_CTRL);
+      flash_regwrite(priv, PRIO_CTRL, prio | PRIO_WR_LOW);
       flash_regwrite(priv, XADDR, (startblock + i) << cfg->xaddr_shift);
       flash_sendop_wait(priv, CMD_ERASE);
+      flash_regwrite(priv, PRIO_CTRL, prio);
+      leave_critical_section(flags);
     }
 
   up_invalidate_icache(startblock * erasesize,
       (startblock + nblocks) * erasesize);
+
   return 0;
 }
 
@@ -209,14 +224,9 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
   FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
   uint32_t xaddr, yaddr, yaddr_mask = (1 << cfg->yaddr_shift) - 1;
+  uint32_t *ptr = (uint32_t *)buf;
   size_t i, remain = nblocks;
   irqstate_t flags;
-  uint32_t *ptr = (uint32_t *)buf;
-
-  flash_regwrite(priv, DIN0, 0xffffffff);
-  flash_regwrite(priv, DIN1, 0xffffffff);
-  flash_regwrite(priv, DIN2, 0xffffffff);
-  flash_regwrite(priv, DIN3, 0xffffffff);
 
   while (remain > 0)
     {
@@ -224,6 +234,11 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
       yaddr = startblock & yaddr_mask;
 
       flags = enter_critical_section();
+
+      flash_regwrite(priv, DIN0, 0xffffffff);
+      flash_regwrite(priv, DIN1, 0xffffffff);
+      flash_regwrite(priv, DIN2, 0xffffffff);
+      flash_regwrite(priv, DIN3, 0xffffffff);
 
       flash_regwrite(priv, XADDR, xaddr);
       flash_regwrite(priv, YADDR, yaddr);
