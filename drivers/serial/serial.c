@@ -570,13 +570,6 @@ static int uart_open(FAR struct file *filep)
            goto errout_with_sem;
         }
 
-      /* Mark the io buffers empty */
-
-      dev->xmit.head = 0;
-      dev->xmit.tail = 0;
-      dev->recv.head = 0;
-      dev->recv.tail = 0;
-
       /* Initialize termios state */
 
 #ifdef CONFIG_SERIAL_TERMIOS
@@ -1324,6 +1317,10 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                 {
                   dev->recv.head = 0;
                   dev->recv.tail = 0;
+
+                  /* Activate RX flow control. */
+
+                  uart_rxflowcontrol(dev, 0, false);
                 }
 
               if (arg == TCOFLUSH || arg == TCIOFLUSH)
