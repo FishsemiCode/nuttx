@@ -55,10 +55,12 @@ $(RCOBJS): %$(OBJEXT): %
 	$(Q) mkdir -p $(dir $(ETCDIR)$(DELIM)$<)
 	$(Q) cp -r $@ $(ETCDIR)$(DELIM)$<
 
-$(ETCSRC): $(GENROMFS) $(RCRAWS) $(RCOBJS)
+$(ETCSRC): $(GENROMFS) $(shell find $(RCRAWS) -type l) $(RCOBJS)
 	$(foreach raw,$(RCRAWS), \
-		$(shell cp --parents -fLp $(raw) $(ETCDIR)))
-	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR) -V "$(basename $<)" && xxd -i romfs.img > $@
+		$(shell cp --parents -rfLp $(raw) $(ETCDIR)))
+	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR) -V "$(basename $<)"
+	$(Q) echo "const" > $@
+	$(Q) xxd -i romfs.img >> $@
 endif
 
 ifneq ($(ZDSVERSION),)
