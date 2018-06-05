@@ -41,7 +41,7 @@ CSRCS += clk.c clk-divider.c clk-fixed-factor.c clk-fractional-divider.c
 CSRCS += clk-fixed-rate.c clk-gate.c clk-multiplier.c clk-mux.c clk-phase.c
 
 ifeq ($(CONFIG_CLK_RPMSG),y)
-CSRCS += clk-rpmsg.c clk-rpmsg-server.c
+CSRCS += clk-rpmsg.c
 endif
 # Include clk core and base clk in the build
 

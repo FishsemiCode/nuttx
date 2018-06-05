@@ -213,6 +213,7 @@ struct clk_mux
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
 /* the individual clk ops declaration */
 extern const struct clk_ops clk_gate_ops;
 extern const struct clk_ops clk_fixed_rate_ops;
@@ -262,8 +263,7 @@ struct clk *clk_register_mux(const char *name, const char **parent_names, uint8_
 struct clk *clk_register_rpmsg(const char *name, uint64_t flags);
 
 /* rpmsg clk must be initialize in board initialization */
-int    clk_rpmsg_initialize(const char *cpu_name);
-int    clk_rpmsg_server_initialize(void);
+int    clk_rpmsg_initialize(bool server);
 #endif
 
 #undef EXTERN
