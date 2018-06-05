@@ -54,4 +54,19 @@
 
 #define ARMV7M_PERIPHERAL_INTERRUPTS (CONFIG_SONG_NR_IRQS - 16)
 
+#ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+
+/* Clock management *********************************************************/
+
+void up_clk_initialize(void);
+
+#endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SONG_CHIP_H */
