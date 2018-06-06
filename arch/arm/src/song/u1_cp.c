@@ -82,6 +82,8 @@
 #define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
 #define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
 
+#define TOP_PWR_CP_M4_COLD_BOOT     (1 << 2)
+
 #define TOP_PWR_CP_M4_SLP_EN        (1 << 0)
 #define TOP_PWR_CP_M4_DS_SLP_EN     (1 << 2)
 
@@ -115,11 +117,11 @@ static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 
 void up_earlystart(void)
 {
-  if (getreg32(TOP_PWR_BOOT_REG) & (1 << 2))
+  if (getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT)
     {
       /* Initial power on. Clear boot flag. */
 
-      putreg32(1 << 18, TOP_PWR_BOOT_REG);
+      putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
     }
   else
     {
