@@ -232,7 +232,7 @@ struct clk *clk_register_out(const char *name, const char **parent_names,
   out->ctl_reg = ctl_reg;
   out->parent_index = clk_read(mux_reg) >> mux_shift & MASK(mux_width);
 
-  clk = clk_register(name, num_parents, parent_names, CLK_IS_BASIC, &clk_out_ops, out);
+  clk = clk_register(name, num_parents, parent_names, 0, &clk_out_ops, out);
   if (!clk)
     {
       kmm_free(out);

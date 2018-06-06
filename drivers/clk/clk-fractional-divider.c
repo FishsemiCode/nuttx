@@ -206,7 +206,7 @@ struct clk *clk_register_fractional_divider(const char *name,
   fd->nmask = (BIT(nwidth) - 1) << nshift;
   fd->flags = clk_divider_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags | CLK_IS_BASIC,
+  clk = clk_register(name, num_parents, parent_names, flags,
         &clk_fractional_divider_ops, fd);
   if (!clk)
     {

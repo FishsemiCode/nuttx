@@ -243,8 +243,7 @@ struct clk *clk_register_multiplier(const char *name,
   mult->width = width;
   mult->flags = clk_multiplier_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags | CLK_IS_BASIC, &clk_multiplier_ops, mult);
-
+  clk = clk_register(name, num_parents, parent_names, flags, &clk_multiplier_ops, mult);
   if (!clk)
     {
       kmm_free(mult);

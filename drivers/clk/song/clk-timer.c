@@ -213,7 +213,7 @@ struct clk *clk_register_timer(const char *name, const char **parent_names,
   timer->mux_width = mux_width;
   timer->parent_index = clk_read(ctl_reg) >> mux_shift & MASK(mux_width);
 
-  clk = clk_register(name, num_parents, parent_names, CLK_IS_BASIC, &clk_timer_ops, timer);
+  clk = clk_register(name, num_parents, parent_names, 0, &clk_timer_ops, timer);
   if (!clk)
   {
     kmm_free(timer);

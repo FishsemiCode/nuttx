@@ -58,7 +58,6 @@
 #define CLK_SET_RATE_PARENT             0x04 /* propagate rate change up one level */
 #define CLK_SET_RATE_NO_REPARENT        0x08 /* don't reparent on change rate */
 #define CLK_IS_ROOT                     0x10 /* root clk, has no parent */
-#define CLK_IS_BASIC                    0x20 /* basic clk, can't do a to_clk_foo*/
 #define CLK_GET_RATE_NOCACHE            0x40 /* do not use the cached clk rate */
 
 /* gating clk flags */

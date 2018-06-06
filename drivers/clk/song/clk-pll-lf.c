@@ -135,8 +135,7 @@ struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint6
   pll->cfg_reg1 = cfg_reg1;
 
   clk = clk_register(name, num_parents, parent_names,
-      flags | CLK_IS_BASIC, &clk_pll_lf_ops, pll);
-
+      flags, &clk_pll_lf_ops, pll);
   if (!clk)
     {
       kmm_free(pll);

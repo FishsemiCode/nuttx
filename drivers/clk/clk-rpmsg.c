@@ -277,7 +277,7 @@ const struct clk_ops clk_rpmsg_ops =
 struct clk *clk_register_rpmsg(const char *name, uint64_t flags)
 {
   /* rpmsg clk is consider as orphan clk (no parents) in remoteproc client */
-  return clk_register(name, 0, NULL, flags | CLK_IS_BASIC, &clk_rpmsg_ops, NULL);
+  return clk_register(name, 0, NULL, flags, &clk_rpmsg_ops, NULL);
 }
 
 int clk_rpmsg_initialize(const char *cpu_name)

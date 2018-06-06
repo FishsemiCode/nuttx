@@ -95,7 +95,7 @@ struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
 
   fixed->fixed_rate = fixed_rate;
 
-  clk = clk_register(name, num_parents, parent_names, flags | CLK_IS_BASIC, &clk_fixed_rate_ops, fixed);
+  clk = clk_register(name, num_parents, parent_names, flags, &clk_fixed_rate_ops, fixed);
   if (!clk)
     {
       kmm_free(fixed);

@@ -200,8 +200,7 @@ struct clk *clk_register_pll(const char *name, const char *parent_name, uint64_t
   pll->ctl_reg = ctl_reg;
   pll->ctl_shift = ctl_shift;
 
-  clk = clk_register(name, num_parents, parent_names, flags | CLK_IS_BASIC, &clk_pll_ops, pll);
-
+  clk = clk_register(name, num_parents, parent_names, flags, &clk_pll_ops, pll);
   if (!clk)
     {
       kmm_free(pll);
