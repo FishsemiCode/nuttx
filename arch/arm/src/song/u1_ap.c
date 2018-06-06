@@ -78,6 +78,15 @@
 
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_AP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
+#define TOP_PWR_AP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x204)
+#define TOP_PWR_SLPCTL_AP_M4        (TOP_PWR_BASE + 0x360)
+
+#define TOP_PWR_AP_M4_PD_MK         (1 << 3)
+#define TOP_PWR_AP_M4_AU_PU_MK      (1 << 6)
+#define TOP_PWR_AP_M4_AU_PD_MK      (1 << 7)
+
+#define TOP_PWR_AP_M4_SLP_EN        (1 << 0)
+#define TOP_PWR_AP_M4_DS_SLP_EN     (1 << 2)
 
 /****************************************************************************
  * Private Data
@@ -314,6 +323,65 @@ void up_lateinitialize(void)
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, 0);
 #endif
+}
+
+void up_cpu_doze(void)
+{
+  /* Forbid the full chip power down */
+  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+
+  /* Forbid the subsystem power down */
+  putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
+           TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
+
+  /* Forbid the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
+}
+
+void up_cpu_idle(void)
+{
+  /* Forbid the full chip power down */
+  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+
+  /* Forbid the subsystem power down */
+  putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
+           TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
+
+  /* Allow the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
+}
+
+void up_cpu_standby(void)
+{
+  /* Forbid the full chip power down */
+  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+
+  /* Allow the subsystem power down */
+  putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16, TOP_PWR_AP_UNIT_PD_CTL);
+
+  /* Allow the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
+}
+
+void up_cpu_sleep(void)
+{
+  /* Allow the full chip power down */
+  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16 |
+           TOP_PWR_AP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
+
+  /* Allow the subsystem power down */
+  putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16, TOP_PWR_AP_UNIT_PD_CTL);
+
+  /* Allow the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_AP */
