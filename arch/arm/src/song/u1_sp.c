@@ -88,10 +88,19 @@
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
 #define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
+#define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
 #define TOP_PWR_SLPST               (TOP_PWR_BASE + 0x368)
+
+#define TOP_PWR_AP_M4_PORESET       (1 << 0)
+#define TOP_PWR_CP_M4_PORESET       (1 << 0)
+
+#define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
+#define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
+
+#define PMIC_FSM_DS_SLP_VALID       (1 << 0)
 
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
@@ -141,6 +150,9 @@ void up_earlyinitialize(void)
   };
 
   up_addrenv_initialize(addrenv);
+
+  /* Always enable the full chip deep sleep */
+  modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
 }
 
 #ifdef CONFIG_RTC_SONG
@@ -253,7 +265,7 @@ static int ap_boot(const struct song_rptun_config_s *config)
    * shram0 default enabled
    */
 
-  putreg32(0x00010000, TOP_PWR_AP_M4_RSTCTL);
+  putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
   return 0;
 }
 
@@ -264,7 +276,7 @@ static int cp_boot(const struct song_rptun_config_s *config)
    */
 
   putreg32(0x00010000, SECURITY_CFG_0);
-  putreg32(0x00010000, TOP_PWR_CP_M4_RSTCTL);
+  putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
   return 0;
 }
 
@@ -534,7 +546,6 @@ void up_lateinitialize(void)
 
 int board_power_off(int status)
 {
-  modifyreg32(PMIC_FSM_CONFIG1, 1, 1);
   putreg32(0x1, TOP_PWR_SLPST);
   return 0;
 }
@@ -556,6 +567,45 @@ int board_reset(int status)
 
   putreg32(0x10001, TOP_PWR_SFRST_CTL);
   return 0;
+}
+
+void up_cpu_doze(void)
+{
+  /* Forbid the full chip power down */
+  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Forbid the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
+}
+
+void up_cpu_idle(void)
+{
+  /* Forbid the full chip power down */
+  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Allow the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
+}
+
+void up_cpu_standby(void)
+{
+  up_cpu_idle();
+}
+
+void up_cpu_sleep(void)
+{
+  /* Allow the full chip power down */
+  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
+           TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Allow the deep sleep */
+  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  up_cpu_wfi();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_SP */
