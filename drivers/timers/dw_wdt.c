@@ -42,6 +42,7 @@
 #include <nuttx/clk/clk.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/watchdog.h>
 
@@ -81,6 +82,10 @@ struct dw_wdt_lowerhalf_s
   struct clk *tclk;
   bool      active;
   xcpt_t   handler;
+
+#ifdef CONFIG_PM
+  struct pm_callback_s pm_cb;
+#endif
 };
 
 /****************************************************************************
@@ -261,6 +266,32 @@ static xcpt_t dw_wdt_capture(FAR struct watchdog_lowerhalf_s *lower,
   return oldhandler;
 }
 
+#ifdef CONFIG_PM
+static void dw_wdt_pm_notify(FAR struct pm_callback_s *cb,
+                             int domain, enum pm_state_e pmstate)
+{
+  FAR struct dw_wdt_lowerhalf_s *wdt =
+    container_of(cb, struct dw_wdt_lowerhalf_s, pm_cb);
+
+  switch (pmstate)
+    {
+    case PM_RESTORE:
+      if (wdt->active)
+        {
+          clk_enable(wdt->tclk);
+        }
+      break;
+
+    default:
+      if (wdt->active)
+        {
+          clk_disable(wdt->tclk);
+        }
+      break;
+    }
+}
+#endif
+
 static int dw_wdt_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = arg;
@@ -306,6 +337,11 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
 
   dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
     DW_WDT_CONTROL_RPL_MASK, DW_WDT_CONTROL_RPL_MASK);
+
+#ifdef CONFIG_PM
+  wdt->pm_cb.notify = dw_wdt_pm_notify;
+  pm_register(&wdt->pm_cb);
+#endif
 
   if (config->irq >= 0)
     {
