@@ -333,6 +333,12 @@ config WATCHDOG_DEVPATH
 	string "Watchdog Device Path"
 	default "/dev/watchdog0"
 
+config WATCHDOG_DW
+	bool "DesignWare Watchdog Driver"
+	depends on CLK
+	---help---
+		Enables support for the DesignWare watchdog.
+
 endif # WATCHDOG
 
 config TIMERS_CS2100CP
