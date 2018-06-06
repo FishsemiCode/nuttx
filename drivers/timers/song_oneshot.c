@@ -74,9 +74,9 @@ struct song_oneshot_lowerhalf_s
   /* Private lower half data may follow */
 
   FAR const struct song_oneshot_config_s *config;
-  uint64_t offset;
-  uint32_t c1_max;
+  uint64_t c2_base;
   uint32_t c2_prev;
+  uint32_t c1_max;
 
   oneshot_callback_t callback;
   FAR void *arg;
@@ -238,6 +238,8 @@ static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
                                   FAR uint32_t *c2, FAR uint32_t *c1)
 {
   FAR const struct song_oneshot_config_s *config = lower->config;
+  uint32_t c2_prev = lower->c2_prev;
+  irqstate_t flags;
 
   song_oneshot_startcount(lower);
   do
@@ -247,6 +249,22 @@ static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
       *c1 = song_oneshot_getreg(config->base, config->c1_off);
     }
   while (*c2 != song_oneshot_getreg(config->base, config->c2_off));
+
+  flags = enter_critical_section();
+  if (lower->c2_base == UINT64_MAX)
+    {
+      /* First call, initialize base */
+
+      lower->c2_base = UINT64_MAX - *c2 + 1;
+    }
+  else if (*c2 < c2_prev)
+    {
+      /* C2 overflow, increment base */
+
+      lower->c2_base += UINT32_MAX + 1ull;
+    }
+  lower->c2_prev = *c2;
+  leave_critical_section(flags);
 }
 
 static void song_oneshot_gettime(FAR struct song_oneshot_lowerhalf_s *lower,
@@ -257,23 +275,8 @@ static void song_oneshot_gettime(FAR struct song_oneshot_lowerhalf_s *lower,
   uint64_t count;
 
   song_oneshot_getcount(lower, &c2, &c1);
-  count = (uint64_t)c2 * lower->c1_max + c1;
-
-  /* Don't need sync since it's called very early */
-  if (lower->offset == UINT64_MAX)
-    {
-      lower->offset = UINT64_MAX - count + 1;
-    }
-
-  if (c2 < lower->c2_prev)
-    {
-      /* AT counter overflow. Increment counter base. */
-
-      lower->offset += (UINT32_MAX + 1ull) * lower->c1_max;
-    }
-
-  lower->c2_prev = c2;
-  timespec_from_count(ts, lower->offset + count, config->c1_freq);
+  count = (lower->c2_base + c2) * lower->c1_max + c1;
+  timespec_from_count(ts, count, config->c1_freq);
 }
 
 static void song_oneshot_getspec(FAR struct song_oneshot_lowerhalf_s *lower,
@@ -284,8 +287,8 @@ static void song_oneshot_getspec(FAR struct song_oneshot_lowerhalf_s *lower,
   uint32_t spec;
 
   spec = song_oneshot_getreg(config->base, config->spec_off);
-  count = (uint64_t)spec * lower->c1_max;
-  timespec_from_count(ts, lower->offset + count, config->c1_freq);
+  count = (lower->c2_base + spec) * lower->c1_max;
+  timespec_from_count(ts, count, config->c1_freq);
 }
 
 static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
@@ -293,12 +296,13 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
 {
   FAR const struct song_oneshot_config_s *config = lower->config;
   uint64_t count;
+  uint32_t spec;
 
   count = (uint64_t)ts->tv_sec * config->c1_freq;
   count += (uint64_t)ts->tv_nsec * config->c1_freq / NSEC_PER_SEC;
-  count -= lower->offset;
 
-  song_oneshot_putreg(config->base, config->spec_off, count / lower->c1_max + 1);
+  spec = count / lower->c1_max + 1 - lower->c2_base;
+  song_oneshot_putreg(config->base, config->spec_off, spec);
 }
 
 static int song_oneshot_interrupt(int irq, FAR void *context, FAR void *arg)
@@ -428,7 +432,7 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config)
   if (lower != NULL)
     {
       lower->config = config;
-      lower->offset = UINT64_MAX;
+      lower->c2_base = UINT64_MAX;
       lower->ops = &g_song_oneshot_ops;
 #ifdef CONFIG_PM
       lower->pm_cb.evaluate = song_oneshot_pm_evaluate;
