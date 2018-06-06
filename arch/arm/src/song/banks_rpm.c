@@ -74,6 +74,8 @@
 #define DDR_PWR_RPM_M4_INTR2SLP_MK0 (DDR_PWR_BASE + 0x120)
 #define DDR_PWR_SLP_CTL0            (DDR_PWR_BASE + 0x410)
 
+#define DDR_PWR_RPM_M4_SLP_EN       (1 << 0)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -267,16 +269,19 @@ void up_lateinitialize(void)
 #endif
 }
 
-void up_cpu_idle(void)
+void up_cpu_doze(void)
 {
-  putreg32(0x00010000, DDR_PWR_SLP_CTL0);
+  /* Forbid the deep sleep */
+  putreg32(DDR_PWR_RPM_M4_SLP_EN << 16, DDR_PWR_SLP_CTL0);
 
   up_cpu_wfi();
 }
 
-void up_cpu_standby(void)
+void up_cpu_idle(void)
 {
-  putreg32(0x00010001, DDR_PWR_SLP_CTL0);
+  /* Allow the deep sleep */
+  putreg32(DDR_PWR_RPM_M4_SLP_EN << 16 |
+           DDR_PWR_RPM_M4_SLP_EN, DDR_PWR_SLP_CTL0);
 
   up_cpu_wfi();
 }

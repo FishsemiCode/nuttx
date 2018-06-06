@@ -73,6 +73,8 @@
 #define SEN_PWR_SLPCTL0             (SEN_PWR_BASE + 0x000)
 #define SEN_PWR_SEN_M4_INTR2SLP_MK0 (SEN_PWR_BASE + 0x160)
 
+#define SEN_PWR_SEN_M4_SLP_EN       (1 << 0)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -309,16 +311,19 @@ void up_lateinitialize(void)
 #endif
 }
 
-void up_cpu_idle(void)
+void up_cpu_doze(void)
 {
-  putreg32(0x00010000, SEN_PWR_SLPCTL0);
+  /* Forbid the deep sleep */
+  putreg32(SEN_PWR_SEN_M4_SLP_EN << 16, SEN_PWR_SLPCTL0);
 
   up_cpu_wfi();
 }
 
-void up_cpu_standby(void)
+void up_cpu_idle(void)
 {
-  putreg32(0x00010001, SEN_PWR_SLPCTL0);
+  /* Allow the deep sleep */
+  putreg32(SEN_PWR_SEN_M4_SLP_EN << 16 |
+           SEN_PWR_SEN_M4_SLP_EN, SEN_PWR_SLPCTL0);
 
   up_cpu_wfi();
 }
