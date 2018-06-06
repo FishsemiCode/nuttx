@@ -40,8 +40,10 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/mtd/mtd.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
@@ -248,6 +250,29 @@ static void up_spi_init(void)
 }
 #endif
 
+#ifdef CONFIG_MTD_GD25
+static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
+{
+#ifdef CONFIG_MTD_PARTITION
+  FAR struct mtd_dev_s *mtd;
+
+  mtd = mtd_partition(arg, part->firstblock, part->nblocks);
+#ifdef CONFIG_MTD_PARTITION_NAMES
+  mtd_setpartitionname(mtd, part->name);
+#endif
+  blk_initialize_by_name(part->name, mtd);
+#endif
+}
+
+static void up_flash_init(void)
+{
+  FAR struct mtd_dev_s *mtd;
+
+  mtd = gd25_initialize(g_spi[0]);
+  parse_mtd_partition(mtd, up_partition_init, mtd);
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
@@ -262,6 +287,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SPI_DW
   up_spi_init();
+#endif
+
+#ifdef CONFIG_MTD_GD25
+  up_flash_init();
 #endif
 }
 
