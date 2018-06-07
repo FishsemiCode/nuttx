@@ -99,6 +99,7 @@ int parse_ptable_partition(FAR struct partition_state_s *state,
   FAR struct ptable_entry_s *entry;
   FAR struct ptable_s *ptable;
   size_t blkpererase;
+  size_t block;
   int ret;
 
   /* Allocate one erase block memory */
@@ -109,17 +110,24 @@ int parse_ptable_partition(FAR struct partition_state_s *state,
       return -ENOMEM;
     }
 
-  /* PTABLE locate in the last erase block */
+  /* PTABLE locate in the first or last erase block */
 
   blkpererase = state->erasesize / state->blocksize;
-  ret = read_partition_block(state, ptable,
-          state->nblocks - blkpererase, blkpererase);
-  if (ret < 0)
+  for (block = 0; block < state->nblocks; block += state->nblocks - blkpererase)
     {
-      goto out;
+      ret = read_partition_block(state, ptable, block, blkpererase);
+      if (ret < 0)
+        {
+          goto out;
+        }
+
+      if (strcmp(ptable->magic, PTABLE_MAGIC) == 0)
+        {
+          break; /* Find the magic number */
+        }
     }
 
-  if (strcmp(ptable->magic, PTABLE_MAGIC) != 0)
+  if (block >= state->nblocks)
     {
       ret = -EFTYPE;
       goto out;
