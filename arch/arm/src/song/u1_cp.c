@@ -93,6 +93,21 @@
 
 #define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)
 
+#define TOP_PMICFSM_BASE            (0xb2010000)
+#define TOP_PMICFSM_WAKEUP_REASON   (TOP_PMICFSM_BASE + 0x18)
+
+#define TOP_PMICFSM_FIRST_PON       (1 << 0)
+#define TOP_PMICFSM_PON             (1 << 1)
+#define TOP_PMICFSM_UART            (1 << 2)
+#define TOP_PMICFSM_RTC             (1 << 3)
+#define TOP_PMICFSM_GPIO0           (1 << 4)
+#define TOP_PMICFSM_GPIO1           (1 << 5)
+#define TOP_PMICFSM_GPIO2           (1 << 6)
+#define TOP_PMICFSM_GPIO3           (1 << 7)
+#define TOP_PMICFSM_WDT_RSTN        (1 << 8)
+#define TOP_PMICFSM_SOFT_RSTN       (1 << 9)
+#define TOP_PMICFSM_BUTTON_RSTN     (1 << 10)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -119,16 +134,59 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
-void up_earlystart(void)
+static void up_init_startreason(void)
 {
   if (getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT)
     {
       /* Initial power on. Clear boot flag. */
 
       putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
+
+      if ((getreg32(TOP_PMICFSM_WAKEUP_REASON) &
+         (TOP_PMICFSM_UART |
+          TOP_PMICFSM_RTC |
+          TOP_PMICFSM_GPIO0 |
+          TOP_PMICFSM_GPIO1 |
+          TOP_PMICFSM_GPIO2 |
+          TOP_PMICFSM_GPIO3)) != 0)
+        {
+          setenv("START_REASON", "soc_pd", 1);
+        }
+      if ((getreg32(TOP_PMICFSM_WAKEUP_REASON) &
+         (TOP_PMICFSM_FIRST_PON |
+          TOP_PMICFSM_PON |
+          TOP_PMICFSM_WDT_RSTN |
+          TOP_PMICFSM_SOFT_RSTN |
+          TOP_PMICFSM_BUTTON_RSTN)) != 0)
+        {
+          setenv("START_REASON", "pon_rstn", 1);
+        }
+      else
+        {
+          DEBUGASSERT(0);
+        }
+    }
+  else
+    {
+      /* Power on from standby. */
+
+      setenv("START_REASON", "cpu_pd", 1);
+    }
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void up_earlystart(void)
+{
+  if (getreg32(TOP_PWR_BOOT_REG) & (1 << 2))
+    {
+      /* Initial power on. Clear boot flag in up_init_startreason. */
+
     }
   else
     {
@@ -318,6 +376,8 @@ static void up_openamp_initialize(void)
 
 void up_lateinitialize(void)
 {
+  up_init_startreason();
+
 #ifdef CONFIG_OPENAMP
   up_openamp_initialize();
 #endif
