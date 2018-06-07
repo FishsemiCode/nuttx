@@ -48,7 +48,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-struct dma_dev_s* song_dmas_initialize(uintptr_t base, int irq, int cpu, const char *clkname);
+struct dma_dev_s* song_dmas_initialize(uintptr_t base, int cpu, int irq, const char *clkname);
 
 #endif
 #endif
