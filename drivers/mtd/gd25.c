@@ -466,13 +466,10 @@ static inline int gd25_chiperase(struct gd25_dev_s *priv)
 static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
     off_t address, size_t nbytes)
 {
-  uint8_t status;
-
   finfo("address: %08lx nbytes: %d\n", (long)address, (int)nbytes);
 
   /* Wait for any preceding write or erase operation to complete. */
-  status = gd25_waitwritecomplete(priv);
-  DEBUGASSERT((status & GD25_SR_WEL) == 0);
+  gd25_waitwritecomplete(priv);
 
   /* Make sure that writing is disabled */
   gd25_wrdi(priv);
@@ -512,16 +509,13 @@ static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
 static void gd25_pagewrite(struct gd25_dev_s *priv, FAR const uint8_t *buffer,
     off_t address, size_t nbytes)
 {
-  uint8_t status;
-
   finfo("address: %08lx nwords: %d\n", (long)address, (int)nbytes);
   DEBUGASSERT(priv && buffer && (address & 0xff) == 0 && (nbytes & 0xff) == 0);
 
   for (; nbytes > 0; nbytes -= GD25_PAGE_SIZE)
     {
       /* Wait for any preceding write or erase operation to complete. */
-      status = gd25_waitwritecomplete(priv);
-      DEBUGASSERT((status & GD25_SR_WEL) == 0);
+      gd25_waitwritecomplete(priv);
 
       /* Enable write access to the FLASH */
       gd25_wren(priv);
