@@ -511,16 +511,16 @@ static int ftl_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
+int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
 {
   struct ftl_struct_s *dev;
-  char devname[16];
+  char devname[64];
   int ret = -ENOMEM;
 
   /* Sanity check */
 
 #ifdef CONFIG_DEBUG_FEATURES
-  if (minor < 0 || minor > 255 || !mtd)
+  if (!name || !mtd)
     {
       return -EINVAL;
     }
@@ -596,7 +596,7 @@ int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
 
       /* Create a MTD block device name */
 
-      snprintf(devname, 16, "/dev/mtdblock%d", minor);
+      snprintf(devname, 64, "/dev/mtd%d", name);
 
       /* Inode private data is a reference to the FTL device structure */
 
@@ -612,4 +612,23 @@ int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
     }
 
   return ret;
+}
+
+int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
+{
+  char name[16];
+
+  /* Sanity check */
+
+#ifdef CONFIG_DEBUG_FEATURES
+  if (minor < 0 || minor > 255)
+    {
+      return -EINVAL;
+    }
+#endif
+
+  /* Do the real work by ftl_initialize_by_name */
+
+  snprintf(name, 16, "block%d", minor);
+  return ftl_initialize_by_name(name, mtd);
 }

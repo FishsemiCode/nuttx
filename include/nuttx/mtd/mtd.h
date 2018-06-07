@@ -315,6 +315,7 @@ FAR struct mtd_dev_s *mtd_rwb_initialize(FAR struct mtd_dev_s *mtd);
  *
  ****************************************************************************/
 
+int blk_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd);
 int blk_initialize(int minor, FAR struct mtd_dev_s *mtd);
 
 /****************************************************************************
@@ -330,6 +331,7 @@ int blk_initialize(int minor, FAR struct mtd_dev_s *mtd);
  *
  ****************************************************************************/
 
+int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd);
 int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd);
 
 /****************************************************************************
