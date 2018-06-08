@@ -60,7 +60,7 @@
  * Private Datas
  ****************************************************************************/
 
-static mutex_t g_clk_lock  = MUTEX_INITIALIZER;
+static mutex_t g_clk_list_lock            = MUTEX_INITIALIZER;
 
 static struct list_node g_clk_root_list   = LIST_INITIAL_VALUE(g_clk_root_list);
 static struct list_node g_clk_orphan_list = LIST_INITIAL_VALUE(g_clk_orphan_list);
@@ -69,8 +69,8 @@ static struct list_node g_clk_orphan_list = LIST_INITIAL_VALUE(g_clk_orphan_list
  * Private Function Prototypes
  ****************************************************************************/
 
-static void clk_lock(void);
-static void clk_unlock(void);
+static void clk_list_lock(void);
+static void clk_list_unlock(void);
 
 static int clk_fetch_parent_index(struct clk *clk, struct clk *parent);
 static void clk_init_parent(struct clk *clk);
@@ -210,7 +210,7 @@ static size_t clk_procfs_showtree(FAR char *buffer, size_t buflen, off_t *pos)
   size_t oldlen = buflen;
   size_t ret;
 
-  clk_lock();
+  clk_list_lock();
 
   list_for_every_entry(&g_clk_root_list, clk, struct clk, child_node)
     {
@@ -237,7 +237,7 @@ static size_t clk_procfs_showtree(FAR char *buffer, size_t buflen, off_t *pos)
     }
 
 out:
-  clk_unlock();
+  clk_list_unlock();
   return oldlen - buflen;
 }
 
@@ -300,14 +300,14 @@ static int clk_procfs_stat(const char *relpath, struct stat *buf)
 
 #endif
 
-static void clk_lock(void)
+static void clk_list_lock(void)
 {
-  nxmutex_lock(&g_clk_lock);
+  nxmutex_lock(&g_clk_list_lock);
 }
 
-static void clk_unlock(void)
+static void clk_list_unlock(void)
 {
-  nxmutex_unlock(&g_clk_lock);
+  nxmutex_unlock(&g_clk_list_lock);
 }
 
 static int clk_fetch_parent_index(struct clk *clk, struct clk *parent)
@@ -670,7 +670,7 @@ static int __clk_register(struct clk *clk)
 
   clk_init_parent(clk);
 
-  clk_lock();
+  clk_list_lock();
 
   if (clk->parent)
     {
@@ -685,6 +685,8 @@ static int __clk_register(struct clk *clk)
       list_add_head(&g_clk_orphan_list, &clk->child_node);
     }
 
+  clk_list_unlock();
+
   if (clk->ops->get_phase)
     clk->phase = clk->ops->get_phase(clk);
 
@@ -695,6 +697,8 @@ static int __clk_register(struct clk *clk)
     clk->rate = clk->parent->rate;
   else
     clk->rate = 0;
+
+  clk_list_lock();
 
   list_for_every_entry_safe(&g_clk_orphan_list, orphan, temp_orphan, struct clk, child_node)
     {
@@ -717,10 +721,10 @@ static int __clk_register(struct clk *clk)
         }
     }
 
+  clk_list_unlock();
+
   if (clk->ops->init)
     clk->ops->init(clk);
-
-  clk_unlock();
 
   return 0;
 }
@@ -732,18 +736,14 @@ static int __clk_register(struct clk *clk)
 
 void clk_disable(struct clk *clk)
 {
-  clk_lock();
   __clk_disable(clk);
-  clk_unlock();
 }
 
 int clk_enable(struct clk *clk)
 {
   int ret;
 
-  clk_lock();
   ret = __clk_enable(clk);
-  clk_unlock();
 
   return ret;
 }
@@ -752,9 +752,7 @@ int64_t clk_round_rate(struct clk *clk, uint64_t rate)
 {
   uint64_t ret;
 
-  clk_lock();
   ret = __clk_round_rate(clk, rate);
-  clk_unlock();
 
   return ret;
 }
@@ -768,7 +766,6 @@ int clk_set_rate(struct clk *clk, uint64_t rate)
   if (!clk)
     return 0;
 
-  clk_lock();
 
   if (rate == __clk_get_rate(clk))
     goto out;
@@ -796,8 +793,6 @@ int clk_set_rate(struct clk *clk, uint64_t rate)
   clk_change_rate(top, parent_rate);
 
 out:
-  clk_unlock();
-
   return ret;
 }
 
@@ -812,15 +807,11 @@ int clk_set_phase(struct clk *clk, int degrees)
   if (degrees < 0)
     degrees += 360;
 
-  clk_lock();
-
   if (clk->ops->set_phase)
     ret = clk->ops->set_phase(clk, degrees);
 
   if (!ret)
     clk->phase = degrees;
-
-  clk_unlock();
 
   return ret;
 }
@@ -832,9 +823,7 @@ int clk_get_phase(struct clk *clk)
   if (!clk)
     return 0;
 
-  clk_lock();
   ret = clk->phase;
-  clk_unlock();
 
   return ret;
 }
@@ -857,7 +846,7 @@ struct clk *clk_get(const char *name)
   if (!name)
     return NULL;
 
-  clk_lock();
+  clk_list_lock();
 
   list_for_every_entry(&g_clk_root_list, root_clk, struct clk, child_node)
     {
@@ -876,7 +865,7 @@ struct clk *clk_get(const char *name)
   ret = NULL;
 
 out:
-  clk_unlock();
+  clk_list_unlock();
 
   return ret;
 }
@@ -892,8 +881,6 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
 
   if ((clk->num_parents > 1) && (!clk->ops->set_parent))
     return -ENOSYS;
-
-  clk_lock();
 
   if (clk->parent == parent)
     goto out;
@@ -950,8 +937,6 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
   __clk_recalc_rate(clk);
 
 out:
-  clk_unlock();
-
   return ret;
 }
 
@@ -970,9 +955,7 @@ struct clk *clk_get_parent(struct clk *clk)
 {
   struct clk *parent;
 
-  clk_lock();
   parent = !clk ? NULL : clk->parent;
-  clk_unlock();
 
   return parent;
 }
@@ -984,14 +967,10 @@ uint64_t clk_get_rate(struct clk *clk)
   if (!clk)
       return 0;
 
-  clk_lock();
-
   if (clk->flags & CLK_GET_RATE_NOCACHE)
     __clk_recalc_rate(clk);
 
   rate = __clk_get_rate(clk);
-
-  clk_unlock();
 
   return rate;
 }
