@@ -49,6 +49,7 @@
 
 struct song_oneshot_config_s
 {
+  int       minor;
   uintptr_t base;
   uint32_t  irq;
   uint32_t  c1_max;
@@ -78,7 +79,7 @@ extern "C"
 #ifdef CONFIG_ONESHOT_SONG
 
 FAR struct oneshot_lowerhalf_s *
-song_oneshot_initialize(FAR const struct song_oneshot_config_s *config, int minor);
+song_oneshot_initialize(FAR const struct song_oneshot_config_s *config);
 
 #endif /* CONFIG_ONESHOT_SONG */
 

@@ -420,7 +420,7 @@ static enum pm_state_e song_oneshot_pm_evaluate(FAR struct pm_callback_s *cb, in
  ****************************************************************************/
 
 FAR struct oneshot_lowerhalf_s *
-song_oneshot_initialize(FAR const struct song_oneshot_config_s *config, int minor)
+song_oneshot_initialize(FAR const struct song_oneshot_config_s *config)
 {
   FAR struct song_oneshot_lowerhalf_s *lower;
 
@@ -439,11 +439,11 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config, int mino
       irq_attach(config->irq, song_oneshot_interrupt, lower);
       up_enable_irq(config->irq);
 
-      if (minor >= 0)
+      if (config->minor >= 0)
         {
           char devname[32];
 
-          sprintf(devname, "/dev/oneshot%d", minor);
+          sprintf(devname, "/dev/oneshot%d", config->minor);
           oneshot_register(devname, (FAR struct oneshot_lowerhalf_s *)lower);
         }
     }

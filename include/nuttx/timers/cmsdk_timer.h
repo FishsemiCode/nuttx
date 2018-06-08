@@ -49,6 +49,7 @@
 
 struct cmsdk_timer_config_s
 {
+  int       minor;
   uintptr_t base;
   uint32_t  irq;
   uint32_t  freq;
@@ -69,7 +70,7 @@ extern "C"
 #ifdef CONFIG_TIMER_CMSDK
 
 FAR struct timer_lowerhalf_s *
-cmsdk_timer_initialize(FAR const struct cmsdk_timer_config_s *config, int minor);
+cmsdk_timer_initialize(FAR const struct cmsdk_timer_config_s *config);
 
 #endif /* CONFIG_TIMER_CMSDK */
 

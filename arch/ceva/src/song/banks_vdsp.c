@@ -60,12 +60,13 @@ void ceva_timer_initialize(void)
 #ifdef CONFIG_TIMER_DW
   static const struct dw_timer_config_s config =
   {
+    .minor      = -1,
     .base       = 0xfd020000,
     .irq        = IRQ_INT1,
     .freq       = 1000000,
   };
 
-  up_timer_set_lowerhalf(dw_timer_initialize(&config, -1));
+  up_timer_set_lowerhalf(dw_timer_initialize(&config));
 #endif
 }
 

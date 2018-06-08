@@ -58,12 +58,13 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_TIMER_CMSDK
   static const struct cmsdk_timer_config_s config =
   {
-    .base = 0x40000000,
-    .irq  = 24,
-    .freq = 25000000,
+    .minor = -1,
+    .base  = 0x40000000,
+    .irq   = 24,
+    .freq  = 25000000,
   };
 
-  up_timer_set_lowerhalf(cmsdk_timer_initialize(&config, -1));
+  up_timer_set_lowerhalf(cmsdk_timer_initialize(&config));
 #endif
 
 #ifdef CONFIG_CPULOAD_PERIOD

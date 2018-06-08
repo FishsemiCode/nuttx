@@ -115,6 +115,7 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
+    .minor      = -1,
     .base       = DDR_PWR_BASE,
     .irq        = 18,
     .c1_max     = 2600,
@@ -129,7 +130,7 @@ void arm_timer_initialize(void)
     .intr_bit   = 29,
   };
 
-  up_alarm_set_lowerhalf(song_oneshot_initialize(&config, -1));
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
 #ifdef CONFIG_CPULOAD_PERIOD

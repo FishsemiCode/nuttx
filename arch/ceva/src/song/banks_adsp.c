@@ -98,6 +98,7 @@ void ceva_timer_initialize(void)
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config0 =
   {
+    .minor      = -1,
     .base       = B2C(DDR_PWR_BASE),
     .irq        = IRQ_INT3,
     .c1_max     = 2600,
@@ -112,11 +113,12 @@ void ceva_timer_initialize(void)
     .intr_bit   = 16,
   };
 
-  up_alarm_set_lowerhalf(song_oneshot_initialize(&config0, -1));
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config0));
 
 #  ifdef CONFIG_CPULOAD_ONESHOT
   static const struct song_oneshot_config_s config1 =
   {
+    .minor      = -1,
     .base       = B2C(DDR_PWR_BASE),
     .irq        = IRQ_INT3,
     .c1_max     = 2600,
@@ -131,7 +133,7 @@ void ceva_timer_initialize(void)
     .intr_bit   = 28,
   };
 
-  sched_oneshot_extclk(song_oneshot_initialize(&config1, -1));
+  sched_oneshot_extclk(song_oneshot_initialize(&config1));
 #  endif
 
 #endif

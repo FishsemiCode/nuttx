@@ -258,7 +258,7 @@ static int cmsdk_timer_interrupt(int irq, FAR void *context, FAR void *arg)
  ****************************************************************************/
 
 FAR struct timer_lowerhalf_s *
-cmsdk_timer_initialize(FAR const struct cmsdk_timer_config_s *config, int minor)
+cmsdk_timer_initialize(FAR const struct cmsdk_timer_config_s *config)
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower;
 
@@ -277,11 +277,11 @@ cmsdk_timer_initialize(FAR const struct cmsdk_timer_config_s *config, int minor)
       irq_attach(config->irq, cmsdk_timer_interrupt, lower);
       up_enable_irq(config->irq);
 
-      if (minor >= 0)
+      if (config->minor >= 0)
         {
           char devname[32];
 
-          sprintf(devname, "/dev/timer%d", minor);
+          sprintf(devname, "/dev/timer%d", config->minor);
           timer_register(devname, (FAR struct timer_lowerhalf_s *)lower);
         }
     }
