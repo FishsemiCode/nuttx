@@ -518,7 +518,7 @@ static const struct dma_ops_s g_song_dmas_ops =
  * Public Functions
  ****************************************************************************/
 
-struct dma_dev_s* song_dmas_initialize(uintptr_t base, int cpu, int irq, const char *clkname)
+struct dma_dev_s *song_dmas_initialize(int cpu, uintptr_t base, int irq, const char *clkname)
 {
   struct song_dmas_dev_s *dev;
   unsigned int i;

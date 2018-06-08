@@ -352,7 +352,7 @@ struct dma_ops_s g_song_dmag_ops =
  * Public Functions
  ****************************************************************************/
 
-struct dma_dev_s* song_dmag_initialize(uintptr_t base, int cpu, int irq, const char *clkname)
+struct dma_dev_s *song_dmag_initialize(int cpu, uintptr_t base, int irq, const char *clkname)
 {
   struct song_dmag_dev_s *dev;
   int i;
