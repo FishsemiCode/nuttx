@@ -251,13 +251,6 @@ struct song_timer_clk
   uint8_t            mux_width;
 };
 
-struct song_rpmsg_clk
-{
-  const char        *name;
-  const char        *parent_name;
-  uint32_t          flags;
-};
-
 struct song_default_rate_clk
 {
   const char        *name;
@@ -283,9 +276,6 @@ struct song_clk_table
   const struct      song_pll_lf_clk *pll_lf_clks;
   const struct      song_out_clk *out_clks;
   const struct      song_timer_clk *timer_clks;
-#ifdef CONFIG_CLK_RPMSG
-  const struct      song_rpmsg_clk *rpmsg_clks;
-#endif
   const struct      song_default_rate_clk *def_rate;
 };
 

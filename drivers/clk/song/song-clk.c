@@ -506,29 +506,6 @@ static int song_register_gate_clks(uint32_t reg_base,
   return 0;
 }
 
-#ifdef CONFIG_CLK_RPMSG
-static int song_register_rpmsg_clks(uint32_t reg_base,
-            const struct song_rpmsg_clk *rpmsg_clks)
-{
-  struct clk *clk = NULL;
-
-  while (rpmsg_clks->name)
-    {
-      clk = clk_register_rpmsg(
-            rpmsg_clks->name,
-            rpmsg_clks->flags);
-      if (!clk)
-        {
-          return -EINVAL;
-        }
-
-      rpmsg_clks++;
-    }
-
-  return 0;
-}
-#endif
-
 static int song_register_sdiv_clks(uint32_t reg_base,
             const struct song_sdiv_clk *sdiv_clks)
 {
@@ -1071,15 +1048,6 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
       if (ret)
         return ret;
     }
-
-#ifdef CONFIG_CLK_RPMSG
-  if (table->rpmsg_clks)
-    {
-      ret = song_register_rpmsg_clks(base, table->rpmsg_clks);
-      if (ret)
-        return ret;
-    }
-#endif
 
   if (table->def_rate)
     {
