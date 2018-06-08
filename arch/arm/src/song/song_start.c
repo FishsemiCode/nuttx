@@ -247,10 +247,6 @@ void weak_function up_earlyinitialize(void)
 {
 }
 
-void weak_function board_earlyinitialize(void)
-{
-}
-
 void up_start(void)
 {
   up_enable_icache();

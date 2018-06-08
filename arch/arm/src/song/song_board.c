@@ -48,17 +48,17 @@
  * Public Functions
  ****************************************************************************/
 
-#if !defined (CONFIG_16550_UART) && !defined (CONFIG_CMSDK_UART)
-#ifdef USE_EARLYSERIALINIT
+#if !defined(CONFIG_16550_UART) && !defined(CONFIG_CMSDK_UART)
+#  ifdef USE_EARLYSERIALINIT
 void up_earlyserialinit(void)
 {
 }
-#endif
-#ifdef USE_SERIALDRIVER
+#  endif
+#  ifdef USE_SERIALDRIVER
 void up_serialinit(void)
 {
 }
-#endif
+#  endif
 #endif
 
 /****************************************************************************
@@ -76,10 +76,6 @@ void up_serialinit(void)
 
 #ifdef CONFIG_BOARD_INITIALIZE
 void weak_function up_lateinitialize(void)
-{
-}
-
-void weak_function board_lateinitialize(void)
 {
 }
 
