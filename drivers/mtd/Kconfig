@@ -994,7 +994,7 @@ endif # MTD_W25
 config MTD_GD25
 	bool "SPI-based GD25 FLASH"
 	default n
-	select SPI
+	depends on SPI
 
 if MTD_GD25
 
