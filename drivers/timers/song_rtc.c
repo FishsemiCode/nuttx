@@ -124,11 +124,6 @@ static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
                             FAR struct lower_rdalarm_s *alarminfo);
 #endif
 
-#ifdef CONFIG_RTC_IOCTL
-static int song_rtc_ioctl(FAR struct rtc_lowerhalf_s *lower, int cmd,
-                          unsigned long arg);
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -143,9 +138,6 @@ static const struct rtc_ops_s g_song_rtc_ops =
   .setrelative = song_rtc_setrelative,
   .cancelalarm = song_rtc_cancelalarm,
   .rdalarm     = song_rtc_rdalarm,
-#endif
-#ifdef CONFIG_RTC_IOCTL
-  .ioctl       = song_rtc_ioctl,
 #endif
 };
 
@@ -346,20 +338,6 @@ static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
   alarminfo->time->tm_nsec = song_rtc_cnt2nsec(cnt_lo);
 
   return 0;
-}
-#endif
-
-#ifdef CONFIG_RTC_IOCTL
-static int song_rtc_ioctl(FAR struct rtc_lowerhalf_s *lower, int cmd,
-                          unsigned long arg)
-{
-  if (cmd == _RTCIOC(RTC_USER_IOCBASE))
-    {
-      *((FAR void **)(uintptr_t)arg) = lower;
-      return 0;
-    }
-
-  return -ENOTTY;
 }
 #endif
 
