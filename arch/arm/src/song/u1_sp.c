@@ -385,17 +385,10 @@ static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
   FAR struct mtd_dev_s *mtd;
 
   mtd = mtd_partition(arg, part->firstblock, part->nblocks);
-#  ifdef CONFIG_FS_SMARTFS
-  /* The first three(sp.bin/ap.bin/cp.bin) is always raw partition */
-  if (part->index >= 3)
-    {
-      smart_initialize(part->index - 3, mtd, NULL);
-    }
-  else
-#  endif
-    {
-      ftl_initialize(part->index, mtd);
-    }
+#ifdef CONFIG_MTD_PARTITION_NAMES
+  mtd_setpartitionname(mtd, part->name);
+#endif
+  blk_initialize_by_name(part->name, mtd);
 #endif
 }
 
