@@ -1318,9 +1318,11 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                   dev->recv.head = 0;
                   dev->recv.tail = 0;
 
+#ifdef CONFIG_SERIAL_IFLOWCONTROL
                   /* Activate RX flow control. */
 
                   uart_rxflowcontrol(dev, 0, false);
+#endif
                 }
 
               if (arg == TCOFLUSH || arg == TCIOFLUSH)
