@@ -786,10 +786,11 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
       }
       break;
 
-#ifdef CONFIG_SERIAL_TERMIOS
+#if defined(CONFIG_SERIAL_TERMIOS) && !defined(CONFIG_16550_SUPRESS_CONFIG)
     case TCGETS:
       {
         FAR struct termios *termiosp = (FAR struct termios *)arg;
+        irqstate_t flags;
 
         if (!termiosp)
           {
@@ -797,7 +798,8 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-#ifndef CONFIG_16550_SUPRESS_CONFIG
+        flags = enter_critical_section();
+
         cfsetispeed(termiosp, priv->baud);
         termiosp->c_cflag = ((priv->parity != 0) ? PARENB : 0) |
                             ((priv->parity == 1) ? PARODD : 0);
@@ -825,13 +827,15 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
             termiosp->c_cflag |= CS8;
             break;
           }
-#endif
+
+        leave_critical_section(flags);
       }
       break;
 
     case TCSETS:
       {
         FAR struct termios *termiosp = (FAR struct termios *)arg;
+        irqstate_t flags;
 
         if (!termiosp)
           {
@@ -839,7 +843,8 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
           }
 
-#ifndef CONFIG_16550_SUPRESS_CONFIG
+        flags = enter_critical_section();
+
         switch (termiosp->c_cflag & CSIZE)
           {
           case CS5:
@@ -876,7 +881,7 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
 #endif
 
         u16550_setup(dev);
-#endif
+        leave_critical_section(flags);
       }
       break;
 #endif
