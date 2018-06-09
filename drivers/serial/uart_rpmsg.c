@@ -94,6 +94,9 @@ struct uart_rpmsg_priv_s
   const char           *cpu_name;
   void                 *recv_data;
   bool                 last_upper;
+#ifdef CONFIG_SERIAL_TERMIOS
+  struct termios       termios;
+#endif
 };
 
 /****************************************************************************
@@ -168,13 +171,49 @@ static void uart_rpmsg_detach(FAR struct uart_dev_s *dev)
 
 static int uart_rpmsg_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
+  int ret = -ENOTTY;
+
 #ifdef CONFIG_SERIAL_TERMIOS
-  if (cmd == TCGETS || cmd == TCSETS)
-  {
-    return OK;
-  }
+  struct uart_dev_s *dev = filep->f_inode->i_private;
+  struct uart_rpmsg_priv_s *priv = dev->priv;
+
+  switch (cmd)
+    {
+    case TCGETS:
+      {
+        struct termios *termiosp = (struct termios *)arg;
+
+        if (termiosp)
+          {
+            *termiosp = priv->termios;
+            ret = OK;
+          }
+        else
+          {
+            ret = -EINVAL;
+          }
+      }
+      break;
+
+    case TCSETS:
+      {
+        struct termios *termiosp = (struct termios *)arg;
+
+        if (termiosp)
+          {
+            priv->termios = *termiosp;
+            ret = OK;
+          }
+        else
+          {
+            ret = -EINVAL;
+          }
+      }
+      break;
+    }
 #endif
-  return -ENOTTY;
+
+  return ret;
 }
 
 static void uart_rpmsg_rxint(FAR struct uart_dev_s *dev, bool enable)
