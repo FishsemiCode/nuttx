@@ -71,7 +71,8 @@
 struct uart_cmsdk_s
 {
   uint32_t         uartbase;  /* Base address of UART registers */
-  uint32_t         bauddiv;
+  uint32_t         baud;      /* Configured baud */
+  uint32_t         uartclk;   /* UART clock frequency */
   uint8_t          tx_irq;
   uint8_t          rx_irq;
   uint8_t          ov_irq;
@@ -138,7 +139,8 @@ static char g_uart2txbuffer[CONFIG_CMSDK_UART2_TXBUFSIZE];
 static struct uart_cmsdk_s g_uart0priv =
 {
   .uartbase       = CONFIG_CMSDK_UART0_BASE,
-  .bauddiv        = CONFIG_CMSDK_UART0_BAUDDIV,
+  .baud           = CONFIG_CMSDK_UART0_BAUD,
+  .uartclk        = CONFIG_CMSDK_UART0_CLOCK,
   .tx_irq         = CONFIG_CMSDK_UART0_TX_IRQ,
   .rx_irq         = CONFIG_CMSDK_UART0_RX_IRQ,
   .ov_irq         = CONFIG_CMSDK_UART0_OV_IRQ,
@@ -167,7 +169,8 @@ static uart_dev_t g_uart0port =
 static struct uart_cmsdk_s g_uart1priv =
 {
   .uartbase       = CONFIG_CMSDK_UART1_BASE,
-  .bauddiv        = CONFIG_CMSDK_UART1_BAUDDIV,
+  .baud           = CONFIG_CMSDK_UART1_BAUD,
+  .uartclk        = CONFIG_CMSDK_UART1_CLOCK,
   .tx_irq         = CONFIG_CMSDK_UART1_TX_IRQ,
   .rx_irq         = CONFIG_CMSDK_UART1_RX_IRQ,
   .ov_irq         = CONFIG_CMSDK_UART1_OV_IRQ,
@@ -194,7 +197,8 @@ static uart_dev_t g_uart1port =
 static struct uart_cmsdk_s g_uart2priv =
 {
   .uartbase       = CONFIG_CMSDK_UART2_BASE,
-  .bauddiv        = CONFIG_CMSDK_UART2_BAUDDIV,
+  .baud           = CONFIG_CMSDK_UART2_BAUD,
+  .uartclk        = CONFIG_CMSDK_UART2_CLOCK,
   .tx_irq         = CONFIG_CMSDK_UART2_TX_IRQ,
   .rx_irq         = CONFIG_CMSDK_UART2_RX_IRQ,
   .ov_irq         = CONFIG_CMSDK_UART2_OV_IRQ,
@@ -247,7 +251,8 @@ static uart_dev_t g_uart2port =
  * Name: uart_cmsdk_serialin
  ****************************************************************************/
 
-static inline uint32_t uart_cmsdk_serialin(FAR struct uart_cmsdk_s *priv, uint32_t offset)
+static inline uint32_t uart_cmsdk_serialin(FAR struct uart_cmsdk_s *priv,
+                                           uint32_t offset)
 {
   return *((FAR volatile uint32_t *)priv->uartbase + offset);
 }
@@ -256,8 +261,8 @@ static inline uint32_t uart_cmsdk_serialin(FAR struct uart_cmsdk_s *priv, uint32
  * Name: uart_cmsdk_serialout
  ****************************************************************************/
 
-static inline void uart_cmsdk_serialout(FAR struct uart_cmsdk_s *priv, uint32_t offset,
-                                    uint32_t value)
+static inline void uart_cmsdk_serialout(FAR struct uart_cmsdk_s *priv,
+                                        uint32_t offset, uint32_t value)
 {
   *((FAR volatile uint32_t *)priv->uartbase + offset) = value;
 }
@@ -266,36 +271,66 @@ static inline void uart_cmsdk_serialout(FAR struct uart_cmsdk_s *priv, uint32_t 
  * Name: uart_cmsdk_serialmodify
  ****************************************************************************/
 
-void uart_cmsdk_serialmodify(FAR struct uart_cmsdk_s *priv, uint32_t offset,
-                              uint32_t clearbits, uint32_t setbits)
+static uint32_t uart_cmsdk_serialmodify(FAR struct uart_cmsdk_s *priv,
+                                        uint32_t offset, uint32_t clearbits,
+                                        uint32_t setbits)
 {
-  irqstate_t flags;
-  uint32_t   regval;
+  uint32_t oldval;
+  uint32_t newval;
 
-  flags   = enter_critical_section();
-  regval  = uart_cmsdk_serialin(priv, offset);
-  regval &= ~clearbits;
-  regval |= setbits;
-  uart_cmsdk_serialout(priv, offset, regval);
-  leave_critical_section(flags);
+  oldval = uart_cmsdk_serialin(priv, offset);
+  newval = (oldval & ~clearbits) | setbits;
+  uart_cmsdk_serialout(priv, offset, newval);
+
+  return oldval;
 }
 
 /****************************************************************************
  * Name: uart_cmsdk_disableuartint
  ****************************************************************************/
 
-static inline void uart_cmsdk_disableuartint(FAR struct uart_cmsdk_s *priv)
+static inline uint32_t uart_cmsdk_disableuartint(FAR struct uart_cmsdk_s *priv)
 {
-  uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, UART_CTRL_ALLIE, 0);
+  return uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, UART_CTRL_ALLIE, 0);
 }
 
 /****************************************************************************
  * Name: uart_cmsdk_restoreuartint
  ****************************************************************************/
 
-static inline void uart_cmsdk_restoreuartint(FAR struct uart_cmsdk_s *priv)
+static inline void uart_cmsdk_restoreuartint(FAR struct uart_cmsdk_s *priv,
+                                             uint32_t ier)
 {
-  uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, 0, UART_CTRL_ALLIE);
+  uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, 0, ier & UART_CTRL_ALLIE);
+}
+
+/****************************************************************************
+ * Name: uart_cmsdk_divisor
+ *
+ * Description:
+ *   Select a divider to produce the BAUD from the UART_CLK.
+ *
+ *     DIV  = UART_CLK / BAUD
+ *
+ *   Between UART_BAUDDIV_MIN and UART_BAUDDIV_MAX.
+ *
+ ****************************************************************************/
+
+static inline uint32_t uart_cmsdk_divisor(FAR struct uart_cmsdk_s *priv)
+{
+  uint32_t bauddiv;
+
+  bauddiv = (priv->uartclk + priv->baud / 2) / priv->baud;
+  if (bauddiv < UART_BAUDDIV_MIN)
+    {
+      bauddiv = UART_BAUDDIV_MIN;
+    }
+  else if (bauddiv > UART_BAUDDIV_MAX)
+    {
+      bauddiv = UART_BAUDDIV_MAX;
+    }
+
+  return bauddiv;
 }
 
 /****************************************************************************
@@ -311,13 +346,17 @@ static inline void uart_cmsdk_restoreuartint(FAR struct uart_cmsdk_s *priv)
 static int uart_cmsdk_setup(FAR struct uart_dev_s *dev)
 {
   FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)dev->priv;
+  uint32_t bauddiv;
 
-  uart_cmsdk_serialout(priv, UART_BAUDDIV_OFFSET, priv->bauddiv);
+  /* Set the BAUD divisor */
 
-  uart_cmsdk_serialout(priv, UART_CTRL_OFFSET,
-                 (UART_CTRL_TX_ENABLE | UART_CTRL_RX_ENABLE |
-                 UART_CTRL_RX_INT_ENABLE | UART_CTRL_TX_INT_ENABLE |
-                 UART_CTRL_RX_OVERRUN_INT_ENABLE | UART_CTRL_TX_OVERRUN_INT_ENABLE));
+  bauddiv = uart_cmsdk_divisor(priv);
+  uart_cmsdk_serialout(priv, UART_BAUDDIV_OFFSET, bauddiv);
+
+  /* Enable TX and RX logic */
+
+  uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET,
+                 0, UART_CTRL_TX_ENABLE | UART_CTRL_RX_ENABLE);
 
   return OK;
 }
@@ -358,6 +397,7 @@ static int uart_cmsdk_attach(struct uart_dev_s *dev)
   int ret;
 
   /* Attach and enable the IRQ */
+
   ret = irq_attach(priv->tx_irq, uart_cmsdk_tx_interrupt, dev);
   ret |= irq_attach(priv->rx_irq, uart_cmsdk_rx_interrupt, dev);
   ret |= irq_attach(priv->ov_irq, uart_cmsdk_ov_interrupt, dev);
@@ -367,6 +407,7 @@ static int uart_cmsdk_attach(struct uart_dev_s *dev)
       /* Enable the interrupt (RX and TX interrupts are still disabled
        * in the UART
        */
+
       up_enable_irq(priv->tx_irq);
       up_enable_irq(priv->rx_irq);
       up_enable_irq(priv->ov_irq);
@@ -414,12 +455,10 @@ static int uart_cmsdk_rx_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;
   FAR struct uart_cmsdk_s *priv;
+
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (FAR struct uart_cmsdk_s *)dev->priv;
 
-  /* Loop until there are no characters to be transferred or,
-   * until we have been looping for a long time.
-   */
   uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_RX);
   uart_recvchars(dev);
 
@@ -430,6 +469,7 @@ static int uart_cmsdk_ov_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;
   FAR struct uart_cmsdk_s *priv;
+
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (FAR struct uart_cmsdk_s *)dev->priv;
 
@@ -451,12 +491,9 @@ static int uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct uart_dev_s *dev = (struct uart_dev_s *)arg;
   FAR struct uart_cmsdk_s *priv;
+
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (FAR struct uart_cmsdk_s *)dev->priv;
-
-  /* Loop until there are no characters to be transferred or,
-   * until we have been looping for a long time.
-   */
 
   uart_cmsdk_serialout(priv, UART_INTSTS_OFFSET, UART_INTSTATUS_TX);
   uart_xmitchars(dev);
@@ -474,7 +511,52 @@ static int uart_cmsdk_tx_interrupt(int irq, FAR void *context, FAR void *arg)
 
 static int uart_cmsdk_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-  return OK;
+  FAR struct uart_dev_s *dev = filep->f_inode->i_private;
+  FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)dev->priv;
+  int ret;
+
+  switch (cmd)
+    {
+    case TCGETS:
+      {
+        FAR struct termios *termiosp = (FAR struct termios *)arg;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+        cfsetispeed(termiosp, priv->baud);
+        termiosp->c_cflag = CS8;
+        break;
+      }
+      break;
+
+    case TCSETS:
+      {
+        FAR struct termios *termiosp = (FAR struct termios *)arg;
+        irqstate_t flags;
+
+        if (!termiosp)
+          {
+            ret = -EINVAL;
+            break;
+          }
+
+        flags = enter_critical_section();
+        priv->baud = cfgetispeed(termiosp);
+        uart_cmsdk_setup(dev);
+        leave_critical_section(flags);
+      }
+      break;
+
+    default:
+      ret = -ENOTTY;
+      break;
+    }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -490,10 +572,9 @@ static int uart_cmsdk_ioctl(struct file *filep, int cmd, unsigned long arg)
 static int uart_cmsdk_receive(struct uart_dev_s *dev, uint32_t *status)
 {
   FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)dev->priv;
-  uint32_t rbr;
-  rbr = uart_cmsdk_serialin(priv, UART_RBR_OFFSET);
+
   *status = uart_cmsdk_serialin(priv, UART_STATE_OFFSET);
-  return rbr;
+  return uart_cmsdk_serialin(priv, UART_RBR_OFFSET);
 }
 
 /****************************************************************************
@@ -510,11 +591,13 @@ static void uart_cmsdk_rxint(struct uart_dev_s *dev, bool enable)
 
   if (enable)
     {
-      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, 0, UART_CTRL_RX_INT_ENABLE);
+      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET,
+        0, UART_CTRL_RX_INT_ENABLE | UART_CTRL_RX_OVERRUN_INT_ENABLE);
     }
   else
     {
-      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, UART_CTRL_RX_INT_ENABLE, 0);
+      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET,
+        UART_CTRL_RX_INT_ENABLE | UART_CTRL_RX_OVERRUN_INT_ENABLE, 0);
     }
 }
 
@@ -529,7 +612,7 @@ static void uart_cmsdk_rxint(struct uart_dev_s *dev, bool enable)
 static bool uart_cmsdk_rxavailable(struct uart_dev_s *dev)
 {
   FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)dev->priv;
-  return ((uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_RX_BUF_FULL) != 0);
+  return uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_RX_BUF_FULL;
 }
 
 /****************************************************************************
@@ -562,7 +645,8 @@ static void uart_cmsdk_txint(struct uart_dev_s *dev, bool enable)
   flags = enter_critical_section();
   if (enable)
     {
-      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET, 0, UART_CTRL_TX_INT_ENABLE);
+      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET,
+        0, UART_CTRL_TX_INT_ENABLE | UART_CTRL_TX_OVERRUN_INT_ENABLE);
 
       /* Fake a TX interrupt here by just calling uart_xmitchars() with
        * interrupts disabled (note this may recurse).
@@ -572,7 +656,8 @@ static void uart_cmsdk_txint(struct uart_dev_s *dev, bool enable)
     }
   else
     {
-      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET ,UART_CTRL_TX_INT_ENABLE, 0);
+      uart_cmsdk_serialmodify(priv, UART_CTRL_OFFSET,
+        UART_CTRL_TX_INT_ENABLE | UART_CTRL_TX_OVERRUN_INT_ENABLE, 0);
     }
 
   leave_critical_section(flags);
@@ -589,7 +674,7 @@ static void uart_cmsdk_txint(struct uart_dev_s *dev, bool enable)
 static bool uart_cmsdk_txready(struct uart_dev_s *dev)
 {
   FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)dev->priv;
-  return ((uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_TX_BUF_FULL) == 0);
+  return !(uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_TX_BUF_FULL);
 }
 
 /****************************************************************************
@@ -603,7 +688,7 @@ static bool uart_cmsdk_txready(struct uart_dev_s *dev)
 static bool uart_cmsdk_txempty(struct uart_dev_s *dev)
 {
   FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)dev->priv;
-  return ((uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_TX_BUF_FULL) == 0);
+  return !(uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_TX_BUF_FULL);
 }
 
 #ifdef HAVE_CMSDK_CONSOLE
@@ -617,11 +702,7 @@ static bool uart_cmsdk_txempty(struct uart_dev_s *dev)
 
 static void uart_cmsdk_putc(FAR struct uart_cmsdk_s *priv, int ch)
 {
-  if(!(uart_cmsdk_serialin(priv, UART_CTRL_OFFSET) & UART_CTRL_TX_ENABLE))
-    return;
-
-  while ((uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_TX_BUF_FULL) != 0)
-    ;
+  while (uart_cmsdk_serialin(priv, UART_STATE_OFFSET) & UART_STATE_TX_BUF_FULL);
   uart_cmsdk_serialout(priv, UART_THR_OFFSET, ch);
 }
 #endif
@@ -701,8 +782,9 @@ void up_serialinit(void)
 int up_putc(int ch)
 {
   FAR struct uart_cmsdk_s *priv = (FAR struct uart_cmsdk_s *)CONSOLE_DEV.priv;
+  uint32_t ier;
 
-  uart_cmsdk_disableuartint(priv);
+  ier = uart_cmsdk_disableuartint(priv);
 
   /* Check for LF */
 
@@ -714,7 +796,7 @@ int up_putc(int ch)
     }
 
   uart_cmsdk_putc(priv, ch);
-  uart_cmsdk_restoreuartint(priv);
+  uart_cmsdk_restoreuartint(priv, ier);
   return ch;
 }
 #endif

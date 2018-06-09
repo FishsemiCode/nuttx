@@ -385,8 +385,8 @@ if CMSDK_UART0
 config CMSDK_UART0_BASE
 	hex "CMSDK UART0 base address"
 
-config CMSDK_UART0_BAUDDIV
-	hex "CMSDK UART0 BAUDDIV reg setting"
+config CMSDK_UART0_CLOCK
+	hex "CMSDK UART0 clock"
 
 config CMSDK_UART0_TX_IRQ
 	int "CMSDK UART0 TX IRQ number"
@@ -396,6 +396,10 @@ config CMSDK_UART0_RX_IRQ
 
 config CMSDK_UART0_OV_IRQ
 	int "CMSDK UART0 OVERRUN IRQ number"
+
+config CMSDK_UART0_BAUD
+	int "CMSDK UART0 BAUD"
+	default 115200
 
 config CMSDK_UART0_RXBUFSIZE
 	int "CMSDK UART0 Rx buffer size"
@@ -420,8 +424,8 @@ if CMSDK_UART1
 config CMSDK_UART1_BASE
 	hex "CMSDK UART1 base address"
 
-config CMSDK_UART1_BAUDDIV
-	hex "CMSDK UART1 BAUDDIV reg setting"
+config CMSDK_UART1_CLOCK
+	hex "CMSDK UART1 clock"
 
 config CMSDK_UART1_TX_IRQ
 	int "CMSDK UART1 TX IRQ number"
@@ -431,6 +435,10 @@ config CMSDK_UART1_RX_IRQ
 
 config CMSDK_UART1_OV_IRQ
 	int "CMSDK UART1 OVERRUN IRQ number"
+
+config CMSDK_UART1_BAUD
+	int "CMSDK UART1 BAUD"
+	default 115200
 
 config CMSDK_UART1_RXBUFSIZE
 	int "CMSDK UART1 Rx buffer size"
@@ -455,8 +463,8 @@ if CMSDK_UART2
 config CMSDK_UART2_BASE
 	hex "CMSDK UART2 base address"
 
-config CMSDK_UART2_BAUDDIV
-	hex "CMSDK UART2 BAUDDIV reg setting"
+config CMSDK_UART0_CLOCK
+	hex "CMSDK UART2 clock"
 
 config CMSDK_UART2_TX_IRQ
 	int "CMSDK UART2 TX IRQ number"
@@ -466,6 +474,10 @@ config CMSDK_UART2_RX_IRQ
 
 config CMSDK_UART2_OV_IRQ
 	int "CMSDK UART2 OVERRUN IRQ number"
+
+config CMSDK_UART2_BAUD
+	int "CMSDK UART2 BAUD"
+	default 115200
 
 config CMSDK_UART2_RXBUFSIZE
 	int "CMSDK UART2 Rx buffer size"

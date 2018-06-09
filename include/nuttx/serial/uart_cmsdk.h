@@ -72,14 +72,17 @@
 #define UART_INTSTATUS_TX_OVERRUN         (1 << 2)
 #define UART_INTSTATUS_RX_OVERRUN         (1 << 3)
 
-#define UART_CTRL_TX_ENABLE                (1 << 0)
-#define UART_CTRL_RX_ENABLE                (1 << 1)
-#define UART_CTRL_TX_INT_ENABLE            (1 << 2)
-#define UART_CTRL_RX_INT_ENABLE            (1 << 3)
-#define UART_CTRL_TX_OVERRUN_INT_ENABLE    (1 << 4)
-#define UART_CTRL_RX_OVERRUN_INT_ENABLE    (1 << 5)
-#define UART_CTRL_TSTMODE_ENABLE           (1 << 6)
-#define UART_CTRL_ALLIE                    (0x3C)
+#define UART_CTRL_TX_ENABLE               (1 << 0)
+#define UART_CTRL_RX_ENABLE               (1 << 1)
+#define UART_CTRL_TX_INT_ENABLE           (1 << 2)
+#define UART_CTRL_RX_INT_ENABLE           (1 << 3)
+#define UART_CTRL_TX_OVERRUN_INT_ENABLE   (1 << 4)
+#define UART_CTRL_RX_OVERRUN_INT_ENABLE   (1 << 5)
+#define UART_CTRL_TSTMODE_ENABLE          (1 << 6)
+#define UART_CTRL_ALLIE                   (0x3C)
+
+#define UART_BAUDDIV_MIN                  (16)
+#define UART_BAUDDIV_MAX                  (0xfffff)
 
 /************************************************************************************
  * Public Types
