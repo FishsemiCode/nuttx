@@ -94,6 +94,12 @@ static void cache_pm_notify(struct pm_callback_s *cb, int domain,
 {
   switch (pmstate)
     {
+      case PM_STANDBY:
+      case PM_SLEEP:
+        up_disable_icache();
+        up_disable_dcache();
+        break;
+
       case PM_RESTORE:
         if (pm_querystate(PM_IDLE_DOMAIN) >= PM_STANDBY)
           {
