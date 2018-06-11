@@ -1,3 +1,5 @@
+ifeq ($(CONFIG_DMA),y)
+
 ifeq ($(CONFIG_SONG_DMAG),y)
   CSRCS += song_dmag.c
 endif
@@ -8,3 +10,5 @@ endif
 
 DEPPATH += --dep-path dma
 VPATH += :dma
+
+endif
