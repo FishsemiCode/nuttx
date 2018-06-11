@@ -260,7 +260,7 @@ struct clk *clk_register_mux(const char *name, const char **parent_names, uint8_
                     uint8_t clk_mux_flags);
 
 #ifdef CONFIG_CLK_RPMSG
-struct clk *clk_register_rpmsg(const char *name, uint64_t flags);
+struct clk *clk_register_rpmsg(const char *name);
 
 /* rpmsg clk must be initialize in board initialization */
 int    clk_rpmsg_initialize(bool server);

@@ -638,12 +638,6 @@ static int __clk_register(struct clk *clk)
   if (!clk)
     return -EINVAL;
 
-  if (clk_get(clk->name))
-    {
-      clkwarn("clk %s already initialized\n", clk->name);
-      return -EEXIST;
-    }
-
   if (clk->ops->set_rate &&
     !((clk->ops->round_rate || clk->ops->determine_rate) &&
         clk->ops->recalc_rate))
@@ -866,6 +860,12 @@ struct clk *clk_get(const char *name)
 
 out:
   clk_list_unlock();
+
+#ifdef CONFIG_CLK_RPMSG
+  /* try register as rpmsg clk once */
+  if (ret == NULL)
+    ret = clk_register_rpmsg(name);
+#endif
 
   return ret;
 }
