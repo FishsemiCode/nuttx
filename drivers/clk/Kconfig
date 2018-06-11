@@ -18,6 +18,7 @@ config CLK_RPMSG
 menuconfig SONG_CLK
 	bool "song clk driver and wrapper for basic clks"
 	default n
+	depends on ARCH_CHIP_SONG
 	---help---
 		Sng clk contain song platfrom clk module (clk-pll) and clk wrapper (song-clk)
 		for all basic clks

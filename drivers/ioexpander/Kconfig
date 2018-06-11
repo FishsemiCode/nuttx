@@ -175,6 +175,7 @@ config IOEXPANDER_MULTIPIN
 config SONG_IOE
 	bool "Song IO expander driver"
 	default n
+	depends on ARCH_CHIP_SONG
 	select IOEXPANDER_INT_ENABLE
 	---help---
 		Enable Song platfrom IOE driver and Gpio driver. This will generate
