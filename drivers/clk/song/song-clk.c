@@ -131,10 +131,6 @@ static int song_register_out_clks(uint32_t reg_base,
                     const struct song_out_clk *out_clks);
 static int song_register_timer_clks(uint32_t reg_base,
                     const struct song_timer_clk *timer_clks);
-#ifdef CONFIG_CLK_RPMSG
-static int song_register_rpmsg_clks(uint32_t reg_base,
-                    const struct song_rpmsg_clk *rpmsg_clks);
-#endif
 
 static int song_set_default_rate(const struct song_default_rate_clk *def_rate);
 

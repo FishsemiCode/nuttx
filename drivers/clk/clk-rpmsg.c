@@ -198,7 +198,8 @@ static struct clk_rpmsg_priv_s *clk_rpmsg_get_priv(const char *name)
     {
       size_t len = strlen(priv->cpu_name);
 
-      if (!strncmp(priv->cpu_name, name, len) && name[len] == '/')
+      if (!strncmp(priv->cpu_name, name, len) &&
+            (name[len] == '/' || name[len] == 0))
         {
           goto out; /* Find the target, exit */
         }
@@ -373,8 +374,9 @@ static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
   struct clk_rpmsg_cookie_s cookie;
   int ret;
 
-  msg->command = command;
-  msg->cookie  = (uintptr_t)&cookie;
+  msg->command  = command;
+  msg->response = 0;
+  msg->cookie   = (uintptr_t)&cookie;
 
   nxsem_init(&cookie.sem, 0, 0);
   nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
