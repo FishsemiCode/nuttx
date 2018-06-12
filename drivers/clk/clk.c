@@ -987,13 +987,12 @@ struct clk *clk_register(const char *name, int32_t num_parents, const char **par
       return NULL;
     }
 
-  clk->name = kmm_malloc(strlen(name) + 1);
+  clk->name = strdup(name);
   if (!clk->name)
     {
       goto fail_name;
     }
 
-  strcpy((char *)clk->name, name);
   clk->ops = ops;
   clk->private_data = private_data;
   clk->num_parents = num_parents;
@@ -1002,7 +1001,6 @@ struct clk *clk_register(const char *name, int32_t num_parents, const char **par
   if (clk->num_parents)
     {
       clk->parent_names = kmm_calloc(clk->num_parents, sizeof(char *));
-
       if (!clk->parent_names)
         {
           goto fail_parent_names;
@@ -1010,12 +1008,11 @@ struct clk *clk_register(const char *name, int32_t num_parents, const char **par
 
       for (i = 0; i < clk->num_parents; i++)
         {
-          clk->parent_names[i] = kmm_malloc(strlen(parent_names[i]) + 1);
+          clk->parent_names[i] = strdup(parent_names[i]);
           if (!clk->parent_names[i])
             {
               goto fail_parent_names_copy;
             }
-          strcpy((char *)clk->parent_names[i], parent_names[i]);
         }
 
       clk->parents = kmm_calloc(clk->num_parents, sizeof(struct clk *));

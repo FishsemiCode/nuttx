@@ -228,6 +228,9 @@ extern const struct clk_ops clk_mux_ro_ops;
 extern const struct clk_ops clk_rpmsg_ops;
 #endif
 
+struct clk *clk_register(const char *name, int32_t num_parents, const char **parent_names,
+                    uint64_t flags, const struct clk_ops *ops, void *private_data);
+
 /* the individual clk register Prototypes */
 struct clk *clk_register_gate(const char *name, const char *parent_name,
                     uint64_t flags, uint32_t reg, uint8_t bit_idx,
