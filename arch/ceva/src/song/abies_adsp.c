@@ -275,7 +275,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT_FIRST + 5);
+  g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT5);
 #endif
 }
 

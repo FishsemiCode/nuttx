@@ -106,7 +106,7 @@ void ceva_timer_initialize(void)
   {
     .minor      = -1,
     .base       = B2C(TOP_PWR_BASE),
-    .irq        = IRQ_VINT_FIRST + 5, /* VINT5 */
+    .irq        = IRQ_VINT5, /* VINT5 */
     .c1_freq    = 19200000, /* 19.2Mhz */
     .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
     .calib_off  = 0x2b4, /* TOP_PWR_AT_CALIB_CTL */
@@ -125,7 +125,7 @@ void ceva_timer_initialize(void)
   {
     .minor      = -1,
     .base       = B2C(TOP_PWR_BASE),
-    .irq        = IRQ_VINT_FIRST + 5, /* VINT5 */
+    .irq        = IRQ_VINT5, /* VINT5 */
     .c1_freq    = 19200000, /* 19.2Mhz */
     .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
     .calib_off  = 0x2b4, /* TOP_PWR_AT_CALIB_CTL */
@@ -168,7 +168,7 @@ static void up_openamp_initialize(void)
     .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
     .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
     .chnl_count = 16,
-    .irq        = IRQ_VINT_FIRST + 12, /* VINT12 */
+    .irq        = IRQ_VINT12, /* VINT12 */
   };
 
   static const struct song_mbox_config_s mbox_cfg_ap =
@@ -224,7 +224,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(1, B2C(0xa00f0000), IRQ_VINT_FIRST + 6);
+  g_ioe[0] = song_ioe_initialize(1, B2C(0xa00f0000), IRQ_VINT6);
 #endif
 }
 

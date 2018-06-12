@@ -59,6 +59,27 @@
 #endif
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define IRQ_VINT0           (IRQ_VINT_FIRST + 0)
+#define IRQ_VINT1           (IRQ_VINT_FIRST + 1)
+#define IRQ_VINT2           (IRQ_VINT_FIRST + 2)
+#define IRQ_VINT3           (IRQ_VINT_FIRST + 3)
+#define IRQ_VINT4           (IRQ_VINT_FIRST + 4)
+#define IRQ_VINT5           (IRQ_VINT_FIRST + 5)
+#define IRQ_VINT6           (IRQ_VINT_FIRST + 6)
+#define IRQ_VINT7           (IRQ_VINT_FIRST + 7)
+#define IRQ_VINT8           (IRQ_VINT_FIRST + 8)
+#define IRQ_VINT9           (IRQ_VINT_FIRST + 9)
+#define IRQ_VINT10          (IRQ_VINT_FIRST + 10)
+#define IRQ_VINT11          (IRQ_VINT_FIRST + 11)
+#define IRQ_VINT12          (IRQ_VINT_FIRST + 12)
+#define IRQ_VINT13          (IRQ_VINT_FIRST + 13)
+#define IRQ_VINT14          (IRQ_VINT_FIRST + 14)
+#define IRQ_VINT15          (IRQ_VINT_FIRST + 15)
+
+/****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
