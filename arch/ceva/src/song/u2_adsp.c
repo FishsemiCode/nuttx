@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -206,6 +207,10 @@ static void up_openamp_initialize(void)
   syslog_rpmsg_init();
 #endif
 
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(false);
+#endif
+
 #ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_AP);
 #endif
@@ -215,8 +220,6 @@ static void up_openamp_initialize(void)
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
-  /* Initialize IPC subsytem */
-
   up_openamp_initialize();
 #endif
 

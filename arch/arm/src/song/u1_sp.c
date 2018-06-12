@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -55,6 +56,7 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include "chip.h"
 #include "song_addrenv.h"
 #include "systick.h"
 #include "up_arch.h"
@@ -361,6 +363,10 @@ static void up_openamp_initialize(void)
   song_rptun_initialize(&rptun_cfg_ap, mbox_sp, mbox_ap);
   song_rptun_initialize(&rptun_cfg_cp, mbox_sp, mbox_cp);
 
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(true);   /* it is server */
+#endif
+
 #ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
 #endif
@@ -432,9 +438,11 @@ static void up_spi_init(void)
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
-  /* Initialize IPC subsytem */
-
   up_openamp_initialize();
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_RTC_SONG

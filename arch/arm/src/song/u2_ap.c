@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -51,6 +52,7 @@
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
+#include "chip.h"
 #include "song_addrenv.h"
 #include "systick.h"
 #include "up_arch.h"
@@ -225,6 +227,10 @@ static void up_openamp_initialize(void)
   syslog_rpmsg_server_init();
 #endif
 
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(true);   /* it is server */
+#endif
+
 #ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
 #endif
@@ -277,9 +283,11 @@ static void up_flash_init(void)
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
-  /* Initialize IPC subsytem */
-
   up_openamp_initialize();
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_SONG_IOE
