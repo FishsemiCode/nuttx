@@ -41,6 +41,7 @@
 
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/drivers/song_pwm.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -520,6 +521,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_ONCHIP_FLASH
   up_flash_init();
+#endif
+
+#ifdef CONFIG_PWM_SONG
+  song_pwm_initialize(0, 0xb0100000, 4, "pwm_mclk");
 #endif
 
 #ifdef CONFIG_SONG_PMIC_APB

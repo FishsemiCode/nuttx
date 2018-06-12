@@ -35,4 +35,8 @@ config PWM_NCHANNELS
 
 endif # PWM_MULTICHAN
 
+config PWM_SONG
+	bool "Song PWM Driver"
+	depends on ARCH_CHIP_SONG
+
 endif # PWM

@@ -39,6 +39,10 @@ ifeq ($(CONFIG_PWM),y)
 
 CSRCS += pwm.c
 
+ifeq ($(CONFIG_PWM_SONG),y)
+CSRCS += song_pwm.c
+endif
+
 # Include PWM device driver build support
 
 DEPPATH += --dep-path pwm
