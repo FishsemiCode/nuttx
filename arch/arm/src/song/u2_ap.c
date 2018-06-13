@@ -47,6 +47,7 @@
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/spi/spi_dw.h>
@@ -313,6 +314,15 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(0, 0xa0030000, 17, "top_dmas_hclk");
   g_dma[1] = song_dmas_initialize(0, 0xa0080000, 16, "audio_dmas_hclk");
+#endif
+}
+
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+#ifdef CONFIG_SONG_DMAS
+  return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
+#else
+  return NULL;
 #endif
 }
 

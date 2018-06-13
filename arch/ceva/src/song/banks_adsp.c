@@ -44,6 +44,7 @@
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
@@ -281,6 +282,11 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(2, B2C(0xf8109000), IRQ_INT2, "ap/audio_dmas_clk");
 #endif
+}
+
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+  return NULL; /* Can't use top dmas */
 }
 
 void up_cpu_standby(void)

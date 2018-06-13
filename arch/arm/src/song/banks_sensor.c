@@ -45,6 +45,7 @@
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/spi/spi_dw.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
@@ -333,6 +334,11 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SPI_DW
   up_spi_init();
 #endif
+}
+
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+  return NULL; /* Can't use top dmas */
 }
 
 void up_cpu_doze(void)
