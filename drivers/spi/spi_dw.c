@@ -324,18 +324,13 @@ static void dw_spi_select(FAR struct spi_dev_s *dev,
       for (i = 0; i < config->cs_num; i++)
         cs_values[i] = true;
 
-      if (selected)
-        {
-          cs_values[cs] = false;
-          hw->SE = 1;
-        }
-      else
-        {
-          hw->SE = 0;
-        }
-
+      cs_values[cs] = !selected;
       IOEXP_MULTIWRITEPIN(spi->ioe, (uint8_t *)config->cs_gpio,
           cs_values, config->cs_num);
+
+      /* in IOE mode, we can expand the cs_num to more than the available SE bits.
+       * thus, to avoid set an invalid SE bit, we simply set bit 0 in IOE mode */
+      hw->SE = selected;
     }
   else
     {
