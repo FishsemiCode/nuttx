@@ -165,7 +165,7 @@ static void song_dmas_update_bits(struct song_dmas_dev_s *dev,
 static bool song_dmas_is_busy(struct song_dmas_dev_s *dev,
                               unsigned int index)
 {
-  return song_dmas_read(dev, SONG_DMAS_REG_STA) & (1 << index);
+  return (song_dmas_read(dev, SONG_DMAS_REG_STA) >> index) & 1;
 }
 
 static void song_dmas_set_priority(struct song_dmas_dev_s *dev,
@@ -464,11 +464,12 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
 
   int0 = song_dmas_read(dev, SONG_DMAS_REG_INT0(dev->cpu));
   int1 = song_dmas_read(dev, SONG_DMAS_REG_INT1(dev->cpu));
+
   for (i = 0; i < 16; i++)
     {
-      bool finish = int0 & (1 << i);
-      bool flush  = int0 & (1 << (i + 16));
-      bool match  = int1 & (1 << i);
+      bool finish = (int0 >> i) & 1;
+      bool flush  = (int0 >> (i + 16)) & 1;
+      bool match  = (int1 >> 1) & 1;
 
       if (finish || flush || match)
         {

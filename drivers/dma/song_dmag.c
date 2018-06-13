@@ -172,7 +172,7 @@ static void song_dmag_update_bits(struct song_dmag_dev_s *dev,
 static bool song_dmag_is_busy(struct song_dmag_dev_s *dev,
                               unsigned int index)
 {
-  return song_dmag_read(dev, SONG_DMAG_REG_STATUS) & (1 << index);
+  return (song_dmag_read(dev, SONG_DMAG_REG_STATUS) >> index) & 1;
 }
 
 static int song_dmag_pause(struct dma_chan_s *chan_)
