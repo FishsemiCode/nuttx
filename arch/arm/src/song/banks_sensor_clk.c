@@ -127,8 +127,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
   .div_offset = 0x5c,
   .fixed_gr = 0,
   .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                   ((CLK_FRAC_DIV_DOUBLE | CLK_FRAC_MUL_NEED_EVEN) <<
-                    SONG_CLK_FRAC_FLAG_SHIFT)),
+                   ((CLK_FRAC_MUL_NEED_EVEN) << SONG_CLK_FRAC_FLAG_SHIFT)),
   },
   {},
 };
