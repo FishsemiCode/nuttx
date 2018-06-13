@@ -482,11 +482,6 @@ void up_lateinitialize(void)
 #endif
 }
 
-int board_app_initialize(uintptr_t arg)
-{
-  return 0;
-}
-
 int board_power_off(int status)
 {
   modifyreg32(PMIC_FSM_CONFIG1, 1, 1);
