@@ -293,8 +293,8 @@ static struct clk *song_clk_register_gr_fdiv(const char *name,
       private_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
       SONG_CLK_FLAG_MASK;
 
-      clk = song_clk_register_gr(gr_clk, pname, flags, reg_base, gr_offset,
-        SONG_CLK_GR_FDIV_EN_SHIFT, 0, 0,
+      clk = song_clk_register_gr(gr_clk, pname, flags, reg_base, 0, 0,
+        gr_offset, SONG_CLK_GR_FDIV_GR_SHIFT,
         SONG_CLK_GR_FDIV_GR_WIDTH, private_flags);
       if (!clk)
         return clk;
