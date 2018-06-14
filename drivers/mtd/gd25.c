@@ -370,7 +370,7 @@ static bool gd25_is_erased(struct gd25_dev_s *priv, off_t address, off_t size)
   size_t npages = size >> GD25_PAGE_SHIFT;
   uint32_t erased_32;
   unsigned int i;
-  unsigned char buf[GD25_PAGE_SIZE];
+  uint32_t buf[GD25_PAGE_SIZE / sizeof(uint32_t)];
 
   DEBUGASSERT((address % GD25_PAGE_SIZE) == 0);
   DEBUGASSERT((size % GD25_PAGE_SIZE) == 0);
@@ -381,7 +381,7 @@ static bool gd25_is_erased(struct gd25_dev_s *priv, off_t address, off_t size)
   while (npages)
     {
       /* Check if all bytes of page is in erased state. */
-      gd25_byteread(priv, buf, address, GD25_PAGE_SIZE);
+      gd25_byteread(priv, (uint8_t *)buf, address, GD25_PAGE_SIZE);
 
       for (i = 0; i < GD25_PAGE_SIZE / sizeof(uint32_t); i++)
         {
