@@ -96,7 +96,8 @@
 /* JEDEC Read ID register values */
 
 #define GD25_JEDEC_MANUFACTURER     0xc8  /* GigaDevice manufacturer ID */
-#define GD25L_JEDEC_MEMORY_TYPE     0x60  /* GD25L memory type */
+#define GD25L_JEDEC_MEMORY_TYPE     0x60  /* GD25L memory type, 1.8V */
+#define GD25Q_JEDEC_MEMORY_TYPE     0x40  /* GD25Q memory type, 3V */
 
 #define GD25_JEDEC_CAPACITY_8MBIT   0x14  /* 256x4096 = 8Mbit memory capacity */
 #define GD25_JEDEC_CAPACITY_16MBIT  0x15  /* 512x4096  = 16Mbit memory capacity */
@@ -253,7 +254,8 @@ static inline int gd25_readid(struct gd25_dev_s *priv)
 
   /* Check for a valid manufacturer and memory type */
   if (manufacturer == GD25_JEDEC_MANUFACTURER &&
-      (memory == GD25L_JEDEC_MEMORY_TYPE))
+      (memory == GD25L_JEDEC_MEMORY_TYPE ||
+       memory == GD25Q_JEDEC_MEMORY_TYPE))
     {
       if (capacity == GD25_JEDEC_CAPACITY_8MBIT)
         priv->nsectors = GD25_NSECTORS_8MBIT;
