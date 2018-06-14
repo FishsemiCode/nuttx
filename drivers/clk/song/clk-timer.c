@@ -101,6 +101,18 @@ static void clk_timer_disable(struct clk *clk)
   __clk_timer_set_parent(clk, 6);
 }
 
+static int clk_timer_is_enabled(struct clk *clk)
+{
+  struct clk_timer *timer = to_clk_timer(clk);
+  unsigned int val;
+
+  val   = clk_read(timer->ctl_reg);
+  val >>= timer->mux_shift;
+  val  &= MASK(timer->mux_width);
+
+  return val != 6;
+}
+
 static uint64_t clk_timer_recalc_rate(struct clk *clk,
     uint64_t parent_rate)
 {
@@ -187,6 +199,7 @@ const struct clk_ops clk_timer_ops =
 {
   .enable = clk_timer_enable,
   .disable = clk_timer_disable,
+  .is_enabled = clk_timer_is_enabled,
   .recalc_rate = clk_timer_recalc_rate,
   .round_rate = clk_timer_round_rate,
   .set_parent = clk_timer_set_parent,

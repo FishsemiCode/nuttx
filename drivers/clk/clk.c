@@ -827,9 +827,18 @@ const char *clk_get_name(const struct clk *clk)
   return !clk ? NULL : clk->name;
 }
 
-uint32_t clk_get_enable_count(struct clk *clk)
+int clk_is_enabled(struct clk *clk)
 {
-  return !clk ? 0 : clk->enable_count;
+  if (!clk)
+    return 0;
+
+  if (clk->enable_count)
+    return clk->enable_count;
+
+  if (clk->ops->is_enabled)
+    return clk->ops->is_enabled(clk);
+
+  return 0;
 }
 
 struct clk *clk_get(const char *name)

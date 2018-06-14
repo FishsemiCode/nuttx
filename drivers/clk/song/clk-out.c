@@ -104,6 +104,18 @@ static void clk_out_disable(struct clk *clk)
   __clk_out_set_parent(clk, 6);
 }
 
+static int clk_out_is_enabled(struct clk *clk)
+{
+  struct clk_out *out = to_clk_out(clk);
+  unsigned int val;
+
+  val   = clk_read(out->mux_reg);
+  val >>= out->mux_shift;
+  val  &= MASK(out->mux_width);
+
+  return val != 6;
+}
+
 static uint64_t clk_out_recalc_rate(struct clk *clk,
     uint64_t parent_rate)
 {
@@ -203,6 +215,7 @@ const struct clk_ops clk_out_ops =
 {
   .enable = clk_out_enable,
   .disable = clk_out_disable,
+  .is_enabled = clk_out_is_enabled,
   .recalc_rate = clk_out_recalc_rate,
   .round_rate = clk_out_round_rate,
   .set_parent = clk_out_set_parent,

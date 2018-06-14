@@ -73,6 +73,7 @@ int      clk_set_parent(struct clk *clk, struct clk *parent);
 
 int      clk_enable(struct clk *clk);
 void     clk_disable(struct clk *clk);
+int      clk_is_enabled(struct clk *clk);
 
 int64_t  clk_round_rate(struct clk *clk, uint64_t rate);
 int      clk_set_rate(struct clk *clk, uint64_t rate);
@@ -84,7 +85,6 @@ int      clk_get_phase(struct clk *clk);
 /* Clk helper API */
 
 const char* clk_get_name(const struct clk *clk);
-uint32_t    clk_get_enable_count(struct clk *clk);
 
 #undef EXTERN
 #ifdef __cplusplus
