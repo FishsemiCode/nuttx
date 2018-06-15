@@ -60,6 +60,13 @@
 #define PLL_POSTDIV2_MASK   0x7
 #define PLL_DSMPD_SHIFT     28
 #define PLL_DSMPD_MASK      0x1
+#define PLL_PLLPD_SHIFT     29
+#define PLL_DSMPD_MASK      0x1
+
+#define PLL_CTLST_SHIFT     4
+#define PLL_CTLST_MASK      0xf
+#define PLL_CTLST_PD        2
+#define PLL_CTLST_WORK      0
 
 #define PLL_FRAC_SHIFT      0
 #define PLL_FRAC_MASK       0xFFFFFF
@@ -131,6 +138,52 @@ clk_pll_round_rate(struct clk *clk, uint64_t rate,
   return rate;
 }
 
+static void clk_pll_endisable(struct clk *clk, int enable)
+{
+  struct clk_pll *pll = to_clk_pll(clk);
+  uint32_t val, reg, status;
+
+  if (enable)
+    {
+      reg    = 0;
+      status = PLL_CTLST_WORK;
+    }
+  else
+    {
+      reg    = BIT(PLL_PLLPD_SHIFT);
+      status = PLL_CTLST_PD;
+    }
+
+  val = clk_read(pll->cfg_reg0);
+  val &= ~BIT(PLL_PLLPD_SHIFT);
+  val |= reg;
+  clk_write(val, pll->cfg_reg0);
+
+  while((clk_read(pll->ctl_reg) >> PLL_CTLST_SHIFT & PLL_CTLST_MASK) != status);
+}
+
+static int clk_pll_enable(struct clk *clk)
+{
+  clk_pll_endisable(clk, 1);
+  return 0;
+}
+
+static void clk_pll_disable(struct clk *clk)
+{
+  clk_pll_endisable(clk, 0);
+}
+
+static int clk_pll_is_enable(struct clk *clk)
+{
+  struct clk_pll *pll = to_clk_pll(clk);
+  uint32_t val;
+
+  val = clk_read(pll->cfg_reg0);
+  val &= BIT(PLL_PLLPD_SHIFT);
+
+  return val != BIT(PLL_PLLPD_SHIFT);
+}
+
 static int clk_pll_set_rate(struct clk *clk, uint64_t rate,
     uint64_t parent_rate)
 {
@@ -169,9 +222,12 @@ static int clk_pll_set_rate(struct clk *clk, uint64_t rate,
 
 const struct clk_ops clk_pll_ops =
 {
+  .enable      = clk_pll_enable,
+  .disable     = clk_pll_disable,
+  .is_enabled  = clk_pll_is_enable,
   .recalc_rate = clk_pll_recalc_rate,
-  .round_rate = clk_pll_round_rate,
-  .set_rate = clk_pll_set_rate,
+  .round_rate  = clk_pll_round_rate,
+  .set_rate    = clk_pll_set_rate,
 };
 
 /************************************************************************************
