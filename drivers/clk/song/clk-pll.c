@@ -157,7 +157,7 @@ static void clk_pll_endisable(struct clk *clk, int enable)
   val = clk_read(pll->cfg_reg0);
   val &= ~BIT(PLL_PLLPD_SHIFT);
   val |= reg;
-  clk_write(val, pll->cfg_reg0);
+  clk_write(pll->cfg_reg0, val);
 
   while((clk_read(pll->ctl_reg) >> PLL_CTLST_SHIFT & PLL_CTLST_MASK) != status);
 }
@@ -206,9 +206,9 @@ static int clk_pll_set_rate(struct clk *clk, uint64_t rate,
       fbdiv = (rate * div) / parent_rate;
       val &= ~(PLL_FBDIV_MASK << PLL_FBDIV_SHIFT);
       val |= (fbdiv << PLL_FBDIV_SHIFT);
-      clk_write(val, pll->cfg_reg0);
+      clk_write(pll->cfg_reg0, val);
       val = (1 << (pll->ctl_shift + 16)) | (1 << pll->ctl_shift);
-      clk_write(val, pll->ctl_reg);
+      clk_write(pll->ctl_reg, val);
       while (clk_read(pll->ctl_reg) & (1 << pll->ctl_shift));
       clkerr("Adjust pll freq done.\n");
     }

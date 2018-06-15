@@ -85,7 +85,7 @@ static int __clk_timer_set_parent(struct clk *clk, uint8_t index)
   val &= ~(MASK(timer->mux_width) << timer->mux_shift);
   val |= (index & MASK(timer->mux_width)) << timer->mux_shift;
 
-  clk_write(val, timer->ctl_reg);
+  clk_write(timer->ctl_reg, val);
   return 0;
 }
 
@@ -186,7 +186,7 @@ static int clk_timer_set_rate(struct clk *clk, uint64_t rate,
   val &= ~(g_div_para[src_sel].mask << g_div_para[src_sel].shift);
   val |= div << g_div_para[src_sel].shift;
 
-  clk_write(val, timer->ctl_reg);
+  clk_write(timer->ctl_reg, val);
 
   return 0;
 }
