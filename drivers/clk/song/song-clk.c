@@ -162,27 +162,32 @@ static struct clk *song_clk_register_mux_sdiv(const char *name,
   char mux_clk[SONG_CLK_NAME_MAX], gate_clk[SONG_CLK_NAME_MAX];
   uint8_t gate_flags, mux_flags;
   uint16_t div_flags;
-  const char *pname = *parent_name, *cname = gate_clk;
+  const char *pname = *parent_name, *cname;
 
   snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
   snprintf(mux_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mux");
 
   if (mux_offset)
     {
+      cname = mux_clk;
+      if (!en_offset && !div_offset)
+        cname = name;
+
       mux_flags = (private_flags >> SONG_CLK_MUX_FLAG_SHIFT) &
         SONG_CLK_FLAG_MASK;
       mux_flags |= CLK_MUX_ROUND_CLOSEST;
 
-      clk = clk_register_mux(mux_clk, parent_name, num_parents, flags,
+      clk = clk_register_mux(cname, parent_name, num_parents, flags,
         reg_base + mux_offset, mux_shift, MASK(mux_width), mux_flags);
       if (!clk)
         return clk;
 
-      pname = mux_clk;
+      pname = cname;
     }
 
   if (en_offset)
     {
+      cname = gate_clk;
       if (!div_offset)
         cname = name;
 
@@ -194,7 +199,7 @@ static struct clk *song_clk_register_mux_sdiv(const char *name,
       if (!clk)
         return clk;
 
-      pname = gate_clk;
+      pname = cname;
     }
 
   if (div_offset)
