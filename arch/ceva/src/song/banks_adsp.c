@@ -284,10 +284,12 @@ void up_lateinitialize(void)
 #endif
 }
 
+#ifdef CONFIG_16550_UART
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 {
   return NULL; /* Can't use top dmas */
 }
+#endif
 
 void up_cpu_standby(void)
 {

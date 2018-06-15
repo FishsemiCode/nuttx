@@ -311,14 +311,16 @@ void up_lateinitialize(void)
 #endif
 }
 
+#ifdef CONFIG_16550_UART
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 {
-#ifdef CONFIG_SONG_DMAS
+#  ifdef CONFIG_SONG_DMAS
   return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
-#else
+#  else
   return NULL;
-#endif
+#  endif
 }
+#endif
 
 void up_cpu_doze(void)
 {
