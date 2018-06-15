@@ -67,9 +67,6 @@
 
 #define SPI_INT_MASK            (0x1f << 0)
 #define SPI_INT_RXFI            (1 << 4)
-#define SPI_INT_RXOI            (1 << 3)
-#define SPI_INT_RXUI            (1 << 2)
-#define SPI_INT_TXOI            (1 << 1)
 #define SPI_INT_TXEI            (1 << 0)
 
 #ifndef MIN
@@ -500,9 +497,8 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   spi->rx = rxbuffer;
   spi->rx_end = rxbuffer + spi->len;
 
+  dw_spi_enable(hw, false);
   dw_spi_set_tfifo_thresh(hw, MIN(spi->fifo_len / 2, nwords));
-  dw_spi_unmask_intr(hw,
-      SPI_INT_TXEI | SPI_INT_TXOI | SPI_INT_RXUI | SPI_INT_RXOI);
 
   /* wait for transfer complete with in a predefined timeout */
   clock_gettime(CLOCK_REALTIME, &abstime);
@@ -514,8 +510,8 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
     }
 
   /* enable the interrupt to tigger the transfer procedure */
+  dw_spi_unmask_intr(hw, SPI_INT_TXEI);
   dw_spi_enable(hw, true);
-  up_enable_irq(config->irq);
 
   do
     {
@@ -526,8 +522,8 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   if (ret)
     spierr("DW_SPI-%d transfer ret=%d\n", config->bus, ret);
 
-  up_disable_irq(config->irq);
   dw_spi_enable(hw, false);
+  dw_spi_mask_intr(hw, 0xff);
 }
 #endif
 
@@ -553,15 +549,6 @@ static int dw_spi_isr(int irq, void *context, FAR void *arg)
 
   if (!irq_status)
     goto none_irq;
-
-  if (irq_status & (SPI_INT_TXOI | SPI_INT_RXOI | SPI_INT_RXUI))
-    {
-      hw->TXOIC;
-      hw->RXOIC;
-      hw->RXUIC;
-      spierr("spi isr: fifo overflow/underflow, status=%#x\n", irq_status);
-      goto irq_err;
-    }
 
   dw_spi_read_fifo(spi);
   if (spi->rx_end == spi->rx)
@@ -592,7 +579,6 @@ static int dw_spi_isr(int irq, void *context, FAR void *arg)
 
   return 0;
 
-irq_err:
 transfer_done:
   nxsem_post(&spi->sem);
 none_irq:
@@ -631,6 +617,9 @@ static void dw_spi_hw_init(struct dw_spi_s *spi)
 
   /* initially disable the controller */
   dw_spi_enable(hw, false);
+
+  /* initially disable all the interrupt */
+  dw_spi_mask_intr(hw, 0xff);
 
   /* set to tx/rx mode */
   dw_spi_update_reg(&hw->CTRL0, SPI_CTRL0_TMOD_MASK, SPI_CTRL0_TMOD_RXTX);
@@ -702,7 +691,7 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   if (ret)
     goto irq_err;
 
-  up_disable_irq(config->irq);
+  up_enable_irq(config->irq);
 
   spiinfo("DW_SPI-%d initialized success\n", config->bus);
   return &spi->spi_dev;
