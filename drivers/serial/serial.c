@@ -1125,11 +1125,6 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
           if ((ch == '\n') && (dev->tc_oflag & (ONLCR | ONLRET)) != 0)
             {
               ret = uart_putxmitchar(dev, '\r', oktoblock);
-              if (ret < 0)
-                {
-                  nwritten = ret;
-                  break;
-                }
             }
 
           /* Specifically not handled:
