@@ -424,8 +424,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev)
 
       if (dev->disconnected)
         {
-          dev->xmit.head = 0;  /* Drop the buffered TX data */
-          dev->xmit.tail = 0;
+          dev->xmit.tail = dev->xmit.head;  /* Drop the buffered TX data */
           ret = -ENOTCONN;
         }
       else
@@ -870,13 +869,6 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
               flags = enter_critical_section();
 
 #ifdef CONFIG_SERIAL_DMA
-              /* If RX buffer is empty move tail and head to zero position */
-
-              if (rxbuf->head == rxbuf->tail)
-                {
-                  rxbuf->head = rxbuf->tail = 0;
-                }
-
               /* Notify DMA that there is free space in the RX buffer */
 
               uart_dmarxfree(dev);
@@ -956,23 +948,16 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 #ifdef CONFIG_SERIAL_DMA
   flags = enter_critical_section();
 
-  /* If RX buffer is empty move tail and head to zero position */
-
-  if (rxbuf->head == rxbuf->tail)
-    {
-      rxbuf->head = rxbuf->tail = 0;
-    }
-
-  leave_critical_section(flags);
-
   /* Notify DMA that there is free space in the RX buffer */
 
   uart_dmarxfree(dev);
 
+  leave_critical_section(flags);
+#endif
+
   /* RX interrupt could be disabled by RX buffer overflow. Enable it now. */
 
   uart_enablerxint(dev);
-#endif
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
 #ifdef CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS
@@ -1310,8 +1295,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
               if (arg == TCIFLUSH || arg == TCIOFLUSH)
                 {
-                  dev->recv.head = 0;
-                  dev->recv.tail = 0;
+                  dev->recv.tail = dev->recv.head;
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
                   /* Activate RX flow control. */
@@ -1322,8 +1306,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
               if (arg == TCOFLUSH || arg == TCIOFLUSH)
                 {
-                  dev->xmit.head = 0;
-                  dev->xmit.tail = 0;
+                  dev->xmit.tail = dev->xmit.head;
 
                   /* Inform any waiters there there is space available. */
 
