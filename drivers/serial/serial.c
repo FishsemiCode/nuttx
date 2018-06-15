@@ -1324,6 +1324,10 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                 {
                   dev->xmit.head = 0;
                   dev->xmit.tail = 0;
+
+                  /* Inform any waiters there there is space available. */
+
+                  uart_datasent(dev);
                 }
 
               leave_critical_section(flags);
