@@ -435,7 +435,7 @@ static void up_spi_init(void)
       .clk_rate = 4096000,
       .bus = 1,
       .cs_num = 1,
-      .cs_gpio[0] = 24,
+      .cs_gpio[0] = 26,
     },
   };
 
