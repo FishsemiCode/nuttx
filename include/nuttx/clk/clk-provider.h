@@ -121,7 +121,6 @@ struct clk
   struct clk              *new_child;
   uint64_t                flags;
   uint32_t                enable_count;
-  int                     phase;
   void                    *private_data;
   struct list_node        children;
   struct list_node        child_node;

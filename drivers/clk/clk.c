@@ -75,7 +75,6 @@ static void clk_list_unlock(void);
 static int clk_fetch_parent_index(struct clk *clk, struct clk *parent);
 static void clk_init_parent(struct clk *clk);
 static void clk_reparent(struct clk *clk, struct clk *parent);
-static void __clk_reparent(struct clk *clk, struct clk *parent);
 
 static uint64_t clk_recalc(struct clk *clk, uint64_t parent_rate);
 static void __clk_recalc_rate(struct clk *clk);
@@ -130,7 +129,7 @@ const struct procfs_operations clk_procfsoperations =
  ****************************************************************************/
 
 static int clk_procfs_open(FAR struct file *filep, FAR const char *relpath,
-                      int oflags, mode_t mode)
+                           int oflags, mode_t mode)
 {
   FAR struct procfs_file_s *priv;
 
@@ -181,8 +180,8 @@ static size_t clk_procfs_show_subtree(FAR struct clk* clk, int level,
   size_t ret;
 
   ret = clk_procfs_printf(buffer, buflen, pos, "%*s%-*s %11d %11llu %11d\n",
-                          level * 2, "", 40 - level * 2, clk->name,
-                          clk->enable_count, clk->rate, clk->phase);
+                          level * 2, "", 40 - level * 2, clk_get_name(clk),
+                          clk_is_enabled(clk), clk_get_rate(clk), clk_get_phase(clk));
   buffer += ret;
   buflen -= ret;
 
@@ -297,8 +296,7 @@ static int clk_procfs_stat(const char *relpath, struct stat *buf)
   buf->st_blocks  = 0;
   return OK;
 }
-
-#endif
+#endif /* !defined(CONFIG_FS_PROCFS_EXCLUDE_CLK) && defined(CONFIG_FS_PROCFS) */
 
 static void clk_list_lock(void)
 {
@@ -348,12 +346,6 @@ static void clk_reparent(struct clk *clk, struct clk *parent)
   clk->parent = parent;
 }
 
-static void __clk_reparent(struct clk *clk, struct clk *parent)
-{
-  clk_reparent(clk, parent);
-  __clk_recalc_rate(clk);
-}
-
 static uint64_t clk_recalc(struct clk *clk, uint64_t parent_rate)
 {
   if (clk->ops->recalc_rate)
@@ -367,7 +359,7 @@ static void __clk_recalc_rate(struct clk *clk)
   struct clk *child;
 
   if (clk->parent)
-    parent_rate = clk->parent->rate;
+    parent_rate = __clk_get_rate(clk->parent);
 
   clk->rate = clk_recalc(clk, parent_rate);
 
@@ -397,7 +389,6 @@ static void clk_calc_subtree(struct clk *clk, uint64_t new_rate,
 
 static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
 {
-  struct clk *top = clk;
   struct clk *old_parent, *parent;
   uint64_t best_parent_rate = 0;
   uint64_t new_rate = 0;
@@ -408,7 +399,7 @@ static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
 
   parent = old_parent = clk->parent;
   if (parent)
-    best_parent_rate = parent->rate;
+    best_parent_rate = __clk_get_rate(parent);
 
   if (clk->ops->determine_rate)
     {
@@ -421,14 +412,11 @@ static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
     }
   else if (!parent || !(clk->flags & CLK_SET_RATE_PARENT))
     {
-      clk->new_rate = clk->rate;
       return NULL;
     }
   else
     {
-      top = clk_calc_new_rates(parent, rate);
-      new_rate = parent->new_rate;
-      goto out;
+      return clk_calc_new_rates(parent, rate);
     }
 
   if (parent)
@@ -443,12 +431,11 @@ static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
     }
 
   if ((clk->flags & CLK_SET_RATE_PARENT) && parent &&
-    best_parent_rate != parent->rate)
-    top = clk_calc_new_rates(parent, best_parent_rate);
+      best_parent_rate != __clk_get_rate(parent))
+    return clk_calc_new_rates(parent, best_parent_rate);
 
-out:
   clk_calc_subtree(clk, new_rate, parent, p_index);
-  return top;
+  return clk;
 }
 
 static void clk_change_rate(struct clk *clk, uint64_t best_parent_rate)
@@ -461,7 +448,7 @@ static void clk_change_rate(struct clk *clk, uint64_t best_parent_rate)
     {
       if (child->new_parent && child->new_parent != clk)
         continue;
-      if (child->new_rate > child->rate)
+      if (child->new_rate > __clk_get_rate(child))
         clk_change_rate(child, clk->new_rate);
     }
 
@@ -504,11 +491,11 @@ static void clk_change_rate(struct clk *clk, uint64_t best_parent_rate)
     {
       if (child->new_parent && child->new_parent != clk)
         continue;
-      if (child->new_rate != child->rate)
+      if (child->new_rate != __clk_get_rate(child))
         clk_change_rate(child, clk->new_rate);
     }
 
-  if (clk->new_child && clk->new_child->new_rate != clk->new_child->rate)
+  if (clk->new_child && clk->new_child->new_rate != __clk_get_rate(clk->new_child))
     clk_change_rate(clk->new_child, clk->new_rate);
 }
 
@@ -532,8 +519,16 @@ static struct clk *__clk_lookup(const char *name, struct clk *clk)
 
 static uint64_t __clk_get_rate(struct clk *clk)
 {
+  uint64_t parent_rate;
+
   if (!clk)
-      return 0;
+    return 0;
+
+  if (clk->rate == 0)
+    {
+      parent_rate = __clk_get_rate(clk->parent);
+      clk->rate = clk_recalc(clk, parent_rate);
+    }
 
   return clk->rate;
 }
@@ -548,7 +543,7 @@ static uint64_t __clk_round_rate(struct clk *clk, uint64_t rate)
 
   parent = clk->parent;
   if (parent)
-    parent_rate = parent->rate;
+    parent_rate = __clk_get_rate(parent);
 
   if (clk->ops->determine_rate)
     return clk->ops->determine_rate(clk, rate, &parent_rate,
@@ -558,7 +553,7 @@ static uint64_t __clk_round_rate(struct clk *clk, uint64_t rate)
   else if (clk->flags & CLK_SET_RATE_PARENT)
     return __clk_round_rate(clk->parent, rate);
   else
-    return clk->rate;
+    return __clk_get_rate(clk);
 }
 
 static int __clk_enable(struct clk *clk)
@@ -607,7 +602,7 @@ static void __clk_disable(struct clk *clk)
 
 static void clk_init_parent(struct clk *clk)
 {
-  uint8_t  index;
+  uint8_t index;
 
   if (!clk->num_parents)
     return;
@@ -679,28 +674,13 @@ static int __clk_register(struct clk *clk)
       list_add_head(&g_clk_orphan_list, &clk->child_node);
     }
 
-  clk_list_unlock();
-
-  if (clk->ops->get_phase)
-    clk->phase = clk->ops->get_phase(clk);
-
-  if (clk->ops->recalc_rate)
-    clk->rate = clk->ops->recalc_rate(clk,
-      __clk_get_rate(clk->parent));
-  else if (clk->parent)
-    clk->rate = clk->parent->rate;
-  else
-    clk->rate = 0;
-
-  clk_list_lock();
-
   list_for_every_entry_safe(&g_clk_orphan_list, orphan, temp_orphan, struct clk, child_node)
     {
       if (orphan->num_parents && orphan->ops->get_parent)
         {
           i = orphan->ops->get_parent(orphan);
           if (!strcmp(clk->name, orphan->parent_names[i]))
-            __clk_reparent(orphan, clk);
+            clk_reparent(orphan, clk);
         }
       else if (orphan->num_parents)
         {
@@ -708,7 +688,7 @@ static int __clk_register(struct clk *clk)
             {
               if (!strcmp(clk->name, orphan->parent_names[i]))
                 {
-                  __clk_reparent(orphan, clk);
+                  clk_reparent(orphan, clk);
                   break;
                 }
             }
@@ -722,7 +702,6 @@ static int __clk_register(struct clk *clk)
 
   return 0;
 }
-
 
 /****************************************************************************
    * Public Functions
@@ -778,9 +757,9 @@ int clk_set_rate(struct clk *clk, uint64_t rate)
     }
 
   if (top->new_parent)
-    parent_rate = top->new_parent->rate;
+    parent_rate = __clk_get_rate(top->new_parent);
   else if (top->parent)
-    parent_rate = top->parent->rate;
+    parent_rate = __clk_get_rate(top->parent);
   else
     parent_rate = 0;
 
@@ -804,9 +783,6 @@ int clk_set_phase(struct clk *clk, int degrees)
   if (clk->ops->set_phase)
     ret = clk->ops->set_phase(clk, degrees);
 
-  if (!ret)
-    clk->phase = degrees;
-
   return ret;
 }
 
@@ -814,10 +790,10 @@ int clk_get_phase(struct clk *clk)
 {
   int ret;
 
-  if (!clk)
+  if (!clk || !clk->ops->get_phase)
     return 0;
 
-  ret = clk->phase;
+  ret = clk->ops->get_phase(clk);
 
   return ret;
 }
@@ -865,8 +841,6 @@ struct clk *clk_get(const char *name)
         goto out;
     }
 
-  ret = NULL;
-
 out:
   clk_list_unlock();
 
@@ -888,7 +862,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
   if (!clk)
     return 0;
 
-  if ((clk->num_parents > 1) && (!clk->ops->set_parent))
+  if (clk->num_parents > 1 && !clk->ops->set_parent)
     return -ENOSYS;
 
   if (clk->parent == parent)
@@ -906,7 +880,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
       if (index < 0)
         {
           clkerr("clk %s can no be parent of clk %s\n",
-              parent->name, core->name);
+              parent->name, clk->name);
           ret = index;
           goto out;
         }
@@ -974,7 +948,7 @@ uint64_t clk_get_rate(struct clk *clk)
   uint64_t rate;
 
   if (!clk)
-      return 0;
+    return 0;
 
   if (clk->flags & CLK_GET_RATE_NOCACHE)
     __clk_recalc_rate(clk);
