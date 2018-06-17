@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-
 #include <openamp/open_amp.h>
 
 #include <nuttx/clk/clk.h>
@@ -85,7 +84,6 @@ struct clk_rpmsg_s
   struct clk               *clk;
   uint32_t                  count;
   struct list_node          node;
-  char                      name[0];
 };
 
 struct clk_rpmsg_cookie_s
@@ -187,7 +185,6 @@ static const rpmsg_rx_cb_t clk_rpmsg_handler[] =
   [CLK_RPMSG_SETPHASE]  = clk_rpmsg_setphase_handler,
   [CLK_RPMSG_GETPHASE]  = clk_rpmsg_getphase_handler,
   [CLK_RPMSG_GETRATE]   = clk_rpmsg_getrate_handler,
-  [CLK_RPMSG_GETRATE]   = clk_rpmsg_getrate_handler,
   [CLK_RPMSG_ISENABLED] = clk_rpmsg_isenabled_handler,
 };
 
@@ -242,7 +239,7 @@ static struct rpmsg_channel *clk_rpmsg_get_chnl(const char **name)
 }
 
 static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
-            const char *name)
+                                             const char *name)
 {
   struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
   struct list_node *clk_list = &priv->clk_list;
@@ -250,13 +247,13 @@ static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
 
   list_for_every_entry(clk_list, clkrp, struct clk_rpmsg_s, node)
     {
-      if (!strcmp(clkrp->name, name))
+      if (!strcmp(clk_get_name(clkrp->clk), name))
         {
           return clkrp;
         }
     }
 
-  clkrp = kmm_zalloc(sizeof(*clkrp) + strlen(name) + 1);
+  clkrp = kmm_zalloc(sizeof(*clkrp));
   if (!clkrp)
     {
       return NULL;
@@ -269,7 +266,6 @@ static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
       return NULL;
     }
 
-  strcpy(clkrp->name, name);
   list_add_head(clk_list, &clkrp->node);
 
   return clkrp;
@@ -732,12 +728,11 @@ const struct clk_ops clk_rpmsg_ops =
 
 struct clk *clk_register_rpmsg(const char *name)
 {
-  if (clk_rpmsg_get_priv(name) == NULL)
+  if (strchr(name, '/') == NULL)
     return NULL;
 
-  /* rpmsg clk is consider as orphan clk (no parents) in remoteproc client */
+  /* rpmsg clk is consider as root clk in remoteproc client */
   return clk_register(name, 0, NULL, CLK_IS_ROOT, &clk_rpmsg_ops, NULL);
-
 }
 
 int clk_rpmsg_initialize(bool server)
