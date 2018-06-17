@@ -60,7 +60,8 @@
 #define CLK_RPMSG_SETPHASE            3
 #define CLK_RPMSG_GETPHASE            4
 #define CLK_RPMSG_GETRATE             5
-#define CLK_RPMSG_ISENABLED           6
+#define CLK_RPMSG_ROUNDRATE           6
+#define CLK_RPMSG_ISENABLED           7
 
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
@@ -117,6 +118,7 @@ begin_packed_struct struct clk_rpmsg_setrate_s
 } end_packed_struct;
 
 #define clk_rpmsg_getrate_s clk_rpmsg_setrate_s
+#define clk_rpmsg_roundrate_s clk_rpmsg_setrate_s
 
 begin_packed_struct struct clk_rpmsg_setphase_s
 {
@@ -141,6 +143,8 @@ static void clk_rpmsg_enable_handler(struct rpmsg_channel *channel,
 static void clk_rpmsg_disable_handler(struct rpmsg_channel *channel,
             void *data, int len, void *priv, unsigned long src);
 static void clk_rpmsg_getrate_handler(struct rpmsg_channel *channel,
+            void *data, int len, void *priv, unsigned long src);
+static void clk_rpmsg_roundrate_handler(struct rpmsg_channel *channel,
             void *data, int len, void *priv, unsigned long src);
 static void clk_rpmsg_setrate_handler(struct rpmsg_channel *channel,
             void *data, int len, void *priv, unsigned long src);
@@ -185,6 +189,7 @@ static const rpmsg_rx_cb_t clk_rpmsg_handler[] =
   [CLK_RPMSG_SETPHASE]  = clk_rpmsg_setphase_handler,
   [CLK_RPMSG_GETPHASE]  = clk_rpmsg_getphase_handler,
   [CLK_RPMSG_GETRATE]   = clk_rpmsg_getrate_handler,
+  [CLK_RPMSG_ROUNDRATE] = clk_rpmsg_roundrate_handler,
   [CLK_RPMSG_ISENABLED] = clk_rpmsg_isenabled_handler,
 };
 
@@ -318,6 +323,23 @@ static void clk_rpmsg_getrate_handler(struct rpmsg_channel *channel,
   if (clkrp)
     {
       msg->rate = clk_get_rate(clkrp->clk);
+      msg->header.result = msg->rate;
+    }
+  else
+    msg->header.result = -ENOENT;
+
+  rpmsg_send(channel, msg, sizeof(*msg));
+}
+
+static void clk_rpmsg_roundrate_handler(struct rpmsg_channel *channel,
+            void *data, int len, void *priv, unsigned long src)
+{
+  struct clk_rpmsg_roundrate_s *msg = data;
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+
+  if (clkrp)
+    {
+      msg->rate = clk_round_rate(clkrp->clk, msg->rate);
       msg->header.result = msg->rate;
     }
   else
@@ -592,8 +614,30 @@ static int clk_rpmsg_is_enabled(struct clk *clk)
 
 static int64_t clk_rpmsg_round_rate(struct clk *clk, uint64_t rate, uint64_t *parent_rate)
 {
-  /* directly return the input rate to clk-core */
-  return rate;
+  struct rpmsg_channel *chnl;
+  struct clk_rpmsg_roundrate_s *msg;
+  const char *name = clk->name;
+  uint32_t size, len;
+
+  chnl = clk_rpmsg_get_chnl(&name);
+  if (!chnl)
+    return -ENODEV;
+
+  len = sizeof(*msg) + B2C(strlen(name) + 1);
+
+  size = rpmsg_get_buffer_size(chnl);
+  if (len > size)
+    return -ENOMEM;
+
+  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  if (!msg)
+    return -ENOMEM;
+
+  msg->rate = rate;
+  cstr2bstr(msg->name, name);
+
+  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_ROUNDRATE,
+            (struct clk_rpmsg_header_s *)msg, len);
 }
 
 static int clk_rpmsg_set_rate(struct clk *clk, uint64_t rate, uint64_t parent_rate)
