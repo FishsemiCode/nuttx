@@ -133,6 +133,7 @@ struct song_dmas_dev_s
   struct dma_dev_s dev;
   uintptr_t base;
   int cpu;
+  const char *clkname;
   struct clk *clk;
   struct song_dmas_chan_s channels[16];
 };
@@ -493,6 +494,23 @@ static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned in
   if (ident > 15)
     return NULL;
 
+  if (dev->clkname && !dev->clk)
+    {
+      uint32_t intv_unit;
+
+      dev->clk = clk_get(dev->clkname);
+      if (dev->clk == NULL)
+        {
+          return NULL;
+        }
+      clk_enable(dev->clk);
+
+      intv_unit = clk_get_rate(dev->clk) / 1000000; /* microsecond */
+      intv_unit = MAX(intv_unit, SONG_DMAS_INTV_UNIT_MIN);
+      intv_unit = MIN(intv_unit, SONG_DMAS_INTV_UNIT_MAX);
+      song_dmas_write(dev, SONG_DMAS_REG_INTV_UNIT, intv_unit);
+    }
+
   return &dev->channels[ident].chan;
 }
 
@@ -523,7 +541,6 @@ struct dma_dev_s *song_dmas_initialize(int cpu, uintptr_t base, int irq, const c
 {
   struct song_dmas_dev_s *dev;
   unsigned int i;
-  uint32_t intv_unit;
 
   dev = kmm_zalloc(sizeof(struct song_dmas_dev_s));
   if (!dev)
@@ -538,31 +555,16 @@ struct dma_dev_s *song_dmas_initialize(int cpu, uintptr_t base, int irq, const c
 
   dev->base = base;
   dev->cpu = cpu;
-
-  if (clkname)
-    {
-      dev->clk = clk_get(clkname);
-      if (dev->clk)
-        {
-          clk_enable(dev->clk);
-          intv_unit = clk_get_rate(dev->clk) / 1000000; /* microsecond */
-          intv_unit = MAX(intv_unit, SONG_DMAS_INTV_UNIT_MIN);
-          intv_unit = MIN(intv_unit, SONG_DMAS_INTV_UNIT_MAX);
-          song_dmas_write(dev, SONG_DMAS_REG_INTV_UNIT, intv_unit);
-        }
-        else
-          {
-            kmm_free(dev);
-            return NULL;
-          }
-    }
+  dev->clkname = clkname;
 
   /* enable the low power control */
   song_dmas_write(dev, SONG_DMAS_REG_LP_CTL, 0x01ffff);
 
   dev->dev.get_chan = song_dmas_get_chan;
   dev->dev.put_chan = song_dmas_put_chan;
+
   irq_attach(irq, song_dmas_irq_handler, dev);
   up_enable_irq(irq);
+
   return &dev->dev;
 }

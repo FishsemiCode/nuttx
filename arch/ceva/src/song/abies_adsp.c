@@ -75,7 +75,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_SONG_DMAS
+#ifdef CONFIG_ARCH_DMA
 static FAR struct dma_dev_s *g_dma[2] =
 {
   [1] = DEV_END,
@@ -113,6 +113,26 @@ void up_earlyinitialize(void)
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, CONFIG_LOGBUF_SIZE);
 #endif
 }
+
+#ifdef CONFIG_ARCH_DMA
+void up_dmainitialize(void)
+{
+#  ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(2, B2C(0xf9003000), IRQ_INT2, "ap/top_dmas_clk");
+#  endif
+}
+#endif
+
+#ifdef CONFIG_16550_UART
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+#  ifdef CONFIG_ARCH_DMA
+  return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
+#  else
+  return NULL;
+#  endif
+}
+#endif
 
 void ceva_timer_initialize(void)
 {
@@ -286,25 +306,10 @@ void up_lateinitialize(void)
   up_openamp_initialize();
 #endif
 
-#ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(2, B2C(0xf9003000), IRQ_INT2, "ap/top_dmas_clk");
-#endif
-
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT5);
 #endif
 }
-
-#ifdef CONFIG_16550_UART
-FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
-{
-#  ifdef CONFIG_SONG_DMAS
-  return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
-#  else
-  return NULL;
-#  endif
-}
-#endif
 
 void up_cpu_standby(void)
 {

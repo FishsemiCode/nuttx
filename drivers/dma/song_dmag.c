@@ -140,6 +140,7 @@ struct song_dmag_dev_s
   struct dma_dev_s dev;
   uintptr_t base;
   int cpu;
+  const char *clkname;
   struct clk *clk;
   struct song_dmag_chan_s channels[16];
 };
@@ -323,8 +324,20 @@ static struct dma_chan_s *song_dmag_get_chan(struct dma_dev_s *dev_,
                                              unsigned int ident)
 {
   struct song_dmag_dev_s *dev = (struct song_dmag_dev_s *)dev_;
+
   if (ident > 15)
     return NULL;
+
+  if (dev->clkname && !dev->clk)
+    {
+      dev->clk = clk_get(dev->clkname);
+      if (dev->clk == NULL)
+        {
+          return NULL;
+        }
+      clk_enable(dev->clk);
+    }
+
   return &dev->channels[ident].chan;
 }
 
@@ -370,12 +383,7 @@ struct dma_dev_s *song_dmag_initialize(int cpu, uintptr_t base, int irq, const c
 
   dev->base = base;
   dev->cpu = cpu;
-
-  if (clkname)
-    {
-      dev->clk = clk_get(clkname);
-      clk_enable(dev->clk);
-    }
+  dev->clkname = clkname;
 
   /* enable the low power control */
   song_dmag_write(dev, SONG_DMAG_REG_LP_EN, 0xffffffff);
@@ -383,7 +391,9 @@ struct dma_dev_s *song_dmag_initialize(int cpu, uintptr_t base, int irq, const c
 
   dev->dev.get_chan = song_dmag_get_chan;
   dev->dev.put_chan = song_dmag_put_chan;
+
   irq_attach(irq, song_dmag_irq_handler, dev);
   up_enable_irq(irq);
+
   return &dev->dev;
 }

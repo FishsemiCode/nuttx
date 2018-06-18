@@ -98,7 +98,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_SONG_DMAS
+#ifdef CONFIG_ARCH_DMA
 static FAR struct dma_dev_s *g_dma[2] =
 {
   [1] = DEV_END,
@@ -177,6 +177,26 @@ void up_wic_disable_irq(int irq)
       modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
     }
 }
+
+#ifdef CONFIG_ARCH_DMA
+void up_dmainitialize(void)
+{
+#  ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(2, 0xb0020000, 28, "dmas_hclk");
+#  endif
+}
+#endif
+
+#ifdef CONFIG_16550_UART
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+#  ifdef CONFIG_ARCH_DMA
+  return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
+#  else
+  return NULL;
+#  endif
+}
+#endif
 
 void arm_timer_initialize(void)
 {
@@ -470,10 +490,6 @@ void up_lateinitialize(void)
   up_clk_initialize();
 #endif
 
-#ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(2, 0xb0020000, 28, "dmas_hclk");
-#endif
-
 #ifdef CONFIG_SONG_IOE
   g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
 #endif
@@ -494,17 +510,6 @@ void up_lateinitialize(void)
   rpmsg_regulator_init(CPU_NAME_AP, 1);
 #endif
 }
-
-#ifdef CONFIG_16550_UART
-FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
-{
-#  ifdef CONFIG_SONG_DMAS
-  return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
-#  else
-  return NULL;
-#  endif
-}
-#endif
 
 int board_power_off(int status)
 {

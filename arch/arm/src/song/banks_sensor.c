@@ -83,7 +83,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_SONG_DMAS
+#ifdef CONFIG_ARCH_DMA
 static FAR struct dma_dev_s *g_dma[2] =
 {
   [1] = DEV_END,
@@ -154,6 +154,22 @@ void up_wic_disable_irq(int irq)
       modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
     }
 }
+
+#ifdef CONFIG_ARCH_DMA
+void up_dmainitialize(void)
+{
+#  ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(0, 0xf8b1d000, 18, "sen_dmas_hclk");
+#  endif
+}
+#endif
+
+#ifdef CONFIG_16550_UART
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+  return NULL; /* Can't use top dmas */
+}
+#endif
 
 void arm_timer_initialize(void)
 {
@@ -340,10 +356,6 @@ void up_lateinitialize(void)
   up_clk_initialize();
 #endif
 
-#ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(0, 0xf8b1d000, 18, "sen_dmas_hclk");
-#endif
-
 #ifdef CONFIG_SONG_IOE
   /* sensor gpio initialization */
   g_ioe[0] = song_ioe_initialize(0, 0xf8b13000, 22);
@@ -356,13 +368,6 @@ void up_lateinitialize(void)
   up_spi_init();
 #endif
 }
-
-#ifdef CONFIG_16550_UART
-FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
-{
-  return NULL; /* Can't use top dmas */
-}
-#endif
 
 void up_cpu_doze(void)
 {

@@ -6,6 +6,7 @@
 menuconfig DMA
 	bool "DMA driver interfaces"
 	default n
+	select ARCH_DMA
 	---help---
 		Drivers for various DMA devices.
 
