@@ -52,6 +52,7 @@
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/spi/spi_dw.h>
 #include <nuttx/timers/arch_alarm.h>
+#include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
@@ -286,6 +287,22 @@ static void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_WATCHDOG_DW
+void up_wdtinit(void)
+{
+  static const struct dw_wdt_config_s config =
+  {
+    .path = CONFIG_WATCHDOG_DEVPATH,
+    .base = 0xa0170000,
+    .irq  = 37,
+    .tclk = "m4_wdt_tclk",
+    .pclk = "m4_wdt_pclk",
+  };
+
+  dw_wdt_initialize(&config);
+}
+#endif
+
 #ifdef CONFIG_SPI_DW
 static void up_spi_init(void)
 {
@@ -337,6 +354,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
+#endif
+
+#ifdef CONFIG_WATCHDOG_DW
+  up_wdtinit();
 #endif
 
 #ifdef CONFIG_SONG_IOE
