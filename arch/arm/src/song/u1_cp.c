@@ -97,10 +97,6 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_RTC_SONG
-static FAR struct rtc_lowerhalf_s *g_rtc_lower;
-#endif
-
 #ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
 {
@@ -165,14 +161,13 @@ int up_rtc_initialize(void)
 {
   static const struct song_rtc_config_s config =
   {
+    .minor = 0,
     .base  = 0xb2020000,
     .irq   = 16,
     .index = 0,
   };
 
-  g_rtc_lower = song_rtc_initialize(&config);
-  up_rtc_set_lowerhalf(g_rtc_lower);
-
+  up_rtc_set_lowerhalf(song_rtc_initialize(&config));
   return 0;
 }
 #endif
@@ -309,10 +304,6 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
-#endif
-
-#ifdef CONFIG_RTC_SONG
-  rtc_initialize(0, g_rtc_lower);
 #endif
 
 #ifdef CONFIG_SONG_DMAS

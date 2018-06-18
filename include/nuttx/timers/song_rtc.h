@@ -49,6 +49,7 @@
 
 struct song_rtc_config_s
 {
+  int       minor;
   uintptr_t base;
   uint32_t  irq;
   uint32_t  index;

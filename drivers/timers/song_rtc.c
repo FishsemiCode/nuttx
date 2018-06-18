@@ -44,6 +44,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/power/pm.h>
 #include <nuttx/timers/song_rtc.h>
+#include <nuttx/wqueue.h>
 
 /****************************************************************************
  * Private Types
@@ -93,6 +94,7 @@ struct song_rtc_lowerhalf_s
    */
 
   FAR const struct song_rtc_config_s *config;
+  struct work_s work;
 
 #ifdef CONFIG_RTC_ALARM
   rtc_alarm_callback_t cb;  /* Callback when the alarm expires */
@@ -341,6 +343,13 @@ static int song_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
 }
 #endif
 
+static void song_rtc_lateinitialize(FAR void *arg)
+{
+  FAR struct song_rtc_lowerhalf_s *lower = arg;
+
+  rtc_initialize(lower->config->minor, (FAR struct rtc_lowerhalf_s *)lower);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -358,6 +367,15 @@ FAR struct rtc_lowerhalf_s *song_rtc_initialize(FAR const struct song_rtc_config
       lower->pm_cb.evaluate = song_rtc_pm_evaluate;
       pm_register(&lower->pm_cb);
 #endif
+    }
+
+  if (config->minor >= 0)
+    {
+      /* Call rtc_initialize in a work item
+       * since file system doesn't initialize yet.
+       */
+
+      work_queue(LPWORK, &lower->work, song_rtc_lateinitialize, lower, 0);
     }
 
   return (FAR struct rtc_lowerhalf_s *)lower;
