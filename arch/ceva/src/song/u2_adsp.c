@@ -51,9 +51,8 @@
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
-#include <string.h>
-
 #include "song_addrenv.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U2_ADSP
@@ -66,8 +65,9 @@
 
 #define LOGBUF_BASE                 ((uintptr_t)&_slog)
 
-#define TOP_MAILBOX_BASE            0xa0050000
-#define TOP_PWR_BASE                0xa00e0000
+#define TOP_MAILBOX_BASE            (0xa0050000)
+
+#define TOP_PWR_BASE                (0xa00e0000)
 
 /****************************************************************************
  * Private Data
@@ -170,19 +170,7 @@ void rpmsg_serialinit(void)
 #ifdef CONFIG_OPENAMP
 static void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_adsp, *mbox_ap;
-
-  static const struct song_mbox_config_s mbox_cfg_adsp =
-  {
-    .base       = B2C(TOP_MAILBOX_BASE),
-    .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
-    .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
-    .en_bit     = 16,
-    .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
-    .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
-    .chnl_count = 16,
-    .irq        = IRQ_VINT12, /* VINT12 */
-  };
+  struct mbox_dev_s *mbox_ap, *mbox_adsp;
 
   static const struct song_mbox_config_s mbox_cfg_ap =
   {
@@ -194,6 +182,18 @@ static void up_openamp_initialize(void)
     .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
     .chnl_count = 16,
     .irq        = -1,
+  };
+
+  static const struct song_mbox_config_s mbox_cfg_adsp =
+  {
+    .base       = B2C(TOP_MAILBOX_BASE),
+    .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
+    .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
+    .en_bit     = 16,
+    .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
+    .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
+    .chnl_count = 16,
+    .irq        = IRQ_VINT12, /* VINT12 */
   };
 
   static const struct song_rptun_config_s rptun_cfg_ap =
@@ -211,8 +211,8 @@ static void up_openamp_initialize(void)
     },
   };
 
-  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
+  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
 
   song_rptun_initialize(&rptun_cfg_ap, mbox_adsp, mbox_ap);
 

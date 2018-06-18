@@ -54,7 +54,10 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include "chip.h"
+#include "nvic.h"
 #include "song_addrenv.h"
+#include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -79,6 +82,10 @@
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_RTC_SONG
+static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+#endif
+
 #ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
 {
@@ -98,14 +105,6 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 {
   [1] = DEV_END,
 };
-#endif
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-#ifdef CONFIG_RTC_SONG
-static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 #endif
 
 /****************************************************************************
@@ -143,6 +142,27 @@ int up_rtc_initialize(void)
   return 0;
 }
 #endif
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_AP_M4_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
 
 void arm_timer_initialize(void)
 {
@@ -279,26 +299,5 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 #  endif
 }
 #endif
-
-void up_wic_disable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
-}
-
-void up_wic_enable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
-}
-
-void up_wic_initialize(void)
-{
-  putreg32(0xffffffff, TOP_PWR_AP_M4_INTR2SLP_MK0);
-}
 
 #endif /* CONFIG_ARCH_CHIP_U1_AP */

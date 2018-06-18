@@ -59,7 +59,9 @@
 #include <nuttx/timers/song_rtc.h>
 
 #include "chip.h"
+#include "nvic.h"
 #include "song_addrenv.h"
+#include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -92,6 +94,14 @@
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
 
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_RTC_SONG
+static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+#endif
+
 #ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
 {
@@ -121,14 +131,6 @@ FAR struct spi_dev_s *g_spi[3] =
 #endif
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-#ifdef CONFIG_RTC_SONG
-static FAR struct rtc_lowerhalf_s *g_rtc_lower;
-#endif
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -139,8 +141,6 @@ void up_earlyinitialize(void)
     {.va = 0x21000000, .pa = 0xc1000000, .size = 0x00100000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
-
-  /* Set up addrenv */
 
   up_addrenv_initialize(addrenv);
 }
@@ -161,6 +161,27 @@ int up_rtc_initialize(void)
   return 0;
 }
 #endif
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_SEC_M4_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
 
 void arm_timer_initialize(void)
 {
@@ -198,6 +219,13 @@ void rpmsg_serialinit(void)
   uart_rpmsg_server_init("CP", 1024);
   uart_rpmsg_server_init("AT", 1024);
   uart_rpmsg_server_init("GPS", 1024);
+}
+#endif
+
+#ifdef CONFIG_NETDEVICES
+void up_netinitialize(void)
+{
+  net_rpmsg_drv_init(CPU_NAME_CP, "sl0", NET_LL_SLIP);
 }
 #endif
 
@@ -372,12 +400,12 @@ static void up_openamp_initialize(void)
   song_rptun_initialize(&rptun_cfg_ap, mbox_sp, mbox_ap);
   song_rptun_initialize(&rptun_cfg_cp, mbox_sp, mbox_cp);
 
-#ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(true);   /* it is server */
-#endif
-
 #ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
+#endif
+
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(true);   /* it is server */
 #endif
 
 #ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
@@ -386,10 +414,23 @@ static void up_openamp_initialize(void)
 }
 #endif
 
-#ifdef CONFIG_NETDEVICES
-void up_netinitialize(void)
+#ifdef CONFIG_SPI_DW
+static void up_spi_init(void)
 {
-  net_rpmsg_drv_init(CPU_NAME_CP, "sl0", NET_LL_SLIP);
+  static struct dw_spi_config_s configs[] =
+  {
+    {
+      .base = 0xb0120000,
+      .irq = 31,
+      .clk_rate = 4096000,
+      .bus = 1,
+      .cs_num = 1,
+      .cs_gpio[0] = 26,
+    },
+  };
+
+  dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
+                        g_spi, sizeof(g_spi) / sizeof(g_spi[0]), g_ioe[0]);
 }
 #endif
 
@@ -424,26 +465,6 @@ static void up_flash_init(void)
 }
 #endif
 
-#ifdef CONFIG_SPI_DW
-static void up_spi_init(void)
-{
-  static struct dw_spi_config_s configs[] =
-  {
-    {
-      .base = 0xb0120000,
-      .irq = 31,
-      .clk_rate = 4096000,
-      .bus = 1,
-      .cs_num = 1,
-      .cs_gpio[0] = 26,
-    },
-  };
-
-  dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
-                        g_spi, sizeof(g_spi) / sizeof(g_spi[0]), g_ioe[0]);
-}
-#endif
-
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
@@ -466,12 +487,12 @@ void up_lateinitialize(void)
   g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
 #endif
 
-#ifdef CONFIG_SONG_ONCHIP_FLASH
-  up_flash_init();
-#endif
-
 #ifdef CONFIG_SPI_DW
   up_spi_init();
+#endif
+
+#ifdef CONFIG_SONG_ONCHIP_FLASH
+  up_flash_init();
 #endif
 
 #ifdef CONFIG_SONG_PMIC_APB
@@ -518,27 +539,6 @@ int board_reset(int status)
 
   putreg32(0x10001, TOP_PWR_SFRST_CTL);
   return 0;
-}
-
-void up_wic_disable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
-}
-
-void up_wic_enable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_SEC_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
-}
-
-void up_wic_initialize(void)
-{
-  putreg32(0xffffffff, TOP_PWR_SEC_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_SP */

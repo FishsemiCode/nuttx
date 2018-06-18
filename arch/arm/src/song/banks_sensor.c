@@ -134,6 +134,27 @@ void up_earlyinitialize(void)
 #endif
 }
 
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, SEN_PWR_SEN_M4_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
+
 void arm_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
@@ -360,25 +381,4 @@ void up_cpu_idle(void)
   up_cpu_wfi();
 }
 
-void up_wic_disable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
-}
-
-void up_wic_enable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(SEN_PWR_SEN_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
-}
-
-void up_wic_initialize(void)
-{
-  putreg32(0xffffffff, SEN_PWR_SEN_M4_INTR2SLP_MK0);
-}
-
-#endif  /* CONFIG_ARCH_CHIP_BANKS_SENSOR */
+#endif /* CONFIG_ARCH_CHIP_BANKS_SENSOR */

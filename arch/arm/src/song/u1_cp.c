@@ -97,6 +97,10 @@
  * Private Data
  ****************************************************************************/
 
+#ifdef CONFIG_RTC_SONG
+static FAR struct rtc_lowerhalf_s *g_rtc_lower;
+#endif
+
 #ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
 {
@@ -116,14 +120,6 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 {
   [1] = DEV_END,
 };
-#endif
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-#ifdef CONFIG_RTC_SONG
-static FAR struct rtc_lowerhalf_s *g_rtc_lower;
 #endif
 
 /****************************************************************************
@@ -180,6 +176,27 @@ int up_rtc_initialize(void)
   return 0;
 }
 #endif
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_CP_M4_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
+}
 
 void arm_timer_initialize(void)
 {
@@ -379,27 +396,6 @@ void up_cpu_sleep(void)
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
 
   up_cpu_save();
-}
-
-void up_wic_disable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
-}
-
-void up_wic_enable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
-}
-
-void up_wic_initialize(void)
-{
-  putreg32(0xffffffff, TOP_PWR_CP_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_CP */

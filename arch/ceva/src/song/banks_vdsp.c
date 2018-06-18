@@ -39,10 +39,11 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/irq.h>
 #include <nuttx/timers/arch_timer.h>
 #include <nuttx/timers/dw_timer.h>
 
+#include "song_addrenv.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_BANKS_VDSP

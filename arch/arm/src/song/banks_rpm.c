@@ -53,6 +53,7 @@
 #include <nuttx/timers/rpmsg_rtc.h>
 #include <nuttx/timers/song_oneshot.h>
 
+#include "chip.h"
 #include "nvic.h"
 #include "song_addrenv.h"
 #include "song_idle.h"
@@ -124,6 +125,27 @@ void up_earlyinitialize(void)
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)_LOGBUF_BASE, _LOGBUF_SIZE);
 #endif
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, DDR_PWR_RPM_M4_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(DDR_PWR_RPM_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+    }
+}
+
+void up_wic_disable_irq(int irq)
+{
+  if (irq >= NVIC_IRQ_FIRST)
+    {
+      modifyreg32(DDR_PWR_RPM_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+    }
 }
 
 void arm_timer_initialize(void)
@@ -315,27 +337,6 @@ void up_cpu_idle(void)
            DDR_PWR_RPM_M4_SLP_EN, DDR_PWR_SLP_CTL0);
 
   up_cpu_wfi();
-}
-
-void up_wic_disable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(DDR_PWR_RPM_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
-}
-
-void up_wic_enable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(DDR_PWR_RPM_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
-}
-
-void up_wic_initialize(void)
-{
-  putreg32(0xffffffff, DDR_PWR_RPM_M4_INTR2SLP_MK0);
 }
 
 #endif /* CONFIG_ARCH_CHIP_BANKS_RPM */
