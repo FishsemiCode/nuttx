@@ -851,6 +851,7 @@ static const struct song_clk_table u1_sp_clk_tbl =
   .pll_lf_clks       = pll_lf,
   .out_clks          = out,
   .timer_clks        = timer,
+  .rpmsg_server      = true,
 };
 
 /****************************************************************************

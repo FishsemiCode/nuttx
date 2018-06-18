@@ -592,6 +592,7 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .sdiv_clks         = sdiv,
   .gate_clks         = gate,
   .mux_gate_clks     = mux_gate,
+  .rpmsg_server      = false,
 };
 
 /****************************************************************************

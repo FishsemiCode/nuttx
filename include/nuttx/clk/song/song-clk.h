@@ -259,24 +259,25 @@ struct song_default_rate_clk
 
 struct song_clk_table
 {
-  const struct      song_fixed_rate_clk *fixed_rate_clks;
-  const struct      song_gate_clk *gate_clks;
-  const struct      song_sdiv_clk *sdiv_clks;
-  const struct      song_gr_clk *gr_clks;
-  const struct      song_fixed_factor_clk *fixed_factor_clks;
-  const struct      song_sdiv_sdiv_clk *sdiv_sdiv_clks;
-  const struct      song_gr_fdiv_clk *gr_fdiv_clks;
-  const struct      song_sdiv_gr_clk *sdiv_gr_clks;
-  const struct      song_sdiv_gr_clk *gr_sdiv_clks;
-  const struct      song_mux_sdiv_clk *mux_sdiv_clks;
-  const struct      song_mux_sdiv_gr_clk *mux_sdiv_gr_clks;
-  const struct      song_mux_gate_clk *mux_gate_clks;
-  const struct      song_phase_clk *phase_clks;
-  const struct      song_pll_clk *pll_clks;
-  const struct      song_pll_lf_clk *pll_lf_clks;
-  const struct      song_out_clk *out_clks;
-  const struct      song_timer_clk *timer_clks;
-  const struct      song_default_rate_clk *def_rate;
+  const struct song_fixed_rate_clk *fixed_rate_clks;
+  const struct song_gate_clk *gate_clks;
+  const struct song_sdiv_clk *sdiv_clks;
+  const struct song_gr_clk *gr_clks;
+  const struct song_fixed_factor_clk *fixed_factor_clks;
+  const struct song_sdiv_sdiv_clk *sdiv_sdiv_clks;
+  const struct song_gr_fdiv_clk *gr_fdiv_clks;
+  const struct song_sdiv_gr_clk *sdiv_gr_clks;
+  const struct song_sdiv_gr_clk *gr_sdiv_clks;
+  const struct song_mux_sdiv_clk *mux_sdiv_clks;
+  const struct song_mux_sdiv_gr_clk *mux_sdiv_gr_clks;
+  const struct song_mux_gate_clk *mux_gate_clks;
+  const struct song_phase_clk *phase_clks;
+  const struct song_pll_clk *pll_clks;
+  const struct song_pll_lf_clk *pll_lf_clks;
+  const struct song_out_clk *out_clks;
+  const struct song_timer_clk *timer_clks;
+  const struct song_default_rate_clk *def_rate;
+  bool rpmsg_server;
 };
 
 /****************************************************************************

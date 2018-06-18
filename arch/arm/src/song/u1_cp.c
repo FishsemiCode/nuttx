@@ -365,10 +365,6 @@ static void up_openamp_initialize(void)
   syslog_rpmsg_init();
 #  endif
 
-#  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
-#  endif
-
 #  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
 #  endif

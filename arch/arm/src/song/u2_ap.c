@@ -277,10 +277,6 @@ static void up_openamp_initialize(void)
   syslog_rpmsg_server_init();
 #  endif
 
-#  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(true);   /* it is server */
-#  endif
-
 #  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
 #  endif

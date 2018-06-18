@@ -765,6 +765,7 @@ static const struct song_clk_table u2_ap_clk_tbl =
   .pll_clks          = pll,
   .pll_lf_clks       = pll_lf,
   .out_clks          = out,
+  .rpmsg_server      = true,
 };
 
 /****************************************************************************

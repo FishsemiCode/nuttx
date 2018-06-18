@@ -307,10 +307,6 @@ static void up_openamp_initialize(void)
   syslog_rpmsg_init();
 #  endif
 
-#  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
-#  endif
-
 #  ifdef CONFIG_RTC_RPMSG
   up_rtc_set_lowerhalf(rpmsg_rtc_initialize(CPU_NAME_AP, 0));
 #  endif
