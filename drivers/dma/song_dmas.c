@@ -470,7 +470,7 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
     {
       bool finish = (int0 >> i) & 1;
       bool flush  = (int0 >> (i + 16)) & 1;
-      bool match  = (int1 >> 1) & 1;
+      bool match  = (int1 >> i) & 1;
 
       if (finish || flush || match)
         {
