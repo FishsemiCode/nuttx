@@ -233,9 +233,6 @@ static inline int gd25_readid(struct gd25_dev_s *priv)
   /* Lock and configure the SPI bus */
   gd25_lock(priv->spi);
 
-  /* Wait for any preceding write or erase operation to complete. */
-  (void)gd25_waitwritecomplete(priv);
-
   /* Select this FLASH part. */
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
