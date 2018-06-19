@@ -202,11 +202,11 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-#ifdef CONFIG_SERIAL_CONSOLE
+#  ifdef CONFIG_SERIAL_CONSOLE
   uart_rpmsg_init(CPU_NAME_AP, "SENSOR", 1024, false);
-#else
+#  else
   uart_rpmsg_init(CPU_NAME_AP, "SENSOR", 1024, true);
-#endif
+#  endif
   uart_rpmsg_init(CPU_NAME_AP, "GPS", 1024, false);
 }
 #endif
@@ -286,10 +286,10 @@ static void up_openamp_initialize(void)
   {
     .cpu_name    = CPU_NAME_AP,
     .role        = RPMSG_REMOTE,
-    .ch_start_rx = -1,
-    .ch_vring_rx = 15,
     .ch_start_tx = -1,
     .ch_vring_tx = 15,
+    .ch_start_rx = -1,
+    .ch_vring_rx = 15,
     .rsc         =
     {
       .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
@@ -300,23 +300,23 @@ static void up_openamp_initialize(void)
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
   mbox_sensor = song_mbox_initialize(&mbox_cfg_sensor);
 
-  song_rptun_initialize(&rptun_cfg_ap, mbox_sensor, mbox_ap);
+  song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_sensor);
 
-#ifdef CONFIG_SYSLOG_RPMSG
+#  ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
-#endif
+#  endif
 
-#ifdef CONFIG_CLK_RPMSG
+#  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(false);
-#endif
+#  endif
 
-#ifdef CONFIG_RTC_RPMSG
+#  ifdef CONFIG_RTC_RPMSG
   up_rtc_set_lowerhalf(rpmsg_rtc_initialize(CPU_NAME_AP, 0));
-#endif
+#  endif
 
-#ifdef CONFIG_FS_HOSTFS_RPMSG
+#  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_AP);
-#endif
+#  endif
 }
 #endif
 

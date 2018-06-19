@@ -209,11 +209,11 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-#ifdef CONFIG_SERIAL_CONSOLE
+#  ifdef CONFIG_SERIAL_CONSOLE
   uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, false);
-#else
+#  else
   uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, true);
-#endif
+#  endif
   uart_rpmsg_init(CPU_NAME_SP, "ATAP", 1024, false);
 }
 #endif
@@ -251,10 +251,10 @@ static void up_openamp_initialize(void)
   {
     .cpu_name    = CPU_NAME_SP,
     .role        = RPMSG_REMOTE,
-    .ch_start_rx = 14,
-    .ch_vring_rx = 15,
     .ch_start_tx = 14,
     .ch_vring_tx = 15,
+    .ch_start_rx = 14,
+    .ch_vring_rx = 15,
     .rsc         =
     {
       .rsc_tab   = (void *)0xb0000000,
@@ -265,19 +265,19 @@ static void up_openamp_initialize(void)
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
   mbox_sp = song_mbox_initialize(&mbox_cfg_sp);
 
-  song_rptun_initialize(&rptun_cfg_sp, mbox_ap, mbox_sp);
+  song_rptun_initialize(&rptun_cfg_sp, mbox_sp, mbox_ap);
 
-#ifdef CONFIG_SYSLOG_RPMSG
+#  ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
-#endif
+#  endif
 
-#ifdef CONFIG_CLK_RPMSG
+#  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(false);
-#endif
+#  endif
 
-#ifdef CONFIG_FS_HOSTFS_RPMSG
+#  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
-#endif
+#  endif
 }
 #endif
 

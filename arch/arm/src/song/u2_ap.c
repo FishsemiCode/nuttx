@@ -191,19 +191,7 @@ void rpmsg_serialinit(void)
 #ifdef CONFIG_OPENAMP
 static void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_adsp, *mbox_ap;
-
-  static const struct song_mbox_config_s mbox_cfg_adsp =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
-    .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
-    .en_bit     = 16,
-    .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
-    .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
-    .chnl_count = 16,
-    .irq        = -1,
-  };
+  struct mbox_dev_s *mbox_ap, *mbox_adsp;
 
   static const struct song_mbox_config_s mbox_cfg_ap =
   {
@@ -215,6 +203,18 @@ static void up_openamp_initialize(void)
     .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
     .chnl_count = 16,
     .irq        = 32,
+  };
+
+  static const struct song_mbox_config_s mbox_cfg_adsp =
+  {
+    .base       = TOP_MAILBOX_BASE,
+    .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
+    .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
+    .en_bit     = 16,
+    .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
+    .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
+    .chnl_count = 16,
+    .irq        = -1,
   };
 
   static struct rptun_rsc_s rptun_rsc_adsp
@@ -255,10 +255,10 @@ static void up_openamp_initialize(void)
   {
     .cpu_name    = CPU_NAME_ADSP,
     .role        = RPMSG_MASTER,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
     .ch_start_tx = 0,
     .ch_vring_tx = 1,
+    .ch_start_rx = 0,
+    .ch_vring_rx = 1,
     .rsc         =
     {
       .rsc_tab   = &rptun_rsc_adsp.rsc_tbl_hdr,
@@ -267,22 +267,22 @@ static void up_openamp_initialize(void)
     .rsc_flash   = RSCTBL_BASE_ADSP,
   };
 
-  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
+  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
 
-  song_rptun_initialize(&rptun_cfg_adsp, mbox_ap, mbox_adsp);
+  song_rptun_initialize(&rptun_cfg_adsp, mbox_adsp, mbox_ap);
 
-#ifdef CONFIG_SYSLOG_RPMSG_SERVER
+#  ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
-#endif
+#  endif
 
-#ifdef CONFIG_CLK_RPMSG
+#  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(true);   /* it is server */
-#endif
+#  endif
 
-#ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+#  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
-#endif
+#  endif
 }
 #endif
 

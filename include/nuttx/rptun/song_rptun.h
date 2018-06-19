@@ -55,10 +55,10 @@ struct song_rptun_config_s
 {
   const char            *cpu_name;
   uint32_t              role;
-  int32_t               ch_start_rx;
-  int32_t               ch_vring_rx;
   int32_t               ch_start_tx;
   int32_t               ch_vring_tx;
+  int32_t               ch_start_rx;
+  int32_t               ch_vring_rx;
 
   /* the resource table info */
   struct rsc_table_info rsc;
@@ -84,8 +84,8 @@ extern "C"
 
 struct rptun_dev_s *song_rptun_initialize(
                 const struct song_rptun_config_s *config,
-                struct mbox_dev_s *mbox_rx,
-                struct mbox_dev_s *mbox_tx);
+                struct mbox_dev_s *mbox_tx,
+                struct mbox_dev_s *mbox_rx);
 
 #ifdef __cplusplus
 }

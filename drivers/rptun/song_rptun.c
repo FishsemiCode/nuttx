@@ -54,8 +54,8 @@ struct song_rptun_dev_s
 {
   struct rptun_dev_s               rptun;
   const struct song_rptun_config_s *config;
-  struct mbox_dev_s                *mbox_rx;
   struct mbox_dev_s                *mbox_tx;
+  struct mbox_dev_s                *mbox_rx;
   uint32_t                         count_start;
   rptun_callback_t                 callback;
   void                             *arg;
@@ -200,8 +200,8 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg)
 
 struct rptun_dev_s *song_rptun_initialize(
                 const struct song_rptun_config_s *config,
-                struct mbox_dev_s *mbox_rx,
-                struct mbox_dev_s *mbox_tx)
+                struct mbox_dev_s *mbox_tx,
+                struct mbox_dev_s *mbox_rx)
 {
   struct song_rptun_dev_s *priv;
   int ret;
@@ -219,8 +219,8 @@ struct rptun_dev_s *song_rptun_initialize(
 
   priv->rptun.ops = &g_song_rptun_ops;
   priv->config    = config;
-  priv->mbox_rx   = mbox_rx;
   priv->mbox_tx   = mbox_tx;
+  priv->mbox_rx   = mbox_rx;
 
   ret = rptun_initialize((struct rptun_dev_s *)priv);
   if (ret < 0)

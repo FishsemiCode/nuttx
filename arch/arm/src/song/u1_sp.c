@@ -344,10 +344,10 @@ static void up_openamp_initialize(void)
   {
     .cpu_name    = CPU_NAME_AP,
     .role        = RPMSG_MASTER,
-    .ch_start_rx = 14,
-    .ch_vring_rx = 15,
     .ch_start_tx = 14,
     .ch_vring_tx = 15,
+    .ch_start_rx = 14,
+    .ch_vring_rx = 15,
     .rsc         =
     {
       .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
@@ -395,10 +395,10 @@ static void up_openamp_initialize(void)
   {
     .cpu_name    = CPU_NAME_CP,
     .role        = RPMSG_MASTER,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
     .ch_start_tx = 0,
     .ch_vring_tx = 1,
+    .ch_start_rx = 0,
+    .ch_vring_rx = 1,
     .rsc         =
     {
       .rsc_tab   = &rptun_rsc_cp.rsc_tbl_hdr,
@@ -412,20 +412,20 @@ static void up_openamp_initialize(void)
   mbox_cp = song_mbox_initialize(&mbox_cfg_cp);
   mbox_sp = song_mbox_initialize(&mbox_cfg_sp);
 
-  song_rptun_initialize(&rptun_cfg_ap, mbox_sp, mbox_ap);
-  song_rptun_initialize(&rptun_cfg_cp, mbox_sp, mbox_cp);
+  song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_sp);
+  song_rptun_initialize(&rptun_cfg_cp, mbox_cp, mbox_sp);
 
-#ifdef CONFIG_SYSLOG_RPMSG_SERVER
+#  ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
-#endif
+#  endif
 
-#ifdef CONFIG_CLK_RPMSG
+#  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(true);   /* it is server */
-#endif
+#  endif
 
-#ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+#  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
-#endif
+#  endif
 }
 #endif
 
