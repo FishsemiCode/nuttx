@@ -335,5 +335,10 @@ FAR struct mtd_dev_s *song_onchip_flash_initialize(FAR const struct song_onchip_
 
   flash_int_configure(priv);
 
+  /* Register the MTD with the procfs system if enabled */
+#ifdef CONFIG_MTD_REGISTRATION
+  mtd_register(&priv->mtd, "onchip");
+#endif
+
   return (FAR struct mtd_dev_s *)priv;
 }
