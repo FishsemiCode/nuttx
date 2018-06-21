@@ -184,7 +184,7 @@ struct clk *clk_register_mux(const char *name, const char * const *parent_names,
   mux->flags = clk_mux_flags;
 
   if (clk_mux_flags & CLK_MUX_READ_ONLY)
-    clk = clk_register(name, num_parents, parent_names, flags,
+    clk = clk_register(name, parent_names, num_parents, flags,
         &clk_mux_ro_ops, mux);
   else
     clk = clk_register(name, parent_names, num_parents, flags,
