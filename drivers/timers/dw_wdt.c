@@ -79,7 +79,6 @@ struct dw_wdt_lowerhalf_s
 
   uintptr_t   base;
   struct clk *tclk;
-  struct clk *pclk;
   bool      active;
   xcpt_t   handler;
 };
@@ -299,17 +298,6 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
     {
       kmm_free(wdt);
       return -EINVAL;
-    }
-
-  if (config->pclk)
-    {
-      wdt->pclk = clk_get(config->pclk);
-      if (wdt->pclk == NULL)
-        {
-          kmm_free(wdt);
-          return -EINVAL;
-        }
-      clk_enable(wdt->pclk);
     }
 
   /* set RPL(reset pulse length) to max value(256 pclk)

@@ -384,7 +384,6 @@ void up_wdtinit(void)
     .base = 0xb0080000,
     .irq  = 20,
     .tclk = "cpwdt_tclk",
-    .pclk = "cpwdt_pclk",
   };
 
   dw_wdt_initialize(&config);

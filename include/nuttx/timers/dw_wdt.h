@@ -53,7 +53,6 @@ struct dw_wdt_config_s
   uintptr_t       base;
   int             irq;
   FAR const char *tclk;
-  FAR const char *pclk;
 };
 
 /****************************************************************************

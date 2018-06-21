@@ -260,7 +260,6 @@ void up_wdtinit(void)
     .base = 0xa0180000,
     .irq  = IRQ_VINT13,
     .tclk = "ap/tl421_wdt_tclk",
-    .pclk = "ap/tl421_wdt_pclk",
   };
 
   dw_wdt_initialize(&config);

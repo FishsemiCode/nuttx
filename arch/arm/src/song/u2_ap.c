@@ -296,7 +296,6 @@ void up_wdtinit(void)
     .base = 0xa0170000,
     .irq  = 37,
     .tclk = "m4_wdt_tclk",
-    .pclk = "m4_wdt_pclk",
   };
 
   dw_wdt_initialize(&config);

@@ -297,7 +297,6 @@ void up_wdtinit(void)
     .base = B2C(0xf8108000),
     .irq  = IRQ_VINT0,
     .tclk = "ap/audio_wdt_tclk",
-    .pclk = "ap/audio_wdt_pclk",
   };
 
   dw_wdt_initialize(&config);

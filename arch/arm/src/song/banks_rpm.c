@@ -326,7 +326,6 @@ void up_wdtinit(void)
     .base = 0xf9212000,
     .irq  = 28,
     .tclk = "ap/rpm_wdt_tclk",
-    .pclk = "ap/rpm_wdt_pclk",
   };
 
   dw_wdt_initialize(&config);
