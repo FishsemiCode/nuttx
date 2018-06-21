@@ -119,7 +119,7 @@ struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint6
 {
   struct clk_pll_lf *pll;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   pll = kmm_malloc(sizeof(struct clk_pll_lf));
@@ -134,7 +134,7 @@ struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint6
   pll->cfg_reg0 = cfg_reg0;
   pll->cfg_reg1 = cfg_reg1;
 
-  clk = clk_register(name, num_parents, parent_names,
+  clk = clk_register(name, parent_names, num_parents,
       flags, &clk_pll_lf_ops, pll);
   if (!clk)
     {

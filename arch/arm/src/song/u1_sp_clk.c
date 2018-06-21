@@ -51,7 +51,7 @@
  ****************************************************************************/
 
 /* This descibes mux clk parent source */
-static const char *timer_clk_src[] =
+static const char * const timer_clk_src[] =
 {
   "cp/gnss_i_rf0_clk",
   "pll0_out",
@@ -59,7 +59,7 @@ static const char *timer_clk_src[] =
   "clk32k",
 };
 
-static const char *out_clk_src[] =
+static const char * const out_clk_src[] =
 {
   "cp/gnss_i_rf0_clk",
   "top_bus_mclk0",

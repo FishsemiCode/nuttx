@@ -51,20 +51,20 @@
  ****************************************************************************/
 
 /* This descibes mux clk parent source */
-static const char *rfif_spi_src[] =
+static const char * const rfif_spi_src[] =
 {
   "rfphy_clk38p4m",
   "rfphy_lte_clk",
 };
 
-static const char *at_calib_src[] =
+static const char * const at_calib_src[] =
 {
   "sp/pll0_out",
   "rfphy_clk38p4m",
   "gnss_i_rf0_clk",
 };
 
-static const char *gnss_i_rf0_src[] =
+static const char * const gnss_i_rf0_src[] =
 {
   "chipio_gnss_rf0_clk",
   "rfphy_gnss_rf0_clk",

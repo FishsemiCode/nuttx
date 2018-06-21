@@ -133,7 +133,7 @@ struct clk *clk_register_gate(const char *name,
 {
   struct clk_gate *gate;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   if (clk_gate_flags & CLK_GATE_HIWORD_MASK)
@@ -159,7 +159,7 @@ struct clk *clk_register_gate(const char *name,
   gate->bit_idx = bit_idx;
   gate->flags = clk_gate_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_gate_ops, gate);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_gate_ops, gate);
   if (!clk)
     {
       kmm_free(gate);

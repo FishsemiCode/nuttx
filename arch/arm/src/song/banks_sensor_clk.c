@@ -499,7 +499,7 @@ static const struct song_gate_clk gate[] =
   {},
 };
 
-static const char * at_clk_parents[] =
+static const char * const at_clk_parents[] =
 {
   "sen_clk26m",
   "at_clk_src_pll",

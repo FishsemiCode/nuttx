@@ -79,7 +79,7 @@ struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
 {
   struct clk_fixed_rate *fixed;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   fixed = kmm_malloc(sizeof(struct clk_fixed_rate));
@@ -95,7 +95,7 @@ struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
 
   fixed->fixed_rate = fixed_rate;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_fixed_rate_ops, fixed);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_fixed_rate_ops, fixed);
   if (!clk)
     {
       kmm_free(fixed);

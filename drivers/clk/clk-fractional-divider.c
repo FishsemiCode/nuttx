@@ -186,7 +186,7 @@ struct clk *clk_register_fractional_divider(const char *name,
 {
   struct clk_fractional_divider *fd;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   fd = kmm_malloc(sizeof(*fd));
@@ -206,7 +206,7 @@ struct clk *clk_register_fractional_divider(const char *name,
   fd->nmask = (BIT(nwidth) - 1) << nshift;
   fd->flags = clk_divider_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags,
+  clk = clk_register(name, parent_names, num_parents, flags,
         &clk_fractional_divider_ops, fd);
   if (!clk)
     {

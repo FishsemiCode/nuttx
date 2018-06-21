@@ -216,7 +216,7 @@ struct clk *clk_register_multiplier(const char *name,
 {
   struct clk_multiplier *mult;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   if (clk_multiplier_flags & CLK_MULT_HIWORD_MASK)
@@ -243,7 +243,7 @@ struct clk *clk_register_multiplier(const char *name,
   mult->width = width;
   mult->flags = clk_multiplier_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_multiplier_ops, mult);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_multiplier_ops, mult);
   if (!clk)
     {
       kmm_free(mult);

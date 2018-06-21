@@ -228,8 +228,9 @@ extern const struct clk_ops clk_mux_ro_ops;
 extern const struct clk_ops clk_rpmsg_ops;
 #endif
 
-struct clk *clk_register(const char *name, int32_t num_parents, const char **parent_names,
-                    uint64_t flags, const struct clk_ops *ops, void *private_data);
+struct clk *clk_register(const char *name, const char * const *parent_names,
+                    uint8_t num_parents, uint64_t flags, const struct clk_ops *ops,
+                    void *private_data);
 
 /* the individual clk register Prototypes */
 struct clk *clk_register_gate(const char *name, const char *parent_name,
@@ -258,9 +259,9 @@ struct clk *clk_register_multiplier(const char *name, const char *parent_name,
                     uint64_t flags, uint32_t reg, uint8_t shift, uint8_t width,
                     uint8_t clk_multiplier_flags);
 
-struct clk *clk_register_mux(const char *name, const char **parent_names, uint8_t num_parents,
-                    uint64_t flags, uint32_t reg, uint8_t shift, uint8_t mask,
-                    uint8_t clk_mux_flags);
+struct clk *clk_register_mux(const char *name, const char * const *parent_names,
+                    uint8_t num_parents, uint64_t flags, uint32_t reg, uint8_t shift,
+                    uint8_t mask, uint8_t clk_mux_flags);
 
 #ifdef CONFIG_CLK_RPMSG
 struct clk *clk_register_rpmsg(const char *name);

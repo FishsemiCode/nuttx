@@ -163,7 +163,7 @@ const struct clk_ops clk_mux_ro_ops =
  * Public Functions
  ************************************************************************************/
 
-struct clk *clk_register_mux(const char *name, const char **parent_names,
+struct clk *clk_register_mux(const char *name, const char * const *parent_names,
     uint8_t  num_parents, uint64_t flags,
     uint32_t reg, uint8_t shift, uint8_t mask,
     uint8_t clk_mux_flags)
@@ -187,7 +187,7 @@ struct clk *clk_register_mux(const char *name, const char **parent_names,
     clk = clk_register(name, num_parents, parent_names, flags,
         &clk_mux_ro_ops, mux);
   else
-    clk = clk_register(name, num_parents, parent_names, flags,
+    clk = clk_register(name, parent_names, num_parents, flags,
           &clk_mux_ops, mux);
 
   if (!clk)

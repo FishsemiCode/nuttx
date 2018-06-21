@@ -776,7 +776,7 @@ struct clk *clk_register_rpmsg(const char *name)
     return NULL;
 
   /* rpmsg clk is consider as root clk in remoteproc client */
-  return clk_register(name, 0, NULL, CLK_IS_ROOT, &clk_rpmsg_ops, NULL);
+  return clk_register(name, NULL, 0, CLK_IS_ROOT, &clk_rpmsg_ops, NULL);
 }
 
 int clk_rpmsg_initialize(bool server)

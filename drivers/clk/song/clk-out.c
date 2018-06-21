@@ -227,7 +227,7 @@ const struct clk_ops clk_out_ops =
  * Public Functions
  ************************************************************************************/
 
-struct clk *clk_register_out(const char *name, const char **parent_names,
+struct clk *clk_register_out(const char *name, const char * const *parent_names,
     uint8_t num_parents, unsigned int mux_reg, uint8_t mux_shift, uint8_t mux_width,
     unsigned int ctl_reg)
 {
@@ -245,7 +245,7 @@ struct clk *clk_register_out(const char *name, const char **parent_names,
   out->ctl_reg = ctl_reg;
   out->parent_index = clk_read(mux_reg) >> mux_shift & MASK(mux_width);
 
-  clk = clk_register(name, num_parents, parent_names, 0, &clk_out_ops, out);
+  clk = clk_register(name, parent_names, num_parents, 0, &clk_out_ops, out);
   if (!clk)
     {
       kmm_free(out);

@@ -164,12 +164,12 @@ struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint6
     uint32_t cfg_reg0, uint32_t cfg_reg1);
 
 /* the song platform out register declaration */
-struct clk *clk_register_out(const char *name, const char **parent_names,
+struct clk *clk_register_out(const char *name, const char * const *parent_names,
     uint8_t num_parents, unsigned int mux_reg, uint8_t mux_shift, uint8_t mux_width,
     unsigned int ctl_reg);
 
 /* the song platform timer register declaration */
-struct clk *clk_register_timer(const char *name, const char **parent_names,
+struct clk *clk_register_timer(const char *name, const char *const *parent_names,
     uint8_t num_parents, uint8_t ctl_reg, uint8_t mux_shift, uint8_t mux_width);
 
 #undef EXTERN

@@ -109,7 +109,7 @@ struct clk *clk_register_fixed_factor(const char *name,
 {
   struct clk_fixed_factor *fix;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   fix = kmm_malloc(sizeof(*fix));
@@ -125,7 +125,7 @@ struct clk *clk_register_fixed_factor(const char *name,
   parent_names = parent_name ? &parent_name : NULL;
   num_parents = parent_name ? 1 : 0;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_fixed_factor_ops, fix);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_fixed_factor_ops, fix);
   if (!clk)
     {
       kmm_free(fix);

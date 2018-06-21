@@ -239,7 +239,7 @@ struct clk *clk_register_pll(const char *name, const char *parent_name, uint64_t
 {
   struct clk_pll *pll;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   pll = kmm_malloc(sizeof(struct clk_pll));
@@ -256,7 +256,7 @@ struct clk *clk_register_pll(const char *name, const char *parent_name, uint64_t
   pll->ctl_reg = ctl_reg;
   pll->ctl_shift = ctl_shift;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_pll_ops, pll);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_pll_ops, pll);
   if (!clk)
     {
       kmm_free(pll);

@@ -112,7 +112,7 @@ struct clk *clk_register_phase(const char *name, const char *parent_name,
 {
   struct clk_phase *phase;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   phase = kmm_malloc(sizeof(struct clk_phase));
@@ -129,7 +129,7 @@ struct clk *clk_register_phase(const char *name, const char *parent_name,
   phase->width = width;
   phase->flags = clk_phase_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_phase_ops, phase);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_phase_ops, phase);
   if (!clk)
     {
       kmm_free(phase);

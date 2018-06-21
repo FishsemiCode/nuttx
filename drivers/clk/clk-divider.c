@@ -279,7 +279,7 @@ struct clk *clk_register_divider(const char *name,
 {
   struct clk_divider *div;
   struct clk *clk;
-  int32_t num_parents;
+  uint8_t num_parents;
   const char **parent_names;
 
   if (clk_divider_flags & CLK_DIVIDER_HIWORD_MASK)
@@ -306,7 +306,7 @@ struct clk *clk_register_divider(const char *name,
   div->width = width;
   div->flags = clk_divider_flags;
 
-  clk = clk_register(name, num_parents, parent_names, flags, &clk_divider_ops, div);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_divider_ops, div);
   if (!clk)
     {
       kmm_free(div);
