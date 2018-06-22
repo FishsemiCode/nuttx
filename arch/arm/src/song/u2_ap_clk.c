@@ -167,6 +167,26 @@ static const struct song_mux_gate_clk mux_gate[] =
   {},
 };
 
+static const struct song_sdiv_fdiv_clk sdiv_fdiv[] =
+{
+  {
+    .name = "audio_sys_in_clk",
+    .parent_name = "audio_mclk",
+    .flags = 0,
+    .en_offset = 0xe0,
+    .en_shift = 0,
+    .sdiv_offset = 0xe0,
+    .sdiv_shift = 4,
+    .sdiv_width = 4,
+    .fdiv_offset = 0xe4,
+    .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT) |
+                     ((CLK_FRAC_MUL_NEED_EVEN | CLK_FRAC_DIV_DOUBLE)
+                      << SONG_CLK_FRAC_FLAG_SHIFT)),
+  },
+  {},
+};
+
 static const struct song_gr_fdiv_clk gr_fdiv[] =
 {
   {
@@ -757,6 +777,7 @@ static const struct song_clk_table u2_ap_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
   .gr_clks           = gr,
+  .sdiv_fdiv_clks    = sdiv_fdiv,
   .gr_fdiv_clks      = gr_fdiv,
   .sdiv_clks         = sdiv,
   .sdiv_sdiv_clks    = sdiv_sdiv,
