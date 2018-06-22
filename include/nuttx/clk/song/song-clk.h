@@ -136,6 +136,20 @@ struct song_sdiv_sdiv_clk
   uint64_t           private_flags;
 };
 
+struct song_sdiv_fdiv_clk
+{
+  const char         *name;
+  const char         *parent_name;
+  uint32_t           flags;
+  uint32_t           en_offset;
+  uint8_t            en_shift;
+  uint32_t           sdiv_offset;
+  uint32_t           sdiv_shift;
+  uint32_t           sdiv_width;
+  uint32_t           fdiv_offset;
+  uint64_t           private_flags;
+};
+
 struct song_gr_fdiv_clk
 {
   const char         *name;
@@ -265,6 +279,7 @@ struct song_clk_table
   const struct song_gr_clk *gr_clks;
   const struct song_fixed_factor_clk *fixed_factor_clks;
   const struct song_sdiv_sdiv_clk *sdiv_sdiv_clks;
+  const struct song_sdiv_fdiv_clk *sdiv_fdiv_clks;
   const struct song_gr_fdiv_clk *gr_fdiv_clks;
   const struct song_sdiv_gr_clk *sdiv_gr_clks;
   const struct song_sdiv_gr_clk *gr_sdiv_clks;

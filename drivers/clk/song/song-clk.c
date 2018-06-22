@@ -68,6 +68,11 @@ static struct clk *song_clk_register_gr(const char *name,
                     uint32_t reg_base, uint32_t en_offset, uint8_t en_shift,
                     uint32_t mul_offset, uint8_t mul_shift, uint8_t mul_width,
                     uint64_t private_flags);
+static struct clk *song_clk_register_sdiv_fdiv(const char *name,
+                    const char *parent_name, uint64_t flags,
+                    uint32_t reg_base, uint32_t en_offset, uint8_t en_shift,
+                    uint32_t sdiv_offset, uint8_t sdiv_shift, uint8_t sdiv_width,
+                    uint32_t fdiv_offset, uint64_t private_flags);
 static struct clk *song_clk_register_gr_fdiv(const char *name,
                     const char *parent_name, uint64_t flags,
                     uint32_t reg_base, uint32_t en_offset,
@@ -109,6 +114,8 @@ static int song_register_gr_clks(uint32_t reg_base,
                     const struct song_gr_clk *gr_clks);
 static int song_register_sdiv_sdiv_clks(uint32_t reg_base,
                     const struct song_sdiv_sdiv_clk *sdiv_sdiv_clks);
+static int song_register_sdiv_fdiv_clks(uint32_t reg_base,
+                    const struct song_sdiv_fdiv_clk *sdiv_fdiv_clks);
 static int song_register_gr_fdiv_clks(uint32_t reg_base,
                     const struct song_gr_fdiv_clk *gr_fdiv_clks);
 static int song_register_sdiv_gr_clks(uint32_t reg_base,
@@ -263,6 +270,52 @@ static struct clk *song_clk_register_gr(const char *name,
 
   return clk_register_fixed_factor(name, mult_clk, flags,
     1, fixed_div);
+}
+
+static struct clk *song_clk_register_sdiv_fdiv(const char *name,
+    const char *parent_name, uint64_t flags,
+    uint32_t reg_base, uint32_t en_offset, uint8_t en_shift,
+    uint32_t sdiv_offset, uint8_t sdiv_shift, uint8_t sdiv_width,
+    uint32_t fdiv_offset, uint64_t private_flags)
+{
+  struct clk *clk;
+  char sdiv_clk[SONG_CLK_NAME_MAX];
+  uint8_t sdiv_flags, frac_flags;
+  const char *pname = parent_name;
+
+  snprintf(sdiv_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "sdiv");
+  sdiv_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
+    SONG_CLK_DIV_MASK;
+
+  frac_flags = (private_flags >> SONG_CLK_FRAC_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  if (en_offset)
+    {
+      char gate_clk[SONG_CLK_NAME_MAX];
+      uint8_t gate_flags;
+
+      snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
+      gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
+        SONG_CLK_FLAG_MASK;
+
+      clk = clk_register_gate(gate_clk, parent_name, flags, reg_base + en_offset,
+        en_shift, gate_flags);
+
+      if (!clk)
+        return clk;
+      pname = gate_clk;
+    }
+
+  clk = clk_register_divider(sdiv_clk, pname, flags,
+    reg_base + sdiv_offset, sdiv_shift, sdiv_width, sdiv_flags);
+  if (!clk)
+    return clk;
+
+  return clk_register_fractional_divider(name, sdiv_clk, flags,
+    reg_base + fdiv_offset, SONG_CLK_SDIV_FDIV_MUL_SHIFT,
+    SONG_CLK_SDIV_FDIV_MUL_WIDTH, SONG_CLK_SDIV_FDIV_DIV_SHIFT,
+    SONG_CLK_SDIV_FDIV_DIV_WIDTH, frac_flags);
 }
 
 static struct clk *song_clk_register_gr_fdiv(const char *name,
@@ -584,6 +637,36 @@ static int song_register_sdiv_sdiv_clks(uint32_t reg_base,
         }
 
       sdiv_sdiv_clks++;
+    }
+
+  return 0;
+}
+
+static int song_register_sdiv_fdiv_clks(uint32_t reg_base,
+            const struct song_sdiv_fdiv_clk *sdiv_fdiv_clks)
+{
+  struct clk *clk = NULL;
+
+  while (sdiv_fdiv_clks->name)
+    {
+      clk = song_clk_register_sdiv_fdiv(
+              sdiv_fdiv_clks->name,
+              sdiv_fdiv_clks->parent_name,
+              sdiv_fdiv_clks->flags,
+              reg_base,
+              sdiv_fdiv_clks->en_offset,
+              sdiv_fdiv_clks->en_shift,
+              sdiv_fdiv_clks->sdiv_offset,
+              sdiv_fdiv_clks->sdiv_shift,
+              sdiv_fdiv_clks->sdiv_width,
+              sdiv_fdiv_clks->fdiv_offset,
+              sdiv_fdiv_clks->private_flags);
+      if (!clk)
+        {
+          return -EINVAL;
+        }
+
+      sdiv_fdiv_clks++;
     }
 
   return 0;
@@ -1004,6 +1087,13 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
   if (table->sdiv_sdiv_clks)
     {
       ret = song_register_sdiv_sdiv_clks(base, table->sdiv_sdiv_clks);
+      if (ret)
+        return ret;
+    }
+
+  if (table->sdiv_fdiv_clks)
+    {
+      ret = song_register_sdiv_fdiv_clks(base, table->sdiv_fdiv_clks);
       if (ret)
         return ret;
     }
