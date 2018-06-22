@@ -50,6 +50,7 @@ struct dw_i2c_config_s
 {
   uintptr_t base;
   uint32_t irq;
+  int bus;
   uint32_t sda_hold;
   uint32_t fs_spklen;
   uint32_t hs_spklen;
@@ -74,7 +75,8 @@ extern "C"
 #define EXTERN extern
 #endif
 
-FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *config);
+FAR void dw_i2c_initialize_all(FAR const struct dw_i2c_config_s *config, int config_num,
+                               FAR struct i2c_master_s **i2c, int space);
 
 #undef EXTERN
 #if defined(__cplusplus)

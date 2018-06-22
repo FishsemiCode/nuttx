@@ -820,7 +820,7 @@ FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *con
   i2c = kmm_zalloc(sizeof(struct dw_i2c_dev_s));
   if (NULL == i2c)
     {
-      i2cerr("no memory for i2c-base:%p apply\n", config->base);
+      i2cerr("i2c:%d no memory apply\n", config->bus);
       return NULL;
     }
 
@@ -857,4 +857,32 @@ sem_err:
 mutex_err:
   kmm_free(i2c);
   return NULL;
+}
+
+FAR void dw_i2c_initialize_all(FAR const struct dw_i2c_config_s *config, int config_num,
+                               FAR struct i2c_master_s **i2c, int space)
+{
+  int i;
+  struct i2c_master_s *i2c_dev;
+
+  for (i = 0; i < config_num; i++)
+    {
+      if (config[i].bus >= space - 1)
+        {
+          i2cerr("i2c%d: bus number invalid, skip\n", config[i].bus);
+          continue;
+        }
+
+      i2c_dev = dw_i2c_initialize(&config[i]);
+      if (!i2c_dev)
+        {
+          i2cerr("i2c%d: initialize failed\n", config[i].bus);
+          continue;
+        }
+
+      i2c[config[i].bus] = i2c_dev;
+#ifdef CONFIG_I2C_DRIVER
+      i2c_register(i2c_dev, config[i].bus);
+#endif
+    }
 }
