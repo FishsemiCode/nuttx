@@ -62,6 +62,7 @@ config ARCH_CHIP_U1_SP
 config ARCH_CHIP_U2_AP
 	bool "U2 AP"
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_HEAP2
 	select SONG_CORTEXM4
 
 endchoice
