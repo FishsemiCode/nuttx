@@ -183,7 +183,7 @@ void up_allocate_kheap(FAR void **heap_start, size_t *heap_size)
 #if CONFIG_MM_REGIONS > 1
 void up_addregion(void)
 {
-#ifdef CONFIG_HAVE_HEAP2
+#ifdef CONFIG_ARCH_HAVE_HEAP2
 
 #ifdef CONFIG_BUILD_PROTECTED
 
