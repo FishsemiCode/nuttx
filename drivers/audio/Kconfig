@@ -271,3 +271,9 @@ config AUDIO_NULL_WORKER_STACKSIZE
 	default 768
 
 endif # AUDIO_NULL
+
+config AUDIO_DMA
+        bool "Audio Dma"
+        select AUDIO_DRIVER_SPECIFIC_BUFFERS
+        depends on AUDIO
+        depends on DMA
