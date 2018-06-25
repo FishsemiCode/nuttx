@@ -474,12 +474,11 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
 
       if (finish || flush || match)
         {
-          song_dmas_chan_irq(&dev->channels[i], flush);
-
           if (finish)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR0, i);
           if (flush)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR0, i + 16);
+          song_dmas_chan_irq(&dev->channels[i], flush);
           if (match)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR1, i);
         }
