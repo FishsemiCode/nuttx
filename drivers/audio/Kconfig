@@ -252,3 +252,8 @@ config AUDIO_THINKER
 	depends on AUDIO
 	---help---
 		Select to enable support for the thinker-S device.
+
+config AUDIO_I2S
+        bool "Audio I2S"
+        depends on AUDIO
+        depends on I2S
