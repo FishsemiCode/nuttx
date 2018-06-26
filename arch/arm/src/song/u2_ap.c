@@ -77,6 +77,8 @@
 
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_M4_INTR2SLP_MK0     (TOP_PWR_BASE + 0x224)
+#define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
+#define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
 
 /****************************************************************************
  * Private Data
@@ -366,6 +368,25 @@ void up_lateinitialize(void)
 #ifdef CONFIG_MTD_GD25
   up_flash_init();
 #endif
+}
+
+int board_reset(int status)
+{
+  if (status == 0)
+    {
+      /* Reset board */
+
+      putreg32(0x0, TOP_PWR_RES_REG2);
+    }
+  else
+    {
+      /* Reset board to bootloader */
+
+      putreg32(0xaaaa1234, TOP_PWR_RES_REG2);
+    }
+
+  putreg32(0x10001, TOP_PWR_SFRST_CTL);
+  return 0;
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */
