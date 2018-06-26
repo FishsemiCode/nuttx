@@ -209,20 +209,28 @@ static const struct uart_ops_s g_uart_ops =
 /* I/O buffers */
 
 #ifdef CONFIG_16550_UART0
-static long g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE/sizeof(long)];
-static long g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE/sizeof(long)];
+static char g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
+static char g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
 #endif
 #ifdef CONFIG_16550_UART1
-static long g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE/sizeof(long)];
-static long g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE/sizeof(long)];
+static char g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
+static char g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
 #endif
 #ifdef CONFIG_16550_UART2
-static long g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE/sizeof(long)];
-static long g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE/sizeof(long)];
+static char g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
+static char g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
 #endif
 #ifdef CONFIG_16550_UART3
-static long g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE/sizeof(long)];
-static long g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE/sizeof(long)];
+static char g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
+static char g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE]
+__attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
 #endif
 
 /* This describes the state of the 16550 uart port. */
@@ -256,12 +264,12 @@ static uart_dev_t g_uart0port =
   .recv     =
   {
     .size   = CONFIG_16550_UART0_RXBUFSIZE,
-    .buffer = (FAR char *)g_uart0rxbuffer,
+    .buffer = g_uart0rxbuffer,
   },
   .xmit     =
   {
     .size   = CONFIG_16550_UART0_TXBUFSIZE,
-    .buffer = (FAR char *)g_uart0txbuffer,
+    .buffer = g_uart0txbuffer,
   },
   .ops      = &g_uart_ops,
   .priv     = &g_uart0priv,
@@ -299,12 +307,12 @@ static uart_dev_t g_uart1port =
   .recv     =
   {
     .size   = CONFIG_16550_UART1_RXBUFSIZE,
-    .buffer = (FAR char *)g_uart1rxbuffer,
+    .buffer = g_uart1rxbuffer,
   },
   .xmit     =
   {
     .size   = CONFIG_16550_UART1_TXBUFSIZE,
-    .buffer = (FAR char *)g_uart1txbuffer,
+    .buffer = g_uart1txbuffer,
    },
   .ops      = &g_uart_ops,
   .priv     = &g_uart1priv,
@@ -342,12 +350,12 @@ static uart_dev_t g_uart2port =
   .recv     =
   {
     .size   = CONFIG_16550_UART2_RXBUFSIZE,
-    .buffer = (FAR char *)g_uart2rxbuffer,
+    .buffer = g_uart2rxbuffer,
   },
   .xmit     =
   {
     .size   = CONFIG_16550_UART2_TXBUFSIZE,
-    .buffer = (FAR char *)g_uart2txbuffer,
+    .buffer = g_uart2txbuffer,
    },
   .ops      = &g_uart_ops,
   .priv     = &g_uart2priv,
@@ -385,12 +393,12 @@ static uart_dev_t g_uart3port =
   .recv     =
   {
     .size   = CONFIG_16550_UART3_RXBUFSIZE,
-    .buffer = (FAR char *)g_uart3rxbuffer,
+    .buffer = g_uart3rxbuffer,
   },
   .xmit     =
   {
     .size   = CONFIG_16550_UART3_TXBUFSIZE,
-    .buffer = (FAR char *)g_uart3txbuffer,
+    .buffer = g_uart3txbuffer,
    },
   .ops      = &g_uart_ops,
   .priv     = &g_uart3priv,
@@ -1130,15 +1138,31 @@ static void u16550_dmareceive_done(FAR struct dma_chan_s *chan,
                                    FAR void *arg, ssize_t len)
 {
   FAR struct uart_dev_s *dev = arg;
-  FAR void *buffer = dev->dmarx.buffer;
+  FAR void *buffer;
   int ret;
 
   if (len > 0)
     {
-      buffer = u16550_cachealign_buffer(buffer);
-      if (buffer != dev->dmarx.buffer)
+      if (dev->dmarx.nlength > dev->dmarx.length)
         {
-          memcpy(dev->dmarx.buffer, buffer, len);
+          buffer = dev->dmarx.nbuffer;
+          if (len > dev->dmarx.length)
+            {
+              memcpy(dev->dmarx.buffer, buffer, dev->dmarx.length);
+              memcpy(buffer, buffer + dev->dmarx.length, len - dev->dmarx.length);
+            }
+          else
+            {
+              memcpy(dev->dmarx.buffer, buffer, len);
+            }
+        }
+      else
+        {
+          buffer = u16550_cachealign_buffer(dev->dmarx.buffer);
+          if (buffer != dev->dmarx.buffer)
+            {
+              memcpy(dev->dmarx.buffer, buffer, len);
+            }
         }
 
       dev->dmarx.nbytes = len;
@@ -1163,14 +1187,23 @@ static void u16550_dmareceive(FAR struct uart_dev_s *dev)
   FAR void *buffer = dev->dmarx.buffer;
   size_t length = dev->dmarx.length;
 
+  if (dev->dmarx.nlength > length)
+    {
+      buffer = dev->dmarx.nbuffer;
+      length = dev->dmarx.nlength;
+    }
+
   buffer = u16550_cachealign_buffer(buffer);
-  /* divide by 2 to form a ping pong buffer */
-  length = u16550_cachealign_length(length / 2);
+  length = u16550_cachealign_length(length);
   if (length > 0)
     {
       up_invalidate_dcache((uintptr_t)buffer, (uintptr_t)buffer + length);
       DMA_START(priv->chanrx, u16550_dmareceive_done, dev,
         up_addrenv_va_to_pa(buffer), priv->uartbase + UART_RBR_OFFSET, length);
+    }
+  else
+    {
+      uart_recvchars_done(dev);
     }
 }
 
