@@ -410,18 +410,24 @@ static int song_dmas_resume(struct dma_chan_s *chan_)
   return OK;
 }
 
+static size_t song_dmas_delivered(struct song_dmas_chan_s *chan)
+{
+  uintptr_t start = chan->index < 8 ? chan->src_addr : chan->dst_addr;
+  uint32_t ca = song_dmas_read(chan->dev, SONG_DMAS_REG_CA(chan->index));
+  size_t delivered = ca - start;
+
+  if (delivered > chan->period_len * chan->period_num)
+    {
+      delivered = chan->period_len * chan->period_num;
+    }
+
+  return delivered;
+}
+
 static size_t song_dmas_residual(struct dma_chan_s *chan_)
 {
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
-  uintptr_t start = chan->index < 8 ? chan->src_addr : chan->dst_addr;
-  uint32_t ca = song_dmas_read(chan->dev, SONG_DMAS_REG_CA(chan->index));
-  ssize_t residual;
-
-  residual = chan->period_len * chan->period_num - ca + start;
-  if (residual < 0)
-    return 0;
-  else
-    return residual;
+  return chan->period_len * chan->period_num - song_dmas_delivered(chan);
 }
 
 static void song_dmas_next_transfer(struct song_dmas_chan_s *chan)
@@ -438,24 +444,24 @@ static void song_dmas_next_transfer(struct song_dmas_chan_s *chan)
   song_dmas_write(dev, SONG_DMAS_REG_INTA(chan->index), phy_addr);
 }
 
-static void song_dmas_chan_irq(struct song_dmas_chan_s* chan, bool flush)
+static void song_dmas_chan_irq(struct song_dmas_chan_s* chan, bool match, bool flush)
 {
-  ssize_t len;
-
   if (chan->period_num > 1)
     {
-      song_dmas_next_transfer(chan);
-      len = chan->period_len;
+      if (match)
+        {
+          song_dmas_next_transfer(chan);
+        }
     }
-  else
+  else if (flush)
     {
-      if (flush)
-        song_dmas_stop(&chan->chan);
-      len = chan->period_len * chan->period_num -
-            song_dmas_residual(&chan->chan);
+      song_dmas_stop(&chan->chan);
     }
+
   if (chan->callback)
-    chan->callback(&chan->chan, chan->arg, len);
+    {
+      chan->callback(&chan->chan, chan->arg, song_dmas_delivered(chan));
+    }
 }
 
 static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
@@ -478,7 +484,12 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR0, i);
           if (flush)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR0, i + 16);
-          song_dmas_chan_irq(&dev->channels[i], flush);
+
+          /* clear FINISH/FLUSH before to avoid clear the upcoming request accidentally
+           * clear MATCH after to let the handler update the match address first
+           */
+          song_dmas_chan_irq(&dev->channels[i], match, flush);
+
           if (match)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR1, i);
         }
