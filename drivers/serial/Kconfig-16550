@@ -90,6 +90,13 @@ config 16550_UART0_DMA_RX
 	---help---
 		-1 means don't use DMA for receiving
 
+config 16550_UART0_DMA_RXBUFSIZE
+	int "16550 UART0 DMA Rx buffer size"
+	depends on 16550_UART0_DMA_RX != -1
+	default 16550_UART0_RXBUFSIZE
+	---help---
+		16550 UART0 DMA Rx buffer size.
+
 config 16550_UART0_DMA_RXTIMEOUT
 	int "16550 UART0 DMA Rx timeout(char)"
 	depends on 16550_UART0_DMA_RX != -1
@@ -185,6 +192,13 @@ config 16550_UART1_DMA_RX
 	default -1
 	---help---
 		-1 means don't use DMA for receiving
+
+config 16550_UART1_DMA_RXBUFSIZE
+	int "16550 UART1 DMA Rx buffer size"
+	depends on 16550_UART1_DMA_RX != -1
+	default 16550_UART1_RXBUFSIZE
+	---help---
+		16550 UART1 DMA Rx buffer size.
 
 config 16550_UART1_DMA_RXTIMEOUT
 	int "16550 UART1 DMA Rx timeout(char)"
@@ -282,6 +296,13 @@ config 16550_UART2_DMA_RX
 	---help---
 		-1 means don't use DMA for receiving
 
+config 16550_UART2_DMA_RXBUFSIZE
+	int "16550 UART2 DMA Rx buffer size"
+	depends on 16550_UART2_DMA_RX != -1
+	default 16550_UART2_RXBUFSIZE
+	---help---
+		16550 UART2 DMA Rx buffer size.
+
 config 16550_UART2_DMA_RXTIMEOUT
 	int "16550 UART2 DMA Rx timeout(char)"
 	depends on 16550_UART2_DMA_RX != -1
@@ -378,6 +399,13 @@ config 16550_UART3_DMA_RX
 	---help---
 		-1 means don't use DMA for receiving
 
+config 16550_UART3_DMA_RXBUFSIZE
+	int "16550 UART3 DMA Rx buffer size"
+	depends on 16550_UART3_DMA_RX != -1
+	default 16550_UART3_RXBUFSIZE
+	---help---
+		16550 UART3 DMA Rx buffer size.
+
 config 16550_UART3_DMA_RXTIMEOUT
 	int "16550 UART3 DMA Rx timeout(char)"
 	depends on 16550_UART3_DMA_RX != -1
@@ -435,10 +463,6 @@ config 16550_SUPRESS_INITIAL_CONFIG
 config SERIAL_UART_ARCH_MMIO
 	bool "Platform access register through the memory mapping"
 	default n
-
-config SERIAL_UART_ARCH_CACHELINE
-	int "Platform cache line size"
-	default 0
 
 config SERIAL_UART_ARCH_IOCTL
 	bool "Platform has own custom IOCTL"
