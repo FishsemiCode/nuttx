@@ -117,7 +117,7 @@ void up_earlyinitialize(void)
 void up_dmainitialize(void)
 {
 #  ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(1, B2C(0xa0030000), IRQ_INT1, "ap/top_dmas_hclk");
+  g_dma[0] = song_dmas_initialize(1, B2C(0xa0040000), IRQ_INT1, "ap/top_dmas_hclk");
   g_dma[1] = song_dmas_initialize(1, B2C(0xa0080000), IRQ_INT0, "ap/audio_dmas_hclk");
 #  endif
 }
