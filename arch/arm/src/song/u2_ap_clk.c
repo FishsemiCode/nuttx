@@ -260,21 +260,21 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
     .parent_name = "pll1_mclk",
     .div_offset = 0x70,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "spi1_mclk",
     .parent_name = "pll1_mclk",
     .div_offset = 0x74,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                     ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                     (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "btdm_bb_sys_clk",
     .parent_name = "rfphy_pll0_clk",
     .div_offset = 0x5c,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {},
 };
@@ -291,7 +291,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 3,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "pwm_mclk",
@@ -303,7 +303,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "i2c0_mclk",
@@ -315,7 +315,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 5,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "i2c1_mclk",
@@ -327,7 +327,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 5,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "i2c2_mclk",
@@ -339,7 +339,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 5,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "bus_lp_clk",
@@ -351,7 +351,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "pll_adj_clk",
@@ -363,7 +363,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "top_bus_mclk",
@@ -375,7 +375,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "top_pclk0",
@@ -387,7 +387,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "top_pclk1",
@@ -399,7 +399,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "pll1_mclk",
@@ -411,7 +411,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "tl421_bus_clk",
@@ -423,7 +423,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "thinkers_mclk",
@@ -435,7 +435,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "audio_mclk",
@@ -447,7 +447,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "audio_clk_3072k",
@@ -459,7 +459,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "at_clk",
@@ -471,7 +471,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 4,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {
     .name = "codec_ref_clk",
@@ -483,7 +483,7 @@ static const struct song_sdiv_clk sdiv[] =
     .div_shift = 4,
     .div_width = 6,
     .private_flags = ((CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT) |
-                      ((uint64_t)CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
+                      (CLK_DIVIDER_HIWORD_MASK << SONG_CLK_DIV_FLAG_SHIFT)),
   },
   {},
 };

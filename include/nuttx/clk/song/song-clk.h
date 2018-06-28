@@ -53,13 +53,13 @@
 #define SONG_CLK_GR_DIV_16              0x01
 
 /* This descibes individual clk flag shift among song-clk wrapper */
-#define SONG_CLK_PRIVATE_FLAG_SHIFT     0
-#define SONG_CLK_GATE_FLAG_SHIFT        8
+#define SONG_CLK_GATE_FLAG_SHIFT        0
+#define SONG_CLK_DIV_FLAG_SHIFT         8
 #define SONG_CLK_MULT_FLAG_SHIFT        16
 #define SONG_CLK_FRAC_FLAG_SHIFT        24
 #define SONG_CLK_MUX_FLAG_SHIFT         32
-#define SONG_CLK_DIV_FLAG_SHIFT         40
-#define SONG_CLK_PHASE_FLAG_SHIFT       56
+#define SONG_CLK_PHASE_FLAG_SHIFT       40
+#define SONG_CLK_PRIVATE_FLAG_SHIFT     48
 
 /************************************************************************************
  * Public Data
