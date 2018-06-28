@@ -64,59 +64,6 @@
  * Pre-processor definitions
  ****************************************************************************/
 
-#ifndef CONFIG_16550_UART0_DMA_TX
-#  define CONFIG_16550_UART0_DMA_TX         -1
-#endif
-
-#ifndef CONFIG_16550_UART0_DMA_RX
-#  define CONFIG_16550_UART0_DMA_RX         -1
-#endif
-
-#ifndef CONFIG_16550_UART0_DMA_RXTIMEOUT
-#  define CONFIG_16550_UART0_DMA_RXTIMEOUT  0
-#endif
-
-#ifndef CONFIG_16550_UART1_DMA_TX
-#  define CONFIG_16550_UART1_DMA_TX         -1
-#endif
-
-#ifndef CONFIG_16550_UART1_DMA_RX
-#  define CONFIG_16550_UART1_DMA_RX         -1
-#endif
-
-#ifndef CONFIG_16550_UART1_DMA_RXTIMEOUT
-#  define CONFIG_16550_UART1_DMA_RXTIMEOUT  0
-#endif
-
-#ifndef CONFIG_16550_UART2_DMA_TX
-#  define CONFIG_16550_UART2_DMA_TX         -1
-#endif
-
-#ifndef CONFIG_16550_UART2_DMA_RX
-#  define CONFIG_16550_UART2_DMA_RX         -1
-#endif
-
-#ifndef CONFIG_16550_UART2_DMA_RXTIMEOUT
-#  define CONFIG_16550_UART2_DMA_RXTIMEOUT  0
-#endif
-
-#ifndef CONFIG_16550_UART3_DMA_TX
-#  define CONFIG_16550_UART3_DMA_TX         -1
-#endif
-
-#ifndef CONFIG_16550_UART3_DMA_RX
-#  define CONFIG_16550_UART3_DMA_RX         -1
-#endif
-
-#ifndef CONFIG_16550_UART3_DMA_RXTIMEOUT
-#  define CONFIG_16550_UART3_DMA_RXTIMEOUT  0
-#endif
-
-#if CONFIG_SERIAL_UART_ARCH_CACHELINE < 1
-#  undef CONFIG_SERIAL_UART_ARCH_CACHELINE
-#  define CONFIG_SERIAL_UART_ARCH_CACHELINE 1
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -239,12 +186,17 @@ __attribute__((aligned(CONFIG_SERIAL_UART_ARCH_CACHELINE)));
 static struct u16550_s g_uart0priv =
 {
   .uartbase       = CONFIG_16550_UART0_BASE,
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_16550_UART0_DMA
   .dmatx          = CONFIG_16550_UART0_DMA_TX,
   .dmarx          = CONFIG_16550_UART0_DMA_RX,
+#  if CONFIG_16550_UART0_DMA_RX != -1
   .dmarxtimeout   = CONFIG_16550_UART0_DMA_RXTIMEOUT,
+#  endif
+#elif defined(CONFIG_SERIAL_DMA)
+  .dmatx          = -1,
+  .dmarx          = -1,
 #endif
-#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_SERIAL_DMA)
+#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_16550_UART0_DMA)
   .baud           = CONFIG_16550_UART0_BAUD,
   .uartclk        = CONFIG_16550_UART0_CLOCK,
 #endif
@@ -282,12 +234,17 @@ static uart_dev_t g_uart0port =
 static struct u16550_s g_uart1priv =
 {
   .uartbase       = CONFIG_16550_UART1_BASE,
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_16550_UART1_DMA
   .dmatx          = CONFIG_16550_UART1_DMA_TX,
   .dmarx          = CONFIG_16550_UART1_DMA_RX,
+#  if CONFIG_16550_UART1_DMA_RX != -1
   .dmarxtimeout   = CONFIG_16550_UART1_DMA_RXTIMEOUT,
+#  endif
+#elif defined(CONFIG_SERIAL_DMA)
+  .dmatx          = -1,
+  .dmarx          = -1,
 #endif
-#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_SERIAL_DMA)
+#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_16550_UART1_DMA)
   .baud           = CONFIG_16550_UART1_BAUD,
   .uartclk        = CONFIG_16550_UART1_CLOCK,
 #endif
@@ -325,12 +282,17 @@ static uart_dev_t g_uart1port =
 static struct u16550_s g_uart2priv =
 {
   .uartbase       = CONFIG_16550_UART2_BASE,
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_16550_UART2_DMA
   .dmatx          = CONFIG_16550_UART2_DMA_TX,
   .dmarx          = CONFIG_16550_UART2_DMA_RX,
+#  if CONFIG_16550_UART2_DMA_RX != -1
   .dmarxtimeout   = CONFIG_16550_UART2_DMA_RXTIMEOUT,
+#  endif
+#elif defined(CONFIG_SERIAL_DMA)
+  .dmatx          = -1,
+  .dmarx          = -1,
 #endif
-#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_SERIAL_DMA)
+#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_16550_UART2_DMA)
   .baud           = CONFIG_16550_UART2_BAUD,
   .uartclk        = CONFIG_16550_UART2_CLOCK,
 #endif
@@ -368,12 +330,17 @@ static uart_dev_t g_uart2port =
 static struct u16550_s g_uart3priv =
 {
   .uartbase       = CONFIG_16550_UART3_BASE,
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_16550_UART3_DMA
   .dmatx          = CONFIG_16550_UART3_DMA_TX,
   .dmarx          = CONFIG_16550_UART3_DMA_RX,
+#  if CONFIG_16550_UART3_DMA_RX != -1
   .dmarxtimeout   = CONFIG_16550_UART3_DMA_RXTIMEOUT,
+#  endif
+#elif defined(CONFIG_SERIAL_DMA)
+  .dmatx          = -1,
+  .dmarx          = -1,
 #endif
-#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_SERIAL_DMA)
+#if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_16550_UART3_DMA)
   .baud           = CONFIG_16550_UART3_BAUD,
   .uartclk        = CONFIG_16550_UART3_CLOCK,
 #endif
@@ -1023,10 +990,12 @@ static void u16550_rxint(struct uart_dev_s *dev, bool enable)
 {
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
 
+#ifdef CONFIG_SERIAL_DMA
   if (priv->chanrx)
     {
       return; /* Monitor DMA interrupt instead */
     }
+#endif
 
   if (enable)
     {
@@ -1232,11 +1201,6 @@ static void u16550_dmarxfree(FAR struct uart_dev_s *dev)
       return; /* Can't receive by DMA */
     }
 
-  if (dev->dmarx.length != 0)
-    {
-      return; /* DMA is busy for receiving */
-    }
-
   if (priv->chanrx == NULL)
     {
       priv->chanrx = uart_dmachan(priv->uartbase, priv->dmarx);
@@ -1247,8 +1211,12 @@ static void u16550_dmarxfree(FAR struct uart_dev_s *dev)
       u16550_dmarxconfig(dev);
     }
 
-  /* Start DMA for receiving */
-  uart_recvchars_dma(dev);
+  /* The receive isn't in the process? */
+  if (dev->dmarx.length == 0)
+    {
+      /* Trigger the receive process */
+      uart_recvchars_dma(dev);
+    }
 }
 
 static void u16550_dmatxconfig(FAR struct uart_dev_s *dev)
@@ -1274,11 +1242,6 @@ static void u16550_dmatxavail(FAR struct uart_dev_s *dev)
       return; /* Can't send by DMA */
     }
 
-  if (dev->dmatx.length != 0)
-    {
-      return; /* DMA is busy for sending */
-    }
-
   if (priv->chantx == NULL)
     {
       priv->chantx = uart_dmachan(priv->uartbase, priv->dmatx);
@@ -1289,8 +1252,12 @@ static void u16550_dmatxavail(FAR struct uart_dev_s *dev)
       u16550_dmatxconfig(dev);
     }
 
-  /* Start DMA for sending */
-  uart_xmitchars_dma(dev);
+  /* DMA isn't busy for sending? */
+  if (dev->dmatx.length == 0)
+    {
+      /* Start DMA for sending */
+      uart_xmitchars_dma(dev);
+    }
 }
 #endif
 
@@ -1321,10 +1288,12 @@ static void u16550_txint(struct uart_dev_s *dev, bool enable)
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
   irqstate_t flags;
 
+#ifdef CONFIG_SERIAL_DMA
   if (priv->chantx)
     {
       return; /* Monitor DMA interrupt instead */
     }
+#endif
 
   flags = enter_critical_section();
   if (enable)
