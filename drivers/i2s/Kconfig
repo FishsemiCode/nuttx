@@ -33,3 +33,6 @@ config AUDIO_I2SCHAR_TXTIMEOUT
 		The special value of zero disables RX timeouts.  Default: 0
 
 endif # AUDIO_I2SCHAR
+
+config SONG_I2S
+        bool "Song I2S"

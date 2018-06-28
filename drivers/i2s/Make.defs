@@ -39,6 +39,10 @@ ifeq ($(CONFIG_AUDIO_I2SCHAR),y)
 CSRCS += i2schar.c
 endif
 
+ifeq ($(CONFIG_SONG_I2S),y)
+CSRCS += song_i2s.c
+endif
+
 DEPPATH += --dep-path i2s
 VPATH += :i2s
 
