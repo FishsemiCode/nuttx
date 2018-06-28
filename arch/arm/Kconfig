@@ -13,6 +13,7 @@ choice
 config ARCH_ARM_SONG
 	bool "Pinecone Song"
 	select ARCH_CHIP_SONG
+	select ARCH_HAVE_FETCHADD
 	select ARCH_HAVE_HEAPCHECK
 	---help---
 		Pinecone Song(ARM series) architectures

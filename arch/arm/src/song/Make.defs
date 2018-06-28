@@ -49,7 +49,8 @@ else
   CMN_ASRCS += up_lazyexception.S
 endif
 
-CMN_ASRCS += up_fpu.S up_fullcontextrestore.S up_saveusercontext.S
+CMN_ASRCS += up_fetchadd.S up_fpu.S
+CMN_ASRCS += up_fullcontextrestore.S up_saveusercontext.S
 CMN_ASRCS += up_switchcontext.S up_testset.S vfork.S
 
 CMN_UASRCS += up_signal_handler.S
