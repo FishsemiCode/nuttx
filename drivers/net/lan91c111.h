@@ -195,6 +195,9 @@
 #define CTL_RELOAD              0x0002 /* When set reads EEPROM into registers */
 #define CTL_STORE               0x0001 /* When set stores registers into EEPROM */
 
+#define CTL_DEFAULT             (CTL_AUTO_RELEASE)
+#define CTL_CLEAR               0
+
 
 /* MMU Command Register */
 /* BANK 2 */

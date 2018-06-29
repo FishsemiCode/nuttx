@@ -466,6 +466,10 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
   putregs32(priv, DATA_REG, dev->d_buf, dev->d_len + 2);
   lan91c111_command_mmu(priv, MC_ENQUEUE);
 
+  /* Assume the transmission no error, otherwise
+   * revert the increment in lan91c111_txdone */
+  NETDEV_TXDONE(dev);
+
   return OK;
 }
 
@@ -788,11 +792,15 @@ static void lan91c111_txdone(FAR struct net_driver_s *dev)
     {
       /* Re-enable transmit */
       modifyreg16(priv, TCR_REG, 0, TCR_ENABLE);
+#ifdef CONFIG_NETDEV_STATISTICS
+      /* Revert the increment in lan91c111_transmit */
+      dev->d_statistics.tx_done--;
+#endif
       NETDEV_TXERRORS(dev);
     }
   else
     {
-      NETDEV_TXDONE(dev);
+      DEBUGASSERT(0);
     }
 }
 
@@ -1085,6 +1093,7 @@ static int lan91c111_ifup(FAR struct net_driver_s *dev)
   /* Initialize PHYs, the Ethernet interface, and setup up Ethernet interrupts */
 
   putreg16(priv, CONFIG_REG, CONFIG_DEFAULT);
+  putreg16(priv, CTL_REG, CTL_DEFAULT);
   putreg16(priv, TCR_REG, TCR_DEFAULT);
   putreg16(priv, RCR_REG, RCR_DEFAULT);
   putreg16(priv, RPC_REG, RPC_DEFAULT);
@@ -1165,6 +1174,7 @@ static int lan91c111_ifdown(FAR struct net_driver_s *dev)
 
   putreg16(priv, RCR_REG, RCR_CLEAR);
   putreg16(priv, TCR_REG, TCR_CLEAR);
+  putreg16(priv, CTL_REG, CTL_CLEAR);
   putreg16(priv, CONFIG_REG, CONFIG_CLEAR);
 
   leave_critical_section(flags);
