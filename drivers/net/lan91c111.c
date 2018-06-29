@@ -91,10 +91,6 @@
 
 #define LAN91C111_MIIDELAY      1
 
-/* IM_ALLOC_INT busy loop count */
-
-#define LAN91C111_ALLOC_LOOP    16
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -415,16 +411,19 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
    */
   pages = ((dev->d_len & ~1) + 6) >> 8;
 
-  /* Now, try to allocate the memory */
-  lan91c111_command_mmu(priv, MC_ALLOC | pages);
-  while (1) /* Then wait the response */
+  while (1)
     {
-      int poll_count = LAN91C111_ALLOC_LOOP;
+      /* Release the received packet if no free memory */
+      if (!(getreg16(priv, MIR_REG) & MIR_FREE_MASK) &&
+          !(getreg8(priv, RXFIFO_REG) & RXFIFO_REMPTY))
+        {
+          lan91c111_command_mmu(priv, MC_RELEASE);
+          NETDEV_RXERRORS(dev);
+        }
 
-      /* Poll the chip for a short amount of time in case the
-       * allocation succeeds quickly.
-       */
-      while (--poll_count)
+      /* Now, try to allocate the memory */
+      lan91c111_command_mmu(priv, MC_ALLOC | pages);
+      while (1) /* Then wait the response */
         {
           if (getreg8(priv, INT_REG) & IM_ALLOC_INT)
             {
@@ -434,25 +433,13 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
             }
         }
 
-      if (poll_count != 0)
+      /* Check the result */
+      packet = getreg8(priv, AR_REG);
+      if (!(packet & AR_FAILED))
         {
-          break; /* Got the response */
-        }
-
-      /* Release the received packet if no free memory */
-      if (!(getreg16(priv, MIR_REG) & MIR_FREE_MASK))
-        {
-          lan91c111_command_mmu(priv, MC_RELEASE);
-          NETDEV_RXERRORS(dev);
+          break; /* Got the packet */
         }
     }
-
-    /* Check the result */
-    packet = getreg8(priv, AR_REG);
-    if (packet & AR_FAILED)
-      {
-        return -ENOMEM;
-      }
 
   /* Increment statistics */
 
