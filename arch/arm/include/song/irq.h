@@ -77,7 +77,6 @@
  */
 
 #define NR_IRQS                   CONFIG_SONG_NR_IRQS
-#define NR_VECTORS                CONFIG_SONG_NR_IRQS
 
 /****************************************************************************
  * Public Types
