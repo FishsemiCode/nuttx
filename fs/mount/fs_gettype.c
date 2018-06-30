@@ -138,6 +138,12 @@ FAR const char *fs_gettype(FAR struct statfs *statbuf)
         break;
 #endif
 
+#ifdef CONFIG_FS_LITTLEFS
+      case LITTLEFS_MAGIC:
+        fstype = "littlefs";
+        break;
+#endif
+
       default:
         fstype = "Unrecognized";
         break;
