@@ -41,7 +41,6 @@
 
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
-#include <nuttx/drivers/song_pwm.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -49,6 +48,7 @@
 #include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/power/regulator.h>
+#include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>

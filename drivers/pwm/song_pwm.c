@@ -43,7 +43,7 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/drivers/pwm.h>
-#include <nuttx/drivers/song_pwm.h>
+#include <nuttx/pwm/song_pwm.h>
 
 #include <stdio.h>
 

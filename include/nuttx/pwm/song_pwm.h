@@ -1,5 +1,5 @@
 /****************************************************************************
- * include/nuttx/drivers/song_pwm.h
+ * include/nuttx/pwm/song_pwm.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_DRIVERS_SONG_PWM_H
-#define __INCLUDE_NUTTX_DRIVERS_SONG_PWM_H
+#ifndef __INCLUDE_NUTTX_PWM_SONG_PWM_H
+#define __INCLUDE_NUTTX_PWM_SONG_PWM_H
 
 /****************************************************************************
  * Included Files
@@ -66,4 +66,4 @@ int song_pwm_initialize(int minor, uintptr_t base, int count, FAR const char *mc
 }
 #endif
 
-#endif /* __INCLUDE_NUTTX_DRIVERS_SONG_PWM_H */
+#endif /* __INCLUDE_NUTTX_PWM_SONG_PWM_H */
