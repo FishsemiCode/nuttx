@@ -424,7 +424,6 @@ int regulator_disable(struct regulator *regulator)
               return ret;
           }
       }
-      rdev->use_count = 0;
   }
 
   rdev->use_count--;
