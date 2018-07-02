@@ -43,7 +43,7 @@ $(GENROMFS):
 	$(Q) $(MAKE) -C $(OUTDIR)$(DELIM)tools -f $(TOPDIR)$(DELIM)tools$(DELIM)Makefile.host -I $(TOPDIR)$(DELIM)tools genromfs
 
 ifneq ($(RCSRCS)$(RCRAWS),)
-ETCDIR := $(patsubst "/%",%,$(CONFIG_NSH_ROMFSMOUNTPT))
+ETCDIR := etctmp
 ETCSRC := $(ETCDIR:%=%.c)
 
 CSRCS += $(ETCSRC)
@@ -58,9 +58,8 @@ $(RCOBJS): %$(OBJEXT): %
 $(ETCSRC): $(GENROMFS) $(shell find $(RCRAWS) -type l) $(RCOBJS)
 	$(foreach raw,$(RCRAWS), \
 		$(shell cp --parents -rfLp $(raw) $(ETCDIR)))
-	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR) -V "$(basename $<)"
-	$(Q) echo "const" > $@
-	$(Q) xxd -i romfs.img >> $@
+	$(Q) $(GENROMFS) -f romfs.img -d $(ETCDIR)$(DELIM)$(CONFIG_NSH_ROMFSMOUNTPT) -V "$(basename $<)"
+	$(Q) xxd -i romfs.img | sed -e "s/^unsigned/const unsigned/g" > $@
 endif
 
 ifneq ($(ZDSVERSION),)
