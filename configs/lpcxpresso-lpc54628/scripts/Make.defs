@@ -41,7 +41,7 @@ include ${TOPDIR}/arch/arm/src/armv7-m/Toolchain.defs
 
 LDSCRIPT = flash.ld
 
-# Setup for Windows vs Linux/Cygwin/OSX environments
+# Setup for Windows vs Linux/Cygwin/macOS environments
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
@@ -63,6 +63,7 @@ CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++
 CPP = $(CROSSDEV)gcc -E
 LD = $(CROSSDEV)ld
+STRIP = $(CROSSDEV)strip --strip-unneeded
 AR = $(ARCROSSDEV)ar rcs
 NM = $(ARCROSSDEV)nm
 OBJCOPY = $(CROSSDEV)objcopy

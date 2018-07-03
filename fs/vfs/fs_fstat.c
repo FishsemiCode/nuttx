@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/vfs/fs_fstat.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,8 @@
 #include <unistd.h>
 #include <sched.h>
 #include <errno.h>
+
+#include <sys/stat.h>
 
 #include <nuttx/fs/fs.h>
 #include "inode/inode.h"
@@ -141,16 +143,29 @@ int file_fstat(FAR struct file *filep, FAR struct stat *buf)
 int fstat(int fd, FAR struct stat *buf)
 {
   FAR struct file *filep;
+  FAR struct inode *inode;
   int ret;
 
   /* Did we get a valid file descriptor? */
 
   if ((unsigned int)fd >= CONFIG_NFILE_DESCRIPTORS)
     {
-      /* No networking... it is a bad descriptor in any event */
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+      /* Let the networking logic handle the fstat() */
+
+      ret = net_fstat(fd, buf);
+      if (ret < 0)
+        {
+          goto errout;
+        }
+
+      return OK;
+#else
+      /* No networking... it is just a bad descriptor */
 
       ret = -EBADF;
       goto errout;
+#endif
     }
 
   /* The descriptor is in a valid range to file descriptor... do the
@@ -164,7 +179,39 @@ int fstat(int fd, FAR struct stat *buf)
       goto errout;
     }
 
-  ret = file_fstat(filep, buf);
+  DEBUGASSERT(filep != NULL);
+
+  /* Get the inode from the file structure */
+
+  inode = filep->f_inode;
+  DEBUGASSERT(inode != NULL);
+
+  /* The way we handle the stat depends on the type of inode that we
+   * are dealing with.
+   */
+
+#ifndef CONFIG_DISABLE_MOUNTPOINT
+  if (INODE_IS_MOUNTPT(inode))
+    {
+      /* The inode is a file system mointpoint. Verify that the mountpoint
+       * supports the fstat() method
+       */
+
+      ret = -ENOSYS;
+      if (inode->u.i_mops && inode->u.i_mops->fstat)
+        {
+          /* Perform the fstat() operation */
+
+          ret = inode->u.i_mops->fstat(filep, buf);
+        }
+    }
+  else
+#endif
+    {
+      /* The inode is part of the root pseudo file system. */
+
+      ret = inode_stat(inode, buf);
+    }
 
   /* Check if the fstat operation was successful */
 

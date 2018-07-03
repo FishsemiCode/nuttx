@@ -424,7 +424,7 @@ static void dm9x_reset(struct dm9x_driver_s *priv);
  * Description:
  *   Access to memory-mapped DM90x0 8-bit registers
  *
- * Parameters:
+ * Input Parameters:
  *   reg - Register number
  *   value - Value to write to the register (setreg only)
  *
@@ -453,7 +453,7 @@ static void putreg(int reg, uint8_t value)
  * Description:
  *   Read packet data from the DM90x0 SRAM based on its current I/O mode
  *
- * Parameters:
+ * Input Parameters:
  *   ptr - Location to write the packet data
  *   len - The number of bytes to read
  *
@@ -502,7 +502,7 @@ static void read32(FAR uint8_t *ptr, int len)
  *   Read and discard packet data in the DM90x0 SRAM based on its current
  *   I/O mode
  *
- * Parameters:
+ * Input Parameters:
  *   len - The number of bytes to discard
  *
  * Returned Value:
@@ -545,7 +545,7 @@ static void discard32(int len)
  * Description:
  *   Write packet data into the DM90x0 SRAM based on its current I/O mode
  *
- * Parameters:
+ * Input Parameters:
  *   ptr - Location to write the packet data
  *   len - The number of bytes to read
  *
@@ -596,7 +596,7 @@ static void write32(FAR const uint8_t *ptr, int len)
  * Description:
  *   Read a word from SROM
  *
- * Parameters:
+ * Input Parameters:
  *   priv - Reference to the driver state structure
  *   offset - SROM offset to read from
  *
@@ -624,7 +624,7 @@ static uint16_t dm9x_readsrom(struct dm9x_driver_s *priv, int offset)
  * Description:
  *   Read/write data from/to the PHY
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *   reg   - PHY register offset
  *   value - The value to write to the PHY register (dm9x_write only)
@@ -677,7 +677,7 @@ static void dm9x_phywrite(struct dm9x_driver_s *priv, int reg, uint16_t value)
  * Description:
  *   Return true if the RX checksum is available
  *
- * Parameters:
+ * Input Parameters:
  *   rxbyte
  *
  * Returned Value:
@@ -706,7 +706,7 @@ static inline bool dm9x_rxchecksumready(uint8_t rxbyte)
  *   Start hardware transmission.  Called either from the txdone interrupt
  *   handling or from watchdog based polling.
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *
  * Returned Value:
@@ -777,7 +777,7 @@ static int dm9x_transmit(struct dm9x_driver_s *priv)
  *   2. When the preceding TX packet send timesout and the DM90x0 is reset
  *   3. During normal TX polling
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -851,7 +851,7 @@ static int dm9x_txpoll(struct net_driver_s *dev)
  * Description:
  *   An interrupt was received indicating the availability of a new RX packet
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *
  * Returned Value:
@@ -1049,7 +1049,7 @@ static void dm9x_receive(FAR struct dm9x_driver_s *priv)
  * Description:
  *   An interrupt was received indicating that the last TX packet(s) is done
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *
  * Returned Value:
@@ -1112,7 +1112,7 @@ static void dm9x_txdone(struct dm9x_driver_s *priv)
  * Description:
  *   Perform interrupt related work from the worker thread
  *
- * Parameters:
+ * Input Parameters:
  *   arg - The argument passed when work_queue() was called.
  *
  * Returned Value:
@@ -1231,7 +1231,7 @@ static void dm9x_interrupt_work(FAR void *arg)
  * Description:
  *   Hardware interrupt handler
  *
- * Parameters:
+ * Input Parameters:
  *   irq     - Number of the IRQ that generated the interrupt
  *   context - Interrupt register state save info (architecture-specific)
  *
@@ -1283,7 +1283,7 @@ static int dm9x_interrupt(int irq, FAR void *context, FAR void *arg)
  * Description:
  *   Perform TX timeout related work from the worker thread
  *
- * Parameters:
+ * Input Parameters:
  *   arg - The argument passed when work_queue() as called.
  *
  * Returned Value:
@@ -1328,7 +1328,7 @@ static void dm9x_txtimeout_work(FAR void *arg)
  *   Our TX watchdog timed out.  Called from the timer interrupt handler.
  *   The last TX never completed.  Reset the hardware and start again.
  *
- * Parameters:
+ * Input Parameters:
  *   argc - The number of available arguments
  *   arg  - The first argument
  *
@@ -1362,7 +1362,7 @@ static void dm9x_txtimeout_expiry(int argc, wdparm_t arg, ...)
  * Description:
  *   Perform periodic polling from the worker thread
  *
- * Parameters:
+ * Input Parameters:
  *   arg - The argument passed when work_queue() as called.
  *
  * Returned Value:
@@ -1415,7 +1415,7 @@ static void dm9x_poll_work(FAR void *arg)
  * Description:
  *   Periodic timer handler.  Called from the timer interrupt handler.
  *
- * Parameters:
+ * Input Parameters:
  *   argc - The number of available arguments
  *   arg  - The first argument
  *
@@ -1442,7 +1442,7 @@ static void dm9x_poll_expiry(int argc, wdparm_t arg, ...)
  * Description:
  *   Configure the PHY operating mode
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *
  * Returned Value:
@@ -1487,7 +1487,7 @@ static inline void dm9x_phymode(struct dm9x_driver_s *priv)
  *   NuttX Callback: Bring up the DM90x0 interface when an IP address is
  *   provided
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -1553,7 +1553,7 @@ static int dm9x_ifup(struct net_driver_s *dev)
  * Description:
  *   NuttX Callback: Stop the interface.
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -1599,7 +1599,7 @@ static int dm9x_ifdown(struct net_driver_s *dev)
  * Description:
  *   Perform an out-of-cycle poll on the worker thread.
  *
- * Parameters:
+ * Input Parameters:
  *   arg - Reference to the NuttX driver state structure (cast to void*)
  *
  * Returned Value:
@@ -1645,7 +1645,7 @@ static void dm9x_txavail_work(FAR void *arg)
  *   stimulus perform an out-of-cycle poll and, thereby, reduce the TX
  *   latency.
  *
- * Parameters:
+ * Input Parameters:
  *   dev - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -1682,7 +1682,7 @@ static int dm9x_txavail(FAR struct net_driver_s *dev)
  *   NuttX Callback: Add the specified MAC address to the hardware multicast
  *   address filtering
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *   mac  - The MAC address to be added
  *
@@ -1712,7 +1712,7 @@ static int dm9x_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *   NuttX Callback: Remove the specified MAC address from the hardware multicast
  *   address filtering
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *   mac  - The MAC address to be removed
  *
@@ -1741,7 +1741,7 @@ static int dm9x_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  * Description:
  *   Initialize the dm90x0 chip
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *
  * Returned Value:
@@ -1838,7 +1838,7 @@ static void dm9x_bringup(struct dm9x_driver_s *priv)
  *   Stop, reset, re-initialize, and restart the DM90x0 chip and driver.  At
  *   present, the chip is only reset after a TX timeout.
  *
- * Parameters:
+ * Input Parameters:
  *   priv  - Reference to the driver state structure
  *
  * Returned Value:
@@ -1894,7 +1894,7 @@ static void dm9x_reset(struct dm9x_driver_s *priv)
  * Description:
  *   Initialize the DM90x0 driver
  *
- * Parameters:
+ * Input Parameters:
  *   None
  *
  * Returned Value:

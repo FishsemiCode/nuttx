@@ -207,7 +207,7 @@ static int inet_udp_alloc(FAR struct socket *psock)
  *   NOTE:  This is common logic for both the AF_INET and AF_INET6 address
  *   families.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    A pointer to a user allocated socket structure to be initialized.
  *   protocol (see sys/socket.h)
  *
@@ -276,7 +276,7 @@ static int inet_setup(FAR struct socket *psock, int protocol)
  * Description:
  *   Return the bit encoded capabilities of this socket.
  *
- * Parameters:
+ * Input Parameters:
  *   psock - Socket structure of the socket whose capabilities are being
  *           queried.
  *
@@ -326,7 +326,7 @@ static sockcaps_t inet_sockcaps(FAR struct socket *psock)
  * Description:
  *   Increment the reference count on the underlying connection structure.
  *
- * Parameters:
+ * Input Parameters:
  *   psock - Socket structure of the socket whose reference count will be
  *           incremented.
  *
@@ -371,7 +371,7 @@ static void inet_addref(FAR struct socket *psock)
  *   name to a socket."  When a socket is created with socket(), it exists
  *   in a name space (address family) but has no name assigned.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Socket structure of the socket to bind
  *   addr     Socket local address
  *   addrlen  Length of 'addr'
@@ -487,7 +487,7 @@ static int inet_bind(FAR struct socket *psock,
  *   If the socket has not been bound to a local name, the value stored in
  *   the object pointed to by address is unspecified.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Socket structure of the socket to be queried
  *   addr     sockaddr structure to receive data [out]
  *   addrlen  Length of sockaddr structure [in/out]
@@ -590,7 +590,7 @@ static int inet_getpeername(FAR struct socket *psock,
  *   psock_listen() call applies only to sockets of type SOCK_STREAM or
  *   SOCK_SEQPACKET.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Reference to an internal, boound socket structure.
  *   backlog  The maximum length the queue of pending connections may grow.
  *            If a connection request arrives with the queue full, the client
@@ -682,7 +682,7 @@ int inet_listen(FAR struct socket *psock, int backlog)
  *   Connectionless sockets may dissolve the association by connecting to
  *   an address with the sa_family member of sockaddr set to AF_UNSPEC.
  *
- * Parameters:
+ * Input Parameters:
  *   psock   - Pointer to a socket structure initialized by psock_socket()
  *   addr    - Server address (form depends on type of socket).  The upper
  *             socket layer has verified that this address is non-NULL.
@@ -822,7 +822,7 @@ static int inet_connect(FAR struct socket *psock,
  *   pending connections are present on the queue, inet_accept returns
  *   EAGAIN.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Reference to the listening socket structure
  *   addr     Receives the address of the connecting client
  *   addrlen  Input: allocated size of 'addr', Return: returned size of 'addr'
@@ -1077,7 +1077,7 @@ static int inet_poll(FAR struct socket *psock, FAR struct pollfd *fds,
  *   The inet_send() call may be used only when the socket is in a connected
  *   state  (so that the intended recipient is known).
  *
- * Parameters:
+ * Input Parameters:
  *   psock    An instance of the internal socket structure.
  *   buf      Data to send
  *   len      Length of data to send
@@ -1171,7 +1171,7 @@ static ssize_t inet_send(FAR struct socket *psock, FAR const void *buf,
  *   Implements the sendto() operation for the case of the AF_INET and
  *   AF_INET6 sockets.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    A pointer to a NuttX-specific, internal socket structure
  *   buf      Data to send
  *   len      Length of data to send
@@ -1265,7 +1265,7 @@ static ssize_t inet_sendto(FAR struct socket *psock, FAR const void *buf,
  *   The inet_sendfile() call may be used only when the INET socket is in a
  *   connected state (so that the intended recipient is known).
  *
- * Parameters:
+ * Input Parameters:
  *   psock    An instance of the internal socket structure.
  *   buf      Data to send
  *   len      Length of data to send

@@ -280,7 +280,7 @@ OpenOCD for the ESP32
 
   Then look at the README and the docs/INSTALL.txt files in the
   openocd-esp32 directory for further instructions.  There area
-  separate README files for Linux/Cygwin, OSX, and Windows.  Here
+  separate README files for Linux/Cygwin, macOS, and Windows.  Here
   is what I ended up doing (under Linux):
 
     cd openocd-esp32
@@ -575,9 +575,7 @@ Configurations
   Each ESP32 core configuration is maintained in sub-directories and
   can be selected as follow:
 
-    cd tools
-    ./configure.sh esp32-core/<subdir>
-    cd -
+    tools/configure.sh esp32-core/<subdir>
     make oldconfig
 
   Before building, make sure the PATH environment variable includes the

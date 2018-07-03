@@ -92,7 +92,7 @@ LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
-  LIBPATHS += -L"$(OUTDIR)\lib"
+  LIBPATHS += -L"$(OUTDIR)\staging"
 ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"$(OUTDIR)\arch\$(CONFIG_ARCH)\src\board"
 endif
@@ -101,13 +101,13 @@ else
   BOARDMAKE = $(if $(wildcard ./board/Makefile),y,)
 
 ifeq ($(WINTOOL),y)
-  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/lib"}"
+  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/staging"}"
 ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"}"
 endif
 
 else
-  LIBPATHS += -L"$(OUTDIR)/lib"
+  LIBPATHS += -L"$(OUTDIR)/staging"
 ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"
 endif

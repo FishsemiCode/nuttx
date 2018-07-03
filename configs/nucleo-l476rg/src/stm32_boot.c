@@ -1,7 +1,7 @@
 /************************************************************************************
  * configs/nucleo-l476rg/src/stm32l4_boot.c
  *
- *   Copyright (C) 2014-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *           Librae <librae8226@gmail.com>
  *
@@ -50,14 +50,6 @@
 
 #include "up_arch.h"
 #include "nucleo-l476rg.h"
-
-/************************************************************************************
- * Pre-processor Definitions
- ************************************************************************************/
-
-/************************************************************************************
- * Private Data
- ************************************************************************************/
 
 /************************************************************************************
  * Public Functions
@@ -122,12 +114,6 @@ void board_initialize(void)
 
 #if defined(CONFIG_NSH_LIBRARY) && !defined(CONFIG_NSH_ARCHINIT)
   board_app_initialize(0);
-#endif
-
-  /* CC3000 wireless initialization */
-
-#ifdef CONFIG_WL_CC3000
-  wireless_archinitialize(0);
 #endif
 }
 #endif

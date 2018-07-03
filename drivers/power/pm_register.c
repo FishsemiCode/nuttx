@@ -65,7 +65,7 @@
  *               callback functions.
  *
  * Returned Value:
- *    Zero (OK) on success; otherwise a negater errno value is returned.
+ *    Zero (OK) on success; otherwise a negated errno value is returned.
  *
  ****************************************************************************/
 

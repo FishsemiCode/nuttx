@@ -42,4 +42,17 @@ config I2C_DW
 	---help---
 		Enable support for Deisgnware i2c controller Driver
 
+menu "I2C Multiplexer Support"
+
+config I2CMULTIPLEXER_PCA9540BDP
+	bool "PCA9540BDP NXP multiplexer"
+	default n
+	depends on I2C
+	---help---
+		Enable support for the NXP PCA9540BDP i2c multiplexer
+
+# put more i2c mux devices here
+
+endmenu # I2C Multiplexer Support
+
 endif # I2C

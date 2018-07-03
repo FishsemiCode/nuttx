@@ -19,7 +19,8 @@ further information about this board.
 
 NOTE: This port was developed on the original board, order code
 STM32F4DISCOVERY.  That board has been replaced with the new order code
-STM32F407G-DISC1.  The new board differs in at least these ways:
+STM32F407VG-DISC1.  The new version of the board differs in at least these
+ways:
 
   - The ST-LINK/V2 has been updated to ST-LINK/V2-A on STM32F407G-DISC1
     with a Virtual Com port and Mass storage.
@@ -39,6 +40,7 @@ Contents
   - STM32F4DIS-BB
   - SSD1289
   - UG-2864AMBAG01 / UG-2864HSWEG01
+  - HCI UART
   - STM32F4Discovery-specific Configuration Options
   - BASIC
   - Testing LLVM LIBC++ with NuttX
@@ -599,6 +601,135 @@ Darcy Gong recently added support for the UG-2864HSWEG01 OLED which is also
 an option with this configuration.  I have little technical information about
 the UG-2864HSWEG01 interface (see configs/stm32f4discovery/src/up_ug2864hsweg01.c).
 
+HCI UART
+========
+
+BT860
+-----
+
+  I have been testing with the DVK_BT960_SA board via J10 as follows:
+
+    DVK_BT860-SA J10     STM32F4 Discovery P1
+    pin 1  GND                             P1 pin 49
+    pin 2  Module_RTS_O  USART3_CTS PB13,  P1 pin 37
+    pin 3  N/C
+    pin 4  Module_RX_I   USART3_TXD PB10,  P1 pin 34
+    pin 5  Module_TX_O   USART3_RX  PB11,  P1 pin 35
+    pin 6  Module_CTS_I  USART3_RTS PB14,  P1 pin 38
+
+  Due to conflicts, USART3 many not be used if Ethernet is enabled with
+  the STM32F4DIS-BB base board:
+
+    PB-11 conflicts with Ethernet TXEN
+    PB-13 conflicts with Ethernet TXD1
+
+  If you need to use the HCI uart with Ethernet, then you will need to
+  configure a new U[S]ART and/or modify the pin selections in
+  include/board.h.
+
+CC2564
+------
+
+  [To be provided]
+
+  One confusing thing compared with the BT860 is in the naming of the pins
+  at the 4-pin RS232 TTL interface:  The BT860 uses BT860-centric naming,
+  the Rx pin is for BT860 receive and needs to connect with the STM32 Tx
+  pin, the Tx pin is for BT860 transmit an needs to be connected with the
+  STM32 Rx pin, etc.  The CC2564, on the hand, uses host-centric naming so
+  that the CC2564 Rx pin connects to the STM32 Rx pin, Tx to Tx pin, etc.
+
+Troubleshooting
+---------------
+
+  First you should enable CONFIG_DEBUG_WIRELESS_ERR, WARN, and INFO options
+  so that you can see what the driver is doing.
+
+  The bring-up problems that I encountered mostly involved setting up the
+  4-wire UART interface:  Remember to cross Rx/Tx and RTS/CTS.  The active
+  state for RTS and CTS is low.  For bringup of the BT860, I used a Seleae
+  logic analyzer connected to the Tx, Rx, RTS, and CTS pins.  When the
+  BT860 is working correctly you would see this:
+
+    1. All signals high initially,
+    2. When NuttX starts, RTS goes low
+    3. The BT860 sees RTS go low and responds by setting CTS low after a
+       delay.  This is when it selects between USB and UART.
+    4. After another delay, the STM32 sends the 4 Tx bytes.
+    5. The BT860 responds with 3 bytes.
+    6. If successful, additional commands and responses follow.
+
+  Some of these steps may be different for other HCI UARTs. Steps 4-5 are
+  the reset sequence.  the 4 Tx bytes comes from the code in the function
+  hci_initialize() in the file wireless/bluetooth/bt_hcicore.c:
+
+    /* Send HCI_RESET */
+
+    bt_hci_cmd_send(BT_HCI_OP_RESET, NULL);
+
+  The code is actually working one command ahead.  It has already queued up
+  the reset command and is requesting the HCI UART device features while the
+  reset command is being sent:
+
+    ret = bt_hci_cmd_send_sync(BT_HCI_OP_READ_LOCAL_FEATURES, NULL, &rsp);
+    if (ret < 0)
+      {
+        wlerr("ERROR:  bt_hci_cmd_send_sync failed: %d\n", ret);
+        return ret;
+      }
+
+  A common failure is to see a timeout error (-116) due to a Tx flow control
+  failure (CTS is high).  There is no timeout on the first command, the
+  timeout actually occurs on the second command in bt_hci_cmd_send_sync():
+
+     do
+       {
+         /* The timed wait could also be awakened by a signal */
+
+         ret = nxsem_timedwait(&sync_sem, &abstime);
+       }
+     while (ret == -EINTR);
+
+  The above times out and generates the 116 error.
+
+  In the case of the timeout, the second command is stuck in the message queue
+  is never processed because the Tx thread is waiting for the BT_HCI_OP_RESET
+  command to complete.  It is blocked in hci_tx_thread() kernel thread.
+
+  The Tx occurs on a kernel thread.  The Tx send of the first command causes
+  the hci_tx_kthread() to block.  It waits here until what the HCI UART
+  receives the command and responses with the command complete event:
+
+  /* Wait until ncmd > 0 */
+
+    do
+      {
+        ret = nxsem_wait(&g_btdev.ncmd_sem);
+      }
+    while (ret == -EINTR);
+
+  bt_hci_cmd_send() will block on the first BT_HCI_OP_RESET until until it
+  gets the 3-byte event (BT_EVT) that indicates that the command was
+  completed and provides the command status. See the function
+  hci_command_complete() where it posts g_btdev.ncmd_sem.
+
+    g_btdev.ncmd = 1;
+    nxsem_post(&g_btdev.ncmd_sem);
+
+  You can see such a hange in the wireless debug output
+
+    bt_hci_cmd_send: opcode 0c03 len 3                          <<< BT_HCI_OP_RESET command is queue
+    hci_tx_kthread: Sending command 0c03 buf 20002a40 to driver <<< Sent to driver from the Tx thread
+    hciuart_write: config 801d924 buffer 20002760 buflen 4      <<< Goes to STM32 HCI UART driver
+
+    bt_hci_cmd_send_sync: opcode 1003 len 3                     <<< next command is queued.
+    hciuart_copytotxfifo: txhead 1 txtail 4 nbytes 1            <<< One byte of first command written to Tx HR
+    hciuart_enableints: CR1 000020ac CR2 00000301               <<< Tx interrupts enabled
+
+!!!! No Tx interrupts, probably because of Tx flow control (CTS is high) !!!
+
+    hci_initialize: ERROR:  bt_hci_cmd_send_sync failed: -116   <<< Times out on second message
+
 STM32F4Discovery-specific Configuration Options
 ===============================================
 
@@ -975,7 +1106,7 @@ Enter inside NuttX and compile it:
 
     $ cd ../nuttx
 
-    $ ./tools/configure.sh stm32f4discovery/testlibcxx
+    $ tools/configure.sh stm32f4discovery/testlibcxx
       Copy files
       Refreshing...
 
@@ -1033,33 +1164,19 @@ Just type helloxx:
 Configurations
 ==============
 
+Common Information
+------------------
+
 Each STM32F4Discovery configuration is maintained in a sub-directory and
 can be selected as follow:
 
-    cd tools
-    ./configure.sh STM32F4Discovery/<subdir>
-    cd -
+    tools/configure.sh STM32F4Discovery/<subdir>
 
-Where <subdir> is one of the following:
+Where <subdir> is one of the sub-directories listed in the next paragraph
 
-  cxxtest:
-  -------
+  NOTES (common for all configurations):
 
-  The C++ standard libary test at apps/examples/cxxtest configuration.  This
-  test is used to verify the uClibc++ port to NuttX.  This configuration may
-  be selected as follows:
-
-    cd <nuttx-directory>/tools
-    ./configure.sh sim/cxxtest
-
-  NOTES:
-
-  1. Before you can use this example, you must first install the uClibc++
-     C++ library.  This is located outside of the NuttX source tree in the
-     NuttX uClibc++ GIT repository.  See the README.txt file there for
-     instructions on how to install uClibc++
-
-  2. This configuration uses the mconf-based configuration tool.  To
+  1. This configuration uses the mconf-based configuration tool.  To
      change this configuration using that tool, you should:
 
      a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
@@ -1068,7 +1185,109 @@ Where <subdir> is one of the following:
      b. Execute 'make menuconfig' in nuttx/ in order to start the
         reconfiguration process.
 
-  3. Ideally, you should build with a toolchain based on GLIBC or
+Configuration Sub-directories
+-------------------------
+
+  audio:
+  -----
+
+  This configuration is a variant of the NSH configuration used for
+  demonstrating PCM audio using the CS43L22 stereo DAC/amplifier on board
+  the STM32F4 Discovery and the STM32 I2S DMA interface.  It uses the
+  file player at apps/system/nxplayer.  The serial console is on USART2.
+
+  The original CS43L22 and STM32 I2S drivers were contribued by Taras
+  Drozdovsky in May of 2017.  The audio configuration was contributed by
+  Alan Carvalho de Assis and derives, in part, from the work of Taras at
+  https://github.com/tdrozdovskiy/CS43L22-Audio-driver.
+
+  Usage instructions from the README file at the location:
+
+  1. Prepare USB flash storage.  This configuration depends on .WAV files
+     provided to the system via a USB flash stick.  There are some sample
+     audio files at https://github.com/tdrozdovskiy/CS43L22-Audio-driver
+     and these steps will put those sample .WAV files onto the USB flash: 
+
+     a. Format the USB flash storage into FAT. For example by next command
+
+       $ mkfs.vfat /dev/sdb1
+
+     b. Create folder /music
+
+       $ mkdir music
+
+     c. Copy files from /audio_samples/ to /music folder of USB flash storage
+
+      $ cp <repo>/audio_samples/* /mnt/media/music/
+
+     You should be able to use either Taras' .wav files like that or, if
+     you like, your own compatible .wav files.
+
+  2. Example usage CS43L22 Audio driver
+
+    a. Power On or reset the STM32F4 Discovery board.  We can see the Nuttx
+       command line prompt:
+
+      NuttShell (NSH)
+      nsh>
+
+    b. Mount the usb flash device into our file system
+
+      nsh> mount -t vfat /dev/sda/ /mnt/sda
+
+    c. Start the NxPlayer program and Enter the help command to view the list
+       of commands
+
+      nsh> nxplayer
+      NxPlayer version 1.04
+      h for commands, q to exit
+      nxplayer> h
+      NxPlayer commands
+      ================
+        balance d%      : Set balance percentage (< 50% means more left)
+        device devfile  : Specify a preferred audio device
+        h               : Display help for commands
+        help            : Display help for commands
+        mediadir path   : Change the media directory
+        play filename   : Play a media file
+        pause           : Pause playback
+        resume          : Resume playback
+        stop            : Stop playback
+        tone freq secs  : Produce a pure tone
+        q               : Exit NxPlayer
+        quit            : Exit NxPlayer
+        volume d%       : Set volume to level specified
+
+    d. Play the test sample track (cu44k.wav - 44100Hz, 16bit, stereo).
+
+      nxplayer> play cu44k.wav
+
+    e. Set the volume value to 50%.
+
+      nxplayer> volume 50
+
+    f. Stop the current track and play another one
+
+      nxplayer> stop
+      nxplayer> play hn.wav
+
+  cxxtest:
+  -------
+
+  The C++ standard libary test at apps/examples/cxxtest configuration.  This
+  test is used to verify the uClibc++ port to NuttX.  This configuration may
+  be selected as follows:
+
+    tools/configure.sh sim/cxxtest
+
+  NOTES:
+
+  1. Before you can use this example, you must first install the uClibc++
+     C++ library.  This is located outside of the NuttX source tree in the
+     NuttX uClibc++ GIT repository.  See the README.txt file there for
+     instructions on how to install uClibc++
+
+  2. Ideally, you should build with a toolchain based on GLIBC or
      uClibc++.  It you use a toolchain based on newlib, you may see
      an error like the following:
 
@@ -1097,7 +1316,7 @@ Where <subdir> is one of the following:
 
        arm-none-eabi-ar.exe rcs libsupc++.a vterminate.o
 
-  4. Exceptions are enabled and workking (CONFIG_UCLIBCXX_EXCEPTION=y)
+  3. Exceptions are enabled and workking (CONFIG_UCLIBCXX_EXCEPTION=y)
 
   elf:
   ---
@@ -1107,34 +1326,25 @@ Where <subdir> is one of the following:
 
     NOTES:
 
-    1. This configuration uses the mconf-based configuration tool.  To
-       change this configuration using that tool, you should:
-
-       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-          see additional README.txt files in the NuttX tools repository.
-
-       b. Execute 'make menuconfig' in nuttx/ in order to start the
-          reconfiguration process.
-
-    2. Default platform/toolchain:
+    1. Default platform/toolchain:
 
        CONFIG_HOST_WINDOWS=y                   : Windows
        CONFIG_WINDOWS_CYGWIN=y                 : Cygwin environment on Windows
        CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery under Windows
 
-    3. By default, this project assumes that you are *NOT* using the DFU
+    2. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
 
-    4. It appears that you cannot execute from CCM RAM.  This is why the
+    3. It appears that you cannot execute from CCM RAM.  This is why the
        following definition appears in the defconfig file:
 
        CONFIG_STM32_CCMEXCLUDE=y
 
-    5. This configuration requires that you have the genromfs tool installed
+    4. This configuration requires that you have the genromfs tool installed
        on your system and that you have the full path to the installed genromfs
        executable in PATH variable (see apps/examples/README.txt)
 
-    6. This configuration can be extended to use the hello++4 example and to
+    5. This configuration can be extended to use the hello++4 example and to
        build uClibc with the following additions to to the configuration file
        (from Leo aloe3132):
 
@@ -1149,7 +1359,19 @@ Where <subdir> is one of the following:
        CONFIG_EXAMPLES_ELF_CXXINITIALIZE=y
        CONFIG_EXAMPLES_ELF_UCLIBCXX=y
 
-    4. The network initialization thread is enabled in this configuration.
+    6. By default, this configuration uses the ROMFS file system.  It can also
+       be modified to use the compressed CROMFS:
+
+       -CONFIG_PATH_INITIAL="/mnt/romfs"
+       +CONFIG_PATH_INITIAL="/mnt/cromfs"
+
+       -CONFIG_FS_ROMFS=y
+       +CONFIG_FS_CROMFS=y
+
+       -CONFIG_EXAMPLES_ELF_ROMFS=y
+       +CONFIG_EXAMPLES_ELF_CROMFS=y
+
+    7. The network initialization thread is enabled in this configuration.
        As a result, networking initialization is performed asynchronously with
        NSH bring-up.
 
@@ -1160,13 +1382,110 @@ Where <subdir> is one of the following:
        OUT mode.  In that mode, the PHY interrupt is not supported.  The NINT
        pin serves as REFLCK0 in that case.
 
+  hciuart:
+  -------
+
+    This configuration was used for test the HCI UART driver.  The HCI UART
+    is enabled on USART3 as well as the test application at
+    apps/wireless/bluetoot/btsak.
+
+    NOTES:
+
+    1. This configuration assumes that that you are using the STM32F4DIS-BB
+       base board with serial console on USART6.  If you are not using the
+       STM32F4DIS-BB, then you will want to disable support for the base
+       board.
+
+         -CONFIG_STM32F4DISBB=y
+         +# CONFIG_STM32F4DISBB is not set
+
+       You may also want to reconfigure the serial console to USART1.
+
+    2. The HCI UART is assume to connect to the UART3 on the following pins:
+
+         USART3 TX :  PB10
+         USART3 RX :  PB11
+         USART3 CTS:  PB13
+         USART3 RTS:  PB14
+
+       The HCI UART selection can be changed by re-configuring and assigning
+       the different U[S]ART to the HCI.  The U[S]ART pin selections can be
+       changed by modifying the disambiguation definitions in
+       configs/stm32f4discovery/include/board.h
+
+       I have been testing with the DVK_BT960_SA board via J10 as follows:
+
+         DVK_BT860-SA J10     STM32F4 Discovery P1
+         pin 1  GND                             P1 pin 49
+         pin 2  Module_RTS_O  USART3_CTS PB13,  P1 pin 37
+         pin 3  N/C
+         pin 4  Module_RX_I   USART3_TXD PB10,  P1 pin 34
+         pin 5  Module_TX_O   USART3_RX  PB11,  P1 pin 35
+         pin 6  Module_CTS_I  USART3_RTS PB14,  P1 pin 38
+
+       NOTICE that the BT860 uses BT860-centric naming, the Rx pin is for
+       BT860 receive and needs to connect with the STM32 Tx pin, the Tx pin
+       is for BT860 transmit an needs to be connected with the STM32 Rx pin,
+       etc.  Other parts may use host-centric naming so that the HCI UART Rx
+       pin connects to the STM32 Rx pin, Tx to Tx pin, etc.
+
+    3. Due to conflicts, USART3 many not be used if Ethernet is enabled with
+       the STM32F4DIS-BB base board:
+
+         PB-11 conflicts with Ethernet TXEN
+         PB-13 conflicts with Ethernet TXD1
+
+       If you need to use the HCI uart with Ethernet, then you will need to
+       configure a new U[S]ART and/or modify the pin selections in
+       include/board.h.
+
+    4. Stack sizes are large and non-optimal.  Don't judge memory usage
+       without tuning.
+
+    5. I tested using the Laird DVK_BT860.  The BT860 defaults to 115200
+       BAUD but is capable of transfers up to 4M.  The documentation says
+       that the part supports auto baudrate detection, but I have found no
+       documentation on how to use that.
+
+       Currently the "generic" HCI UART upper half is used with the BT860
+       and that upper half driver supports only a fixed (but configurable
+       BAUD) is used and this must be set to the BT860 default (115200).
+
+       A custom BT860 upper half driver is needed that can use vendor
+       specific command:  Baud rate can be set with such a vendor-specific
+       command.  Ideally, the sequence would be:  (1) start at default baud
+       rate, (2) get local version info, (3) send the vendor-specific baud
+       rate change command, (4) wait for response, and (5) set the local
+       UART to the matching, higher baud rate.
+
+       The custom, vendor-specific BT860 command is:
+
+         {0x18, 0xfc, 0x06, 0x00, 0x00, NN, NN, NN, NN}
+
+       where {NN, NN, NN, NN} is the requested baud in little endian byte order.
+
+       If an initialization script is used then (5) then send initialization
+       scripts script.  After sending the last command from the
+       initialization script, (6) reset the local UART.  Finally, (7) send
+       vendor-specific baud rate change command, (8) wait for response, and
+       (9) set local UART to high baud rate.
+
+       The command to write the initialization script into NVRAM is another
+       story for another time and another place.
+
+       If you use a different HCI UART, you will need to modify this setting:
+
+         CONFIG_BLUETOOTH_UART_GENERIC=y
+
+       and you may have to add some support in drivers/wireless/bluetooth.
+
   ipv6:
   ----
     This is another version of the NuttShell configuration for the
     STM32F4-Discovery with the STM32F4DIS-BB base board.  It is very similar
     to the netnsh configuration except that it has IPv6 enabled and IPv4
-    disabled.  Several network utilities that are not yet available under
-    IPv6 are disabled.
+    disabled.  Several network utilities that are not yet available when
+    IPv6 is disabled.
 
     NOTES:
 
@@ -1260,16 +1579,7 @@ Where <subdir> is one of the following:
 
     NOTES:
 
-    1. This configuration uses the mconf-based configuration tool.  To
-       change this configuration using that tool, you should:
-
-       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-          see additional README.txt files in the NuttX tools repository.
-
-       b. Execute 'make menuconfig' in nuttx/ in order to start the
-          reconfiguration process.
-
-    2. This is the default platform/toolchain in the configuration:
+    1. This is the default platform/toolchain in the configuration:
 
        CONFIG_HOST_WINDOWS=y                   : Windows
        CONFIG_WINDOWS_CYGWIN=y                 : Cygwin environment on Windows
@@ -1277,7 +1587,7 @@ Where <subdir> is one of the following:
 
        This is easily changed by modifying the configuration.
 
-    3. At the end of the build, there will be several files in the top-level
+    2. At the end of the build, there will be several files in the top-level
        NuttX build directory:
 
        PASS1:
@@ -1290,7 +1600,7 @@ Where <subdir> is one of the following:
          nuttx.hex         - The pass2 Intel HEX file (selected in defconfig)
          System.map        - Symbols in the kernel-space ELF file
 
-    4. Combining .hex files.  If you plan to use the STM32 ST-Link Utility to
+    3. Combining .hex files.  If you plan to use the STM32 ST-Link Utility to
        load the .hex files into FLASH, then you need to combine the two hex
        files into a single .hex file.  Here is how you can do that.
 
@@ -1333,6 +1643,44 @@ Where <subdir> is one of the following:
        Then use the combined.hex file with the STM32 ST-Link tool.  If
        you do this a lot, you will probably want to invest a little time
        to develop a tool to automate these steps.
+
+  module:
+  ------
+
+    A simple stripped down NSH configuration that was used for testing NuttX
+    OS modules using the test at apps/examples/module.  Key difference from
+    other NSH configurations include these additions to the configuration file:
+
+      CONFIG_BOARDCTL_OS_SYMTAB=y
+      CONFIG_EXAMPLES_MODULE=y
+      CONFIG_EXAMPLES_MODULE_BUILTINFS=y
+      CONFIG_EXAMPLES_MODULE_DEVMINOR=0
+      CONFIG_EXAMPLES_MODULE_DEVPATH="/dev/ram0"
+      CONFIG_FS_ROMFS=y
+      CONFIG_LIBC_ARCH_ELF=y
+      CONFIG_MODULE=y
+      CONFIG_LIBC_MODLIB=y
+      CONFIG_MODLIB_MAXDEPEND=2
+      CONFIG_MODLIB_ALIGN_LOG2=2
+      CONFIG_MODLIB_BUFFERSIZE=128
+      CONFIG_MODLIB_BUFFERINCR=32
+
+     The could be followed may be added for testing shared libraries in the
+     FLAT build using apps/examples/sotest (assuming that you also have SD
+     card support enabled and that the SD card is mount at /mnt/sdcard):
+
+      CONFIG_LIBC_DLLFCN=y
+      CONFIG_EXAMPLES_SOTEST=y
+      CONFIG_EXAMPLES_SOTEST_BINDIR="/mnt/sdcard"
+
+    NOTE: You must always have:
+
+      CONFIG_STM32_CCMEXCLUDE=y
+
+    because code cannot be executed from CCM memory.
+
+    STATUS:
+    2018-06-02: Configuration added by Alan Carvalho de Assis.
 
   netnsh:
   ------
@@ -1389,16 +1737,7 @@ Where <subdir> is one of the following:
 
     NOTES:
 
-    1. This configuration uses the mconf-based configuration tool.  To
-       change this configuration using that tool, you should:
-
-       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-          see additional README.txt files in the NuttX tools repository.
-
-       b. Execute 'make menuconfig' in nuttx/ in order to start the
-          reconfiguration process.
-
-    2. By default, this configuration uses the CodeSourcery toolchain
+    1. By default, this configuration uses the CodeSourcery toolchain
        for Windows and builds under Cygwin (or probably MSYS).  That
        can easily be reconfigured, of course.
 
@@ -1406,7 +1745,7 @@ Where <subdir> is one of the following:
        CONFIG_WINDOWS_CYGWIN=y                 : Using Cygwin
        CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery for Windows
 
-    3. To use this configuration with the STM32F4DIS-BB baseboard you
+    2. To use this configuration with the STM32F4DIS-BB baseboard you
        should:
 
        - Select the STM32F4DIS-BB baseboard in the board configuration
@@ -1416,7 +1755,7 @@ Where <subdir> is one of the following:
        - Select USART6 as the serial console at 115200 8N1 in the
          Drivers menus
 
-    4. This example supports the PWM test (apps/examples/pwm) but this must
+    3. This example supports the PWM test (apps/examples/pwm) but this must
        be manually enabled by selecting:
 
        CONFIG_PWM=y              : Enable the generic PWM infrastructure
@@ -1429,7 +1768,7 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_PWM_INFO
 
-    5. This example supports the Quadrature Encode test (apps/examples/qencoder)
+    4. This example supports the Quadrature Encode test (apps/examples/qencoder)
        but this must be manually enabled by selecting:
 
        CONFIG_EXAMPLES_QENCODER=y : Enable the apps/examples/qencoder
@@ -1444,7 +1783,7 @@ Where <subdir> is one of the following:
 
        CONFIG_DEBUG_SENSORS
 
-    6. This example supports the watchdog timer test (apps/examples/watchdog)
+    5. This example supports the watchdog timer test (apps/examples/watchdog)
        but this must be manually enabled by selecting:
 
        CONFIG_EXAMPLES_WATCHDOG=y : Enable the apps/examples/watchdog
@@ -1461,7 +1800,7 @@ Where <subdir> is one of the following:
 
        The IWDG timer has a range of about 35 seconds and should not be an issue.
 
-     7. USB Support (CDC/ACM device)
+     6. USB Support (CDC/ACM device)
 
         CONFIG_STM32_OTGFS=y          : STM32 OTG FS support
         CONFIG_USBDEV=y               : USB device support must be enabled
@@ -1469,7 +1808,7 @@ Where <subdir> is one of the following:
         CONFIG_NSH_BUILTIN_APPS=y     : NSH built-in application support must be enabled
         CONFIG_NSH_ARCHINIT=y         : To perform USB initialization
 
-     8. Using the USB console.
+     7. Using the USB console.
 
         The STM32F4Discovery NSH configuration can be set up to use a USB CDC/ACM
         (or PL2303) USB console.  The normal way that you would configure the
@@ -1486,7 +1825,7 @@ Where <subdir> is one of the following:
         times before NSH starts.  The logic does this to prevent sending USB data
         before there is anything on the host side listening for USB serial input.
 
-    9.  Here is an alternative USB console configuration.  The following
+    8.  Here is an alternative USB console configuration.  The following
         configuration will also create a NSH USB console but this version
         will use /dev/console.  Instead, it will use the normal /dev/ttyACM0
         USB serial device for the console:
@@ -1525,7 +1864,7 @@ Where <subdir> is one of the following:
           See the usbnsh configuration below for more information on configuring
           USB trace output and the USB monitor.
 
-   10. USB OTG FS Host Support.  The following changes will enable support for
+    9. USB OTG FS Host Support.  The following changes will enable support for
        a USB host on the STM32F4Discovery, including support for a mass storage
        class driver:
 
@@ -1600,7 +1939,7 @@ Where <subdir> is one of the following:
 
        nsh> umount /mnt/stuff
 
-   11. I used this configuration to test the USB hub class.  I did this
+   10. I used this configuration to test the USB hub class.  I did this
        testing with the following changes to the configuration (in addition
        to those listed above for base USB host/mass storage class support):
 
@@ -1633,7 +1972,7 @@ Where <subdir> is one of the following:
        2015-04-30
           Appears to be fully functional.
 
-   12. Using USB Device as a Mass Storage for the host computer:
+   11. Using USB Device as a Mass Storage for the host computer:
 
        System Type  --->
            STM32 Peripheral Support  --->
@@ -1721,16 +2060,7 @@ Where <subdir> is one of the following:
 
   1. As of this writing, I have not seen the LCD work!
 
-  2. This configuration uses the mconf-based configuration tool.  To
-     change this configuration using that tool, you should:
-
-     a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-        see additional README.txt files in the NuttX tools repository.
-
-     b. Execute 'make menuconfig' in nuttx/ in order to start the
-        reconfiguration process.
-
-  3. This configured can be re-configured to use either the
+  2. This configured can be re-configured to use either the
      UG-2864AMBAG01 or UG-2864HSWEG01 0.96 inch OLEDs by adding
      or changing the following items in the configuration (using
      'make menuconfig'):
@@ -1786,23 +2116,14 @@ Where <subdir> is one of the following:
 
     NOTES:
 
-    1. This configuration uses the mconf-based configuration tool.  To
-       change this configuration using that tool, you should:
-
-       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-          see additional README.txt files in the NuttX tools repository.
-
-       b. Execute 'make menuconfig' in nuttx/ in order to start the
-          reconfiguration process.
-
-    2. Default configuration is Cygwin under windows using the CodeSourcery
+    1. Default configuration is Cygwin under windows using the CodeSourcery
        toolchain:
 
          CONFIG_HOST_WINDOWS=y                   : Windows
          CONFIG_WINDOWS_CYGWIN=y                 : Cygwin
          CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery under Windows
 
-    3. CONFIG_ARCH_CUSTOM_PMINIT and CONFIG_ARCH_IDLE_CUSTOM are necessary
+    2. CONFIG_ARCH_CUSTOM_PMINIT and CONFIG_ARCH_IDLE_CUSTOM are necessary
        parts of the PM configuration:
 
          CONFIG_ARCH_CUSTOM_PMINIT=y
@@ -1823,7 +2144,7 @@ Where <subdir> is one of the following:
        normal STM32 IDLE loop (of arch/arm/src/stm32/stm32_idle.c) and replace
        this with our own custom IDLE loop (at configs/stm3210-eval/src/up_idle.c).
 
-    4. Here are some additional things to note in the configuration:
+    3. Here are some additional things to note in the configuration:
 
         CONFIG_PM_BUTTONS=y
 
@@ -1846,22 +2167,13 @@ Where <subdir> is one of the following:
 
     NOTES:
 
-    1. This configuration uses the mconf-based configuration tool.  To
-       change this configuration using that tool, you should:
-
-       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-          see additional README.txt files in the NuttX tools repository.
-
-       b. Execute 'make menuconfig' in nuttx/ in order to start the
-          reconfiguration process.
-
-    2. Default toolchain:
+    1. Default toolchain:
 
        CONFIG_HOST_WINDOWS=y                   : Builds under windows
        CONFIG_WINDOWS_CYGWIN=y                 : Using Cygwin and
        CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : The native Windows CodeSourcery toolchain
 
-    3. By default, this project assumes that you are *NOT* using the DFU
+    2. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
 
   pseudoterm:
@@ -1908,16 +2220,7 @@ Where <subdir> is one of the following:
 
     NOTES:
 
-    1. This configuration uses the mconf-based configuration tool.  To
-       change this configuration using that tool, you should:
-
-       a. Build and install the kconfig-mconf tool.  See nuttx/README.txt
-          see additional README.txt files in the NuttX tools repository.
-
-       b. Execute 'make menuconfig' in nuttx/ in order to start the
-          reconfiguration process.
-
-    2. By default, this configuration uses the CodeSourcery toolchain
+    1. By default, this configuration uses the CodeSourcery toolchain
        for Windows and builds under Cygwin (or probably MSYS).  That
        can easily be reconfigured, of course.
 
@@ -1925,7 +2228,7 @@ Where <subdir> is one of the following:
        CONFIG_WINDOWS_CYGWIN=y                 : Using Cygwin
        CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : CodeSourcery for Windows
 
-    3. This configuration does have USART2 output enabled and set up as
+    2. This configuration does have USART2 output enabled and set up as
        the system logging device:
 
        CONFIG_SYSLOG_CHAR=y               : Use a character device for system logging
@@ -1941,7 +2244,7 @@ Where <subdir> is one of the following:
        USB device controller driver.  Instead, use the USB monitor with
        USB debug off and USB trace on (see below).
 
-    4. Enabling USB monitor SYSLOG output.  If tracing is enabled, the USB
+    3. Enabling USB monitor SYSLOG output.  If tracing is enabled, the USB
        device will save encoded trace output in in-memory buffer; if the
        USB monitor is enabled, that trace buffer will be periodically
        emptied and dumped to the system logging device (USART2 in this
@@ -1962,7 +2265,7 @@ Where <subdir> is one of the following:
        CONFIG_USBMONITOR_TRACECONTROLLER=y
        CONFIG_USBMONITOR_TRACEINTERRUPTS=y
 
-    5. By default, this project assumes that you are *NOT* using the DFU
+    4. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
 
     Using the Prolifics PL2303 Emulation

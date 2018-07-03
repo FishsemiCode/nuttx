@@ -100,6 +100,7 @@ config ARCH_CHIP_TM4C1294NC
 	select ARCH_CHIP_TM4C
 	select ARCH_CHIP_TM4C129
 	select TIVA_HAVE_ETHERNET
+	select TIVA_HAVE_EEPROM
 
 config ARCH_CHIP_TM4C129XNC
 	bool "TM4C129XNC"
@@ -107,13 +108,6 @@ config ARCH_CHIP_TM4C129XNC
 	select ARCH_CHIP_TM4C
 	select ARCH_CHIP_TM4C129
 	select TIVA_HAVE_ETHERNET
-
-config ARCH_CHIP_CC3200
-	bool "CC3200"
-	depends on ARCH_CHIP_TIVA
-	select ARCH_CORTEXM4
-	select TIVA_HAVE_I2C1
-
 endchoice
 
 # Chip families
@@ -296,6 +290,10 @@ config TIVA_HAVE_SSI2
 	default n
 
 config TIVA_HAVE_SSI3
+	bool
+	default n
+
+config TIVA_HAVE_EEPROM
 	bool
 	default n
 
@@ -544,7 +542,30 @@ config TIVA_FLASH
 	---help---
 		Enable MTD driver support for internal FLASH.
 
+config TIVA_EEPROM
+	bool "Internal EEPROM driver"
+	default n
+	depends on TIVA_HAVE_EEPROM && EXPERIMENTAL
+	---help---
+		Enable MTD driver support for internal EEPROM.
+
 endmenu
+
+config TIVA_RAMVBAR
+	bool "Set VBAR"
+	default n
+	---help---
+		Set the ARM VBAR register to position interrupt vectors at the
+		beginning of RAM (vs the beginning of FLASH).  The beginning of RAM
+		is that address defined by CONFIG_RAM_START.
+
+config TIVA_BOARD_CLOCKCONFIG
+	bool "Board-specific clock configuration"
+	default n
+	---help---
+		If CONFIG_TIVA_BOARD_CLOCKCONFIG is defined, then the board-specific
+		logic must provide the function tiva_board_clockconfig().  That
+		function will then be called to perform all clock initialization.
 
 menu "Enable GPIO Interrupts"
 

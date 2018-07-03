@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/wireless/bcmf_netdev.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -111,21 +111,13 @@
 #define BUF ((struct eth_hdr_s *)priv->bc_dev.d_buf)
 
 /****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
 /* Common TX logic */
 
-static int bcmf_transmit(FAR struct bcmf_dev_s *priv,
-                         struct bcmf_frame_s *frame);
+static int  bcmf_transmit(FAR struct bcmf_dev_s *priv,
+                          FAR struct bcmf_frame_s *frame);
 static void bcmf_receive(FAR struct bcmf_dev_s *priv);
 static int  bcmf_txpoll(FAR struct net_driver_s *dev);
 static void bcmf_rxpoll(FAR void *arg);
@@ -145,10 +137,10 @@ static int  bcmf_txavail(FAR struct net_driver_s *dev);
 
 #if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
 static int  bcmf_addmac(FAR struct net_driver_s *dev,
-              FAR const uint8_t *mac);
+                        FAR const uint8_t *mac);
 #ifdef CONFIG_NET_IGMP
 static int  bcmf_rmmac(FAR struct net_driver_s *dev,
-              FAR const uint8_t *mac);
+                       FAR const uint8_t *mac);
 #endif
 #ifdef CONFIG_NET_ICMPv6
 static void bcmf_ipv6multicast(FAR struct bcmf_dev_s *priv);
@@ -156,7 +148,7 @@ static void bcmf_ipv6multicast(FAR struct bcmf_dev_s *priv);
 #endif
 #ifdef CONFIG_NETDEV_IOCTL
 static int  bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
-            unsigned long arg);
+                       unsigned long arg);
 #endif
 
 /****************************************************************************
@@ -191,7 +183,7 @@ int bcmf_netdev_alloc_tx_frame(FAR struct bcmf_dev_s *priv)
  *   Start hardware transmission.  Called either from the txdone interrupt
  *   handling or from watchdog based polling.
  *
- * Parameters:
+ * Input Parameters:
  *   priv - Reference to the driver state structure
  *
  * Returned Value:
@@ -230,7 +222,7 @@ static int bcmf_transmit(FAR struct bcmf_dev_s *priv,
  * Description:
  *   An interrupt was received indicating the availability of a new RX packet
  *
- * Parameters:
+ * Input Parameters:
  *   priv - Reference to the driver state structure
  *
  * Returned Value:
@@ -244,7 +236,7 @@ static int bcmf_transmit(FAR struct bcmf_dev_s *priv,
 static void bcmf_receive(FAR struct bcmf_dev_s *priv)
 {
   struct bcmf_frame_s *frame;
-  // wlinfo("Entry\n");
+
   do
     {
       /* Request frame buffer from bus interface */
@@ -254,12 +246,14 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
       if (frame == NULL)
         {
           /* No more frame to process */
+
           break;
         }
 
       if (!priv->bc_bifup)
         {
           /* Interface down, drop frame */
+
           priv->bus->free_frame(priv, frame);
           continue;
         }
@@ -274,6 +268,24 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
 
        pkt_input(&priv->bc_dev);
 #endif
+
+      /* Check if this is an 802.1Q VLAN tagged packet */
+
+      if (BUF->type == HTONS(TPID_8021QVLAN))
+        {
+          /* Need to remove the 4 octet VLAN Tag, by moving src and dest
+           * addresses 4 octets to the right, and then read the actual
+           * ethertype. The VLAN ID and priority fields are currently
+           * ignored.
+           */
+
+          uint8_t temp_buffer[12];
+          memcpy( temp_buffer, frame->data, 12);
+          memcpy( frame->data + 4, temp_buffer, 12);
+
+          priv->bc_dev.d_buf = frame->data = frame->data + 4;
+          priv->bc_dev.d_len -= 4;
+        }
 
       /* We only accept IP packets of the configured type and ARP packets */
 
@@ -392,7 +404,11 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
       else
 #endif
         {
-          wlerr("ERROR: RX dropped\n");
+          /* On some routers, it may constantly receive mysterious packet...
+           * https://www.wireshark.org/docs/wsar_html/epan/etypes_8h.html
+           * for more etypes definitions.
+           */
+
           NETDEV_RXDROPPED(&priv->bc_dev);
           priv->bus->free_frame(priv, frame);
         }
@@ -412,7 +428,7 @@ static void bcmf_receive(FAR struct bcmf_dev_s *priv)
  *   2. When the preceding TX packet send timesout and the interface is reset
  *   3. During normal TX polling
  *
- * Parameters:
+ * Input Parameters:
  *   dev - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -485,7 +501,7 @@ static int bcmf_txpoll(FAR struct net_driver_s *dev)
  * Description:
  *   Process RX frames
  *
- * Parameters:
+ * Input Parameters:
  *   arg - context of device to use
  *
  * Returned Value:
@@ -560,7 +576,7 @@ void bcmf_netdev_notify_rx(FAR struct bcmf_dev_s *priv)
  * Description:
  *   Perform periodic polling from the worker thread
  *
- * Parameters:
+ * Input Parameters:
  *   arg - The argument passed when work_queue() as called.
  *
  * Returned Value:
@@ -618,7 +634,7 @@ exit_unlock:
  * Description:
  *   Periodic timer handler.  Called from the timer interrupt handler.
  *
- * Parameters:
+ * Input Parameters:
  *   argc - The number of available arguments
  *   arg  - The first argument
  *
@@ -647,7 +663,7 @@ static void bcmf_poll_expiry(int argc, wdparm_t arg, ...)
  *   NuttX Callback: Bring up the Ethernet interface when an IP address is
  *   provided
  *
- * Parameters:
+ * Input Parameters:
  *   dev - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -702,7 +718,7 @@ static int bcmf_ifup(FAR struct net_driver_s *dev)
  * Description:
  *   NuttX Callback: Stop the interface.
  *
- * Parameters:
+ * Input Parameters:
  *   dev - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -745,7 +761,7 @@ static int bcmf_ifdown(FAR struct net_driver_s *dev)
  * Description:
  *   Perform an out-of-cycle poll on the worker thread.
  *
- * Parameters:
+ * Input Parameters:
  *   arg - Reference to the NuttX driver state structure (cast to void*)
  *
  * Returned Value:
@@ -800,7 +816,7 @@ exit_unlock:
  *   stimulus perform an out-of-cycle poll and, thereby, reduce the TX
  *   latency.
  *
- * Parameters:
+ * Input Parameters:
  *   dev - Reference to the NuttX driver state structure
  *
  * Returned Value:
@@ -837,7 +853,7 @@ static int bcmf_txavail(FAR struct net_driver_s *dev)
  *   NuttX Callback: Add the specified MAC address to the hardware multicast
  *   address filtering
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *   mac  - The MAC address to be added
  *
@@ -867,7 +883,7 @@ static int bcmf_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *   NuttX Callback: Remove the specified MAC address from the hardware multicast
  *   address filtering
  *
- * Parameters:
+ * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *   mac  - The MAC address to be removed
  *
@@ -896,7 +912,7 @@ static int bcmf_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  * Description:
  *   Configure the IPv6 multicast MAC address.
  *
- * Parameters:
+ * Input Parameters:
  *   priv - A reference to the private driver state structure
  *
  * Returned Value:
@@ -971,7 +987,7 @@ static void bcmf_ipv6multicast(FAR struct bcmf_dev_s *priv)
  * Description:
  *   Handle network IOCTL commands directed to this device.
  *
- * Parameters:
+ * Input Parameters:
  *   dev - Reference to the NuttX driver state structure
  *   cmd - The IOCTL command
  *   arg - The argument for the IOCTL command
@@ -1092,7 +1108,7 @@ static int bcmf_ioctl(FAR struct net_driver_s *dev, int cmd,
  * Description:
  *   Register a network driver and set Broadcom chip in a proper state
  *
- * Parameters:
+ * Input Parameters:
  *   priv - Broadcom driver device
  *
  * Returned Value:
