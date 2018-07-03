@@ -17,6 +17,7 @@ core
 /.version
 /defconfig
 /Make.defs
+/staging
 /nuttx
 /nuttx.*
 /nuttx-*

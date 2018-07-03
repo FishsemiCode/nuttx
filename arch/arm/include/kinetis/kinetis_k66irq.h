@@ -38,8 +38,8 @@
  * through nuttx/irq.h
  */
 
-#ifndef __ARCH_ARM_INCLUDE_KINETIS_KINETIS_66KIRQ_H
-#define __ARCH_ARM_INCLUDE_KINETIS_KINETIS_66KIRQ_H
+#ifndef __ARCH_ARM_INCLUDE_KINETIS_KINETIS_K66IRQ_H
+#define __ARCH_ARM_INCLUDE_KINETIS_KINETIS_K66IRQ_H
 
 /*****************************************************************************
  * Included Files
@@ -203,4 +203,4 @@ extern "C"
 #endif
 #endif
 
-#endif /* __ARCH_ARM_INCLUDE_KINETIS_KINETIS_66KIRQ_H */
+#endif /* __ARCH_ARM_INCLUDE_KINETIS_KINETIS_K66IRQ_H */

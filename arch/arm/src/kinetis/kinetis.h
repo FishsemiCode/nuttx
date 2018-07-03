@@ -225,7 +225,7 @@
  */
 
 #define GPIO_OUTPUT_ONE        (1 << 24)  /* Bit 24: 1:Initial output value=1 */
-#define GPIO_OUTPUT_ZER0       (0)        /* Bit 24: 0:Initial output value=0 */
+#define GPIO_OUTPUT_ZERO       (0)        /* Bit 24: 0:Initial output value=0 */
 
 /* Five bits are used to incode DMA/interrupt options:
  *
@@ -582,7 +582,7 @@ void kinetis_pinirqinitialize(void);
  *   2. Call kinetis_pinirqattach() to attach the pin interrupt handling function.
  *   3. Call kinetis_pinirqenable() to enable interrupts on the pin.
  *
- * Parameters:
+ * Input Parameters:
  *   pinset -  Pin configuration
  *   pinisr -  Pin interrupt service routine
  *   arg    -  An argument that will be provided to the interrupt service routine.

@@ -581,8 +581,7 @@ USB Full-Speed Device
      directories that can be used for reference.
 
   2. Linux supports the CDC/ACM driver out of the box.  Windows, on the other
-     than requires that you first install a serial driver (a .inf file).  There
-     are example .inf files for NuttX in the nuttx/configs/spark directories.
+     than requires that you first install a serial driver (a .inf file).
 
   3. There is hand-shaking to pace incoming serial data.  As a result, you may
      experience data loss due to RX overrun errors.  The overrun errors occur
@@ -1037,9 +1036,7 @@ Configurations
   Each SAM4E-EK configuration is maintained in a sub-directory and
   can be selected as follow:
 
-    cd tools
-    ./configure.sh sam4e-ek/<subdir>
-    cd -
+    tools/configure.sh sam4e-ek/<subdir>
 
   Before building, make sure the PATH environment variable includes the
   correct path to the directory than holds your toolchain binaries.
@@ -1094,7 +1091,7 @@ Configurations
      This re-configuration should be done before making NuttX or else the
      subsequent 'make' will fail.  If you have already attempted building
      NuttX then you will have to 1) 'make distclean' to remove the old
-     configuration, 2) 'cd tools; ./configure.sh sam4e-ek/ksnh' to start
+     configuration, 2) 'tools/configure.sh sam4e-ek/ksnh' to start
      with a fresh configuration, and 3) perform the configuration changes
      above.
 
@@ -1380,8 +1377,7 @@ Configurations
     5. By default, this configuration uses the CDC/ACM serial device to
        provide the USB console.  This works out-of-the-box for Linux.
        Windows, on the other hand, will require a CDC/ACM device driver
-       (.inf file).  There is a sample .inf file in the nuttx/configs/spark
-       directories.
+       (.inf file).
 
     5. Using the Prolifics PL2303 Emulation
 
@@ -1425,14 +1421,11 @@ Configurations
 
     1. Install the nxwm configuration
 
-       $ cd ~/nuttx-git/nuttx/tools
-       $ ./configure.sh sam4e-ek/nxwm
+       $ tools/configure.sh sam4e-ek/nxwm
 
     2. Make the build context (only)
 
-       $ cd ..
        $ make context
-       ...
 
     3. Install the nxwm unit test
 

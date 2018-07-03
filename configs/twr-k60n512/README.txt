@@ -378,7 +378,7 @@ TWR-K60N512-specific Configuration Options
     CONFIG_KINETIS_FTM0     -- Support FlexTimer 0
     CONFIG_KINETIS_FTM1     -- Support FlexTimer 1
     CONFIG_KINETIS_FTM2     -- Support FlexTimer 2
-    CONFIG_KINETIS_LPTIMER  -- Support the low power timer
+    CONFIG_KINETIS_LPTMR0   -- Support the low power timer 0
     CONFIG_KINETIS_RTC      -- Support RTC
     CONFIG_KINETIS_SLCD     -- Support the segment LCD (K60 only)
     CONFIG_KINETIS_EWM      -- Support the external watchdog
@@ -449,9 +449,7 @@ Configurations
 Each TWR-K60N512 configuration is maintained in a sub-directory and
 can be selected as follow:
 
-    cd tools
-    ./configure.sh twr-k60n512/<subdir>
-    cd -
+    tools/configure.sh twr-k60n512/<subdir>
 
 Where <subdir> is one of the following:
 

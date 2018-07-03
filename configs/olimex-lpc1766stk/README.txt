@@ -157,6 +157,20 @@ Olimex LPC1766-STK development board
   MISO0 and MOSI0 are join via a 1K ohm resistor so the LCD appears to be
   write only.
 
+  STATUS:  The LCD driver was never properly integrated.  It was awkward
+  to use because it relied on a 9-bit SPI inteface (the 9th bit being
+  the command/data bit which is normally a discrete input).  All support
+  for the Nokia 6100 was removed on May 19, 2018.  That obsoleted
+  driver can be viewed in the nuttx/drivers/lcd and configs/olimex-lpc1766stk
+  directories of the Obsoleted repository.
+
+  The obsoleted driver attempted to created the 9th bit on-they-flay in the
+  data by expanding the 8-bit data to 16-bits with the 9th bit managed.  I
+  no longer believe that is the correct technical approach.  I now believe
+  that the best solution would be to provide custom management of the 9th
+  data bit inside of the low-level MCU driver, the LPC17 SPI driver in thisi
+  case, via a configration option on the low-level driver.
+
 LEDs
 ^^^^
 
@@ -631,9 +645,7 @@ USB host operations.  To make these modifications, do the following:
 1. First configure to build the NSH configuration from the top-level
    NuttX directory:
 
-     cd tools
      ./configure olimex-lpc1766stk/nsh
-     cd ..
 
 2. Modify the top-level .config file to enable USB host using:
 
@@ -673,9 +685,7 @@ Common Configuration Notes
   1. Each Olimex LPC1766-STK configuration is maintained in a
      sub-directory and can be selected as follow:
 
-       cd tools
-       ./configure.sh olimex-lpc1766stk/<subdir>
-       cd -
+       tools/configure.sh olimex-lpc1766stk/<subdir>
 
      Where <subdir> is one of the sub-directories identified in the following
      paragraphs.
@@ -801,14 +811,6 @@ Configuration Sub-Directories
        COPYING file).
 
        CONFIG_FAT_LFN=y                    : Enables long file name support
-
-  nx:
-    An example using the NuttX graphics system (NX).  This example uses
-    the Nokia 6100 LCD driver.
-
-    NOTES:
-
-    1. The Nokia 6100 driver does not work on this board as of this writing.
 
   slip-httpd:
     This configuration is identical to the thttpd configuration except that
@@ -941,7 +943,7 @@ Configuration Sub-Directories
        In principle, Zmodem transfers could be performed on the any serial
        device, including the console device.  However, only the LPC17xx
        UART1 supports hardware flow control which is required for Zmodem
-       trasnfers.  Also, this configuration permits debug output on the
+       transfers.  Also, this configuration permits debug output on the
        serial console while the transfer is in progress without interfering
        with the file transfer.
 
@@ -1022,6 +1024,7 @@ Configuration Sub-Directories
 
          $ sudo stty -F /dev/ttyS0 2400     # Select 2400 BAUD
          $ sudo stty -F /dev/ttyS0 crtscts  # Enables CTS/RTS handshaking *
+         $ sudo stty -F /dev/ttyS0 raw      # Puts the TTY in raw mode
          $ sudo stty -F /dev/ttyS0          # Show the TTY configuration
 
          * Only is hardware flow control is enabled.  It is *not* in this
@@ -1068,6 +1071,7 @@ Configuration Sub-Directories
 
          $ sudo stty -F /dev/ttyS0 2400     # Select 2400 BAUD
          $ sudo stty -F /dev/ttyS0 crtscts  # Enables CTS/RTS handshaking *
+         $ sudo stty -F /dev/ttyS0 raw      # Puts the TTY in raw mode
          $ sudo stty -F /dev/ttyS0          # Show the TTY configuration
 
          * Only is hardware flow control is enabled.  It is *not* in this
@@ -1084,7 +1088,12 @@ Configuration Sub-Directories
 
        Then use the sz command on Linux to send the file to the target:
 
-         $ sudo sz <filename> t </dev/ttyS0 >/dev/ttyS0
+         $ sudo sz <filename> [-l nnnn] </dev/ttyS0 >/dev/ttyS0
+
+       Where <filename> is the file that you want to send. If -l nnnn is not
+       specified, then there will likely be packet buffer overflow errors.
+       nnnn should be set to a value less than or equal to
+       CONFIG_SYSTEM_ZMODEM_PKTBUFSIZE
 
        Where <filename> is the file that you want to send.
 
@@ -1133,11 +1142,15 @@ Configuration Sub-Directories
         best thing to do would be to use the matching NuttX sz on the Linux
         host side.
 
-    2013-7-16. More Testing against the NuttX rz/sz on Both Ends.
+      2013-7-16. More Testing against the NuttX rz/sz on Both Ends.
 
-      The NuttX sz/rz commands have been modified so that they can be
-      built and executed under Linux.  In this case, there are no
-      transfer problems at all in either direction and with large or
-      small files.  This configuration could probably run at much higher
-      serial speeds and with much smaller buffers (although that has not
-      been verified as of this writing).
+        The NuttX sz/rz commands have been modified so that they can be
+        built and executed under Linux.  In this case, there are no
+        transfer problems at all in either direction and with large or
+        small files.  This configuration could probably run at much higher
+        serial speeds and with much smaller buffers (although that has not
+        been verified as of this writing).
+
+        CONCLUSION:  You really do need proper hardware flow control to
+        use zmodem.  That is not currently implemented in the LPC17xx
+        family.

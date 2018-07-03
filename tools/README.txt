@@ -12,10 +12,19 @@ README.txt
 
   This file!
 
-Config.mk
+Makefile.*
+----------
+
+  Makefile.unix is the Makefile used when building NuttX in Unix-like
+  systems.  It is selected from the top-level Makefile.
+
+  Makefile.win is the Makefile used when building natively under
+  Windows.  It is selected from the top-level Makefile.
+
+*.mk
 ---------
 
-  This file contains common definitions used by many configuration files.
+  Config.mk contains common definitions used by many configuration files.
   This file (along with <nuttx>/.config) must be included at the top of
   each configuration-specific Make.defs file like:
 
@@ -25,6 +34,11 @@ Config.mk
   Subsequent logic within the configuration-specific Make.defs file may then
   override these default definitions as necessary.
 
+  Libraries.mk has the build rules for all NuttX libraries.
+
+  FlatLibs.mk, ProtectedLibs.mk, and KernelLib.mk:  These control the
+  selection of libraries to be built, depending on the selected build mode.
+
 configure.sh
 configure.bat
 configure.c, cfgparser.c, and cfgparser.h
@@ -32,7 +46,7 @@ configure.c, cfgparser.c, and cfgparser.h
 
   configure.sh is a bash script that is used to configure NuttX for a given
   target board in a environment that supports POSIX paths (Linux, Cygwin,
-  OSX, or similar).  See configs/README.txt or Documentation/NuttxPortingGuide.html
+  macOS, or similar).  See configs/README.txt or Documentation/NuttxPortingGuide.html
   for a description of how to configure NuttX with this script.
 
   configure.c, cfgparser.c, and cfgparser.h can be used to build a work-alike
@@ -60,6 +74,22 @@ discover.py
 
   Example script for discovering devices in the local network.
   It is the counter part to apps/netutils/discover
+
+gencromfs.c
+-----------
+
+  This is a C program that is used to generate CROMFS file system images.
+  Usage is simple:
+
+    gencromfs <dir-path> <out-file>
+
+  Where:
+
+    <dir-path> is the path to the directory will be at the root of the
+      new CROMFS file system image.
+    <out-file> the name of the generated, output C file.  This file must
+      be compiled in order to generate the binary CROMFS file system
+      image.
 
 mkconfig.c, cfgdefine.c, and cfgdefine.h
 ----------------------------------------
@@ -258,6 +288,8 @@ nxstyle.c
   performs crude pattern matching to check the file.
 
   Usage: nxstyle <path-to-file-to-check>
+
+  See also indent.sh and uncrustify.cfg
 
 pic32mx
 -------
@@ -658,7 +690,11 @@ kconfig.bat
 logparser.c
 -----------
 
-  Convert a git log to ChangeLog format.
+  Convert a git log to ChangeLog format.  Recommended usage:
+
+    git log --date-order --reverse <rev1>..<rev2>|HEAD >_git_log.tmp
+    logparser _git_log.tmp >_changelog.txt
+    rm -f _git_log.tmp
 
 mkimage.sh
 ----------
@@ -712,6 +748,8 @@ indent.sh
    You will manually need to check for the issues listed above after
    performing the conversions.
 
+   See also nxstyle.c and uncrustify.cfg
+
 sethost.sh
 ----------
 
@@ -741,16 +779,18 @@ sethost.sh
 
   Other options are available:
 
-    $ tools/sethost.sh -h
+    $ ./sethost.sh -h
 
-    USAGE: tools/sethost.sh [-w|l] [-c|n] [-32|64] [<config>]
-           tools/sethost.sh -h
+    USAGE: ./sethost.sh [-w|l|m] [-c|u|g|n] [-32|64] [<config>]
+           ./sethost.sh -h
 
     Where:
-      -w|l selects Windows (w) or Linux (l).  Default: Linux
-      -c|n selects Windows native (n) or Cygwin (c).  Default Cygwin
-      -32|64 selects 32- or 64-bit host (Only for Cygwin).  Default 64
+      -w|l|m selects Windows (w), Linux (l), or macOS (m).  Default: Linux
+      -c|u|g|n selects Windows environment option:  Cygwin (c), Ubuntu under
+         Windows 10 (u), MSYS/MSYS2 (g) or Windows native (n).  Default Cygwin
+      -32|64 selects 32- or 64-bit host.  Default 64
       -h will show this help test and terminate
+      <config> selects configuration file.  Default: .config
 
 refresh.sh
 ----------
@@ -778,13 +818,15 @@ refresh.sh
     $ tools/refresh.sh --help
     tools/refresh.sh is a tool for refreshing board configurations
 
-    USAGE: tools/refresh.sh [--debug|--help] <board>/<config>
+    USAGE: ./refresh.sh [options] <board>/<config>
 
-    Where:
+    Where [options] include:
       --debug
          Enable script debug
       --silent
          Update board configuration without interaction
+      --defaults
+         Do not prompt for new default selections; accept all recommended default values
       --help
          Show this help message and exit
       <board>
@@ -844,13 +886,18 @@ testbuild.sh
 
     $ ./testbuild.sh -h
 
-    USAGE: ./testbuild.sh [-w|l] [-c|n] [-s] <testlist-file>
-    USAGE: ./testbuild.sh -h
+    USAGE: ./testbuild.sh [-w|l] [-c|u|n] [-s] [-a <appsdir>] [-n <nxdir>] <testlist-file>
+           ./testbuild.sh -h
 
-    where
+    Where:
       -w|l selects Windows (w) or Linux (l).  Default: Linux
-      -c|n selects Windows native (n) or Cygwin (c).  Default Cygwin
-      -s Use C++ long size_t in new operator. Default unsigned long
+      -c|u|n selects Windows environment option:  Cygwin (c), Ubuntu under
+         Windows 10 (u), or Windows native (n).  Default Cygwin
+      -s Use C++ unsigned long size_t in new operator. Default unsigned int
+      -a <appsdir> provides the relative path to the apps/ directory.  Default ../apps
+      -n <nxdir> provides the relative path to the NxWidgets/ directory.  Default ../NxWidgets
+      -d enables script debug output
+      -x exit on build failures
       -h will show this help test and terminate
       <testlist-file> selects the list of configurations to test.  No default
 
@@ -883,6 +930,69 @@ testbuild.sh
   path to the application directory when running this script like:
 
     $ export APPSDIR=../apps
+
+uncrustify.cfg
+--------------
+
+  This is a configuration script for the uncrustify code beautifier.
+  Uncrustify does well with forcing braces into "if" statements and
+  indenting per the Nuttx C coding standard. It correctly does things
+  like placing all braces on separate lines at the proper indentation
+  level.  It cannot handle certain requirements of the coding standard
+  such as
+
+    - FAR attributes in pointer declarations.
+    - The Nuttx standard function header block comments.
+    - Naming violations such as use of CamelCase variable names,
+      lower case pre-processor definitions, etc.
+
+  Comment blocks, function headers, files headers, etc. must be formatted
+  manually.
+
+  Its handling of block comments is fragile. If the comment is perfect,
+  it leaves it alone, but if the block comment is deemed to need a fix
+  it starts erroneously indenting the continuation lines of the comment.
+
+    - uncrustify.cfg messed up the indent of most block comments.
+      cmt_sp_before_star_cont is applied inconsistently.  I added
+
+        cmt_indent_multi = false # disable all multi-line comment changes
+
+      to the .cfg file to limit its damage to block comments.
+    - It is very strict at wrapping lines at column 78. Even when column 79
+      just contained the '/' of a closing "*/".  That created many
+      bad continuation lines.
+    - It moved '{' that opened a struct to the line defining the struct.
+      nl_struct_brace = add (or force) seemed to be ignored.
+    - It also aligned variable names in declarations and '=' signs in
+      assignment statements in a seemingly arbitrary manner. Making changes
+      that were not necessary.
+
+  NOTE: uncrustify.cfg should *ONLY* be used with new files that have an
+  inconsistent coding style.  uncrustify.cfg should get you in the ballpark,
+  but you should expect to review and hand-edit the files to assume 100%
+  compliance.
+
+  WARNING: *NEVER* use uncrustify.cfg for modifications to existing NuttX
+  files.  It will probably corrupt the style in subtle ways!
+
+  This was last verified against uncrustify 0.66.1 by Bob Feretich.
+
+  About uncrustify:  Uncrustify is a highly configurable, easily modifiable
+  source code beautifier.  To learn more about uncrustify:
+
+    http://uncrustify.sourceforge.net/
+
+  Source code is available on GitHub:
+
+    https://github.com/uncrustify/uncrustify
+
+  Binary packages are available for Linux via command line installers.
+  Binaries fro both Windows and Linux are avaialbe at:
+
+    https://sourceforge.net/projects/uncrustify/files/
+
+  See also indent.sh and nxstyle.c
 
 zipme.sh
 --------

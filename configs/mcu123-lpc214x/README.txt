@@ -89,8 +89,7 @@ NuttX buildroot Toolchain
 
   1. You must have already configured Nuttx in <some-dir>/nuttx.
 
-     cd tools
-     ./configure.sh eagle100/<sub-dir>
+     tools/configure.sh eagle100/<sub-dir>
 
   2. Download the latest buildroot package into <some-dir>
 
@@ -139,10 +138,9 @@ LPC21ISP (Linux)
 ----------------
 
 (ca. 2008)
-I use the lpc21isp tool to load NuttX into FLASH.  That tool is available
-in the files section at https://groups.yahoo.com/neo/groups/lpc21isp/info.  In
-the older version 1.60 of lpc21isp for Linux, I had to make several changes.
-This changes are shown in lpc21ips-1.60.diff.
+I use the lpc21isp tool to load NuttX into FLASH.  In the older version
+1.60 of lpc21isp for Linux, I had to make several changes.  This changesi
+are shown in lpc21ips-1.60.diff.
 
 I use the script lpc21isp.sh to perform the actual download.  You will
 probably have to make some changes to this script in order to use it.
@@ -317,9 +315,7 @@ Configurations
   1. Each NXP LPC214x configuration is maintained in a sub-directory and
      can be selected as follow:
 
-       cd tools
-       ./configure.sh mcu123-lpc214x/<subdir>
-       cd -
+       tools/configure.sh mcu123-lpc214x/<subdir>
 
      Where <subdir> is one of the configuration sub-directories described in
      the following paragraph.

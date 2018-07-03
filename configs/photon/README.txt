@@ -32,12 +32,7 @@ Selecting the Photon board on NuttX
   2) Enter inside nuttx/tools and configure to use the Photon board:
 
      $ cd nuttx
-     $ cd tools
-     $ ./configure.sh photon/wlan
-
-  Now please return to root of nuttx/ directory:
-
-    $ cd ..
+     $ tools/configure.sh photon/wlan
 
 Configuring NuttX to use your Wireless Router (aka Access Point)
 ================================================================
@@ -114,6 +109,29 @@ Flashing NuttX in the Photon board
      Download done.
      File downloaded successfully
 
+   3) Restore the original firmware
+
+     If you config to use the stock bootloader of Photon, you may
+     reload the original firmware with dfu-utils as you like. Otherwize
+     you must have backuped the whole image beforehand, and reload it
+     via SWD debug port.
+
+NSH via telnet
+==============
+
+  After you successfully downloaded nuttx.bin, reset the board and it
+  automatically connects to the corresponding wifi AP. You may login
+  your router to see its IP address. Assume that it's 192.168.1.111
+
+  Open a terminal on your computer and telnet your Photon:
+
+    $ telnet 192.168.1.111
+    Trying 192.168.1.111...
+    Connected to 192.168.1.111.
+    Escape character is '^]'
+
+    NuttShell (NSH) NuttX-7.24
+    nsh>
 
 Serial console configuration
 ============================

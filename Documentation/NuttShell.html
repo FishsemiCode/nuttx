@@ -8,7 +8,7 @@
   <tr align="center" bgcolor="#e4e4e4">
     <td>
       <h1><big><font color="#3c34ec"><i>NuttShell (NSH)</i></font></big></h1>
-      <p>Last Updated: January 12, 2018</p>
+      <p>Last Updated: May 11, 2018</p>
     </td>
   </tr>
 </table>
@@ -1060,7 +1060,7 @@ mount -t vfat /dev/ram1 /tmp
     </li>
     <li>
       NSH will execute the script at <code>/etc/init.d/rcS</code> at start-up (before the
-      first NSH prompt.  After execution of the script, the root FS will look
+      first NSH prompt).  After execution of the script, the root FS will look
       like:
 <ul><pre>
 |--dev/
@@ -2311,7 +2311,7 @@ nsh&gt;
 
 <p><b>Command Syntax:</b></p>
 <ul><pre>
-mkfatfs [-F &lt;fatsize&gt;] &lt;block-driver&gt;
+mkfatfs [-F &lt;fatsize&gt;] [-r &lt;rootdirentries&gt;] &lt;block-driver&gt;
 </pre></ul>
 <p>
   <b>Synopsis</b>.
@@ -2319,6 +2319,13 @@ mkfatfs [-F &lt;fatsize&gt;] &lt;block-driver&gt;
   The FAT size may be provided as an option.
   Without the <code>&lt;fatsize&gt;</code> option, <code>mkfatfs</code> will select either the FAT12 or FAT16 format.
   For historical reasons, if you want the FAT32 format, it must be explicitly specified on the command line.
+</p>
+<p>
+  The <code>-r</code> option may be specified to select the the number of entries in the root directory for FAT12 and FAT16 file systems.
+  Typical values for small volumes would be 112 or 224; 512 should be used for large volumes, such as hard disks or very large SD cards.  The default is 512 entries in all cases.
+</p>
+<p>
+  The reported number of root directory entries used with FAT32 is zero because the FAT32 root directory is a cluster chain.
 </p>
 <p>
   NSH provides this command to access the <a href="mkfatfs"><code>mkfatfs()</code></a> NuttX API.
@@ -2952,7 +2959,7 @@ telnetd
   The Telnet daemon may be started either programmatically by calling <code>nsh_telnetstart()</code> or it may be started from the NSH command line using this <code>telnetd</code> command.
 </p>
 <p>
-  Normally this command would be suppressed with <code>CONFIG_NSH_DISABLE_TELNETD</code>because the Telnet daemon is automatically started in <code>nsh_main.c</code>.  The exception is when <code>CONFIG_NSH_NETLOCAL</code> is selected.  In that case, the network is not enabled at initialization but rather must be enabled from the NSH command line or via other applications.
+  Normally this command would be suppressed with <code>CONFIG_NSH_DISABLE_TELNETD</code> because the Telnet daemon is automatically started in <code>nsh_main.c</code>.  The exception is when <code>CONFIG_NSH_NETLOCAL</code> is selected.  In that case, the network is not enabled at initialization but rather must be enabled from the NSH command line or via other applications.
 </p>
 <p>
   In that case, when <code>nsh_telnetstart()</code> is called before the the network is initialized, it will fail.
@@ -3905,20 +3912,13 @@ nsh&gt;
      The entity to be executed is identified by enclosing the command line in back quotes.
      For example,
      <ul><pre>
-set FOO `myprogram $BAR
+set FOO `myprogram $BAR`
 </pre></ul>
      will execute the program named  <code>myprogram </code> passing it the value of the environment variable <code>BAR</code>.
      The value of the environment variable <code>FOO</code> is then set output of <code>myprogram</code> on <code>stdout</code>.  Because this feature commits significant resources, it is disabled by default.
-    </td>
-  </tr>
-  <tr>
-    <td valign="top"><b><code>CONFIG_NSH_TMPDIR</code></b></td>
-    <td>
-     If <code>CONFIG_NSH_CMDPARMS</code> is selected, then function output will be retained
-     in a temporary file.  In that case, this string must be provided to
-     specify the full path to a directory where temporary files can be
-     created.  This would be a good application of RAM disk: To provide
-     temporary storage for function output.
+
+     The <code>CONFIG_NSH_CMDPARMS</code> interim output will be retained in a temporary file.
+     Full path to a directory where temporary files can be created is taken from <code>CONFIG_LIBC_TMPDIR</code> and it defaults to <code>/tmp</code> if <code>CONFIG_LIBC_TMPDIR</code> is not set.
     </td>
   </tr>
   <tr>
@@ -4367,7 +4367,7 @@ set FOOBAR ABC_${FOO}_${BAR}
 <p>
   <b>Overview.</b>
   The NuttShell (NSH) is a simple shell application that may be used with NuttX.
-  It supports a variety of commands and is (very) loosely based on the bash shell and the common utilities used in Unix shell programming.
+  It supports a variety of commands and is (very) loosely based on the Bash shell and the common utilities used with Bash shell programming.
   The paragraphs in this appendix will focus on customizing NSH:  Adding new commands, changing the initialization sequence, etc.
 </p>
 
@@ -4561,11 +4561,9 @@ nsh&gt; help
   <b>Implementation of Your Command.</b>
   For example, if you want to add a new a new command called <code>mycmd</code> to NSH, you would first implement  the <code>mycmd</code> code in a function with this prototype:
 </p>
-
-<ul></pre>
+<ul><pre>
 int cmd_mycmd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv);
 </pre></ul>
-
 <p>
   The <code>argc</code> and <code>argv</code> are used to pass command line arguments to the NSH command.
   Command line parameters are passed in a very standard way: <code>argv[0]</code> will be the name of the command, and <code>argv[1]</code> through <code>argv[argc-1]</code> are the additional arguments provided on the NSH command line.
@@ -4587,12 +4585,12 @@ void nsh_output(FAR struct nsh_vtbl_s *vtbl, const char *fmt, &hellip;);
 <ul><pre>
 int cmd_mycmd(FAR struct nsh_vtbl_s *vtbl, int argc, char **argv)
 {
-  nsh_output(vtbl, &quote;Hello, World!&quote;);
+  nsh_output(vtbl, &quot;Hello, World!&quot;);
   return 0;
 }
 </pre></ul>
 <p>
-  The prototype for the new command should be placed in <code>apps/examples/nshlib/nsh.h></code>.
+  The prototype for the new command should be placed in <code>apps/examples/nshlib/nsh.h</code>.
 </p>
 
 <p>
@@ -4867,7 +4865,7 @@ context:
      Without <i>binfs</i>, you can see the installed builtin applications using the NSH help command.
      <i>binfs</i> will create a tiny pseudo-file system mounted at <code>/bin</code>.
      Using <i>binfs</i>, you can see the available builtin applications by listing the contents of  <code>/bin</code> directory.
-     This gives some superficial Unix compatibility, but does not really add any new functionality.
+     This gives some superficial Unix-like compatibility, but does not really add any new functionality.
     </p>
   </li>
 </ol>
@@ -5528,7 +5526,6 @@ xxd -i romfs_img >nsh_romfsimg.h
 </ul></td>
 <td width="33%" valign="top">
 <ul>
-  <li><a href="#nshconfiguration"><code>CONFIG_NSH_TMPDIR</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBCONDEV</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_USBCONSOLE</code></a></li>
   <li><a href="#nshconfiguration"><code>CONFIG_NSH_UBSDEV_MINOR</code></a></li>
@@ -5580,7 +5577,7 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#cmdls"><code>ls</code></a></li>
   <li><a href="#cmdmbhw"><code>mb</code></a></li>
   <li><a href="#nshlogin">Login</a></li>
-  <li><a href="#verifymethods">Login, Credentials</a></li>
+  <li><a href="#verifymethods">Login, credentials</a></li>
   <li><a href="#cmdlsmod"><code>lsmod</code></a></li>
   <li><a href="#cmdmd5"><code>md5</code></a></li>
   <li><a href="#cmdmbhw"><code>mh</code></a></li>
@@ -5594,11 +5591,11 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#cmdmv"><code>mv</code></a></li>
   <li><a href="#cmdnfsmount"><code>nfsmount</code></a></li>
   <li><a href="#cmdoverview"><code>nice</code></a></li>
-  <li><a href="#custonshlib">NSH library (<code>nshlib</code>)</a></li>
+  <li><a href="#nshlibrary">NSH library (<code>nshlib</code>)</a></li>
+  <li><a href="#custonshlib">NSH library (<code>nshlib</code>), initialization</a></li>
 </ul></td>
 <td width="34%" valign="top">
 <ul>
-  <li><a href="#nshlibrary">NSH library (<code>nshlib</code>)</a></li>
   <li><a href="#custonshlib"><code>nsh_consolemain()</code></a></li>
   <li><a href="#custonshlib"><code>nsh_initialize()</code></a></li>
   <li><a href="#custonshlib"><code>nsh_main()</code></a></li>
@@ -5630,8 +5627,8 @@ xxd -i romfs_img >nsh_romfsimg.h
   <li><a href="#cmdrm"><code>rm</code></a></li>
   <li><a href="#cmdrmdir"><code>rmdir</code></a></li>
   <li><a href="#cmdrmmod"><code>rmmod</code></a></li>
-  <li><a href="#custinit">ROMFS, Modifying the ROMFS image</a></li>
-  <li><a href="#passwdromfs">ROMFS, Password File</a></li>
+  <li><a href="#custinit">ROMFS, modifying the ROMFS image</a></li>
+  <li><a href="#passwdromfs">ROMFS, password File</a></li>
   <li><a href="#cmdroute"><code>route</code></a></li>
   <li><a href="#cmdset"><code>set</code></a></li>
   <li><a href="#cmdsh"><code>sh</code></a></li>

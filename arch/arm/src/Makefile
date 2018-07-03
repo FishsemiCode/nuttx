@@ -1,7 +1,8 @@
 ############################################################################
 # arch/arm/src/Makefile
 #
-#   Copyright (C) 2007-2009, 2011-2012, 2014-2016 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2009, 2011-2012, 2014-2016 Gregory Nutt. All rights
+#     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -140,7 +141,7 @@ LINKLIBS ?=
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
-  LIBPATHS += -L"$(OUTDIR)\lib"
+  LIBPATHS += -L"$(OUTDIR)\staging"
 ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"$(OUTDIR)\arch\$(CONFIG_ARCH)\src\board"
 endif
@@ -149,13 +150,13 @@ else
   BOARDMAKE = $(if $(wildcard ./board/Makefile),y,)
 
 ifeq ($(WINTOOL),y)
-  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/lib"}"
+  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/staging"}"
 ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"}"
 endif
 
 else
-  LIBPATHS += -L"$(OUTDIR)/lib"
+  LIBPATHS += -L"$(OUTDIR)/staging"
 ifeq ($(BOARDMAKE),y)
   LIBPATHS += -L"$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"
 endif

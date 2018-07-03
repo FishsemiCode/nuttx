@@ -211,7 +211,7 @@ endif
 
 LINKLIBS ?=
 RELLIBS = $(patsubst %.a,%,$(patsubst lib%,-l%,$(LINKLIBS)))
-RELPATHS += -L"$(OUTDIR)/lib"
+RELPATHS += -L"$(OUTDIR)/staging"
 
 # Add the board-specific library and directory
 
@@ -256,6 +256,9 @@ GNU:
 	$(Q) mkdir -p ./GNU
 
 GNU/Linux-names.dat: GNU $(SRCDIR)/nuttx-names.dat
+	$(Q) cp $(SRCDIR)/nuttx-names.dat $@
+
+Msys-names.dat: GNU $(SRCDIR)/nuttx-names.dat
 	$(Q) cp $(SRCDIR)/nuttx-names.dat $@
 
 Cygwin-names.dat: $(SRCDIR)/nuttx-names.dat

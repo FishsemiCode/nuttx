@@ -747,7 +747,7 @@ Freedom K64F Configuration Options
     CONFIG_KINETIS_FTM0     -- Support FlexTimer 0
     CONFIG_KINETIS_FTM1     -- Support FlexTimer 1
     CONFIG_KINETIS_FTM2     -- Support FlexTimer 2
-    CONFIG_KINETIS_LPTIMER  -- Support the low power timer
+    CONFIG_KINETIS_LPTMR0   -- Support the low power timer 0
     CONFIG_KINETIS_RTC      -- Support RTC
     CONFIG_KINETIS_SLCD     -- Support the segment LCD (K3x, K4x, and K5x only)
     CONFIG_KINETIS_EWM      -- Support the external watchdog
@@ -818,9 +818,7 @@ Configurations
 Each Freedom K64F configuration is maintained in a sub-directory and
 can be selected as follow:
 
-    cd tools
-    ./configure.sh freedom-k64f/<subdir>
-    cd -
+    tools/configure.sh freedom-k64f/<subdir>
 
 Where <subdir> is one of the following:
 

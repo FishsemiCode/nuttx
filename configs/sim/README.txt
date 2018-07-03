@@ -422,9 +422,7 @@ Common Configuration Information
   1. Each configuration is maintained in a sub-directory and can be selected
      as follow:
 
-       cd <nuttx-directory>/tools
-       ./configure.sh sim/<subdir>
-       cd -
+       tools/configure.sh sim/<subdir>
 
      Where <subdir> is one of the following sub-directories.
 
@@ -491,6 +489,12 @@ Common Configuration Information
 
 Configuration Sub-Directories
 -----------------------------
+
+bluetooth
+
+  Supports some very limited, primitive, low-level debug of the Bluetoot
+  stack using the Bluetooth "Swiss Army Knife" at apps/wireless/bluetooth/btsak
+  and the NULL Bluetooth device at drivers/wireless/bluetooth/bt_null.c
 
 configdata
 
@@ -615,7 +619,7 @@ nsh
   2. This version has password protection enable.  Here is the login:
 
        USERNAME:  admin
-       PASSWORD:  Adminstrator
+       PASSWORD:  Administrator
 
      The encrypted password is retained in /etc/passwd.  I am sure that
      you will find this annoying.  You can disable the password protection

@@ -49,6 +49,14 @@ config ARCH_CHIP_MK20DX256VLH7
 	select ARCH_FAMILY_K20
 	select KINETIS_HAVE_I2C1
 
+config ARCH_CHIP_MK28FN2M0VMI15
+	bool "MK28FN2M0VMI15"
+	select ARCH_FAMILY_K28
+
+config ARCH_CHIP_MK28FN2M0CAU15R
+	bool "MK28FN2M0CAU15R"
+	select ARCH_FAMILY_K28
+
 config ARCH_CHIP_MK40N512VLQ100
 	bool "MK40N512VLQ100"
 	select ARCH_FAMILY_K40
@@ -235,6 +243,18 @@ config KINETIS_HAVE_LPUART1
 	bool
 	default n
 
+config KINETIS_HAVE_LPUART2
+	bool
+	default n
+
+config KINETIS_HAVE_LPUART3
+	bool
+	default n
+
+config KINETIS_HAVE_LPUART4
+	bool
+	default n
+
 # When there are multiple instances of a device, these "hidden" settings
 # will automatically be selected and will represent the 'OR' of the
 # instances selected.
@@ -246,6 +266,7 @@ config KINETIS_SERIALDRIVER
 config KINETIS_LPUART
 	bool
 	default n
+	select MCU_SERIAL
 
 config KINETIS_UART
 	bool
@@ -258,6 +279,19 @@ config ARCH_FAMILY_K20
 	bool
 	default n
 	select KINETIS_HAVE_UART5
+
+config ARCH_FAMILY_K28
+	bool
+	default n
+	select KINETIS_HAVE_I2C1
+	select KINETIS_HAVE_FTM3
+	select KINETIS_HAVE_LPUART0
+	select KINETIS_HAVE_LPUART1
+	select KINETIS_HAVE_LPUART2
+	select KINETIS_HAVE_LPUART3
+	select KINETIS_HAVE_LPUART4
+	select KINETIS_HAVE_TPM1
+	select KINETIS_HAVE_TPM2
 
 config ARCH_FAMILY_K40
 	bool
@@ -394,7 +428,7 @@ config KINETIS_LPUART0
 	bool "Low power LPUART0"
 	default n
 	depends on KINETIS_HAVE_LPUART0
-	select OTHER_UART_SERIALDRIVER
+	select LPUART0_SERIALDRIVER
 	select KINETIS_LPUART
 	select KINETIS_SERIALDRIVER
 	select ARCH_HAVE_SERIAL_TERMIOS
@@ -405,12 +439,45 @@ config KINETIS_LPUART1
 	bool "Low power LPUART1"
 	default n
 	depends on KINETIS_HAVE_LPUART1
-	select OTHER_UART_SERIALDRIVER
+	select LPUART1_SERIALDRIVER
 	select KINETIS_LPUART
 	select KINETIS_SERIALDRIVER
 	select ARCH_HAVE_SERIAL_TERMIOS
 	---help---
 		Support the low power UART1
+
+config KINETIS_LPUART2
+	bool "Low power LPUART2"
+	default n
+	depends on KINETIS_HAVE_LPUART2
+	select LPUART2_SERIALDRIVER
+	select KINETIS_LPUART
+	select KINETIS_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
+	---help---
+		Support the low power UART2
+
+config KINETIS_LPUART3
+	bool "Low power LPUART3"
+	default n
+	depends on KINETIS_HAVE_LPUART3
+	select LPUART3_SERIALDRIVER
+	select KINETIS_LPUART
+	select KINETIS_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
+	---help---
+		Support the low power UART3
+
+config KINETIS_LPUART4
+	bool "Low power LPUART4"
+	default n
+	depends on KINETIS_HAVE_LPUART4
+	select LPUART4_SERIALDRIVER
+	select KINETIS_LPUART
+	select KINETIS_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
+	---help---
+		Support the low power UART4
 
 config KINETIS_ENET
 	bool "Ethernet"
@@ -585,11 +652,18 @@ config KINETIS_TPM2
 	---help---
 		Support TPM module 2
 
-config KINETIS_LPTIMER
-	bool "Low power timer (LPTIMER)"
+config KINETIS_LPTMR0
+	bool "Low power timer 0 (LPTMR0)"
 	default n
 	---help---
-		Support the low power timer
+		Support the low power timer 0
+
+config KINETIS_LPTMR1
+        bool "Low power timer 0 (LPTMR1)"
+        default n
+	depends on KINETIS_HAVE_LPTMR1
+        ---help---
+                Support the low power timer 1
 
 config KINETIS_RTC
 	bool "RTC"
@@ -899,6 +973,15 @@ config KINETIS_SDHC_DMA
 		For most usages, SD accesses will cause data overruns if used without
 		DMA.
 
+config KINETIS_SDHC_PULLUP
+	bool "Enable internal Pull-Ups"
+	default n
+	---help---
+		If you are using an external SDCard module that does not have the
+		pull-up resistors for the SDIO interface (like the Gadgeteer SD Card
+		Module) then enable this option to activate the internal pull-up
+		resistors.
+
 config KINETIS_SDHC_WIDTH_D1_ONLY
 	bool "Use D1 only"
 	default n
@@ -997,163 +1080,6 @@ config KINETIS_UARTFIFOS
 	depends on KINETIS_UART0
 
 endmenu # Kinetis UART Configuration
-
-menu "Kinetis LPUART0 Configuration"
-	depends on KINETIS_LPUART0
-
-config LPUART0_RXBUFSIZE
-	int "Receive buffer size"
-	default 256
-	---help---
-		Characters are buffered as they are received. This specifies
-		the size of the receive buffer.
-
-config LPUART0_TXBUFSIZE
-	int "Transmit buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specifies
-		the size of the transmit buffer.
-
-config LPUART0_BAUD
-	int "BAUD rate"
-	default 115200
-	---help---
-		The configured BAUD of the UART.
-
-config LPUART0_BITS
-	int "Character size"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config LPUART0_PARITY
-	int "Parity setting"
-	range 0 2
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config LPUART0_2STOP
-	int "use 2 stop bits"
-	default 0
-	---help---
-		1=Two stop bits
-
-config LPUART0_IFLOWCONTROL
-	bool "LPUART0 RTS flow control"
-	default n
-	select SERIAL_IFLOWCONTROL
-	---help---
-		Enable LPUART0 RTS flow control
-
-config LPUART0_OFLOWCONTROL
-	bool "LPUART0 CTS flow control"
-	default n
-	select SERIAL_OFLOWCONTROL
-	---help---
-		Enable LPUART0 CTS flow control
-
-config LPUART0_DMA
-	bool "LPUART0 DMA support"
-	default n
-	select SERIAL_DMA
-	---help---
-		Enable DMA transfers on LPUART0
-
-endmenu # Kinetis LPUART0 Configuration
-
-menu "Kinetis LPUART1 Configuration"
-	depends on KINETIS_LPUART1
-
-config LPUART1_RXBUFSIZE
-	int "Receive buffer size"
-	default 256
-	---help---
-		Characters are buffered as they are received. This specifies
-		the size of the receive buffer.
-
-config LPUART1_TXBUFSIZE
-	int "Transmit buffer size"
-	default 256
-	---help---
-		Characters are buffered before being sent.  This specifies
-		the size of the transmit buffer.
-
-config LPUART1_BAUD
-	int "BAUD rate"
-	default 115200
-	---help---
-		The configured BAUD of the UART.
-
-config LPUART1_BITS
-	int "Character size"
-	default 8
-	---help---
-		The number of bits.  Must be either 7 or 8.
-
-config LPUART1_PARITY
-	int "Parity setting"
-	range 0 2
-	default 0
-	---help---
-		0=no parity, 1=odd parity, 2=even parity
-
-config LPUART1_2STOP
-	int "use 2 stop bits"
-	default 0
-	---help---
-		1=Two stop bits
-
-config LPUART1_IFLOWCONTROL
-	bool "LPUART1 RTS flow control"
-	default n
-	select SERIAL_IFLOWCONTROL
-	---help---
-		Enable LPUART1 RTS flow control
-
-config LPUART1_OFLOWCONTROL
-	bool "LPUART1 CTS flow control"
-	default n
-	select SERIAL_OFLOWCONTROL
-	---help---
-		Enable LPUART1 CTS flow control
-
-config LPUART1_DMA
-	bool "LPUART1 DMA support"
-	default n
-	select SERIAL_DMA
-	---help---
-		Enable DMA transfers on LPUART1
-
-endmenu # Kinetis LPUART1 Configuration
-
-choice
-	prompt "Kinetis LPUART Serial Console"
-	default NO_LPUART_SERIAL_CONSOLE
-	depends on DEV_CONSOLE && KINETIS_LPUART
-
-config LPUART0_SERIAL_CONSOLE
-	bool "Use LPUART0 as the serial console"
-	depends on KINETIS_LPUART0
-	select OTHER_SERIAL_CONSOLE
-	---help---
-		Use the LPUART0 device as the serial console
-
-config LPUART1_SERIAL_CONSOLE
-	bool "Use LPUART1 as the serial console"
-	depends on KINETIS_LPUART1
-	select OTHER_SERIAL_CONSOLE
-	---help---
-		Use the LPUART1 device as the serial console
-
-config NO_LPUART_SERIAL_CONSOLE
-	bool "No LPUART serial console"
-	---help---
-		No serial LPUART based console OR some other serial device provides
-		the serial console
-
-endchoice # Kinetis LPUART Serial Console
 
 config KINETIS_MERGE_TTY
 	bool "Kinetis Merge TTY names for LPUARTS"

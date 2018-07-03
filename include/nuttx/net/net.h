@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/net/net.h
  *
- *   Copyright (C) 2007, 2009-2014, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009-2014, 2016-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -116,6 +117,7 @@ enum net_lltype_e
   NET_LL_LOOPBACK,     /* Local loopback */
   NET_LL_SLIP,         /* Serial Line Internet Protocol (SLIP) */
   NET_LL_TUN,          /* TUN Virtual Network Device */
+  NET_LL_BLUETOOTH,    /* Bluetooth */
   NET_LL_IEEE80211,    /* IEEE 802.11 */
   NET_LL_IEEE802154,   /* IEEE 802.15.4 MAC */
   NET_LL_PKTRADIO      /* Non-standard packet radio */
@@ -451,7 +453,7 @@ FAR struct socket *sockfd_socket(int sockfd);
  *   socket() creates an endpoint for communication and returns a socket
  *   structure.
  *
- * Parameters:
+ * Input Parameters:
  *   domain   (see sys/socket.h)
  *   type     (see sys/socket.h)
  *   protocol (see sys/socket.h)
@@ -491,7 +493,7 @@ int psock_socket(int domain, int type, int protocol, FAR struct socket *psock);
  * Description:
  *   Performs the close operation on socket descriptors
  *
- * Parameters:
+ * Input Parameters:
  *   sockfd   Socket descriptor of socket
  *
  * Returned Value:
@@ -510,7 +512,7 @@ int net_close(int sockfd);
  * Description:
  *   Performs the close operation on a socket instance
  *
- * Parameters:
+ * Input Parameters:
  *   psock   Socket instance
  *
  * Returned Value:
@@ -530,7 +532,7 @@ int psock_close(FAR struct socket *psock);
  *   a socket." When a socket is created with socket, it exists in a name
  *   space (address family) but has no name assigned.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Socket structure of the socket to bind
  *   addr     Socket local address
  *   addrlen  Length of 'addr'
@@ -553,6 +555,7 @@ int psock_close(FAR struct socket *psock);
  ****************************************************************************/
 
 struct sockaddr; /* Forward reference. Defined in nuttx/include/sys/socket.h */
+
 int psock_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
                socklen_t addrlen);
 
@@ -566,7 +569,7 @@ int psock_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
  *   connections are accepted with psock_accept(). The psock_listen() call
  *   applies only to sockets of type SOCK_STREAM or SOCK_SEQPACKET.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Reference to an internal, boound socket structure.
  *   backlog  The maximum length the queue of pending connections may grow.
  *            If a connection request arrives with the queue full, the client
@@ -615,7 +618,7 @@ int psock_listen(FAR struct socket *psock, int backlog);
  *   pending connections are present on the queue, psock_accept returns
  *   EAGAIN.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    Reference to the listening socket structure
  *   addr     Receives the address of the connecting client
  *   addrlen  Input: allocated size of 'addr', Return: returned size of 'addr'
@@ -677,7 +680,7 @@ int psock_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
  *   the association by connecting to an address with the sa_family member of
  *   sockaddr set to AF_UNSPEC.
  *
- * Parameters:
+ * Input Parameters:
  *   psock     Pointer to a socket structure initialized by psock_socket()
  *   addr      Server address (form depends on type of socket)
  *   addrlen   Length of actual 'addr'
@@ -746,7 +749,7 @@ int psock_connect(FAR struct socket *psock, FAR const struct sockaddr *addr,
  *   See comments with send() for more a more complete description of the
  *   functionality.
  *
- * Parameters:
+ * Input Parameters:
  *   psock - An instance of the internal socket structure.
  *   buf   - Data to send
  *   len   - Length of data to send
@@ -777,7 +780,7 @@ ssize_t psock_send(FAR struct socket *psock, const void *buf, size_t len,
  *   See comments with send() for more a more complete description of the
  *   functionality.
  *
- * Parameters:
+ * Input Parameters:
  *   sockfd - Socket descriptor of the socket
  *   buf    - Data to send
  *   len    - Length of data to send
@@ -801,7 +804,7 @@ ssize_t nx_send(int sockfd, FAR const void *buf, size_t len, int flags);
  *   may be returned when they are not NULL and 0), and the error ENOTCONN is
  *   returned when the socket was not actually connected.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    A pointer to a NuttX-specific, internal socket structure
  *   buf      Data to send
  *   len      Length of data to send
@@ -952,7 +955,7 @@ ssize_t nx_recvfrom(int sockfd, FAR void *buf, size_t len, int flags,
  *
  *   See <sys/socket.h> a complete list of values for the 'option' argument.
  *
- * Parameters:
+ * Input Parameters:
  *   psock     Socket structure of the socket to query
  *   level     Protocol level to set the option
  *   option    identifies the option to get
@@ -992,7 +995,7 @@ int psock_getsockopt(FAR struct socket *psock, int level, int option,
  *
  *   See <sys/socket.h> a complete list of values for the 'option' argument.
  *
- * Parameters:
+ * Input Parameters:
  *   psock     Socket structure of socket to operate on
  *   level     Protocol level to set the option
  *   option    identifies the option to set
@@ -1109,7 +1112,7 @@ int psock_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr, FAR s
  * Description:
  *   Perform network device specific operations.
  *
- * Parameters:
+ * Input Parameters:
  *   psock    A pointer to a NuttX-specific, internal socket structure
  *   cmd      The ioctl command
  *   arg      The argument of the ioctl cmd
@@ -1142,7 +1145,7 @@ int psock_ioctl(FAR struct socket *psock, int cmd, unsigned long arg);
  * Description:
  *   Perform network device specific operations.
  *
- * Parameters:
+ * Input Parameters:
  *   sockfd   Socket descriptor of device
  *   cmd      The ioctl command
  *   arg      The argument of the ioctl cmd
@@ -1189,6 +1192,7 @@ int netdev_ioctl(int sockfd, int cmd, unsigned long arg);
 
 #ifndef CONFIG_DISABLE_POLL
 struct pollfd; /* Forward reference -- see poll.h */
+
 int psock_poll(FAR struct socket *psock, struct pollfd *fds, bool setup);
 #endif
 
@@ -1212,6 +1216,7 @@ int psock_poll(FAR struct socket *psock, struct pollfd *fds, bool setup);
 
 #ifndef CONFIG_DISABLE_POLL
 struct pollfd; /* Forward reference -- see poll.h */
+
 int net_poll(int sockfd, struct pollfd *fds, bool setup);
 #endif
 
@@ -1267,6 +1272,26 @@ int net_dupsd(int sockfd, int minsd);
 int net_dupsd2(int sockfd1, int sockfd2);
 
 /****************************************************************************
+ * Name: net_fstat
+ *
+ * Description:
+ *   Performs fstat operations on socket
+ *
+ * Input Parameters:
+ *   sockfd - Socket descriptor of the socket to operate on
+ *   bug    - Caller-provided location in which to return the fstat data
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+struct stat;  /* Forward reference.  See sys/stat.h */
+
+int net_fstat(int sockfd, FAR struct stat *buf);
+
+/****************************************************************************
  * Name: net_clone
  *
  * Description:
@@ -1286,7 +1311,7 @@ int net_clone(FAR struct socket *psock1, FAR struct socket *psock2);
  *   send() is equivalent to write(). Also, send(sockfd,buf,len,flags) is
  *   equivalent to sendto(sockfd,buf,len,flags,NULL,0).
  *
- * Parameters:
+ * Input Parameters:
  *   psock    An instance of the internal socket structure.
  *   buf      Data to send
  *   len      Length of data to send
@@ -1409,7 +1434,7 @@ int net_vfcntl(int sockfd, int cmd, va_list ap);
  *   Register a network device driver and assign a name to it so that it can
  *   be found in subsequent network ioctl operations on the device.
  *
- * Parameters:
+ * Input Parameters:
  *   dev    - The device driver structure to be registered.
  *   lltype - Link level protocol used by the driver (Ethernet, SLIP, TUN, ...
  *
@@ -1430,7 +1455,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype);
  * Description:
  *   Unregister a network device driver.
  *
- * Parameters:
+ * Input Parameters:
  *   dev - The device driver structure to un-register
  *
  * Returned Value:
