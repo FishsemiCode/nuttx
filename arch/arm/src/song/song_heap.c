@@ -185,12 +185,12 @@ void up_addregion(void)
 {
 #ifdef CONFIG_ARCH_HAVE_HEAP2
 
-#ifdef CONFIG_BUILD_PROTECTED
+  /* Allow access to the heap2 */
 
-  /* Allow user-mode access to the heap2 */
-
+#ifdef CONFIG_BUILD_FLAT
+  up_mpu_priv_heap(_START_HEAP2, _END_HEAP2 - _START_HEAP2);
+#else
   up_mpu_user_heap(_START_HEAP2, _END_HEAP2 - _START_HEAP2);
-
 #endif
 
   /* Colorize the heap2 for debug */
@@ -199,7 +199,11 @@ void up_addregion(void)
 
   /* Add the heap2 region. */
 
+#ifdef CONFIG_BUILD_FLAT
+  kmm_addregion((FAR void *)_START_HEAP2, _END_HEAP2 - _START_HEAP2);
+#else
   kumm_addregion((FAR void *)_START_HEAP2, _END_HEAP2 - _START_HEAP2);
+#endif
 
 #endif
 }
