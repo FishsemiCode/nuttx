@@ -377,8 +377,6 @@ static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
     {
       priv->channel = channel;
       rpmsg_set_privdata(channel, dev);
-
-      uart_connected(dev, true);
       uart_xmitchars_dma(dev);
     }
 }
@@ -390,8 +388,6 @@ static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
   if (dev != NULL)
     {
       struct uart_rpmsg_priv_s *priv = dev->priv;
-
-      uart_connected(dev, false);
       priv->channel = NULL;
     }
 }
