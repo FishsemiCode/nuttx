@@ -257,14 +257,14 @@ static int rptun_openamp_resource_init(
       return ret;
     }
 
-  if (role == RPMSG_MASTER)
-    {
-      rptun_openamp_config_and_boot(priv, &rsc_info);
-    }
-
   if (cpu_id == -1)
     {
       cpu_id = id++;
+
+      if (role == RPMSG_MASTER)
+        {
+          rptun_openamp_config_and_boot(priv, &rsc_info);
+        }
     }
 
   cpu_name = RPTUN_GET_CPUNAME(priv->dev);
