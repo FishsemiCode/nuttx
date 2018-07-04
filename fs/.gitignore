@@ -1,5 +1,6 @@
 /Make.dep
 /.depend
+/littlefs
 /*.asm
 /*.obj
 /*.rel

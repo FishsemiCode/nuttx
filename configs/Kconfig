@@ -1821,6 +1821,7 @@ config ARCH_IRQBUTTONS
 
 comment "Board-Specific Options"
 
+
 if ARCH_BOARD_AMBER
 source "configs/amber/Kconfig"
 endif
