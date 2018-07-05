@@ -310,6 +310,10 @@ void up_lateinitialize(void)
 #endif
 }
 
+void up_finalinitialize(void)
+{
+}
+
 void up_cpu_standby(void)
 {
   up_cpu_idle();

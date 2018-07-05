@@ -114,5 +114,13 @@ void board_initialize(void)
 
 int board_app_initialize(uintptr_t arg)
 {
+  /* Perform the arch final initialization */
+
+  up_finalinitialize();
+
+  /* Perform the board final initialization */
+
+  board_finalinitialize();
+
   return 0;
 }

@@ -199,6 +199,7 @@ void up_sigdeliver(void);
 
 void up_earlyinitialize(void);
 void up_lateinitialize(void);
+void up_finalinitialize(void);
 
 /* Power management *********************************************************/
 

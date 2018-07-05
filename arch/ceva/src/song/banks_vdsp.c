@@ -75,6 +75,10 @@ void up_lateinitialize(void)
 {
 }
 
+void up_finalinitialize(void)
+{
+}
+
 void up_cpu_standby(void)
 {
   up_cpu_idle();
