@@ -389,6 +389,7 @@ static void clk_calc_subtree(struct clk *clk, uint64_t new_rate,
 
 static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
 {
+  struct clk *top = clk;
   struct clk *old_parent, *parent;
   uint64_t best_parent_rate = 0;
   uint64_t new_rate = 0;
@@ -412,11 +413,14 @@ static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
     }
   else if (!parent || !(clk->flags & CLK_SET_RATE_PARENT))
     {
+      clk->new_rate = clk->rate;
       return NULL;
     }
   else
     {
-      return clk_calc_new_rates(parent, rate);
+      top = clk_calc_new_rates(parent, rate);
+      new_rate = parent->new_rate;
+      goto out;
     }
 
   if (parent)
@@ -432,10 +436,11 @@ static struct clk *clk_calc_new_rates(struct clk *clk, uint64_t rate)
 
   if ((clk->flags & CLK_SET_RATE_PARENT) && parent &&
       best_parent_rate != __clk_get_rate(parent))
-    return clk_calc_new_rates(parent, best_parent_rate);
+      top = clk_calc_new_rates(parent, best_parent_rate);
 
+out:
   clk_calc_subtree(clk, new_rate, parent, p_index);
-  return clk;
+  return top;
 }
 
 static void clk_change_rate(struct clk *clk, uint64_t best_parent_rate)
