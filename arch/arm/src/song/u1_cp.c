@@ -80,6 +80,7 @@
 #define TOP_PWR_CP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x150)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
+#define TOP_PWR_SLPCTL1             (TOP_PWR_BASE + 0x354)
 #define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 
@@ -88,6 +89,9 @@
 #define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
 
 #define TOP_PWR_CP_M4_COLD_BOOT     (1 << 2)
+
+#define TOP_PWR_RF_TP_TM2_SLP_MK    (1 << 8)
+#define TOP_PWR_RF_TP_CALIB_SLP_MK  (1 << 9)
 
 #define TOP_PWR_CP_M4_SLP_EN        (1 << 0)
 #define TOP_PWR_CP_M4_DS_SLP_EN     (1 << 2)
@@ -415,6 +419,8 @@ void up_cpu_doze(void)
 {
   /* Forbid the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
 
   /* Forbid the subsystem power down */
   putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
@@ -430,6 +436,8 @@ void up_cpu_idle(void)
 {
   /* Forbid the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
 
   /* Forbid the subsystem power down */
   putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
@@ -445,6 +453,8 @@ void up_cpu_standby(void)
 {
   /* Forbid the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
 
   /* Allow the subsystem power down */
   putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
@@ -460,6 +470,10 @@ void up_cpu_sleep(void)
   /* Allow the full chip power down */
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16 |
            TOP_PWR_CP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
+  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+           TOP_PWR_RF_TP_TM2_SLP_MK |
+           TOP_PWR_RF_TP_CALIB_SLP_MK << 16 |
+           TOP_PWR_RF_TP_CALIB_SLP_MK, TOP_PWR_SLPCTL1);
 
   /* Allow the subsystem power down */
   putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
