@@ -601,6 +601,19 @@ static const struct song_default_rate_clk default_rate[] =
   {}
 };
 
+static const struct song_clk_patch patch_tbl[] =
+{
+  {
+    .offset = 0x1c4,
+    .value = 0xfffcc60c,
+  },
+  {
+    .offset = 0x1c8,
+    .value = 0x3,
+  },
+  {}
+};
+
 static const struct song_clk_table u1_cp_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -611,6 +624,7 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .mux_gate_clks     = mux_gate,
   .rpmsg_server      = false,
   .def_rate          = default_rate,
+  .patch_table       = patch_tbl,
 };
 
 /****************************************************************************

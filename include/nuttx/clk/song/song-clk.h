@@ -271,6 +271,12 @@ struct song_default_rate_clk
   uint32_t           rate;
 };
 
+struct song_clk_patch
+{
+  uint16_t           offset;
+  uint32_t           value;
+};
+
 struct song_clk_table
 {
   const struct song_fixed_rate_clk *fixed_rate_clks;
@@ -292,6 +298,7 @@ struct song_clk_table
   const struct song_out_clk *out_clks;
   const struct song_timer_clk *timer_clks;
   const struct song_default_rate_clk *def_rate;
+  const struct song_clk_patch *patch_table;
   bool rpmsg_server;
 };
 

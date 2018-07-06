@@ -986,7 +986,19 @@ static int song_set_default_rate(const struct song_default_rate_clk *def_rate)
       if (ret)
         return ret;
 
-      def_rate ++;
+      def_rate++;
+    }
+
+  return 0;
+}
+
+static int song_apply_patch(uint32_t reg_base,
+            const struct song_clk_patch *patch)
+{
+  while (patch->value)
+    {
+      clk_write(reg_base + patch->offset, patch->value);
+      patch++;
     }
 
   return 0;
@@ -1151,6 +1163,13 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
   if (table->def_rate)
     {
       ret = song_set_default_rate(table->def_rate);
+      if (ret)
+        return ret;
+    }
+
+  if (table->patch_table)
+    {
+      ret = song_apply_patch(base, table->patch_table);
       if (ret)
         return ret;
     }
