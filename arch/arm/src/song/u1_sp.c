@@ -43,6 +43,7 @@
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
+#include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/song_onchip_flash.h>
@@ -133,6 +134,12 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 #ifdef CONFIG_SPI_DW
 FAR struct spi_dev_s *g_spi[3] =
 {
+  [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_I2C_DW
+FAR struct i2c_master_s *g_i2c[3] = {
   [2] = DEV_END,
 };
 #endif
@@ -474,6 +481,46 @@ static void up_spi_init(void)
 }
 #endif
 
+#ifdef CONFIG_I2C_DW
+static void up_i2c_init(void)
+{
+  static struct dw_i2c_config_s configs[] =
+  {
+    {
+      .base       = 0xB00E0000,
+      .irq        = 25,
+      .bus        = 0,
+      .sda_hold   = 7,
+      .fs_spklen  = 1,
+      .hs_spklen  = 1,
+      .ss_hcnt    = 62,
+      .ss_lcnt    = 92,
+      .fs_hcnt    = 14,
+      .fs_lcnt    = 17,
+      .hs_hcnt    = 6,
+      .hs_lcnt    = 8,
+    },
+    {
+      .base       = 0xB00F0000,
+      .irq        = 26,
+      .bus        = 1,
+      .sda_hold   = 7,
+      .fs_spklen  = 1,
+      .hs_spklen  = 1,
+      .ss_hcnt    = 56,
+      .ss_lcnt    = 88,
+      .fs_hcnt    = 11,
+      .fs_lcnt    = 12,
+      .hs_hcnt    = 6,
+      .hs_lcnt    = 8,
+    }
+  };
+
+  dw_i2c_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
+                        g_i2c, sizeof(g_i2c) / sizeof(g_i2c[0]));
+}
+#endif
+
 #ifdef CONFIG_SONG_ONCHIP_FLASH
 static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
 {
@@ -525,6 +572,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SPI_DW
   up_spi_init();
+#endif
+
+#ifdef CONFIG_I2C_DW
+  up_i2c_init();
 #endif
 
 #ifdef CONFIG_SONG_ONCHIP_FLASH

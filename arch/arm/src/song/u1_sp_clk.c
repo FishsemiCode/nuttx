@@ -140,6 +140,19 @@ static const struct song_timer_clk timer[] =
   {},
 };
 
+static  const struct song_default_rate_clk default_rate[] =
+{
+  {
+    .name = "i2c0_mclk",
+    .rate = 80000000,
+  },
+  {
+    .name = "i2c1_mclk",
+    .rate = 80000000,
+  },
+  {},
+};
+
 static const struct song_out_clk out[] =
 {
   {
@@ -852,6 +865,7 @@ static const struct song_clk_table u1_sp_clk_tbl =
   .out_clks          = out,
   .timer_clks        = timer,
   .rpmsg_server      = true,
+  .def_rate          = default_rate,
 };
 
 /****************************************************************************

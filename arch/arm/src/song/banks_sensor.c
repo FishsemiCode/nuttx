@@ -42,6 +42,7 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -108,6 +109,12 @@ FAR struct ioexpander_dev_s *g_ioe[3] =
 #ifdef CONFIG_SPI_DW
 FAR struct spi_dev_s *g_spi[3] =
 {
+  [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_I2C_DW
+FAR struct i2c_master_s *g_i2c[3] = {
   [2] = DEV_END,
 };
 #endif
@@ -358,6 +365,46 @@ static void up_spi_init(void)
 }
 #endif
 
+#ifdef CONFIG_I2C_DW
+static void up_i2c_init(void)
+{
+  static struct dw_i2c_config_s configs[] =
+  {
+    {
+      .base       = 0xf8b11000,
+      .irq        = 23,
+      .bus        = 0,
+      .sda_hold   = 8,
+      .fs_spklen  = 1,
+      .hs_spklen  = 1,
+      .ss_hcnt    = 100,
+      .ss_lcnt    = 124,
+      .fs_hcnt    = 16,
+      .fs_lcnt    = 35,
+      .hs_hcnt    = 13,
+      .hs_lcnt    = 10,
+    },
+    {
+      .base       = 0xf8b12000,
+      .irq        = 24,
+      .bus        = 1,
+      .sda_hold   = 8,
+      .fs_spklen  = 1,
+      .hs_spklen  = 1,
+      .ss_hcnt    = 100,
+      .ss_lcnt    = 124,
+      .fs_hcnt    = 16,
+      .fs_lcnt    = 35,
+      .hs_hcnt    = 4,
+      .hs_lcnt    = 8,
+    }
+  };
+
+  dw_i2c_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
+                        g_i2c, sizeof(g_i2c) / sizeof(g_i2c[0]));
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
@@ -382,6 +429,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SPI_DW
   up_spi_init();
+#endif
+
+#ifdef CONFIG_I2C_DW
+  up_i2c_init();
 #endif
 }
 

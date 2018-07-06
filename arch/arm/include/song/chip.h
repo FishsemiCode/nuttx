@@ -133,6 +133,9 @@ extern FAR struct ioexpander_dev_s *g_ioe[];
 /* Designware SPI controller instances */
 extern FAR struct spi_dev_s *g_spi[];
 
+/* Designware I2C controller instances */
+extern FAR struct i2c_master_s *g_i2c[];
+
 #endif
 
 /****************************************************************************
