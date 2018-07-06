@@ -163,10 +163,11 @@ static void song_dmas_update_bits(struct song_dmas_dev_s *dev,
                  (song_dmas_read(dev, offset) & ~mask));
 }
 
-static bool song_dmas_is_busy(struct song_dmas_dev_s *dev,
-                              unsigned int index)
+static bool song_dmas_is_busy(struct dma_chan_s *chan_)
 {
-  return (song_dmas_read(dev, SONG_DMAS_REG_STA) >> index) & 1;
+  struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
+
+  return (song_dmas_read(chan->dev, SONG_DMAS_REG_STA) >> chan->index) & 1;
 }
 
 static void song_dmas_set_priority(struct song_dmas_dev_s *dev,
@@ -243,7 +244,7 @@ static int song_dmas_chan_config(struct dma_chan_s *chan_, const struct dma_conf
         return -EINVAL;
     }
 
-  if (song_dmas_is_busy(dev, chan->index))
+  if (song_dmas_is_busy(chan_))
     return -EBUSY;
 
   if (song_dmas_set_timeout(dev, chan->index, cfg->timeout))
@@ -271,7 +272,7 @@ static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
   struct song_dmas_dev_s *dev = chan->dev;
   unsigned int index = chan->index;
 
-  if (song_dmas_is_busy(dev, index))
+  if (song_dmas_is_busy(chan_))
     return -EBUSY;
 
   chan->callback = callback;
@@ -317,7 +318,7 @@ static int song_dmas_start_cyclic(struct dma_chan_s *chan_,
   unsigned int index = chan->index;
   uintptr_t phy_addr;
 
-  if (song_dmas_is_busy(dev, index))
+  if (song_dmas_is_busy(chan_))
     return -EBUSY;
   if (!len || !period_len)
     return -EINVAL;
@@ -370,7 +371,7 @@ static int song_dmas_pause(struct dma_chan_s *chan_)
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
 
   song_dmas_write(chan->dev, SONG_DMAS_REG_PAUSE, chan->index);
-  while(song_dmas_is_busy(chan->dev, chan->index));
+  while(song_dmas_is_busy(chan_));
 
   return OK;
 }
@@ -390,7 +391,7 @@ static int song_dmas_stop(struct dma_chan_s *chan_)
     song_dmas_update_bits(dev, SONG_DMAS_REG_INT_EN0(dev->cpu),
                           1 << (index + 16), 0);
   song_dmas_write(dev, SONG_DMAS_REG_CLR, index);
-  while(song_dmas_is_busy(dev, index));
+  while(song_dmas_is_busy(chan_));
   /* clear finish/match/flush status */
   song_dmas_write(dev, SONG_DMAS_REG_INT_CLR0, index);
   song_dmas_write(dev, SONG_DMAS_REG_INT_CLR1, index);
@@ -540,6 +541,7 @@ static const struct dma_ops_s g_song_dmas_ops =
   song_dmas_stop,
   song_dmas_pause,
   song_dmas_resume,
+  song_dmas_is_busy,
   song_dmas_residual,
 };
 
