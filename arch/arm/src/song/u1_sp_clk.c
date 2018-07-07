@@ -462,7 +462,7 @@ static const struct song_gate_clk gate[] =
   {
     .name = "sec_m4_clk",
     .parent_name = "sec_m4_bus_clk",
-    .flags = 0,
+    .flags = CLK_SET_RATE_PARENT,
     .en_offset = 0x098,
     .en_shift = 0,
     .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
@@ -782,7 +782,7 @@ static const struct song_gate_clk gate[] =
   {
     .name = "ap_m4_clk",
     .parent_name = "ap_m4_bus_clk",
-    .flags = 0,
+    .flags = CLK_SET_RATE_PARENT,
     .en_offset = 0x0c4,
     .en_shift = 0,
     .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
