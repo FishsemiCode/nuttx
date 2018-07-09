@@ -180,7 +180,7 @@ const struct clk_ops clk_fractional_divider_ops =
  ************************************************************************************/
 
 struct clk *clk_register_fractional_divider(const char *name,
-    const char *parent_name, uint64_t flags,
+    const char *parent_name, uint16_t flags,
     uint32_t reg, uint8_t mshift, uint8_t mwidth, uint8_t nshift, uint8_t nwidth,
     uint8_t clk_divider_flags)
 {

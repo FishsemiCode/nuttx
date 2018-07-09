@@ -164,7 +164,7 @@ const struct clk_ops clk_mux_ro_ops =
  ************************************************************************************/
 
 struct clk *clk_register_mux(const char *name, const char * const *parent_names,
-    uint8_t  num_parents, uint64_t flags,
+    uint8_t  num_parents, uint16_t flags,
     uint32_t reg, uint8_t shift, uint8_t mask,
     uint8_t clk_mux_flags)
 {

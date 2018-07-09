@@ -964,7 +964,7 @@ uint64_t clk_get_rate(struct clk *clk)
 }
 
 struct clk *clk_register(const char *name, const char * const *parent_names,
-                         uint8_t num_parents, uint64_t flags, const struct clk_ops *ops,
+                         uint8_t num_parents, uint16_t flags, const struct clk_ops *ops,
                          void *private_data)
 {
   struct clk *clk = NULL;

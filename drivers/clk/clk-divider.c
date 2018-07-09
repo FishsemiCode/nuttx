@@ -273,7 +273,7 @@ const struct clk_ops clk_divider_ops =
  ************************************************************************************/
 
 struct clk *clk_register_divider(const char *name,
-    const char *parent_name, uint64_t flags,
+    const char *parent_name, uint16_t flags,
     uint32_t reg, uint8_t shift, uint8_t width,
     uint16_t clk_divider_flags)
 {

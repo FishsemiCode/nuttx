@@ -104,7 +104,7 @@ const struct clk_ops clk_fixed_factor_ops =
  ************************************************************************************/
 
 struct clk *clk_register_fixed_factor(const char *name,
-    const char *parent_name, uint64_t flags,
+    const char *parent_name, uint16_t flags,
     uint32_t mult, uint32_t div)
 {
   struct clk_fixed_factor *fix;

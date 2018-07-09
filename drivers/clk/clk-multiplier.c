@@ -100,7 +100,7 @@ static uint64_t clk_multiplier_recalc_rate(struct clk *clk,
 }
 
 static bool __is_best_rate(uint64_t rate, uint64_t new,
-    uint64_t best, uint64_t flags)
+    uint64_t best, uint16_t flags)
 {
   if (flags & CLK_MULT_ROUND_CLOSEST)
     return abs(rate - new) < abs(rate - best);
@@ -210,7 +210,7 @@ const struct clk_ops clk_multiplier_ops =
  ************************************************************************************/
 
 struct clk *clk_register_multiplier(const char *name,
-    const char *parent_name, uint64_t flags,
+    const char *parent_name, uint16_t flags,
     uint32_t reg, uint8_t shift, uint8_t width,
     uint8_t clk_multiplier_flags)
 {

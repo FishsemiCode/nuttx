@@ -115,11 +115,11 @@ struct clk
   struct clk              **parents;
   uint8_t                 num_parents;
   uint8_t                 new_parent_index;
+  uint16_t                flags;
   uint64_t                rate;
   uint64_t                new_rate;
   struct clk              *new_parent;
   struct clk              *new_child;
-  uint64_t                flags;
   uint32_t                enable_count;
   void                    *private_data;
   struct list_node        children;
@@ -228,38 +228,38 @@ extern const struct clk_ops clk_rpmsg_ops;
 #endif
 
 struct clk *clk_register(const char *name, const char * const *parent_names,
-                    uint8_t num_parents, uint64_t flags, const struct clk_ops *ops,
+                    uint8_t num_parents, uint16_t flags, const struct clk_ops *ops,
                     void *private_data);
 
 /* the individual clk register Prototypes */
 struct clk *clk_register_gate(const char *name, const char *parent_name,
-                    uint64_t flags, uint32_t reg, uint8_t bit_idx,
+                    uint16_t flags, uint32_t reg, uint8_t bit_idx,
                     uint8_t clk_gate_flags);
 
 struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
-                    uint64_t flags, uint64_t fixed_rate);
+                    uint16_t flags, uint64_t fixed_rate);
 
 struct clk *clk_register_fixed_factor(const char *name, const char *parent_name,
-                    uint64_t flags, uint32_t mult, uint32_t div);
+                    uint16_t flags, uint32_t mult, uint32_t div);
 
 struct clk *clk_register_divider(const char *name, const char *parent_name,
-                    uint64_t flags, uint32_t reg, uint8_t shift, uint8_t width,
+                    uint16_t flags, uint32_t reg, uint8_t shift, uint8_t width,
                     uint16_t clk_divider_flags);
 
 struct clk *clk_register_phase(const char *name, const char *parent_name,
-                    uint64_t flags, uint32_t reg, uint32_t shift, uint8_t width,
+                    uint16_t flags, uint32_t reg, uint32_t shift, uint8_t width,
                     uint8_t clk_phase_flags);
 
 struct clk *clk_register_fractional_divider(const char *name, const char *parent_name,
-                    uint64_t flags, uint32_t reg, uint8_t mshift, uint8_t mwidth,
+                    uint16_t flags, uint32_t reg, uint8_t mshift, uint8_t mwidth,
                     uint8_t nshift, uint8_t nwidth, uint8_t clk_divider_flags);
 
 struct clk *clk_register_multiplier(const char *name, const char *parent_name,
-                    uint64_t flags, uint32_t reg, uint8_t shift, uint8_t width,
+                    uint16_t flags, uint32_t reg, uint8_t shift, uint8_t width,
                     uint8_t clk_multiplier_flags);
 
 struct clk *clk_register_mux(const char *name, const char * const *parent_names,
-                    uint8_t num_parents, uint64_t flags, uint32_t reg, uint8_t shift,
+                    uint8_t num_parents, uint16_t flags, uint32_t reg, uint8_t shift,
                     uint8_t mask, uint8_t clk_mux_flags);
 
 #ifdef CONFIG_CLK_RPMSG

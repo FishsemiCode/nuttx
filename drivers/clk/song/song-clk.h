@@ -161,11 +161,11 @@ extern const struct clk_ops clk_out_ops;
 extern const struct clk_ops clk_timer_ops;
 
 /* the song platform pll register declaration */
-struct clk *clk_register_pll(const char *name, const char *parent_name, uint64_t flags,
+struct clk *clk_register_pll(const char *name, const char *parent_name, uint16_t flags,
     uint32_t cfg_reg0, uint32_t cfg_reg1, uint32_t ctl_reg, uint32_t ctl_shift);
 
 /* the song platform pll_lf register declaration */
-struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint64_t flags,
+struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint16_t flags,
     uint32_t cfg_reg0, uint32_t cfg_reg1);
 
 /* the song platform out register declaration */
