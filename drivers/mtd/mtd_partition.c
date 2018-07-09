@@ -902,8 +902,10 @@ int mtd_setpartitionname(FAR struct mtd_dev_s *mtd, FAR const char *name)
 {
   FAR struct mtd_partition_s *priv = (FAR struct mtd_partition_s *)mtd;
 
-  DEBUGASSERT(mtd);
-  DEBUGASSERT(name);
+  if (!priv || !name)
+    {
+      return -EINVAL;
+    }
 
   /* Allocate space for the name */
   strcpy(priv->name, name);
