@@ -65,14 +65,14 @@
 
 /* These must exactly match the definitions from include/sys/stat.h: */
 
-#define NUTTX_S_IFIFO           0000000
-#define NUTTX_S_IFCHR           0010000
-#define NUTTX_S_IFDIR           0020000
-#define NUTTX_S_IFBLK           0030000
-#define NUTTX_S_IFREG           0040000
-#define NUTTX_S_IFLNK           0100000
+#define NUTTX_S_IFIFO           0
+#define NUTTX_S_IFCHR           (1 << 11)
+#define NUTTX_S_IFDIR           (2 << 11)
+#define NUTTX_S_IFBLK           (3 << 11)
+#define NUTTX_S_IFREG           (4 << 11)
+#define NUTTX_S_IFLNK           (1 << 15)
 
-/* These must exactly match the definitions from include/fctnl.h: */
+/* These must exactly match the definitions from include/fcntl.h: */
 
 #define NUTTX_O_RDONLY   (1 << 0)  /* Open for read access (only) */
 #define NUTTX_O_WRONLY   (1 << 1)  /* Open for write access (only) */
