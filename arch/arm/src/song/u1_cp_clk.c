@@ -584,6 +584,23 @@ static const struct song_mux_gate_clk mux_gate[] =
   {},
 };
 
+static const struct song_default_rate_clk default_rate[] =
+{
+  {
+    .name = "cp_bus_mclk0",
+    .rate = 204800000,
+  },
+  {
+    .name = "cp_bus_mclk1",
+    .rate = 102400000,
+  },
+  {
+    .name = "cp_pclk",
+    .rate = 51200000,
+  },
+  {}
+};
+
 static const struct song_clk_table u1_cp_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -593,6 +610,7 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .gate_clks         = gate,
   .mux_gate_clks     = mux_gate,
   .rpmsg_server      = false,
+  .def_rate          = default_rate,
 };
 
 /****************************************************************************

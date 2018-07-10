@@ -150,6 +150,18 @@ static  const struct song_default_rate_clk default_rate[] =
     .name = "i2c1_mclk",
     .rate = 80000000,
   },
+  {
+    .name = "uart2_clk",
+    .rate = 48000000,
+  },
+  {
+    .name = "flash_ctrl_clk",
+    .rate = 102400000,
+  },
+  {
+    .name = "top_bus_mclk",
+    .rate = 102400000,
+  },
   {},
 };
 
