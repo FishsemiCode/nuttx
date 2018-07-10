@@ -93,3 +93,8 @@ config SONG_ICACHE_BASE
 
 config SONG_NR_IRQS
 	int "Interrupt Number"
+
+config SONG_PM_STAY_TIME
+	int "PM stay idle time (ms)"
+	default 5000
+	depends on PM
