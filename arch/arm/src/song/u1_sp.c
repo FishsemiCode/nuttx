@@ -426,7 +426,6 @@ static void up_openamp_initialize(void)
       .size      = sizeof(rptun_rsc_cp),
     },
     .rsc_flash   = RSCTBL_BASE_CP,
-    .boot        = cp_boot,
   };
 
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
@@ -592,6 +591,13 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_AP, 1);
+#endif
+}
+
+void up_finalinitialize(void)
+{
+#ifdef CONFIG_OPENAMP
+  cp_boot(NULL);
 #endif
 }
 
