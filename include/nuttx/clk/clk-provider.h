@@ -58,6 +58,8 @@
 #define CLK_SET_RATE_PARENT             0x04 /* propagate rate change up one level */
 #define CLK_SET_RATE_NO_REPARENT        0x08 /* don't reparent on change rate */
 #define CLK_GET_RATE_NOCACHE            0x10 /* do not use the cached clk rate */
+#define CLK_NAME_IS_STATIC              0x20 /* static name: don't malloc in register */
+#define CLK_PARENT_NAME_IS_STATIC       0x40 /* static parent name :don't malloc in register */
 
 /* gating clk flags */
 #define CLK_GATE_SET_TO_DISABLE         0x01

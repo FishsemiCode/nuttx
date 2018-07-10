@@ -969,10 +969,17 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
       return NULL;
     }
 
-  clk->name = strdup(name);
-  if (!clk->name)
+  if (flags & CLK_NAME_IS_STATIC)
     {
-      goto fail_name;
+      clk->name = name;
+    }
+  else
+    {
+      clk->name = strdup(name);
+      if (!clk->name)
+        {
+          goto fail_name;
+        }
     }
 
   clk->ops = ops;
@@ -990,10 +997,17 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
 
       for (i = 0; i < clk->num_parents; i++)
         {
-          clk->parent_names[i] = strdup(parent_names[i]);
-          if (!clk->parent_names[i])
+          if (flags & CLK_PARENT_NAME_IS_STATIC)
             {
-              goto fail_parent_names_copy;
+              clk->parent_names[i] = parent_names[i];
+            }
+          else
+            {
+              clk->parent_names[i] = strdup(parent_names[i]);
+              if (!clk->parent_names[i])
+                {
+                  goto fail_parent_names_copy;
+                }
             }
         }
     }
@@ -1007,11 +1021,17 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
     }
 
 fail_parent_names_copy:
-  while (--i >= 0)
-    kmm_free((void *)clk->parent_names[i]);
+  if (!(flags & CLK_PARENT_NAME_IS_STATIC))
+    {
+      while (--i >= 0)
+        kmm_free((void *)clk->parent_names[i]);
+    }
   kmm_free(clk->parent_names);
 fail_parent_names:
-  kmm_free((void *)clk->name);
+  if (!(flags & CLK_NAME_IS_STATIC))
+    {
+      kmm_free((void *)clk->name);
+    }
 fail_name:
   kmm_free(clk);
   return NULL;
