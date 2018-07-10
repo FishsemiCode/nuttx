@@ -112,7 +112,6 @@ struct clk
   const char              *name;
   const struct clk_ops    *ops;
   struct clk              *parent;
-  const char              **parent_names;
   uint8_t                 num_parents;
   uint8_t                 new_parent_index;
   uint8_t                 enable_count;
@@ -124,6 +123,7 @@ struct clk
   void                    *private_data;
   struct list_node        children;
   struct list_node        child_node;
+  const char              *parent_names[0];
 };
 
 /* clk interface */

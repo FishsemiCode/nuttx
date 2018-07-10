@@ -961,25 +961,35 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
                          void *private_data)
 {
   struct clk *clk = NULL;
+  uint32_t cnt, len;
   int i = 0;
 
-  clk = kmm_zalloc(sizeof(struct clk));
-  if (!clk)
+  cnt = len = sizeof(struct clk) + num_parents * sizeof(char *);
+
+  if (!(flags & CLK_PARENT_NAME_IS_STATIC))
     {
-      return NULL;
+      for (i = 0; i < num_parents; i++)
+        {
+          len += strlen(parent_names[i]) + 1;
+        }
     }
 
   if (flags & CLK_NAME_IS_STATIC)
     {
+      clk = kmm_zalloc(len);
+      if (!clk)
+        return NULL;
+
       clk->name = name;
     }
   else
     {
-      clk->name = strdup(name);
-      if (!clk->name)
-        {
-          goto fail_name;
-        }
+      clk = kmm_zalloc(len + strlen(name) + 1);
+      if (!clk)
+        return NULL;
+
+      clk->name = (char *)clk + len;
+      strcpy((char *)clk->name, name);
     }
 
   clk->ops = ops;
@@ -987,28 +997,17 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
   clk->num_parents = num_parents;
   clk->flags = flags;
 
-  if (clk->num_parents)
+  for (i = 0; i < clk->num_parents; i++)
     {
-      clk->parent_names = kmm_calloc(clk->num_parents, sizeof(char *));
-      if (!clk->parent_names)
+      if (flags & CLK_PARENT_NAME_IS_STATIC)
         {
-          goto fail_parent_names;
+          clk->parent_names[i] = parent_names[i];
         }
-
-      for (i = 0; i < clk->num_parents; i++)
+      else
         {
-          if (flags & CLK_PARENT_NAME_IS_STATIC)
-            {
-              clk->parent_names[i] = parent_names[i];
-            }
-          else
-            {
-              clk->parent_names[i] = strdup(parent_names[i]);
-              if (!clk->parent_names[i])
-                {
-                  goto fail_parent_names_copy;
-                }
-            }
+          clk->parent_names[i] = (char *)clk + cnt;
+          strcpy((char *)clk->parent_names[i], parent_names[i]);
+          cnt += strlen(parent_names[i]) + 1;
         }
     }
 
@@ -1020,19 +1019,6 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
       return clk;
     }
 
-fail_parent_names_copy:
-  if (!(flags & CLK_PARENT_NAME_IS_STATIC))
-    {
-      while (--i >= 0)
-        kmm_free((void *)clk->parent_names[i]);
-    }
-  kmm_free(clk->parent_names);
-fail_parent_names:
-  if (!(flags & CLK_NAME_IS_STATIC))
-    {
-      kmm_free((void *)clk->name);
-    }
-fail_name:
   kmm_free(clk);
   return NULL;
 }
