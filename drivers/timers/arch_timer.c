@@ -43,6 +43,8 @@
 #include <nuttx/clock.h>
 #include <nuttx/timers/arch_timer.h>
 
+#include <string.h>
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -284,7 +286,8 @@ int up_timer_getcounter(FAR uint64_t *cycles)
 {
   if (!g_timer.lower)
     {
-      return -EAGAIN;
+      *cycles = 0;
+      return 0;
     }
 
   *cycles = current_usec() / USEC_PER_TICK;
@@ -311,7 +314,8 @@ int up_timer_gettime(FAR struct timespec *ts)
 {
   if (!g_timer.lower)
   {
-    return -EAGAIN;
+    memset(ts, 0, sizeof(*ts));
+    return 0;
   }
 
   timespec_from_usec(ts, current_usec());

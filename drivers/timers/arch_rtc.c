@@ -42,6 +42,8 @@
 #include <nuttx/arch.h>
 #include <nuttx/timers/arch_rtc.h>
 
+#include <string.h>
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -133,7 +135,8 @@ int up_rtc_gettime(FAR struct timespec *tp)
 
   if (!g_rtc_lower)
     {
-      return -EAGAIN;
+      memset(tp, 0, sizeof(*tp));
+      return 0;
     }
 
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
@@ -178,7 +181,8 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 
   if (!g_rtc_lower)
     {
-      return -EAGAIN;
+      memset(tp, 0, sizeof(*tp));
+      return 0;
     }
 
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
@@ -223,7 +227,9 @@ int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
 
   if (!g_rtc_lower)
     {
-      return -EAGAIN;
+      memset(tp, 0, sizeof(*tp));
+      *nsec = 0;
+      return 0;
     }
 
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
