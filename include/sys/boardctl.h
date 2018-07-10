@@ -124,6 +124,7 @@
 #define BOARDIOC_OS_SYMTAB         _BOARDIOC(0x0006)
 #define BOARDIOC_USBDEV_CONTROL    _BOARDIOC(0x0007)
 #define BOARDIOC_NX_START          _BOARDIOC(0x0008)
+#define BOARDIOC_FINALINIT         _BOARDIOC(0x0009)
 
 /* If CONFIG_BOARDCTL_IOCTL=y, then board-specific commands will be support.
  * In this case, all commands not recognized by boardctl() will be forwarded

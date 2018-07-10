@@ -276,6 +276,21 @@ int boardctl(unsigned int cmd, uintptr_t arg)
         }
         break;
 
+#ifdef CONFIG_BOARDCTL_FINALINIT
+      /* CMD:           BOARDIOC_FINALINIT
+       * DESCRIPTION:   Perform one-time application initialization after start-up script.
+       * ARG:           The argument has no meaning
+       * CONFIGURATION: CONFIG_BOARDCTL_FINALINIT
+       * DEPENDENCIES:  Board logic must provide board_app_finalinitialize
+       */
+
+      case BOARDIOC_FINALINIT:
+        {
+          ret = board_app_finalinitialize(arg);
+        }
+        break;
+#endif
+
 #ifdef CONFIG_BOARDCTL_POWEROFF
       /* CMD:           BOARDIOC_POWEROFF
        * DESCRIPTION:   Power off the board
