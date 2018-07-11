@@ -435,7 +435,7 @@ int usrsock_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
 
           ret = state.reqstate.result;
 
-          DEBUGASSERT(state.valuelen <= addrlen);
+          DEBUGASSERT(state.valuelen <= inaddrlen);
           DEBUGASSERT(state.valuelen <= state.valuelen_nontrunc);
 
           if (ret >= 0)
