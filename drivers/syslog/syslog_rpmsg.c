@@ -134,6 +134,11 @@ static void syslog_rpmsg_work(void *priv_)
   msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, false);
   if (!msg)
     {
+      if (SYSLOG_RPMSG_WORK_DELAY)
+        {
+          work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv,
+                     SYSLOG_RPMSG_WORK_DELAY);
+        }
       return;
     }
 
