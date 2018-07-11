@@ -113,7 +113,8 @@ FAR struct spi_dev_s *g_spi[2] =
 #endif
 
 #ifdef CONFIG_I2C_DW
-FAR struct i2c_master_s *g_i2c[4] = {
+FAR struct i2c_master_s *g_i2c[4] =
+{
   [3] = DEV_END,
 };
 #endif
@@ -310,7 +311,7 @@ void up_wdtinit(void)
 #ifdef CONFIG_SPI_DW
 static void up_spi_init(void)
 {
-  static struct dw_spi_config_s configs[] =
+  static const struct dw_spi_config_s config[] =
   {
     {
       .base = 0xa0130000,
@@ -321,21 +322,21 @@ static void up_spi_init(void)
       .cs_gpio[0] = 28,
     },
   };
+  int config_num = sizeof(config) / sizeof(config[0]);
 
-  dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
-                        g_spi, sizeof(g_spi) / sizeof(g_spi[0]), g_ioe[0]);
+  dw_spi_allinitialize(config, config_num, g_ioe[0], g_spi);
 }
 #endif
 
 #ifdef CONFIG_I2C_DW
 static void up_i2c_init(void)
 {
-  static struct dw_i2c_config_s configs[] =
+  static const struct dw_i2c_config_s config[] =
   {
     {
-      .base       = 0xA0110000,
-      .irq        = 27,
       .bus        = 0,
+      .base       = 0xa0110000,
+      .irq        = 27,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -347,9 +348,9 @@ static void up_i2c_init(void)
       .hs_lcnt    = 8,
     },
     {
-      .base       = 0xA0120000,
-      .irq        = 28,
       .bus        = 1,
+      .base       = 0xa0120000,
+      .irq        = 28,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -361,9 +362,9 @@ static void up_i2c_init(void)
       .hs_lcnt    = 8,
     },
     {
-      .base       = 0xA0190000,
-      .irq        = 19,
       .bus        = 2,
+      .base       = 0xa0190000,
+      .irq        = 19,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -375,9 +376,9 @@ static void up_i2c_init(void)
       .hs_lcnt    = 8,
     }
   };
+  int config_num = sizeof(config) / sizeof(config[0]);
 
-  dw_i2c_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
-                        g_i2c, sizeof(g_i2c) / sizeof(g_i2c[0]));
+  dw_i2c_allinitialize(config, config_num, g_i2c);
 }
 #endif
 

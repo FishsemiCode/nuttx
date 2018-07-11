@@ -139,7 +139,8 @@ FAR struct spi_dev_s *g_spi[3] =
 #endif
 
 #ifdef CONFIG_I2C_DW
-FAR struct i2c_master_s *g_i2c[3] = {
+FAR struct i2c_master_s *g_i2c[3] =
+{
   [2] = DEV_END,
 };
 #endif
@@ -463,32 +464,29 @@ void up_wdtinit(void)
 #ifdef CONFIG_SPI_DW
 static void up_spi_init(void)
 {
-  static struct dw_spi_config_s configs[] =
+  static const struct dw_spi_config_s config =
   {
-    {
-      .base = 0xb0120000,
-      .irq = 31,
-      .clk_rate = 4096000,
-      .bus = 1,
-      .cs_num = 1,
-      .cs_gpio[0] = 26,
-    },
+    .bus = 1,
+    .base = 0xb0120000,
+    .irq = 31,
+    .clk_rate = 4096000,
+    .cs_num = 1,
+    .cs_gpio[0] = 26,
   };
 
-  dw_spi_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
-                        g_spi, sizeof(g_spi) / sizeof(g_spi[0]), g_ioe[0]);
+  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0]);
 }
 #endif
 
 #ifdef CONFIG_I2C_DW
 static void up_i2c_init(void)
 {
-  static struct dw_i2c_config_s configs[] =
+  static const struct dw_i2c_config_s configs[] =
   {
     {
-      .base       = 0xB00E0000,
-      .irq        = 25,
       .bus        = 0,
+      .base       = 0xb00e0000,
+      .irq        = 25,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -500,9 +498,9 @@ static void up_i2c_init(void)
       .hs_lcnt    = 8,
     },
     {
-      .base       = 0xB00F0000,
-      .irq        = 26,
       .bus        = 1,
+      .base       = 0xb00f0000,
+      .irq        = 26,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -514,9 +512,9 @@ static void up_i2c_init(void)
       .hs_lcnt    = 8,
     }
   };
+  int config_num = sizeof(config) / sizeof(config[0]);
 
-  dw_i2c_initialize_all(configs, sizeof(configs) / sizeof(configs[0]),
-                        g_i2c, sizeof(g_i2c) / sizeof(g_i2c[0]));
+  dw_i2c_allinitialize(config, config_num, g_i2c);
 }
 #endif
 

@@ -520,7 +520,7 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   while (ret == -EINTR);
 
   if (ret)
-    spierr("DW_SPI-%d transfer ret=%d\n", config->bus, ret);
+    spierr("DW_SPI-%p transfer ret=%d\n", config->base, ret);
 
   dw_spi_enable(hw, false);
   dw_spi_mask_intr(hw, 0xff);
@@ -665,7 +665,7 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   spi = kmm_zalloc(sizeof(*spi));
   if (!spi)
     {
-      spierr("no memory for spi %d\n", config->bus);
+      spierr("no memory for spi %p\n", config->base);
       return NULL;
     }
 
@@ -693,7 +693,12 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
 
   up_enable_irq(config->irq);
 
-  spiinfo("DW_SPI-%d initialized success\n", config->bus);
+#ifdef CONFIG_SPI_DRIVER
+  if (config->bus >= 0)
+    spi_register(&spi->spi_dev, config->bus);
+#endif
+
+  spiinfo("DW_SPI-%p initialized success\n", config->base);
   return &spi->spi_dev;
 
 irq_err:
@@ -703,35 +708,22 @@ sem_err:
   nxmutex_destroy(&spi->mutex);
 mutex_err:
   kmm_free(spi);
+  spierr("spi%x initialize failed %d\n", config->base, ret);
   return NULL;
 }
 
-FAR void dw_spi_initialize_all(FAR const struct dw_spi_config_s *config, int config_num,
-                               FAR struct spi_dev_s **spi, int space,
-                               FAR struct ioexpander_dev_s *ioe
-                              )
+void dw_spi_allinitialize(FAR const struct dw_spi_config_s *config, int config_num,
+                          FAR struct ioexpander_dev_s *ioe, FAR struct spi_dev_s **spi)
 {
-  int i;
   struct spi_dev_s *spi_dev;
+  int i;
 
   for (i = 0; i < config_num; i++)
     {
-      if (config[i].bus >= space - 1)
-        {
-          spierr("spi%d: bus number invlid, skip\n", config[i].bus);
-          continue;
-        }
-
       spi_dev = dw_spi_initialize(&config[i], ioe);
-      if (!spi_dev)
+      if (spi_dev && config[i].bus >= 0)
         {
-          spierr("spi%d initialize failed\n", config[i].bus);
-          continue;
+          spi[config[i].bus] = spi_dev;
         }
-
-      spi[config[i].bus] = spi_dev;
-#ifdef CONFIG_SPI_DRIVER
-      spi_register(spi_dev, config[i].bus);
-#endif
     }
 }

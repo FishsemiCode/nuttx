@@ -52,10 +52,10 @@
 
 struct dw_spi_config_s
 {
+  int bus;
   uintptr_t base;
   uint32_t irq;
   uint32_t clk_rate;
-  int bus;
   uint8_t cs_num;
   uint8_t cs_gpio[CONFIG_SPI_DW_MAX_CS];
   uintptr_t mode_ctrl;
@@ -76,9 +76,9 @@ extern "C"
 
 FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config,
                                         FAR struct ioexpander_dev_s *ioe);
-FAR void dw_spi_initialize_all(FAR const struct dw_spi_config_s *config, int config_num,
-                               FAR struct spi_dev_s **spi, int space,
-                               FAR struct ioexpander_dev_s *ioe);
+
+void dw_spi_allinitialize(FAR const struct dw_spi_config_s *config, int config_num,
+                          FAR struct ioexpander_dev_s *ioe, FAR struct spi_dev_s **spi);
 
 #undef EXTERN
 #ifdef __cplusplus
