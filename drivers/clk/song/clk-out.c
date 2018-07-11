@@ -58,8 +58,8 @@
 
 struct div_args_s
 {
-  uint16_t shift;
-  uint16_t mask;
+  uint8_t shift;
+  uint8_t mask;
 };
 
 /************************************************************************************
@@ -82,7 +82,7 @@ static const struct div_args_s g_div_para[] =
 static int __clk_out_set_parent(struct clk *clk, uint8_t index)
 {
   struct clk_out *out = to_clk_out(clk);
-  unsigned int val;
+  uint32_t val;
 
   val = clk_read(out->mux_reg);
   val &= ~(MASK(out->mux_width) << out->mux_shift);
@@ -107,7 +107,7 @@ static void clk_out_disable(struct clk *clk)
 static int clk_out_is_enabled(struct clk *clk)
 {
   struct clk_out *out = to_clk_out(clk);
-  unsigned int val;
+  uint32_t val;
 
   val   = clk_read(out->mux_reg);
   val >>= out->mux_shift;
@@ -183,7 +183,7 @@ static int clk_out_set_rate(struct clk *clk, uint32_t rate,
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;
   uint16_t div;
-  unsigned int val;
+  uint32_t val;
 
   src_sel = out->parent_index;
 
@@ -228,8 +228,8 @@ const struct clk_ops clk_out_ops =
  ************************************************************************************/
 
 struct clk *clk_register_out(const char *name, const char * const *parent_names,
-    uint8_t num_parents, unsigned int mux_reg, uint8_t mux_shift, uint8_t mux_width,
-    unsigned int ctl_reg)
+    uint8_t num_parents, uint32_t mux_reg, uint8_t mux_shift, uint8_t mux_width,
+    uint32_t ctl_reg)
 {
   struct clk_out *out;
   struct clk *clk;

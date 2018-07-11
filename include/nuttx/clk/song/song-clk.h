@@ -78,26 +78,26 @@ extern "C"
 struct song_fixed_rate_clk
 {
   const char         *name;
-  uint32_t           flags;
-  uint64_t           fixed_rate;
+  uint32_t           fixed_rate;
+  uint16_t           flags;
 };
 
 struct song_fixed_factor_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           fixed_mul;
-  uint64_t           fixed_div;
+  uint8_t            fixed_mul;
+  uint8_t            fixed_div;
+  uint16_t           flags;
 };
 
 struct song_gate_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           en_offset;
-  uint32_t           en_shift;
+  uint16_t           en_offset;
+  uint16_t           flags;
+  uint8_t            en_shift;
   uint64_t           private_flags;
 };
 
@@ -105,12 +105,12 @@ struct song_sdiv_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           en_offset;
-  uint32_t           en_shift;
-  uint32_t           div_offset;
-  uint32_t           div_shift;
-  uint32_t           div_width;
+  uint16_t           en_offset;
+  uint16_t           div_offset;
+  uint8_t            en_shift;
+  uint8_t            div_shift;
+  uint8_t            div_width;
+  uint16_t           flags;
   uint64_t           private_flags;
 };
 
@@ -118,12 +118,12 @@ struct song_gr_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           en_offset;
+  uint16_t           en_offset;
+  uint16_t           mul_offset;
   uint8_t            en_shift;
-  uint32_t           mul_offset;
   uint8_t            mul_shift;
-  uint32_t           mul_width;
+  uint8_t            mul_width;
+  uint16_t           flags;
   uint64_t           private_flags;
 };
 
@@ -131,8 +131,8 @@ struct song_sdiv_sdiv_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           div_offset;
+  uint16_t           flags;
+  uint16_t           div_offset;
   uint64_t           private_flags;
 };
 
@@ -140,13 +140,13 @@ struct song_sdiv_fdiv_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           en_offset;
+  uint16_t           en_offset;
+  uint16_t           sdiv_offset;
+  uint16_t           fdiv_offset;
+  uint16_t           flags;
   uint8_t            en_shift;
-  uint32_t           sdiv_offset;
-  uint32_t           sdiv_shift;
-  uint32_t           sdiv_width;
-  uint32_t           fdiv_offset;
+  uint8_t            sdiv_shift;
+  uint8_t            sdiv_width;
   uint64_t           private_flags;
 };
 
@@ -154,12 +154,12 @@ struct song_gr_fdiv_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           en_offset;
+  uint16_t           en_offset;
+  uint16_t           gr_offset;
+  uint16_t           div_offset;
   uint8_t            en_shift;
-  uint32_t           gr_offset;
-  uint32_t           div_offset;
-  uint32_t           fixed_gr;
+  uint8_t            fixed_gr;
+  uint16_t           flags;
   uint64_t           private_flags;
 };
 
@@ -167,8 +167,8 @@ struct song_sdiv_gr_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           div_offset;
+  uint16_t           flags;
+  uint16_t           div_offset;
   uint64_t           private_flags;
 };
 
@@ -176,14 +176,14 @@ struct song_mux_sdiv_clk
 {
   const char         *name;
   const char * const *parent_name;
-  uint8_t            num_parents;
-  uint32_t           flags;
-  uint32_t           mux_offset;
+  uint16_t           mux_offset;
+  uint16_t           div_offset;
   uint8_t            mux_shift;
   uint8_t            mux_width;
-  uint32_t           div_offset;
   uint8_t            div_shift;
   uint8_t            div_width;
+  uint8_t            num_parents;
+  uint16_t           flags;
   uint64_t           private_flags;
 };
 
@@ -191,13 +191,13 @@ struct song_mux_gate_clk
 {
   const char         *name;
   const char * const *parent_name;
-  uint8_t            num_parents;
-  uint32_t           flags;
-  uint32_t           en_offset;
+  uint16_t           en_offset;
+  uint16_t           mux_offset;
   uint8_t            en_shift;
-  uint32_t           mux_offset;
   uint8_t            mux_shift;
   uint8_t            mux_width;
+  uint8_t            num_parents;
+  uint16_t           flags;
   uint64_t           private_flags;
 };
 
@@ -205,22 +205,22 @@ struct song_phase_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           reg_offset;
+  uint16_t           reg_offset;
+  uint16_t           flags;
   uint8_t            phase_shift;
   uint8_t            phase_width;
-  uint64_t           phase_flags;
+  uint8_t            phase_flags;
 };
 
 struct song_mux_sdiv_gr_clk
 {
   const char         *name;
   const char * const *parent_name;
+  uint16_t           div_offset;
+  uint8_t            div_width;
+  uint8_t            mux_width;
   uint8_t            num_parents;
-  uint32_t           flags;
-  uint32_t           div_offset;
-  uint32_t           div_width;
-  uint32_t           mux_width;
+  uint16_t           flags;
   uint64_t           private_flags;
 };
 
@@ -228,47 +228,47 @@ struct song_pll_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           cfg_reg0_offset;
-  uint32_t           cfg_reg1_offset;
-  uint32_t           ctl_reg_offset;
-  uint32_t           ctl_shift;
+  uint16_t           cfg_reg0_offset;
+  uint16_t           cfg_reg1_offset;
+  uint16_t           ctl_reg_offset;
+  uint8_t            ctl_shift;
+  uint16_t           flags;
 };
 
 struct song_pll_lf_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint32_t           flags;
-  uint32_t           cfg_reg0_offset;
-  uint32_t           cfg_reg1_offset;
+  uint16_t           cfg_reg0_offset;
+  uint16_t           cfg_reg1_offset;
+  uint16_t           flags;
 };
 
 struct song_out_clk
 {
   const char         *name;
   const char * const *parent_name;
-  uint8_t            num_parents;
-  uint32_t           mux_reg;
-  uint32_t           ctl_reg;
+  uint16_t           mux_reg_offset;
+  uint16_t           ctl_reg_offset;
   uint8_t            mux_shift;
   uint8_t            mux_width;
+  uint8_t            num_parents;
 };
 
 struct song_timer_clk
 {
   const char         *name;
   const char * const *parent_name;
-  uint8_t            num_parents;
-  uint32_t           ctl_reg;
+  uint16_t           ctl_reg_offset;
   uint8_t            mux_shift;
   uint8_t            mux_width;
+  uint8_t            num_parents;
 };
 
 struct song_default_rate_clk
 {
   const char         *name;
-  uint64_t           rate;
+  uint32_t           rate;
 };
 
 struct song_clk_table

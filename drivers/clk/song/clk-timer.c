@@ -79,7 +79,7 @@ static const struct div_args_s g_div_para[] =
 static int __clk_timer_set_parent(struct clk *clk, uint8_t index)
 {
   struct clk_timer *timer = to_clk_timer(clk);
-  unsigned int val;
+  uint32_t val;
 
   val = clk_read(timer->ctl_reg);
   val &= ~(MASK(timer->mux_width) << timer->mux_shift);
@@ -104,7 +104,7 @@ static void clk_timer_disable(struct clk *clk)
 static int clk_timer_is_enabled(struct clk *clk)
 {
   struct clk_timer *timer = to_clk_timer(clk);
-  unsigned int val;
+  uint32_t val;
 
   val   = clk_read(timer->ctl_reg);
   val >>= timer->mux_shift;
@@ -167,7 +167,7 @@ static int clk_timer_set_rate(struct clk *clk, uint32_t rate,
 {
   struct clk_timer *timer = to_clk_timer(clk);
   uint8_t src_sel, div;
-  unsigned int val;
+  uint32_t val;
 
   src_sel = timer->parent_index;
 
@@ -212,7 +212,7 @@ const struct clk_ops clk_timer_ops =
  ************************************************************************************/
 
 struct clk *clk_register_timer(const char *name, const char * const *parent_names,
-    uint8_t num_parents, uint8_t ctl_reg, uint8_t mux_shift, uint8_t mux_width)
+    uint8_t num_parents, uint32_t ctl_reg, uint8_t mux_shift, uint8_t mux_width)
 {
   struct clk_timer *timer;
   struct clk *clk;
