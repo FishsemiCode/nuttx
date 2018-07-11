@@ -114,6 +114,29 @@ void board_initialize(void)
 
 int board_app_initialize(uintptr_t arg)
 {
+  return 0;
+}
+
+/****************************************************************************
+ * Name: board_app_finalinitialize
+ *
+ * Description:
+ *   Perform application specific initialization.  This function is never
+ *   called directly from application code, but only indirectly via the
+ *   (non-standard) boardctl() interface using the command BOARDIOC_FINALINIT.
+ *
+ * Input Parameters:
+ *   arg - The argument has no meaning.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BOARDCTL_FINALINIT
+int board_app_finalinitialize(uintptr_t arg)
+{
   /* Perform the arch final initialization */
 
   up_finalinitialize();
@@ -124,3 +147,4 @@ int board_app_initialize(uintptr_t arg)
 
   return 0;
 }
+#endif
