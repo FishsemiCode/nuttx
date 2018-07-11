@@ -115,8 +115,8 @@ struct clk
   uint8_t                 num_parents;
   uint8_t                 new_parent_index;
   uint16_t                flags;
-  uint64_t                rate;
-  uint64_t                new_rate;
+  uint32_t                rate;
+  uint32_t                new_rate;
   struct clk              *new_parent;
   struct clk              *new_child;
   uint32_t                enable_count;
@@ -131,15 +131,15 @@ struct clk_ops
   int       (*enable)(struct clk *clk);
   void      (*disable)(struct clk *clk);
   int       (*is_enabled)(struct clk *clk);
-  uint64_t  (*recalc_rate)(struct clk *clk, uint64_t parent_rate);
-  int64_t   (*round_rate)(struct clk *clk, uint64_t rate, uint64_t *parent_rate);
-  int64_t   (*determine_rate)(struct clk *clk, uint64_t rate,
-            uint64_t *best_parent_rate, struct clk **best_parent_clk);
+  uint32_t  (*recalc_rate)(struct clk *clk, uint32_t parent_rate);
+  uint32_t  (*round_rate)(struct clk *clk, uint32_t rate, uint32_t *parent_rate);
+  uint32_t  (*determine_rate)(struct clk *clk, uint32_t rate,
+            uint32_t *best_parent_rate, struct clk **best_parent_clk);
   int       (*set_parent)(struct clk *clk, uint8_t index);
   uint8_t   (*get_parent)(struct clk *clk);
-  int       (*set_rate)(struct clk *clk, uint64_t rate, uint64_t parent_rate);
-  int       (*set_rate_and_parent)(struct clk *clk, uint64_t rate,
-            uint64_t parent_rate, uint8_t index);
+  int       (*set_rate)(struct clk *clk, uint32_t rate, uint32_t parent_rate);
+  int       (*set_rate_and_parent)(struct clk *clk, uint32_t rate,
+            uint32_t parent_rate, uint8_t index);
   int       (*get_phase)(struct clk *clk);
   int       (*set_phase)(struct clk *clk, int degrees);
   void      (*init)(struct clk *clk);
@@ -155,14 +155,14 @@ struct clk_gate
 
 struct clk_fixed_rate
 {
-  uint64_t            fixed_rate;
+  uint32_t            fixed_rate;
   uint8_t             flags;
 };
 
 struct clk_fixed_factor
 {
-  uint32_t            mult;
-  uint32_t            div;
+  uint8_t             mult;
+  uint8_t             div;
 };
 
 struct clk_divider
@@ -176,7 +176,7 @@ struct clk_divider
 struct clk_phase
 {
   uint32_t            reg;
-  uint32_t            shift;
+  uint8_t             shift;
   uint8_t             width;
   uint8_t             flags;
 };
@@ -184,10 +184,10 @@ struct clk_phase
 struct clk_fractional_divider
 {
   uint32_t            reg;
+  uint8_t             mwidth;
+  uint8_t             nwidth;
   uint8_t             mshift;
-  uint32_t            mmask;
   uint8_t             nshift;
-  uint32_t            nmask;
   uint8_t             flags;
 };
 
@@ -202,7 +202,7 @@ struct clk_multiplier
 struct clk_mux
 {
   uint32_t            reg;
-  uint32_t            mask;
+  uint8_t             width;
   uint8_t             shift;
   uint8_t             flags;
 };
@@ -236,17 +236,17 @@ struct clk *clk_register_gate(const char *name, const char *parent_name,
                     uint8_t clk_gate_flags);
 
 struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
-                    uint16_t flags, uint64_t fixed_rate);
+                    uint16_t flags, uint32_t fixed_rate);
 
 struct clk *clk_register_fixed_factor(const char *name, const char *parent_name,
-                    uint16_t flags, uint32_t mult, uint32_t div);
+                    uint16_t flags, uint8_t mult, uint8_t div);
 
 struct clk *clk_register_divider(const char *name, const char *parent_name,
                     uint16_t flags, uint32_t reg, uint8_t shift, uint8_t width,
                     uint16_t clk_divider_flags);
 
 struct clk *clk_register_phase(const char *name, const char *parent_name,
-                    uint16_t flags, uint32_t reg, uint32_t shift, uint8_t width,
+                    uint16_t flags, uint32_t reg, uint8_t shift, uint8_t width,
                     uint8_t clk_phase_flags);
 
 struct clk *clk_register_fractional_divider(const char *name, const char *parent_name,
@@ -259,13 +259,13 @@ struct clk *clk_register_multiplier(const char *name, const char *parent_name,
 
 struct clk *clk_register_mux(const char *name, const char * const *parent_names,
                     uint8_t num_parents, uint16_t flags, uint32_t reg, uint8_t shift,
-                    uint8_t mask, uint8_t clk_mux_flags);
+                    uint8_t width, uint8_t clk_mux_flags);
 
 #ifdef CONFIG_CLK_RPMSG
 struct clk *clk_register_rpmsg(const char *name);
 
 /* rpmsg clk must be initialize in board initialization */
-int    clk_rpmsg_initialize(bool server);
+int clk_rpmsg_initialize(bool server);
 #endif
 
 #undef EXTERN

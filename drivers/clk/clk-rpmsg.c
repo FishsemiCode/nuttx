@@ -167,10 +167,10 @@ static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
 static int clk_rpmsg_enable(struct clk *clk);
 static void clk_rpmsg_disable(struct clk *clk);
 static int clk_rpmsg_is_enabled(struct clk *clk);
-static int64_t clk_rpmsg_round_rate(struct clk *clk, uint64_t rate,
-            uint64_t *parent_rate);
-static int clk_rpmsg_set_rate(struct clk *clk, uint64_t rate, uint64_t parent_rate);
-static uint64_t clk_rpmsg_recalc_rate(struct clk *clk, uint64_t parent_rate);
+static uint32_t clk_rpmsg_round_rate(struct clk *clk, uint32_t rate,
+            uint32_t *parent_rate);
+static int clk_rpmsg_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate);
+static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate);
 static int clk_rpmsg_get_phase(struct clk *clk);
 static int clk_rpmsg_set_phase(struct clk *clk, int degrees);
 
@@ -612,35 +612,40 @@ static int clk_rpmsg_is_enabled(struct clk *clk)
           (struct clk_rpmsg_header_s *)msg, len);
 }
 
-static int64_t clk_rpmsg_round_rate(struct clk *clk, uint64_t rate, uint64_t *parent_rate)
+static uint32_t clk_rpmsg_round_rate(struct clk *clk, uint32_t rate, uint32_t *parent_rate)
 {
   struct rpmsg_channel *chnl;
   struct clk_rpmsg_roundrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
+  int64_t ret;
 
   chnl = clk_rpmsg_get_chnl(&name);
   if (!chnl)
-    return -ENODEV;
+    return 0;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
   size = rpmsg_get_buffer_size(chnl);
   if (len > size)
-    return -ENOMEM;
+    return 0;
 
   msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
   if (!msg)
-    return -ENOMEM;
+    return 0;
 
   msg->rate = rate;
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_ROUNDRATE,
+  ret = clk_rpmsg_sendrecv(chnl, CLK_RPMSG_ROUNDRATE,
             (struct clk_rpmsg_header_s *)msg, len);
+  if (ret < 0)
+    return 0;
+
+  return ret;
 }
 
-static int clk_rpmsg_set_rate(struct clk *clk, uint64_t rate, uint64_t parent_rate)
+static int clk_rpmsg_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
   struct rpmsg_channel *chnl;
   struct clk_rpmsg_setrate_s *msg;
@@ -668,31 +673,36 @@ static int clk_rpmsg_set_rate(struct clk *clk, uint64_t rate, uint64_t parent_ra
             (struct clk_rpmsg_header_s *)msg, len);
 }
 
-static uint64_t clk_rpmsg_recalc_rate(struct clk *clk, uint64_t parent_rate)
+static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct rpmsg_channel *chnl;
   struct clk_rpmsg_getrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
+  int64_t ret;
 
   chnl = clk_rpmsg_get_chnl(&name);
   if (!chnl)
-    return -ENODEV;
+    return 0;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
   size = rpmsg_get_buffer_size(chnl);
   if (len > size)
-    return -ENOMEM;
+    return 0;
 
   msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
   if (!msg)
-    return -ENOMEM;
+    return 0;
 
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_GETRATE,
+  ret = clk_rpmsg_sendrecv(chnl, CLK_RPMSG_GETRATE,
             (struct clk_rpmsg_header_s *)msg, len);
+  if (ret < 0)
+    return 0;
+
+  return ret;
 }
 
 static int clk_rpmsg_get_phase(struct clk *clk)

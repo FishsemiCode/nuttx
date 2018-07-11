@@ -56,7 +56,7 @@
  * Private Functions
  ************************************************************************************/
 
-static uint32_t _get_maxdiv(uint8_t width, uint64_t flags)
+static uint32_t _get_maxdiv(uint8_t width, uint16_t flags)
 {
   if (flags & CLK_DIVIDER_MAX_HALF)
     return MASK(width - 1) + 1;
@@ -65,22 +65,22 @@ static uint32_t _get_maxdiv(uint8_t width, uint64_t flags)
   return MASK(width) + 1;
 }
 
-static uint32_t _get_div(uint32_t val, uint64_t flags)
+static uint32_t _get_div(uint32_t val, uint16_t flags)
 {
   if (flags & CLK_DIVIDER_ONE_BASED)
     return val;
   return val + 1;
 }
 
-static uint32_t _get_val(uint32_t div, uint64_t flags)
+static uint32_t _get_val(uint32_t div, uint16_t flags)
 {
   if (flags & CLK_DIVIDER_ONE_BASED)
     return div;
   return div - 1;
 }
 
-static uint64_t divider_recalc_rate(struct clk *clk, uint64_t parent_rate,
-          uint32_t val, uint64_t flags)
+static uint32_t divider_recalc_rate(struct clk *clk, uint32_t parent_rate,
+          uint32_t val, uint16_t flags)
 {
   uint32_t div;
 
@@ -94,8 +94,8 @@ static uint64_t divider_recalc_rate(struct clk *clk, uint64_t parent_rate,
   return DIV_ROUND_UP(parent_rate, div);
 }
 
-static uint64_t clk_divider_recalc_rate(struct clk *clk,
-    uint64_t parent_rate)
+static uint32_t clk_divider_recalc_rate(struct clk *clk,
+    uint32_t parent_rate)
 {
   struct clk_divider *divider = to_clk_divider(clk);
   uint32_t val;
@@ -106,11 +106,11 @@ static uint64_t clk_divider_recalc_rate(struct clk *clk,
   return divider_recalc_rate(clk, parent_rate, val, divider->flags);
 }
 
-static int _div_round_closest(uint64_t parent_rate, uint64_t rate,
-            uint64_t flags)
+static uint32_t _div_round_closest(uint32_t parent_rate, uint32_t rate,
+            uint16_t flags)
 {
-  int up, down;
-  uint64_t up_rate, down_rate;
+  uint32_t up, down;
+  uint32_t up_rate, down_rate;
 
   up = DIV_ROUND_UP(parent_rate, rate);
   down = parent_rate / rate;
@@ -121,8 +121,8 @@ static int _div_round_closest(uint64_t parent_rate, uint64_t rate,
   return (rate - up_rate) <= (down_rate - rate) ? up : down;
 }
 
-static int _div_round(uint64_t parent_rate, uint64_t rate,
-          uint64_t flags)
+static uint32_t _div_round(uint32_t parent_rate, uint32_t rate,
+          uint16_t flags)
 {
   if (flags & CLK_DIVIDER_ROUND_CLOSEST)
     return _div_round_closest(parent_rate, rate, flags);
@@ -130,8 +130,8 @@ static int _div_round(uint64_t parent_rate, uint64_t rate,
   return DIV_ROUND_UP(parent_rate, rate);
 }
 
-static bool _is_best_div(uint64_t rate, uint64_t now,
-       uint64_t best, uint64_t flags)
+static bool _is_best_div(uint32_t rate, uint32_t now,
+       uint32_t best, uint16_t flags)
 {
   if (flags & CLK_DIVIDER_ROUND_CLOSEST)
     return abs(rate - now) < abs(rate - best);
@@ -139,13 +139,13 @@ static bool _is_best_div(uint64_t rate, uint64_t now,
   return now <= rate && now > best;
 }
 
-static int clk_divider_bestdiv(struct clk *clk, uint64_t rate,
-             uint64_t *best_parent_rate,
-             uint8_t width, uint64_t flags)
+static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
+             uint32_t *best_parent_rate,
+             uint8_t width, uint16_t flags)
 {
-  int i, bestdiv = 0, maxdiv, mindiv;
-  uint64_t parent_rate, best = 0, now;
-  uint64_t parent_rate_saved = *best_parent_rate;
+  uint32_t i, bestdiv = 0, maxdiv, mindiv;
+  uint32_t parent_rate, best = 0, now;
+  uint32_t parent_rate_saved = *best_parent_rate;
   struct clk_divider *divider = to_clk_divider(clk);
 
   if (!rate)
@@ -170,7 +170,7 @@ static int clk_divider_bestdiv(struct clk *clk, uint64_t rate,
       return bestdiv;
     }
 
-  maxdiv = MIN(ULONG_MAX / rate, maxdiv);
+  maxdiv = MIN(UINT32_MAX / rate, maxdiv);
 
   mindiv = (flags >> CLK_DIVIDER_MINDIV_OFF) & CLK_DIVIDER_MINDIV_MSK;
   if (mindiv == 0)
@@ -203,26 +203,26 @@ static int clk_divider_bestdiv(struct clk *clk, uint64_t rate,
   return bestdiv;
 }
 
-static int64_t divider_round_rate(struct clk *clk, uint64_t rate,
-      uint64_t *prate, uint8_t width, uint64_t flags)
+static uint32_t divider_round_rate(struct clk *clk, uint32_t rate,
+      uint32_t *prate, uint8_t width, uint16_t flags)
 {
-  int32_t div;
+  uint32_t div;
 
   div = clk_divider_bestdiv(clk, rate, prate, width, flags);
 
   return DIV_ROUND_UP(*prate, div);
 }
 
-static int64_t clk_divider_round_rate(struct clk *clk, uint64_t rate,
-        uint64_t *prate)
+static uint32_t clk_divider_round_rate(struct clk *clk, uint32_t rate,
+        uint32_t *prate)
 {
   struct clk_divider *divider = to_clk_divider(clk);
 
   return divider_round_rate(clk, rate, prate, divider->width, divider->flags);
 }
 
-static int32_t divider_get_val(uint64_t rate, uint64_t parent_rate,
-        uint8_t width, uint64_t flags)
+static uint32_t divider_get_val(uint32_t rate, uint32_t parent_rate,
+        uint8_t width, uint16_t flags)
 {
   uint32_t div, value;
 
@@ -233,8 +233,8 @@ static int32_t divider_get_val(uint64_t rate, uint64_t parent_rate,
   return MIN(value, MASK(width));
 }
 
-static int clk_divider_set_rate(struct clk *clk, uint64_t rate,
-        uint64_t parent_rate)
+static int clk_divider_set_rate(struct clk *clk, uint32_t rate,
+        uint32_t parent_rate)
 {
   struct clk_divider *divider = to_clk_divider(clk);
   uint32_t value;

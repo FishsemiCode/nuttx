@@ -77,12 +77,10 @@
  * Private Functions
  ************************************************************************************/
 
-static uint64_t
-clk_pll_recalc_rate(struct clk *clk, uint64_t parent_rate)
+static uint32_t
+clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
-  uint32_t val;
-  uint64_t rate;
-  uint64_t dsmpd, refdiv, fbdiv, postdiv1, postdiv2, frac, div;
+  uint32_t val, rate, div, dsmpd, refdiv, fbdiv, postdiv1, postdiv2;
   struct clk_pll *pll = to_clk_pll(clk);
 
   val = clk_read(pll->cfg_reg0);
@@ -95,23 +93,24 @@ clk_pll_recalc_rate(struct clk *clk, uint64_t parent_rate)
   div = refdiv * postdiv1 * postdiv2;
 
   if (dsmpd)
-    rate = (parent_rate * fbdiv) / div;
+    rate = ((uint64_t)parent_rate * fbdiv) / div;
   else
     {
+      uint32_t frac;
+
       val = clk_read(pll->cfg_reg1);
       frac = (val >> PLL_FRAC_SHIFT) & PLL_FRAC_MASK;
-      rate = (parent_rate * (fbdiv * (1 << 24) + frac)) / (div * (1 << 24));
+      rate = (parent_rate * (fbdiv * (1ull << 24) + frac)) / (div * (1ull << 24));
     }
 
   return rate;
 }
 
-static int64_t
-clk_pll_round_rate(struct clk *clk, uint64_t rate,
-    uint64_t *best_parent_rate)
+static uint32_t
+clk_pll_round_rate(struct clk *clk, uint32_t rate,
+    uint32_t *best_parent_rate)
 {
-  uint32_t val;
-  uint64_t dsmpd, refdiv, fbdiv, postdiv1, postdiv2, frac, div;
+  uint32_t val, dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
   struct clk_pll *pll = to_clk_pll(clk);
 
   val = clk_read(pll->cfg_reg0);
@@ -125,14 +124,16 @@ clk_pll_round_rate(struct clk *clk, uint64_t rate,
 
   if (dsmpd)
     {
-      fbdiv = (rate * div) / (*best_parent_rate);
-      rate = (*best_parent_rate * fbdiv) / div;
+      fbdiv = ((uint64_t)rate * div) / (*best_parent_rate);
+      rate = ((uint64_t)*best_parent_rate * fbdiv) / div;
     }
   else
     {
+      uint32_t frac;
+
       val = clk_read(pll->cfg_reg1);
       frac = (val >> PLL_FRAC_SHIFT) & PLL_FRAC_MASK;
-      rate = (*best_parent_rate * (fbdiv * (1 << 24) + frac)) / (div * (1 << 24));
+      rate = (*best_parent_rate * (fbdiv * (1ull << 24) + frac)) / (div * (1ull << 24));
     }
 
   return rate;
@@ -184,11 +185,10 @@ static int clk_pll_is_enable(struct clk *clk)
   return val != BIT(PLL_PLLPD_SHIFT);
 }
 
-static int clk_pll_set_rate(struct clk *clk, uint64_t rate,
-    uint64_t parent_rate)
+static int clk_pll_set_rate(struct clk *clk, uint32_t rate,
+    uint32_t parent_rate)
 {
-  uint32_t val;
-  uint64_t dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
+  uint32_t val, dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
   struct clk_pll *pll = to_clk_pll(clk);
 
   val = clk_read(pll->cfg_reg0);
@@ -203,7 +203,7 @@ static int clk_pll_set_rate(struct clk *clk, uint64_t rate,
   if (dsmpd)
     {
       clkerr("Start to adjust pll freq to %llu\n", rate);
-      fbdiv = (rate * div) / parent_rate;
+      fbdiv = ((uint64_t)rate * div) / parent_rate;
       val &= ~(PLL_FBDIV_MASK << PLL_FBDIV_SHIFT);
       val |= (fbdiv << PLL_FBDIV_SHIFT);
       clk_write(pll->cfg_reg0, val);

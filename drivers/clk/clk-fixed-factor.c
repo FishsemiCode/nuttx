@@ -54,8 +54,8 @@
  * Private Functions
  ************************************************************************************/
 
-static uint64_t clk_factor_recalc_rate(struct clk *clk,
-    uint64_t parent_rate)
+static uint32_t clk_factor_recalc_rate(struct clk *clk,
+    uint32_t parent_rate)
 {
   struct clk_fixed_factor *fix = to_clk_fixed_factor(clk);
   uint64_t rate;
@@ -65,25 +65,25 @@ static uint64_t clk_factor_recalc_rate(struct clk *clk,
   return rate;
 }
 
-static int64_t clk_factor_round_rate(struct clk *clk, uint64_t rate,
-        uint64_t *prate)
+static uint32_t clk_factor_round_rate(struct clk *clk, uint32_t rate,
+        uint32_t *prate)
 {
   struct clk_fixed_factor *fix = to_clk_fixed_factor(clk);
 
   if (clk->flags & CLK_SET_RATE_PARENT)
     {
-      uint64_t best_parent;
+      uint32_t best_parent;
 
-      best_parent = (rate * fix->div) / fix->mult;
+      best_parent = ((uint64_t)rate * fix->div) / fix->mult;
       *prate = clk_round_rate(clk_get_parent(clk),
           best_parent);
     }
 
-  return (*prate * fix->mult) / fix->div;
+  return ((uint64_t)*prate * fix->mult) / fix->div;
 }
 
-static int clk_factor_set_rate(struct clk *clk, uint64_t rate,
-        uint64_t parent_rate)
+static int clk_factor_set_rate(struct clk *clk, uint32_t rate,
+        uint32_t parent_rate)
 {
   return 0;
 }
@@ -105,7 +105,7 @@ const struct clk_ops clk_fixed_factor_ops =
 
 struct clk *clk_register_fixed_factor(const char *name,
     const char *parent_name, uint16_t flags,
-    uint32_t mult, uint32_t div)
+    uint8_t mult, uint8_t div)
 {
   struct clk_fixed_factor *fix;
   struct clk *clk;

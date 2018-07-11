@@ -56,10 +56,10 @@
  * Private Functions
  ************************************************************************************/
 
-static uint64_t gcd(uint64_t a, uint64_t b)
+static uint32_t gcd(uint32_t a, uint32_t b)
 {
-  uint64_t r;
-  uint64_t tmp;
+  uint32_t r;
+  uint32_t tmp;
 
   if (a < b)
     {
@@ -78,17 +78,19 @@ static uint64_t gcd(uint64_t a, uint64_t b)
   return b;
 }
 
-static uint64_t clk_fd_recalc_rate(struct clk *clk,
-          uint64_t parent_rate)
+static uint32_t clk_fd_recalc_rate(struct clk *clk,
+          uint32_t parent_rate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
+  uint32_t mmask = MASK(fd->mwidth) << fd->mshift;
+  uint32_t nmask = MASK(fd->nwidth) << fd->nshift;
   uint32_t val, m, n;
   uint64_t ret;
 
   val = clk_read(fd->reg);
 
-  m = (val & fd->mmask) >> fd->mshift;
-  n = (val & fd->nmask) >> fd->nshift;
+  m = (val & mmask) >> fd->mshift;
+  n = (val & nmask) >> fd->nshift;
 
   ret = parent_rate * m;
   ret /= (fd->flags & CLK_FRAC_DIV_DOUBLE ? 2 * n : n);
@@ -96,12 +98,12 @@ static uint64_t clk_fd_recalc_rate(struct clk *clk,
   return ret;
 }
 
-static int64_t clk_fd_round_rate(struct clk *clk, uint64_t rate,
-            uint64_t *prate)
+static uint32_t clk_fd_round_rate(struct clk *clk, uint32_t rate,
+            uint32_t *prate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
-  uint32_t maxn = (fd->nmask >> fd->nshift) + 1;
-  uint32_t maxm = (fd->mmask >> fd->mshift) + 1;
+  uint32_t maxn = BIT(fd->nwidth);
+  uint32_t maxm = BIT(fd->mwidth);
   uint32_t div, m, n;
   uint64_t ret;
 
@@ -134,12 +136,14 @@ static int64_t clk_fd_round_rate(struct clk *clk, uint64_t rate,
   return ret;
 }
 
-static int clk_fd_set_rate(struct clk *clk, uint64_t rate,
-         uint64_t parent_rate)
+static int clk_fd_set_rate(struct clk *clk, uint32_t rate,
+         uint32_t parent_rate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
-  uint64_t div;
-  unsigned n, m;
+  uint32_t mmask = MASK(fd->mwidth) << fd->mshift;
+  uint32_t nmask = MASK(fd->nwidth) << fd->nshift;
+  uint32_t div;
+  uint32_t n, m;
   uint32_t val;
 
   if (fd->flags & CLK_FRAC_DIV_DOUBLE)
@@ -157,7 +161,7 @@ static int clk_fd_set_rate(struct clk *clk, uint64_t rate,
     }
 
   val = clk_read(fd->reg);
-  val &= ~(fd->mmask | fd->nmask);
+  val &= ~(mmask | nmask);
   val |= (m << fd->mshift) | (n << fd->nshift);
   clk_write(fd->reg, val);
 
@@ -201,9 +205,9 @@ struct clk *clk_register_fractional_divider(const char *name,
 
   fd->reg = reg;
   fd->mshift = mshift;
-  fd->mmask = (BIT(mwidth) - 1) << mshift;
+  fd->mwidth = mwidth;
   fd->nshift = nshift;
-  fd->nmask = (BIT(nwidth) - 1) << nshift;
+  fd->nwidth = nwidth;
   fd->flags = clk_divider_flags;
 
   clk = clk_register(name, parent_names, num_parents, flags,

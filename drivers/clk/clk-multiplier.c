@@ -79,8 +79,8 @@ static uint32_t _get_val(struct clk_multiplier *multiplier, uint32_t mult)
   return mult - 1;
 }
 
-static uint64_t clk_multiplier_recalc_rate(struct clk *clk,
-    uint64_t parent_rate)
+static uint32_t clk_multiplier_recalc_rate(struct clk *clk,
+    uint32_t parent_rate)
 {
   struct clk_multiplier *multiplier = to_clk_multiplier(clk);
   uint32_t mult, val;
@@ -99,8 +99,8 @@ static uint64_t clk_multiplier_recalc_rate(struct clk *clk,
   return parent_rate * mult;
 }
 
-static bool __is_best_rate(uint64_t rate, uint64_t new,
-    uint64_t best, uint16_t flags)
+static bool __is_best_rate(uint32_t rate, uint32_t new,
+    uint32_t best, uint16_t flags)
 {
   if (flags & CLK_MULT_ROUND_CLOSEST)
     return abs(rate - new) < abs(rate - best);
@@ -108,13 +108,13 @@ static bool __is_best_rate(uint64_t rate, uint64_t new,
   return new >= rate && new < best;
 }
 
-static int clk_multiplier_bestmult(struct clk *clk, uint64_t rate,
-    uint64_t *best_parent_rate)
+static uint32_t clk_multiplier_bestmult(struct clk *clk, uint32_t rate,
+    uint32_t *best_parent_rate)
 {
   struct clk_multiplier *multiplier = to_clk_multiplier(clk);
-  int i, bestmult = 0;
-  uint64_t parent_rate, best = 0, now, maxmult;
-  uint64_t parent_rate_saved = *best_parent_rate;
+  uint32_t i, bestmult = 0;
+  uint32_t parent_rate, best = 0, now, maxmult;
+  uint32_t parent_rate_saved = *best_parent_rate;
 
   if (!rate)
     rate = 1;
@@ -157,17 +157,17 @@ static int clk_multiplier_bestmult(struct clk *clk, uint64_t rate,
   return bestmult;
 }
 
-static int64_t clk_multiplier_round_rate(struct clk *clk, uint64_t rate,
-        uint64_t *prate)
+static uint32_t clk_multiplier_round_rate(struct clk *clk, uint32_t rate,
+        uint32_t *prate)
 {
-  int mult;
+  uint32_t mult;
   mult = clk_multiplier_bestmult(clk, rate, prate);
 
   return *prate * mult;
 }
 
-static int clk_multiplier_set_rate(struct clk *clk, uint64_t rate,
-        uint64_t parent_rate)
+static int clk_multiplier_set_rate(struct clk *clk, uint32_t rate,
+        uint32_t parent_rate)
 {
   struct clk_multiplier *multiplier = to_clk_multiplier(clk);
   uint32_t mult, value;

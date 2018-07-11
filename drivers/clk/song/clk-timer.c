@@ -113,8 +113,8 @@ static int clk_timer_is_enabled(struct clk *clk)
   return val != 6;
 }
 
-static uint64_t clk_timer_recalc_rate(struct clk *clk,
-    uint64_t parent_rate)
+static uint32_t clk_timer_recalc_rate(struct clk *clk,
+    uint32_t parent_rate)
 {
   struct clk_timer *timer = to_clk_timer(clk);
   uint8_t src_sel, div;
@@ -129,8 +129,8 @@ static uint64_t clk_timer_recalc_rate(struct clk *clk,
   return parent_rate / (2 * (div + 1));
 }
 
-static int64_t clk_timer_round_rate(struct clk *clk, uint64_t rate,
-    uint64_t *best_parent_rate)
+static uint32_t clk_timer_round_rate(struct clk *clk, uint32_t rate,
+    uint32_t *best_parent_rate)
 {
   struct clk_timer *timer = to_clk_timer(clk);
   uint8_t src_sel, div, max_div;
@@ -162,8 +162,8 @@ static uint8_t clk_timer_get_parent(struct clk *clk)
   return timer->parent_index;
 }
 
-static int clk_timer_set_rate(struct clk *clk, uint64_t rate,
-    uint64_t parent_rate)
+static int clk_timer_set_rate(struct clk *clk, uint32_t rate,
+    uint32_t parent_rate)
 {
   struct clk_timer *timer = to_clk_timer(clk);
   uint8_t src_sel, div;

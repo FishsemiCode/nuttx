@@ -66,21 +66,21 @@
  * Private Functions
  ************************************************************************************/
 
-static uint64_t clk_pll_lf_recalc_rate(struct clk *clk, uint64_t parent_rate)
+static uint32_t clk_pll_lf_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   uint32_t val;
-  uint64_t fbdiv, postdiv;
+  uint32_t fbdiv, postdiv;
   struct clk_pll_lf *pll = to_clk_pll_lf(clk);
 
   val     = clk_read(pll->cfg_reg0);
   fbdiv   = (val >> PLL_FBDIV_SHIFT) & PLL_FBDIV_MASK;
   postdiv = (val >> PLL_POSTDIV_SHIFT) & PLL_POSTDIV_MASK;
 
-  return (parent_rate * fbdiv) / (postdiv + 1);
+  return ((uint64_t)parent_rate * fbdiv) / (postdiv + 1);
 }
 
-static int64_t clk_pll_lf_round_rate(struct clk *clk, uint64_t rate,
-    uint64_t *best_parent_rate)
+static uint32_t clk_pll_lf_round_rate(struct clk *clk, uint32_t rate,
+    uint32_t *best_parent_rate)
 {
   uint32_t fbdiv, postdiv = 1;
 
@@ -97,7 +97,7 @@ static int64_t clk_pll_lf_round_rate(struct clk *clk, uint64_t rate,
       fbdiv = PLL_FBDIV_MAX_FREQ / rate;
     }
 
-  return *best_parent_rate * fbdiv / postdiv;
+  return ((uint64_t)*best_parent_rate * fbdiv) / postdiv;
 }
 
 /************************************************************************************

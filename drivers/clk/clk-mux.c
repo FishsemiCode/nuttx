@@ -56,8 +56,8 @@
  * Private Functions
  ************************************************************************************/
 
-static bool mux_is_better_rate(uint64_t rate, uint64_t now,
-        uint64_t best, uint64_t flags)
+static bool mux_is_better_rate(uint32_t rate, uint32_t now,
+        uint32_t best, uint8_t flags)
 {
   if (flags & CLK_MUX_ROUND_CLOSEST)
     return abs(now - rate) < abs(best - rate);
@@ -71,7 +71,7 @@ static uint8_t clk_mux_get_parent(struct clk *clk)
   uint32_t val;
 
   val = clk_read(mux->reg) >> mux->shift;
-  val &= mux->mask;
+  val &= MASK(mux->width);;
 
   return val;
 }
@@ -79,16 +79,17 @@ static uint8_t clk_mux_get_parent(struct clk *clk)
 static int clk_mux_set_parent(struct clk *clk, uint8_t index)
 {
   struct clk_mux *mux = to_clk_mux(clk);
+  uint32_t mask = MASK(mux->width);
   uint32_t val;
 
   if (mux->flags & CLK_MUX_HIWORD_MASK)
     {
-      val = mux->mask << (mux->shift + 16);
+      val = mask << (mux->shift + 16);
     }
   else
     {
       val = clk_read(mux->reg);
-      val &= ~(mux->mask << mux->shift);
+      val &= ~(mask << mux->shift);
     }
   val |= index << mux->shift;
   clk_write(mux->reg, val);
@@ -96,15 +97,15 @@ static int clk_mux_set_parent(struct clk *clk, uint8_t index)
   return 0;
 }
 
-static int64_t
-clk_mux_determine_rate(struct clk *clk, uint64_t rate,
-      uint64_t *best_parent_rate,
+static uint32_t
+clk_mux_determine_rate(struct clk *clk, uint32_t rate,
+      uint32_t *best_parent_rate,
       struct clk **best_parent_p)
 {
   struct clk_mux *mux = to_clk_mux(clk);
   struct clk *parent, *best_parent = NULL;
-  int32_t i, num_parents;
-  uint64_t parent_rate, best = 0;
+  uint8_t i, num_parents;
+  uint32_t parent_rate, best = 0;
 
   if (clk->flags & CLK_SET_RATE_NO_REPARENT)
     {
@@ -165,7 +166,7 @@ const struct clk_ops clk_mux_ro_ops =
 
 struct clk *clk_register_mux(const char *name, const char * const *parent_names,
     uint8_t  num_parents, uint16_t flags,
-    uint32_t reg, uint8_t shift, uint8_t mask,
+    uint32_t reg, uint8_t shift, uint8_t width,
     uint8_t clk_mux_flags)
 {
   struct clk_mux *mux;
@@ -178,9 +179,9 @@ struct clk *clk_register_mux(const char *name, const char * const *parent_names,
       return NULL;
     }
 
-  mux->reg = reg;
+  mux->reg   = reg;
   mux->shift = shift;
-  mux->mask = mask;
+  mux->width = width;
   mux->flags = clk_mux_flags;
 
   if (clk_mux_flags & CLK_MUX_READ_ONLY)

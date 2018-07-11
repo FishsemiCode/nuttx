@@ -54,8 +54,8 @@
  * Private Functions
  ************************************************************************************/
 
-static uint64_t clk_fixed_rate_recalc_rate(struct clk *clk,
-    uint64_t parent_rate)
+static uint32_t clk_fixed_rate_recalc_rate(struct clk *clk,
+    uint32_t parent_rate)
 {
   struct clk_fixed_rate *fixed = to_clk_fixed_rate(clk);
   return fixed->fixed_rate;
@@ -75,7 +75,7 @@ const struct clk_ops clk_fixed_rate_ops =
  ************************************************************************************/
 
 struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
-    uint16_t flags, uint64_t fixed_rate)
+    uint16_t flags, uint32_t fixed_rate)
 {
   struct clk_fixed_rate *fixed;
   struct clk *clk;

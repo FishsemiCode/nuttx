@@ -116,8 +116,8 @@ static int clk_out_is_enabled(struct clk *clk)
   return val != 6;
 }
 
-static uint64_t clk_out_recalc_rate(struct clk *clk,
-    uint64_t parent_rate)
+static uint32_t clk_out_recalc_rate(struct clk *clk,
+    uint32_t parent_rate)
 {
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;
@@ -136,8 +136,8 @@ static uint64_t clk_out_recalc_rate(struct clk *clk,
     return parent_rate / (2 * (div + 1));
 }
 
-static int64_t clk_out_round_rate(struct clk *clk, uint64_t rate,
-    uint64_t *best_parent_rate)
+static uint32_t clk_out_round_rate(struct clk *clk, uint32_t rate,
+    uint32_t *best_parent_rate)
 {
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;
@@ -177,8 +177,8 @@ static uint8_t clk_out_get_parent(struct clk *clk)
   return out->parent_index;
 }
 
-static int clk_out_set_rate(struct clk *clk, uint64_t rate,
-    uint64_t parent_rate)
+static int clk_out_set_rate(struct clk *clk, uint32_t rate,
+    uint32_t parent_rate)
 {
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;

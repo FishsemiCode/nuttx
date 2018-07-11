@@ -185,7 +185,7 @@ static struct clk *song_clk_register_mux_sdiv(const char *name,
       mux_flags |= CLK_MUX_ROUND_CLOSEST;
 
       clk = clk_register_mux(cname, parent_name, num_parents, flags,
-        reg_base + mux_offset, mux_shift, MASK(mux_width), mux_flags);
+        reg_base + mux_offset, mux_shift, mux_width, mux_flags);
       if (!clk)
         return clk;
 
