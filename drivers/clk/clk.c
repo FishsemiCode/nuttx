@@ -666,7 +666,7 @@ static int __clk_register(struct clk *clk)
     {
       list_add_head(&clk->parent->children, &clk->child_node);
     }
-  else if (clk->flags & CLK_IS_ROOT)
+  else if (!clk->num_parents)
     {
       list_add_head(&g_clk_root_list, &clk->child_node);
     }
@@ -848,7 +848,7 @@ out:
 #ifdef CONFIG_CLK_RPMSG
   /* try register as rpmsg clk once */
   if (ret == NULL)
-    ret = clk_register_rpmsg(name);
+    ret = clk_register_rpmsg(name, CLK_GET_RATE_NOCACHE);
 #endif
 
   return ret;
@@ -957,7 +957,7 @@ uint32_t clk_get_rate(struct clk *clk)
 }
 
 struct clk *clk_register(const char *name, const char * const *parent_names,
-                         uint8_t num_parents, uint16_t flags, const struct clk_ops *ops,
+                         uint8_t num_parents, uint8_t flags, const struct clk_ops *ops,
                          void *private_data)
 {
   struct clk *clk = NULL;

@@ -212,7 +212,7 @@ const struct clk_ops clk_timer_ops =
  ************************************************************************************/
 
 struct clk *clk_register_timer(const char *name, const char * const *parent_names,
-    uint8_t num_parents, uint32_t ctl_reg, uint8_t mux_shift, uint8_t mux_width)
+    uint8_t num_parents, uint8_t flags, uint32_t ctl_reg, uint8_t mux_shift, uint8_t mux_width)
 {
   struct clk_timer *timer;
   struct clk *clk;
@@ -226,7 +226,7 @@ struct clk *clk_register_timer(const char *name, const char * const *parent_name
   timer->mux_width = mux_width;
   timer->parent_index = clk_read(ctl_reg) >> mux_shift & MASK(mux_width);
 
-  clk = clk_register(name, parent_names, num_parents, 0, &clk_timer_ops, timer);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_timer_ops, timer);
   if (!clk)
   {
     kmm_free(timer);

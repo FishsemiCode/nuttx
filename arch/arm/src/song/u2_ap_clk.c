@@ -76,17 +76,17 @@ static const struct song_fixed_rate_clk fixed_rate[] =
 {
   {
     .name = "clk32k",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 32768,
   },
   {
     .name = "btrf_pclk",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 32000000,
   },
   {
     .name = "rfphy_sys_clk",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 24000000,
   },
   {},

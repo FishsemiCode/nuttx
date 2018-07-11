@@ -114,7 +114,7 @@ const struct clk_ops clk_pll_lf_ops =
  * Public Functions
  ************************************************************************************/
 
-struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint16_t flags,
+struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint8_t flags,
     uint32_t cfg_reg0, uint32_t cfg_reg1)
 {
   struct clk_pll_lf *pll;

@@ -75,7 +75,7 @@ const struct clk_ops clk_fixed_rate_ops =
  ************************************************************************************/
 
 struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
-    uint16_t flags, uint32_t fixed_rate)
+    uint8_t flags, uint32_t fixed_rate)
 {
   struct clk_fixed_rate *fixed;
   struct clk *clk;

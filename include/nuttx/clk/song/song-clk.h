@@ -79,7 +79,7 @@ struct song_fixed_rate_clk
 {
   const char         *name;
   uint32_t           fixed_rate;
-  uint16_t           flags;
+  uint8_t            flags;
 };
 
 struct song_fixed_factor_clk
@@ -88,7 +88,7 @@ struct song_fixed_factor_clk
   const char         *parent_name;
   uint8_t            fixed_mul;
   uint8_t            fixed_div;
-  uint16_t           flags;
+  uint8_t            flags;
 };
 
 struct song_gate_clk
@@ -96,8 +96,8 @@ struct song_gate_clk
   const char         *name;
   const char         *parent_name;
   uint16_t           en_offset;
-  uint16_t           flags;
   uint8_t            en_shift;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -110,7 +110,7 @@ struct song_sdiv_clk
   uint8_t            en_shift;
   uint8_t            div_shift;
   uint8_t            div_width;
-  uint16_t           flags;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -123,7 +123,7 @@ struct song_gr_clk
   uint8_t            en_shift;
   uint8_t            mul_shift;
   uint8_t            mul_width;
-  uint16_t           flags;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -131,8 +131,8 @@ struct song_sdiv_sdiv_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint16_t           flags;
   uint16_t           div_offset;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -143,10 +143,10 @@ struct song_sdiv_fdiv_clk
   uint16_t           en_offset;
   uint16_t           sdiv_offset;
   uint16_t           fdiv_offset;
-  uint16_t           flags;
   uint8_t            en_shift;
   uint8_t            sdiv_shift;
   uint8_t            sdiv_width;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -159,7 +159,7 @@ struct song_gr_fdiv_clk
   uint16_t           div_offset;
   uint8_t            en_shift;
   uint8_t            fixed_gr;
-  uint16_t           flags;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -167,8 +167,8 @@ struct song_sdiv_gr_clk
 {
   const char         *name;
   const char         *parent_name;
-  uint16_t           flags;
   uint16_t           div_offset;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -183,7 +183,7 @@ struct song_mux_sdiv_clk
   uint8_t            div_shift;
   uint8_t            div_width;
   uint8_t            num_parents;
-  uint16_t           flags;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -197,7 +197,7 @@ struct song_mux_gate_clk
   uint8_t            mux_shift;
   uint8_t            mux_width;
   uint8_t            num_parents;
-  uint16_t           flags;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -206,9 +206,9 @@ struct song_phase_clk
   const char         *name;
   const char         *parent_name;
   uint16_t           reg_offset;
-  uint16_t           flags;
   uint8_t            phase_shift;
   uint8_t            phase_width;
+  uint8_t            flags;
   uint8_t            phase_flags;
 };
 
@@ -220,7 +220,7 @@ struct song_mux_sdiv_gr_clk
   uint8_t            div_width;
   uint8_t            mux_width;
   uint8_t            num_parents;
-  uint16_t           flags;
+  uint8_t            flags;
   uint64_t           private_flags;
 };
 
@@ -232,7 +232,7 @@ struct song_pll_clk
   uint16_t           cfg_reg1_offset;
   uint16_t           ctl_reg_offset;
   uint8_t            ctl_shift;
-  uint16_t           flags;
+  uint8_t            flags;
 };
 
 struct song_pll_lf_clk
@@ -241,7 +241,7 @@ struct song_pll_lf_clk
   const char         *parent_name;
   uint16_t           cfg_reg0_offset;
   uint16_t           cfg_reg1_offset;
-  uint16_t           flags;
+  uint8_t            flags;
 };
 
 struct song_out_clk

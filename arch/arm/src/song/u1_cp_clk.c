@@ -76,40 +76,40 @@ static const struct song_fixed_rate_clk fixed_rate[] =
   /* input from inchip RFPHY */
   {
     .name = "rfphy_clk38p4m",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 38400000,
   },
   {
     .name = "rfphy_lte_clk",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 30720000,
   },
   {
     .name = "rfphy_agc_adcclk",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 15360000,
   },
   {
     .name = "rfphy_clk_dfe_lpf",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 15360000,
   },
   {
     .name = "rfphy_gnss_rf0_clk",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 26000000,
   },
 
   /* input from outchip io pin */
   {
     .name = "chipio_gnss_rf0_clk",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 26000000,
   },
   /* input from outside osc in */
   {
     .name = "clk32k",
-    .flags = CLK_IS_ROOT,
+    .flags = 0,
     .fixed_rate = 32768,
   },
   {},

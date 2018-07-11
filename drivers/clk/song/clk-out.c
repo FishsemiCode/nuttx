@@ -228,8 +228,8 @@ const struct clk_ops clk_out_ops =
  ************************************************************************************/
 
 struct clk *clk_register_out(const char *name, const char * const *parent_names,
-    uint8_t num_parents, uint32_t mux_reg, uint8_t mux_shift, uint8_t mux_width,
-    uint32_t ctl_reg)
+    uint8_t num_parents, uint8_t flags, uint32_t mux_reg, uint8_t mux_shift,
+    uint8_t mux_width, uint32_t ctl_reg)
 {
   struct clk_out *out;
   struct clk *clk;
@@ -245,7 +245,7 @@ struct clk *clk_register_out(const char *name, const char * const *parent_names,
   out->ctl_reg = ctl_reg;
   out->parent_index = clk_read(mux_reg) >> mux_shift & MASK(mux_width);
 
-  clk = clk_register(name, parent_names, num_parents, 0, &clk_out_ops, out);
+  clk = clk_register(name, parent_names, num_parents, flags, &clk_out_ops, out);
   if (!clk)
     {
       kmm_free(out);

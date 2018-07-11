@@ -210,7 +210,7 @@ const struct clk_ops clk_multiplier_ops =
  ************************************************************************************/
 
 struct clk *clk_register_multiplier(const char *name,
-    const char *parent_name, uint16_t flags,
+    const char *parent_name, uint8_t flags,
     uint32_t reg, uint8_t shift, uint8_t width,
     uint8_t clk_multiplier_flags)
 {

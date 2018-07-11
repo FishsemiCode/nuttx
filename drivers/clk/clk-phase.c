@@ -107,7 +107,7 @@ const struct clk_ops clk_phase_ops =
  ************************************************************************************/
 
 struct clk *clk_register_phase(const char *name, const char *parent_name,
-    uint16_t flags, uint32_t reg, uint8_t shift,
+    uint8_t flags, uint32_t reg, uint8_t shift,
     uint8_t width, uint8_t clk_phase_flags)
 {
   struct clk_phase *phase;

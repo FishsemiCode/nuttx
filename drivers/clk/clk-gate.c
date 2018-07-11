@@ -127,7 +127,7 @@ const struct clk_ops clk_gate_ops =
  ************************************************************************************/
 
 struct clk *clk_register_gate(const char *name,
-    const char *parent_name, uint16_t flags,
+    const char *parent_name, uint8_t flags,
     uint32_t reg, uint8_t bit_idx,
     uint8_t clk_gate_flags)
 {
