@@ -45,6 +45,18 @@
 #include "up_internal.h"
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#if !defined(CONFIG_BOARD_INITTHREAD) && !defined(CONFIG_NSH_ARCHINIT)
+#  error CONFIG_BOARD_INITTHREAD or CONFIG_NSH_ARCHINIT is required for late initialization
+#endif
+
+#if defined(CONFIG_BOARD_INITTHREAD) && defined(CONFIG_NSH_ARCHINIT)
+#  error CONFIG_BOARD_INITTHREAD and CONFIG_NSH_ARCHINIT can not be defined at the same time
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -75,12 +87,16 @@ void up_serialinit(void)
  ****************************************************************************/
 
 #ifdef CONFIG_BOARD_INITIALIZE
+
+#  ifdef CONFIG_BOARD_INITTHREAD
 void weak_function up_lateinitialize(void)
 {
 }
+#  endif
 
 void board_initialize(void)
 {
+#  ifdef CONFIG_BOARD_INITTHREAD
   /* Perform the arch late initialization */
 
   up_lateinitialize();
@@ -88,6 +104,7 @@ void board_initialize(void)
   /* Perform the board late initialization */
 
   board_lateinitialize();
+#  endif
 }
 #endif /* CONFIG_BOARD_INITIALIZE */
 
@@ -116,10 +133,29 @@ void board_initialize(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_LIB_BOARDCTL
+
+#  ifdef CONFIG_NSH_ARCHINIT
+void weak_function up_lateinitialize(void)
+{
+}
+#  endif
+
 int board_app_initialize(uintptr_t arg)
 {
+#  ifdef CONFIG_NSH_ARCHINIT
+  /* Perform the arch late initialization */
+
+  up_lateinitialize();
+
+  /* Perform the board late initialization */
+
+  board_lateinitialize();
+#  endif
+
   return 0;
 }
+#endif /* CONFIG_LIB_BOARDCTL */
 
 /****************************************************************************
  * Name: board_app_finalinitialize
@@ -155,4 +191,4 @@ int board_app_finalinitialize(uintptr_t arg)
 
   return 0;
 }
-#endif
+#endif /* CONFIG_BOARDCTL_FINALINIT */
