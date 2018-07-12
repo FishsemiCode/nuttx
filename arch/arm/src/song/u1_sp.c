@@ -46,18 +46,16 @@
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
-#include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/power/regulator.h>
-#include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
-#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/spi/spi_dw.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
 #include <nuttx/timers/dw_wdt.h>
@@ -145,9 +143,6 @@
  * Private Data
  ****************************************************************************/
 
-extern uint32_t _slog;
-extern uint32_t _logsize;
-
 #ifdef CONFIG_ARCH_DMA
 static FAR struct dma_dev_s *g_dma[2] =
 {
@@ -158,6 +153,9 @@ static FAR struct dma_dev_s *g_dma[2] =
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
+extern uint32_t _slog;
+extern uint32_t _logsize;
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -781,6 +779,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
+#endif
+
+#ifdef CONFIG_SONG_PMIC_APB
+  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW

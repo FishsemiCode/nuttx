@@ -134,35 +134,6 @@ static const struct song_timer_clk timer[] =
   {},
 };
 
-static const struct song_default_rate_clk def_rate[] =
-{
-  {
-    .name = "i2c0_mclk",
-    .rate = 16000000,
-  },
-  {
-    .name = "i2c1_mclk",
-    .rate = 16000000,
-  },
-  {
-    .name = "uart2_clk",
-    .rate = 48000000,
-  },
-  {
-    .name = "spi1_mclk",
-    .rate = 4096000,
-  },
-  {
-    .name = "flash_ctrl_clk",
-    .rate = 102400000,
-  },
-  {
-    .name = "top_bus_mclk",
-    .rate = 102400000,
-  },
-  {},
-};
-
 static const struct song_out_clk out[] =
 {
   {
@@ -690,6 +661,19 @@ static const struct song_gate_clk gate[] =
     .parent_name = "ap_m4_clk",
     .en_offset = 0x0c4,
     .en_shift = 6,
+  },
+  {},
+};
+
+static const struct song_default_rate_clk def_rate[] =
+{
+  {
+    .name = "flash_ctrl_clk",
+    .rate = 102400000,
+  },
+  {
+    .name = "top_bus_mclk",
+    .rate = 102400000,
   },
   {},
 };

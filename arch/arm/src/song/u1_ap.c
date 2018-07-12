@@ -42,12 +42,15 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/power/regulator.h>
+#include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/spi/spi_dw.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
@@ -120,6 +123,20 @@ extern uint32_t _logsize;
 FAR struct ioexpander_dev_s *g_ioe[2] =
 {
   [1] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SPI_DW
+FAR struct spi_dev_s *g_spi[2] =
+{
+  [1] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_I2C_DW
+FAR struct i2c_master_s *g_i2c[3] =
+{
+  [2] = DEV_END,
 };
 #endif
 
@@ -328,10 +345,6 @@ static void up_openamp_initialize(void)
   syslog_rpmsg_server_init();
 #  endif
 
-#  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
-#  endif
-
 #  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
 #  endif
@@ -353,10 +366,71 @@ void up_wdtinit(void)
 }
 #endif
 
+#ifdef CONFIG_SPI_DW
+static void up_spi_init(void)
+{
+  static const struct dw_spi_config_s config =
+  {
+    .bus = 0,
+    .base = 0xb0110000,
+    .irq = 27,
+    .cs_num = 1,
+    .cs_gpio[0] = 22,
+    .mclk = "spi0_mclk",
+  };
+
+  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0]);
+}
+#endif
+
+#ifdef CONFIG_I2C_DW
+static void up_i2c_init(void)
+{
+  static const struct dw_i2c_config_s config[] =
+  {
+    {
+      .bus        = 0,
+      .base       = 0xb00e0000,
+      .irq        = 25,
+      .sda_hold   = 7,
+      .fs_spklen  = 1,
+      .hs_spklen  = 1,
+      .ss_hcnt    = 62,
+      .ss_lcnt    = 92,
+      .fs_hcnt    = 14,
+      .fs_lcnt    = 17,
+      .hs_hcnt    = 6,
+      .hs_lcnt    = 8,
+    },
+    {
+      .bus        = 1,
+      .base       = 0xb00f0000,
+      .irq        = 26,
+      .sda_hold   = 7,
+      .fs_spklen  = 1,
+      .hs_spklen  = 1,
+      .ss_hcnt    = 56,
+      .ss_lcnt    = 88,
+      .fs_hcnt    = 11,
+      .fs_lcnt    = 12,
+      .hs_hcnt    = 6,
+      .hs_lcnt    = 8,
+    }
+  };
+  int config_num = sizeof(config) / sizeof(config[0]);
+
+  dw_i2c_allinitialize(config, config_num, g_i2c);
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_OPENAMP
   up_openamp_initialize();
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
@@ -369,6 +443,18 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, 0);
+#endif
+
+#ifdef CONFIG_SPI_DW
+  up_spi_init();
+#endif
+
+#ifdef CONFIG_I2C_DW
+  up_i2c_init();
+#endif
+
+#ifdef CONFIG_PWM_SONG
+  song_pwm_initialize(0, 0xb0100000, 4, "sp/pwm_mclk");
 #endif
 }
 

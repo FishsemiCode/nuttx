@@ -47,6 +47,7 @@
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -107,9 +108,9 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 #endif
 
 #ifdef CONFIG_SPI_DW
-FAR struct spi_dev_s *g_spi[2] =
+FAR struct spi_dev_s *g_spi[3] =
 {
-  [1] = DEV_END,
+  [2] = DEV_END,
 };
 #endif
 
@@ -315,12 +316,20 @@ static void up_spi_init(void)
   static const struct dw_spi_config_s config[] =
   {
     {
+      .bus = 0,
       .base = 0xa0130000,
       .irq = 29,
-      .bus = 0,
       .cs_num = 1,
       .cs_gpio[0] = 28,
       .mclk = "spi0_mclk",
+    },
+    {
+      .bus = 1,
+      .base = 0xa0140000,
+      .irq = 30,
+      .cs_num = 1,
+      .cs_gpio[0] = 32,
+      .mclk = "spi1_mclk",
     },
   };
   int config_num = sizeof(config) / sizeof(config[0]);
@@ -435,6 +444,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_MTD_GD25
   up_flash_init();
+#endif
+
+#ifdef CONFIG_PWM_SONG
+  song_pwm_initialize(0, 0xa0100000, 4, "pwm_mclk");
 #endif
 }
 

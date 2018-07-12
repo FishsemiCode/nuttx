@@ -619,7 +619,7 @@ static const struct song_default_rate_clk def_rate[] =
   {},
 };
 
-static const struct song_clk_table u2_ap_clk_tbl =
+static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
   .gr_clks           = gr,
@@ -642,7 +642,7 @@ static const struct song_clk_table u2_ap_clk_tbl =
 
 void up_clk_initialize(void)
 {
-  song_clk_initialize(0xa00e0000, &u2_ap_clk_tbl);
+  song_clk_initialize(0xa00e0000, &clk_tbl);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */
