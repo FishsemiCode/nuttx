@@ -43,6 +43,7 @@ config ARCH_CHIP_U1_AP
 config ARCH_CHIP_U1_CP
 	bool "U1 CP"
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_HEAP2
 	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4
 	select SONG_ICACHE
