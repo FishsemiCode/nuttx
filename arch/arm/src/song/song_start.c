@@ -261,10 +261,11 @@ void up_start(void)
   init_kernelspace();
   init_userspace();
 
+  up_earlyserialinit();
+
   up_mpuinitialize();
   up_fpuinitialize();
 
-  up_earlyserialinit();
   up_earlyinitialize();
   board_earlyinitialize();
 
