@@ -112,7 +112,6 @@ struct clk
   const struct clk_ops    *ops;
   struct clk              *parent;
   const char              **parent_names;
-  struct clk              **parents;
   uint8_t                 num_parents;
   uint8_t                 new_parent_index;
   uint16_t                flags;

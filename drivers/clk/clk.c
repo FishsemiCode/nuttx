@@ -319,12 +319,8 @@ static int clk_fetch_parent_index(struct clk *clk, struct clk *parent)
 
   for (i = 0; i < clk->num_parents; i++)
     {
-      if (clk->parents[i] == parent)
-        return i;
-
       if (!strcmp(clk->parent_names[i], parent->name))
         {
-          clk->parents[i] = clk_get(parent->name);
           return i;
         }
     }
@@ -933,10 +929,7 @@ struct clk *clk_get_parent_by_index(struct clk *clk, uint8_t index)
   if (!clk || index >= clk->num_parents)
     return NULL;
 
-  if (!clk->parents[index])
-    clk->parents[index] = clk_get(clk->parent_names[index]);
-
-  return clk->parents[index];
+  return clk_get(clk->parent_names[index]);
 }
 
 struct clk *clk_get_parent(struct clk *clk)
@@ -1003,12 +996,6 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
               goto fail_parent_names_copy;
             }
         }
-
-      clk->parents = kmm_calloc(clk->num_parents, sizeof(struct clk *));
-      if (!clk->parents)
-        {
-          goto fail_parent_names_copy;
-        }
     }
 
   list_initialize(&clk->child_node);
@@ -1019,7 +1006,6 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
       return clk;
     }
 
-  kmm_free(clk->parents);
 fail_parent_names_copy:
   while (--i >= 0)
     kmm_free((void *)clk->parent_names[i]);
