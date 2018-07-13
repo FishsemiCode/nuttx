@@ -112,9 +112,21 @@
 
 #undef CONFIG_PSEUDOTERM_FULLBLOCKS
 
+/* Maximum number of threads than can be waiting for POLL events */
+
+#ifndef CONFIG_DEV_PTY_NPOLLWAITERS
+#  define CONFIG_DEV_PTY_NPOLLWAITERS 2
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
+struct pty_poll_s
+{
+  FAR void *src;
+  FAR void *sink;
+};
 
 /* This device structure describes on memory of the PTY device pair */
 
@@ -131,6 +143,10 @@ struct pty_dev_s
 
   tcflag_t pd_iflag;            /* Terminal nput modes */
   tcflag_t pd_oflag;            /* Terminal output modes */
+#endif
+
+#ifndef CONFIG_DISABLE_POLL
+  struct pty_poll_s pd_poll[CONFIG_DEV_PTY_NPOLLWAITERS];
 #endif
 };
 
@@ -924,34 +940,79 @@ static int pty_poll(FAR struct file *filep, FAR struct pollfd *fds,
 {
   FAR struct inode *inode;
   FAR struct pty_dev_s *dev;
+  FAR struct pty_devpair_s *devpair;
+  FAR struct pty_poll_s *p = NULL;
   int ret = -ENOSYS;
+  int i;
 
   DEBUGASSERT(filep != NULL && filep->f_inode != NULL);
   inode   = filep->f_inode;
   dev     = inode->i_private;
+  devpair = dev->pd_devpair;
 
-  /* REVISIT: If both POLLIN and POLLOUT are set, might the following logic
-   * fail?  Could we not get POLLIN on the sink file and POLLOUT on the source
-   * file?
-   */
+  pty_semtake(devpair);
+
+  if (setup)
+    {
+      for (i = 0; i < CONFIG_DEV_PTY_NPOLLWAITERS; i++)
+        {
+          if (dev->pd_poll[i].src == NULL && dev->pd_poll[i].sink == NULL)
+            {
+              p = &dev->pd_poll[i];
+              break;
+            }
+        }
+
+      if (i >= CONFIG_DEV_PTY_NPOLLWAITERS)
+        {
+          ret = -EBUSY;
+          goto errout;
+        }
+    }
+  else
+    {
+      p = (FAR struct pty_poll_s *)fds->priv;
+    }
 
   /* POLLIN: Data other than high-priority data may be read without blocking. */
 
   if ((fds->events & POLLIN) != 0)
     {
+      fds->priv = p->src;
       ret = file_poll(&dev->pd_src, fds, setup);
-    }
-
-  if (ret >= OK || ret == -ENOTTY)
-    {
-      /* POLLOUT: Normal data may be written without blocking. */
-
-      if ((fds->events & POLLOUT) != 0)
+      if (ret < 0)
         {
-          ret = file_poll(&dev->pd_sink, fds, setup);
+          goto errout;
         }
+      p->src = fds->priv;
     }
 
+  /* POLLOUT: Normal data may be written without blocking. */
+
+  if ((fds->events & POLLOUT) != 0)
+    {
+      fds->priv = p->sink;
+      ret = file_poll(&dev->pd_sink, fds, setup);
+      if (ret < 0)
+        {
+          if (p->src)
+            {
+              fds->priv = p->src;
+              file_poll(&dev->pd_src, fds, false);
+              p->src = NULL;
+            }
+          goto errout;
+        }
+      p->sink = fds->priv;
+    }
+
+  if (setup)
+    {
+      fds->priv = p;
+    }
+
+errout:
+  pty_semgive(devpair);
   return ret;
 }
 #endif
