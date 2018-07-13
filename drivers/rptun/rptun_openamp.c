@@ -72,7 +72,7 @@ struct rptun_openamp_s
 
 static int  rptun_openamp_thread(int argc, FAR char *argv[]);
 static int  rptun_openamp_callback(void *arg, uint32_t vqid);
-static int  rptun_openamp_enable_interrupt(struct proc_intr *intr);
+static int  rptun_openamp_enable_interrupt(struct hil_proc *proc);
 static void rptun_openamp_notify(struct hil_proc *proc,
                             struct proc_intr *intr_info);
 static int  rptun_openamp_init(struct hil_proc *proc);
@@ -96,7 +96,6 @@ int fw_table_size = sizeof(fw_table)/sizeof(fw_table[0]);
 
 static struct hil_platform_ops rptun_openamp_ops =
 {
-  .enable_interrupt = rptun_openamp_enable_interrupt,
   .notify           = rptun_openamp_notify,
   .initialize       = rptun_openamp_init,
   .release          = rptun_openamp_release,
@@ -161,9 +160,8 @@ static int rptun_openamp_callback(void *arg, uint32_t vqid)
   return 0;
 }
 
-static int rptun_openamp_enable_interrupt(struct proc_intr *intr)
+static int  rptun_openamp_enable_interrupt(struct hil_proc *proc)
 {
-  struct hil_proc *proc = intr->data;
   struct rptun_openamp_s *priv = proc->pdata;
 
   return RPTUN_REGISTER_CALLBACK(priv->dev,
@@ -284,6 +282,8 @@ static int rptun_openamp_resource_init(
       hil_delete_proc(proc);
       return ret;
     }
+
+  rptun_openamp_enable_interrupt(proc);
 
   priv->rproc = rproc;
   return 0;
