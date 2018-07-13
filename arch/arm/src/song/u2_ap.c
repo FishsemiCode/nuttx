@@ -81,6 +81,11 @@
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
 
+#define TOP_PWR_SFRST_RESET         (1 << 0)
+
+#define TOP_PWR_RESET_NORMAL        (0x00000000)
+#define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -437,23 +442,23 @@ void up_lateinitialize(void)
 #endif
 }
 
-int board_reset(int status)
+int up_reset(int status)
 {
   if (status == 0)
     {
       /* Reset board */
 
-      putreg32(0x0, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_RESET_NORMAL, TOP_PWR_RES_REG2);
     }
   else
     {
-      /* Reset board to bootloader */
+      /* Reset board to romboot */
 
-      putreg32(0xaaaa1234, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_RESET_ROMBOOT, TOP_PWR_RES_REG2);
     }
 
-  putreg32(0x10001, TOP_PWR_SFRST_CTL);
-  return 0;
+  putreg32(TOP_PWR_SFRST_RESET << 16 |
+           TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */

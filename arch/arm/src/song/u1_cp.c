@@ -77,12 +77,16 @@
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
 #define TOP_PWR_CP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x150)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
 #define TOP_PWR_SLPCTL1             (TOP_PWR_BASE + 0x354)
 #define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
+
+#define TOP_PWR_CP_M4_SFRST         (1 << 4)
+#define TOP_PWR_CP_M4_IDLE_MK       (1 << 5)
 
 #define TOP_PWR_CP_M4_PD_MK         (1 << 3)
 #define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
@@ -160,18 +164,9 @@ static void up_init_startreason(void)
         {
           setenv("START_REASON", "soc_pd", 1);
         }
-      if ((getreg32(TOP_PMICFSM_WAKEUP_REASON) &
-         (TOP_PMICFSM_FIRST_PON |
-          TOP_PMICFSM_PON |
-          TOP_PMICFSM_WDT_RSTN |
-          TOP_PMICFSM_SOFT_RSTN |
-          TOP_PMICFSM_BUTTON_RSTN)) != 0)
-        {
-          setenv("START_REASON", "pon_rstn", 1);
-        }
       else
         {
-          DEBUGASSERT(0);
+          setenv("START_REASON", "pon_rstn", 1);
         }
     }
   else
@@ -188,14 +183,9 @@ static void up_init_startreason(void)
 
 void up_earlystart(void)
 {
-  if (getreg32(TOP_PWR_BOOT_REG) & (1 << 2))
+  if (!(getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT))
     {
-      /* Initial power on. Clear boot flag in up_init_startreason. */
-
-    }
-  else
-    {
-      /* Power on from standby. Restore context (will not return). */
+      /* Power on from standby, restore context (will not return). */
 
       up_cpu_restore();
     }
@@ -210,6 +200,9 @@ void up_earlyinitialize(void)
   };
 
   up_addrenv_initialize(addrenv);
+
+  /* Unmask SLEEPING for reset */
+  putreg32(TOP_PWR_CP_M4_IDLE_MK << 16, TOP_PWR_CP_M4_RSTCTL);
 
   /* Enable TCM auto low power */
   putreg32(TOP_PWR_CP_M4_TCM_AU_PD_MK << 16, TOP_PWR_CP_M4_TCM_PD_CTL0);
@@ -413,6 +406,17 @@ void up_lateinitialize(void)
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, 0);
 #endif
+}
+
+void up_reset(int status)
+{
+  /* Set boot flag to fake up_earlystart this is a cold reset. */
+
+  putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16 |
+           TOP_PWR_CP_M4_COLD_BOOT, TOP_PWR_BOOT_REG);
+
+  putreg32(TOP_PWR_CP_M4_SFRST << 16 |
+           TOP_PWR_CP_M4_SFRST, TOP_PWR_CP_M4_RSTCTL);
 }
 
 void up_cpu_doze(void)

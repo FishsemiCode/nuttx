@@ -77,9 +77,13 @@
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_AP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
 #define TOP_PWR_AP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x204)
 #define TOP_PWR_SLPCTL_AP_M4        (TOP_PWR_BASE + 0x360)
+
+#define TOP_PWR_AP_M4_SFRST         (1 << 4)
+#define TOP_PWR_AP_M4_IDLE_MK       (1 << 5)
 
 #define TOP_PWR_AP_M4_PD_MK         (1 << 3)
 #define TOP_PWR_AP_M4_AU_PU_MK      (1 << 6)
@@ -126,6 +130,9 @@ void up_earlyinitialize(void)
   };
 
   up_addrenv_initialize(addrenv);
+
+  /* Unmask SLEEPING for reset */
+  putreg32(TOP_PWR_AP_M4_IDLE_MK << 16, TOP_PWR_AP_M4_RSTCTL);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_SP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
@@ -323,6 +330,12 @@ void up_lateinitialize(void)
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, 0);
 #endif
+}
+
+void up_reset(int status)
+{
+  putreg32(TOP_PWR_AP_M4_SFRST << 16 |
+           TOP_PWR_AP_M4_SFRST, TOP_PWR_AP_M4_RSTCTL);
 }
 
 void up_cpu_doze(void)

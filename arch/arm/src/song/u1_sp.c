@@ -90,13 +90,17 @@
 #define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
-#define TOP_PWR_SLPST               (TOP_PWR_BASE + 0x368)
 
 #define TOP_PWR_AP_M4_PORESET       (1 << 0)
 #define TOP_PWR_CP_M4_PORESET       (1 << 0)
 
 #define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
 #define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
+
+#define TOP_PWR_SFRST_RESET         (1 << 0)
+
+#define TOP_PWR_RESET_NORMAL        (0x00000000)
+#define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
@@ -599,29 +603,23 @@ void up_finalinitialize(void)
 #endif
 }
 
-int board_power_off(int status)
-{
-  putreg32(0x1, TOP_PWR_SLPST);
-  return 0;
-}
-
-int board_reset(int status)
+void up_reset(int status)
 {
   if (status == 0)
     {
       /* Reset board */
 
-      putreg32(0x0, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_RESET_NORMAL, TOP_PWR_RES_REG2);
     }
   else
     {
-      /* Reset board to bootloader */
+      /* Reset board to romboot */
 
-      putreg32(0xaaaa1234, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_RESET_ROMBOOT, TOP_PWR_RES_REG2);
     }
 
-  putreg32(0x10001, TOP_PWR_SFRST_CTL);
-  return 0;
+  putreg32(TOP_PWR_SFRST_RESET << 16 |
+           TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
 }
 
 void up_cpu_doze(void)
