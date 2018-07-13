@@ -92,7 +92,7 @@ static uint32_t clk_fd_recalc_rate(struct clk *clk,
   m = (val & mmask) >> fd->mshift;
   n = (val & nmask) >> fd->nshift;
 
-  ret = parent_rate * m;
+  ret = (uint64_t)parent_rate * m;
   ret /= (fd->flags & CLK_FRAC_DIV_DOUBLE ? 2 * n : n);
 
   return ret;
@@ -130,7 +130,7 @@ static uint32_t clk_fd_round_rate(struct clk *clk, uint32_t rate,
       div <<= 1;
     } while (n > maxn || m > maxm);
 
-  ret = *prate * m;
+  ret = (uint64_t)*prate * m;
   ret /= (fd->flags & CLK_FRAC_DIV_DOUBLE ? 2 * n : n);
 
   return ret;
