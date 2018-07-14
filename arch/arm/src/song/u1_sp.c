@@ -39,6 +39,9 @@
 
 #include <nuttx/config.h>
 
+#include <fcntl.h>
+
+#include <nuttx/arch.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -60,6 +63,9 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
+#include <nuttx/wqueue.h>
+
+#include <sys/stat.h>
 
 #include "chip.h"
 #include "nvic.h"
@@ -81,12 +87,17 @@
 #define RSCTBL_BASE_AP              ((uintptr_t)&_srsctbl_ap)
 #define RSCTBL_BASE_CP              ((uintptr_t)&_srsctbl_cp)
 
+#define CPRAM1_RSVD_BASE            (0x60054000)
+#define CPRAM1_RSVD_SIZE            (CPRAM1_RSVD_BASE + 0x4)
+
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
+#define TOP_PWR_INTR_EN_SEC_M4_1    (TOP_PWR_BASE + 0x140)
+#define TOP_PWR_INTR_ST_SEC_M4_1    (TOP_PWR_BASE + 0x144)
 #define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
@@ -94,8 +105,11 @@
 #define TOP_PWR_AP_M4_PORESET       (1 << 0)
 #define TOP_PWR_CP_M4_PORESET       (1 << 0)
 
+#define TOP_PWR_SLPU_FLASH_S        (1 << 0)
+
 #define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
 #define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
+#define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
 
@@ -281,8 +295,80 @@ static int ap_boot(const struct song_rptun_config_s *config)
   return 0;
 }
 
+static void cp_flash_save_work(FAR void *arg)
+{
+  int fd;
+  size_t save_bytes;
+  size_t bytes;
+
+  fd = open("/data/cpram1.rsvd", O_WRONLY | O_CREAT | O_TRUNC);
+  if (fd < 0)
+    {
+      goto out;
+    }
+    /*
+     * struct cpram1.rsvd
+     * {
+     *   uint32_t magic;
+     *   uint32_t size;
+     *   uint32_t checksum;
+     *   uint8_t  data[];
+     * }
+     */
+
+  save_bytes = getreg32(CPRAM1_RSVD_SIZE) + 12;
+  bytes = write(fd, (FAR const void *)CPRAM1_RSVD_BASE, save_bytes);
+  close(fd);
+  if (bytes != save_bytes)
+    {
+      /* Write not completely successfully, delelte file */
+
+      unlink("/data/cpram1.rsvd");
+    }
+
+out:
+  /* Jump to flash_pd */
+
+  modifyreg32(TOP_PWR_SLPCTL_SEC_M4, 0, TOP_PWR_FLASH_S_2PD_JMP);
+}
+
+static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
+{
+  if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_SLPU_FLASH_S)
+    {
+      static struct work_s worker;
+      modifyreg32(TOP_PWR_INTR_ST_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+      work_queue(LPWORK, &worker, cp_flash_save_work, NULL, 0);
+    }
+
+  return 0;
+}
+
+static void cp_flash_restore(void)
+{
+  int fd;
+  struct stat f_info;
+
+  fd = open("/data/cpram1.rsvd", O_RDONLY);
+  if (fd < 0)
+    {
+      return;
+    }
+
+  fstat(fd, &f_info);
+  read(fd, (FAR void *)CPRAM1_RSVD_BASE, f_info.st_size);
+  close(fd);
+}
+
 static int cp_boot(const struct song_rptun_config_s *config)
 {
+  cp_flash_restore();
+
+  /* Attach and enable flash_s intr. */
+  irq_attach(18, cp_flash_save_isr, NULL);
+  up_enable_irq(18);
+  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+
   /* SP <--shram1--> CP
    * enable shram1 for IPC
    */
