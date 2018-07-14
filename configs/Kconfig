@@ -2397,12 +2397,15 @@ config BOARDCTL_RESET
 		interface.
 
 config BOARD_RESET_ON_ASSERT
-	bool "Enable Board Reset after assert"
-	default n
+	int "Enable Board Reset after assert"
+	default 0
 	depends on BOARDCTL_RESET
 	---help---
-		If selected the up_assert should reset the machine after
-		dumping the debug information
+		== 0 up_assert never reset the machine
+		>= 1 up_assert from interrupt handler or IDLE thread will reset the
+		     machine
+		>= 2 up_assert from user or kernel thread will reset the machine.
+		     The default behavior is just to kill the asserting thread.
 
 config BOARDCTL_UNIQUEID
 	bool "Return board unique ID"
