@@ -285,6 +285,10 @@ static int audio_comp_shutdown(FAR struct audio_lowerhalf_s *dev)
             {
               ret = tmp;
             }
+          else if (ret == -ENOSYS)
+            {
+              ret = OK;
+            }
         }
     }
 
@@ -379,6 +383,10 @@ static int audio_comp_stop(FAR struct audio_lowerhalf_s *dev)
             {
               ret = tmp;
             }
+          else if (ret == -ENOSYS)
+            {
+              ret = OK;
+            }
         }
     }
 
@@ -420,6 +428,10 @@ static int audio_comp_pause(FAR struct audio_lowerhalf_s *dev)
           if (tmp < 0)
             {
               ret = tmp;
+            }
+          else if (ret == -ENOSYS)
+            {
+              ret = OK;
             }
         }
     }
