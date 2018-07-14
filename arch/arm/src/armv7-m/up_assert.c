@@ -353,6 +353,12 @@ static void up_dumpstate(void)
 static void _up_assert(int errorcode) noreturn_function;
 static void _up_assert(int errorcode)
 {
+#ifdef CONFIG_BOARD_RESET_ON_ASSERT
+  while (1)
+    {
+      board_reset(0);
+    }
+#else
   /* Are we in an interrupt handler or the idle task? */
 
   if (CURRENT_REGS || (this_task())->pid == 0)
@@ -378,6 +384,7 @@ static void _up_assert(int errorcode)
     {
       exit(errorcode);
     }
+#endif
 }
 
 /****************************************************************************

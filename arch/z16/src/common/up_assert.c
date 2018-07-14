@@ -77,6 +77,12 @@
 
 static void _up_assert(int errorcode) /* noreturn_function */
 {
+#ifdef CONFIG_BOARD_RESET_ON_ASSERT
+  while (1)
+    {
+      board_reset(0);
+    }
+#else
   /* Are we in an interrupt handler or the idle task? */
 
   if (up_interrupt_context() || this_task()->pid == 0)
@@ -96,6 +102,7 @@ static void _up_assert(int errorcode) /* noreturn_function */
     {
       exit(errorcode);
     }
+#endif
 }
 
 /****************************************************************************
