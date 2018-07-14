@@ -370,7 +370,6 @@ static int song_dmas_pause(struct dma_chan_s *chan_)
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
 
   song_dmas_write(chan->dev, SONG_DMAS_REG_PAUSE, chan->index);
-  while(song_dmas_is_busy(chan->dev, chan->index));
 
   return OK;
 }
