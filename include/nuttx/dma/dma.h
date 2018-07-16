@@ -42,7 +42,6 @@
 
 #include <nuttx/config.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <sys/types.h>
 
 /****************************************************************************
@@ -177,16 +176,6 @@
 #define DMA_STOP(chan) (chan)->ops->stop(chan)
 
 /****************************************************************************
- * Name: DMA_IS_BUSY
- *
- * Description:
- *   Returns whether the chan is transfering.
- *
- ****************************************************************************/
-
-#define DMA_IS_BUSY(chan) (chan)->ops->is_busy(chan)
-
-/****************************************************************************
  * Name: DMA_RESIDUAL
  *
  * Description:
@@ -253,19 +242,18 @@ struct dma_config_s
 
 struct dma_ops_s
 {
-  int    (*config)(FAR struct dma_chan_s *chan,
-                   FAR const struct dma_config_s *cfg);
-  int    (*start)(FAR struct dma_chan_s *chan,
-                  dma_callback_t callback, FAR void *arg,
-                  uintptr_t dst, uintptr_t src, size_t len);
-  int    (*start_cyclic)(FAR struct dma_chan_s *chan,
-                         dma_callback_t callback, FAR void *arg,
-                         uintptr_t dst, uintptr_t src,
-                         size_t len, size_t period_len);
-  int    (*stop)(FAR struct dma_chan_s *chan);
-  int    (*pause)(FAR struct dma_chan_s *chan);
-  int    (*resume)(FAR struct dma_chan_s *chan);
-  bool   (*is_busy)(FAR struct dma_chan_s *chan);
+  int (*config)(FAR struct dma_chan_s *chan,
+                FAR const struct dma_config_s *cfg);
+  int (*start)(FAR struct dma_chan_s *chan,
+               dma_callback_t callback, FAR void *arg,
+               uintptr_t dst, uintptr_t src, size_t len);
+  int (*start_cyclic)(FAR struct dma_chan_s *chan,
+                      dma_callback_t callback, FAR void *arg,
+                      uintptr_t dst, uintptr_t src,
+                      size_t len, size_t period_len);
+  int (*stop)(FAR struct dma_chan_s *chan);
+  int (*pause)(FAR struct dma_chan_s *chan);
+  int (*resume)(FAR struct dma_chan_s *chan);
   size_t (*residual)(FAR struct dma_chan_s *chan);
 };
 

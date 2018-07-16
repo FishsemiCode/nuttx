@@ -170,11 +170,10 @@ static void song_dmag_update_bits(struct song_dmag_dev_s *dev,
                   (song_dmag_read(dev, offset) & ~mask));
 }
 
-static bool song_dmag_is_busy(struct dma_chan_s *chan_)
+static bool song_dmag_is_busy(struct song_dmag_dev_s *dev,
+                              unsigned int index)
 {
-  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
-
-  return (song_dmag_read(chan->dev, SONG_DMAG_REG_STATUS) >> chan->index) & 1;
+  return (song_dmag_read(dev, SONG_DMAG_REG_STATUS) >> index) & 1;
 }
 
 static int song_dmag_pause(struct dma_chan_s *chan_)
@@ -221,7 +220,7 @@ static int song_dmag_chan_config(struct dma_chan_s *chan_,
   if (!cfg || cfg->direction != DMA_MEM_TO_MEM)
     return -EINVAL;
 
-  if (song_dmag_is_busy(chan_))
+  if (song_dmag_is_busy(dev, chan->index))
     return -EBUSY;
 
   return OK;
@@ -265,7 +264,7 @@ static int song_dmag_start(struct dma_chan_s *chan_,
   struct song_dmag_dev_s *dev = chan->dev;
   unsigned int index = chan->index;
 
-  if (song_dmag_is_busy(chan_))
+  if (song_dmag_is_busy(dev, index))
     return -EBUSY;
 
   chan->dst_addr = dst;
@@ -315,7 +314,7 @@ static int song_dmag_stop(struct dma_chan_s *chan_)
                         1 << index, 0);
   song_dmag_write(dev, SONG_DMAG_REG_CTRL(index),
                   SONG_DMAG_CTRL_CLOSE);
-  while(song_dmag_is_busy(chan_));
+  while(song_dmag_is_busy(dev, index));
   song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_STATUS(index), ~0);
 
   return OK;
@@ -359,7 +358,6 @@ struct dma_ops_s g_song_dmag_ops =
   song_dmag_stop,
   song_dmag_pause,
   song_dmag_resume,
-  song_dmag_is_busy,
   song_dmag_residual,
 };
 
