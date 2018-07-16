@@ -189,7 +189,7 @@ static int audio_comp_getcaps(FAR struct audio_lowerhalf_s *dev, int type,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   caps->ac_channels   = 0;
   caps->ac_format.hw  = 0;
@@ -199,20 +199,26 @@ static int audio_comp_getcaps(FAR struct audio_lowerhalf_s *dev, int type,
     {
       if (lower[i]->ops->getcaps)
         {
-          struct audio_caps_s tmp = *caps;
+          struct audio_caps_s dup = *caps;
 
-          ret = lower[i]->ops->getcaps(lower[i], type, &tmp);
+          int tmp = lower[i]->ops->getcaps(lower[i], type, &dup);
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          ret = tmp;
           if (ret < 0)
             {
               break;
             }
 
-          if (caps->ac_channels < tmp.ac_channels)
+          if (caps->ac_channels < dup.ac_channels)
             {
-              caps->ac_channels = tmp.ac_channels;
+              caps->ac_channels = dup.ac_channels;
             }
-          caps->ac_format.hw   |= tmp.ac_format.hw;
-          caps->ac_controls.w  |= tmp.ac_controls.w;
+          caps->ac_format.hw   |= dup.ac_format.hw;
+          caps->ac_controls.w  |= dup.ac_controls.w;
         }
     }
 
@@ -241,18 +247,24 @@ static int audio_comp_configure(FAR struct audio_lowerhalf_s *dev,
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->configure)
         {
 #ifdef CONFIG_AUDIO_MULTI_SESSION
-          ret = lower[i]->ops->configure(lower[i], sess[i], caps);
+          int tmp = lower[i]->ops->configure(lower[i], sess[i], caps);
 #else
-          ret = lower[i]->ops->configure(lower[i], caps);
+          int tmp = lower[i]->ops->configure(lower[i], caps);
 #endif
-          if (ret < 0 && ret != -ENOTTY)
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          ret = tmp;
+          if (ret < 0)
             {
               break;
             }
@@ -274,20 +286,21 @@ static int audio_comp_shutdown(FAR struct audio_lowerhalf_s *dev)
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
       if (lower[i]->ops->shutdown)
         {
           int tmp = lower[i]->ops->shutdown(lower[i]);
-          if (tmp < 0)
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          if (tmp < 0 || ret == -ENOTTY || ret >= 0)
             {
               ret = tmp;
-            }
-          else if (ret == -ENOSYS)
-            {
-              ret = OK;
             }
         }
     }
@@ -315,32 +328,40 @@ static int audio_comp_start(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->start)
         {
 #ifdef CONFIG_AUDIO_MULTI_SESSION
-          ret = lower[i]->ops->start(lower[i], sess[i]);
+          int tmp = lower[i]->ops->start(lower[i], sess[i]);
 #else
-          ret = lower[i]->ops->start(lower[i]);
+          int tmp = lower[i]->ops->start(lower[i]);
 #endif
-          if (ret < 0)
+          if (tmp == -ENOTTY)
             {
-              while (--i >= 0)
-                {
-                  if (lower[i]->ops->stop)
-                    {
-#ifdef CONFIG_AUDIO_MULTI_SESSION
-                      lower[i]->ops->stop(lower[i], sess[i]);
-#else
-                      lower[i]->ops->stop(lower[i]);
-#endif
-                    }
-                }
-              break;
+              continue;
             }
+
+          ret = tmp;
+          if (ret >= 0)
+            {
+              continue;
+            }
+
+          while (--i >= 0)
+            {
+              if (lower[i]->ops->stop)
+                {
+#ifdef CONFIG_AUDIO_MULTI_SESSION
+                  lower[i]->ops->stop(lower[i], sess[i]);
+#else
+                  lower[i]->ops->stop(lower[i]);
+#endif
+                }
+            }
+          break;
         }
     }
 
@@ -368,7 +389,7 @@ static int audio_comp_stop(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -379,13 +400,14 @@ static int audio_comp_stop(FAR struct audio_lowerhalf_s *dev)
 #else
           int tmp = lower[i]->ops->stop(lower[i]);
 #endif
-          if (tmp < 0)
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          if (tmp < 0 || ret == -ENOTTY || ret >= 0)
             {
               ret = tmp;
-            }
-          else if (ret == -ENOSYS)
-            {
-              ret = OK;
             }
         }
     }
@@ -414,7 +436,7 @@ static int audio_comp_pause(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -425,13 +447,14 @@ static int audio_comp_pause(FAR struct audio_lowerhalf_s *dev)
 #else
           int tmp = lower[i]->ops->pause(lower[i]);
 #endif
-          if (tmp < 0)
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          if (tmp < 0 || ret == -ENOTTY || ret >= 0)
             {
               ret = tmp;
-            }
-          else if (ret == -ENOSYS)
-            {
-              ret = OK;
             }
         }
     }
@@ -460,32 +483,40 @@ static int audio_comp_resume(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->resume)
         {
 #ifdef CONFIG_AUDIO_MULTI_SESSION
-          ret = lower[i]->ops->resume(lower[i], sess[i]);
+          int tmp = lower[i]->ops->resume(lower[i], sess[i]);
 #else
-          ret = lower[i]->ops->resume(lower[i]);
+          int tmp = lower[i]->ops->resume(lower[i]);
 #endif
-          if (ret < 0)
+          if (tmp == -ENOTTY)
             {
-              while (--i >= 0)
-                {
-                  if (lower[i]->ops->pause)
-                    {
-#ifdef CONFIG_AUDIO_MULTI_SESSION
-                      lower[i]->ops->pause(lower[i], sess[i]);
-#else
-                      lower[i]->ops->pause(lower[i]);
-#endif
-                    }
-                }
-              break;
+              continue;
             }
+
+          ret = tmp;
+          if (ret >= 0)
+            {
+              continue;
+            }
+
+          while (--i >= 0)
+            {
+              if (lower[i]->ops->pause)
+                {
+#ifdef CONFIG_AUDIO_MULTI_SESSION
+                  lower[i]->ops->pause(lower[i], sess[i]);
+#else
+                  lower[i]->ops->pause(lower[i]);
+#endif
+                }
+            }
+          break;
         }
     }
 
@@ -505,17 +536,26 @@ static int audio_comp_allocbuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->allocbuffer)
         {
-          return lower[i]->ops->allocbuffer(lower[i], bufdesc);
+          ret = lower[i]->ops->allocbuffer(lower[i], bufdesc);
+          if (ret != -ENOTTY)
+            {
+              break;
+            }
         }
     }
 
-  return apb_alloc(bufdesc);
+  if (ret == -ENOTTY)
+    {
+      ret = apb_alloc(bufdesc);
+    }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -530,18 +570,27 @@ static int audio_comp_freebuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->freebuffer)
         {
-          return lower[i]->ops->freebuffer(lower[i], bufdesc);
+          ret = lower[i]->ops->freebuffer(lower[i], bufdesc);
+          if (ret != -ENOTTY)
+            {
+              break;
+            }
         }
     }
 
-  apb_free(bufdesc->u.pBuffer);
-  return sizeof(*bufdesc);
+  if (ret == -ENOTTY)
+    {
+      apb_free(bufdesc->u.pBuffer);
+      ret = sizeof(*bufdesc);
+    }
+
+  return ret;
 }
 
 /****************************************************************************
@@ -556,17 +605,21 @@ static int audio_comp_enqueuebuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->enqueuebuffer)
         {
-          return lower[i]->ops->enqueuebuffer(lower[i], apb);
+          ret = lower[i]->ops->enqueuebuffer(lower[i], apb);
+          if (ret != -ENOTTY)
+            {
+              break;
+            }
         }
     }
 
-  return -ENOSYS;
+  return ret;
 }
 
 /****************************************************************************
@@ -581,17 +634,21 @@ static int audio_comp_cancelbuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->cancelbuffer)
         {
-          return lower[i]->ops->cancelbuffer(lower[i], apb);
+          ret = lower[i]->ops->cancelbuffer(lower[i], apb);
+          if (ret != -ENOTTY)
+            {
+              break;
+            }
         }
     }
 
-  return -ENOSYS;
+  return ret;
 }
 
 /****************************************************************************
@@ -606,14 +663,20 @@ static int audio_comp_ioctl(FAR struct audio_lowerhalf_s *dev, int cmd,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOSYS;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->ioctl)
         {
-          ret = lower[i]->ops->ioctl(lower[i], cmd, arg);
-          if (ret < 0 && ret != -ENOTTY)
+          int tmp = lower[i]->ops->ioctl(lower[i], cmd, arg);
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          ret = tmp;
+          if (ret < 0)
             {
               break;
             }
@@ -635,17 +698,21 @@ static int audio_comp_read(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->read)
         {
-          return lower[i]->ops->read(lower[i], buffer, buflen);
+          ret = lower[i]->ops->read(lower[i], buffer, buflen);
+          if (ret != -ENOTTY)
+            {
+              break;
+            }
         }
     }
 
-  return -ENOSYS;
+  return ret;
 }
 
 /****************************************************************************
@@ -660,17 +727,21 @@ static int audio_comp_write(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i;
+  int i, ret = -ENOTTY;
 
   for (i = 0; i < priv->count; i++)
     {
       if (lower[i]->ops->write)
         {
-          return lower[i]->ops->write(lower[i], buffer, buflen);
+          ret = lower[i]->ops->write(lower[i], buffer, buflen);
+          if (ret != -ENOTTY)
+            {
+              break;
+            }
         }
     }
 
-  return -ENOSYS;
+  return ret;
 }
 
 /****************************************************************************
@@ -692,7 +763,7 @@ static int audio_comp_reserve(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = OK;
 
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   sess = kmm_calloc(priv->count, sizeof(*sess));
@@ -707,29 +778,37 @@ static int audio_comp_reserve(FAR struct audio_lowerhalf_s *dev)
       if (lower[i]->ops->reserve)
         {
 #ifdef CONFIG_AUDIO_MULTI_SESSION
-          ret = lower[i]->ops->reserve(lower[i], &sess[i]);
+          int tmp = lower[i]->ops->reserve(lower[i], &sess[i]);
 #else
-          ret = lower[i]->ops->reserve(lower[i]);
+          int tmp = lower[i]->ops->reserve(lower[i]);
 #endif
-          if (ret < 0)
+          if (tmp == -ENOTTY)
             {
-              while (--i >= 0)
-                {
-                  if (lower[i]->ops->release)
-                    {
-#ifdef CONFIG_AUDIO_MULTI_SESSION
-                      lower[i]->ops->release(lower[i], sess[i]);
-#else
-                      lower[i]->ops->release(lower[i]);
-#endif
-                    }
-                }
-#ifdef CONFIG_AUDIO_MULTI_SESSION
-              kmm_free(sess);
-              sess = NULL;
-#endif
-              break;
+              continue;
             }
+
+          ret = tmp;
+          if (ret >= 0)
+            {
+              continue;
+            }
+
+          while (--i >= 0)
+            {
+              if (lower[i]->ops->release)
+                {
+#ifdef CONFIG_AUDIO_MULTI_SESSION
+                  lower[i]->ops->release(lower[i], sess[i]);
+#else
+                  lower[i]->ops->release(lower[i]);
+#endif
+                }
+            }
+#ifdef CONFIG_AUDIO_MULTI_SESSION
+          kmm_free(sess);
+          sess = NULL;
+#endif
+          break;
         }
     }
 
@@ -759,7 +838,7 @@ static int audio_comp_release(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOSYS;
+  int i, ret = OK;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -770,7 +849,12 @@ static int audio_comp_release(FAR struct audio_lowerhalf_s *dev)
 #else
           int tmp = lower[i]->ops->release(lower[i]);
 #endif
-          if (tmp < 0)
+          if (tmp == -ENOTTY)
+            {
+              continue;
+            }
+
+          if (tmp < 0 || ret >= 0)
             {
               ret = tmp;
             }
