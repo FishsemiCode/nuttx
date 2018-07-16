@@ -427,7 +427,7 @@ static int audio_dma_enqueuebuffer(struct audio_lowerhalf_s *dev,
   dq_addlast(&apb->dq_entry, &audio_dma->pendq);
   leave_critical_section(flags);
 
-  if (audio_dma->xrun && !DMA_IS_BUSY(audio_dma->chan))
+  if (audio_dma->xrun)
     {
       audio_dma->xrun = false;
       return audio_dma_resume(dev);
