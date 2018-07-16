@@ -60,7 +60,7 @@ static const struct song_fixed_rate_clk fixed_rate[] =
   {
     .name = "sen_clk26m",
     .flags = 0,
-    .fixed_rate = 26000000,
+    .fixed_rate = 24576000,
   },
   {},
 };
