@@ -522,3 +522,14 @@ int uart_rpmsg_server_init(const char *dev_name, int buf_size)
 {
   return uart_rpmsg_init_(NULL, dev_name, buf_size, false);
 }
+
+#ifdef CONFIG_RPMSG_SERIALINIT
+/* dummy function to make linker happy */
+void up_earlyserialinit(void)
+{
+}
+
+void up_serialinit(void)
+{
+}
+#endif /* CONFIG_RPMSG_SERIALINIT */

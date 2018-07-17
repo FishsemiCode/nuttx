@@ -62,19 +62,6 @@
  * Public Functions
  ****************************************************************************/
 
-#if !defined(CONFIG_16550_UART) && !defined(CONFIG_CMSDK_UART)
-#  ifdef USE_EARLYSERIALINIT
-void up_earlyserialinit(void)
-{
-}
-#  endif
-#  ifdef USE_SERIALDRIVER
-void up_serialinit(void)
-{
-}
-#  endif
-#endif
-
 /****************************************************************************
  * Name: board_initialize
  *
