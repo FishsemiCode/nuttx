@@ -255,12 +255,17 @@
 #define AUDIO_STEXT_OVERFLOW        0x04
 #define AUDIO_STEXT_LATENCY         0x05
 
+/* Extension Unit controls **************************************************/
+
+#define AUDIO_EU_LOAD_MODULE        0x0000
+
 /* Audio Callback Reasons ***************************************************/
 
 #define AUDIO_CALLBACK_UNDEF        0x00
 #define AUDIO_CALLBACK_DEQUEUE      0x01
 #define AUDIO_CALLBACK_IOERR        0x02
 #define AUDIO_CALLBACK_COMPLETE     0x03
+#define AUDIO_CALLBACK_MESSAGE      0x04
 
 /* Audio Pipeline Buffer (AP Buffer) flags **********************************/
 
@@ -287,6 +292,9 @@
 #define AUDIO_MSG_DATA_REQUEST      6
 #define AUDIO_MSG_ENQUEUE           7
 #define AUDIO_MSG_COMPLETE          8
+#define AUDIO_MSG_WAKEUP            9
+#define AUDIO_MSG_COMMAND          10
+#define AUDIO_MSG_SLIENCE          11
 #define AUDIO_MSG_USER             64
 
 /* Audio Pipeline Buffer flags */
@@ -328,6 +336,7 @@ struct audio_caps_s
     uint8_t  b[4];          /*   by this lower-half driver. */
     uint16_t hw[2];
     uint32_t w;
+    uint64_t qw;
   } ac_controls;
 };
 
