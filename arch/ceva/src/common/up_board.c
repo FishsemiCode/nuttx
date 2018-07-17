@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/src/song/song_board.c
+ * arch/ceva/src/common/up_board.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>

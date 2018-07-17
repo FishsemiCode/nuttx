@@ -35,16 +35,16 @@
 
 # arch/ceva/src/common
 #
-CMN_CSRCS  += up_assert.c up_blocktask.c up_checkstack.c up_createstack.c
-CMN_CSRCS  += up_doirq.c up_exit.c up_heap.c up_fullcontextrestore.c
-CMN_CSRCS  += up_idle.c up_initialize.c up_interruptcontext.c
-CMN_CSRCS  += up_modifyreg8.c up_modifyreg16.c up_modifyreg32.c
-CMN_CSRCS  += up_pthread_start.c up_puts.c up_releasepending.c
-CMN_CSRCS  += up_releasestack.c up_reprioritizertr.c up_saveusercontext.c
-CMN_CSRCS  += up_schedulesigaction.c up_sigdeliver.c up_signal_dispatch.c
-CMN_CSRCS  += up_stackframe.c up_start.c up_svcall.c up_switchcontext.c
-CMN_CSRCS  += up_task_start.c up_unblocktask.c up_usestack.c up_vfork.c
-CMN_UCSRCS += up_userspace.c
+CMN_CSRCS  += up_assert.c up_blocktask.c up_board.c up_checkstack.c
+CMN_CSRCS  += up_createstack.c up_doirq.c up_exit.c up_heap.c
+CMN_CSRCS  += up_fullcontextrestore.c up_idle.c up_initialize.c
+CMN_CSRCS  += up_interruptcontext.c up_modifyreg8.c up_modifyreg16.c
+CMN_CSRCS  += up_modifyreg32.c up_pthread_start.c up_puts.c
+CMN_CSRCS  += up_releasepending.c up_releasestack.c up_reprioritizertr.c
+CMN_CSRCS  += up_saveusercontext.c up_schedulesigaction.c up_sigdeliver.c
+CMN_CSRCS  += up_signal_dispatch.c up_stackframe.c up_start.c up_svcall.c
+CMN_CSRCS  += up_switchcontext.c up_task_start.c up_unblocktask.c up_usestack.c
+CMN_UCSRCS += up_vfork.c up_userspace.c
 
 ifeq ($(CONFIG_ARCH_TL420)$(CONFIG_ARCH_TL421),y)
 # arch/ceva/src/tl4
@@ -70,4 +70,4 @@ endif
 #
 CHIP_CSRCS += abies_adsp.c banks_adsp.c banks_vdsp.c u2_adsp.c
 CHIP_CSRCS += dw_vintc.c
-CHIP_CSRCS += song_addrenv.c song_board.c
+CHIP_CSRCS += song_addrenv.c
