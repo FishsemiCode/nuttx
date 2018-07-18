@@ -279,7 +279,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 0,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_pp_clk",
@@ -287,7 +287,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 1,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_ae_clk",
@@ -295,7 +295,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 2,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_ae_fifo_clk",
@@ -303,7 +303,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 3,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_conf_mem_clk",
@@ -311,7 +311,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 4,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_te_clk",
@@ -319,7 +319,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 5,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_te_mem_clk",
@@ -327,7 +327,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 6,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "gnss_te_fifo_clk",
@@ -335,7 +335,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 7,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "rfphy_lte_clk_gated0",
@@ -343,7 +343,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 9,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "rfphv_clk38p4m_gated",
@@ -351,7 +351,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 10,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "rf_tp_clk32k",
@@ -359,7 +359,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 11,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "rfphy_pclk",
@@ -367,7 +367,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 12,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cpwdt_pclk",
@@ -375,7 +375,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 13,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cpwdt_tclk",
@@ -383,7 +383,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 14,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_shram_icm_hclk",
@@ -391,7 +391,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x090,
     .en_shift = 15,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_m4_clk",
@@ -399,7 +399,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 0,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_m4_wic_clk",
@@ -407,7 +407,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 1,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_m4_stclk",
@@ -415,7 +415,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 2,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "rfif_bus_clk",
@@ -423,7 +423,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 3,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "viterbi_clk",
@@ -431,7 +431,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 4,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_cipherhwa_clk",
@@ -439,7 +439,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 5,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "nb_cor_clk",
@@ -447,7 +447,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 6,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "np_sp_clk",
@@ -455,7 +455,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 7,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_dmag_clk",
@@ -463,7 +463,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 8,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "sim_pclk",
@@ -471,7 +471,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 9,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_rfif_adc_clk",
@@ -479,7 +479,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 10,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "cp_m4_icache_clk",
@@ -487,7 +487,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 11,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "rfphy_lte_clk_gated1",
@@ -495,7 +495,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 12,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "nbsp_adc_clk",
@@ -503,7 +503,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x094,
     .en_shift = 13,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "dfe_clk_1920k",
@@ -511,7 +511,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x2d0,
     .en_shift = 0,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "dfe_clk_3840k",
@@ -519,7 +519,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x2d0,
     .en_shift = 1,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "dfe_clk_7680k",
@@ -527,7 +527,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x2d0,
     .en_shift = 2,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {
     .name = "dfe_clk_30720k",
@@ -535,7 +535,7 @@ static const struct song_gate_clk gate[] =
     .flags = 0,
     .en_offset = 0x2d0,
     .en_shift = 3,
-    .private_flags = (CLK_GATE_HIWORD_MASK << SONG_CLK_GATE_FLAG_SHIFT),
+    .gate_flags = CLK_GATE_HIWORD_MASK,
   },
   {},
 };

@@ -52,10 +52,6 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static struct clk *song_clk_register_gate(const char *name,
-                    const char *parent_name, uint16_t flags,
-                    uint32_t reg_base, uint16_t en_offset,
-                    uint8_t bit_idx, uint64_t private_flags);
 static struct clk *song_clk_register_mux_sdiv(const char *name,
                     const char * const *parent_name, uint8_t num_parents,
                     uint16_t flags, uint32_t reg_base,
@@ -145,19 +141,6 @@ static int song_set_default_rate(const struct song_default_rate_clk *def_rate);
  * Private Functions
  ************************************************************************************/
 
-static struct clk *song_clk_register_gate(const char *name,
-    const char *parent_name, uint16_t flags,
-    uint32_t reg_base, uint16_t en_offset,
-    uint8_t bit_idx, uint64_t private_flags)
-{
-  uint8_t clk_gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
-    SONG_CLK_FLAG_MASK;
-
-  return clk_register_gate(name, parent_name,
-      flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC ,
-      reg_base + en_offset, bit_idx, clk_gate_flags);
-}
-
 static struct clk *song_clk_register_mux_sdiv(const char *name,
     const char * const *parent_name, uint8_t num_parents,
     uint16_t flags, uint32_t reg_base,
@@ -243,7 +226,7 @@ static struct clk *song_clk_register_gr(const char *name,
     uint64_t private_flags)
 {
   struct clk *clk;
-  uint8_t mult_flags, song_flags, gate_flags;
+  uint8_t mult_flags, gate_flags;
   char gate_clk[SONG_CLK_NAME_MAX], mult_clk[SONG_CLK_NAME_MAX];
   uint8_t fixed_div = 8;
   const char *pname = parent_name;
@@ -255,10 +238,7 @@ static struct clk *song_clk_register_gr(const char *name,
   mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
-    SONG_CLK_FLAG_MASK;
-
-  if (song_flags & SONG_CLK_GR_DIV_16)
+  if (private_flags & SONG_CLK_GR_DIV_16)
     fixed_div = 16;
 
   if (en_offset)
@@ -410,7 +390,7 @@ static struct clk *song_clk_register_sdiv_gr(const char *name,
   struct clk *clk;
   char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX],
        mult_clk[SONG_CLK_NAME_MAX];
-  uint8_t mult_flags, song_flags, gate_flags, div_flags;
+  uint8_t mult_flags, gate_flags, div_flags;
   uint8_t fixed_div = 8;
 
   snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
@@ -420,16 +400,13 @@ static struct clk *song_clk_register_sdiv_gr(const char *name,
   gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
-    SONG_CLK_FLAG_MASK;
-
   div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
     SONG_CLK_DIV_MASK;
 
   mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  if (song_flags & SONG_CLK_GR_DIV_16)
+  if (private_flags & SONG_CLK_GR_DIV_16)
     fixed_div = 16;
 
   clk = clk_register_gate(gate_clk, parent_name, flags | CLK_PARENT_NAME_IS_STATIC,
@@ -502,7 +479,7 @@ static struct clk *song_clk_register_gr_sdiv(const char *name,
   struct clk *clk;
   char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX],
        mult_clk[SONG_CLK_NAME_MAX];
-  uint8_t mult_flags, song_flags, gate_flags, div_flags;
+  uint8_t mult_flags, gate_flags, div_flags;
   uint8_t fixed_div = 8;
 
   snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
@@ -512,16 +489,13 @@ static struct clk *song_clk_register_gr_sdiv(const char *name,
   gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
-    SONG_CLK_FLAG_MASK;
-
   div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
     SONG_CLK_DIV_MASK;
 
   mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  if (song_flags & SONG_CLK_GR_DIV_16)
+  if (private_flags & SONG_CLK_GR_DIV_16)
     fixed_div = 16;
 
   clk = clk_register_gate(gate_clk, parent_name, flags | CLK_PARENT_NAME_IS_STATIC,
@@ -557,7 +531,7 @@ static struct clk *song_clk_register_mux_sdiv_gr(const char *name,
   struct clk *clk;
   char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX],
        mult_clk[SONG_CLK_NAME_MAX], mux_clk[SONG_CLK_NAME_MAX];
-  uint8_t mux_flags, mult_flags, song_flags, gate_flags, div_flags;
+  uint8_t mux_flags, mult_flags, gate_flags, div_flags;
   uint8_t fixed_div = 8;
 
   snprintf(mux_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mux");
@@ -572,16 +546,13 @@ static struct clk *song_clk_register_mux_sdiv_gr(const char *name,
   gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
-    SONG_CLK_FLAG_MASK;
-
   div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
     SONG_CLK_DIV_MASK;
 
   mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  if (song_flags & SONG_CLK_GR_DIV_16)
+  if (private_flags & SONG_CLK_GR_DIV_16)
     fixed_div = 16;
 
   clk = clk_register_mux(mux_clk, parent_name, num_parents, flags | CLK_PARENT_NAME_IS_STATIC,
@@ -668,14 +639,13 @@ static int song_register_gate_clks(uint32_t reg_base,
 
   while (gate_clks->name)
     {
-      clk = song_clk_register_gate(
+      clk = clk_register_gate(
             gate_clks->name,
             gate_clks->parent_name,
-            gate_clks->flags,
-            reg_base,
-            gate_clks->en_offset,
+            gate_clks->flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC ,
+            gate_clks->en_offset + reg_base,
             gate_clks->en_shift,
-            gate_clks->private_flags);
+            gate_clks->gate_flags);
 
       if (!clk)
         {

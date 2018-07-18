@@ -49,17 +49,13 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* This descibes clk flags used arcoss song-clk wrapper */
-#define SONG_CLK_GR_DIV_16              0x01
-
-/* This descibes individual clk flag shift among song-clk wrapper */
+/* This descibes individual clk flag used among song-clk wrapper */
 #define SONG_CLK_GATE_FLAG_SHIFT        0
+#define SONG_CLK_MUX_FLAG_SHIFT         4
 #define SONG_CLK_DIV_FLAG_SHIFT         8
-#define SONG_CLK_MULT_FLAG_SHIFT        16
+#define SONG_CLK_MULT_FLAG_SHIFT        24
 #define SONG_CLK_FRAC_FLAG_SHIFT        24
-#define SONG_CLK_MUX_FLAG_SHIFT         32
-#define SONG_CLK_PHASE_FLAG_SHIFT       40
-#define SONG_CLK_PRIVATE_FLAG_SHIFT     48
+#define SONG_CLK_GR_DIV_16              (1 << 31)
 
 /************************************************************************************
  * Public Data
@@ -98,7 +94,7 @@ struct song_gate_clk
   uint16_t           en_offset;
   uint8_t            en_shift;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint8_t            gate_flags;
 };
 
 struct song_sdiv_clk
@@ -111,7 +107,7 @@ struct song_sdiv_clk
   uint8_t            div_shift;
   uint8_t            div_width;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_gr_clk
@@ -124,7 +120,7 @@ struct song_gr_clk
   uint8_t            mul_shift;
   uint8_t            mul_width;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_sdiv_sdiv_clk
@@ -133,7 +129,7 @@ struct song_sdiv_sdiv_clk
   const char         *parent_name;
   uint16_t           div_offset;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_sdiv_fdiv_clk
@@ -147,7 +143,7 @@ struct song_sdiv_fdiv_clk
   uint8_t            sdiv_shift;
   uint8_t            sdiv_width;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_gr_fdiv_clk
@@ -160,7 +156,7 @@ struct song_gr_fdiv_clk
   uint8_t            en_shift;
   uint8_t            fixed_gr;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_sdiv_gr_clk
@@ -169,7 +165,7 @@ struct song_sdiv_gr_clk
   const char         *parent_name;
   uint16_t           div_offset;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_mux_sdiv_clk
@@ -184,7 +180,7 @@ struct song_mux_sdiv_clk
   uint8_t            div_width;
   uint8_t            num_parents;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_mux_gate_clk
@@ -198,7 +194,7 @@ struct song_mux_gate_clk
   uint8_t            mux_width;
   uint8_t            num_parents;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_phase_clk
@@ -221,7 +217,7 @@ struct song_mux_sdiv_gr_clk
   uint8_t            mux_width;
   uint8_t            num_parents;
   uint8_t            flags;
-  uint64_t           private_flags;
+  uint32_t           private_flags;
 };
 
 struct song_pll_clk
