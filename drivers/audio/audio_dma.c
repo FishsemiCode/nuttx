@@ -84,7 +84,7 @@ static int audio_dma_resume(struct audio_lowerhalf_s *dev,
                             void *session);
 #endif
 static int audio_dma_reserve(struct audio_lowerhalf_s *dev,
-                             void *session);
+                             void **session);
 static int audio_dma_release(struct audio_lowerhalf_s *dev,
                              void *session);
 #else
@@ -466,7 +466,7 @@ static int audio_dma_ioctl(struct audio_lowerhalf_s *dev, int cmd,
 }
 
 #ifdef CONFIG_AUDIO_MULTI_SESSION
-static int audio_dma_reserve(struct audio_lowerhalf_s *dev, void *session)
+static int audio_dma_reserve(struct audio_lowerhalf_s *dev, void **session)
 #else
 static int audio_dma_reserve(struct audio_lowerhalf_s *dev)
 #endif
