@@ -442,7 +442,7 @@ void up_lateinitialize(void)
 #endif
 }
 
-int up_reset(int status)
+void up_reset(int status)
 {
   if (status == 0)
     {
