@@ -153,8 +153,9 @@ static struct clk *song_clk_register_gate(const char *name,
   uint8_t clk_gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  return clk_register_gate(name, parent_name, flags,
-    reg_base + en_offset, bit_idx, clk_gate_flags);
+  return clk_register_gate(name, parent_name,
+      flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC ,
+      reg_base + en_offset, bit_idx, clk_gate_flags);
 }
 
 static struct clk *song_clk_register_mux_sdiv(const char *name,
@@ -174,11 +175,17 @@ static struct clk *song_clk_register_mux_sdiv(const char *name,
   snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
   snprintf(mux_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mux");
 
+  flags |= CLK_PARENT_NAME_IS_STATIC;
+
   if (mux_offset)
     {
       cname = mux_clk;
+
       if (!en_offset && !div_offset)
-        cname = name;
+        {
+          cname = name;
+          flags |= CLK_NAME_IS_STATIC;
+        }
 
       mux_flags = (private_flags >> SONG_CLK_MUX_FLAG_SHIFT) &
         SONG_CLK_FLAG_MASK;
@@ -190,13 +197,17 @@ static struct clk *song_clk_register_mux_sdiv(const char *name,
         return clk;
 
       pname = cname;
+      flags &= ~CLK_PARENT_NAME_IS_STATIC;
     }
 
   if (en_offset)
     {
       cname = gate_clk;
       if (!div_offset)
-        cname = name;
+        {
+          cname = name;
+          flags |= CLK_NAME_IS_STATIC;
+        }
 
       gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
         SONG_CLK_FLAG_MASK;
@@ -207,10 +218,12 @@ static struct clk *song_clk_register_mux_sdiv(const char *name,
         return clk;
 
       pname = cname;
+      flags &= ~CLK_PARENT_NAME_IS_STATIC;
     }
 
   if (div_offset)
     {
+      flags |= CLK_NAME_IS_STATIC;
       div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
         SONG_CLK_DIV_MASK;
       div_flags |= CLK_DIVIDER_ROUND_CLOSEST;
@@ -232,9 +245,9 @@ static struct clk *song_clk_register_gr(const char *name,
   struct clk *clk;
   uint8_t mult_flags, song_flags, gate_flags;
   char gate_clk[SONG_CLK_NAME_MAX], mult_clk[SONG_CLK_NAME_MAX];
-  uint32_t fixed_div = 8;
+  uint8_t fixed_div = 8;
   const char *pname = parent_name;
-  flags |= CLK_SET_RATE_PARENT;
+  flags |= CLK_SET_RATE_PARENT | CLK_PARENT_NAME_IS_STATIC;
 
   snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
   snprintf(mult_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mult");
@@ -259,6 +272,7 @@ static struct clk *song_clk_register_gr(const char *name,
         return clk;
 
       pname = gate_clk;
+      flags &= ~CLK_PARENT_NAME_IS_STATIC;
     }
 
   mult_flags |= CLK_MULT_ROUND_CLOSEST;
@@ -268,7 +282,8 @@ static struct clk *song_clk_register_gr(const char *name,
   if (!clk)
     return clk;
 
-  return clk_register_fixed_factor(name, mult_clk, flags,
+  flags &= ~CLK_PARENT_NAME_IS_STATIC;
+  return clk_register_fixed_factor(name, mult_clk, flags | CLK_NAME_IS_STATIC,
     1, fixed_div);
 }
 
@@ -282,6 +297,8 @@ static struct clk *song_clk_register_sdiv_fdiv(const char *name,
   char sdiv_clk[SONG_CLK_NAME_MAX];
   uint8_t sdiv_flags, frac_flags;
   const char *pname = parent_name;
+
+  flags |= CLK_PARENT_NAME_IS_STATIC;
 
   snprintf(sdiv_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "sdiv");
   sdiv_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
@@ -305,12 +322,16 @@ static struct clk *song_clk_register_sdiv_fdiv(const char *name,
       if (!clk)
         return clk;
       pname = gate_clk;
+      flags &= ~CLK_PARENT_NAME_IS_STATIC;
     }
 
   clk = clk_register_divider(sdiv_clk, pname, flags,
     reg_base + sdiv_offset, sdiv_shift, sdiv_width, sdiv_flags);
   if (!clk)
     return clk;
+
+  flags &= ~CLK_PARENT_NAME_IS_STATIC;
+  flags |= CLK_NAME_IS_STATIC;
 
   return clk_register_fractional_divider(name, sdiv_clk, flags,
     reg_base + fdiv_offset, SONG_CLK_SDIV_FDIV_MUL_SHIFT,
@@ -327,7 +348,7 @@ static struct clk *song_clk_register_gr_fdiv(const char *name,
 {
   struct clk *clk;
   char gr_clk[SONG_CLK_NAME_MAX], fixed_clk[SONG_CLK_NAME_MAX],
-    gate_clk[SONG_CLK_NAME_MAX];
+       gate_clk[SONG_CLK_NAME_MAX];
   uint8_t frac_flags, gate_flags;
   const char *pname = gate_clk;
 
@@ -341,8 +362,8 @@ static struct clk *song_clk_register_gr_fdiv(const char *name,
   gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
     SONG_CLK_FLAG_MASK;
 
-  clk = clk_register_gate(gate_clk, parent_name, flags, reg_base + en_offset,
-      en_shift, gate_flags);
+  clk = clk_register_gate(gate_clk, parent_name, flags | CLK_PARENT_NAME_IS_STATIC,
+      reg_base + en_offset, en_shift, gate_flags);
   if (!clk)
     return clk;
 
@@ -364,7 +385,7 @@ static struct clk *song_clk_register_gr_fdiv(const char *name,
   if (!clk)
     return clk;
 
-  return clk_register_fractional_divider(name, fixed_clk, flags,
+  return clk_register_fractional_divider(name, fixed_clk, flags | CLK_NAME_IS_STATIC,
     reg_base + div_offset, SONG_CLK_GR_FDIV_MUL_SHIFT,
     SONG_CLK_GR_FDIV_MUL_WIDTH, SONG_CLK_GR_FDIV_DIV_SHIFT,
     SONG_CLK_GR_FDIV_DIV_WIDTH, frac_flags);
@@ -387,24 +408,52 @@ static struct clk *song_clk_register_sdiv_gr(const char *name,
     uint64_t private_flags)
 {
   struct clk *clk;
-  char mid_clk[SONG_CLK_NAME_MAX];
+  char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX],
+       mult_clk[SONG_CLK_NAME_MAX];
+  uint8_t mult_flags, song_flags, gate_flags, div_flags;
+  uint8_t fixed_div = 8;
 
-  snprintf(mid_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "sdiv_gr");
+  snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
+  snprintf(div_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "div");
+  snprintf(mult_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mult");
 
-  clk = song_clk_register_sdiv(mid_clk, parent_name,
-    flags, reg_base, div_offset,
-    SONG_CLK_SDIV_GR_EN_SHIFT, div_offset, SONG_CLK_SDIV_GR_DIV_SHIFT,
-    SONG_CLK_SDIV_GR_DIV_WIDTH, private_flags);
+  gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
+    SONG_CLK_DIV_MASK;
+
+  mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  if (song_flags & SONG_CLK_GR_DIV_16)
+    fixed_div = 16;
+
+  clk = clk_register_gate(gate_clk, parent_name, flags | CLK_PARENT_NAME_IS_STATIC,
+    reg_base + div_offset, SONG_CLK_SDIV_GR_EN_SHIFT, gate_flags);
+  if (!clk)
+    return clk;
+
+  div_flags |= CLK_DIVIDER_ROUND_CLOSEST;
+  clk = clk_register_divider(div_clk, gate_clk, flags,
+    reg_base + div_offset, SONG_CLK_SDIV_GR_DIV_SHIFT, SONG_CLK_SDIV_GR_DIV_WIDTH,
+    div_flags);
 
   if (!clk)
-    return NULL;
+    return clk;
 
-  flags |= CLK_SET_RATE_PARENT;
-  clk = song_clk_register_gr(name, mid_clk, flags, reg_base, 0, 0,
-    div_offset, SONG_CLK_SDIV_GR_GR_SHIFT, SONG_CLK_SDIV_GR_GR_WIDTH,
-    private_flags);
+  mult_flags |= CLK_MULT_ROUND_CLOSEST;
+  clk = clk_register_multiplier(mult_clk, div_clk,
+    flags, reg_base + div_offset, SONG_CLK_SDIV_GR_GR_SHIFT,
+    SONG_CLK_SDIV_GR_GR_WIDTH, mult_flags);
+  if (!clk)
+    return clk;
 
-  return clk;
+  return clk_register_fixed_factor(name, mult_clk, flags | CLK_NAME_IS_STATIC,
+    1, fixed_div);
 }
 
 static struct clk *song_clk_register_sdiv_sdiv(const char *name,
@@ -413,22 +462,34 @@ static struct clk *song_clk_register_sdiv_sdiv(const char *name,
     uint64_t private_flags)
 {
   struct clk *clk;
-  char mid_clk[SONG_CLK_NAME_MAX];
+  char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX];
+  uint8_t gate_flags, div_flags;
 
-  snprintf(mid_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "sdiv_sdiv");
+  snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
+  snprintf(div_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "div");
 
-  clk = song_clk_register_sdiv(mid_clk, parent_name,
-    flags, reg_base, div_offset,
-    SONG_CLK_SDIV_SDIV_EN_SHIFT, div_offset, SONG_CLK_SDIV_SDIV_DIV0_SHIFT,
-    SONG_CLK_SDIV_SDIV_DIV0_WIDTH, private_flags);
+  gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
 
+  div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
+    SONG_CLK_DIV_MASK;
+
+  clk = clk_register_gate(gate_clk, parent_name, flags | CLK_PARENT_NAME_IS_STATIC,
+    reg_base + div_offset, SONG_CLK_SDIV_SDIV_EN_SHIFT, gate_flags);
   if (!clk)
-    return NULL;
+    return clk;
 
-  flags |= CLK_SET_RATE_PARENT;
-  clk = song_clk_register_sdiv(name, mid_clk, flags, reg_base, 0, 0,
-    div_offset, SONG_CLK_SDIV_SDIV_DIV1_SHIFT,
-    SONG_CLK_SDIV_SDIV_DIV1_WIDTH, private_flags);
+  div_flags |= CLK_DIVIDER_ROUND_CLOSEST;
+  clk = clk_register_divider(div_clk, gate_clk, flags,
+    reg_base + div_offset, SONG_CLK_SDIV_SDIV_DIV0_SHIFT,
+    SONG_CLK_SDIV_SDIV_DIV0_WIDTH, div_flags);
+  if (!clk)
+    return clk;
+
+  flags |= CLK_SET_RATE_PARENT | CLK_NAME_IS_STATIC;
+  clk = clk_register_divider(name, div_clk, flags,
+    reg_base + div_offset, SONG_CLK_SDIV_SDIV_DIV1_SHIFT,
+    SONG_CLK_SDIV_SDIV_DIV1_WIDTH, div_flags);
 
   return clk;
 }
@@ -439,24 +500,52 @@ static struct clk *song_clk_register_gr_sdiv(const char *name,
     uint64_t private_flags)
 {
   struct clk *clk;
-  char mid_clk[SONG_CLK_NAME_MAX];
+  char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX],
+       mult_clk[SONG_CLK_NAME_MAX];
+  uint8_t mult_flags, song_flags, gate_flags, div_flags;
+  uint8_t fixed_div = 8;
 
-  snprintf(mid_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gr_sdiv");
+  snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
+  snprintf(div_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "div");
+  snprintf(mult_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mult");
 
-  clk = song_clk_register_gr(mid_clk, parent_name,
-    flags, reg_base, div_offset,
-    SONG_CLK_GR_SDIV_EN_SHIFT, div_offset, SONG_CLK_GR_SDIV_GR_SHIFT,
-    SONG_CLK_GR_SDIV_GR_WIDTH, private_flags);
+  gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
+    SONG_CLK_DIV_MASK;
+
+  mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  if (song_flags & SONG_CLK_GR_DIV_16)
+    fixed_div = 16;
+
+  clk = clk_register_gate(gate_clk, parent_name, flags | CLK_PARENT_NAME_IS_STATIC,
+    reg_base + div_offset, SONG_CLK_GR_SDIV_EN_SHIFT, gate_flags);
+  if (!clk)
+    return clk;
+
+  div_flags |= CLK_DIVIDER_ROUND_CLOSEST;
+  clk = clk_register_divider(div_clk, gate_clk, flags,
+    reg_base + div_offset, SONG_CLK_GR_SDIV_DIV_SHIFT, SONG_CLK_GR_SDIV_DIV_WIDTH,
+    div_flags);
 
   if (!clk)
-    return NULL;
+    return clk;
 
-  flags |= CLK_SET_RATE_PARENT;
-  clk = song_clk_register_sdiv(name, mid_clk, flags, reg_base, 0, 0,
-    div_offset, SONG_CLK_GR_SDIV_DIV_SHIFT,
-    SONG_CLK_GR_SDIV_DIV_WIDTH, private_flags);
+  mult_flags |= CLK_MULT_ROUND_CLOSEST;
+  clk = clk_register_multiplier(mult_clk, div_clk,
+    flags, reg_base + div_offset, SONG_CLK_GR_SDIV_GR_SHIFT,
+    SONG_CLK_GR_SDIV_GR_WIDTH, mult_flags);
+  if (!clk)
+    return clk;
 
-  return clk;
+  return clk_register_fixed_factor(name, mult_clk, flags | CLK_NAME_IS_STATIC,
+    1, fixed_div);
 }
 
 static struct clk *song_clk_register_mux_sdiv_gr(const char *name,
@@ -466,23 +555,62 @@ static struct clk *song_clk_register_mux_sdiv_gr(const char *name,
     uint64_t private_flags)
 {
   struct clk *clk;
-  char mid_clk[SONG_CLK_NAME_MAX];
+  char gate_clk[SONG_CLK_NAME_MAX], div_clk[SONG_CLK_NAME_MAX],
+       mult_clk[SONG_CLK_NAME_MAX], mux_clk[SONG_CLK_NAME_MAX];
+  uint8_t mux_flags, mult_flags, song_flags, gate_flags, div_flags;
+  uint8_t fixed_div = 8;
 
-  snprintf(mid_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "sdiv_gr");
+  snprintf(mux_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mux");
+  snprintf(gate_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "gate");
+  snprintf(div_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "div");
+  snprintf(mult_clk, SONG_CLK_NAME_MAX, "%s_%s", name, "mult");
 
-  clk = song_clk_register_mux_sdiv(mid_clk, parent_name, num_parents,
-    flags, reg_base, div_offset, SONG_CLK_MUX_SDIV_GR_EN_SHIFT,
-    div_offset, SONG_CLK_MUX_SDIV_GR_MUX_SHIFT, mux_width,
-    div_offset, SONG_CLK_MUX_SDIV_GR_DIV_SHIFT, div_width, private_flags);
+  mux_flags = (private_flags >> SONG_CLK_MUX_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+  mux_flags |= CLK_MUX_ROUND_CLOSEST;
 
+  gate_flags = (private_flags >> SONG_CLK_GATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  song_flags = (private_flags >> SONG_CLK_PRIVATE_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  div_flags = (private_flags >> SONG_CLK_DIV_FLAG_SHIFT) &
+    SONG_CLK_DIV_MASK;
+
+  mult_flags = (private_flags >> SONG_CLK_MULT_FLAG_SHIFT) &
+    SONG_CLK_FLAG_MASK;
+
+  if (song_flags & SONG_CLK_GR_DIV_16)
+    fixed_div = 16;
+
+  clk = clk_register_mux(mux_clk, parent_name, num_parents, flags | CLK_PARENT_NAME_IS_STATIC,
+    reg_base + div_offset, SONG_CLK_MUX_SDIV_GR_MUX_SHIFT, MASK(mux_width), mux_flags);
   if (!clk)
-    return NULL;
+    return clk;
+
+  clk = clk_register_gate(gate_clk, mux_clk, flags,
+    reg_base + div_offset, SONG_CLK_MUX_SDIV_GR_EN_SHIFT, gate_flags);
+  if (!clk)
+    return clk;
+
+  div_flags |= CLK_DIVIDER_ROUND_CLOSEST;
+  clk = clk_register_divider(div_clk, gate_clk, flags,
+    reg_base + div_offset, SONG_CLK_MUX_SDIV_GR_DIV_SHIFT, div_width, div_flags);
+  if (!clk)
+    return clk;
 
   flags |= CLK_SET_RATE_PARENT;
-  clk = song_clk_register_gr(name, mid_clk, flags, reg_base, 0, 0,
-    div_offset, SONG_CLK_MUX_SDIV_GR_GR_SHIFT, SONG_CLK_MUX_SDIV_GR_GR_WIDTH, private_flags);
 
-  return clk;
+  mult_flags |= CLK_MULT_ROUND_CLOSEST;
+  clk = clk_register_multiplier(mult_clk, div_clk,
+    flags, reg_base + div_offset, SONG_CLK_MUX_SDIV_GR_GR_SHIFT,
+    SONG_CLK_MUX_SDIV_GR_GR_WIDTH, mult_flags);
+  if (!clk)
+    return clk;
+
+  return clk_register_fixed_factor(name, mult_clk, flags | CLK_NAME_IS_STATIC,
+    1, fixed_div);
 }
 
 static int song_register_fixed_rate_clks(
@@ -495,7 +623,7 @@ static int song_register_fixed_rate_clks(
       clk = clk_register_fixed_rate(
               fixed_rate_clks->name,
               NULL,
-              fixed_rate_clks->flags,
+              fixed_rate_clks->flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               fixed_rate_clks->fixed_rate);
 
       if (!clk)
@@ -518,7 +646,7 @@ static int song_register_fixed_factor_clks(
       clk = clk_register_fixed_factor(
               fixed_factor_clks->name,
               fixed_factor_clks->parent_name,
-              fixed_factor_clks->flags,
+              fixed_factor_clks->flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               fixed_factor_clks->fixed_mul,
               fixed_factor_clks->fixed_div);
 
@@ -825,7 +953,7 @@ static int song_register_phase_clks(uint32_t reg_base,
     {
       clk = clk_register_phase(phase_clks->name,
               phase_clks->parent_name,
-              phase_clks->flags,
+              phase_clks->flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               reg_base + phase_clks->reg_offset,
               phase_clks->phase_shift,
               phase_clks->phase_width,
@@ -879,7 +1007,7 @@ static int song_register_pll_clks(uint32_t reg_base,
       clk = clk_register_pll(
               pll_clks->name,
               pll_clks->parent_name,
-              pll_clks->flags,
+              pll_clks->flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               reg_base + pll_clks->cfg_reg0_offset,
               reg_base + pll_clks->cfg_reg1_offset,
               reg_base + pll_clks->ctl_reg_offset,
@@ -905,7 +1033,7 @@ static int song_register_pll_lf_clks(uint32_t reg_base,
       clk = clk_register_pll_lf(
               pll_lf_clks->name,
               pll_lf_clks->parent_name,
-              pll_lf_clks->flags,
+              pll_lf_clks->flags | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               reg_base + pll_lf_clks->cfg_reg0_offset,
               reg_base + pll_lf_clks->cfg_reg1_offset);
       if (!clk)
@@ -930,7 +1058,7 @@ static int song_register_out_clks(uint32_t reg_base,
               out_clks->name,
               out_clks->parent_name,
               out_clks->num_parents,
-              0,
+              CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               reg_base + out_clks->mux_reg_offset,
               out_clks->mux_shift,
               out_clks->mux_width,
@@ -957,7 +1085,7 @@ static int song_register_timer_clks(uint32_t reg_base,
               timer_clks->name,
               timer_clks->parent_name,
               timer_clks->num_parents,
-              0,
+              CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
               reg_base + timer_clks->ctl_reg_offset,
               timer_clks->mux_shift,
               timer_clks->mux_width);
