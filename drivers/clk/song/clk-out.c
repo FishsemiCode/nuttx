@@ -37,12 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/clk/song/song-clk.h>
-#include <nuttx/kmalloc.h>
-
-#include <debug.h>
 
 #include "song-clk.h"
 
@@ -62,9 +57,9 @@ struct div_args_s
   uint8_t mask;
 };
 
-/************************************************************************************
+/****************************************************************************
  * Prviate Data
- ************************************************************************************/
+ ****************************************************************************/
 
 static const struct div_args_s g_div_para[] =
 {
@@ -75,9 +70,9 @@ static const struct div_args_s g_div_para[] =
   {28, 0xf},
 };
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static int __clk_out_set_parent(struct clk *clk, uint8_t index)
 {
@@ -116,8 +111,7 @@ static int clk_out_is_enabled(struct clk *clk)
   return val != 6;
 }
 
-static uint32_t clk_out_recalc_rate(struct clk *clk,
-    uint32_t parent_rate)
+static uint32_t clk_out_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;
@@ -137,7 +131,7 @@ static uint32_t clk_out_recalc_rate(struct clk *clk,
 }
 
 static uint32_t clk_out_round_rate(struct clk *clk, uint32_t rate,
-    uint32_t *best_parent_rate)
+                                   uint32_t *best_parent_rate)
 {
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;
@@ -177,8 +171,7 @@ static uint8_t clk_out_get_parent(struct clk *clk)
   return out->parent_index;
 }
 
-static int clk_out_set_rate(struct clk *clk, uint32_t rate,
-    uint32_t parent_rate)
+static int clk_out_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
   struct clk_out *out = to_clk_out(clk);
   uint8_t src_sel;
@@ -207,9 +200,9 @@ static int clk_out_set_rate(struct clk *clk, uint32_t rate,
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_out_ops =
 {
@@ -228,28 +221,18 @@ const struct clk_ops clk_out_ops =
  ************************************************************************************/
 
 struct clk *clk_register_out(const char *name, const char * const *parent_names,
-    uint8_t num_parents, uint8_t flags, uint32_t mux_reg, uint8_t mux_shift,
-    uint8_t mux_width, uint32_t ctl_reg)
+                             uint8_t num_parents, uint8_t flags, uint32_t mux_reg,
+                             uint8_t mux_shift, uint8_t mux_width, uint32_t ctl_reg)
 {
-  struct clk_out *out;
-  struct clk *clk;
+  struct clk_out out;
 
-  out = kmm_zalloc(sizeof(struct clk_out));
-  if (!out)
-    return NULL;
+  out.mux_reg = mux_reg;
+  out.mux_shift = mux_shift;
+  out.mux_width = mux_width;
 
-  out->mux_reg = mux_reg;
-  out->mux_shift = mux_shift;
-  out->mux_width = mux_width;
+  out.ctl_reg = ctl_reg;
+  out.parent_index = clk_read(mux_reg) >> mux_shift & MASK(mux_width);
 
-  out->ctl_reg = ctl_reg;
-  out->parent_index = clk_read(mux_reg) >> mux_shift & MASK(mux_width);
-
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_out_ops, out);
-  if (!clk)
-    {
-      kmm_free(out);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_out_ops, &out, sizeof(out));
 }

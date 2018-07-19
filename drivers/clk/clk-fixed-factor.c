@@ -39,97 +39,69 @@
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
-
-#include <debug.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define to_clk_fixed_factor(_clk) \
-      (struct clk_fixed_factor *)(_clk->private_data)
+#define to_clk_fixed_factor(_clk) (struct clk_fixed_factor *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-static uint32_t clk_factor_recalc_rate(struct clk *clk,
-    uint32_t parent_rate)
+static uint32_t clk_factor_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
-  struct clk_fixed_factor *fix = to_clk_fixed_factor(clk);
-  uint64_t rate;
+  struct clk_fixed_factor *fixed = to_clk_fixed_factor(clk);
+  uint64_t rate = parent_rate;
 
-  rate = parent_rate * fix->mult;
-  rate /= fix->div;
+  rate *= fixed->mult;
+  rate /= fixed->div;
   return rate;
 }
 
-static uint32_t clk_factor_round_rate(struct clk *clk, uint32_t rate,
-        uint32_t *prate)
+static uint32_t clk_factor_round_rate(struct clk *clk, uint32_t rate, uint32_t *prate)
 {
-  struct clk_fixed_factor *fix = to_clk_fixed_factor(clk);
+  struct clk_fixed_factor *fixed = to_clk_fixed_factor(clk);
 
   if (clk->flags & CLK_SET_RATE_PARENT)
     {
       uint32_t best_parent;
 
-      best_parent = ((uint64_t)rate * fix->div) / fix->mult;
-      *prate = clk_round_rate(clk_get_parent(clk),
-          best_parent);
+      best_parent = ((uint64_t)rate * fixed->div) / fixed->mult;
+      *prate = clk_round_rate(clk_get_parent(clk), best_parent);
     }
 
-  return ((uint64_t)*prate * fix->mult) / fix->div;
+  return ((uint64_t)*prate * fixed->mult) / fixed->div;
 }
 
-static int clk_factor_set_rate(struct clk *clk, uint32_t rate,
-        uint32_t parent_rate)
-{
-  return 0;
-}
-
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_fixed_factor_ops =
 {
   .round_rate = clk_factor_round_rate,
-  .set_rate = clk_factor_set_rate,
   .recalc_rate = clk_factor_recalc_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_fixed_factor(const char *name,
-    const char *parent_name, uint8_t flags,
-    uint8_t mult, uint8_t div)
+struct clk *clk_register_fixed_factor(const char *name, const char *parent_name,
+                                      uint8_t flags, uint8_t mult, uint8_t div)
 {
-  struct clk_fixed_factor *fix;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_fixed_factor fixed;
   const char **parent_names;
-
-  fix = kmm_malloc(sizeof(*fix));
-  if (!fix)
-    {
-      clkerr("could not allocate fixed factor clk\n");
-      return NULL;
-    }
-
-  fix->mult = mult;
-  fix->div = div;
+  uint8_t num_parents;
 
   parent_names = parent_name ? &parent_name : NULL;
   num_parents = parent_name ? 1 : 0;
 
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_fixed_factor_ops, fix);
-  if (!clk)
-    {
-      kmm_free(fix);
-    }
+  fixed.mult = mult;
+  fixed.div = div;
 
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_fixed_factor_ops, &fixed, sizeof(fixed));
 }

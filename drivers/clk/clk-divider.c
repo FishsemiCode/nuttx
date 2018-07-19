@@ -39,9 +39,9 @@
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
 
 #include <debug.h>
+#include <stdlib.h>
 
 #include "clk.h"
 
@@ -49,12 +49,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define to_clk_divider(_clk) \
-    (struct clk_divider *)(_clk->private_data)
+#define to_clk_divider(_clk) (struct clk_divider *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static uint32_t _get_maxdiv(uint8_t width, uint16_t flags)
 {
@@ -80,7 +79,7 @@ static uint32_t _get_val(uint32_t div, uint16_t flags)
 }
 
 static uint32_t divider_recalc_rate(struct clk *clk, uint32_t parent_rate,
-          uint32_t val, uint16_t flags)
+                                    uint32_t val, uint16_t flags)
 {
   uint32_t div;
 
@@ -94,8 +93,7 @@ static uint32_t divider_recalc_rate(struct clk *clk, uint32_t parent_rate,
   return DIV_ROUND_UP(parent_rate, div);
 }
 
-static uint32_t clk_divider_recalc_rate(struct clk *clk,
-    uint32_t parent_rate)
+static uint32_t clk_divider_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct clk_divider *divider = to_clk_divider(clk);
   uint32_t val;
@@ -107,7 +105,7 @@ static uint32_t clk_divider_recalc_rate(struct clk *clk,
 }
 
 static uint32_t _div_round_closest(uint32_t parent_rate, uint32_t rate,
-            uint16_t flags)
+                                   uint16_t flags)
 {
   uint32_t up, down;
   uint32_t up_rate, down_rate;
@@ -122,7 +120,7 @@ static uint32_t _div_round_closest(uint32_t parent_rate, uint32_t rate,
 }
 
 static uint32_t _div_round(uint32_t parent_rate, uint32_t rate,
-          uint16_t flags)
+                           uint16_t flags)
 {
   if (flags & CLK_DIVIDER_ROUND_CLOSEST)
     return _div_round_closest(parent_rate, rate, flags);
@@ -131,7 +129,7 @@ static uint32_t _div_round(uint32_t parent_rate, uint32_t rate,
 }
 
 static bool _is_best_div(uint32_t rate, uint32_t now,
-       uint32_t best, uint16_t flags)
+                         uint32_t best, uint16_t flags)
 {
   if (flags & CLK_DIVIDER_ROUND_CLOSEST)
     return abs(rate - now) < abs(rate - best);
@@ -140,8 +138,8 @@ static bool _is_best_div(uint32_t rate, uint32_t now,
 }
 
 static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
-             uint32_t *best_parent_rate,
-             uint8_t width, uint16_t flags)
+                                    uint32_t *best_parent_rate,
+                                    uint8_t width, uint16_t flags)
 {
   uint32_t i, bestdiv = 0, maxdiv, mindiv;
   uint32_t parent_rate, best = 0, now;
@@ -204,7 +202,8 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
 }
 
 static uint32_t divider_round_rate(struct clk *clk, uint32_t rate,
-      uint32_t *prate, uint8_t width, uint16_t flags)
+                                   uint32_t *prate, uint8_t width,
+                                   uint16_t flags)
 {
   uint32_t div;
 
@@ -214,7 +213,7 @@ static uint32_t divider_round_rate(struct clk *clk, uint32_t rate,
 }
 
 static uint32_t clk_divider_round_rate(struct clk *clk, uint32_t rate,
-        uint32_t *prate)
+                                       uint32_t *prate)
 {
   struct clk_divider *divider = to_clk_divider(clk);
 
@@ -222,7 +221,7 @@ static uint32_t clk_divider_round_rate(struct clk *clk, uint32_t rate,
 }
 
 static uint32_t divider_get_val(uint32_t rate, uint32_t parent_rate,
-        uint8_t width, uint16_t flags)
+                                uint8_t width, uint16_t flags)
 {
   uint32_t div, value;
 
@@ -234,7 +233,7 @@ static uint32_t divider_get_val(uint32_t rate, uint32_t parent_rate,
 }
 
 static int clk_divider_set_rate(struct clk *clk, uint32_t rate,
-        uint32_t parent_rate)
+                                uint32_t parent_rate)
 {
   struct clk_divider *divider = to_clk_divider(clk);
   uint32_t value;
@@ -257,9 +256,9 @@ static int clk_divider_set_rate(struct clk *clk, uint32_t rate,
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_divider_ops =
 {
@@ -268,19 +267,17 @@ const struct clk_ops clk_divider_ops =
   .set_rate = clk_divider_set_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_divider(const char *name,
-    const char *parent_name, uint8_t flags,
-    uint32_t reg, uint8_t shift, uint8_t width,
-    uint16_t clk_divider_flags)
+struct clk *clk_register_divider(const char *name, const char *parent_name,
+                                 uint8_t flags, uint32_t reg, uint8_t shift,
+                                 uint8_t width, uint16_t clk_divider_flags)
 {
-  struct clk_divider *div;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_divider div;
   const char **parent_names;
+  uint8_t num_parents;
 
   if (clk_divider_flags & CLK_DIVIDER_HIWORD_MASK)
     {
@@ -291,26 +288,14 @@ struct clk *clk_register_divider(const char *name,
       }
     }
 
-  div = kmm_malloc(sizeof(struct clk_divider));
-  if (!div)
-    {
-      clkerr("could not allocate divider clk\n");
-      return NULL;
-    }
+  parent_names = parent_name ? &parent_name: NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  parent_names = (parent_name ? &parent_name: NULL);
-  num_parents = (parent_name ? 1 : 0);
+  div.reg = reg;
+  div.shift = shift;
+  div.width = width;
+  div.flags = clk_divider_flags;
 
-  div->reg = reg;
-  div->shift = shift;
-  div->width = width;
-  div->flags = clk_divider_flags;
-
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_divider_ops, div);
-  if (!clk)
-    {
-      kmm_free(div);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_divider_ops, &div, sizeof(div));
 }

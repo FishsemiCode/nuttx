@@ -37,10 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/clk/song/song-clk.h>
-#include <nuttx/kmalloc.h>
 
 #include <debug.h>
 
@@ -62,9 +59,9 @@
 
 #define to_clk_pll_lf(_clk) (struct clk_pll_lf *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static uint32_t clk_pll_lf_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
@@ -80,7 +77,7 @@ static uint32_t clk_pll_lf_recalc_rate(struct clk *clk, uint32_t parent_rate)
 }
 
 static uint32_t clk_pll_lf_round_rate(struct clk *clk, uint32_t rate,
-    uint32_t *best_parent_rate)
+                                      uint32_t *best_parent_rate)
 {
   uint32_t fbdiv, postdiv = 1;
 
@@ -100,9 +97,9 @@ static uint32_t clk_pll_lf_round_rate(struct clk *clk, uint32_t rate,
   return ((uint64_t)*best_parent_rate * fbdiv) / postdiv;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_pll_lf_ops =
 {
@@ -110,36 +107,23 @@ const struct clk_ops clk_pll_lf_ops =
   .round_rate = clk_pll_lf_round_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint8_t flags,
-    uint32_t cfg_reg0, uint32_t cfg_reg1)
+struct clk *clk_register_pll_lf(const char *name, const char *parent_name,
+                                uint8_t flags, uint32_t cfg_reg0, uint32_t cfg_reg1)
 {
-  struct clk_pll_lf *pll;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_pll_lf pll;
   const char **parent_names;
+  uint8_t num_parents;
 
-  pll = kmm_malloc(sizeof(struct clk_pll_lf));
-  if (!pll)
-    {
-      return NULL;
-    }
+  parent_names = parent_name ? &parent_name : NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  parent_names = (parent_name ? &parent_name : NULL);
-  num_parents = (parent_name ? 1 : 0);
+  pll.cfg_reg0 = cfg_reg0;
+  pll.cfg_reg1 = cfg_reg1;
 
-  pll->cfg_reg0 = cfg_reg0;
-  pll->cfg_reg1 = cfg_reg1;
-
-  clk = clk_register(name, parent_names, num_parents,
-      flags, &clk_pll_lf_ops, pll);
-  if (!clk)
-    {
-      kmm_free(pll);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_pll_lf_ops, &pll, sizeof(pll));
 }

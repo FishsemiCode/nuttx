@@ -37,11 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
-
-#include <debug.h>
 
 #include "clk.h"
 
@@ -49,12 +45,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define to_clk_fd(_clk) \
-    (struct clk_fractional_divider *)(_clk->private_data)
+#define to_clk_fd(_clk) (struct clk_fractional_divider *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static uint32_t gcd(uint32_t a, uint32_t b)
 {
@@ -78,8 +73,7 @@ static uint32_t gcd(uint32_t a, uint32_t b)
   return b;
 }
 
-static uint32_t clk_fd_recalc_rate(struct clk *clk,
-          uint32_t parent_rate)
+static uint32_t clk_fd_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
   uint32_t mmask = MASK(fd->mwidth) << fd->mshift;
@@ -98,8 +92,7 @@ static uint32_t clk_fd_recalc_rate(struct clk *clk,
   return ret;
 }
 
-static uint32_t clk_fd_round_rate(struct clk *clk, uint32_t rate,
-            uint32_t *prate)
+static uint32_t clk_fd_round_rate(struct clk *clk, uint32_t rate, uint32_t *prate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
   uint32_t maxn = BIT(fd->nwidth);
@@ -136,8 +129,7 @@ static uint32_t clk_fd_round_rate(struct clk *clk, uint32_t rate,
   return ret;
 }
 
-static int clk_fd_set_rate(struct clk *clk, uint32_t rate,
-         uint32_t parent_rate)
+static int clk_fd_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
   uint32_t mmask = MASK(fd->mwidth) << fd->mshift;
@@ -168,9 +160,9 @@ static int clk_fd_set_rate(struct clk *clk, uint32_t rate,
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_fractional_divider_ops =
 {
@@ -179,43 +171,29 @@ const struct clk_ops clk_fractional_divider_ops =
   .set_rate = clk_fd_set_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_fractional_divider(const char *name,
-    const char *parent_name, uint8_t flags,
-    uint32_t reg, uint8_t mshift, uint8_t mwidth, uint8_t nshift, uint8_t nwidth,
-    uint8_t clk_divider_flags)
+struct clk *clk_register_fractional_divider(const char *name, const char *parent_name,
+                                            uint8_t flags, uint32_t reg, uint8_t mshift,
+                                            uint8_t mwidth, uint8_t nshift, uint8_t nwidth,
+                                            uint8_t clk_divider_flags)
 {
-  struct clk_fractional_divider *fd;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_fractional_divider fd;
   const char **parent_names;
-
-  fd = kmm_malloc(sizeof(*fd));
-  if (!fd)
-    {
-      clkerr("could not allocate fractional divider clk\n");
-      return NULL;
-    }
+  uint8_t num_parents;
 
   parent_names = parent_name ? &parent_name : NULL;
   num_parents = parent_name ? 1 : 0;
 
-  fd->reg = reg;
-  fd->mshift = mshift;
-  fd->mwidth = mwidth;
-  fd->nshift = nshift;
-  fd->nwidth = nwidth;
-  fd->flags = clk_divider_flags;
+  fd.reg = reg;
+  fd.mshift = mshift;
+  fd.mwidth = mwidth;
+  fd.nshift = nshift;
+  fd.nwidth = nwidth;
+  fd.flags = clk_divider_flags;
 
-  clk = clk_register(name, parent_names, num_parents, flags,
-        &clk_fractional_divider_ops, fd);
-  if (!clk)
-    {
-      kmm_free(fd);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_fractional_divider_ops, &fd, sizeof(fd));
 }

@@ -54,7 +54,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define CLK_PROCFS_LINELEN          80
+#define CLK_PROCFS_LINELEN                  80
 
 /****************************************************************************
  * Private Datas
@@ -385,8 +385,7 @@ static void clk_calc_subtree(struct clk *clk, uint32_t new_rate,
 
 static struct clk *clk_calc_new_rates(struct clk *clk, uint32_t rate)
 {
-  struct clk *top = clk;
-  struct clk *old_parent, *parent;
+  struct clk *top = clk, *old_parent, *parent;
   uint32_t best_parent_rate = 0;
   uint32_t new_rate = 0;
   int p_index = 0;
@@ -400,8 +399,7 @@ static struct clk *clk_calc_new_rates(struct clk *clk, uint32_t rate)
 
   if (clk->ops->determine_rate)
     {
-      new_rate = clk->ops->determine_rate(clk, rate, &best_parent_rate,
-                  &parent);
+      new_rate = clk->ops->determine_rate(clk, rate, &best_parent_rate, &parent);
     }
   else if (clk->ops->round_rate)
     {
@@ -441,9 +439,8 @@ out:
 
 static void clk_change_rate(struct clk *clk, uint32_t best_parent_rate)
 {
-  struct clk *child;
+  struct clk *child, *old_parent;
   bool skip_set_rate = false;
-  struct clk *old_parent;
 
   list_for_every_entry(&clk->children, child, struct clk, child_node)
     {
@@ -547,8 +544,7 @@ static uint32_t __clk_round_rate(struct clk *clk, uint32_t rate)
     parent_rate = __clk_get_rate(parent);
 
   if (clk->ops->determine_rate)
-    return clk->ops->determine_rate(clk, rate, &parent_rate,
-               &parent);
+    return clk->ops->determine_rate(clk, rate, &parent_rate, &parent);
   else if (clk->ops->round_rate)
     return clk->ops->round_rate(clk, rate, &parent_rate);
   else if (clk->flags & CLK_SET_RATE_PARENT)
@@ -621,15 +617,14 @@ static void clk_init_parent(struct clk *clk)
     };
 
   index = clk->ops->get_parent(clk);
-
   clk->parent = clk_get_parent_by_index(clk, index);
 }
 
 static int __clk_register(struct clk *clk)
 {
-  uint8_t i;
   struct clk *orphan;
-  struct clk *temp_orphan;
+  struct clk *temp;
+  uint8_t i;
 
   if (!clk)
     return -EINVAL;
@@ -675,7 +670,7 @@ static int __clk_register(struct clk *clk)
       list_add_head(&g_clk_orphan_list, &clk->child_node);
     }
 
-  list_for_every_entry_safe(&g_clk_orphan_list, orphan, temp_orphan, struct clk, child_node)
+  list_for_every_entry_safe(&g_clk_orphan_list, orphan, temp, struct clk, child_node)
     {
       if (orphan->num_parents && orphan->ops->get_parent)
         {
@@ -697,10 +692,6 @@ static int __clk_register(struct clk *clk)
     }
 
   clk_list_unlock();
-
-  if (clk->ops->init)
-    clk->ops->init(clk);
-
   return 0;
 }
 
@@ -715,27 +706,19 @@ void clk_disable(struct clk *clk)
 
 int clk_enable(struct clk *clk)
 {
-  int ret;
-
-  ret = __clk_enable(clk);
-
-  return ret;
+  return __clk_enable(clk);
 }
 
 uint32_t clk_round_rate(struct clk *clk, uint32_t rate)
 {
-  uint32_t ret;
-
-  ret = __clk_round_rate(clk, rate);
-
-  return ret;
+  return __clk_round_rate(clk, rate);
 }
 
 int clk_set_rate(struct clk *clk, uint32_t rate)
 {
-  int ret = 0;
-  struct clk *top;
   uint32_t parent_rate;
+  struct clk *top;
+  int ret = 0;
 
   if (!clk)
     return 0;
@@ -789,14 +772,10 @@ int clk_set_phase(struct clk *clk, int degrees)
 
 int clk_get_phase(struct clk *clk)
 {
-  int ret;
-
   if (!clk || !clk->ops->get_phase)
     return 0;
 
-  ret = clk->ops->get_phase(clk);
-
-  return ret;
+  return clk->ops->get_phase(clk);
 }
 
 const char *clk_get_name(const struct clk *clk)
@@ -857,8 +836,7 @@ out:
 int clk_set_parent(struct clk *clk, struct clk *parent)
 {
   struct clk *old_parent = NULL;
-  int ret = 0;
-  int index = 0;
+  int ret = 0, index = 0;
 
   if (!clk)
     return 0;
@@ -934,38 +912,29 @@ struct clk *clk_get_parent_by_index(struct clk *clk, uint8_t index)
 
 struct clk *clk_get_parent(struct clk *clk)
 {
-  struct clk *parent;
-
-  parent = !clk ? NULL : clk->parent;
-
-  return parent;
+  return !clk ? NULL : clk->parent;
 }
 
 uint32_t clk_get_rate(struct clk *clk)
 {
-  uint32_t rate;
-
   if (!clk)
     return 0;
 
   if (clk->flags & CLK_GET_RATE_NOCACHE)
     __clk_recalc_rate(clk);
 
-  rate = __clk_get_rate(clk);
-
-  return rate;
+  return __clk_get_rate(clk);
 }
 
 struct clk *clk_register(const char *name, const char * const *parent_names,
                          uint8_t num_parents, uint8_t flags, const struct clk_ops *ops,
-                         void *private_data)
+                         void *private_data, size_t private_size)
 {
-  struct clk *clk = NULL;
-  uint32_t cnt, len;
-  int i = 0;
+  struct clk *clk;
+  size_t off, len;
+  int i;
 
-  cnt = len = sizeof(struct clk) + num_parents * sizeof(char *);
-
+  off = len = sizeof(struct clk) + num_parents * sizeof(char *);
   if (!(flags & CLK_PARENT_NAME_IS_STATIC))
     {
       for (i = 0; i < num_parents; i++)
@@ -973,13 +942,13 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
           len += strlen(parent_names[i]) + 1;
         }
     }
+  len += private_size;
 
   if (flags & CLK_NAME_IS_STATIC)
     {
       clk = kmm_zalloc(len);
       if (!clk)
         return NULL;
-
       clk->name = name;
     }
   else
@@ -987,17 +956,19 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
       clk = kmm_zalloc(len + strlen(name) + 1);
       if (!clk)
         return NULL;
-
       clk->name = (char *)clk + len;
       strcpy((char *)clk->name, name);
     }
 
   clk->ops = ops;
-  clk->private_data = private_data;
   clk->num_parents = num_parents;
   clk->flags = flags;
 
-  for (i = 0; i < clk->num_parents; i++)
+  clk->private_data = (char *)clk + off;
+  memcpy(clk->private_data, private_data, private_size);
+  off += private_size;
+
+  for (i = 0; i < num_parents; i++)
     {
       if (flags & CLK_PARENT_NAME_IS_STATIC)
         {
@@ -1005,9 +976,9 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
         }
       else
         {
-          clk->parent_names[i] = (char *)clk + cnt;
+          clk->parent_names[i] = (char *)clk + off;
           strcpy((char *)clk->parent_names[i], parent_names[i]);
-          cnt += strlen(parent_names[i]) + 1;
+          off += strlen(parent_names[i]) + 1;
         }
     }
 

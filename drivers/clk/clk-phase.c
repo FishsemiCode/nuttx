@@ -37,11 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
-
-#include <debug.h>
 
 #include "clk.h"
 
@@ -51,18 +47,16 @@
 
 #define to_clk_phase(_clk) (struct clk_phase *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static int clk_phase_get_phase(struct clk *clk)
 {
   struct clk_phase *phase = to_clk_phase(clk);
   uint32_t val;
 
-  val = (clk_read(phase->reg) >> phase->shift) &
-    MASK(phase->width);
-
+  val = (clk_read(phase->reg) >> phase->shift) & MASK(phase->width);
   return DIV_ROUND_CLOSEST(360 * val, MASK(phase->width) + 1);
 }
 
@@ -92,9 +86,9 @@ static int clk_phase_set_phase(struct clk *clk, int degrees)
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_phase_ops =
 {
@@ -102,38 +96,26 @@ const struct clk_ops clk_phase_ops =
   .set_phase = clk_phase_set_phase,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 struct clk *clk_register_phase(const char *name, const char *parent_name,
-    uint8_t flags, uint32_t reg, uint8_t shift,
-    uint8_t width, uint8_t clk_phase_flags)
+                               uint8_t flags, uint32_t reg, uint8_t shift,
+                               uint8_t width, uint8_t clk_phase_flags)
 {
-  struct clk_phase *phase;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_phase phase;
   const char **parent_names;
+  uint8_t num_parents;
 
-  phase = kmm_malloc(sizeof(struct clk_phase));
-  if (!phase)
-    {
-      return NULL;
-    }
+  parent_names = parent_name ? &parent_name : NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  parent_names = (parent_name ? &parent_name : NULL);
-  num_parents = (parent_name ? 1 : 0);
+  phase.reg = reg;
+  phase.shift = shift;
+  phase.width = width;
+  phase.flags = clk_phase_flags;
 
-  phase->reg = reg;
-  phase->shift = shift;
-  phase->width = width;
-  phase->flags = clk_phase_flags;
-
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_phase_ops, phase);
-  if (!clk)
-    {
-      kmm_free(phase);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_phase_ops, &phase, sizeof(phase));
 }

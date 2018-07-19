@@ -37,12 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
-
-#include <debug.h>
-#include <stdint.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -50,56 +45,41 @@
 
 #define to_clk_fixed_rate(_clk) (struct clk_fixed_rate *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-static uint32_t clk_fixed_rate_recalc_rate(struct clk *clk,
-    uint32_t parent_rate)
+static uint32_t clk_fixed_rate_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct clk_fixed_rate *fixed = to_clk_fixed_rate(clk);
   return fixed->fixed_rate;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_fixed_rate_ops =
 {
   .recalc_rate = clk_fixed_rate_recalc_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 struct clk *clk_register_fixed_rate(const char *name, const char *parent_name,
-    uint8_t flags, uint32_t fixed_rate)
+                                    uint8_t flags, uint32_t fixed_rate)
 {
-  struct clk_fixed_rate *fixed;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_fixed_rate fixed;
   const char **parent_names;
+  uint8_t num_parents;
 
-  fixed = kmm_malloc(sizeof(struct clk_fixed_rate));
-  if (!fixed)
-    {
-      clkerr("%s: could not allocate fixed clk\n", __func__);
-      set_errno(-ENOMEM);
-      return NULL;
-    }
+  parent_names = parent_name ? &parent_name: NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  parent_names = (parent_name ? &parent_name: NULL);
-  num_parents = (parent_name ? 1 : 0);
+  fixed.fixed_rate = fixed_rate;
 
-  fixed->fixed_rate = fixed_rate;
-
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_fixed_rate_ops, fixed);
-  if (!clk)
-    {
-      kmm_free(fixed);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_fixed_rate_ops, &fixed, sizeof(fixed));
 }

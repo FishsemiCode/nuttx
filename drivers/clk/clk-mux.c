@@ -39,9 +39,8 @@
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
 
-#include <debug.h>
+#include <stdlib.h>
 
 #include "clk.h"
 
@@ -49,15 +48,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define to_clk_mux(_clk) \
-    (struct clk_mux *)(_clk->private_data)
+#define to_clk_mux(_clk) (struct clk_mux *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static bool mux_is_better_rate(uint32_t rate, uint32_t now,
-        uint32_t best, uint8_t flags)
+                               uint32_t best, uint8_t flags)
 {
   if (flags & CLK_MUX_ROUND_CLOSEST)
     return abs(now - rate) < abs(best - rate);
@@ -99,8 +97,8 @@ static int clk_mux_set_parent(struct clk *clk, uint8_t index)
 
 static uint32_t
 clk_mux_determine_rate(struct clk *clk, uint32_t rate,
-      uint32_t *best_parent_rate,
-      struct clk **best_parent_p)
+                       uint32_t *best_parent_rate,
+                       struct clk **best_parent_p)
 {
   struct clk_mux *mux = to_clk_mux(clk);
   struct clk *parent, *best_parent = NULL;
@@ -144,9 +142,9 @@ out:
   return best;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_mux_ops =
 {
@@ -160,41 +158,25 @@ const struct clk_ops clk_mux_ro_ops =
   .get_parent = clk_mux_get_parent,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 struct clk *clk_register_mux(const char *name, const char * const *parent_names,
-    uint8_t  num_parents, uint8_t flags,
-    uint32_t reg, uint8_t shift, uint8_t width,
-    uint8_t clk_mux_flags)
+                             uint8_t num_parents, uint8_t flags, uint32_t reg,
+                             uint8_t shift, uint8_t width, uint8_t clk_mux_flags)
 {
-  struct clk_mux *mux;
-  struct clk *clk;
+  struct clk_mux mux;
 
-  mux = kmm_malloc(sizeof(struct clk_mux));
-  if (!mux)
-    {
-      clkerr("could not allocate mux clk\n");
-      return NULL;
-    }
-
-  mux->reg   = reg;
-  mux->shift = shift;
-  mux->width = width;
-  mux->flags = clk_mux_flags;
+  mux.reg   = reg;
+  mux.shift = shift;
+  mux.width = width;
+  mux.flags = clk_mux_flags;
 
   if (clk_mux_flags & CLK_MUX_READ_ONLY)
-    clk = clk_register(name, parent_names, num_parents, flags,
-        &clk_mux_ro_ops, mux);
+    return clk_register(name, parent_names, num_parents, flags,
+                        &clk_mux_ro_ops, &mux, sizeof(mux));
   else
-    clk = clk_register(name, parent_names, num_parents, flags,
-          &clk_mux_ops, mux);
-
-  if (!clk)
-    {
-      kmm_free(mux);
-    }
-
-  return clk;
+    return clk_register(name, parent_names, num_parents, flags,
+                        &clk_mux_ops, &mux, sizeof(mux));
 }

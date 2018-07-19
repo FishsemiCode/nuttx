@@ -39,9 +39,9 @@
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
 
 #include <debug.h>
+#include <stdlib.h>
 
 #include "clk.h"
 
@@ -49,12 +49,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define to_clk_multiplier(_clk) \
-    (struct clk_multiplier *)(_clk->private_data)
+#define to_clk_multiplier(_clk) (struct clk_multiplier *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static uint32_t _get_maxmult(struct clk_multiplier *multiplier)
 {
@@ -79,8 +78,7 @@ static uint32_t _get_val(struct clk_multiplier *multiplier, uint32_t mult)
   return mult - 1;
 }
 
-static uint32_t clk_multiplier_recalc_rate(struct clk *clk,
-    uint32_t parent_rate)
+static uint32_t clk_multiplier_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct clk_multiplier *multiplier = to_clk_multiplier(clk);
   uint32_t mult, val;
@@ -100,7 +98,7 @@ static uint32_t clk_multiplier_recalc_rate(struct clk *clk,
 }
 
 static bool __is_best_rate(uint32_t rate, uint32_t new,
-    uint32_t best, uint16_t flags)
+                           uint32_t best, uint16_t flags)
 {
   if (flags & CLK_MULT_ROUND_CLOSEST)
     return abs(rate - new) < abs(rate - best);
@@ -109,7 +107,7 @@ static bool __is_best_rate(uint32_t rate, uint32_t new,
 }
 
 static uint32_t clk_multiplier_bestmult(struct clk *clk, uint32_t rate,
-    uint32_t *best_parent_rate)
+                                        uint32_t *best_parent_rate)
 {
   struct clk_multiplier *multiplier = to_clk_multiplier(clk);
   uint32_t i, bestmult = 0;
@@ -158,16 +156,13 @@ static uint32_t clk_multiplier_bestmult(struct clk *clk, uint32_t rate,
 }
 
 static uint32_t clk_multiplier_round_rate(struct clk *clk, uint32_t rate,
-        uint32_t *prate)
+                                          uint32_t *prate)
 {
-  uint32_t mult;
-  mult = clk_multiplier_bestmult(clk, rate, prate);
-
-  return *prate * mult;
+  return *prate * clk_multiplier_bestmult(clk, rate, prate);
 }
 
 static int clk_multiplier_set_rate(struct clk *clk, uint32_t rate,
-        uint32_t parent_rate)
+                                   uint32_t parent_rate)
 {
   struct clk_multiplier *multiplier = to_clk_multiplier(clk);
   uint32_t mult, value;
@@ -194,9 +189,9 @@ static int clk_multiplier_set_rate(struct clk *clk, uint32_t rate,
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_multiplier_ops =
 {
@@ -205,19 +200,17 @@ const struct clk_ops clk_multiplier_ops =
   .set_rate = clk_multiplier_set_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_multiplier(const char *name,
-    const char *parent_name, uint8_t flags,
-    uint32_t reg, uint8_t shift, uint8_t width,
-    uint8_t clk_multiplier_flags)
+struct clk *clk_register_multiplier(const char *name, const char *parent_name,
+                                    uint8_t flags, uint32_t reg, uint8_t shift,
+                                    uint8_t width, uint8_t clk_multiplier_flags)
 {
-  struct clk_multiplier *mult;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_multiplier mult;
   const char **parent_names;
+  uint8_t num_parents;
 
   if (clk_multiplier_flags & CLK_MULT_HIWORD_MASK)
     {
@@ -228,27 +221,14 @@ struct clk *clk_register_multiplier(const char *name,
       }
     }
 
-  mult = kmm_malloc(sizeof(struct clk_multiplier));
-  if (!mult)
-    {
-      clkerr("could not allocate multiplier clk\n");
-      return NULL;
-    }
+  parent_names = parent_name ? &parent_name : NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  parent_names = (parent_name ? &parent_name : NULL);
-  num_parents = (parent_name ? 1 : 0);
+  mult.reg = reg;
+  mult.shift = shift;
+  mult.width = width;
+  mult.flags = clk_multiplier_flags;
 
-  mult->reg = reg;
-  mult->shift = shift;
-  mult->width = width;
-  mult->flags = clk_multiplier_flags;
-
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_multiplier_ops, mult);
-  if (!clk)
-    {
-      kmm_free(mult);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_multiplier_ops, &mult, sizeof(mult));
 }
-

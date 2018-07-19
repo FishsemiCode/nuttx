@@ -41,7 +41,6 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
 #include <nuttx/list.h>
 
 #include <stdint.h>
@@ -143,7 +142,6 @@ struct clk_ops
             uint32_t parent_rate, uint8_t index);
   int       (*get_phase)(struct clk *clk);
   int       (*set_phase)(struct clk *clk, int degrees);
-  void      (*init)(struct clk *clk);
 };
 
 /* the individual clk struct */
@@ -229,7 +227,7 @@ extern const struct clk_ops clk_rpmsg_ops;
 
 struct clk *clk_register(const char *name, const char * const *parent_names,
                     uint8_t num_parents, uint8_t flags, const struct clk_ops *ops,
-                    void *private_data);
+                    void *private_data, size_t private_size);
 
 /* the individual clk register Prototypes */
 struct clk *clk_register_gate(const char *name, const char *parent_name,

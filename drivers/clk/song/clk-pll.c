@@ -37,10 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/clk/song/song-clk.h>
-#include <nuttx/kmalloc.h>
 
 #include <debug.h>
 
@@ -73,9 +70,9 @@
 
 #define to_clk_pll(_clk) (struct clk_pll *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static uint32_t
 clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
@@ -107,8 +104,7 @@ clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
 }
 
 static uint32_t
-clk_pll_round_rate(struct clk *clk, uint32_t rate,
-    uint32_t *best_parent_rate)
+clk_pll_round_rate(struct clk *clk, uint32_t rate, uint32_t *best_parent_rate)
 {
   uint32_t val, dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
   struct clk_pll *pll = to_clk_pll(clk);
@@ -185,8 +181,7 @@ static int clk_pll_is_enable(struct clk *clk)
   return val != BIT(PLL_PLLPD_SHIFT);
 }
 
-static int clk_pll_set_rate(struct clk *clk, uint32_t rate,
-    uint32_t parent_rate)
+static int clk_pll_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
   uint32_t val, dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
   struct clk_pll *pll = to_clk_pll(clk);
@@ -216,9 +211,9 @@ static int clk_pll_set_rate(struct clk *clk, uint32_t rate,
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_pll_ops =
 {
@@ -230,37 +225,26 @@ const struct clk_ops clk_pll_ops =
   .set_rate    = clk_pll_set_rate,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_pll(const char *name, const char *parent_name, uint8_t flags,
-    uint32_t cfg_reg0, uint32_t cfg_reg1, uint32_t ctl_reg, uint8_t ctl_shift)
+struct clk *clk_register_pll(const char *name, const char *parent_name,
+                             uint8_t flags, uint32_t cfg_reg0, uint32_t cfg_reg1,
+                             uint32_t ctl_reg, uint8_t ctl_shift)
 {
-  struct clk_pll *pll;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_pll pll;
   const char **parent_names;
+  uint8_t num_parents;
 
-  pll = kmm_malloc(sizeof(struct clk_pll));
-  if (!pll)
-    {
-      return NULL;
-    }
+  parent_names = parent_name ? &parent_name : NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  parent_names = (parent_name ? &parent_name : NULL);
-  num_parents = (parent_name ? 1 : 0);
+  pll.cfg_reg0 = cfg_reg0;
+  pll.cfg_reg1 = cfg_reg1;
+  pll.ctl_reg = ctl_reg;
+  pll.ctl_shift = ctl_shift;
 
-  pll->cfg_reg0 = cfg_reg0;
-  pll->cfg_reg1 = cfg_reg1;
-  pll->ctl_reg = ctl_reg;
-  pll->ctl_shift = ctl_shift;
-
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_pll_ops, pll);
-  if (!clk)
-    {
-      kmm_free(pll);
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_pll_ops, &pll, sizeof(pll));
 }

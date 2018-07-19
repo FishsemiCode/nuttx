@@ -37,9 +37,7 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/kmalloc.h>
 
 #include <debug.h>
 
@@ -49,12 +47,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define to_clk_gate(_clk) \
-    (struct clk_gate *)(_clk->private_data)
+#define to_clk_gate(_clk) (struct clk_gate *)(_clk->private_data)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static void clk_gate_endisable(struct clk *clk, int32_t enable)
 {
@@ -86,7 +83,6 @@ static void clk_gate_endisable(struct clk *clk, int32_t enable)
 static int clk_gate_enable(struct clk *clk)
 {
   clk_gate_endisable(clk, 1);
-
   return 0;
 }
 
@@ -111,9 +107,9 @@ static int clk_gate_is_enabled(struct clk *clk)
   return val ? 1 : 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_gate_ops =
 {
@@ -122,19 +118,17 @@ const struct clk_ops clk_gate_ops =
   .is_enabled = clk_gate_is_enabled,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-struct clk *clk_register_gate(const char *name,
-    const char *parent_name, uint8_t flags,
-    uint32_t reg, uint8_t bit_idx,
-    uint8_t clk_gate_flags)
+struct clk *clk_register_gate(const char *name, const char *parent_name,
+                              uint8_t flags, uint32_t reg, uint8_t bit_idx,
+                              uint8_t clk_gate_flags)
 {
-  struct clk_gate *gate;
-  struct clk *clk;
-  uint8_t num_parents;
+  struct clk_gate gate;
   const char **parent_names;
+  uint8_t num_parents;
 
   if (clk_gate_flags & CLK_GATE_HIWORD_MASK)
     {
@@ -145,26 +139,13 @@ struct clk *clk_register_gate(const char *name,
         }
     }
 
-  gate = kmm_malloc(sizeof(struct clk_gate));
-  if (!gate)
-    {
-      clkerr("could not allocate gated clk\n");
-      return NULL;
-    }
-
-  num_parents = (parent_name ? 1 : 0);
   parent_names = parent_name ? &parent_name : NULL;
+  num_parents = parent_name ? 1 : 0;
 
-  gate->reg = reg;
-  gate->bit_idx = bit_idx;
-  gate->flags = clk_gate_flags;
+  gate.reg = reg;
+  gate.bit_idx = bit_idx;
+  gate.flags = clk_gate_flags;
 
-  clk = clk_register(name, parent_names, num_parents, flags, &clk_gate_ops, gate);
-  if (!clk)
-    {
-      kmm_free(gate);
-      return NULL;
-    }
-
-  return clk;
+  return clk_register(name, parent_names, num_parents, flags,
+                      &clk_gate_ops, &gate, sizeof(gate));
 }

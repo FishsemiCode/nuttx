@@ -174,9 +174,9 @@ static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate);
 static int clk_rpmsg_get_phase(struct clk *clk);
 static int clk_rpmsg_set_phase(struct clk *clk, int degrees);
 
-/***********************************************************************************
+/****************************************************************************
  * Private Datas
- ***********************************************************************************/
+ ****************************************************************************/
 
 static mutex_t g_clk_rpmsg_lock                = MUTEX_INITIALIZER;
 static struct list_node g_clk_rpmsg_priv       = LIST_INITIAL_VALUE(g_clk_rpmsg_priv);
@@ -193,9 +193,9 @@ static const rpmsg_rx_cb_t clk_rpmsg_handler[] =
   [CLK_RPMSG_ISENABLED] = clk_rpmsg_isenabled_handler,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 static struct clk_rpmsg_priv_s *clk_rpmsg_get_priv(const char *name)
 {
@@ -760,9 +760,9 @@ static int clk_rpmsg_set_phase(struct clk *clk, int degrees)
             (struct clk_rpmsg_header_s *)msg, len);
 }
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
 
 const struct clk_ops clk_rpmsg_ops =
 {
@@ -776,16 +776,16 @@ const struct clk_ops clk_rpmsg_ops =
   .get_phase = clk_rpmsg_get_phase,
 };
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
 struct clk *clk_register_rpmsg(const char *name, uint8_t flags)
 {
   if (strchr(name, '/') == NULL)
     return NULL;
 
-  return clk_register(name, NULL, 0, flags, &clk_rpmsg_ops, NULL);
+  return clk_register(name, NULL, 0, flags, &clk_rpmsg_ops, NULL, 0);
 }
 
 int clk_rpmsg_initialize(bool server)
