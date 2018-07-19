@@ -1430,6 +1430,18 @@ void up_disable_irq(int irq);
 #endif
 
 /****************************************************************************
+ * Name: up_trigger_irq
+ *
+ * Description:
+ *   Trigger an IRQ by software.
+ *
+ ****************************************************************************/
+
+#ifndef CONFIG_ARCH_NOINTC
+void up_trigger_irq(int irq);
+#endif
+
+/****************************************************************************
  * Name: up_prioritize_irq
  *
  * Description:
