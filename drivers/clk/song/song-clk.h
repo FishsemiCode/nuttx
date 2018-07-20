@@ -49,26 +49,25 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-#define SONG_CLK_FLAG_MASK              0xff
-#define SONG_CLK_DIV_MASK               0xffff
 
-/* This descibes individual clk register shift */
-#define SONG_CLK_GR_FDIV_EN_SHIFT       0
+/* This describes individual clk register shift */
 #define SONG_CLK_GR_FDIV_GR_SHIFT       4
 #define SONG_CLK_GR_FDIV_GR_WIDTH       3
-#define SONG_CLK_GR_FDIV_MUL_SHIFT      16
-#define SONG_CLK_GR_FDIV_MUL_WIDTH      16
+#define SONG_CLK_GR_FDIV_MULT_SHIFT     16
+#define SONG_CLK_GR_FDIV_MULT_WIDTH     16
 #define SONG_CLK_GR_FDIV_DIV_SHIFT      0
 #define SONG_CLK_GR_FDIV_DIV_WIDTH      16
 
-#define SONG_CLK_SDIV_FDIV_MUL_SHIFT    16
-#define SONG_CLK_SDIV_FDIV_MUL_WIDTH    16
-#define SONG_CLK_SDIV_FDIV_DIV_SHIFT    0
-#define SONG_CLK_SDIV_FDIV_DIV_WIDTH    16
+#define SONG_CLK_SDIV_FDIV_EN_SHIFT     0
+#define SONG_CLK_SDIV_FDIV_SDIV_SHIFT   4
+#define SONG_CLK_SDIV_FDIV_SDIV_WIDTH   4
+#define SONG_CLK_SDIV_FDIV_MULT_SHIFT   16
+#define SONG_CLK_SDIV_FDIV_MULT_WIDTH   16
+#define SONG_CLK_SDIV_FDIV_FDIV_SHIFT   0
+#define SONG_CLK_SDIV_FDIV_FDIV_WIDTH   16
 
 #define SONG_CLK_SDIV_GR_EN_SHIFT       0
 #define SONG_CLK_SDIV_GR_DIV_SHIFT      4
-#define SONG_CLK_SDIV_GR_DIV_WIDTH      3
 #define SONG_CLK_SDIV_GR_GR_SHIFT       8
 #define SONG_CLK_SDIV_GR_GR_WIDTH       4
 
@@ -82,7 +81,6 @@
 #define SONG_CLK_GR_SDIV_GR_SHIFT       4
 #define SONG_CLK_GR_SDIV_GR_WIDTH       3
 #define SONG_CLK_GR_SDIV_DIV_SHIFT      8
-#define SONG_CLK_GR_SDIV_DIV_WIDTH      4
 
 #define SONG_CLK_MUX_SDIV_GR_EN_SHIFT   0
 #define SONG_CLK_MUX_SDIV_GR_DIV_SHIFT  4
@@ -103,9 +101,18 @@
 
 #define SONG_CLK_NAME_MAX               50
 
-/************************************************************************************
+/****************************************************************************
  * Public Data
- ************************************************************************************/
+ ****************************************************************************/
+
+/* the song platform pll ops declaration */
+extern const struct clk_ops clk_pll_ops;
+/* the song platform pll_lf ops declaration */
+extern const struct clk_ops clk_pll_lf_ops;
+/* the song platform out ops declaration */
+extern const struct clk_ops clk_out_ops;
+/* the song platform timer ops declaration */
+extern const struct clk_ops clk_timer_ops;
 
 #undef EXTERN
 #if defined(__cplusplus)
@@ -119,16 +126,16 @@ extern "C"
 /* the song platform pll clk struct */
 struct clk_pll
 {
-  uint32_t cfg_reg0;
-  uint32_t cfg_reg1;
+  uint32_t cfg0_reg;
+  uint32_t cfg1_reg;
   uint32_t ctl_reg;
   uint8_t  ctl_shift;
 };
 
 struct clk_pll_lf
 {
-  uint32_t cfg_reg0;
-  uint32_t cfg_reg1;
+  uint32_t cfg0_reg;
+  uint32_t cfg1_reg;
 };
 
 struct clk_out
@@ -151,31 +158,25 @@ struct clk_timer
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-/* the song platform pll ops declaration */
-extern const struct clk_ops clk_pll_ops;
-/* the song platform pll_lf ops declaration */
-extern const struct clk_ops clk_pll_lf_ops;
-/* the song platform out ops declaration */
-extern const struct clk_ops clk_out_ops;
-/* the song platform timer ops declaration */
-extern const struct clk_ops clk_timer_ops;
 
 /* the song platform pll register declaration */
-struct clk *clk_register_pll(const char *name, const char *parent_name, uint8_t flags,
-    uint32_t cfg_reg0, uint32_t cfg_reg1, uint32_t ctl_reg, uint8_t ctl_shift);
+struct clk *clk_register_pll(const char *name, const char *parent_name,
+                             uint8_t flags, uint32_t cfg0_reg, uint32_t cfg1_reg,
+                             uint32_t ctl_reg, uint8_t ctl_shift);
 
 /* the song platform pll_lf register declaration */
-struct clk *clk_register_pll_lf(const char *name, const char *parent_name, uint8_t flags,
-    uint32_t cfg_reg0, uint32_t cfg_reg1);
+struct clk *clk_register_pll_lf(const char *name, const char *parent_name,
+                                uint8_t flags, uint32_t cfg0_reg, uint32_t cfg1_reg);
 
 /* the song platform out register declaration */
 struct clk *clk_register_out(const char *name, const char * const *parent_names,
-    uint8_t num_parents, uint8_t flags, uint32_t mux_reg, uint8_t mux_shift,
-    uint8_t mux_width, uint32_t ctl_reg);
+                             uint8_t num_parents, uint8_t flags, uint32_t mux_reg,
+                             uint8_t mux_shift, uint8_t mux_width, uint32_t ctl_reg);
 
 /* the song platform timer register declaration */
 struct clk *clk_register_timer(const char *name, const char *const *parent_names,
-    uint8_t num_parents, uint8_t flags, uint32_t ctl_reg, uint8_t mux_shift, uint8_t mux_width);
+                               uint8_t num_parents, uint8_t flags, uint32_t ctl_reg,
+                               uint8_t mux_shift, uint8_t mux_width);
 
 #undef EXTERN
 #if defined(__cplusplus)

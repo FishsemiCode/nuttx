@@ -69,7 +69,7 @@ static uint32_t clk_pll_lf_recalc_rate(struct clk *clk, uint32_t parent_rate)
   uint32_t fbdiv, postdiv;
   struct clk_pll_lf *pll = to_clk_pll_lf(clk);
 
-  val     = clk_read(pll->cfg_reg0);
+  val     = clk_read(pll->cfg0_reg);
   fbdiv   = (val >> PLL_FBDIV_SHIFT) & PLL_FBDIV_MASK;
   postdiv = (val >> PLL_POSTDIV_SHIFT) & PLL_POSTDIV_MASK;
 
@@ -112,7 +112,7 @@ const struct clk_ops clk_pll_lf_ops =
  ****************************************************************************/
 
 struct clk *clk_register_pll_lf(const char *name, const char *parent_name,
-                                uint8_t flags, uint32_t cfg_reg0, uint32_t cfg_reg1)
+                                uint8_t flags, uint32_t cfg0_reg, uint32_t cfg1_reg)
 {
   struct clk_pll_lf pll;
   const char **parent_names;
@@ -121,8 +121,8 @@ struct clk *clk_register_pll_lf(const char *name, const char *parent_name,
   parent_names = parent_name ? &parent_name : NULL;
   num_parents = parent_name ? 1 : 0;
 
-  pll.cfg_reg0 = cfg_reg0;
-  pll.cfg_reg1 = cfg_reg1;
+  pll.cfg0_reg = cfg0_reg;
+  pll.cfg1_reg = cfg1_reg;
 
   return clk_register(name, parent_names, num_parents, flags,
                       &clk_pll_lf_ops, &pll, sizeof(pll));
