@@ -422,7 +422,10 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
   i2c->internal_status  = 0;
   i2c->rx_outstanding   = 0;
 
-  dw_i2c_enable(i2c);
+  /* don't enable irq. otherwise when master transfer first
+   * bytes(address+write/read) to slave, slave may NACK
+   */
+  dw_i2c_enable_disable(i2c, true);
 
   ret = dw_i2c_wait_bus_nobusy(i2c);
   if (ret < 0)
