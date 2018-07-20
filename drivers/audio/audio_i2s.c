@@ -242,14 +242,14 @@ static int audio_i2s_configure(struct audio_lowerhalf_s *dev,
         if (audio_i2s->playback)
           {
             I2S_TXCHANNELS(i2s, nchannels);
-            I2S_TXSAMPLERATE(i2s, samprate);
             I2S_TXDATAWIDTH(i2s, bpsamp);
+            I2S_TXSAMPLERATE(i2s, samprate);
           }
         else
           {
             I2S_RXCHANNELS(i2s, nchannels);
-            I2S_RXSAMPLERATE(i2s, samprate);
             I2S_RXDATAWIDTH(i2s, bpsamp);
+            I2S_RXSAMPLERATE(i2s, samprate);
           }
         break;
       default:
