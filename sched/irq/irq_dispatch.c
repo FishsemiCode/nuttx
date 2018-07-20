@@ -69,8 +69,26 @@
          } \
        while (0)
 #  endif
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     do \
+       { \
+         struct timespec start; \
+         struct timespec end; \
+         struct timespec delta; \
+         clock_systimespec(&start); \
+         vector(irq, context, arg); \
+         clock_systimespec(&end); \
+         clock_timespec_subtract(&end, &start, &delta); \
+         if (delta.tv_nsec > g_irqvector[ndx].time) \
+           { \
+             g_irqvector[ndx].time = delta.tv_nsec; \
+           } \
+       } \
+     while (0)
 #else
 #  define INCR_COUNT(ndx)
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     vector(irq, context, arg)
 #endif
 
 /****************************************************************************
@@ -91,27 +109,23 @@ void irq_dispatch(int irq, FAR void *context)
 {
   xcpt_t vector = irq_unexpected_isr;
   FAR void *arg = NULL;
+  unsigned ndx = irq;
 
 #if NR_IRQS > 0
   if ((unsigned)irq < NR_IRQS)
     {
 #ifdef CONFIG_ARCH_MINIMAL_VECTORTABLE
-      irq_mapped_t ndx = g_irqmap[irq];
+      ndx = g_irqmap[irq];
       if (ndx < CONFIG_ARCH_NUSER_INTERRUPTS)
         {
+#endif
           if (g_irqvector[ndx].handler)
             {
               vector = g_irqvector[ndx].handler;
               arg    = g_irqvector[ndx].arg;
               INCR_COUNT(ndx);
             }
-        }
-#else
-      if (g_irqvector[irq].handler)
-        {
-          vector = g_irqvector[irq].handler;
-          arg    = g_irqvector[irq].arg;
-          INCR_COUNT(irq);
+#ifdef CONFIG_ARCH_MINIMAL_VECTORTABLE
         }
 #endif
     }
@@ -125,5 +139,5 @@ void irq_dispatch(int irq, FAR void *context)
 
   /* Then dispatch to the interrupt handler */
 
-  vector(irq, context, arg);
+  CALL_VECTOR(ndx, vector, irq, context, arg);
 }
