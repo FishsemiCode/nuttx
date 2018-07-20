@@ -494,12 +494,12 @@ static void up_i2c_init(void)
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
-      .ss_hcnt    = 62,
-      .ss_lcnt    = 92,
-      .fs_hcnt    = 14,
-      .fs_lcnt    = 17,
+      .ss_hcnt    = 73,
+      .ss_lcnt    = 74,
+      .fs_hcnt    = 11,
+      .fs_lcnt    = 12,
       .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .hs_lcnt    = 7,
     },
     {
       .bus        = 1,
@@ -508,17 +508,17 @@ static void up_i2c_init(void)
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
-      .ss_hcnt    = 56,
-      .ss_lcnt    = 88,
+      .ss_hcnt    = 73,
+      .ss_lcnt    = 74,
       .fs_hcnt    = 11,
       .fs_lcnt    = 12,
       .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .hs_lcnt    = 7,
     }
   };
-  int config_num = sizeof(config) / sizeof(config[0]);
+  int config_num = sizeof(configs) / sizeof(configs[0]);
 
-  dw_i2c_allinitialize(config, config_num, g_i2c);
+  dw_i2c_allinitialize(configs, config_num, g_i2c);
 }
 #endif
 

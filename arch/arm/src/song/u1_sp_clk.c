@@ -146,11 +146,11 @@ static  const struct song_default_rate_clk default_rate[] =
 {
   {
     .name = "i2c0_mclk",
-    .rate = 80000000,
+    .rate = 16000000,
   },
   {
     .name = "i2c1_mclk",
-    .rate = 80000000,
+    .rate = 16000000,
   },
   {
     .name = "uart2_clk",
@@ -386,7 +386,7 @@ static const struct song_sdiv_clk sdiv[] =
   },
   {
     .name = "i2c0_mclk",
-    .parent_name = "pll1_mclk",
+    .parent_name = "pll0_out",
     .flags = 0,
     .en_offset = 0x0b0,
     .en_shift = 0,
@@ -398,7 +398,7 @@ static const struct song_sdiv_clk sdiv[] =
   },
   {
     .name = "i2c1_mclk",
-    .parent_name = "pll1_mclk",
+    .parent_name = "pll0_out",
     .flags = 0,
     .en_offset = 0x0b4,
     .en_shift = 0,
