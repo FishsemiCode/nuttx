@@ -43,6 +43,10 @@ ifeq ($(CONFIG_SONG_I2S),y)
 CSRCS += song_i2s.c
 endif
 
+ifeq ($(CONFIG_SONG_PCM),y)
+CSRCS += song_pcm.c
+endif
+
 ifeq ($(CONFIG_SONG_PDM),y)
 CSRCS += song_pdm.c
 endif

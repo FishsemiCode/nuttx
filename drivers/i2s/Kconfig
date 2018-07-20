@@ -35,7 +35,10 @@ config AUDIO_I2SCHAR_TXTIMEOUT
 endif # AUDIO_I2SCHAR
 
 config SONG_I2S
-        bool "Song I2S"
+	bool "Song I2S"
+
+config SONG_PCM
+	bool "Song PCM"
 
 config SONG_PDM
-        bool "Song PDM"
+	bool "Song PDM"
