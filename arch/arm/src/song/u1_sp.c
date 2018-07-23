@@ -493,7 +493,7 @@ static void up_openamp_initialize(void)
     .rpmsg_vring0    =
     {
       .align         = 0x8,
-      .num           = 8,
+      .num           = 4,
     },
     .rpmsg_vring1    =
     {
