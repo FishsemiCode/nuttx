@@ -150,7 +150,10 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end)
 
 __ramfunc__ void up_invalidate_icache_all(void)
 {
-  uint32_t regval;
+  uint32_t   regval;
+  irqstate_t flags;
+
+  flags = enter_critical_section();
 
   regval  = getreg32(SONG_ICACHE_CTL);
   regval |= SONG_ICACHE_FLUSH;
@@ -160,6 +163,8 @@ __ramfunc__ void up_invalidate_icache_all(void)
     {
       /* Wait until FLUSH bit get clear */;
     }
+
+  leave_critical_section(flags);
 }
 
 /****************************************************************************
