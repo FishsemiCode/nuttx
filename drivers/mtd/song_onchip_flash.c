@@ -174,18 +174,14 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
   FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
   uint32_t erasesize = (1 << (cfg->xaddr_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
-  uint32_t prio;
   irqstate_t flags;
   size_t i;
 
   for (i = 0; i < nblocks; i++)
     {
       flags = enter_critical_section();
-      prio = flash_regread(priv, PRIO_CTRL);
-      flash_regwrite(priv, PRIO_CTRL, prio | PRIO_WR_LOW);
       flash_regwrite(priv, XADDR, (startblock + i) << cfg->xaddr_shift);
       flash_sendop_wait(priv, CMD_ERASE);
-      flash_regwrite(priv, PRIO_CTRL, prio);
       leave_critical_section(flags);
     }
 
