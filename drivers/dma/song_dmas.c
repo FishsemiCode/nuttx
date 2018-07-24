@@ -55,8 +55,8 @@
 #define SONG_DMAS_REG_INT_RAW0                  0x00c
 #define SONG_DMAS_REG_INT_CLR0                  0x028
 #define SONG_DMAS_REG_INTV_UNIT                 0x02c
-#define SONG_DMAS_REG_PAUSE                     0x034
-#define SONG_DMAS_REG_RESUME                    0x038
+#define SONG_DMAS_REG_PAUSE                     0x038
+#define SONG_DMAS_REG_RESUME                    0x03c
 #define SONG_DMAS_REG_INT_RAW1                  0x30c
 #define SONG_DMAS_REG_INT_CLR1                  0x328
 #define SONG_DMAS_REG_LP_CTL                    0x3fc
