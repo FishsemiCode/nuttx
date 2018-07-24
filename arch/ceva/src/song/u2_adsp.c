@@ -142,7 +142,8 @@ void ceva_timer_initialize(void)
     .minor      = -1,
     .base       = B2C(TOP_PWR_BASE),
     .irq        = IRQ_VINT5, /* VINT5 */
-    .c1_freq    = 19200000, /* 19.2Mhz */
+    .c1_max     = 600,
+    .c1_freq    = 6000000, /* 6Mhz */
     .ctl_off    = 0x290, /* TOP_PWR_AT_CTL */
     .calib_off  = 0x2b4, /* TOP_PWR_AT_CALIB_CTL */
     .c1_off     = 0x294, /* TOP_PWR_AT_C1 */
