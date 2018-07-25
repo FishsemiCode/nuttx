@@ -54,6 +54,7 @@ struct audio_dma_s
   uintptr_t dst_addr;
   uint8_t *alloc_addr;
   uint8_t alloc_index;
+  uint8_t fifo_width;
   bool playback;
   bool xrun;
   struct dq_queue_s pendq;
@@ -249,7 +250,10 @@ static int audio_dma_configure(struct audio_lowerhalf_s *dev,
           {
             memset(&cfg, 0, sizeof(struct dma_config_s));
             cfg.direction = DMA_MEM_TO_DEV;
-            cfg.dst_width = caps->ac_controls.b[2] / 8;
+            if (!audio_dma->fifo_width)
+              cfg.dst_width = audio_dma->fifo_width;
+            else
+              cfg.dst_width = caps->ac_controls.b[2] / 8;
             ret = DMA_CONFIG(audio_dma->chan, &cfg);
           }
         break;
@@ -258,7 +262,10 @@ static int audio_dma_configure(struct audio_lowerhalf_s *dev,
           {
             memset(&cfg, 0, sizeof(struct dma_config_s));
             cfg.direction = DMA_DEV_TO_MEM;
-            cfg.src_width = caps->ac_controls.b[2] / 8;
+            if (audio_dma->fifo_width)
+              cfg.dst_width = audio_dma->fifo_width;
+            else
+              cfg.src_width = caps->ac_controls.b[2] / 8;
             ret = DMA_CONFIG(audio_dma->chan, &cfg);
           }
         break;
@@ -525,7 +532,7 @@ static void audio_dma_callback(struct dma_chan_s *chan, void *arg, ssize_t len)
 
 struct audio_lowerhalf_s *audio_dma_initialize(struct dma_dev_s *dma_dev,
                                                uint8_t chan_num, bool playback,
-                                               uintptr_t fifo_addr)
+                                               uint8_t fifo_width, uintptr_t fifo_addr)
 {
   struct audio_dma_s *audio_dma;
 
@@ -541,6 +548,7 @@ struct audio_lowerhalf_s *audio_dma_initialize(struct dma_dev_s *dma_dev,
       return NULL;
     }
   audio_dma->playback = playback;
+  audio_dma->fifo_width = fifo_width;
   if (audio_dma->playback)
     audio_dma->dst_addr = fifo_addr;
   else

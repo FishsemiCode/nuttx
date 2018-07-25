@@ -50,5 +50,5 @@
 
 struct audio_lowerhalf_s *audio_dma_initialize(struct dma_dev_s *dma_dev,
                                                uint8_t chan_num, bool playback,
-                                               uintptr_t fifo_addr);
+                                               uint8_t fifo_width, uintptr_t fifo_addr);
 #endif
