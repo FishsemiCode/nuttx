@@ -264,7 +264,7 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
 __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 {
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
-  int ret;
+  int ret = OK;
 
   switch (cmd)
     {
@@ -278,7 +278,6 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
               geo->blocksize    = BLOCK_SIZE;
               geo->erasesize    = (1 << (cfg->xaddr_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
               geo->neraseblocks = cfg->neraseblocks;
-              ret = OK;
             }
         }
         break;
