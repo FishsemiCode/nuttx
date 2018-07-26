@@ -268,4 +268,8 @@ config AUDIO_DP_ADC
 
 config AUDIO_DP_VAD
 	bool "DP VAD driver"
+        depends on AUDIO
+
+config AUDIO_SONG_AUDIO_PATH
+	bool "Song audio path"
 	depends on AUDIO

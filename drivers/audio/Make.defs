@@ -101,6 +101,10 @@ ifeq ($(CONFIG_AUDIO_DP_VAD),y)
 CSRCS += dp_vad.c
 endif
 
+ifeq ($(CONFIG_AUDIO_SONG_AUDIO_PATH),y)
+CSRCS += song_audio_path_anc.c song_audio_path_in.c song_audio_path_voice.c song_audio_path_vt.c
+endif
+
 # Include Audio driver support
 
 DEPPATH += --dep-path audio
