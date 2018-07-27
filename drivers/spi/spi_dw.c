@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <errno.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/mutex.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/irq.h>
@@ -113,6 +114,7 @@ struct dw_spi_hw_s
 struct dw_spi_s
 {
   struct spi_dev_s spi_dev;
+  struct clk *mclk;
   const struct dw_spi_config_s *config;
   struct ioexpander_dev_s *ioe;
   enum dw_spi_version ver;
@@ -362,9 +364,10 @@ static uint32_t dw_spi_setfrequency(FAR struct spi_dev_s *dev,
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
   uint16_t clk_div;
   uint32_t actual_freq;
+  uint32_t clk_rate = clk_get_rate(spi->mclk);
 
-  clk_div = ((config->clk_rate / frequency) + 1) & SPI_BAUD_MASK;
-  actual_freq = config->clk_rate / clk_div;
+  clk_div = ((clk_rate / frequency) + 1) & SPI_BAUD_MASK;
+  actual_freq = clk_rate / clk_div;
   dw_spi_set_div(hw, clk_div);
 
   return actual_freq;
@@ -669,6 +672,14 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
       return NULL;
     }
 
+  spi->mclk = clk_get(config->mclk);
+  if (!spi->mclk)
+    {
+      spierr("mclk invalid for spi %p\n", config->base);
+      kmm_free(spi);
+      return NULL;
+    }
+
   spi->spi_dev.ops = &dw_spi_ops;
   spi->config = config;
   spi->ioe = ioe;
@@ -684,6 +695,10 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   ret = nxsem_setprotocol(&spi->sem, SEM_PRIO_NONE);
   if (ret)
     goto sem_prio_err;
+
+  ret = clk_enable(spi->mclk);
+  if (ret)
+    goto clk_en_err;
 
   dw_spi_hw_init(spi);
 
@@ -702,6 +717,7 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   return &spi->spi_dev;
 
 irq_err:
+clk_en_err:
 sem_prio_err:
   nxsem_destroy(&spi->sem);
 sem_err:

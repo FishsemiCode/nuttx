@@ -610,6 +610,15 @@ static const struct song_gate_clk gate[] =
   {},
 };
 
+static const struct song_default_rate_clk def_rate[] =
+{
+  {
+    .name = "spi0_mclk",
+    .rate = 76800000,
+  },
+  {},
+};
+
 static const struct song_clk_table u2_ap_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -623,6 +632,7 @@ static const struct song_clk_table u2_ap_clk_tbl =
   .pll_clks          = pll,
   .pll_lf_clks       = pll_lf,
   .out_clks          = out,
+  .def_rate          = def_rate,
   .rpmsg_server      = true,
 };
 

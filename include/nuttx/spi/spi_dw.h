@@ -55,11 +55,11 @@ struct dw_spi_config_s
   int bus;
   uintptr_t base;
   uint32_t irq;
-  uint32_t clk_rate;
   uint8_t cs_num;
   uint8_t cs_gpio[CONFIG_SPI_DW_MAX_CS];
   uintptr_t mode_ctrl;
   uint32_t mode_sel_bit;
+  FAR const char *mclk;
 };
 
 /****************************************************************************

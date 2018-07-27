@@ -349,15 +349,15 @@ static void up_spi_init(void)
       .bus = 0,
       .base = 0xf8b10000,
       .irq = 17,
-      .clk_rate = 19500000,
       .cs_num = 2,
+      .mclk = "sen_ssi0_mclk",
     },
     {
       .bus = 1,
       .base = 0xf8b1c000,
       .irq = 25,
-      .clk_rate = 19500000,
       .cs_num = 2,
+      .mclk = "sen_ssi1_mclk",
     }
   };
   int config_num = sizeof(config) / sizeof(config[0]);

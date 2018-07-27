@@ -149,6 +149,10 @@ static const struct song_default_rate_clk def_rate[] =
     .rate = 48000000,
   },
   {
+    .name = "spi1_mclk",
+    .rate = 4096000,
+  },
+  {
     .name = "flash_ctrl_clk",
     .rate = 102400000,
   },

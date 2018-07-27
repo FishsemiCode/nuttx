@@ -559,9 +559,9 @@ static void up_spi_init(void)
     .bus = 1,
     .base = 0xb0120000,
     .irq = 31,
-    .clk_rate = 4096000,
     .cs_num = 1,
     .cs_gpio[0] = 26,
+    .mclk = "spi1_mclk",
   };
 
   g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0]);

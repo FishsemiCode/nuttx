@@ -322,10 +322,10 @@ static void up_spi_init(void)
     {
       .base = 0xa0130000,
       .irq = 29,
-      .clk_rate = 78000000,
       .bus = 0,
       .cs_num = 1,
       .cs_gpio[0] = 28,
+      .mclk = "spi0_mclk",
     },
   };
   int config_num = sizeof(config) / sizeof(config[0]);
