@@ -64,6 +64,12 @@
  * Pre-processor definitions
  ****************************************************************************/
 
+#ifdef CONFIG_SERIAL_DMA
+#  define DMA_SECTION __attribute__((section(".dma")))
+#else
+#  define DMA_SECTION
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -160,35 +166,35 @@ static const struct uart_ops_s g_uart_ops =
 /* I/O buffers */
 
 #ifdef CONFIG_16550_UART0
-static char g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE];
-static char g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE];
+static char g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE] DMA_SECTION;
+static char g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE] DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART1
-static char g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE];
-static char g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE];
+static char g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE] DMA_SECTION;
+static char g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE] DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART2
-static char g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE];
-static char g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE];
+static char g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE] DMA_SECTION;
+static char g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE] DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART3
-static char g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE];
-static char g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE];
+static char g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE] DMA_SECTION;
+static char g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE] DMA_SECTION;
 #endif
 
 /* DMA receive buffers */
 
 #ifdef CONFIG_16550_UART0_DMA_RXBUFSIZE
-static long g_uart0dmarxbuf[CONFIG_16550_UART0_DMA_RXBUFSIZE/sizeof(long)];
+static long g_uart0dmarxbuf[CONFIG_16550_UART0_DMA_RXBUFSIZE/sizeof(long)] DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART1_DMA_RXBUFSIZE
-static long g_uart1dmarxbuf[CONFIG_16550_UART1_DMA_RXBUFSIZE/sizeof(long)];
+static long g_uart1dmarxbuf[CONFIG_16550_UART1_DMA_RXBUFSIZE/sizeof(long)] DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART2_DMA_RXBUFSIZE
-static long g_uart2dmarxbuf[CONFIG_16550_UART2_DMA_RXBUFSIZE/sizeof(long)];
+static long g_uart2dmarxbuf[CONFIG_16550_UART2_DMA_RXBUFSIZE/sizeof(long)] DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART3_DMA_RXBUFSIZE
-static long g_uart3dmarxbuf[CONFIG_16550_UART3_DMA_RXBUFSIZE/sizeof(long)];
+static long g_uart3dmarxbuf[CONFIG_16550_UART3_DMA_RXBUFSIZE/sizeof(long)] DMA_SECTION;
 #endif
 
 /* This describes the state of the 16550 uart port. */
