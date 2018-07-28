@@ -263,7 +263,7 @@ static int audio_dma_configure(struct audio_lowerhalf_s *dev,
             memset(&cfg, 0, sizeof(struct dma_config_s));
             cfg.direction = DMA_DEV_TO_MEM;
             if (audio_dma->fifo_width)
-              cfg.dst_width = audio_dma->fifo_width;
+              cfg.src_width = audio_dma->fifo_width;
             else
               cfg.src_width = caps->ac_controls.b[2] / 8;
             ret = DMA_CONFIG(audio_dma->chan, &cfg);
