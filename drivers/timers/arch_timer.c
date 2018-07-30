@@ -121,8 +121,18 @@ static uint32_t update_timeout(uint32_t timeout)
    */
 
   TIMER_GETSTATUS(g_timer.lower, &status);
-  if (timeout_diff(timeout, status.timeleft))
+  if (g_timer.next_interval)
     {
+      /* If the timer interrupt is in the process,
+       * let the callback return the right interval.
+       */
+
+      *g_timer.next_interval = timeout;
+    }
+  else if (timeout_diff(timeout, status.timeleft))
+    {
+      /* Otherwise, update the timeout directly. */
+
       TIMER_SETTIMEOUT(g_timer.lower, timeout);
       g_timer.timebase += status.timeout - status.timeleft;
     }
@@ -313,10 +323,10 @@ void up_timer_getmask(FAR uint64_t *mask)
 int up_timer_gettime(FAR struct timespec *ts)
 {
   if (!g_timer.lower)
-  {
-    memset(ts, 0, sizeof(*ts));
-    return 0;
-  }
+    {
+      memset(ts, 0, sizeof(*ts));
+      return 0;
+    }
 
   timespec_from_usec(ts, current_usec());
   return 0;
@@ -405,21 +415,7 @@ int up_timer_start(FAR const struct timespec *ts)
       return -EAGAIN;
     }
 
-  if (g_timer.next_interval)
-    {
-      /* If the timer interrupt is in the process,
-       * let the callback return the right interval.
-       */
-
-      *g_timer.next_interval = timespec_to_usec(ts);
-    }
-  else
-    {
-      /* Otherwise, update the timeout directly. */
-
-      update_timeout(timespec_to_usec(ts));
-    }
-
+  update_timeout(timespec_to_usec(ts));
   return 0;
 }
 #endif
@@ -454,7 +450,7 @@ void up_udelay(useconds_t microseconds)
     {
       udelay_accurate(microseconds);
     }
-  else /* oneshot timer doesn't init yet */
+  else /* period timer doesn't init yet */
     {
       udelay_coarse(microseconds);
     }

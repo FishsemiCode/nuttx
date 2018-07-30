@@ -127,6 +127,18 @@ static bool systick_is_running(void)
   return !!(getreg32(NVIC_SYSTICK_CTRL) & NVIC_SYSTICK_CTRL_ENABLE);
 }
 
+static bool systick_irq_pending(struct systick_lowerhalf_s *lower)
+{
+  if (lower->next_interval)
+    {
+      return false; /* Interrupt is in process */
+    }
+  else
+    {
+      return !!(getreg32(NVIC_INTCTRL) & NVIC_INTCTRL_PENDSTSET);
+    }
+}
+
 static int systick_start(FAR struct timer_lowerhalf_s *lower_)
 {
   putreg32(0, NVIC_SYSTICK_CURRENT);
@@ -150,6 +162,20 @@ static int systick_getstatus(FAR struct timer_lowerhalf_s *lower_,
   status->flags |= systick_is_running() ? TCFLAGS_ACTIVE : 0;
   status->timeout = usec_from_count(getreg32(NVIC_SYSTICK_RELOAD), lower->freq);
   status->timeleft = usec_from_count(getreg32(NVIC_SYSTICK_CURRENT), lower->freq);
+  if (systick_irq_pending(lower))
+    {
+      /* Interrupt is pending and the timer wrap happen? */
+      if (status->timeleft)
+        {
+          /* Make timeout-timeleft equal the real elapsed time */
+          status->timeout += status->timeout - status->timeleft;
+          status->timeleft = 0;
+        }
+    }
+  else if (status->timeleft == 0)
+    {
+      status->timeleft = status->timeout;
+    }
   leave_critical_section(flags);
 
   return 0;
