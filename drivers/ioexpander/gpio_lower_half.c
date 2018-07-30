@@ -88,6 +88,7 @@ static int gplh_write(FAR struct gpio_dev_s *gpio, bool value);
 static int gplh_attach(FAR struct gpio_dev_s *gpio, pin_interrupt_t callback);
 static int gplh_enable(FAR struct gpio_dev_s *gpio, bool enable);
 #endif
+static int gplh_setpintype(FAR struct gpio_dev_s *gpio, enum gpio_pintype_e pintype);
 
 /****************************************************************************
  * Private Data
@@ -106,6 +107,7 @@ static const struct gpio_operations_s g_gplh_ops =
   NULL,        /* attach */
   NULL,        /* enable */
 #endif
+  gplh_setpintype,
 };
 
 static const uint32_t g_gplh_inttype[] =
@@ -316,6 +318,39 @@ static int gplh_enable(FAR struct gpio_dev_s *gpio, bool enable)
   return ret;
 }
 #endif
+
+/****************************************************************************
+ * Name: gplh_setpintype
+ *
+ * Description:
+ *   Set I/O expander pin to an appointed gpiopintype
+ *
+ ****************************************************************************/
+
+static int gplh_setpintype(FAR struct gpio_dev_s *gpio, enum gpio_pintype_e pintype)
+{
+  FAR struct gplh_dev_s *priv = (FAR struct gplh_dev_s *)gpio;
+  FAR struct ioexpander_dev_s *ioe = priv->ioe;
+  uint8_t pin = priv->pin;
+  int ret = OK;
+
+  if (pintype == GPIO_OUTPUT_PIN)
+    {
+      IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_OUT);
+    }
+  else if (pintype < GPIO_NPINTYPES)
+    {
+      IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_IN);
+      IOEXP_SETOPTION(ioe, pin, IOEXPANDER_OPTION_INTCFG,
+        (FAR void *)g_gplh_inttype[pintype]);
+    }
+  else
+    {
+      ret = -EINVAL;
+    }
+
+  return ret;
+}
 
 /****************************************************************************
  * Public Functions

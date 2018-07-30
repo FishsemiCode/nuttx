@@ -296,6 +296,17 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           }
         break;
 
+      /* Command:     GPIOC_SETPINTYPE
+       * Description: Set the GPIO pin type.
+       * Argument:    The enum gpio_pintype_e type.
+       */
+
+      case GPIOC_SETPINTYPE:
+        {
+          ret = dev->gp_ops->go_setpintype(dev, arg);
+        }
+      break;
+
       /* Unrecognized command */
 
       default:

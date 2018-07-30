@@ -75,6 +75,11 @@
  * Command:     GPIOC_UNREGISTER
  * Description: Stop receiving signals for pin interrupts.
  * Argument:    None.
+ *
+ * Command:     GPIOC_SETPINTYPE
+ * Description: Set the GPIO pin type.
+ * Argument:    The enum gpio_pintype_e type.
+ *
  */
 
 #define GPIOC_WRITE      _GPIOC(1)
@@ -82,6 +87,7 @@
 #define GPIOC_PINTYPE    _GPIOC(3)
 #define GPIOC_REGISTER   _GPIOC(4)
 #define GPIOC_UNREGISTER _GPIOC(5)
+#define GPIOC_SETPINTYPE _GPIOC(6)
 
 /****************************************************************************
  * Public Types
@@ -115,6 +121,7 @@ typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev);
  *     for other pin types may be NULL.
  *   - go_attach and gp_eanble.  Required only the GPIO_INTERRUPT_PIN pin
  *     type.  Unused for other pin types may be NULL.
+ *   - go_setpinytype.  Required for all all pin types.
  */
 
 struct gpio_dev_s;
@@ -127,6 +134,7 @@ struct gpio_operations_s
   CODE int (*go_attach)(FAR struct gpio_dev_s *dev,
                         pin_interrupt_t callback);
   CODE int (*go_enable)(FAR struct gpio_dev_s *dev, bool enable);
+  CODE int (*go_setpintype)(FAR struct gpio_dev_s *dev, enum gpio_pintype_e pintype);
 };
 
 /* Pin interface definition.  Must lie in writable memory. */
