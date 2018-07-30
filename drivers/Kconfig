@@ -130,6 +130,8 @@ if I2C
 source drivers/i2c/Kconfig
 endif
 
+source drivers/pinctrl/Kconfig
+
 source drivers/spi/Kconfig
 
 menuconfig I2S
