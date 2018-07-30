@@ -37,6 +37,7 @@ config ARCH_CHIP_FVP_MPS2_M4
 config ARCH_CHIP_U1_AP
 	bool "U1 AP"
 	select ARCH_HAVE_FPU
+	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4
 	select SONG_ICACHE
 
