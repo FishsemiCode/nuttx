@@ -49,8 +49,8 @@
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
-#include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
+#include <nuttx/timers/arch_timer.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
@@ -198,7 +198,7 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 
 void arm_timer_initialize(void)
 {
-#ifdef CONFIG_ONESHOT_SONG
+#if defined(CONFIG_ONESHOT_SONG) && defined(CONFIG_CPULOAD_ONESHOT)
   static const struct song_oneshot_config_s config =
   {
     .minor      = -1,
@@ -215,12 +215,10 @@ void arm_timer_initialize(void)
     .intr_bit   = 1,
   };
 
-  up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
+  sched_oneshot_extclk(song_oneshot_initialize(&config));
 #endif
 
-#ifdef CONFIG_CPULOAD_PERIOD
-  sched_period_extclk(systick_initialize(false, 32768, -1));
-#endif
+  up_timer_set_lowerhalf(systick_initialize(false, 32768, -1));
 }
 
 #ifdef CONFIG_RPMSG_UART
