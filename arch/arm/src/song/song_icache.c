@@ -59,6 +59,8 @@
 #define SONG_ICACHE_EN            (1 << 1)
 #define SONG_ICACHE_FLUSH         (1 << 0)
 
+#define NOP()                     __asm__ __volatile__ ("nop")
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -82,14 +84,10 @@
 
 void up_enable_icache(void)
 {
-  modifyreg32(SONG_ICACHE_CTL, SONG_ICACHE_EN, 0);
-  modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_FLUSH);
-  while (getreg32(SONG_ICACHE_CTL) & SONG_ICACHE_FLUSH)
-    {
-      /* Wait until FLUSH bit get clear */;
-    }
-  modifyreg32(SONG_ICACHE_CTL, 0,
-    SONG_ICACHE_LP_EN | SONG_ICACHE_EN);
+  up_disable_icache();
+
+  modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_LP_EN | SONG_ICACHE_EN);
+  NOP();
 }
 
 /****************************************************************************
@@ -109,7 +107,13 @@ void up_enable_icache(void)
 void up_disable_icache(void)
 {
   modifyreg32(SONG_ICACHE_CTL, SONG_ICACHE_EN, 0);
-  up_invalidate_icache_all();
+  NOP();
+
+  modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_FLUSH);
+  while (getreg32(SONG_ICACHE_CTL) & SONG_ICACHE_FLUSH)
+    {
+      /* Wait until FLUSH bit get clear */;
+    }
 }
 
 /****************************************************************************
@@ -155,10 +159,7 @@ __ramfunc__ void up_invalidate_icache_all(void)
 
   flags = enter_critical_section();
 
-  regval  = getreg32(SONG_ICACHE_CTL);
-  regval |= SONG_ICACHE_FLUSH;
-  putreg32(regval, SONG_ICACHE_CTL);
-
+  modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_FLUSH);
   while (getreg32(SONG_ICACHE_CTL) & SONG_ICACHE_FLUSH)
     {
       /* Wait until FLUSH bit get clear */;
