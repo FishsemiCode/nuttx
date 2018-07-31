@@ -115,7 +115,9 @@ static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_dmareceive(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev);
+static void uart_rpmsg_send(FAR struct uart_dev_s *dev, int ch);
 static void uart_rpmsg_txint(FAR struct uart_dev_s *dev, bool enable);
+static bool uart_rpmsg_txready(FAR struct uart_dev_s *dev);
 static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_dmacontinue(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_);
@@ -143,7 +145,9 @@ static const struct uart_ops_s g_uart_rpmsg_ops =
   .dmareceive    = uart_rpmsg_dmareceive,
   .dmarxfree     = uart_rpmsg_dmarxfree,
   .dmatxavail    = uart_rpmsg_dmatxavail,
+  .send          = uart_rpmsg_send,
   .txint         = uart_rpmsg_txint,
+  .txready       = uart_rpmsg_txready,
   .txempty       = uart_rpmsg_txempty,
 };
 
@@ -332,8 +336,42 @@ static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev)
     }
 }
 
+static void uart_rpmsg_send(FAR struct uart_dev_s *dev, int ch)
+{
+  int nexthead;
+
+  nexthead = dev->xmit.head + 1;
+  if (nexthead >= dev->xmit.size)
+    {
+      nexthead = 0;
+    }
+
+  if (nexthead != dev->xmit.tail)
+    {
+      /* No.. not full.  Add the character to the TX buffer and return. */
+
+      dev->xmit.buffer[dev->xmit.head] = ch;
+      dev->xmit.head = nexthead;
+    }
+
+  uart_rpmsg_dmatxavail(dev);
+}
+
 static void uart_rpmsg_txint(FAR struct uart_dev_s *dev, bool enable)
 {
+}
+
+static bool uart_rpmsg_txready(FAR struct uart_dev_s *dev)
+{
+  int nexthead;
+
+  nexthead = dev->xmit.head + 1;
+  if (nexthead >= dev->xmit.size)
+    {
+      nexthead = 0;
+    }
+
+  return nexthead != dev->xmit.tail;
 }
 
 static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev)
