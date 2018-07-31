@@ -332,24 +332,24 @@ static int gplh_setpintype(FAR struct gpio_dev_s *gpio, enum gpio_pintype_e pint
   FAR struct gplh_dev_s *priv = (FAR struct gplh_dev_s *)gpio;
   FAR struct ioexpander_dev_s *ioe = priv->ioe;
   uint8_t pin = priv->pin;
-  int ret = OK;
 
-  if (pintype == GPIO_OUTPUT_PIN)
+  if (pintype >= GPIO_NPINTYPES)
+    {
+      return -EINVAL;
+    }
+  else if (pintype == GPIO_OUTPUT_PIN)
     {
       IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_OUT);
     }
-  else if (pintype < GPIO_NPINTYPES)
+  else
     {
       IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_IN);
       IOEXP_SETOPTION(ioe, pin, IOEXPANDER_OPTION_INTCFG,
         (FAR void *)g_gplh_inttype[pintype]);
     }
-  else
-    {
-      ret = -EINVAL;
-    }
 
-  return ret;
+  gpio->gp_pintype = pintype;
+  return OK;
 }
 
 /****************************************************************************

@@ -348,7 +348,7 @@ static FAR void *song_ioe_attach(FAR struct ioexpander_dev_s *dev,
         }
     }
 
-  nxmutex_lock(&priv->lock);
+  nxmutex_unlock(&priv->lock);
   return cb;
 }
 
