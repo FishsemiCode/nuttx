@@ -86,7 +86,7 @@ static inline void timespec_from_usec(FAR struct timespec *ts,
   ts->tv_nsec   = microseconds * NSEC_PER_USEC;
 }
 
-static int inline timespec_compare(FAR const struct timespec *ts1,
+static inline int timespec_compare(FAR const struct timespec *ts1,
                                    FAR const struct timespec *ts2)
 {
   if (ts1->tv_sec != ts2->tv_sec)

@@ -141,10 +141,10 @@ int up_rtc_gettime(FAR struct timespec *tp)
 
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
   if (ret == 0)
-  {
-    tp->tv_sec = mktime((FAR struct tm *)&rtctime);
-    tp->tv_nsec = rtctime.tm_nsec;
-  }
+    {
+      tp->tv_sec = mktime((FAR struct tm *)&rtctime);
+      tp->tv_nsec = rtctime.tm_nsec;
+    }
 
   return ret;
 }
@@ -187,9 +187,9 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 
   ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
   if (ret == 0)
-  {
-    *tp = *((FAR struct tm *)&rtctime);
-  }
+    {
+      *tp = *((FAR struct tm *)&rtctime);
+    }
 
   return ret;
 }
