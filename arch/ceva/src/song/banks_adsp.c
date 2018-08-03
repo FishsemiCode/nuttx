@@ -39,6 +39,10 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/audio/audio_comp.h>
+#include <nuttx/audio/audio_dma.h>
+#include <nuttx/audio/audio_i2s.h>
+#include <nuttx/audio/song_pcm.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -288,6 +292,21 @@ static void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_AUDIO
+static void up_audio_init(void)
+{
+  struct i2s_dev_s *i2s_dev;
+
+  i2s_dev = song_pcm_initialize(B2C(0xf8107000), "ap/audio_pcm_mclk");
+  audio_comp_initialize("pcm0p",
+                        audio_dma_initialize(g_dma[0], 0, true, 4, B2C(0xf8107018)),
+                        audio_i2s_initialize(i2s_dev, true), NULL);
+  audio_comp_initialize("pcm0c",
+                        audio_dma_initialize(g_dma[0], 8, false, 4, B2C(0xf8107014)),
+                        audio_i2s_initialize(i2s_dev, false), NULL);
+}
+#endif
+
 #ifdef CONFIG_WATCHDOG_DW
 void up_wdtinit(void)
 {
@@ -311,6 +330,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_WATCHDOG_DW
   up_wdtinit();
+#endif
+
+#ifdef CONFIG_AUDIO
+  up_audio_init();
 #endif
 }
 
