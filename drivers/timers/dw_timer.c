@@ -161,6 +161,13 @@ static int dw_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
   status->flags |= lower->tim->CONTROL & DW_TIMER_ENABLE ? TCFLAGS_ACTIVE : 0;
   status->timeout = usec_from_count(lower->tim->LOAD_COUNT, lower->freq);
   status->timeleft = usec_from_count(lower->tim->CURRENT_VALUE, lower->freq);
+  /* Interrupt is pending and the timer wrap happen? */
+  if (lower->tim->INT_STATUS && status->timeleft)
+    {
+      /* Make timeout-timeleft equal the real elapsed time */
+      status->timeout += status->timeout - status->timeleft;
+      status->timeleft = 0;
+    }
   leave_critical_section(flags);
 
   return 0;
@@ -232,6 +239,9 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct dw_timer_lowerhalf_s *lower = arg;
 
+  /* Clear interrupt by reading EOI */
+  lower->tim->EOI;
+
   if (lower->callback && (lower->tim->CONTROL & DW_TIMER_ENABLE))
     {
       uint32_t interval, next_interval;
@@ -258,9 +268,6 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
         }
       lower->next_interval = NULL;
     }
-
-  /* Clear interrupt by reading EOI */
-  lower->tim->EOI;
 
   return 0;
 }
