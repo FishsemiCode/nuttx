@@ -100,7 +100,7 @@ static inline uint64_t timespec_to_usec(const FAR struct timespec *ts)
 }
 
 static inline void timespec_from_usec(FAR struct timespec *ts,
-                                      unsigned int microseconds)
+                                      uint64_t microseconds)
 {
   ts->tv_sec    = microseconds / USEC_PER_SEC;
   microseconds -= (uint64_t)ts->tv_sec * USEC_PER_SEC;
