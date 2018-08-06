@@ -44,6 +44,7 @@
 #include <nuttx/config.h>
 
 #ifdef CONFIG_AUDIO_COMP
+#include <nuttx/audio/audio.h>
 
 /****************************************************************************
  * Pre-processor Definitions
