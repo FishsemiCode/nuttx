@@ -47,6 +47,6 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-struct i2s_dev_s *song_pdm_initialize(uintptr_t base, const char *mclk, uint8_t oversampling);
+struct i2s_dev_s *song_pdm_initialize(uintptr_t base, const char *mclk, uint8_t cic_ratio, uint8_t cic_shift);
 
 #endif

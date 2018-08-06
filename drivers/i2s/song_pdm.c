@@ -119,15 +119,7 @@ struct song_pdm_s
   struct clk *sclk;
   uint32_t base;
   uint8_t data_width;
-  uint8_t oversampling;
-};
-
-struct song_pdm_cic
-{
-  unsigned int n;
-  unsigned int r;
-  unsigned int m;
-  unsigned int s;
+  uint8_t cic_ratio;
 };
 
 /****************************************************************************
@@ -177,8 +169,8 @@ static uint32_t song_pdm_samplerate(struct i2s_dev_s *dev_, uint32_t rate)
   struct song_pdm_s *dev = (struct song_pdm_s *)dev_;
   unsigned int bclk_rate, low;
 
-  if (dev->oversampling)
-    bclk_rate = rate * dev->oversampling;
+  if (dev->cic_ratio)
+    bclk_rate = rate * dev->cic_ratio;
   else
     bclk_rate = rate * dev->data_width;
 
@@ -328,23 +320,14 @@ static const struct i2s_ops_s g_song_pdm_ops =
   .i2s_ioctl         = song_pdm_ioctl,
 };
 
-static const struct song_pdm_cic g_song_pdm_cic[] =
-{
-  {.n = 31, .r =  64, .m = 0, .s = 15},
-  {.n = 31, .r =  96, .m = 0, .s = 18},
-  {.n = 31, .r = 192, .m = 0, .s = 23},
-  {.n =  0, .r =   0, .m = 0, .s =  0},
-};
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-struct i2s_dev_s *song_pdm_initialize(uintptr_t base, const char *mclk, uint8_t oversampling)
+struct i2s_dev_s *song_pdm_initialize(uintptr_t base, const char *mclk, uint8_t cic_ratio, uint8_t cic_shift)
 {
   struct song_pdm_s *dev;
   char sclk_name[32];
-  int i;
 
   if (!mclk)
     return NULL;
@@ -355,7 +338,7 @@ struct i2s_dev_s *song_pdm_initialize(uintptr_t base, const char *mclk, uint8_t 
 
   dev->dev.ops = &g_song_pdm_ops;
   dev->base = base;
-  dev->oversampling = oversampling;
+  dev->cic_ratio = cic_ratio;
 
   sprintf(sclk_name, "%s.sclk", mclk);
   dev->sclk = clk_register_divider(sclk_name, mclk, CLK_SET_RATE_PARENT,
@@ -368,25 +351,12 @@ struct i2s_dev_s *song_pdm_initialize(uintptr_t base, const char *mclk, uint8_t 
       return NULL;
     }
 
-  if (oversampling)
-    {
-      for (i = 0; ; i++) {
-        if (g_song_pdm_cic[i].r == 0)
-          {
-            kmm_free(dev);
-            return NULL;
-          }
-        if (dev->oversampling != g_song_pdm_cic[i].r)
-          continue;
-        song_pdm_putreg(dev, SONG_PDM_CIC_CFG,
-                        g_song_pdm_cic[i].n << SONG_PDM_CIC_N_OFF |
-                        g_song_pdm_cic[i].r << SONG_PDM_CIC_R_OFF |
-                        g_song_pdm_cic[i].m << SONG_PDM_CIC_M_OFF |
-                        g_song_pdm_cic[i].s << SONG_PDM_CIC_SHIFT_OFF |
-                        SONG_PDM_CIC_ENABLE);
-        break;
-      }
-    }
+  if (cic_ratio)
+    song_pdm_putreg(dev, SONG_PDM_CIC_CFG,
+                    0x1f << SONG_PDM_CIC_N_OFF |
+                    cic_ratio << SONG_PDM_CIC_R_OFF |
+                    cic_shift << SONG_PDM_CIC_SHIFT_OFF |
+                    SONG_PDM_CIC_ENABLE);
 
   song_pdm_putreg(dev, SONG_PDM_LP_EN, 0x7f);
   return &dev->dev;
