@@ -112,11 +112,39 @@ static const uint16_t g_pmcount[3] =
 };
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
+static void pm_timer_cb(int argc, wdparm_t arg1, ...)
+{
+  /* Do nothing here, cause we only need TIMER ISR to weak up PM,
+   * for deceasing PM state.
+   */
+}
+
+static void pm_timer(int domain)
+{
+  FAR struct pm_domain_s *pdom = &g_pmglobals.domain[domain];
+  uint32_t delay;
+
+  if (!pdom->wdog)
+    {
+      pdom->wdog = wd_create();
+    }
+
+  if (pdom->stay[pdom->state] == 0 && pdom->recommended < PM_SLEEP)
+    {
+      delay = (g_pmcount[pdom->recommended] - pdom->thrcnt) * CONFIG_PM_SLICEMS;
+      wd_start(pdom->wdog, MSEC2TICK(delay), pm_timer_cb, 0);
+    }
+  else
+    {
+      wd_cancel(pdom->wdog);
+    }
+}
+
 /****************************************************************************
- * Name: pm_update
+ * Name: pm_update_
  *
  * Description:
  *   This internal function is called at the end of a time slice in order to
@@ -137,7 +165,7 @@ static const uint16_t g_pmcount[3] =
  *
  ****************************************************************************/
 
-void pm_update(int domain, int16_t accum)
+static void pm_update_(int domain, int16_t accum)
 {
   FAR struct pm_domain_s *pdom;
   int32_t Y;
@@ -243,6 +271,13 @@ void pm_update(int domain, int16_t accum)
         }
     }
 
+  /* Check whether stay to current state */
+
+  if (pdom->stay[pdom->state] != 0)
+    {
+      return;
+    }
+
   /* Now, compare this new activity level to the thresholds and counts for
    * the next lower power consumption state. If we are already in the SLEEP
    * state, then there is nothing more to be done (in fact, I would be
@@ -291,6 +326,50 @@ void pm_update(int domain, int16_t accum)
             }
         }
     }
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: pm_update
+ *
+ * Description:
+ *   This internal function is called at the end of a time slice in order to
+ *   update driver activity metrics and recommended states.
+ *
+ * Input Parameters:
+ *   domain - The PM domain associated with the accumulator
+ *   accum - The value of the activity accumulator at the end of the time
+ *     slice.
+ *   elapsed - The elapsed time from last called pm_update, unit ms
+ *
+ * Returned Value:
+ *   None.
+ *
+ * Assumptions:
+ *   This function may be called from a driver, perhaps even at the interrupt
+ *   level.  It may also be called from the IDLE loop at the lowest possible
+ *   priority level.
+ *
+ ****************************************************************************/
+
+void pm_update(int domain, int16_t accum, systime_t elapsed)
+{
+  /* Update state */
+
+  while (elapsed >= 2 * TIME_SLICE_TICKS)
+    {
+      pm_update_(domain, 0);
+      elapsed -= TIME_SLICE_TICKS;
+    }
+
+  pm_update_(domain, accum);
+
+  /* Start PM timer for decrease PM state */
+
+  pm_timer(domain);
 }
 
 #endif /* CONFIG_PM */

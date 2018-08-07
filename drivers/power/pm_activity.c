@@ -84,7 +84,7 @@
 void pm_activity(int domain, int priority)
 {
   FAR struct pm_domain_s *pdom;
-  systime_t now;
+  systime_t now, elapsed;
   uint32_t accum;
   irqstate_t flags;
 
@@ -123,8 +123,9 @@ void pm_activity(int domain, int priority)
        * estimated.
        */
 
-      now = clock_systimer();
-      if (now - pdom->stime >= TIME_SLICE_TICKS)
+      now     = clock_systimer();
+      elapsed = now - pdom->stime;
+      if (elapsed >= TIME_SLICE_TICKS)
         {
           int16_t tmp;
 
@@ -137,7 +138,7 @@ void pm_activity(int domain, int priority)
           pdom->stime = now;
           pdom->accum = 0;
 
-          (void)pm_update(domain, tmp);
+          (void)pm_update(domain, tmp, elapsed);
         }
 
       leave_critical_section(flags);
@@ -164,7 +165,9 @@ void pm_stay(int domain, enum pm_state_e state)
 void pm_relax(int domain, enum pm_state_e state)
 {
   FAR struct pm_domain_s *pdom;
+  systime_t now, elapsed;
   irqstate_t flags;
+  int16_t accum;
 
   /* Get a convenience pointer to minimize all of the indexing */
 
@@ -172,9 +175,22 @@ void pm_relax(int domain, enum pm_state_e state)
   pdom = &g_pmglobals.domain[domain];
 
   flags = enter_critical_section();
+
   DEBUGASSERT(state < PM_COUNT);
   DEBUGASSERT(pdom->stay[state] > 0);
-  pdom->stay[state]--;
+
+  if (--pdom->stay[state] == 0)
+    {
+      now     = clock_systimer();
+      elapsed = now - pdom->stime;
+
+      accum       = pdom->accum;
+      pdom->stime = now;
+      pdom->accum = 0;
+
+      pm_update(domain, accum, elapsed);
+    }
+
   leave_critical_section(flags);
 }
 

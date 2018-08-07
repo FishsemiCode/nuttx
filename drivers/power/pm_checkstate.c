@@ -127,9 +127,8 @@ static void pm_evaluateall(int domain)
 enum pm_state_e pm_checkstate(int domain)
 {
   FAR struct pm_domain_s *pdom;
-  systime_t now;
+  systime_t now, elapsed;
   irqstate_t flags;
-  int index;
 
   /* Get a convenience pointer to minimize all of the indexing */
 
@@ -151,8 +150,9 @@ enum pm_state_e pm_checkstate(int domain)
    * estimated.
    */
 
-  now = clock_systimer();
-  if (now - pdom->stime >= TIME_SLICE_TICKS)
+  now     = clock_systimer();
+  elapsed = now - pdom->stime;
+  if (elapsed >= TIME_SLICE_TICKS)
     {
       int16_t accum;
 
@@ -165,23 +165,12 @@ enum pm_state_e pm_checkstate(int domain)
       pdom->stime = now;
       pdom->accum = 0;
 
-      (void)pm_update(domain, accum);
+      (void)pm_update(domain, accum, elapsed);
     }
 
   /* evaluate all drivers state */
 
   (void)pm_evaluateall(domain);
-
-  /* Consider the possible power state lock here */
-
-  for (index = 0; index < pdom->recommended; index++)
-    {
-      if (pdom->stay[index] != 0)
-        {
-          pdom->recommended = index;
-          break;
-        }
-    }
 
   leave_critical_section(flags);
 
