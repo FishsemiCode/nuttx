@@ -119,7 +119,6 @@ static void uart_rpmsg_send(FAR struct uart_dev_s *dev, int ch);
 static void uart_rpmsg_txint(FAR struct uart_dev_s *dev, bool enable);
 static bool uart_rpmsg_txready(FAR struct uart_dev_s *dev);
 static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev);
-static void uart_rpmsg_dmacontinue(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_);
 static void uart_rpmsg_channel_created(struct rpmsg_channel *channel);
 static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
@@ -328,9 +327,7 @@ static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev)
 
 static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev)
 {
-  struct uart_dmaxfer_s *xfer = &dev->dmatx;
-
-  if (xfer->length + xfer->nlength == 0)
+  if (dev->dmatx.length == 0)
     {
       uart_xmitchars_dma(dev);
     }
@@ -379,22 +376,6 @@ static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev)
   return true;
 }
 
-static void uart_rpmsg_dmacontinue(FAR struct uart_dev_s *dev)
-{
-  int ret;
-
-  ret = nxsem_trywait(&dev->xmit.sem);
-  if (ret == 0)
-    {
-      uart_rpmsg_dmatxavail(dev);
-      nxsem_post(&dev->xmit.sem);
-    }
-  else
-    {
-      uart_datasent(dev);
-    }
-}
-
 static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 {
   struct uart_dev_s *dev = priv_;
@@ -415,7 +396,7 @@ static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
     {
       priv->channel = channel;
       rpmsg_set_privdata(channel, dev);
-      uart_xmitchars_dma(dev);
+      uart_rpmsg_dmatxavail(dev);
     }
 }
 
@@ -454,7 +435,7 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
 
       if (msg->count == header->result)
         {
-          uart_rpmsg_dmacontinue(dev);
+          uart_rpmsg_dmatxavail(dev);
         }
      }
   else if (header->command == UART_RPMSG_TTY_WRITE)
@@ -470,7 +451,7 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
     }
   else if (header->command == UART_RPMSG_TTY_WAKEUP)
     {
-      uart_rpmsg_dmacontinue(dev);
+      uart_rpmsg_dmatxavail(dev);
     }
 }
 
