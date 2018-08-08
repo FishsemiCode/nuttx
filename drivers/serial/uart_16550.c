@@ -678,16 +678,21 @@ static int u16550_attach(struct uart_dev_s *dev)
   /* Attach and enable the IRQ */
 
   ret = irq_attach(priv->irq, u16550_interrupt, dev);
-#ifndef CONFIG_ARCH_NOINTC
   if (ret == OK)
     {
+#ifndef CONFIG_ARCH_NOINTC
       /* Enable the interrupt (RX and TX interrupts are still disabled
        * in the UART
        */
 
       up_enable_irq(priv->irq);
-    }
 #endif
+
+      if (priv->chanrx)
+        {
+          DMA_RESUME(priv->chanrx);
+        }
+    }
 
   return ret;
 }
@@ -705,6 +710,11 @@ static int u16550_attach(struct uart_dev_s *dev)
 static void u16550_detach(FAR struct uart_dev_s *dev)
 {
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
+
+  if (priv->chanrx)
+    {
+      DMA_PAUSE(priv->chanrx);
+    }
 
   up_disable_irq(priv->irq);
   irq_detach(priv->irq);
@@ -1110,21 +1120,14 @@ static void u16550_dmasend_done(FAR struct dma_chan_s *chan,
                                 FAR void *arg, ssize_t len)
 {
   FAR struct uart_dev_s *dev = arg;
-  int ret;
 
   if (len > 0)
     {
       dev->dmatx.nbytes = len;
       uart_xmitchars_done(dev);
-
-      ret = nxsem_trywait(&dev->xmit.sem);
-      if (ret >= 0)
-        {
-          uart_xmitchars_dma(dev);
-          nxsem_post(&dev->xmit.sem);
-        }
+      uart_xmitchars_dma(dev);
     }
-  else
+  else /* Fail, resend */
     {
       u16550_dmasend(dev);
     }
@@ -1172,12 +1175,7 @@ static void u16550_dmareceive_done(FAR struct dma_chan_s *chan,
       if (dev->dmarx.length == 0)
         {
           /* Trigger the receive process */
-          int ret = nxsem_trywait(&dev->recv.sem);
-          if (ret >= 0)
-            {
-              uart_recvchars_dma(dev);
-              nxsem_post(&dev->recv.sem);
-            }
+          uart_recvchars_dma(dev);
         }
       else
         {
@@ -1197,6 +1195,10 @@ static void u16550_dmareceive(FAR struct uart_dev_s *dev)
       size_t offset = priv->dmarxtail % priv->dmarxsize;
       FAR void *buffer = priv->dmarxbuf + offset;
 
+      if (offset + length > priv->dmarxsize)
+        {
+          length = priv->dmarxsize - offset;
+        }
       if (length > dev->dmarx.length)
         {
           length = dev->dmarx.length;
@@ -1207,9 +1209,12 @@ static void u16550_dmareceive(FAR struct uart_dev_s *dev)
       dev->dmarx.nbytes = length;
       priv->dmarxtail += length;
 
-      /* Trigger the receive process again */
       uart_recvchars_done(dev);
-      uart_recvchars_dma(dev);
+      if (priv->dmarxhead != priv->dmarxtail)
+        {
+          /* Trigger the receive process again */
+          uart_recvchars_dma(dev);
+        }
     }
 }
 
