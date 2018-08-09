@@ -50,6 +50,40 @@
 #include "up_internal.h"
 
 /****************************************************************************
+ * Private Types
+ ****************************************************************************/
+
+#ifdef CONFIG_SONG_COPY_TABLE
+/* Between symbol address _scopytable and _ecopytable, there are
+ * array of triplets, each of which specify:
+ *    offset 0: Start LMA of a section
+ *    offset 4: Start VMA of a section
+ *    offset 8: End VMA of a section
+ */
+
+begin_packed_struct struct copytable_s
+{
+  uint32_t *src;
+  uint32_t *dest;
+  uint32_t *end;
+} end_packed_struct;
+#endif
+
+#ifdef CONFIG_SONG_ZERO_TABLE
+/* Between symbol address _szerotable and _ezerotable is an array
+ * of pairs, and each pair specifies:
+ *    offset 0: start address of the section to clear
+ *    offset 4: end address (exclusive) of the section to clear
+ */
+
+begin_packed_struct struct zerotable_s
+{
+  uint32_t *dest;
+  uint32_t *end;
+} end_packed_struct;
+#endif
+
+/****************************************************************************
  * Private Function prototypes
  ****************************************************************************/
 
@@ -65,13 +99,13 @@ static void cache_pm_notify(struct pm_callback_s *cb, int domain,
 #endif
 
 #ifdef CONFIG_SONG_COPY_TABLE
-extern uint32_t _scopytable;
-extern uint32_t _ecopytable;
+extern struct copytable_s _scopytable;
+extern struct copytable_s _ecopytable;
 #endif
 
 #ifdef CONFIG_SONG_ZERO_TABLE
-extern uint32_t _szerotable;
-extern uint32_t _ezerotable;
+extern struct zerotable_s _szerotable;
+extern struct zerotable_s _ezerotable;
 #endif
 
 /****************************************************************************
@@ -118,9 +152,11 @@ static void init_kernelspace(void)
 {
   const uint32_t *src;
   uint32_t *dest;
-
-#if defined CONFIG_SONG_COPY_TABLE || defined CONFIG_SONG_ZERO_TABLE
-  uint32_t *table;
+#ifdef CONFIG_SONG_COPY_TABLE
+  struct copytable_s *copytable;
+#endif
+#ifdef CONFIG_SONG_ZERO_TABLE
+  struct zerotable_s *zerotable;
 #endif
 
   /* Copy any necessary code sections from FLASH to RAM.  The correct
@@ -162,17 +198,11 @@ static void init_kernelspace(void)
     }
 
 #ifdef CONFIG_SONG_COPY_TABLE
-  /* Between symbol address _scopytable and _ecopytable, there are
-   * array of triplets, each of which specify:
-   *    offset 0: Start LMA of a section
-   *    offset 4: Start VMA of a section
-   *    offset 8: End VMA of a section
-   */
-
-  for (table = &_scopytable; table < &_ecopytable; table += 3)
+  for (copytable = &_scopytable; copytable < &_ecopytable; copytable++)
     {
-      for (src = (uint32_t *)table[0], dest = (uint32_t *)table[1];
-          dest < (uint32_t *)table[2]; )
+      src = copytable->src;
+      dest =  copytable->dest;
+      while (dest < copytable->end)
         {
           *dest++ = *src++;
         }
@@ -180,14 +210,9 @@ static void init_kernelspace(void)
 #endif
 
 #ifdef CONFIG_SONG_ZERO_TABLE
-  /* Between symbol address _szerotable and _ezerotable is an array
-   * of pairs, and each pair specifies:
-   *    offset 0: start address of the section to clear
-   *    offset 4: end address (exclusive) of the section to clear
-   */
-  for (table = &_szerotable; table < &_ezerotable; table += 2)
+  for (zerotable = &_szerotable; zerotable < &_ezerotable; zerotable++)
     {
-      for (dest = (uint32_t *)table[0]; dest < (uint32_t *)table[1]; )
+      for (dest = zerotable->dest; dest < zerotable->end;)
         {
           *dest++ = 0;
         }
