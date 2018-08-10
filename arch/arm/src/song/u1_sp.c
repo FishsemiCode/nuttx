@@ -99,22 +99,31 @@
 #define TOP_PWR_INTR_EN_SEC_M4_1    (TOP_PWR_BASE + 0x140)
 #define TOP_PWR_INTR_ST_SEC_M4_1    (TOP_PWR_BASE + 0x144)
 #define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
+#define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
+#define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 
 #define TOP_PWR_AP_M4_PORESET       (1 << 0)
+
 #define TOP_PWR_CP_M4_PORESET       (1 << 0)
 
+#define TOP_PWR_SFRST_RESET         (1 << 0)
+
 #define TOP_PWR_SLPU_FLASH_S        (1 << 0)
+
+#define TOP_PWR_CP_PD_EN            (1 << 0)
+#define TOP_PWR_CP_WK_UP            (1 << 1)
+#define TOP_PWR_CP_HW_IDLE_MK       (1 << 8)
+
+#define TOP_PWR_RESET_NORMAL        (0x00000000)
+#define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
 
 #define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
 #define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
 #define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
 
-#define TOP_PWR_SFRST_RESET         (1 << 0)
-
-#define TOP_PWR_RESET_NORMAL        (0x00000000)
-#define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+#define TOP_PWR_CP_AU_PD_MK         (1 << 7)
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
@@ -123,6 +132,7 @@
 
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
+#define SECURITY_CFG_0_VALUE        (0x00010000)
 
 /****************************************************************************
  * Private Data
@@ -179,6 +189,10 @@ void up_earlyinitialize(void)
 
   /* Always enable the full chip deep sleep */
   modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
+
+  /* Always enable sp SLP */
+  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
+           TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
 }
 
 #ifdef CONFIG_RTC_SONG
@@ -295,7 +309,38 @@ static int ap_boot(const struct song_rptun_config_s *config)
   return 0;
 }
 
-static void cp_flash_save_work(FAR void *arg)
+static void cp_flash_save_prepare(void)
+{
+  /* CP TCM, AU_PD_MK = 1 */
+
+  putreg32(TOP_PWR_CP_AU_PD_MK << 16 |
+           TOP_PWR_CP_AU_PD_MK, TOP_PWR_CP_M4_TCM_PD_CTL0);
+
+  /* CP TCM, WK_UP = 1, trigger PU */
+
+  putreg32(TOP_PWR_CP_WK_UP << 16 |
+           TOP_PWR_CP_WK_UP, TOP_PWR_CP_M4_TCM_PD_CTL0);
+
+  /* CP TCM, wait until PU done */
+
+  while (getreg32(TOP_PWR_CP_M4_TCM_PD_CTL0) & TOP_PWR_CP_WK_UP);
+
+  /* CP UNIT, sfrst of cp_m4 asserted */
+
+  putreg32(TOP_PWR_CP_M4_PORESET << 16 |
+           TOP_PWR_CP_M4_PORESET, TOP_PWR_CP_M4_RSTCTL);
+
+  /* CP UNIT, WK_UP = 1, trigger PU */
+
+  putreg32(TOP_PWR_CP_WK_UP << 16 |
+           TOP_PWR_CP_WK_UP, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* CP UNIT, wait until PU done */
+
+  while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_WK_UP);
+}
+
+static void cp_flash_save_data(void)
 {
   int fd;
   size_t save_bytes;
@@ -304,7 +349,7 @@ static void cp_flash_save_work(FAR void *arg)
   fd = open("/data/cpram1.rsvd", O_WRONLY | O_CREAT | O_TRUNC);
   if (fd < 0)
     {
-      goto out;
+      return;
     }
     /*
      * struct cpram1.rsvd
@@ -325,11 +370,45 @@ static void cp_flash_save_work(FAR void *arg)
 
       unlink("/data/cpram1.rsvd");
     }
+}
 
-out:
+static void cp_flash_save_finish(void)
+{
+  /* HW_IDLE_MK = 1 */
+
+  putreg32(TOP_PWR_CP_HW_IDLE_MK << 16 |
+           TOP_PWR_CP_HW_IDLE_MK, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* PD_EN = 1, trigger PD */
+
+  putreg32(TOP_PWR_CP_PD_EN << 16 |
+           TOP_PWR_CP_PD_EN, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* Wait until PD done */
+
+  while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_PD_EN);
+
+  /* HW_IDLE_MK = 0 */
+
+  putreg32(TOP_PWR_CP_HW_IDLE_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* Sfrst of cp_m4 released */
+
+  putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
+
   /* Jump to flash_pd */
 
-  modifyreg32(TOP_PWR_SLPCTL_SEC_M4, 0, TOP_PWR_FLASH_S_2PD_JMP);
+  putreg32(TOP_PWR_FLASH_S_2PD_JMP << 16 |
+           TOP_PWR_FLASH_S_2PD_JMP, TOP_PWR_SLPCTL_SEC_M4);
+}
+
+static void cp_flash_save_work(FAR void *arg)
+{
+  /* Save cpram to flash */
+
+  cp_flash_save_prepare();
+  cp_flash_save_data();
+  cp_flash_save_finish();
 }
 
 static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
@@ -373,7 +452,7 @@ static int cp_boot(const struct song_rptun_config_s *config)
    * enable shram1 for IPC
    */
 
-  putreg32(0x00010000, SECURITY_CFG_0);
+  putreg32(SECURITY_CFG_0_VALUE, SECURITY_CFG_0);
   putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
   return 0;
 }
