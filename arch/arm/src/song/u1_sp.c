@@ -101,6 +101,7 @@
 #define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
+#define TOP_PWR_SLPCTL0             (TOP_PWR_BASE + 0x350)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 
@@ -118,6 +119,8 @@
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+
+#define TOP_PWR_SLP_DMA_MK          (1 << 2)
 
 #define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
 #define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
@@ -193,6 +196,10 @@ void up_earlyinitialize(void)
   /* Always enable sp SLP */
   putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
            TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Set the DMAS no effort to power down */
+  putreg32(TOP_PWR_SLP_DMA_MK << 16 |
+           TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
 }
 
 #ifdef CONFIG_RTC_SONG
