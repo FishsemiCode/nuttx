@@ -878,32 +878,27 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
       else
         {
-          /* Disable Rx interrupts and test again... */
+          /* Disable interrupts and test again... */
 
-          uart_disablerxint(dev);
+          flags = enter_critical_section();
+
 
           /* If the Rx ring buffer still empty?  Bytes may have been addded
-           * between the last time that we checked and when we disabled Rx
+           * between the last time that we checked and when we disabled
            * interrupts.
            */
 
           if (rxbuf->head == rxbuf->tail)
             {
               /* Yes.. the buffer is still empty.  Wait for some characters
-               * to be received into the buffer with the RX interrupt re-
-               * enabled.  All interrupts are disabled briefly to assure
-               * that the following operations are atomic.
+               * to be received into the buffer with the RX interrupt enabled.
                */
-
-              flags = enter_critical_section();
 
 #ifdef CONFIG_SERIAL_DMA
               /* Notify DMA that there is free space in the RX buffer */
 
               uart_dmarxfree(dev);
 #endif
-
-              uart_enablerxint(dev);
 
 #ifdef CONFIG_SERIAL_REMOVABLE
               /* Check again if the removable device is still connected
@@ -918,7 +913,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
               else
 #endif
                {
-                  /* Now wait with the Rx interrupt re-enabled.  NuttX will
+                  /* Now wait with the Rx interrupt enabled.  NuttX will
                    * automatically re-enable global interrupts when this
                    * thread goes to sleep.
                    */
@@ -964,12 +959,12 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             }
           else
             {
-              /* No... the ring buffer is no longer empty.  Just re-enable Rx
+              /* No... the ring buffer is no longer empty.  Just re-enable
                * interrupts and accept the new data on the next time through
                * the loop.
                */
 
-              uart_enablerxint(dev);
+              leave_critical_section(flags);
             }
         }
     }
@@ -983,10 +978,6 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
   leave_critical_section(flags);
 #endif
-
-  /* RX interrupt could be disabled by RX buffer overflow. Enable it now. */
-
-  uart_enablerxint(dev);
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
 #ifdef CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS
