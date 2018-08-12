@@ -688,10 +688,12 @@ static int u16550_attach(struct uart_dev_s *dev)
       up_enable_irq(priv->irq);
 #endif
 
+#ifdef CONFIG_SERIAL_DMA
       if (priv->chanrx)
         {
           DMA_RESUME(priv->chanrx);
         }
+#endif
     }
 
   return ret;
@@ -711,10 +713,12 @@ static void u16550_detach(FAR struct uart_dev_s *dev)
 {
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
 
+#ifdef CONFIG_SERIAL_DMA
   if (priv->chanrx)
     {
       DMA_PAUSE(priv->chanrx);
     }
+#endif
 
   up_disable_irq(priv->irq);
   irq_detach(priv->irq);
