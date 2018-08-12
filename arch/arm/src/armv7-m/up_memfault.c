@@ -52,7 +52,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define DEBUG_MEMFAULTS         /* Define to debug memory management faults */
+#ifdef CONFIG_DEBUG_HARDFAULT
+  #define DEBUG_MEMFAULTS      /* Define to debug memory management faults */
+#endif
 
 #ifdef DEBUG_MEMFAULTS
 # define mferr(format, ...)  _alert(format, ##__VA_ARGS__)
