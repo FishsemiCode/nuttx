@@ -154,7 +154,6 @@ void up_invalidate_icache(uintptr_t start, uintptr_t end)
 
 __ramfunc__ void up_invalidate_icache_all(void)
 {
-  uint32_t   regval;
   irqstate_t flags;
 
   flags = enter_critical_section();
