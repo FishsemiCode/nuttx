@@ -89,6 +89,10 @@ ifeq ($(CONFIG_AUDIO_THINKER),y)
 CSRCS += thinker.c
 endif
 
+ifeq ($(CONFIG_AUDIO_AK4332),y)
+CSRCS += ak4332.c
+endif
+
 # Include Audio driver support
 
 DEPPATH += --dep-path audio

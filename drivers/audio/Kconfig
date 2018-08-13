@@ -257,3 +257,7 @@ config AUDIO_THINKER
 	depends on AUDIO
 	---help---
 		Select to enable support for the thinker-S device.
+
+config AUDIO_AK4332
+	bool "AK4332 dac driver"
+	depends on AUDIO
