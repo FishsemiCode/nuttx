@@ -94,6 +94,7 @@
 #define _PWRBASE        (0x2700) /* Power-related ioctl commands */
 #define _FBIOCBASE      (0x2800) /* Frame buffer character driver ioctl commands */
 #define _RPTUNBASE      (0x2900) /* Remote processor tunnel ioctl commands */
+#define _REGMAPIOCBASE  (0x2a00) /* Regmap ioctl commands */
 
 /* boardctl() commands share the same number space */
 
@@ -475,6 +476,11 @@
 
 #define _RPTUNIOCVALID(c)   (_IOC_TYPE(c)==_RPTUNBASE)
 #define _RPTUNIOC(nr)       _IOC(_RPTUNBASE,nr)
+
+/* NuttX Regmap driver ioctl definitions *************************************/
+
+#define _REGMAPIOCVALID(c) (_IOC_TYPE(c)==_REGMAPIOCBASE)
+#define _REGMAPIOC(nr)     _IOC(_REGMAPIOCBASE,nr)
 
 /* boardctl() command definitions *******************************************/
 
