@@ -193,9 +193,9 @@ void up_earlyinitialize(void)
   /* Always enable the full chip deep sleep */
   modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
 
-  /* Always enable sp SLP */
-  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
-           TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+  /* Always allow enter FLASH_S */
+  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
+           TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
 
   /* Set the DMAS no effort to power down */
   putreg32(TOP_PWR_SLP_DMA_MK << 16 |
@@ -797,7 +797,7 @@ void up_reset(int status)
 void up_cpu_doze(void)
 {
   /* Forbid the full chip power down */
-  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
+  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
 
   /* Forbid the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
@@ -808,7 +808,7 @@ void up_cpu_doze(void)
 void up_cpu_idle(void)
 {
   /* Forbid the full chip power down */
-  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
+  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
@@ -824,8 +824,8 @@ void up_cpu_standby(void)
 void up_cpu_sleep(void)
 {
   /* Allow the full chip power down */
-  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
-           TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
+           TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);

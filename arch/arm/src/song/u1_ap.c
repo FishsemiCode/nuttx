@@ -135,6 +135,10 @@ void up_earlyinitialize(void)
   /* Unmask SLEEPING for reset */
   putreg32(TOP_PWR_AP_M4_IDLE_MK << 16, TOP_PWR_AP_M4_RSTCTL);
 
+  /* Always allow enter FLASH_S */
+  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16 |
+           TOP_PWR_AP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
+
   /* Allow AP TCM to LP */
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16, TOP_PWR_AP_M4_TCM_PD_CTL);
 
@@ -349,7 +353,7 @@ void up_reset(int status)
 void up_cpu_doze(void)
 {
   /* Forbid the full chip power down */
-  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+  putreg32(TOP_PWR_AP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
 
   /* Forbid the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
@@ -360,7 +364,7 @@ void up_cpu_doze(void)
 void up_cpu_idle(void)
 {
   /* Forbid the full chip power down */
-  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+  putreg32(TOP_PWR_AP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
@@ -376,8 +380,8 @@ void up_cpu_standby(void)
 void up_cpu_sleep(void)
 {
   /* Allow the full chip power down */
-  putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16 |
-           TOP_PWR_AP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
+  putreg32(TOP_PWR_AP_M4_SLP_EN << 16 |
+           TOP_PWR_AP_M4_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
 
   /* Allow the deep sleep */
   putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
