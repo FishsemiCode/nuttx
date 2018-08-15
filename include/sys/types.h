@@ -132,6 +132,8 @@ typedef unsigned int mode_t;
 /* size_t is used for sizes of memory objects.
  * ssize_t is used for a count of bytes or an error indication.
  *
+ * See also definitions of SIZE_MAX et al in limits.h.
+ *
  * REVISIT: size_t belongs in stddef.h
  */
 
@@ -244,7 +246,12 @@ typedef int16_t      blksize_t;
 typedef unsigned int socklen_t;
 typedef uint16_t     sa_family_t;
 
-/* Used for system times in clock ticks (equivalent to systime_t) */
+/* Used for system times in clock ticks. This type is the natural width of
+ * the system timer.
+ *
+ * NOTE: The signed-ness of clock_t is not specified at OpenGroup.org.  An
+ * unsigned type is used to support the full range of the internal clock.
+ */
 
 #ifdef CONFIG_SYSTEM_TIME64
 typedef uint64_t     clock_t;

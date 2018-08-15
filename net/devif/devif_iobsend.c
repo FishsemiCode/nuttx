@@ -63,15 +63,14 @@
  *   in an I/O buffer chain, rather than a flat buffer.
  *
  * Assumptions:
- *   Called from the interrupt level or, at a minimum, with interrupts
- *   disabled.
+ *   Called with the network locked.
  *
  ****************************************************************************/
 
 void devif_iob_send(FAR struct net_driver_s *dev, FAR struct iob_s *iob,
                     unsigned int len, unsigned int offset)
 {
-  DEBUGASSERT(dev && len > 0 && len < NET_DEV_MTU(dev));
+  DEBUGASSERT(dev && len > 0 && len < NETDEV_PKTSIZE(dev));
 
   /* Copy the data from the I/O buffer chain to the device buffer */
 

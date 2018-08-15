@@ -308,7 +308,7 @@ static void dw_i2c_enable(FAR struct dw_i2c_dev_s *i2c)
 
 static int dw_i2c_wait_bus_nobusy(FAR struct dw_i2c_dev_s *i2c)
 {
-  systime_t tick;
+  clock_t tick;
 
   tick = clock_systimer();
   do

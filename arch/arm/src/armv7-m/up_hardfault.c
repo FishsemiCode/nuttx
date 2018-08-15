@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_hardfault.c
  *
- *   Copyright (C) 2009, 2013, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2013, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -59,10 +59,16 @@
  * interfere with context switching!
  */
 
-#ifdef CONFIG_DEBUG_HARDFAULT
+#ifdef CONFIG_DEBUG_HARDFAULT_ALERT
 # define hfalert(format, ...)  _alert(format, ##__VA_ARGS__)
 #else
 # define hfalert(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_HARDFAULT_INFO
+# define hfinfo(format, ...)   _info(format, ##__VA_ARGS__)
+#else
+# define hfinfo(x...)
 #endif
 
 #define INSN_SVC0        0xdf00 /* insn: svc 0 */
@@ -82,7 +88,7 @@
 
 int up_hardfault(int irq, FAR void *context, FAR void *arg)
 {
-#if defined(CONFIG_DEBUG_HARDFAULT) || !defined(CONFIG_ARMV7M_USEBASEPRI)
+#if defined(CONFIG_DEBUG_HARDFAULT_ALERT) || !defined(CONFIG_ARMV7M_USEBASEPRI)
   uint32_t *regs = (uint32_t *)context;
 #endif
 
@@ -115,6 +121,7 @@ int up_hardfault(int irq, FAR void *context, FAR void *arg)
       /* Fetch the instruction that caused the Hard fault */
 
       uint16_t insn = *pc;
+      hfinfo("  PC: %p INSN: %04x\n", pc, insn);
 
       /* If this was the instruction 'svc 0', then forward processing
        * to the SVCall handler
@@ -122,6 +129,7 @@ int up_hardfault(int irq, FAR void *context, FAR void *arg)
 
       if (insn == INSN_SVC0)
         {
+          hfinfo("Forward SVCall\n");
           return up_svcall(irq, context, arg);
         }
     }

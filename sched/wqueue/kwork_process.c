@@ -73,9 +73,9 @@
 #endif
 
 #ifdef CONFIG_SYSTEM_TIME64
-#  define WORK_DELAY_MAX ((systime_t)UINT64_MAX)
+#  define WORK_DELAY_MAX ((clock_t)UINT64_MAX)
 #else
-#  define WORK_DELAY_MAX ((systime_t)UINT32_MAX)
+#  define WORK_DELAY_MAX ((clock_t)UINT32_MAX)
 #endif
 
 /****************************************************************************
@@ -105,11 +105,11 @@ void work_process(FAR struct kwork_wqueue_s *wqueue, int wndx)
   worker_t  worker;
   irqstate_t flags;
   FAR void *arg;
-  systime_t elapsed;
-  systime_t remaining;
-  systime_t stick;
-  systime_t ctick;
-  systime_t next;
+  clock_t elapsed;
+  clock_t remaining;
+  clock_t stick;
+  clock_t ctick;
+  clock_t next;
 
   /* Then process queued work.  We need to keep interrupts disabled while
    * we process items in the work list.

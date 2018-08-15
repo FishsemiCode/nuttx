@@ -87,7 +87,7 @@
 
 static int work_qqueue(FAR struct usr_wqueue_s *wqueue,
                        FAR struct work_s *work, worker_t worker,
-                       FAR void *arg, systime_t delay)
+                       FAR void *arg, clock_t delay)
 {
   DEBUGASSERT(work != NULL);
 
@@ -114,7 +114,7 @@ static int work_qqueue(FAR struct usr_wqueue_s *wqueue,
 
   /* Now, time-tag that entry and put it in the work queue. */
 
-  work->qtime  = clock_systimer(); /* Time work queued */
+  work->qtime  = clock(); /* Time work queued */
 
   dq_addlast((FAR dq_entry_t *)work, &wqueue->q);
   kill(wqueue->pid, SIGWORK);   /* Wake up the worker thread */
@@ -157,7 +157,7 @@ static int work_qqueue(FAR struct usr_wqueue_s *wqueue,
  ****************************************************************************/
 
 int work_queue(int qid, FAR struct work_s *work, worker_t worker,
-               FAR void *arg, systime_t delay)
+               FAR void *arg, clock_t delay)
 {
   if (qid == USRWORK)
     {

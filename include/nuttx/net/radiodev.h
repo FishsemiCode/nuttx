@@ -137,13 +137,13 @@ struct radiodev_properties_s
  *    driver must still provide its (single) reassembly buffer in d_buf;
  *    that buffer is still used for the case where the packet is not
  *    fragmented into many frames.  In either case, the packet buffer will
- *    have a size of advertised MTU of the protocol, CONFIG_NET_6LOWPAN_MTU,
+ *    have a size of advertised MTU of the protocol, CONFIG_NET_6LOWPAN_PKTSIZE,
  *    plus CONFIG_NET_GUARDSIZE and some additional overhead for reassembly
  *    state data.
  *
  *    The radio network driver should then inform the network of the recipt
  *    of a frame by calling sixlowpan_input() or ieee802154_input().  That
- *    single frame (or, perhaps, list of frames) should be provided as 
+ *    single frame (or, perhaps, list of frames) should be provided as
  *    second argument of that call.
  *
  *    The network will free the IOB by calling iob_free after it has

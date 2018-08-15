@@ -17,7 +17,7 @@ config USBDEV_DUALSPEED
 	---help---
 		Hardware handles high and full speed operation (USB 2.0)
 
-choice USBDEV_POWERED
+choice
 	prompt "Select USB device powered"
 	default USBDEV_SELFPOWERED
 
@@ -29,7 +29,7 @@ config USBDEV_SELFPOWERED
 config USBDEV_BUSPOWERED
 	bool "Bus powered"
 	---help---
-		Will cause USB features to indicate that the device is self-powered
+		Will cause USB features to indicate that the device is not self-powered
 
 endchoice
 
@@ -350,14 +350,14 @@ config CDCACM_EPINTIN
 endif
 
 config CDCACM_EPINTIN_FSSIZE
-	int "Interupt IN full speed MAXPACKET size"
+	int "Interrupt IN full speed MAXPACKET size"
 	default 64
 	---help---
 		Max package size for the interrupt IN endpoint if full speed mode.
 		Default 64.
 
 config CDCACM_EPINTIN_HSSIZE
-	int "Interupt IN high speed MAXPACKET size"
+	int "Interrupt IN high speed MAXPACKET size"
 	default 64
 	---help---
 		Max package size for the interrupt IN endpoint if high speed mode.

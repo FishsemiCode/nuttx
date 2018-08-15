@@ -199,11 +199,11 @@ enum stm32f0_trace_e
 
 struct stm32f0_trace_s
 {
-  uint32_t status;             /* I2C 32-bit SR2|SR1 status */
-  uint32_t count;              /* Interrupt count when status change */
+  uint32_t status;               /* I2C 32-bit SR2|SR1 status */
+  uint32_t count;                /* Interrupt count when status change */
   enum stm32f0_intstate_e event; /* Last event that occurred with this status */
-  uint32_t parm;               /* Parameter associated with the event */
-  systime_t time;              /* First of event or first status */
+  uint32_t parm;                 /* Parameter associated with the event */
+  clock_t time;                  /* First of event or first status */
 };
 
 /* I2C Device hardware configuration */
@@ -245,7 +245,7 @@ struct stm32f0_i2c_priv_s
 
 #ifdef CONFIG_I2C_TRACE
   int tndx;                    /* Trace array index */
-  systime_t start_time;        /* Time when the trace was started */
+  clock_t start_time;          /* Time when the trace was started */
 
   /* The actual trace data */
 
@@ -622,9 +622,9 @@ static inline int stm32f0_i2c_sem_waitdone(FAR struct stm32f0_i2c_priv_s *priv)
 #else
 static inline int stm32f0_i2c_sem_waitdone(FAR struct stm32f0_i2c_priv_s *priv)
 {
-  systime_t timeout;
-  systime_t start;
-  systime_t elapsed;
+  clock_t timeout;
+  clock_t start;
+  clock_t elapsed;
   int ret;
 
   /* Get the timeout value */
@@ -762,9 +762,9 @@ stm32f0_i2c_disable_autoend(FAR struct stm32f0_i2c_priv_s *priv)
 
 static inline void stm32f0_i2c_sem_waitstop(FAR struct stm32f0_i2c_priv_s *priv)
 {
-  systime_t start;
-  systime_t elapsed;
-  systime_t timeout;
+  clock_t start;
+  clock_t elapsed;
+  clock_t timeout;
   uint32_t cr;
   uint32_t sr;
 
@@ -1371,7 +1371,7 @@ static int stm32f0_i2c_isr_process(struct stm32f0_i2c_priv_s *priv)
 
       if (priv->msgc > 0)
         {
-          if (priv->msgv->flags & I2C_M_NORESTART)
+          if (priv->msgv->flags & I2C_M_NOSTART)
             {
               stm32f0_i2c_traceevent(priv, I2CEVENT_BTFNOSTART, priv->msgc);
               priv->ptr   = priv->msgv->buffer;

@@ -49,12 +49,13 @@
 #include <nuttx/irq.h>
 #ifndef __ASSEMBLY__
 #  include <nuttx/compiler.h>
+#  include <arch/chip/chip.h>
 #  include <stdint.h>
 #endif
 
 /* Included implementation-dependent register save structure layouts */
 
-#if defined(CONFIG_ARMV7M_CMNVECTOR) && !defined(CONFIG_ARMV7M_LAZYFPU)
+#ifndef CONFIG_ARMV7M_LAZYFPU
 #  include <arch/armv7-m/irq_cmnvector.h>
 #else
 #  include <arch/armv7-m/irq_lazyfpu.h>
@@ -212,6 +213,18 @@ static inline void setprimask(uint32_t primask)
       : "memory");
 }
 
+static inline void cpsie(void) inline_function;
+static inline void cpsie(void)
+{
+  __asm__ __volatile__ ("\tcpsie  i\n");
+}
+
+static inline void cpsid(void) inline_function;
+static inline void cpsid(void)
+{
+  __asm__ __volatile__ ("\tcpsid  i\n");
+}
+
 /* Get/set the BASEPRI register.  The BASEPRI register defines the minimum
  * priority for exception processing. When BASEPRI is set to a nonzero
  * value, it prevents the activation of all exceptions with the same or
@@ -244,13 +257,51 @@ static inline void setbasepri(uint32_t basepri)
       : "memory");
 }
 
+#ifdef CONFIG_ARMV7M_BASEPRI_WAR  /* Cortex-M7 r0p1 Errata 837070 Workaround */
+/* Set the BASEPRI register (possibly increasing the priority).
+ *
+ * This may be retaining or raising priority.  Cortex-M7 r0p1 Errata
+ * 837070 Workaround may be required if we are raising the priority.
+ */
+
+static inline void raisebasepri(uint32_t basepri) inline_function;
+static inline void raisebasepri(uint32_t basepri)
+{
+  register uint32_t primask;
+
+  /* 1. Retain the previous value of the PRIMASK register,
+   * 2  Disable all interrupts via the PRIMASK register.  NOTE:  They
+   *    could possibly already be disabled.
+   * 3. Set the BASEPRI register as requested (possibly increasing the
+   *    priority)
+   * 4. Restore the original value of the PRIMASK register, probably re-
+   *    enabling interrupts.  This avoids the possibly undesirable side-
+   *    effect of unconditionally re-enabling interrupts.
+   */
+
+  __asm__ __volatile__
+    (
+     "\tmrs   %0, primask\n"
+     "\tcpsid i\n"
+     "\tmsr   basepri, %1\n"
+     "\tmsr   primask, %0\n"
+     : "+r" (primask)
+     : "r"  (basepri)
+     : "memory");
+}
+#else
+#  define raisebasepri(b) setbasepri(b);
+#endif
+
 /* Disable IRQs */
 
 static inline void up_irq_disable(void) inline_function;
 static inline void up_irq_disable(void)
 {
 #ifdef CONFIG_ARMV7M_USEBASEPRI
-  setbasepri(NVIC_SYSH_DISABLE_PRIORITY);
+  /* Probably raising priority */
+
+  raisebasepri(NVIC_SYSH_DISABLE_PRIORITY);
 #else
   __asm__ __volatile__ ("\tcpsid  i\n");
 #endif
@@ -262,9 +313,10 @@ static inline irqstate_t up_irq_save(void) inline_function;
 static inline irqstate_t up_irq_save(void)
 {
 #ifdef CONFIG_ARMV7M_USEBASEPRI
+  /* Probably raising priority */
 
   uint8_t basepri = getbasepri();
-  setbasepri(NVIC_SYSH_DISABLE_PRIORITY);
+  raisebasepri(NVIC_SYSH_DISABLE_PRIORITY);
   return (irqstate_t)basepri;
 
 #else
@@ -292,7 +344,9 @@ static inline irqstate_t up_irq_save(void)
 static inline void up_irq_enable(void) inline_function;
 static inline void up_irq_enable(void)
 {
-  setbasepri(0);
+  /* In this case, we are always retaining or lowering the priority value */
+
+  setbasepri(NVIC_SYSH_PRIORITY_MIN);
   __asm__ __volatile__ ("\tcpsie  i\n");
 }
 
@@ -302,7 +356,10 @@ static inline void up_irq_restore(irqstate_t flags) inline_function;
 static inline void up_irq_restore(irqstate_t flags)
 {
 #ifdef CONFIG_ARMV7M_USEBASEPRI
+  /* In this case, we are always retaining or lowering the priority value */
+
   setbasepri((uint32_t)flags);
+
 #else
   /* If bit 0 of the primask is 0, then we need to restore
    * interrupts.
@@ -317,6 +374,7 @@ static inline void up_irq_restore(irqstate_t flags)
       :
       : "r" (flags)
       : "memory");
+
 #endif
 }
 

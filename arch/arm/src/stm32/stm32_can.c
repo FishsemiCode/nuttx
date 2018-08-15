@@ -76,7 +76,7 @@
 
 /* Bit timing ***************************************************************/
 
-#define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 1)
+#define CAN_BIT_QUANTA (CONFIG_STM32_CAN_TSEG1 + CONFIG_STM32_CAN_TSEG2 + 1)
 
 #ifndef CONFIG_DEBUG_CAN_INFO
 #  undef CONFIG_STM32_CAN_REGDEBUG
@@ -205,7 +205,7 @@ static struct stm32_can_s g_can1priv =
   .filter           = 0,
   .base             = STM32_CAN1_BASE,
   .fbase            = STM32_CAN1_BASE,
-  .baud             = CONFIG_CAN1_BAUD,
+  .baud             = CONFIG_STM32_CAN1_BAUD,
 };
 
 static struct can_dev_s g_can1dev =
@@ -228,7 +228,7 @@ static struct stm32_can_s g_can2priv =
   .filter           = CAN_NFILTERS / 2,
   .base             = STM32_CAN2_BASE,
   .fbase            = STM32_CAN1_BASE,
-  .baud             = CONFIG_CAN2_BAUD,
+  .baud             = CONFIG_STM32_CAN2_BAUD,
 };
 
 static struct can_dev_s g_can2dev =
@@ -1699,15 +1699,15 @@ static int stm32can_bittiming(FAR struct stm32_can_s *priv)
         }
     }
 
-  /* Otherwise, nquanta is CAN_BIT_QUANTA, ts1 is CONFIG_CAN_TSEG1, ts2 is
-   * CONFIG_CAN_TSEG2 and we calculate brp to achieve CAN_BIT_QUANTA quanta
+  /* Otherwise, nquanta is CAN_BIT_QUANTA, ts1 is CONFIG_STM32_CAN_TSEG1, ts2 is
+   * CONFIG_STM32_CAN_TSEG2 and we calculate brp to achieve CAN_BIT_QUANTA quanta
    * in the bit time
    */
 
   else
     {
-      ts1 = CONFIG_CAN_TSEG1;
-      ts2 = CONFIG_CAN_TSEG2;
+      ts1 = CONFIG_STM32_CAN_TSEG1;
+      ts2 = CONFIG_STM32_CAN_TSEG2;
       brp = (tmp + (CAN_BIT_QUANTA/2)) / CAN_BIT_QUANTA;
       DEBUGASSERT(brp >= 1 && brp <= CAN_BTR_BRP_MAX);
     }

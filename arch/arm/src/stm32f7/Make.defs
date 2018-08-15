@@ -60,14 +60,12 @@ endif
 
 # Configuration-dependent common files
 
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
 CMN_ASRCS += up_lazyexception.S
 else
 CMN_ASRCS += up_exception.S
 endif
 CMN_CSRCS += up_vectors.c
-endif
 
 ifeq ($(CONFIG_ARMV7M_DCACHE),y)
 CMN_CSRCS += arch_enable_dcache.c arch_disable_dcache.c
@@ -80,11 +78,7 @@ endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
-ifneq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_CSRCS += up_copyarmstate.c
-else ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
-CMN_CSRCS += up_copyarmstate.c
-endif
 endif
 
 ifeq ($(CONFIG_ARCH_RAMVECTORS),y)
@@ -114,7 +108,7 @@ endif
 CHIP_ASRCS  =
 CHIP_CSRCS  = stm32_allocateheap.c stm32_exti_gpio.c stm32_gpio.c
 CHIP_CSRCS += stm32_irq.c stm32_lowputc.c stm32_rcc.c stm32_serial.c
-CHIP_CSRCS += stm32_start.c
+CHIP_CSRCS += stm32_start.c stm32_capture.c stm32_flash.c
 
 ifneq ($(CONFIG_SCHED_TICKLESS),y)
 CHIP_CSRCS += stm32_timerisr.c
@@ -139,7 +133,7 @@ ifeq ($(CONFIG_STM32F7_PWR),y)
 CHIP_CSRCS += stm32_pwr.c stm32_exti_pwr.c
 endif
 
-ifeq ($(CONFIG_RTC),y)
+ifeq ($(CONFIG_STM32F7_RTC),y)
 CHIP_CSRCS += stm32_rtc.c
 ifeq ($(CONFIG_RTC_ALARM),y)
 CHIP_CSRCS += stm32_exti_alarm.c

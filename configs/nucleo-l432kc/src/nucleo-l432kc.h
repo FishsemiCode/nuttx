@@ -54,7 +54,6 @@
 
 #define HAVE_PROC             1
 #define HAVE_RTC_DRIVER       1
-#define HAVE_MMCSD 1
 
 #if !defined(CONFIG_FS_PROCFS)
 #  undef HAVE_PROC
@@ -71,12 +70,7 @@
 #  undef HAVE_RTC_DRIVER
 #endif
 
-#if !defined(CONFIG_STM32L4_SDIO) || !defined(CONFIG_MMCSD) || \
-    !defined(CONFIG_MMCSD_SDIO)
-#  undef HAVE_MMCSD
-#endif
-
-/* LED.  User LD2: the green LED is a user LED connected to Arduino signal D13
+/* LED.  User LD3: the green LED is a user LED connected to Arduino signal D13
  * corresponding to MCU I/O PB3 (pin 26)
  * target.
  *
@@ -84,23 +78,10 @@
  * - When the I/O is LOW, the LED is off.
  */
 
-#define GPIO_LD2 \
+#define GPIO_LD3 \
   (GPIO_PORTB | GPIO_PIN3 | GPIO_OUTPUT_CLEAR | GPIO_OUTPUT | GPIO_PULLUP | \
    GPIO_SPEED_50MHz)
 #define LED_DRIVER_PATH "/dev/userleds"
-
-/* Buttons
- *
- * B1 USER: the user button is connected to the I/O PC13 (pin 2) of the STM32
- * microcontroller.
- */
-
-#define MIN_IRQBUTTON   BUTTON_USER
-#define MAX_IRQBUTTON   BUTTON_USER
-#define NUM_IRQBUTTONS  1
-
-#define GPIO_BTN_USER \
-  (GPIO_INPUT |GPIO_FLOAT |GPIO_EXTI | GPIO_PORTC | GPIO_PIN13)
 
 /************************************************************************************
  * Public Data
@@ -161,6 +142,18 @@ int stm32l4_pwm_setup(void);
 
 #ifdef CONFIG_ADC
 int stm32l4_adc_setup(void);
+#endif
+
+/************************************************************************************
+ * Name: stm32_dac7571initialize
+ *
+ * Description:
+ *   Initialize and register the DAC7571 driver.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_DAC7571
+int stm32_dac7571initialize(FAR const char *devpath);
 #endif
 
 /****************************************************************************

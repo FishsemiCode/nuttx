@@ -39,12 +39,16 @@ include ${TOPDIR}$(DELIM)arch$(DELIM)arm$(DELIM)src$(DELIM)armv7-m$(DELIM)Toolch
 
 ifeq ($(WINTOOL),y)
   # Windows-native toolchains
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
+  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)/tools/mkwindeps.sh
   ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)$(DELIM)include}"
   ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)$(DELIM)include}" -isystem "${shell cygpath -w $(TOPDIR)$(DELIM)include$(DELIM)cxx}"
   ARCHSCRIPT = -T "${shell cygpath -w $(TOPDIR)$(DELIM)configs$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)scripts$(DELIM)memory.ld}"
   ARCHSCRIPT += -T "${shell cygpath -w $(TOPDIR)$(DELIM)configs$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)scripts$(DELIM)kernel-space.ld}"
 else
   # Linux/Cygwin-native toolchain
+  MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
   ARCHINCLUDES = -I. -isystem $(TOPDIR)$(DELIM)include
   ARCHXXINCLUDES = -I. -isystem $(TOPDIR)$(DELIM)include -isystem $(TOPDIR)$(DELIM)include$(DELIM)cxx
   ARCHSCRIPT = -T$(TOPDIR)$(DELIM)configs$(DELIM)$(CONFIG_ARCH_BOARD)$(DELIM)scripts$(DELIM)memory.ld
@@ -86,14 +90,20 @@ CXXPICFLAGS = $(ARCHPICFLAGS) $(CXXFLAGS)
 CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
 AFLAGS = $(CFLAGS) -D__ASSEMBLY__
 
+# NXFLAT module definitions
+
 NXFLATLDFLAGS1 = -r -d -warn-common
 NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)$(DELIM)binfmt$(DELIM)libnxflat$(DELIM)gnu-nxflat-pcrel.ld -no-check-sections
 LDNXFLATFLAGS = -e main -s 2048
+
+# File extensions
 
 ASMEXT = .S
 OBJEXT = .o
 LIBEXT = .a
 EXEEXT =
+
+# Linker flags
 
 ifneq ($(CROSSDEV),arm-nuttx-elf-)
   LDFLAGS += -nostartfiles -nodefaultlibs
@@ -102,6 +112,7 @@ ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
   LDFLAGS += -g
 endif
 
+# Host tools
 
 HOSTCC = gcc
 HOSTINCLUDES = -I.
@@ -112,14 +123,3 @@ ifeq ($(CONFIG_HOST_WINDOWS),y)
 else
   HOSTEXEEXT =
 endif
-
-ifeq ($(WINTOOL),y)
-  # Windows-native host tools
-  DIRLINK = $(TOPDIR)$(DELIM)tools$(DELIM)copydir.sh
-  DIRUNLINK = $(TOPDIR)$(DELIM)tools$(DELIM)unlink.sh
-  MKDEP = $(TOPDIR)$(DELIM)tools$(DELIM)mkwindeps.sh
-else
-  # Linux/Cygwin-native host tools
-  MKDEP = $(TOPDIR)$(DELIM)tools$(DELIM)mkdeps$(HOSTEXEEXT)
-endif
-

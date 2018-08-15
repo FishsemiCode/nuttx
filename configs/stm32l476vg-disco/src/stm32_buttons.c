@@ -97,9 +97,6 @@ static struct pm_callback_s g_buttonscb =
   .notify  = button_pm_notify,
   .prepare = button_pm_prepare,
 };
-#ifndef CONFIG_PM_BUTTON_ACTIVITY
-#define CONFIG_PM_BUTTON_ACTIVITY 10
-#endif
 #endif
 
 /****************************************************************************

@@ -78,8 +78,7 @@ struct spi_dev_s *g_spi3;
  * Name: stm32_spiinitialize
  *
  * Description:
- *   Called to configure SPI chip select GPIO pins for the Nucleo-F401RE and
- *   Nucleo-F411RE boards.
+ *   Called to configure SPI chip select GPIO pins.
  *
  ************************************************************************************/
 

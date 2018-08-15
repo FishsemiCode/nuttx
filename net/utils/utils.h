@@ -87,6 +87,27 @@ struct timeval;           /* Forward reference */
 void net_lockinitialize(void);
 
 /****************************************************************************
+ * Name: net_breaklock
+ *
+ * Description:
+ *   Break the lock, return information needed to restore re-entrant lock
+ *   state.
+ *
+ ****************************************************************************/
+
+int net_breaklock(FAR unsigned int *count);
+
+/****************************************************************************
+ * Name: net_breaklock
+ *
+ * Description:
+ *   Restore the locked state
+ *
+ ****************************************************************************/
+
+void net_restorelock(unsigned int count);
+
+/****************************************************************************
  * Name: net_dsec2timeval
  *
  * Description:
@@ -267,7 +288,7 @@ uint16_t ipv4_upperlayer_chksum(FAR struct net_driver_s *dev, uint8_t proto);
  * Name: ipv6_upperlayer_chksum
  *
  * Description:
- *   Perform the checksum calcaultion over the IPv6, protocol headers, and
+ *   Perform the checksum calculation over the IPv6, protocol headers, and
  *   data payload as necessary.
  *
  * Input Parameters:

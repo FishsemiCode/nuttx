@@ -17,7 +17,7 @@ README
     - NuttX Configuration Tool
     - Finding Selections in the Configuration Menus
     - Reveal Hidden Configuration Options
-    - Make Sure that You on on the Right Platform
+    - Make Sure that You are on the Right Platform
     - Comparing Two Configurations
     - Making defconfig Files
     - Incompatibilities with Older Configurations
@@ -192,7 +192,7 @@ Using MSYS
 
   Unlike Cygwin, MSYS does not support symbolic links.  The 'ln -s' commnad
   will, in fact, copy a directory!  This means that you Make.defs file will
-  have to include  defintion like:
+  have to include definitions like:
 
     ifeq ($(CONFIG_WINDOWS_MSYS),y)
       DIRLINK = $(TOPDIR)/tools/copydir.sh
@@ -200,7 +200,9 @@ Using MSYS
     endif
 
   This will force the directory copies to work in a way that can be handled
-  by the NuttX build system.
+  by the NuttX build system.  NOTE:  The default link.sh script has been
+  updated so that is should now be MSYS2 compatible.  The above is preferred
+  but no longer necessary in the Make.defs file.
 
   To build the simulator under MSYS, you also need:
 
@@ -1554,7 +1556,7 @@ Strange Path Problems
 
   When you install some toolchains (such as Yargarto or CodeSourcery tools),
   they may modify your PATH variable to include a path to their binaries.
-  At that location, they make have GNUWin32 versions of the tools.  So you
+  At that location, they may have GNUWin32 versions of the tools.  So you
   might actually be using a version of make that does not understand Cygwin
   paths.
 
@@ -1704,7 +1706,8 @@ nuttx/
  |   |
  |   |- arm/
  |   |   `- src
- |   |       `- lpc214x/README.txt
+ |   |       |- lpc214x/README.txt
+ |   |       `- stm32l4/README.txt
  |   |- renesas/
  |   |   |- include/
  |   |   |   `-README.txt
@@ -1824,6 +1827,8 @@ nuttx/
  |   |- mcb1700/
  |   |   `- README.txt
  |   |- mcu123-lpc214x/
+ |   |   `- README.txt
+ |   |- metro-m4/
  |   |   `- README.txt
  |   |- micropendous3/
  |   |   `- README.txt
@@ -1949,8 +1954,6 @@ nuttx/
  |   |   |- RIDE/README.txt
  |   |   `- README.txt
  |   |- stm3220g-eval/
- |   |   |-ide/nsh/iar/README.txt
- |   |   |-ide/nsh/uvision/README.txt
  |   |   `- README.txt
  |   |- stm3240g-eval/
  |   |   `- README.txt
@@ -1966,9 +1969,11 @@ nuttx/
  |   |   `- README.txt
  |   |- stm32f429i-disco/
  |   |   |- fb/README.txt
- |   |   |- ide/ltcd/uvision/README.txt
  |   |   `- README.txt
  |   |- stm32f746g-disco/
+ |   |   _- fb/README.txt
+ |   |   _- nxdemo/README.txt
+ |   |   _- nxterm/README.txt
  |   |   `- README.txt
  |   |- stm32f769i-disco/
  |   |   `- README.txt
@@ -1976,6 +1981,8 @@ nuttx/
  |   |   `- README.txt
  |   |- stm32l476vg-disco/
  |   |   `- README.txt
+ |   |- stm32l4r9ai-disco/
+ |   |   `-README.txt
  |   |- stm32ldiscovery/
  |   |   `- README.txt
  |   |- stm32vldiscovery/
@@ -2076,6 +2083,8 @@ nuttx/
  |- net/
  |   |- sixlowpan
  |   |   `- README.txt
+ |   `- README.txt
+ |- pass1/
  |   `- README.txt
  |- syscall/
  |   `- README.txt

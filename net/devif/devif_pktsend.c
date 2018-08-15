@@ -91,15 +91,14 @@
  *   no header on the data.
  *
  * Assumptions:
- *   Called from the interrupt level or, at a minimum, with interrupts
- *   disabled.
+ *   Called with the network locked.
  *
  ****************************************************************************/
 
 void devif_pkt_send(FAR struct net_driver_s *dev, FAR const void *buf,
                     unsigned int len)
 {
-  DEBUGASSERT(dev && len > 0 && len < NET_DEV_MTU(dev));
+  DEBUGASSERT(dev && len > 0 && len < NETDEV_PKTSIZE(dev));
 
   /* Copy the data into the device packet buffer */
 

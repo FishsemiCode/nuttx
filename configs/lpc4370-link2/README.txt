@@ -376,39 +376,31 @@ FPU Configuration Options
 -------------------------
 
 There are two version of the FPU support built into the most NuttX Cortex-M4
-ports.  The current LPC43xx port support only one of these options, the "Non-
-Lazy Floating Point Register Save".  As a consequence, CONFIG_ARMV7M_CMNVECTOR
-must be defined in *all* LPC43xx configuration files.
+ports.
 
-1. Lazy Floating Point Register Save.
+1. Non-Lazy Floating Point Register Save
 
-   This is an untested implementation that saves and restores FPU registers
-   only on context switches.  This means: (1) floating point registers are
-   not stored on each context switch and, hence, possibly better interrupt
+   In this configuration floating point register save and restore is
+   implemented on interrupt entry and return, respectively.  In this
+   case, you may use floating point operations for interrupt handling
+   logic if necessary.  This FPU behavior logic is enabled by default
+   with:
+
+     CONFIG_ARCH_FPU=y
+
+2. Lazy Floating Point Register Save.
+
+   An alternative mplementation only saves and restores FPU registers only
+   on context switches.  This means: (1) floating point registers are not
+   stored on each context switch and, hence, possibly better interrupt
    performance.  But, (2) since floating point registers are not saved,
    you cannot use floating point operations within interrupt handlers.
 
    This logic can be enabled by simply adding the following to your .config
    file:
 
-   CONFIG_ARCH_FPU=y
-
-2. Non-Lazy Floating Point Register Save
-
-   Mike Smith has contributed an extensive re-write of the ARMv7-M exception
-   handling logic. This includes verified support for the FPU.  These changes
-   have not yet been incorporated into the mainline and are still considered
-   experimental.  These FPU logic can be enabled with:
-
-   CONFIG_ARCH_FPU=y
-   CONFIG_ARMV7M_CMNVECTOR=y
-
-   You will probably also changes to the ld.script in if this option is selected.
-   This should work:
-
-   -ENTRY(_stext)
-   +ENTRY(__start)         /* Treat __start as the anchor for dead code stripping */
-   +EXTERN(_vectors)       /* Force the vectors to be included in the output */
+     CONFIG_ARCH_FPU=y
+     CONFIG_ARMV7M_LAZYFPU=y
 
 CFLAGS
 ------
@@ -540,8 +532,8 @@ LPC4370-Link2 Configuration Options
       CONFIG_LPC43_ADC0=y
       CONFIG_LPC43_ADC1=y
       CONFIG_LPC43_ATIMER=y
+      CONFIG_LPC43_CAN0=y
       CONFIG_LPC43_CAN1=y
-      CONFIG_LPC43_CAN2=y
       CONFIG_LPC43_DAC=y
       CONFIG_LPC43_EMC=y
       CONFIG_LPC43_ETHERNET=y
@@ -597,34 +589,28 @@ LPC4370-Link2 Configuration Options
 
     CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
       Standard 11-bit IDs.
-    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC43_CAN1 is defined.
-    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC43_CAN2 is defined.
-    CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.
-      (the CCLK frequency is divided by this number to get the CAN clock).
-      Options = {1,2,4,6}. Default: 4.
-    CONFIG_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this number.
-      (the CCLK frequency is divided by this number to get the CAN clock).
-      Options = {1,2,4,6}. Default: 4.
-    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-    CONFIG_CAN_TSEG2 = the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_LPC43_CAN0_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC43_CAN0
+      is defined.
+    CONFIG_LPC43_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC43_CAN1
+      is defined.
+    CONFIG_LPC43_CAN_TSEG1 - The number of CAN time quanta in segment 1.
+      Default: 12
+    CONFIG_LPC43_CAN_TSEG2 = the number of CAN time quanta in segment 2.
+      Default: 4
 
   LPC43xx specific PHY/Ethernet device driver settings.  These setting
   also require CONFIG_NET and CONFIG_LPC43_ETHERNET.
 
     CONFIG_ETH0_PHY_KS8721 - Selects Micrel KS8721 PHY
-    CONFIG_PHY_AUTONEG - Enable auto-negotion
-    CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
-    CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
+    CONFIG_LPC43_AUTONEG - Enable auto-negotion
 
-    CONFIG_NET_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
-    CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 18
-    CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 18
-    CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+    CONFIG_LPC17_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
+    CONFIG_LPC43_ETH_NTXDESC - Configured number of Tx descriptors. Default: 18
+    CONFIG_LPC43_ETH_NRXDESC - Configured number of Rx descriptors. Default: 18
     CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
       CONFIG_DEBUG_FEATURES.
     CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
       Also needs CONFIG_DEBUG_FEATURES.
-    CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
 
   LPC43xx USB Device Configuration
 
@@ -644,23 +630,6 @@ LPC4370-Link2 Configuration Options
       Define if the hardware implementation does not support the VBUS signal
     CONFIG_LPC43_USBDEV_NOLED
       Define if the hardware  implementation does not support the LED output
-
-  LPC43xx USB Host Configuration
-
-    CONFIG_USBHOST_OHCIRAM_SIZE
-      Total size of OHCI RAM (in AHB SRAM Bank 1)
-    CONFIG_USBHOST_NEDS
-      Number of endpoint descriptors
-    CONFIG_USBHOST_NTDS
-      Number of transfer descriptors
-    CONFIG_USBHOST_TDBUFFERS
-      Number of transfer descriptor buffers
-    CONFIG_USBHOST_TDBUFSIZE
-      Size of one transfer descriptor buffer
-    CONFIG_USBHOST_IOBUFSIZE
-      Size of one end-user I/O buffer.  This can be zero if the
-      application can guarantee that all end-user I/O buffers
-      reside in AHB SRAM.
 
 Configurations
 ==============

@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated March 4, 2018)
+NuttX TODO List (Last updated June 21, 2018)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
@@ -10,7 +10,7 @@ issues related to each board port.
 nuttx/:
 
  (15)  Task/Scheduler (sched/)
-  (1)  SMP
+  (3)  SMP
   (1)  Memory Management (mm/)
   (0)  Power Management (drivers/pm)
   (3)  Signals (sched/signal, arch/)
@@ -18,7 +18,7 @@ nuttx/:
   (0)  Message Queues (sched/mqueue)
   (8)  Kernel/Protected Build
   (3)  C++ Support
-  (6)  Binary loaders (binfmt/)
+  (5)  Binary loaders (binfmt/)
  (16)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
   (2)  Other drivers (drivers/)
@@ -430,6 +430,57 @@ o SMP
 
   Status:      Closed
   Priority:    High on platforms that may have the issue.
+
+  Title:       MISUSE OF sched_lock() IN SMP MODE
+  Description: The OS API sched_lock() disables pre-emption and locks a
+               task in place.  In the single CPU case, it is also often
+               used to enforce a simple critical section since not other
+               task can run while pre-emption is locked.
+
+               This, however, does not generalize to the SMP case.  In the
+               SMP case, there are multiple tasks running on multiple CPUs.
+               The basic behavior is still correct:  The task that has
+               locked pre-emption will not be suspended.  However, there
+               is no longer any protection for use as a critical section:
+               tasks running on other CPUs may still execute that that
+               unprotect code regsion.
+
+               The solution is to replace the use of sched_lock() with
+               stronger protection such as spin_lock_irqsave().
+  Status:      Open
+  Priority:    Medium for SMP system.  Not critical to single CPU systems.
+               NOTE:  There are no known bugs from this protential problem.
+
+  Title:       CORTEX-A GIC SGI INTERRUPT MASKING
+  Description: In the ARMv7-A GICv2 architecture, the inter-processor
+               interrupts (SGIs) are non maskable and will occur even if
+               interrupts are disabled.  This addes a lot of complexity
+               to the ARMV7-A critical section design.
+
+               Masayuki Ishakawa has suggest the use of the GICv2 ICCMPR
+               register to control SGI interrupts.  This register (much like
+               the ARMv7-M BASEPRI register) can be used to mask interrupts
+               by interrupt priority.  Since SGIs may be assigned priorities
+               the ICCMPR should be able to block execution of SGIs as well.
+
+               Such an implementation would be very similar to the BASEPRI
+               (vs PRIMASK) implementation for the ARMv7-M:  (1) The
+               up_irq_save() and up_irq_restore() registers would have to
+               set/restore the ICCMPR register, (2) register setup logic in
+               arch/arm/src/armv7-a for task start-up and signal dispatch
+               would have to set the ICCMPR correctly, and (3) the 'xcp'
+               structure sould have to be extended to hold the ICCMPR
+               register;  logic would have to added be save/restore the
+               ICCMPR register in the 'xcp' structure on each interrupt and
+               context switch.
+
+               This would also be an essential part of a high priority,
+               nested interrupt implementation (unrelated).
+  Status:      Open
+  Priority:    Low.  There are no know issues with the current non-maskable
+               SGI implementation.  This change would, however, lead to
+               simplification in the design and permit commonality with
+               other, non-GIC imoplementations.
 
 o Memory Management (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^^
@@ -1028,48 +1079,6 @@ o Binary loaders (binfmt/)
   Priority:    There are too many references like the above.  They will have
                to get fixed as needed for Windows native tool builds.
 
-  Title:       TOOLCHAIN COMPATIBILITY PROBLEM
-  Description: The older 4.3.3 compiler generates GOTOFF relocations to the constant
-               strings, like:
-
-               .L3:
-                  .word   .LC0(GOTOFF)
-                  .word   .LC1(GOTOFF)
-                  .word   .LC2(GOTOFF)
-                  .word   .LC3(GOTOFF)
-                  .word   .LC4(GOTOFF)
-
-               Where .LC0, LC1, LC2, LC3, and .LC4 are the labels corresponding to strings in
-               the .rodata.str1.1 section.  One consequence of this is that .rodata must reside
-               in D-Space since it will addressed relative to the GOT (see the section entitled
-               "Read-Only Data in RAM" at
-               http://nuttx.org/Documentation/NuttXNxFlat.html#limitations).
-
-               The newer 4.6.3 compiler generated PC relative relocations to the strings:
-
-               .L2:
-                  .word   .LC0-(.LPIC0+4)
-                  .word   .LC1-(.LPIC1+4)
-                  .word   .LC2-(.LPIC2+4)
-                  .word   .LC3-(.LPIC4+4)
-                  .word   .LC4-(.LPIC5+4)
-
-               This is good and bad.  This is good because it means that .rodata.str1.1 can now
-               reside in FLASH with .text and can be accessed using PC-relative addressing.
-               That can be accomplished by simply moving the .rodata from the .data section to
-               the .text section in the linker script.  (The NXFLAT linker script is located at
-               nuttx/binfmt/libnxflat/gnu-nxflat.ld).
-
-               This is bad because a lot of stuff may get broken an a lot of test will need to
-               be done.  One question that I have is does this apply to all kinds of .rodata?
-               Or just to .rodata.str1.1?
-
-  Status:      Open.  Many of the required changes are in place but, unfortunately, not enough
-               go be fully functional.  I think all of the I-Space-to-I-Space fixes are in place.
-               However, the generated code also includes PC-relative references to .bss which
-               just cannot be done.
-  Priority:    Medium.  The workaround for now is to use the older, 4.3.3 OABI compiler.
-
 o Network (net/, drivers/net)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -1219,7 +1228,7 @@ o Network (net/, drivers/net)
 
   Title:       MISSING netdb INTERFACES
   Description: There is no implementation for many netdb interfaces such as
-               getaddrinfo(), freeaddrinfo(), getnameinfo(), etc.
+               getnetbyname(), getprotobyname(), getnameinfo(), etc.
   Status:      Open
   Priority:    Low
 

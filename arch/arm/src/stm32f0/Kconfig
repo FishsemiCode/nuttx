@@ -979,7 +979,7 @@ config STM32F0_SDIO
 	depends on !STM32F0_CONNECTIVITYLINE && !STM32F0_VALUELINE
 	select ARCH_HAVE_SDIO
 	select ARCH_HAVE_SDIOWAIT_WRCOMPLETE
-	select SDIO_PREFLIGHT
+	select ARCH_HAVE_SDIO_PREFLIGHT
 
 config STM32F0_SPI1
 	bool "SPI1"
@@ -1470,13 +1470,41 @@ config USART8_RS485_DIR_POLARITY
 
 endif # STM32F0_USART8_SERIALDRIVER
 
+menu "Serial Driver Configuration"
+	depends on STM32F0_SERIALDRIVER
+
+config STM32F0_SERIAL_DISABLE_REORDERING
+	bool "Disable reordering of ttySx devices."
+	default n
+	---help---
+		NuttX per default reorders the serial ports (/dev/ttySx) so that the
+		console is always on /dev/ttyS0. If more than one UART is in use this
+		can, however, have the side-effect that all port mappings
+		(hardware USART1 -> /dev/ttyS0) change if the console is moved to another
+		UART. This is in particular relevant if a project uses the USB console
+		in some configs and a serial console in other configs, but does not
+		want the side effect of having all serial port names change when just
+		the console is moved from serial to USB.
+
+config STM32F0_USART_SINGLEWIRE
+	bool "Single Wire Support"
+	default n
+	depends on STM32F0_USART
+	---help---
+		Enable single wire UART support.  The option enables support for the
+		TIOCSSINGLEWIRE ioctl in the STM32F0 serial driver.
+
+endmenu # Serial Driver Configuration
+
 if PM
-config PM_SERIAL_ACTIVITY
+
+config STM32F0_PM_SERIAL_ACTIVITY
 	int "PM serial activity"
 	default 10
 	---help---
 		PM activity reported to power management logic on every serial
 		interrupt.
+
 endif
 
 endmenu

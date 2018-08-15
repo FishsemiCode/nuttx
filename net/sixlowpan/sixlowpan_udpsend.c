@@ -95,7 +95,7 @@ static uint16_t sixlowpan_udp_chksum(FAR const struct ipv6udp_hdr_s *ipv6udp,
 
   /* Verify some minimal assumptions */
 
-  if (upperlen > CONFIG_NET_6LOWPAN_MTU)
+  if (upperlen > CONFIG_NET_6LOWPAN_PKTSIZE)
     {
       return 0;
     }
@@ -255,7 +255,7 @@ ssize_t psock_6lowpan_udp_sendto(FAR struct socket *psock,
   /* Copy the source and destination addresses */
 
   net_ipv6addr_hdrcopy(ipv6udp.ipv6.destipaddr, to6->sin6_addr.in6_u.u6_addr16);
-  if (!net_ipv6addr_cmp(conn->u.ipv6.laddr, g_ipv6_allzeroaddr))
+  if (!net_ipv6addr_cmp(conn->u.ipv6.laddr, g_ipv6_unspecaddr))
     {
       net_ipv6addr_hdrcopy(ipv6udp.ipv6.srcipaddr, conn->u.ipv6.laddr);
     }

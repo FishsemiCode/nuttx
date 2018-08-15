@@ -205,7 +205,7 @@ struct tcp_conn_s
    * system clock tick.
    */
 
-  systime_t  keeptime;    /* Last time that the TCP socket was known to be
+  clock_t    keeptime;    /* Last time that the TCP socket was known to be
                            * alive (ACK or data received) OR time that the
                            * last probe was sent. */
   uint16_t   keepidle;    /* Elapsed idle time before first probe sent (dsec) */
@@ -331,7 +331,7 @@ struct pollfd;    /* Forward reference */
  *
  * Description:
  *   Initialize the TCP/IP connection structures.  Called only once and only
- *   from the UIP layer at start-up in normal user mode.
+ *   from the network layer at start-up.
  *
  ****************************************************************************/
 
@@ -343,8 +343,8 @@ void tcp_initialize(void);
  * Description:
  *   Find a free TCP/IP connection structure and allocate it
  *   for use.  This is normally something done by the implementation of the
- *   socket() API but is also called from the driver level when a TCP
- *   packet is received while "listening"
+ *   socket() API but is also called from the event processing logic when a
+ *   TCP packet is received while "listening"
  *
  ****************************************************************************/
 
@@ -1354,6 +1354,22 @@ int tcp_setsockopt(FAR struct socket *psock, int option,
 int tcp_getsockopt(FAR struct socket *psock, int option,
                    FAR void *value, FAR socklen_t *value_len);
 #endif
+
+/****************************************************************************
+ * Name: tcp_get_recvwindow
+ *
+ * Description:
+ *   Calculate the TCP receive window for the specified device.
+ *
+ * Input Parameters:
+ *   dev - The device whose TCP receive window will be updated.
+ *
+ * Returned Value:
+ *   The value of the TCP receive window to use.
+ *
+ ****************************************************************************/
+
+uint16_t tcp_get_recvwindow(FAR struct net_driver_s *dev);
 
 /****************************************************************************
  * Name: psock_tcp_cansend

@@ -570,34 +570,38 @@ Olimex LPC1766-STK Configuration Options
 
     CONFIG_CAN_EXTID - Enables support for the 29-bit extended ID.  Default
       Standard 11-bit IDs.
-    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN1 is defined.
-    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN2 is defined.
-    CONFIG_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this number.
-      (the CCLK frequency is divided by this number to get the CAN clock).
-      Options = {1,2,4,6}. Default: 4.
-    CONFIG_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this number.
-      (the CCLK frequency is divided by this number to get the CAN clock).
-      Options = {1,2,4,6}. Default: 4.
-    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_LPC17_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN1
+      is defined.
+    CONFIG_LPC17_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_LPC17_CAN2
+      is defined.
+    CONFIG_LPC17_CAN1_DIVISOR - CAN1 is clocked at CCLK divided by this
+      number. (the CCLK frequency is divided by this number to get the CAN
+      clock). Options = {1,2,4,6}. Default: 4.
+    CONFIG_LPC17_CAN2_DIVISOR - CAN2 is clocked at CCLK divided by this
+      number.  (the CCLK frequency is divided by this number to get the CAN
+      clock).  Options = {1,2,4,6}. Default: 4.
+    CONFIG_LPC17_CAN_TSEG1 - The number of CAN time quanta in segment 1.
+      Default: 6
+    CONFIG_LPC17_CAN_TSEG2 = the number of CAN time quanta in segment 2.
+      Default: 7
 
   LPC17xx specific PHY/Ethernet device driver settings.  These setting
   also require CONFIG_NET and CONFIG_LPC17_ETHERNET.
 
     CONFIG_ETH0_PHY_KS8721 - Selects Micrel KS8721 PHY
-    CONFIG_PHY_AUTONEG - Enable auto-negotion
-    CONFIG_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
-    CONFIG_PHY_FDUPLEX - Select full (vs. half) duplex
+    CONFIG_LPC17_PHY_AUTONEG - Enable auto-negotion
+    CONFIG_LPC17_PHY_SPEED100 - Select 100Mbit vs. 10Mbit speed.
+    CONFIG_LPC17_PHY_FDUPLEX - Select full (vs. half) duplex
 
-    CONFIG_NET_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
-    CONFIG_NET_NTXDESC - Configured number of Tx descriptors. Default: 18
-    CONFIG_NET_NRXDESC - Configured number of Rx descriptors. Default: 18
-    CONFIG_NET_WOL - Enable Wake-up on Lan (not fully implemented).
+    CONFIG_LPC17_EMACRAM_SIZE - Size of EMAC RAM.  Default: 16Kb
+    CONFIG_LPC17_ETH_NTXDESC - Configured number of Tx descriptors. Default: 18
+    CONFIG_LPC17_ETH_NRXDESC - Configured number of Rx descriptors. Default: 18
+    CONFIG_LPC17_ETH_WOL - Enable Wake-up on Lan (not fully implemented).
     CONFIG_NET_REGDEBUG - Enabled low level register debug.  Also needs
       CONFIG_DEBUG_FEATURES.
     CONFIG_NET_DUMPPACKET - Dump all received and transmitted packets.
       Also needs CONFIG_DEBUG_FEATURES.
-    CONFIG_NET_HASH - Enable receipt of near-perfect match frames.
+    CONFIG_LPC17_ETH_HASH - Enable receipt of near-perfect match frames.
     CONFIG_LPC17_MULTICAST - Enable receipt of multicast (and unicast) frames.
       Automatically set if CONFIG_NET_IGMP is selected.
 
@@ -621,17 +625,17 @@ Olimex LPC1766-STK Configuration Options
       Define if the hardware  implementation does not support the LED output
 
   LPC17xx USB Host Configuration
-    CONFIG_USBHOST_OHCIRAM_SIZE
+    CONFIG_LPC17_OHCIRAM_SIZE
       Total size of OHCI RAM (in AHB SRAM Bank 1)
-    CONFIG_USBHOST_NEDS
+    CONFIG_LP17_USBHOST_NEDS
       Number of endpoint descriptors
-    CONFIG_USBHOST_NTDS
+    CONFIG_LP17_USBHOST_NTDS
       Number of transfer descriptors
-    CONFIG_USBHOST_TDBUFFERS
+    CONFIG_LPC17_USBHOST_TDBUFFERS
       Number of transfer descriptor buffers
-    CONFIG_USBHOST_TDBUFSIZE
+    CONFIG_LPC17_USBHOST_TDBUFSIZE
       Size of one transfer descriptor buffer
-    CONFIG_USBHOST_IOBUFSIZE
+    CONFIG_LPC17_USBHOST_IOBUFSIZE
       Size of one end-user I/O buffer.  This can be zero if the
       application can guarantee that all end-user I/O buffers
       reside in AHB SRAM.
@@ -833,7 +837,7 @@ Configuration Sub-Directories
        use the UART1 hardware flow control yet.
 
        NOTE: The Linux slip module hard-codes its MTU size to 296.  So you
-       might as well set CONFIG_NET_ETH_MTU to 296 as well.
+       might as well set CONFIG_NET_ETH_PKTSIZE to 296 as well.
 
     4. After turning over the line to the SLIP driver, you must configure
        the network interface. Again, you do this using the standard

@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/ieee802154/ieee802154_sendto.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -57,6 +57,7 @@
 #include <nuttx/net/radiodev.h>
 #include <nuttx/net/net.h>
 
+#include "utils/utils.h"
 #include "netdev/netdev.h"
 #include "devif/devif.h"
 #include "socket/socket.h"
@@ -69,7 +70,7 @@
  ****************************************************************************/
 
 /* This structure holds the state of the send operation until it can be
- * operated upon from the interrupt level.
+ * operated upon by the event handler.
  */
 
 struct ieee802154_sendto_s
@@ -345,7 +346,7 @@ static uint16_t ieee802154_sendto_eventhandler(FAR struct net_driver_s *dev,
 
       /* Allocate an IOB to hold the frame data */
 
-      iob = iob_alloc(0);
+      iob = net_ioballoc(false);
       if (iob == NULL)
         {
           nwarn("WARNING: Failed to allocate IOB\n");
@@ -473,9 +474,9 @@ ssize_t psock_ieee802154_sendto(FAR struct socket *psock, FAR const void *buf,
 
   /* Perform the send operation */
 
-  /* Initialize the state structure. This is done with interrupts
-   * disabled because we don't want anything to happen until we
-   * are ready.
+  /* Initialize the state structure. This is done with the network
+   * locked because we don't want anything to happen until we are
+   * ready.
    */
 
   net_lock();
@@ -515,15 +516,13 @@ ssize_t psock_ieee802154_sendto(FAR struct socket *psock, FAR const void *buf,
 
           netdev_txnotify_dev(&radio->r_dev);
 
-          /* Wait for the send to complete or an error to occur: NOTES: (1)
-           * net_lockedwait will also terminate if a signal is received, (2)
-           * interrupts may be disabled! They will be re-enabled while the
-           * task sleeps and automatically re-enabled when the task restarts.
+          /* Wait for the send to complete or an error to occur.
+           * net_lockedwait will also terminate if a signal is received.
            */
 
           ret = net_lockedwait(&state.is_sem);
 
-          /* Make sure that no further interrupts are processed */
+          /* Make sure that no further events are processed */
 
           ieee802154_callback_free(&radio->r_dev, conn, state.is_cb);
         }

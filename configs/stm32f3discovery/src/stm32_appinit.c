@@ -1,7 +1,7 @@
 /****************************************************************************
  * config/stm32f3discovery/src/stm32_appinit.c
  *
- *   Copyright (C) 2013, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,49 +39,16 @@
 
 #include <nuttx/config.h>
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <syslog.h>
-#include <errno.h>
-
 #include <nuttx/board.h>
 
-#ifdef CONFIG_USBMONITOR
-#  include <nuttx/usb/usbmonitor.h>
-#endif
-
-#include "stm32.h"
 #include "stm32f3discovery.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* Configuration ************************************************************/
-
-#define HAVE_USBDEV     1
-#define HAVE_USBMONITOR 1
-
-/* Can't support USB device features if the STM32 USB peripheral is not
- * enabled.
- */
-
-#ifndef CONFIG_STM32_USB
-#  undef HAVE_USBDEV
-#  undef HAVE_USBMONITOR
-#endif
-
-/* Can't support USB device is USB device is not enabled */
-
-#ifndef CONFIG_USBDEV
-#  undef HAVE_USBDEV
-#  undef HAVE_USBMONITOR
-#endif
-
-/* Check if we should enable the USB monitor before starting NSH */
-
-#if !defined(CONFIG_USBDEV_TRACE) || !defined(CONFIG_USBMONITOR)
-#  undef HAVE_USBMONITOR
+#ifndef OK
+#  define OK 0
 #endif
 
 /****************************************************************************
@@ -100,7 +67,7 @@
  *   arg - The boardctl() argument is passed to the board_app_initialize()
  *         implementation without modification.  The argument has no
  *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initalization logic and the
+ *         between the board-specific initialization logic and the
  *         matching application logic.  The value cold be such things as a
  *         mode enumeration value, a set of DIP switch switch settings, a
  *         pointer to configuration data read from a file or serial FLASH,
@@ -115,40 +82,13 @@
 
 int board_app_initialize(uintptr_t arg)
 {
-  int ret = OK;
+#ifdef CONFIG_BOARD_INITIALIZE
+  /* Board initialization already performed by board_initialize() */
 
-#ifdef HAVE_USBMONITOR
-  /* Start the USB Monitor */
+  return OK;
+#else
+  /* Perform board-specific initialization */
 
-  ret = usbmonitor_start();
-  if (ret != OK)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to start USB monitor: %d\n", ret);
-    }
+  return stm32_bringup();
 #endif
-
-#ifdef CONFIG_PWM
-  /* Initialize PWM and register the PWM device. */
-
-  ret = stm32_pwm_setup();
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: stm32_pwm_setup() failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_SENSORS_QENCODER
-  /* Initialize and register the qencoder driver */
-
-  ret = stm32_qencoder_initialize("/dev/qe0", CONFIG_STM32F3DISCO_QETIMER);
-  if (ret != OK)
-    {
-      syslog(LOG_ERR,
-             "ERROR: Failed to register the qencoder: %d\n",
-             ret);
-      return ret;
-    }
-#endif
-
-  return ret;
 }

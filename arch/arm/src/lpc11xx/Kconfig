@@ -104,19 +104,19 @@ endmenu
 menu "ADC driver options"
 	depends on LPC11_ADC
 
-config ADC0_AVERAGE
+config LPC11_ADC0_AVERAGE
 	int "ADC0 average"
 	default 200
 
-config ADC0_MASK
+config LPC11_ADC0_MASK
 	hex "ADC0 mask"
 	default 0x01
 
-config ADC0_SPS
+config LPC11_ADC0_SPS
 	int "ADC0 SPS"
 	default 1000
 
-config ADC_CHANLIST
+config LPC11_ADC_CHANLIST
 	bool "Use ADC channel list"
 	default n
 	---help---
@@ -131,50 +131,46 @@ config ADC_CHANLIST
 		triggering interrupt from the global DONE flag).
 
 		If this option is enabled, then the platform specific code must do
-		two things:  (1) define ADC_NCHANNELS in the configuration file and
-		(2) provide an array g_adc_chanlist[] with the channel numbers
-		matching the ADC0_MASK within the board-specific library.
+		two things:  (1) define LPC11_ADC_NCHANNELS in the configuration file
+		and (2) provide an array g_adc_chanlist[] with the channel numbers
+		matching the LPC11_ADC0_MASK within the board-specific library.
 
-config ADC_BURSTMODE
-	bool "One interrupt at the end of all ADC cconversions"
+config LPC11_ADC_BURSTMODE
+	bool "One interrupt at the end of all ADC conversions"
 	default n
 	---help---
-		Select this if you want to generate only one interrupt once all selected channels has been converted by the ADC
+		Select this if you want to generate only one interrupt once all
+		selected channels has been converted by the ADC
 
-config ADC_NCHANNELS
+config LPC11_ADC_NCHANNELS
 	int "ADC0 number of channels"
-	depends on ADC_CHANLIST
+	depends on LPC11_ADC_CHANLIST
 	default 0
 	---help---
-		If ADC_CHANLIST is enabled, then the platform specific code
-		must do two things:  (1) define ADC_NCHANNELS in the configuration
+		If LPC11_ADC_CHANLIST is enabled, then the platform specific code
+		must do two things:  (1) define LPC11_ADC_NCHANNELS in the configuration
 		file and (2) provide an array g_adc_chanlist[] with the channel
-		numbers matching the ADC0_MASK within the board-specific library.
+		numbers matching the LPC11_ADC0_MASK within the board-specific
+		library.
 
 endmenu
 
 menu "CAN driver options"
 	depends on LPC11_CAN1 || LPC11_CAN2
 
-config CAN_EXTID
-	bool "CAN extended IDs"
-	default n
-	---help---
-		Enables support for the 29-bit extended ID.  Default Standard 11-bit IDs.
-
-config CAN1_BAUD
+config LPC11_CAN1_BAUD
 	int "CAN1 BAUD"
 	depends on LPC11_CAN1
 	---help---
 		CAN1 BAUD rate.  Required if LPC11_CAN1 is defined.
 
-config CAN2_BAUD
+config LPC11_CAN2_BAUD
 	int "CAN2 BAUD"
 	depends on LPC11_CAN2
 	---help---
 		CAN2 BAUD rate.  Required if LPC11_CAN2 is defined.
 
-config CAN1_DIVISOR
+config LPC11_CAN1_DIVISOR
 	int "CAN1 CCLK divisor"
 	depends on LPC11_CAN1
 	default 4
@@ -182,7 +178,7 @@ config CAN1_DIVISOR
 		CAN1 is clocked at CCLK divided by this number. (the CCLK frequency is divided
 		by this number to get the CAN clock). Options = {1,2,4,6}. Default: 4.
 
-config CAN2_DIVISOR
+config LPC11_CAN2_DIVISOR
 	int "CAN2 CCLK divisor"
 	depends on LPC11_CAN2
 	default 4
@@ -190,29 +186,23 @@ config CAN2_DIVISOR
 		CAN2 is clocked at CCLK divided by this number. (the CCLK frequency is divided
 		by this number to get the CAN clock). Options = {1,2,4,6}. Default: 4.
 
-config CAN_TSEG1
+config LPC11_CAN_TSEG1
 	int "TSEG1 quanta"
 	default 6
 	---help---
 		The number of CAN time quanta in segment 1. Default: 6
 
-config CAN_TSEG2
+config LPC11_CAN_TSEG2
 	int "TSEG2 quanta"
 	default 4
 	---help---
 		The number of CAN time quanta in segment 2. Default: 7
 
-config CAN_SAM
+config LPC11_CAN_SAM
 	bool "CAN sampling"
 	default n
 	---help---
 		The bus is sampled 3 times (recommended for low to medium speed buses to spikes on the bus-line).
-
-config CAN_LOOPBACK
-	bool "CAN loopback mode"
-	default n
-	---help---
-		Enable CAN loopback mode
 
 config CAN_REGDEBUG
 	bool "Register level debug"

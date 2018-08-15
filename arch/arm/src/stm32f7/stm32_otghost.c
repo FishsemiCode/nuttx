@@ -1607,8 +1607,8 @@ static int stm32_ctrl_sendsetup(FAR struct stm32_usbhost_s *priv,
                                 FAR const struct usb_ctrlreq_s *req)
 {
   FAR struct stm32_chan_s *chan;
-  systime_t start;
-  systime_t elapsed;
+  clock_t start;
+  clock_t elapsed;
   int ret;
 
   /* Loop while the device reports NAK (and a timeout is not exceeded */
@@ -1837,7 +1837,7 @@ static ssize_t stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                                  FAR uint8_t *buffer, size_t buflen)
 {
   FAR struct stm32_chan_s *chan;
-  systime_t start;
+  clock_t start;
   ssize_t xfrd;
   int ret;
 
@@ -1909,7 +1909,7 @@ static ssize_t stm32_in_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                    * if not then try again.
                    */
 
-                  systime_t elapsed = clock_systimer() - start;
+                  clock_t elapsed = clock_systimer() - start;
                   if (elapsed >= STM32_DATANAK_DELAY)
                     {
                       /* Timeout out... break out returning the NAK as
@@ -2195,8 +2195,8 @@ static ssize_t stm32_out_transfer(FAR struct stm32_usbhost_s *priv, int chidx,
                                   FAR uint8_t *buffer, size_t buflen)
 {
   FAR struct stm32_chan_s *chan;
-  systime_t start;
-  systime_t elapsed;
+  clock_t start;
+  clock_t elapsed;
   size_t xfrlen;
   ssize_t xfrd;
   int ret;
@@ -3820,7 +3820,7 @@ static void stm32_txfe_enable(FAR struct stm32_usbhost_s *priv, int chidx)
  *      connection related event.
  *
  * Returned Value:
- *   Zero (OK) is returned on success when a device in connected or
+ *   Zero (OK) is returned on success when a device is connected or
  *   disconnected. This function will not return until either (1) a device is
  *   connected or disconnect to/from any hub port or until (2) some failure
  *   occurs.  On a failure, a negated errno value is returned indicating the
@@ -4409,8 +4409,8 @@ static int stm32_ctrlin(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep0,
   FAR struct stm32_usbhost_s *priv = (FAR struct stm32_usbhost_s *)drvr;
   FAR struct stm32_ctrlinfo_s *ep0info = (FAR struct stm32_ctrlinfo_s *)ep0;
   uint16_t buflen;
-  systime_t start;
-  systime_t elapsed;
+  clock_t start;
+  clock_t elapsed;
   int retries;
   int ret;
 
@@ -4494,8 +4494,8 @@ static int stm32_ctrlout(FAR struct usbhost_driver_s *drvr, usbhost_ep_t ep0,
   FAR struct stm32_usbhost_s *priv = (FAR struct stm32_usbhost_s *)drvr;
   FAR struct stm32_ctrlinfo_s *ep0info = (FAR struct stm32_ctrlinfo_s *)ep0;
   uint16_t buflen;
-  systime_t start;
-  systime_t elapsed;
+  clock_t start;
+  clock_t elapsed;
   int retries;
   int ret;
 
@@ -5367,7 +5367,7 @@ FAR struct usbhost_connection_s *stm32_otgfshost_initialize(int controller)
 
   /* Alternate function pin configuration.  Here we assume that:
    *
-   * 1. GPIOA, SYSCFG, and OTG FS peripheral clocking have already been\
+   * 1. GPIOA, SYSCFG, and OTG FS peripheral clocking have already been
    *    enabled as part of the boot sequence.
    * 2. Board-specific logic has already enabled other board specific GPIOs
    *    for things like soft pull-up, VBUS sensing, power controls, and over-

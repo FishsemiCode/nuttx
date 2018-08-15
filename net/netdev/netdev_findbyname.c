@@ -66,9 +66,6 @@
  * Returned Value:
  *  Pointer to driver on success; null on failure
  *
- * Assumptions:
- *  Called from normal user mode
- *
  ****************************************************************************/
 
 FAR struct net_driver_s *netdev_findbyname_ext(FAR const char *ifname, int *index)

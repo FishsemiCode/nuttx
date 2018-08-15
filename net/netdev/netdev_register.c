@@ -39,7 +39,6 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
 
 #include <sys/socket.h>
 #include <stdio.h>
@@ -59,6 +58,8 @@
 #include "utils/utils.h"
 #include "igmp/igmp.h"
 #include "netdev/netdev.h"
+
+#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -94,6 +95,25 @@
 /* List of registered Ethernet device drivers */
 
 struct net_driver_s *g_netdevices = NULL;
+
+#ifdef CONFIG_NETDEV_IFINDEX
+/* The set of network devices that have been registered.  This is used to
+ * assign a unique device index to the newly registered device.
+ *
+ * REVISIT:  The width of g_nassigned limits the number of registered
+ * devices to 32 (MAX_IFINDEX).
+ */
+
+uint32_t g_devset;
+
+/* The set of network devices that have been freed.  The purpose of this
+ * set is to postpone reuse of a interface index for as long as possible,
+ * i.e., don't reuse an interface index until all of the possible indices
+ * have been used.
+ */
+
+uint32_t g_devfreed;
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -147,6 +167,61 @@ static int find_devnum(FAR const char *devfmt)
 }
 
 /****************************************************************************
+ * Name: get_ifindex
+ *
+ * Description:
+ *   Assign a unique interface index to the device.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   The interface index assigned to the device.  -ENOSPC is returned if
+ *   more the MAX_IFINDEX names have been assigned.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NETDEV_IFINDEX
+static int get_ifindex(void)
+{
+  uint32_t devset;
+  int ndx;
+
+  /* Try to postpone re-using interface indices as long as possible */
+
+  devset = g_devset | g_devfreed;
+  if (devset == 0xffffffff)
+    {
+      /* Time start re-using interface indices */
+
+      devset     = g_devset;
+      g_devfreed = 0;
+    }
+
+  /* Search for an unused index */
+
+  for (ndx = 0; ndx < MAX_IFINDEX; ndx++)
+    {
+      uint32_t bit = 1L << ndx;
+      if ((devset & bit) == 0)
+        {
+          /* Indicate that this index is in use */
+
+          g_devset |= bit;
+
+          /* NOTE that the index + 1 is returned.  Zero is reserved to
+           * mean no-index in the POSIX standards.
+           */
+
+          return ndx + 1;
+        }
+    }
+
+  return -ENOSPC;
+}
+#endif
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -157,6 +232,11 @@ static int find_devnum(FAR const char *devfmt)
  *   Register a network device driver and assign a name to it so that it can
  *   be found in subsequent network ioctl operations on the device.
  *
+ *   A custom, device-specific interface name format string may be selected
+ *   by putting that format string into the device structure's d_ifname[]
+ *   array before calling netdev_register().  Otherwise, the d_ifname[] must
+ *   be zeroed on entry.
+ *
  * Input Parameters:
  *   dev    - The device driver structure to be registered.
  *   lltype - Link level protocol used by the driver (Ethernet, SLIP, TUN, ...
@@ -166,17 +246,19 @@ static int find_devnum(FAR const char *devfmt)
  *   0:Success; negated errno on failure
  *
  * Assumptions:
- *   Called during system initialization from normal user mode
+ *   Called during system bring-up, but also when a removable network
+ *   device is installed.
  *
  ****************************************************************************/
 
 int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
 {
+  FAR char devfmt_str[IFNAMSIZ];
   FAR const char *devfmt;
-#ifdef CONFIG_NET_USER_DEVFMT
-  FAR const char devfmt_str[IFNAMSIZ];
-#endif
   int devnum;
+#ifdef CONFIG_NETDEV_IFINDEX
+  int ifindex;
+#endif
 
   if (dev != NULL)
     {
@@ -189,10 +271,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
 #ifdef CONFIG_NET_LOOPBACK
           case NET_LL_LOOPBACK:   /* Local loopback */
             dev->d_llhdrlen = 0;
-            dev->d_mtu      = NET_LO_MTU;
-#ifdef CONFIG_NET_TCP
-            dev->d_recvwndo = NET_LO_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = NET_LO_PKTSIZE;
             devfmt          = NETDEV_LO_FORMAT;
             break;
 #endif
@@ -200,10 +279,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
 #ifdef CONFIG_NET_ETHERNET
           case NET_LL_ETHERNET:   /* Ethernet */
             dev->d_llhdrlen = ETH_HDRLEN;
-            dev->d_mtu      = CONFIG_NET_ETH_MTU;
-#ifdef CONFIG_NET_TCP
-            dev->d_recvwndo = CONFIG_NET_ETH_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = CONFIG_NET_ETH_PKTSIZE;
             devfmt          = NETDEV_ETH_FORMAT;
             break;
 #endif
@@ -211,10 +287,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
 #ifdef CONFIG_DRIVERS_IEEE80211
           case NET_LL_IEEE80211:  /* IEEE 802.11 */
             dev->d_llhdrlen = ETH_HDRLEN;
-            dev->d_mtu      = CONFIG_NET_ETH_MTU;
-#ifdef CONFIG_NET_TCP
-            dev->d_recvwndo = CONFIG_NET_ETH_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = CONFIG_NET_ETH_PKTSIZE;
             devfmt          = NETDEV_WLAN_FORMAT;
             break;
 #endif
@@ -223,12 +296,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
           case NET_LL_BLUETOOTH:  /* Bluetooth */
             dev->d_llhdrlen = BLUETOOTH_MAX_HDRLEN; /* Determined at runtime */
 #ifdef CONFIG_NET_6LOWPAN
-#  warning Missing logic
-            dev->d_mtu      = CONFIG_NET_6LOWPAN_MTU;
-#ifdef CONFIG_NET_TCP
-#  warning Missing logic
-            dev->d_recvwndo = CONFIG_NET_6LOWPAN_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = CONFIG_NET_6LOWPAN_PKTSIZE;
 #endif
             devfmt          = NETDEV_BNEP_FORMAT;
             break;
@@ -239,10 +307,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
           case NET_LL_PKTRADIO:   /* Non-IEEE 802.15.4 packet radio */
             dev->d_llhdrlen = 0;  /* Determined at runtime */
 #ifdef CONFIG_NET_6LOWPAN
-            dev->d_mtu      = CONFIG_NET_6LOWPAN_MTU;
-#ifdef CONFIG_NET_TCP
-            dev->d_recvwndo = CONFIG_NET_6LOWPAN_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = CONFIG_NET_6LOWPAN_PKTSIZE;
 #endif
             devfmt          = NETDEV_WPAN_FORMAT;
             break;
@@ -251,10 +316,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
 #ifdef CONFIG_NET_SLIP
           case NET_LL_SLIP:       /* Serial Line Internet Protocol (SLIP) */
             dev->d_llhdrlen = 0;
-            dev->d_mtu      = CONFIG_NET_SLIP_MTU;
-#ifdef CONFIG_NET_TCP
-            dev->d_recvwndo = CONFIG_NET_SLIP_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = CONFIG_NET_SLIP_PKTSIZE;
             devfmt          = NETDEV_SLIP_FORMAT;
             break;
 #endif
@@ -263,10 +325,7 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
           case NET_LL_TUN:        /* Virtual Network Device (TUN) */
             dev->d_llhdrlen = 0;  /* This will be overwritten by tun_ioctl
                                    * if used as a TAP (layer 2) device */
-            dev->d_mtu      = CONFIG_NET_TUN_MTU;
-#ifdef CONFIG_NET_TCP
-            dev->d_recvwndo = CONFIG_NET_TUN_TCP_RECVWNDO;
-#endif
+            dev->d_pktsize  = CONFIG_NET_TUN_PKTSIZE;
             devfmt          = NETDEV_TUN_FORMAT;
             break;
 #endif
@@ -285,11 +344,45 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
       dev->d_conncb = NULL;
       dev->d_devcb = NULL;
 
+      /* We need exclusive access for the following operations */
+
+      net_lock();
+
+#ifdef CONFIG_NETDEV_IFINDEX
+      ifindex = get_ifindex();
+      if (ifindex < 0)
+        {
+          return ifindex;
+        }
+
+      dev->d_ifindex = (uint8_t)ifindex;
+#endif
+
       /* Get the next available device number and assign a device name to
        * the interface
        */
 
-      net_lock();
+      /* Check if the caller has provided a user device-specific interface
+       * name format string (in d_ifname).
+       */
+
+      if (dev->d_ifname[0] != '\0')
+        {
+          /* Copy the string in a temporary buffer.  How do we know that the
+           * string is valid and not just uninitialized memory?  We don't.
+           * Let's at least make certain that the format string is NUL
+           * terminated.
+           */
+
+          dev->d_ifname[IFNAMSIZ - 1] = '\0';
+          strncpy(devfmt_str, dev->d_ifname, IFNAMSIZ);
+
+          /* Then use the content of the temporary buffer as the format
+           * string.
+           */
+
+          devfmt = (FAR const char *)devfmt_str;
+        }
 
 #ifdef CONFIG_NET_LOOPBACK
       /* The local loopback device is a special case:  There can be only one
@@ -306,13 +399,9 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
           devnum = find_devnum(devfmt);
         }
 
-#ifdef CONFIG_NET_USER_DEVFMT
-      if (*dev->d_ifname)
-        {
-          strncpy(devfmt_str, dev->d_ifname, IFNAMSIZ);
-          devfmt = devfmt_str;
-        }
-#endif
+      /* Complete the device name by including the device number (if
+       * included in the format).
+       */
 
       snprintf(dev->d_ifname, IFNAMSIZ, devfmt, devnum);
 

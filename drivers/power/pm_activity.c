@@ -84,7 +84,7 @@
 void pm_activity(int domain, int priority)
 {
   FAR struct pm_domain_s *pdom;
-  systime_t now, elapsed;
+  clock_t now, elapsed;
   uint32_t accum;
   irqstate_t flags;
 
@@ -165,7 +165,7 @@ void pm_stay(int domain, enum pm_state_e state)
 void pm_relax(int domain, enum pm_state_e state)
 {
   FAR struct pm_domain_s *pdom;
-  systime_t now, elapsed;
+  clock_t now, elapsed;
   irqstate_t flags;
   int16_t accum;
 

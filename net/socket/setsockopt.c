@@ -53,6 +53,7 @@
 
 #include "socket/socket.h"
 #include "tcp/tcp.h"
+#include "udp/udp.h"
 #include "usrsock/usrsock.h"
 #include "utils/utils.h"
 
@@ -161,8 +162,8 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
 
           setting = *(FAR int *)value;
 
-          /* Disable interrupts so that there is no conflict with interrupt
-           * level access to options.
+          /* Lock the network so that we have exclusive access to the socket
+           * options.
            */
 
            net_lock();
@@ -258,11 +259,11 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
 
           setting = (FAR struct linger *)value;
 
-          /* Disable interrupts so that there is no conflict with interrupt
-           * level access to options.
+          /* Lock the network so that we have exclusive access to the socket
+           * options.
            */
 
-           net_lock();
+          net_lock();
 
           /* Set or clear the linger option bit and linger time (in deciseconds) */
 
@@ -376,13 +377,18 @@ int psock_setsockopt(FAR struct socket *psock, int level, int option,
        break;
 #endif
 
+      case SOL_UDP:    /* UDP protocol socket options (see include/netinet/udp.h) */
+#ifdef CONFIG_NET_UDPPROTO_OPTIONS
+       ret = udp_setsockopt(psock, option, value, value_len);
+       break;
+#endif
+
       /* These levels are defined in sys/socket.h, but are not yet
        * implemented.
        */
 
       case SOL_IP:     /* TCP protocol socket options (see include/netinet/ip.h) */
       case SOL_IPV6:   /* TCP protocol socket options (see include/netinet/ip6.h) */
-      case SOL_UDP:    /* TCP protocol socket options (see include/netinit/udp.h) */
         ret = -ENOSYS;
        break;
 

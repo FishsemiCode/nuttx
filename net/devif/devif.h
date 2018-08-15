@@ -289,7 +289,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-#if defined(CONFIG_NET_IPv4) && defined(CONFIG_NET_TCP_REASSEMBLY)
+#ifdef CONFIG_NET_IPv4_REASSEMBLY
 /* Reassembly timer (units: deci-seconds) */
 
 EXTERN uint8_t g_reassembly_timer;
@@ -297,7 +297,7 @@ EXTERN uint8_t g_reassembly_timer;
 
 /* Time of last poll */
 
-EXTERN systime_t g_polltime;
+EXTERN clock_t g_polltime;
 
 /****************************************************************************
  * Public Function Prototypes

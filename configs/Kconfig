@@ -61,7 +61,7 @@ config ARCH_BOARD_C5471EVM
 		This port is complete and verified.
 
 config ARCH_BOARD_CLICKER2_STM32
-	bool "Mikrow Clicker2 STM32"
+	bool "Mikroe Clicker2 STM32"
 	depends on ARCH_CHIP_STM32F407VG
 	select ARCH_HAVE_LEDS
 	select ARCH_HAVE_BUTTONS
@@ -289,7 +289,7 @@ config ARCH_BOARD_IMXRT1050_EVK
 	select ARCH_HAVE_BUTTONS
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
-		This is the board configuratino for the port of NuttX to the NXP i.MXRT
+		This is the board configuration for the port of NuttX to the NXP i.MXRT
 		evaluation kit, MIMXRT1050-EVKB.  This board features the MIMXRT1052DVL6A MCU.
 
 config ARCH_BOARD_LC823450_XGEVK
@@ -454,6 +454,16 @@ config ARCH_BOARD_MCU123_LPC214X
 		lpc214x development board. This OS is also built with the arm-nuttx-elf
 		toolchain*.  The port supports serial, timer0, spi, and usb.
 
+config ARCH_BOARD_METRO_M4
+	bool "Adafruit M4 Metro"
+	depends on ARCH_CHIP_SAMD51J19
+	select ARCH_HAVE_LEDS
+	---help---
+	---help---
+		This configuration is the port of NuttX to the Adafruit Metro M4.
+		The Metro M4 uses a Arduino form factor and and pinout.  It's powered
+		with an ATSAMD51J19
+
 config ARCH_BOARD_MICROPENDOUS3
 	bool "Opendous Micropendous 3 board"
 	depends on ARCH_CHIP_AT90USB646 || ARCH_CHIP_AT90USB647 || ARCH_CHIP_AT90USB1286 || ARCH_CHIP_AT90USB1287
@@ -461,6 +471,13 @@ config ARCH_BOARD_MICROPENDOUS3
 		This is a port to the Opendous Micropendous 3 board. This board may
 		be populated with either an AVR AT90USB646, 647, 1286, or 1287 MCU.
 		Support is configured for the AT90USB647.
+
+config ARCH_BOARD_MISOC
+	bool "Qemu LM32 demo"
+	depends on ARCH_CHIP_LM32
+	---help---
+		This configuration is port to NuttX running on a Qemu LM32 system.
+		You can find the Qemu setup at https://bitbucket.org/key2/qemu
 
 config ARCH_BOARD_MOTEINO_MEGA
 	bool "LowPowerLab MoteinoMEGA"
@@ -662,7 +679,7 @@ config ARCH_BOARD_OLIMEXINO_STM32
 		This port uses the Olimexino STM32 board and a GNU arm-nuttx-elf
 		toolchain under Linux or Cygwin. See the http://www.olimex.com for
 		further information. This board features the STMicro STM32F103RBT6 MCU.
-		Contribued by David Sidrane.
+		Contributed by David Sidrane.
 
 config ARCH_BOARD_OPEN1788
 	bool "Wave Share Open1788"
@@ -898,6 +915,15 @@ config ARCH_BOARD_NUCLEO_F411RE
 	---help---
 		This is a minimal configuration that supports low-level test of the
 		Nucleo F411RE in the NuttX source tree.
+
+config ARCH_BOARD_NUCLEO_H743ZI
+	bool "STM32H743 Nucleo H743ZI"
+	depends on ARCH_CHIP_STM32H743ZI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+# TODO:	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro Nucleo H743ZI board based on the STMicro STM32H743ZI MCU.
 
 config ARCH_BOARD_NUCLEO_L432KC
 	bool "STM32L432 Nucleo-32 L432KC"
@@ -1317,6 +1343,17 @@ config ARCH_BOARD_STM32L476VG_DISCO
 		MCU. The STM32L476VG  is a Cortex-M4 optimised for low-power operation
 		at up to 80MHz operation with 1024Kb Flash memory and 96+32Kb SRAM.
 
+config ARCH_BOARD_STM32L4R9AI_DISCO
+	bool "STMicro STM32L4R9AI -Discovery board"
+	depends on ARCH_CHIP_STM32L4R9AI
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		STMicro STM32L4R9AI_DISCO development board featuring the STM32L4R9AI
+		MCU. The STM32L4R9AI is a Cortex-M4 optimised for low-power operation
+		at up to 120MHz operation with 2048Kb Flash memory and 192+64+384Kb SRAM.
+
 config ARCH_BOARD_STM32L476_MDK
 	bool "Motorola Mods Development Kit (MDK)"
 	depends on ARCH_CHIP_STM32L476RG
@@ -1509,7 +1546,7 @@ config ARCH_BOARD_Z16F2800100ZCOG
 	depends on ARCH_CHIP_Z16F2811
 	select ARCH_HAVE_LEDS
 	---help---
-		z16f Microcontroller.  This port use the ZiLIG z16f2800100zcog
+		z16f Microcontroller.  This port uses the ZiLOG z16f2800100zcog
 		development kit and the Zilog ZDS-II Windows command line tools.  The
 		development environment is Cygwin under WinXP.
 
@@ -1681,8 +1718,10 @@ config ARCH_BOARD
 	default "mbed"                     if ARCH_BOARD_MBED
 	default "mcb1700"                  if ARCH_BOARD_MCB1700
 	default "mcu123-lpc214x"           if ARCH_BOARD_MCU123_LPC214X
+	default "metro-m4"                 if ARCH_BOARD_METRO_M4
 	default "micropendous3"            if ARCH_BOARD_MICROPENDOUS3
 	default "mirtoo"                   if ARCH_BOARD_MIRTOO
+	default "misoc"                    if ARCH_BOARD_MISOC
 	default "moteino-mega"             if ARCH_BOARD_MOTEINO_MEGA
 	default "ne64badge"                if ARCH_BOARD_NE64BADGE
 	default "nrf52-pca10040"           if ARCH_BOARD_NRF52_PCA10040
@@ -1694,6 +1733,7 @@ config ARCH_BOARD
 	default "nucleo-f334r8"            if ARCH_BOARD_NUCLEO_F334R8
 	default "nucleo-f4x1re"            if ARCH_BOARD_NUCLEO_F401RE || ARCH_BOARD_NUCLEO_F411RE
 	default "nucleo-f410rb"            if ARCH_BOARD_NUCLEO_F410RB
+	default "nucleo-h743zi"            if ARCH_BOARD_NUCLEO_H743ZI
 	default "nucleo-l432kc"            if ARCH_BOARD_NUCLEO_L432KC
 	default "nucleo-l452re"            if ARCH_BOARD_NUCLEO_L452RE
 	default "nucleo-l476rg"            if ARCH_BOARD_NUCLEO_L476RG
@@ -1761,6 +1801,7 @@ config ARCH_BOARD
 	default "b-l475e-iot01a"           if ARCH_BOARD_B_L475E_IOT01A
 	default "stm32l476vg-disco"        if ARCH_BOARD_STM32L476VG_DISCO
 	default "stm32l476-mdk"            if ARCH_BOARD_STM32L476_MDK
+	default "stm32l4r9ai-disco"        if ARCH_BOARD_STM32L4R9AI_DISCO
 	default "stm32ldiscovery"          if ARCH_BOARD_STM32L_DISCOVERY
 	default "stm32vldiscovery"         if ARCH_BOARD_STM32VL_DISCOVERY
 	default "mikroe-stm32f4"           if ARCH_BOARD_MIKROE_STM32F4
@@ -1963,6 +2004,9 @@ endif
 if ARCH_BOARD_MCU123_LPC214X
 source "configs/mcu123-lpc214x/Kconfig"
 endif
+if ARCH_BOARD_METRO_M4
+source "configs/metro-m4/Kconfig"
+endif
 if ARCH_BOARD_MICROPENDOUS3
 source "configs/micropendous3/Kconfig"
 endif
@@ -1971,6 +2015,9 @@ source "configs/mikroe-stm32f4/Kconfig"
 endif
 if ARCH_BOARD_MIRTOO
 source "configs/mirtoo/Kconfig"
+endif
+if ARCH_BOARD_MISOC
+source "configs/misoc/Kconfig"
 endif
 if ARCH_BOARD_MOTEINO_MEGA
 source "configs/moteino-mega/Kconfig"
@@ -2007,6 +2054,9 @@ source "configs/nucleo-f4x1re/Kconfig"
 endif
 if ARCH_BOARD_NUCLEO_F410RB
 source "configs/nucleo-f410rb/Kconfig"
+endif
+if ARCH_BOARD_NUCLEO_H743ZI
+source "configs/nucleo-h743zi/Kconfig"
 endif
 if ARCH_BOARD_NUCLEO_L432KC
 source "configs/nucleo-l432kc/Kconfig"

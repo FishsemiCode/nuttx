@@ -624,7 +624,7 @@ static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
    * configuration.
    */
 
-  if (msg->length < dev->d_llhdrlen || msg->length > dev->d_mtu)
+  if (msg->length < dev->d_llhdrlen || msg->length > dev->d_pktsize)
     {
       NETDEV_RXERRORS(dev);
       return;
@@ -746,9 +746,9 @@ static void net_rpmsg_drv_channel_created(struct rpmsg_channel *channel)
     {
       size  = rpmsg_get_buffer_size(channel);
       size -= sizeof(struct net_rpmsg_transfer_s);
-      if (dev->d_mtu > size)
+      if (dev->d_pktsize > size)
         {
-          dev->d_mtu = size;
+          dev->d_pktsize = size;
         }
 
       priv = dev->d_private;

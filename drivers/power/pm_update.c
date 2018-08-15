@@ -355,7 +355,7 @@ static void pm_update_(int domain, int16_t accum)
  *
  ****************************************************************************/
 
-void pm_update(int domain, int16_t accum, systime_t elapsed)
+void pm_update(int domain, int16_t accum, clock_t elapsed)
 {
   /* Update state */
 

@@ -293,12 +293,15 @@ void net_initialize(void);
 /****************************************************************************
  * Critical section management.
  *
- * Semaphore based locking is used:
+ * Re-entrant mutex based locking of the network is supported:
  *
- *   net_lock()          - Takes the semaphore().  Implements a re-entrant mutex.
- *   net_unlock()        - Gives the semaphore().
- *   net_lockedwait()    - Like pthread_cond_wait(); releases the semaphore
- *                         momentarily to wait on another semaphore()
+ *   net_lock()        - Locks the network via a re-entrant mutex.
+ *   net_unlock()      - Unlocks the network.
+ *   net_lockedwait()  - Like pthread_cond_wait() except releases the
+ *                       network momentarily to wait on another semaphore.
+ *   net_ioballoc()    - Like iob_alloc() except releases the network
+ *                       momentarily to wait for an IOB to become
+ *                       available.
  *
  ****************************************************************************/
 
@@ -341,6 +344,11 @@ void net_unlock(void);
  *   Atomically wait for sem (or a timeout( while temporarily releasing
  *   the lock on the network.
  *
+ *   Caution should be utilized.  Because the network lock is relinquished
+ *   during the wait, there could changes in the network state that occur
+ *   before the lock is recovered.  Your design should account for this
+ *   possibility.
+ *
  * Input Parameters:
  *   sem     - A reference to the semaphore to be taken.
  *   abstime - The absolute time to wait until a timeout is declared.
@@ -360,6 +368,11 @@ int net_timedwait(sem_t *sem, FAR const struct timespec *abstime);
  * Description:
  *   Atomically wait for sem while temporarily releasing the network lock.
  *
+ *   Caution should be utilized.  Because the network lock is relinquished
+ *   during the wait, there could changes in the network state that occur
+ *   before the lock is recovered.  Your design should account for this
+ *   possibility.
+ *
  * Input Parameters:
  *   sem - A reference to the semaphore to be taken.
  *
@@ -370,6 +383,32 @@ int net_timedwait(sem_t *sem, FAR const struct timespec *abstime);
  ****************************************************************************/
 
 int net_lockedwait(sem_t *sem);
+
+/****************************************************************************
+ * Name: net_ioballoc
+ *
+ * Description:
+ *   Allocate an IOB.  If no IOBs are available, then atomically wait for
+ *   for the IOB while temporarily releasing the lock on the network.
+ *
+ *   Caution should be utilized.  Because the network lock is relinquished
+ *   during the wait, there could changes in the network state that occur
+ *   before the lock is recovered.  Your design should account for this
+ *   possibility.
+ *
+ * Input Parameters:
+ *   throttled - An indication of the IOB allocation is "throttled"
+ *
+ * Returned Value:
+ *   A pointer to the newly allocated IOB is returned on success.  NULL is
+ *   returned on any allocation failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MM_IOB
+struct iob_s;  /* Forward reference */
+FAR struct iob_s *net_ioballoc(bool throttled);
+#endif
 
 /****************************************************************************
  * Name: net_setipid
@@ -1033,50 +1072,13 @@ int psock_setsockopt(FAR struct socket *psock, int level, int option,
                      FAR const void *value, socklen_t value_len);
 
 /****************************************************************************
- * Name: psock_getsockname
- *
- * Description:
- *   The psock_getsockname() function retrieves the locally-bound name of the
- *   specified socket, stores this address in the sockaddr structure pointed
- *   to by the 'addr' argument, and stores the length of this address in the
- *   object pointed to by the 'addrlen' argument.
- *
- *   If the actual length of the address is greater than the length of the
- *   supplied sockaddr structure, the stored address will be truncated.
- *
- *   If the socket has not been bound to a local name, the value stored in
- *   the object pointed to by address is unspecified.
- *
- * Parameters:
- *   psock    Socket structure of socket to operate on
- *   addr     sockaddr structure to receive data [out]
- *   addrlen  Length of sockaddr structure [in/out]
- *
- * Returned Value:
- *   On success, 0 is returned, the 'addr' argument points to the address
- *   of the socket, and the 'addrlen' argument points to the length of the
- *   address. Otherwise, -1 is returned and errno is set to indicate the error.
- *   Possible errno values that may be returned include:
- *
- *   EBADF      - The socket argument is not a valid file descriptor.
- *   ENOTSOCK   - The socket argument does not refer to a socket.
- *   EOPNOTSUPP - The operation is not supported for this socket's protocol.
- *   EINVAL     - The socket has been shut down.
- *   ENOBUFS    - Insufficient resources were available in the system to
- *                complete the function.
- *
- ****************************************************************************/
-
-int psock_getsockname(FAR struct socket *psock, FAR struct sockaddr *addr, FAR socklen_t *addrlen);
-
-/****************************************************************************
  * Name: psock_getpeername
  *
  * Description:
- *   The psock_getpeername() function retrieves the remote-connected name of the
- *   specified socket, stores this address in the sockaddr structure pointed
- *   to by the 'addr' argument, and stores the length of this address in the
- *   object pointed to by the 'addrlen' argument.
+ *   The psock_getpeername() function retrieves the remote-connected name of
+ *   the specified socket, stores this address in the sockaddr structure
+ *   pointed to by the 'addr' argument, and stores the length of this address
+ *   in the object pointed to by the 'addrlen' argument.
  *
  *   If the actual length of the address is greater than the length of the
  *   supplied sockaddr structure, the stored address will be truncated.
@@ -1098,13 +1100,16 @@ int psock_getsockname(FAR struct socket *psock, FAR struct sockaddr *addr, FAR s
  *   EBADF      - The socket argument is not a valid file descriptor.
  *   ENOTSOCK   - The socket argument does not refer to a socket.
  *   EOPNOTSUPP - The operation is not supported for this socket's protocol.
+ *   ENOTCONN   - The socket is not connected or otherwise has not had the
+ *                peer pre-specified.
  *   EINVAL     - The socket has been shut down.
  *   ENOBUFS    - Insufficient resources were available in the system to
  *                complete the function.
  *
  ****************************************************************************/
 
-int psock_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr, FAR socklen_t *addrlen);
+int psock_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr,
+                      FAR socklen_t *addrlen);
 
 /****************************************************************************
  * Name: psock_ioctl
@@ -1433,6 +1438,11 @@ int net_vfcntl(int sockfd, int cmd, va_list ap);
  * Description:
  *   Register a network device driver and assign a name to it so that it can
  *   be found in subsequent network ioctl operations on the device.
+ *
+ *   A custom, device-specific interface name format string may be selected
+ *   by putting that format string into the device structure's d_ifname[]
+ *   array before calling netdev_register().  Otherwise, the d_ifname[] must
+ *   be zeroed on entry.
  *
  * Input Parameters:
  *   dev    - The device driver structure to be registered.

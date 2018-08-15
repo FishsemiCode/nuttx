@@ -309,35 +309,29 @@ FPU Configuration Options
 
 There are two version of the FPU support built into the STM32 port.
 
-1. Lazy Floating Point Register Save.
+1. Non-Lazy Floating Point Register Save
 
-   This is an untested implementation that saves and restores FPU registers
-   only on context switches.  This means: (1) floating point registers are
-   not stored on each context switch and, hence, possibly better interrupt
+   In this configuration floating point register save and restore is
+   implemented on interrupt entry and return, respectively.  In this
+   case, you may use floating point operations for interrupt handling
+   logic if necessary.  This FPU behavior logic is enabled by default
+   with:
+
+     CONFIG_ARCH_FPU=y
+
+2. Lazy Floating Point Register Save.
+
+   An alternative mplementation only saves and restores FPU registers only
+   on context switches.  This means: (1) floating point registers are not
+   stored on each context switch and, hence, possibly better interrupt
    performance.  But, (2) since floating point registers are not saved,
    you cannot use floating point operations within interrupt handlers.
 
    This logic can be enabled by simply adding the following to your .config
    file:
 
-   CONFIG_ARCH_FPU=y
-
-2. Non-Lazy Floating Point Register Save
-
-   Mike Smith has contributed an extensive re-write of the ARMv7-M exception
-   handling logic. This includes verified support for the FPU.  These changes
-   have not yet been incorporated into the mainline and are still considered
-   experimental.  These FPU logic can be enabled with:
-
-   CONFIG_ARCH_FPU=y
-   CONFIG_ARMV7M_CMNVECTOR=y
-
-   You will probably also changes to the ld.script in if this option is selected.
-   This should work:
-
-   -ENTRY(_stext)
-   +ENTRY(__start)         /* Treat __start as the anchor for dead code stripping */
-   +EXTERN(_vectors)       /* Force the vectors to be included in the output */
+     CONFIG_ARCH_FPU=y
+     CONFIG_ARMV7M_LAZYFPU=y
 
 CFLAGS
 ------
@@ -931,10 +925,14 @@ STM32F4Discovery-specific Configuration Options
       Default: 4
     CONFIG_CAN_LOOPBACK - A CAN driver may or may not support a loopback
       mode for testing. The STM32 CAN driver does support loopback mode.
-    CONFIG_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
-    CONFIG_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
-    CONFIG_CAN_TSEG1 - The number of CAN time quanta in segment 1. Default: 6
-    CONFIG_CAN_TSEG2 - the number of CAN time quanta in segment 2. Default: 7
+    CONFIG_STM32_CAN1_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1
+      is defined.
+    CONFIG_STM32_CAN2_BAUD - CAN1 BAUD rate.  Required if CONFIG_STM32_CAN2
+      is defined.
+    CONFIG_STM32_CAN_TSEG1 - The number of CAN time quanta in segment 1.
+      Default: 6
+    CONFIG_STM32_CAN_TSEG2 - the number of CAN time quanta in segment 2.
+      Default: 7
     CONFIG_STM32_CAN_REGDEBUG - If CONFIG_DEBUG_FEATURES is set, this will generate an
       dump of all CAN registers.
 
@@ -1206,7 +1204,7 @@ Configuration Sub-directories
   1. Prepare USB flash storage.  This configuration depends on .WAV files
      provided to the system via a USB flash stick.  There are some sample
      audio files at https://github.com/tdrozdovskiy/CS43L22-Audio-driver
-     and these steps will put those sample .WAV files onto the USB flash: 
+     and these steps will put those sample .WAV files onto the USB flash:
 
      a. Format the USB flash storage into FAT. For example by next command
 
@@ -2171,7 +2169,7 @@ Configuration Sub-directories
 
        CONFIG_HOST_WINDOWS=y                   : Builds under windows
        CONFIG_WINDOWS_CYGWIN=y                 : Using Cygwin and
-       CONFIG_ARMV7M_TOOLCHAIN_CODESOURCERYW=y : The native Windows CodeSourcery toolchain
+       CONFIG_ARMV7M_TOOLCHAIN_GNU_EABIW=y     : Generic ARM EABI toolchain for Windows
 
     2. By default, this project assumes that you are *NOT* using the DFU
        bootloader.
@@ -2209,6 +2207,54 @@ Configuration Sub-directories
 
     This configuration uses the example at apps/examples/rgbled to drive the
     external RGB LED>
+
+  rndis:
+  ------
+
+    This is a board configuration to demonstrate how to use Ethernet-over-USB,
+    in this case using the RNDIS protocol. Using it you can get access to your
+    board using Telnet or you can use transfer file to it. Both steps will be
+    explained below.
+
+    Your board will be get IP address from a DHCP server. If you want to use a
+    fixed IP instead using DHCP, you need to disable the DHCP Client and set
+    up its IP. For more info watch: www.youtube.com/watch?v=8noH8v7xNgs
+
+    You can access the board's NuttShell just typing in the Linux terminal:
+
+      $ telnet 10.0.0.2
+
+    You should see something like this:
+
+      Trying 10.0.0.2...
+      Connected to 10.0.0.2.
+      Escape character is '^]'.
+
+      NuttShell (NSH)
+      nsh>
+
+    This board configuration has support to RAMDISK because we need a writable
+    filesystem to get files from the computer. Then you need to create first a
+    RAMDISK and mount it using these steps:
+
+      nsh> mkrd 64
+      nsh> mkfatfs /dev/ram0
+      nsh> mount -t vfat /dev/ram0 /mnt
+
+    Open a new Linux terminal and start a webserver, Python one embedded:
+
+      $ python -m SimpleHTTPServer
+
+    It will create a webserver serving in the port 8000 and will share files
+    in the current directory where it was executed.
+
+    Then in the NuttShell you can run these commands to download a small file:
+
+      nsh> cd /mnt
+      nsh> wget http://10.0.0.1:8000/test.txt
+      nsh> ls -l
+      /mnt:
+       -rw-rw-rw-      23 test.txt
 
   usbnsh:
   -------

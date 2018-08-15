@@ -88,7 +88,7 @@
 
 /* The Linux slip module hard-codes its MTU size to 296 (40 bytes for the
  * IP+TPC headers plus 256 bytes of data).  So you might as well set
- * CONFIG_NET_SLIP_MTU to 296 as well.
+ * CONFIG_NET_SLIP_PKTSIZE to 296 as well.
  *
  * There may be an issue with this setting, however.  I see that Linux uses
  * a MTU of 296 and window of 256, but actually only sends 168 bytes of data:
@@ -97,8 +97,8 @@
  * transfers to 128 bytes (possibly by modifying the tcp_mss() macro).
  */
 
-#if CONFIG_NET_SLIP_MTU < 296
-#  error "CONFIG_NET_SLIP_MTU >= 296 is required"
+#if CONFIG_NET_SLIP_PKTSIZE < 296
+#  error "CONFIG_NET_SLIP_PKTSIZE >= 296 is required"
 #endif
 
 /* CONFIG_NET_SLIP_NINTERFACES determines the number of physical interfaces
@@ -144,8 +144,8 @@ struct slip_driver_s
   /* This holds the information visible to the NuttX network */
 
   struct net_driver_s dev;  /* Interface understood by the network */
-  uint8_t rxbuf[CONFIG_NET_SLIP_MTU + 2];
-  uint8_t txbuf[CONFIG_NET_SLIP_MTU + 2];
+  uint8_t rxbuf[CONFIG_NET_SLIP_PKTSIZE + 2];
+  uint8_t txbuf[CONFIG_NET_SLIP_PKTSIZE + 2];
 };
 
 /****************************************************************************
@@ -434,8 +434,8 @@ static void slip_txtask(int argc, FAR char *argv[])
 {
   FAR struct slip_driver_s *priv;
   unsigned int index = *(argv[1]) - '0';
-  systime_t start_ticks;
-  systime_t now_ticks;
+  clock_t start_ticks;
+  clock_t now_ticks;
   unsigned int hsec;
 
   nerr("index: %d\n", index);
@@ -627,7 +627,7 @@ static inline void slip_receive(FAR struct slip_driver_s *priv)
 
         default:
           {
-            if (priv->rxlen < CONFIG_NET_SLIP_MTU+2)
+            if (priv->rxlen < CONFIG_NET_SLIP_PKTSIZE+2)
               {
                 priv->rxbuf[priv->rxlen++] = ch;
               }

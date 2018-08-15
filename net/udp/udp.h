@@ -112,6 +112,11 @@ struct udp_conn_s
   uint8_t  ttl;           /* Default time-to-live */
   uint8_t  crefs;         /* Reference counts on this instance */
 
+#ifdef CONFIG_NET_UDP_BINDTODEVICE
+  uint8_t  boundto;       /* Index of the interface we are bound to.
+                           * Unbound: 0, Bound: 1-MAX_IFINDEX */
+#endif
+
 #ifdef CONFIG_NET_UDP_READAHEAD
   /* Read-ahead buffering.
    *
@@ -148,7 +153,7 @@ struct udp_wrbuffer_s
   sq_entry_t wb_node;              /* Supports a singly linked list */
   struct sockaddr_storage wb_dest; /* Destination address */
 #ifdef CONFIG_NET_SOCKOPTS
-  systime_t wb_start;              /* Start time for timeout calculation */
+  clock_t wb_start;                /* Start time for timeout calculation */
 #endif
   struct iob_s *wb_iob;            /* Head of the I/O buffer chain */
 };
@@ -346,6 +351,35 @@ void udp_poll(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
 void udp_send(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
 
 /****************************************************************************
+ * Name: udp_setsockopt
+ *
+ * Description:
+ *   udp_setsockopt() sets the UDP-protocol option specified by the
+ *   'option' argument to the value pointed to by the 'value' argument for
+ *   the socket specified by the 'psock' argument.
+ *
+ *   See <netinet/udp.h> for the a complete list of values of UDP protocol
+ *   options.
+ *
+ * Input Parameters:
+ *   psock     Socket structure of socket to operate on
+ *   option    identifies the option to set
+ *   value     Points to the argument value
+ *   value_len The length of the argument value
+ *
+ * Returned Value:
+ *   Returns zero (OK) on success.  On failure, it returns a negated errno
+ *   value to indicate the nature of the error.  See psock_setcockopt() for
+ *   the list of possible error values.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDPPROTO_OPTIONS
+int udp_setsockopt(FAR struct socket *psock, int option,
+                   FAR const void *value, socklen_t value_len);
+#endif
+
+/****************************************************************************
  * Name: udp_wrbuffer_initialize
  *
  * Description:
@@ -478,46 +512,6 @@ int udp_ipv6_input(FAR struct net_driver_s *dev);
 #endif
 
 /****************************************************************************
- * Name: udp_find_ipv4_device
- *
- * Description:
- *   Select the network driver to use with the IPv4 UDP transaction.
- *
- * Input Parameters:
- *   conn - UDP connection structure (not currently used).
- *   ipv4addr - The IPv4 address to use in the device selection.
- *
- * Returned Value:
- *   A pointer to the network driver to use.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_IPv4
-FAR struct net_driver_s *udp_find_ipv4_device(FAR struct udp_conn_s *conn,
-                                              in_addr_t ipv4addr);
-#endif
-
-/****************************************************************************
- * Name: udp_find_ipv6_device
- *
- * Description:
- *   Select the network driver to use with the IPv6 UDP transaction.
- *
- * Input Parameters:
- *   conn - UDP connection structure (not currently used).
- *   ipv6addr - The IPv6 address to use in the device selection.
- *
- * Returned Value:
- *   A pointer to the network driver to use.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_IPv6
-FAR struct net_driver_s *udp_find_ipv6_device(FAR struct udp_conn_s *conn,
-                                              net_ipv6addr_t ipv6addr);
-#endif
-
-/****************************************************************************
  * Name: udp_find_laddr_device
  *
  * Description:
@@ -528,7 +522,8 @@ FAR struct net_driver_s *udp_find_ipv6_device(FAR struct udp_conn_s *conn,
  *   conn - UDP connection structure (not currently used).
  *
  * Returned Value:
- *   A pointer to the network driver to use.
+ *   A pointer to the network driver to use.  NULL is returned if driver is
+ *   not bound to any local device.
  *
  ****************************************************************************/
 

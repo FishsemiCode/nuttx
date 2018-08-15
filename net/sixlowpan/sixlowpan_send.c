@@ -71,7 +71,7 @@
  * Private Types
  ****************************************************************************/
 
-/* This is the state data provided to the send interrupt logic.  No actions
+/* This is the state data provided to the send event handler.  No actions
  * can be taken until the until we receive the TX poll, then we can call
  * sixlowpan_queue_frames() with this data strurcture.
  */
@@ -82,7 +82,7 @@ struct sixlowpan_send_s
   sem_t                        s_waitsem; /* Supports waiting for driver events */
   int                          s_result;  /* The result of the transfer */
   uint16_t                     s_timeout; /* Send timeout in deciseconds */
-  systime_t                    s_time;    /* Last send time for determining timeout */
+  clock_t                      s_time;    /* Last send time for determining timeout */
   FAR const struct ipv6_hdr_s *s_ipv6hdr; /* IPv6 header, followed by UDP or ICMP header. */
   FAR const struct netdev_varaddr_s *s_destmac; /* Destination MAC address */
   FAR const void              *s_buf;     /* Data to send */
@@ -120,8 +120,8 @@ static inline bool send_timeout(FAR struct sixlowpan_send_s *sinfo)
     {
       /* Check if the configured timeout has elapsed */
 
-      systime_t timeo_ticks =  DSEC2TICK(sinfo->s_timeout);
-      systime_t elapsed     =  clock_systimer() - sinfo->s_time;
+      clock_t timeo_ticks =  DSEC2TICK(sinfo->s_timeout);
+      clock_t elapsed     =  clock_systimer() - sinfo->s_time;
 
       if (elapsed >= timeo_ticks)
         {
@@ -138,11 +138,11 @@ static inline bool send_timeout(FAR struct sixlowpan_send_s *sinfo)
  * Name: send_eventhandler
  *
  * Description:
- *   This function is called from the interrupt level to perform the actual
+ *   This function is called with the network locked to perform the actual
  *   send operation when polled by the lower, device interfacing layer.
  *
  * Input Parameters:
- *   dev   - The structure of the network driver that caused the interrupt
+ *   dev   - The structure of the network driver that generated the event.
  *   conn  - The connection structure associated with the socket
  *   flags - Set of events describing why the callback was invoked
  *
@@ -251,7 +251,7 @@ end_wait:
  *
  * Input Parameters:
  *   dev     - The IEEE802.15.4 MAC network driver interface.
- *   list    - Head of callback list for send interrupt
+ *   list    - Head of callback list for send events
  *   ipv6hdr - IPv6 header followed by UDP or ICMPv6 header.
  *   buf     - Data to send
  *   len     - Length of data to send
@@ -316,10 +316,8 @@ int sixlowpan_send(FAR struct net_driver_s *dev,
 
           netdev_txnotify_dev(dev);
 
-          /* Wait for the send to complete or an error to occur:  NOTES: (1)
-           * net_lockedwait will also terminate if a signal is received, (2) interrupts
-           * may be disabled!  They will be re-enabled while the task sleeps and
-           * automatically re-enabled when the task restarts.
+          /* Wait for the send to complete or an error to occur.
+           * net_lockedwait will also terminate if a signal is received.
            */
 
           ninfo("Wait for send complete\n");
@@ -330,9 +328,9 @@ int sixlowpan_send(FAR struct net_driver_s *dev,
               sinfo.s_result = ret;
             }
 
-          /* Make sure that no further interrupts are processed */
+          /* Make sure that no further events are processed */
 
-           devif_conn_callback_free(dev, sinfo.s_cb, list);
+          devif_conn_callback_free(dev, sinfo.s_cb, list);
         }
     }
 

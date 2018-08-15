@@ -89,7 +89,7 @@ struct icmp_sendto_s
   FAR struct devif_callback_s *snd_cb; /* Reference to callback instance */
   FAR struct socket *snd_sock; /* IPPROTO_ICMP socket structure */
   sem_t snd_sem;               /* Use to manage the wait for send complete */
-  systime_t snd_time;          /* Start time for determining timeouts */
+  clock_t snd_time;            /* Start time for determining timeouts */
   in_addr_t snd_toaddr;        /* The peer to send the request to */
   FAR const uint8_t *snd_buf;  /* ICMP header + data payload */
   uint16_t snd_buflen;         /* Size of the ICMP header + data payload */
@@ -226,14 +226,15 @@ static void sendto_request(FAR struct net_driver_s *dev,
  * Name: sendto_eventhandler
  *
  * Description:
- *   This function is called from the interrupt level to perform the actual
+ *   This function is called with the network locked to perform the actual
  *   ECHO request and/or ECHO reply actions when polled by the lower, device
  *   interfacing layer.
  *
  * Input Parameters:
- *   dev        The structure of the network driver that caused the interrupt
- *   conn       The received packet, cast to void *
- *   pvpriv     An instance of struct icmp_sendto_s cast to void*
+ *   dev        The structure of the network driver that generated the
+ *              event.
+ *   conn       The received packet, cast to (void *)
+ *   pvpriv     An instance of struct icmp_sendto_s cast to (void *)
  *   flags      Set of events describing why the callback was invoked
  *
  * Returned Value:
@@ -265,7 +266,7 @@ static uint16_t sendto_eventhandler(FAR struct net_driver_s *dev,
 
       /* Check:
        *   If the outgoing packet is available (it may have been claimed
-       *   by a sendto interrupt serving a different thread)
+       *   by a sendto event handler serving a different thread)
        * -OR-
        *   If the output buffer currently contains unprocessed incoming
        *   data.
@@ -476,10 +477,8 @@ ssize_t icmp_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
 
       netdev_txnotify_dev(dev);
 
-      /* Wait for either the send to complete or for timeout to occur. (1)
-       * net_lockedwait will also terminate if a signal is received, (2)
-       * interrupts may be disabled!  They will be re-enabled while the
-       * task sleeps and automatically re-enabled when the task restarts.
+      /* Wait for either the send to complete or for timeout to occur.
+       * net_lockedwait will also terminate if a signal is received.
        */
 
       ninfo("Start time: 0x%08x\n", state.snd_time);

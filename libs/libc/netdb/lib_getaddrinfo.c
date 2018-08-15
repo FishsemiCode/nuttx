@@ -1,47 +1,37 @@
 /****************************************************************************
+ * libs/libc/netdb/lib_getaddrinfo.c
  *
- * Copyright 2016 Samsung Electronics All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific
- * language governing permissions and limitations under the License.
- *
- ****************************************************************************/
-/*
- * Copyright (c) 2001, 02  Motoyuki Kasahara
+ *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
+ *   Author: Juha Niskanen <juha.niskanen@haltian.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
+ *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the project nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE PROJECT AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE PROJECT OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- */
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
+ *
+ ****************************************************************************/
 
 /****************************************************************************
  * Included Files
@@ -49,308 +39,276 @@
 
 #include <nuttx/config.h>
 
-#include <stdlib.h>
 #include <string.h>
 
-#include <netdb.h>
-#include <errno.h>
 #include <arpa/inet.h>
+#include <nuttx/net/loopback.h>
+#include <netdb.h>
 
-#include "netdb/lib_netdb.h"
+#include "libc.h"
 
-#ifdef CONFIG_LIBC_NETDB
+/****************************************************************************
+ * Private Data Types
+ ****************************************************************************/
 
-/*
- * Default hints for getaddrinfo().
- */
-static struct addrinfo default_hints = {
-  0, PF_UNSPEC, 0, 0, 0, NULL, NULL, NULL
+struct ai_s
+{
+  struct addrinfo ai;
+  union
+  {
+    struct sockaddr_in sin;
+    struct sockaddr_in6 sin6;
+  } sa;
 };
 
-/*
- * Return 1 if the string `s' represents an integer.
- */
-static int is_integer(const char *s)
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+FAR static struct ai_s *alloc_ai(int family, int port, FAR void *addr)
 {
-  if (*s == '-' || *s == '+')
+  struct ai_s *ai;
+  socklen_t addrlen;
+
+  addrlen = (family == AF_INET) ? sizeof(struct sockaddr_in)
+                                : sizeof(struct sockaddr_in6);
+
+  ai = lib_zalloc(sizeof(struct ai_s));
+  if (ai == NULL)
     {
-      s++;
+      return ai;
     }
 
-  if (*s < '0' || '9' < *s)
+  ai->ai.ai_addr            = (struct sockaddr *)&ai->sa;
+  ai->ai.ai_addrlen         = addrlen;
+  ai->ai.ai_addr->sa_family = ai->ai.ai_family = family;
+
+  switch (family)
     {
-      return 0;
+#ifdef CONFIG_NET_IPv4
+      case AF_INET:
+        ai->sa.sin.sin_family = AF_INET;
+        ai->sa.sin.sin_port   = port;  /* Already network order */
+        memcpy(&ai->sa.sin.sin_addr, addr, sizeof(ai->sa.sin.sin_addr));
+        break;
+#endif
+#ifdef CONFIG_NET_IPv6
+      case AF_INET6:
+        ai->sa.sin6.sin6_family = AF_INET6;
+        ai->sa.sin6.sin6_port   = port;  /* Already network order */
+        memcpy(&ai->sa.sin6.sin6_addr, addr, sizeof(ai->sa.sin6.sin6_addr));
+        break;
+#endif
     }
 
-  s++;
-  while ('0' <= *s && *s <= '9')
-    {
-      s++;
-    }
-
-  return (*s == '\0');
+  return ai;
 }
 
-/*
- * Return 1 if the string `s' represents an IPv4 address.
- * Unlike inet_addr(), it doesn't permit malformed nortation such
- * as "192.168".
- */
-static int is_address(const char *s)
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: getaddrinfo
+ ****************************************************************************/
+
+int getaddrinfo(FAR const char *hostname, FAR const char *servname,
+                FAR const struct addrinfo *hint, FAR struct addrinfo **res)
 {
-  const static char delimiters[] = { '.', '.', '.', '\0' };
-  int i, j;
-  int octet;
+  int family = AF_UNSPEC;
+  int port = 0;
+  int flags = 0;
+  int proto = 0;
+  int socktype = 0;
+  struct hostent *hp;
+  struct ai_s *ai;
+  struct ai_s *prev_ai = NULL;
+  const int valid_flags = AI_PASSIVE | AI_CANONNAME | AI_NUMERICHOST |
+                          AI_NUMERICSERV | AI_V4MAPPED | AI_ALL |
+                          AI_ADDRCONFIG;
+  int i;
 
-  for (i = 0; i < 4; i++)
+  if (hostname == NULL && servname == NULL)
     {
-      if (*s == '0' && *(s + 1) != delimiters[i])
-        {
-          return 0;
-        }
-
-      for (j = 0, octet = 0; '0' <= *s && *s <= '9' && j < 3; s++, j++)
-        {
-          octet = octet * 10 + (*s - '0');
-        }
-
-      if (j == 0 || octet > 255 || *s != delimiters[i])
-        {
-          return 0;
-        }
-
-      s++;
+      return EAI_NONAME;
     }
 
-  return 1;
-}
-
-/*
- * getaddrinfo().
- */
-int getaddrinfo(nodename, servname, hints, res)
-    const char *nodename;
-    const char *servname;
-    const struct addrinfo *hints;
-    struct addrinfo **res;
-{
-  struct addrinfo *head_res = NULL;
-  struct addrinfo *tail_res = NULL;
-  struct addrinfo *new_res;
-  struct sockaddr_in *sa_in;
-  struct in_addr **addr_list;
-  struct in_addr *addr_list_buf[2];
-  struct in_addr addr_buf;
-  struct in_addr **ap;
-  struct servent servent;
-  struct hostent hostent;
-  char servbuffer[CONFIG_NETDB_BUFSIZE];
-  char hostbuffer[CONFIG_NETDB_BUFSIZE];
-  const char *canonname = NULL;
-  in_port_t port;
-  int err, ret, result = 0;
-
-  if (nodename == NULL && servname == NULL)
+  if (hint)
     {
-      result = EAI_NONAME;
-      goto end;
-    }
+      family   = hint->ai_family;
+      flags    = hint->ai_flags;
+      proto    = hint->ai_protocol;
+      socktype = hint->ai_socktype;
 
-  if (hints != NULL)
-    {
-      if (hints->ai_family != PF_INET && hints->ai_family != PF_UNSPEC)
+      if ((flags & valid_flags) != flags)
         {
-          result = EAI_FAMILY;
-          goto end;
+          return EAI_BADFLAGS;
         }
-      if (hints->ai_socktype != SOCK_DGRAM && hints->ai_socktype != SOCK_STREAM && hints->ai_socktype != 0)
+
+      if (family != AF_INET &&
+          family != AF_INET6 &&
+          family != AF_UNSPEC)
         {
-          result = EAI_SOCKTYPE;
-          goto end;
+            return EAI_FAMILY;
         }
-    }
-  else
-    {
-      hints = &default_hints;
     }
 
   if (servname != NULL)
     {
-      if (is_integer(servname))
+      char *endp;
+      struct servent *sp;
+
+      port = strtol(servname, &endp, 10);
+      if (port > 0 && port <= 65535 && *endp == '\0')
         {
-          port = htons(atoi(servname));
+          /* Force network byte order */
+
+          port = HTONS(port);
+        }
+      else if ((flags & AI_NUMERICSERV) != 0)
+        {
+          return EAI_NONAME;
+        }
+      else if ((sp = getservbyname(servname, NULL)) != NULL)
+        {
+          /* The sp_port field of struct servent is required to
+           * be in network byte order (per OpenGroup.org)
+           */
+
+          port = sp->s_port;
         }
       else
         {
-          if (hints->ai_flags & AI_NUMERICSERV)
+          return EAI_SERVICE;
+        }
+    }
+
+  if ((flags & AI_PASSIVE) != 0)
+    {
+      in_addr_t addr;
+
+      addr = hostname ? inet_addr(hostname) : HTONL(0x00000000);
+
+      /* REVISIT: IPv6? */
+
+      ai = alloc_ai(AF_INET, port, &addr);
+      if (ai == NULL)
+        {
+          return EAI_MEMORY;
+        }
+
+      *res = (struct addrinfo *)ai;
+      return OK;
+   }
+
+  *res = NULL;
+
+  if (hostname == NULL)
+    {
+#ifdef CONFIG_NET_LOOPBACK
+      /* Local service. */
+
+#ifdef CONFIG_NET_IPv4
+      if (family == AF_INET || family == AF_UNSPEC)
+        {
+          ai = alloc_ai(AF_INET, port, (void *)&g_lo_ipv4addr);
+          if (ai == NULL)
             {
-              result = EAI_NONAME;
-              goto end;
+              return EAI_MEMORY;
             }
 
-          if (hints->ai_socktype == SOCK_DGRAM)
+          *res = (struct addrinfo *)ai;
+        }
+#endif
+#ifdef CONFIG_NET_IPv6
+      if (family == AF_INET6 || family == AF_UNSPEC)
+        {
+          ai = alloc_ai(AF_INET6, port, (void *)&g_lo_ipv6addr);
+          if (ai == NULL)
             {
-              ret = getservbyname_r(servname, "udp",
-                      &servent, servbuffer, sizeof(servbuffer), NULL);
+              return (*res != NULL) ? OK : EAI_MEMORY;
             }
-          else if (hints->ai_socktype == SOCK_STREAM || hints->ai_socktype == 0)
+
+          /* Can return both IPv4 and IPv6 loopback. */
+
+          if (*res != NULL)
             {
-              ret = getservbyname_r(servname, "tcp",
-                      &servent, servbuffer, sizeof(servbuffer), NULL);
+              (*res)->ai_next = (struct addrinfo *)ai;
             }
           else
             {
-              result = EAI_SOCKTYPE;
-              goto end;
+              *res = (struct addrinfo *)ai;
             }
+        }
+#endif
+      return (*res != NULL) ? OK : EAI_FAMILY;
+#else
+      /* Local service, but no loopback so cannot succeed. */
 
-          if (ret)
+      return EAI_FAIL;
+#endif /* CONFIG_NET_LOOPBACK */
+    }
+
+  /* REVISIT: no check for AI_NUMERICHOST flag. */
+
+  /* REVISIT: use gethostbyname_r with own buffer of refactor all
+   * public APIs to use internal lookup function.
+   */
+
+  hp = gethostbyname(hostname);
+  if (hp && hp->h_name && hp->h_name[0] && hp->h_addr_list[0])
+    {
+      for (i = 0; hp->h_addr_list[i]; i++)
+        {
+          if (family != AF_UNSPEC && hp->h_addrtype != family)
             {
-              result = EAI_SERVICE;
-              goto end;
+              /* Filter by protocol family. */
+
+              continue;
             }
-          port = servent.s_port;
-        }
-    }
-  else
-    {
-      port = htons(0);
-    }
 
-  if (nodename != NULL)
-    {
-      if (!is_address(nodename) && hints->ai_flags & AI_NUMERICHOST)
-        {
-          result = EAI_NONAME;
-          goto end;
-        }
+          /* REVISIT: filter by socktype and protocol not implemented. */
 
-      ret = gethostbyname_r(nodename, &hostent,
-              hostbuffer, sizeof(hostbuffer), &err);
-      if (ret)
-        {
-          switch (err)
+          UNUSED(proto);
+          UNUSED(socktype);
+
+          ai = alloc_ai(hp->h_addrtype, port, hp->h_addr_list[i]);
+          if (ai == NULL)
             {
-              case HOST_NOT_FOUND:
-              case NO_DATA:
-                  result = EAI_NONAME;
-                  goto end;
-              case TRY_AGAIN:
-                  result = EAI_AGAIN;
-                  goto end;
-              default:
-                  result = EAI_NONAME;
-                  goto end;
+              if (*res)
+                {
+                  freeaddrinfo(*res);
+                }
+
+              return EAI_MEMORY;
             }
-        }
-      addr_list = (struct in_addr **)hostent.h_addr_list;
 
-      if (hints->ai_flags & AI_CANONNAME)
-        {
-          canonname = hostent.h_name;
-        }
-    }
-  else
-    {
-      if (hints->ai_flags & AI_PASSIVE)
-        {
-          addr_buf.s_addr = htonl(INADDR_ANY);
-        }
-      else
-        {
-          addr_buf.s_addr = htonl(0x7F000001);
-        }
-      addr_list_buf[0] = &addr_buf;
-      addr_list_buf[1] = NULL;
-      addr_list = addr_list_buf;
-    }
+          /* REVISIT: grok canonical name.
+           *
+           * OpenGroup: "if the canonical name is not available, then ai_canonname shall
+           * refer to the hostname argument or a string with the same contents."
+           */
 
-  for (ap = addr_list; *ap != NULL; ap++)
-    {
-      new_res = (struct addrinfo *)malloc(sizeof(struct addrinfo));
-      if (new_res == NULL)
-        {
-          if (head_res != NULL)
+          ai->ai.ai_canonname = (char *)hostname;
+
+          /* Add result to linked list.
+           * TODO: RFC 3484/6724 destination address sort not implemented.
+           */
+
+          if (prev_ai != NULL)
             {
-              freeaddrinfo(head_res);
+              prev_ai->ai.ai_next = (struct addrinfo *)ai;
             }
-          result = EAI_MEMORY;
-          goto end;
-        }
-
-      new_res->ai_family = PF_INET;
-      new_res->ai_socktype = hints->ai_socktype;
-      new_res->ai_protocol = hints->ai_protocol;
-      new_res->ai_addr = NULL;
-      new_res->ai_addrlen = sizeof(struct sockaddr_in);
-      new_res->ai_canonname = NULL;
-      new_res->ai_next = NULL;
-
-      new_res->ai_addr = (struct sockaddr *)malloc(sizeof(struct sockaddr_in));
-      if (new_res->ai_addr == NULL)
-        {
-          free(new_res);
-          if (head_res != NULL)
+          else
             {
-              freeaddrinfo(head_res);
+              *res = (struct addrinfo *)ai;
             }
-          result = EAI_MEMORY;
-          goto end;
+
+          prev_ai = ai;
         }
 
-      sa_in = (struct sockaddr_in *)new_res->ai_addr;
-      memset(sa_in, 0, sizeof(struct sockaddr_in));
-      sa_in->sin_family = PF_INET;
-      sa_in->sin_port = port;
-      memcpy(&sa_in->sin_addr, *ap, sizeof(struct in_addr));
-
-      if (head_res == NULL)
-        {
-          head_res = new_res;
-        }
-      else
-        {
-          tail_res->ai_next = new_res;
-        }
-
-      tail_res = new_res;
+      return OK;
     }
 
-  if (canonname != NULL && head_res != NULL)
-    {
-      head_res->ai_canonname = (char *)malloc(strlen(canonname) + 1);
-      if (head_res->ai_canonname != NULL)
-        {
-          strcpy(head_res->ai_canonname, canonname);
-        }
-    }
-
-  *res = head_res;
-
-end:
-  return result;
+  return EAI_AGAIN;
 }
-
-void freeaddrinfo(struct addrinfo *ai)
-{
-  struct addrinfo *next;
-
-  for (; ai != NULL;)
-    {
-      next = ai->ai_next;
-      if (ai->ai_addr)
-        {
-          free(ai->ai_addr);
-        }
-
-      if (ai->ai_canonname)
-        {
-          free(ai->ai_canonname);
-        }
-
-      free(ai);
-      ai = next;
-    }
-}
-
-#endif /* CONFIG_LIBC_NETDB */

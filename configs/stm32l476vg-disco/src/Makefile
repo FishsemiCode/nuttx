@@ -1,5 +1,5 @@
 ############################################################################
-# configs/nucleo-l476rg/src/Makefile
+# configs/stm32l476vg-disco/src/Makefile
 #
 #   Copyright (C) 2014 Gregory Nutt. All rights reserved.
 #   Author: dev@ziggurat29.com
@@ -53,14 +53,11 @@ CSRCS += stm32_userleds.c
 endif
 
 ifeq ($(CONFIG_ARCH_BUTTONS),y)
-CSRCS +=  stm32_buttons.c
+CSRCS += stm32_buttons.c
 endif
 
 ifeq ($(CONFIG_ADC),y)
 #CSRCS += stm32_adc.c
-ifeq ($(CONFIG_AJOYSTICK),y)
-#CSRCS += stm32_ajoystick.c
-endif
 endif
 
 ifeq ($(CONFIG_LIB_BOARDCTL),y)

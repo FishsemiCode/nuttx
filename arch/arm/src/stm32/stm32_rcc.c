@@ -51,6 +51,7 @@
 #include "up_arch.h"
 
 #include "chip.h"
+#include "stm32_gpio.h"
 #include "stm32_rcc.h"
 #include "stm32_rtc.h"
 #include "stm32_flash.h"
@@ -121,7 +122,7 @@
  *
  ****************************************************************************/
 
-#if defined(CONFIG_RTC) && defined(CONFIG_STM32_PWR) && !defined(CONFIG_STM32_STM32F10XX)
+#if defined(CONFIG_STM32_RTC) && defined(CONFIG_STM32_PWR) && !defined(CONFIG_STM32_STM32F10XX)
 static inline void rcc_resetbkp(void)
 {
   uint32_t regval;
@@ -196,6 +197,12 @@ void stm32_clockconfig(void)
 
   stm32_stdclockconfig();
 
+#endif
+
+#ifdef CONFIG_STM32_SYSCFG_IOCOMPENSATION
+  /* Enable I/O Compensation */
+
+  stm32_iocompensation();
 #endif
 
   /* Enable peripheral clocking */

@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv6-m/up_hardfault.c
  *
- *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,8 +54,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_HARDFAULT
-# define hfinfo(format, ...)  _alert(format, ##__VA_ARGS__)
+#ifdef CONFIG_DEBUG_HARDFAULT_ALERT
+# define hfalert(format, ...)  _alert(format, ##__VA_ARGS__)
+#else
+# define hfalert(x...)
+#endif
+
+#ifdef CONFIG_DEBUG_HARDFAULT_INFO
+# define hfinfo(format, ...)   _info(format, ##__VA_ARGS__)
 #else
 # define hfinfo(x...)
 #endif
@@ -117,25 +123,25 @@ int up_hardfault(int irq, FAR void *context, FAR void *arg)
         }
     }
 
-#if defined(CONFIG_DEBUG_HARDFAULT)
+#if defined(CONFIG_DEBUG_HARDFAULT_ALERT)
   /* Dump some hard fault info */
 
-  _alert("\nHard Fault:\n");
-  _alert("  IRQ: %d regs: %p\n", irq, regs);
-  _alert("  PRIMASK: %08x IPSR: %08x\n",
-         getprimask(), getipsr());
-  _alert("  R0: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-         regs[REG_R0],  regs[REG_R1],  regs[REG_R2],  regs[REG_R3],
-         regs[REG_R4],  regs[REG_R5],  regs[REG_R6],  regs[REG_R7]);
-  _alert("  R8: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-         regs[REG_R8],  regs[REG_R9],  regs[REG_R10], regs[REG_R11],
-         regs[REG_R12], regs[REG_R13], regs[REG_R14], regs[REG_R15]);
-  _alert("  xPSR: %08x PRIMASK: %08x (saved)\n",
-         CURRENT_REGS[REG_XPSR],  CURRENT_REGS[REG_PRIMASK]);
+  hfalert("\nHard Fault:\n");
+  hfalert("  IRQ: %d regs: %p\n", irq, regs);
+  hfalert("  PRIMASK: %08x IPSR: %08x\n",
+          getprimask(), getipsr());
+  hfalert("  R0: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+          regs[REG_R0],  regs[REG_R1],  regs[REG_R2],  regs[REG_R3],
+          regs[REG_R4],  regs[REG_R5],  regs[REG_R6],  regs[REG_R7]);
+  hfalert("  R8: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+          regs[REG_R8],  regs[REG_R9],  regs[REG_R10], regs[REG_R11],
+          regs[REG_R12], regs[REG_R13], regs[REG_R14], regs[REG_R15]);
+  hfalert("  xPSR: %08x PRIMASK: %08x (saved)\n",
+          CURRENT_REGS[REG_XPSR],  CURRENT_REGS[REG_PRIMASK]);
 #endif
 
   (void)up_irq_save();
-  _alert("PANIC!!! Hard fault\n");
+  hfalert("PANIC!!! Hard fault\n");
   PANIC();
   return OK; /* Won't get here */
 }

@@ -65,6 +65,7 @@ include neighbor/Make.defs
 include igmp/Make.defs
 include pkt/Make.defs
 include local/Make.defs
+include netlink/Make.defs
 include tcp/Make.defs
 include udp/Make.defs
 include sixlowpan/Make.defs

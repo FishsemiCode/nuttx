@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/lc823450/lc823450_start.c
  *
- *   Copyright 2014,2015,2016,2017 Sony Video & Sound Products Inc.
+ *   Copyright 2014, 2015, 2016, 2017, 2018 Sony Video & Sound Products Inc.
  *   Author: Masatoshi Tateishi <Masatoshi.Tateishi@jp.sony.com>
  *   Author: Masayuki Ishikawa <Masayuki.Ishikawa@jp.sony.com>
  *   Author: Yasuhiro Osaki <Yasuhiro.Osaki@jp.sony.com>
@@ -35,7 +35,6 @@
  *
  ****************************************************************************/
 
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -62,14 +61,14 @@
 #include <arch/board/board.h>
 
 #ifdef CONFIG_LC823450_SPIFI
-#  include "lc823450_spifi.h"
+#  include "lc823450_spifi2.h"
 #endif
 #include "lc823450_lowputc.h"
 #include "lc823450_clockconfig.h"
 #include "lc823450_syscontrol.h"
 
-#ifdef CONFIG_ARMV7M_MPU
-#  include "lc823450_mpuinit.h"
+#ifdef CONFIG_BUILD_PROTECTED
+#  include "lc823450_userspace.h"
 #endif
 
 #include "lc823450_gpio.h"
@@ -81,6 +80,38 @@
 #ifdef CONFIG_LC823450_SDRAM
 #  include "lc823450_sdram.h"
 #endif
+
+#include "lc823450_start.h"
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/* .data is positioned first in the primary RAM followed immediately by .bss.
+ * The IDLE thread stack lies just after .bss and has size give by
+ * CONFIG_IDLETHREAD_STACKSIZE;  The heap then begins just after the IDLE.
+ * ARM EABI requires 64 bit stack alignment.
+ */
+
+#define IDLE_STACKSIZE (CONFIG_IDLETHREAD_STACKSIZE & ~7)
+#define IDLE_STACK     ((uintptr_t)&_ebss + IDLE_STACKSIZE)
+#define HEAP_BASE      ((uintptr_t)&_ebss + IDLE_STACKSIZE)
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+/* g_idle_topstack: _sbss is the start of the BSS region as defined by the
+ * linker script. _ebss lies at the end of the BSS region. The idle task
+ * stack starts at the end of BSS and is of size CONFIG_IDLETHREAD_STACKSIZE.
+ * The IDLE thread is the thread that the system boots on and, eventually,
+ * becomes the IDLE, do nothing task that runs only when there is nothing
+ * else to run.  The heap continues from there until the end of memory.
+ * g_idle_topstack is a read-only variable the provides this computed
+ * address.
+ */
+
+const uintptr_t g_idle_topstack = HEAP_BASE;
 
 /****************************************************************************
  * Public Data
@@ -111,7 +142,7 @@ static void go_os_start(void *pv, unsigned int nbytes)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_FEATURES
 #  define showprogress(c) up_lowputc(c)
 #else
 #  define showprogress(c)
@@ -283,12 +314,12 @@ void __start(void)
   modifyreg32(MRSTCNTAPB, 0, MRSTCNTAPB_PORT2_RSTB);
   modifyreg32(rP2DT,  0, 1 << 15  /* GPIO2F */);
   modifyreg32(rP2DRC, 0, 1 << 15  /* GPIO2F */);
-#ifdef CONFIG_DEBUG
+#ifdef CONFIG_DEBUG_FEATURES
 
   /* enable TXD0 for debug */
 
   modifyreg32(PMDCNT5, 0, 3 << 14);
-#endif /* CONFIG_DEBUG */
+#endif /* CONFIG_DEBUG_FEATURES */
 #else  /* CONFIG_LC823450_IPL2 */
   up_init_default_mux();
 #endif /* CONFIG_LC823450_IPL2 */
@@ -318,10 +349,10 @@ void __start(void)
    * segments.
    */
 
-#ifdef CONFIG_ARMV7M_MPU
-  lc823450_mpuinitialize();
-  showprogress('E');
+#ifdef CONFIG_BUILD_PROTECTED
+  lc823450_userspace();
 #endif
+  showprogress('E');
 
 #ifdef CONFIG_MM_MULTIHEAP
   lc823450_sram_initialize();

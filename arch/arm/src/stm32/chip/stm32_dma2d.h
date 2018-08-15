@@ -101,7 +101,7 @@
 #define DMA2D_CR_START              (1 << 0)  /* Start Bit */
 #define DMA2D_CR_SUSP               (1 << 1)  /* Suspend Bit */
 #define DMA2D_CR_ABORT              (1 << 2)  /* Abort Bit */
-#define DMA2D_CR_TEIE               (1 << 8)  /* Transfer Error Interupt Enable Bit */
+#define DMA2D_CR_TEIE               (1 << 8)  /* Transfer Error Interrupt Enable Bit */
 #define DMA2D_CR_TCIE               (1 << 9)  /* Transfer Complete Interrupt Enable Bit */
 #define DMA2D_CR_TWIE               (1 << 10) /* Transfer Watermark Interrupt Enable Bit */
 #define DMA2D_CR_CAEIE              (1 << 11) /* CLUT Access Error Interrupt Enable Bit */
@@ -156,6 +156,12 @@
 #define DMA2D_xGPFCCR_ALPHA_MASK    (0xFF << DMA2D_xGPFCCR_ALPHA_SHIFT)
 #define DMA2D_xGPFCCR_ALPHA(n)      ((uint32_t)(n) << DMA2D_xGPFCCR_ALPHA_SHIFT)
 
+/* DMA2D PFC alpha mode */
+
+#define STM32_DMA2D_PFCCR_AM_NONE   0
+#define STM32_DMA2D_PFCCR_AM_CONST  1
+#define STM32_DMA2D_PFCCR_AM_PIXEL  2
+
 /* DMA2D Foreground/Background Color Register */
 
 #define DMA2D_xGCOLR_BLUE_SHIFT     (0)  /* Bits 0-7 Blue Value */
@@ -177,6 +183,20 @@
 #define DMA2D_OPFCCR_CM_SHIFT       (0)  /* Bits 0-2 Color Mode */
 #define DMA2D_OPFCCR_CM_MASK        (7 << DMA2D_OPFCCR_CM_SHIFT)
 #define DMA2D_OPFCCR_CM(n)          ((uint32_t)(n) << DMA2D_OPFCCR_CM_SHIFT)
+
+/* DMA2D PFC Pixel Format */
+
+#define DMA2D_PF_ARGB8888           0
+#define DMA2D_PF_RGB888             1
+#define DMA2D_PF_RGB565             2
+#define DMA2D_PF_ARGB1555           3
+#define DMA2D_PF_ARGB14444          4
+#define DMA2D_PF_L8                 5
+#define DMA2D_PF_AL44               6
+#define DMA2D_PF_AL88               7
+#define DMA2D_PF_L4                 8
+#define DMA2D_PF_A8                 9
+#define DMA2D_PF_A4                 10
 
 /* DMA2D Output Color Register */
 

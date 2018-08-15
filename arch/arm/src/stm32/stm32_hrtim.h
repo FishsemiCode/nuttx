@@ -705,6 +705,7 @@ enum stm32_hrtim_chopper_freq_e
 
 enum stm32_hrtim_adc_trq13_e
 {
+  HRTIM_ADCTRG13_NONE  = 0,        /* No trigger */
   HRTIM_ADCTRG13_MC1   = (1 << 0), /* Trigger on Master Compare 1 */
   HRTIM_ADCTRG13_MC2   = (1 << 1), /* Trigger on Master Compare 2 */
   HRTIM_ADCTRG13_MC3   = (1 << 2), /* Trigger on Master Compare 3 */
@@ -749,6 +750,7 @@ enum stm32_hrtim_adc_trq13_e
 
 enum stm32_hrtim_adc_trq24_e
 {
+  HRTIM_ADCTRG24_NONE  = 0,        /* No trigger */
   HRTIM_ADCTRG24_MC1   = (1 << 0), /* Trigger on Master Compare 1 */
   HRTIM_ADCTRG24_MC2   = (1 << 1), /* Trigger on Master Compare 2 */
   HRTIM_ADCTRG24_MC3   = (1 << 2), /* Trigger on Master Compare 3 */
@@ -1073,7 +1075,7 @@ struct stm32_hrtim_ops_s
 
 struct hrtim_dev_s
 {
-#ifdef CONFIG_HRTIM
+#ifdef CONFIG_STM32_HRTIM
   /* Fields managed by common upper half HRTIM logic */
 
   uint8_t hd_ocount; /* The number of times the device has been opened */

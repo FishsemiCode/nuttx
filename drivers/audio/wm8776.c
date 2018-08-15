@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/audio/wm8776.c
  *
- *   Copyright 2017,2018 Sony Video & Sound Products Inc.
+ *   Copyright 2017, 2018 Sony Video & Sound Products Inc.
  *   Author: Masayuki Ishikawa <Masayuki.Ishikawa@jp.sony.com>
  *
  * Based on drivers/audio/wm8904.c
@@ -49,6 +49,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <fixedmath.h>
 #include <queue.h>
 #include <debug.h>
 
@@ -397,12 +398,10 @@ static int wm8776_configure(FAR struct audio_lowerhalf_s *dev,
                             FAR const struct audio_caps_s *caps)
 #endif
 {
-#if !defined(CONFIG_AUDIO_EXCLUDE_VOLUME) || !defined(CONFIG_AUDIO_EXCLUDE_TONE)
   FAR struct wm8776_dev_s *priv = (FAR struct wm8776_dev_s *)dev;
-#endif
   int ret = OK;
 
-  DEBUGASSERT(priv && caps);
+  DEBUGASSERT(priv != NULL && caps != NULL);
   audinfo("ac_type: %d\n", caps->ac_type);
 
   /* Process the configure operation */

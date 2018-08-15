@@ -50,6 +50,7 @@
 #include <nuttx/net/netdev.h>
 
 #include "netdev/netdev.h"
+#include "socket/socket.h"
 #include "udp/udp.h"
 #include "tcp/tcp.h"
 #include "inet/inet.h"
@@ -97,6 +98,13 @@ int ipv4_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr,
        */
 
       return -ENOSYS;
+    }
+
+  /* Verify that the socket has been connected */
+
+  if ((psock->s_flags & _SF_CONNECTED) == 0)
+    {
+      return -ENOTCONN;
     }
 
   /* Set the port number */

@@ -231,12 +231,12 @@
 #define RCC_PLLCFG_PLLSRC_MASK      (3 << RCC_PLLCFG_PLLSRC_SHIFT)
 #  define RCC_PLLCFG_PLLSRC_NONE    (0 << RCC_PLLCFG_PLLSRC_SHIFT) /* 000: No clock sent to PLLs */
 #  define RCC_PLLCFG_PLLSRC_MSI     (1 << RCC_PLLCFG_PLLSRC_SHIFT) /* 001: MSI selected as PLL source */
-#  define RCC_PLLCFG_PLLSRC_HSI     (2 << RCC_PLLCFG_PLLSRC_SHIFT) /* 001: HSI selected as PLL source */
-#  define RCC_PLLCFG_PLLSRC_HSE     (3 << RCC_PLLCFG_PLLSRC_SHIFT) /* 001: HSE selected as PLL source */
+#  define RCC_PLLCFG_PLLSRC_HSI     (2 << RCC_PLLCFG_PLLSRC_SHIFT) /* 010: HSI selected as PLL source */
+#  define RCC_PLLCFG_PLLSRC_HSE     (3 << RCC_PLLCFG_PLLSRC_SHIFT) /* 011: HSE selected as PLL source */
 #define RCC_PLLCFG_PLLM_SHIFT       (4)      /* Bits 4-6: Main PLL (PLL) input clock divider */
 #define RCC_PLLCFG_PLLM_MASK        (0x07 << RCC_PLLCFG_PLLM_SHIFT)
 #  define RCC_PLLCFG_PLLM(n)        ((n-1) << RCC_PLLCFG_PLLM_SHIFT) /* m = 1..8 */
-#define RCC_PLLCFG_PLLN_SHIFT       (8)      /* Bits 6-14: Main PLL (PLL) VCO multiplier */
+#define RCC_PLLCFG_PLLN_SHIFT       (8)      /* Bits 8-14: Main PLL (PLL) VCO multiplier */
 #define RCC_PLLCFG_PLLN_MASK        (0x7f << RCC_PLLCFG_PLLN_SHIFT)
 #  define RCC_PLLCFG_PLLN(n)        ((n) << RCC_PLLCFG_PLLN_SHIFT) /* n = 8..86 */
 #define RCC_PLLCFG_PLLPEN           (1 << 16) /* Bit 16: Main PLL PLLSAI3CLK output enable */

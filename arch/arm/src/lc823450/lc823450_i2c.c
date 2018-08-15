@@ -352,8 +352,8 @@ static inline int lc823450_i2c_sem_waitdone(FAR struct lc823450_i2c_priv_s *priv
 static inline int lc823450_i2c_sem_waitdone(FAR struct lc823450_i2c_priv_s *priv)
 {
   uint32_t timeout;
-  systime_t start;
-  systime_t elapsed;
+  clock_t start;
+  clock_t elapsed;
   int ret;
 
   /* Get the timeout value */
@@ -739,7 +739,7 @@ static int lc823450_i2c_poll(FAR struct lc823450_i2c_priv_s *priv)
 
           i2cinfo("other message remaining (msgc=%d)\n", priv->msgc);
 
-          if (priv->msgv->flags & I2C_M_NORESTART)
+          if (priv->msgv->flags & I2C_M_NOSTART)
             {
               /* In this case, we don't have to restart using START condition. */
 

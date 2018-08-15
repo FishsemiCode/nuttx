@@ -35,11 +35,7 @@
 
 # The start-up, "head", file
 
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 HEAD_ASRC =
-else
-HEAD_ASRC = lpc17_vectors.S
-endif
 
 # Common ARM and Cortex-M3 files
 
@@ -61,14 +57,12 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 CMN_CSRCS += up_stackcheck.c
 endif
 
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
 CMN_ASRCS += up_lazyexception.S
 else
 CMN_ASRCS += up_exception.S
 endif
 CMN_CSRCS += up_vectors.c
-endif
 
 ifeq ($(CONFIG_ARCH_RAMVECTORS),y)
 CMN_CSRCS += up_ramvec_initialize.c up_ramvec_attach.c
@@ -94,11 +88,7 @@ endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
-ifneq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_CSRCS += up_copyarmstate.c
-else ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
-CMN_CSRCS += up_copyarmstate.c
-endif
 endif
 
 # Required LPC17xx files
@@ -117,10 +107,6 @@ endif
 
 ifneq ($(CONFIG_SCHED_TICKLESS),y)
 CHIP_CSRCS += lpc17_timerisr.c
-endif
-
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
-CHIP_ASRCS += lpc17_vectors.S
 endif
 
 ifeq ($(CONFIG_BUILD_PROTECTED),y)

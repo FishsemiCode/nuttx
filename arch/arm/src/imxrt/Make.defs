@@ -85,11 +85,7 @@ endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
-ifneq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_CSRCS += up_copyarmstate.c
-else ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
-CMN_CSRCS += up_copyarmstate.c
-endif
 endif
 
 # Required i.MX RT files
@@ -122,6 +118,17 @@ endif
 
 ifeq ($(CONFIG_IMXRT_EDMA),y)
 CHIP_CSRCS += imxrt_edma.c
+endif
+
+ifeq ($(CONFIG_IMXRT_SNVS_LPSRTC),y)
+CHIP_CSRCS += imxrt_lpsrtc.c
+CHIP_CSRCS += imxrt_hprtc.c
+else ifeq ($(CONFIG_IMXRT_SNVS_HPRTC),y)
+CHIP_CSRCS += imxrt_hprtc.c
+endif
+
+ifeq ($(CONFIG_RTC_DRIVER),y)
+CHIP_CSRCS += imxrt_rtc_lowerhalf.c
 endif
 
 ifeq ($(CONFIG_IMXRT_ENET),y)

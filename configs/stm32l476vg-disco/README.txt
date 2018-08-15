@@ -9,7 +9,7 @@ STM32L476VG Discovery board from ST Micro.  See
 
 STM32L476VG:
 
-  Microprocessor: 32-bit ARM Cortex M4 at 80MHz STM32F476VGT6
+  Microprocessor: 32-bit ARM Cortex M4 at 80MHz STM32L476VGT6
   Memory:         1024 KB Flash and 96+32 KB SRAM
   ADC:            3x12-bit, 2.4 MSPS A/D converter: up to 24 channels
   DMA:            16-stream DMA controllers with FIFOs and burst support

@@ -94,6 +94,11 @@
 #define GPIO_SCHED_RUNNING (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | GPIO_OUTPUT_CLEAR | \
                             GPIO_PORTG | GPIO_PIN7)
 
+#define GPIO_LCD_DISP     (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTI|GPIO_PIN12)
+
+#define GPIO_LCD_BL       (GPIO_OUTPUT|GPIO_PUSHPULL|GPIO_SPEED_50MHz|\
+                           GPIO_OUTPUT_SET|GPIO_PORTK|GPIO_PIN3)
 /****************************************************************************************************
  * Public data
  ****************************************************************************************************/
@@ -152,6 +157,52 @@ void weak_function stm32_spidev_initialize(void);
 
 #ifdef CONFIG_SPORADIC_INSTRUMENTATION
 void arch_sporadic_initialize(void);
+#endif
+
+/****************************************************************************
+
+ * Name: stm32_enablefmc
+ *
+ * Description:
+ *  enable clocking to the FMC module
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32F7_FMC
+void stm32_enablefmc(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_disablefmc
+ *
+ * Description:
+ *  disable clocking to the FMC module
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STM32F7_FMC
+void stm32_disablefmc(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_tsc_setup
+ *
+ * Description:
+ *   This function is called by board-bringup logic to configure the
+ *   touchscreen device.  This function will register the driver as
+ *   /dev/inputN where N is the minor device number.
+ *
+ * Input Parameters:
+ *   minor   - The input device minor number
+ *
+ * Returned Value:
+ *   Zero is returned on success.  Otherwise, a negated errno value is
+ *   returned to indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_INPUT_FT5X06
+int stm32_tsc_setup(int minor);
 #endif
 
 #endif /* __ASSEMBLY__ */

@@ -110,17 +110,17 @@
 #endif
 
 #ifndef CONFIG_STM32_BKP
-#  error "CONFIG_STM32_BKP is required for CONFIG_RTC"
+#  error "CONFIG_STM32_BKP is required for CONFIG_STM32_RTC"
 #endif
 
 #ifndef CONFIG_STM32_PWR
-#  error "CONFIG_STM32_PWR is required for CONFIG_RTC"
+#  error "CONFIG_STM32_PWR is required for CONFIG_STM32_RTC"
 #endif
 
 #ifdef CONFIG_STM32_STM32F10XX
-#  if defined(CONFIG_RTC_HSECLOCK)
+#  if defined(CONFIG_STM32_RTC_HSECLOCK)
 #    error "RTC with HSE clock not yet implemented for STM32F10XXX"
-#  elif defined(CONFIG_RTC_LSICLOCK)
+#  elif defined(CONFIG_STM32_RTC_LSICLOCK)
 #    error "RTC with LSI clock not yet implemented for STM32F10XXX"
 #  endif
 #endif

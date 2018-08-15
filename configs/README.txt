@@ -365,9 +365,18 @@ configs/mbed
 configs/mcb1700
   Board support for the Keil MCB1700
 
+configs/metro-m4
+  Th configurations in this directory are part of the port of NuttX to the
+  Adafruit Metro M4.  The Metro M4 uses a Arduino form factor and and pinout.
+  It's powered with an ATSAMD51J19
+
 configs/mikroe-stm32f4
   This is the port of NuttX to the MikroElektronika Mikromedia for STM32F4
   development board.  Contributed by Ken Petit.
+
+configs/misoc
+  This directory holds the port to NuttX running on a Qemu LM32 system.
+  You can find the Qemu setup at https://bitbucket.org/key2/qemu
 
 configs/mcu123-lpc214x
   This port is for the NXP LPC2148 as provided on the mcu123.com
@@ -492,7 +501,7 @@ configs/olimex-stm32-p407
 configs/olimexino-stm32
   This port uses the Olimexino STM32 board (STM32F103RBT6) and a GNU arm-nuttx-elf
   toolchain* under Linux or Cygwin. See the http://www.olimex.com for further\
-  information.  Contribued by David Sidrane.
+  information.  Contributed by David Sidrane.
 
 configs/olimex-strp711
   This port uses the Olimex STR-P711 board and a GNU arm-nuttx-elf toolchain* under

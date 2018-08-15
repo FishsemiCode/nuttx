@@ -86,54 +86,71 @@ config IMXRT_LPUART1
 	bool "LPUART1"
 	default n
 	select LPUART1_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART2
 	bool "LPUART2"
 	default n
 	select LPUART2_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART3
 	bool "LPUART3"
 	default n
 	select LPUART3_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART4
 	bool "LPUART4"
 	default n
 	select LPUART4_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART5
 	bool "LPUART5"
 	default n
 	select LPUART5_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART6
 	bool "LPUART6"
 	default n
 	select LPUART6_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART7
 	bool "LPUART7"
 	default n
 	select LPUART7_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 config IMXRT_LPUART8
 	bool "LPUART8"
 	default n
 	select LPUART8_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select IMXRT_HAVE_LPUART
 
 endmenu # LPUART Peripherals
 
 config IMXRT_SEMC
 	bool "Smart External Memory Controller (SEMC)"
+	default n
+
+config IMXRT_SNVS_LPSRTC
+	bool "LP SRTC"
+	default n
+	select IMXRT_SNVS_HPRTC
+
+config IMXRT_SNVS_HPRTC
+	bool "HP RTC"
 	default n
 
 endmenu # i.MX RT Peripheral Selection
@@ -452,4 +469,35 @@ config IMXRT_EDMA_EDBG
 		system exits debug mode or the EDBG bit is cleared
 
 endmenu # eDMA Global Configuration
+
+if PM
+
+config IMXRT_PM_SERIAL_ACTIVITY
+	int "PM serial activity"
+	default 10
+	---help---
+		PM activity reported to power management logic on every serial
+		interrupt.
+
+endif
+
+menu "RTC Configuration"
+	depends on IMXRT_SNVS_HPRTC
+
+config IMXRT_RTC_MAGIC_REG
+	int "RTC SNVS GPR"
+	default 0
+	range  0 3
+	---help---
+		The BKP register used to store/check the Magic value to determine if
+		RTC is already setup
+
+config IMXRT_RTC_MAGIC
+	hex "RTC Magic 1"
+	default 0xfacefeed
+	---help---
+		Value used as Magic to determine if the RTC is already setup
+
+endmenu
 endif # ARCH_CHIP_IMXRT
+

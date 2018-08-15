@@ -140,6 +140,7 @@
 #  else
 #    error "No DMA channel for DAC1"
 #  endif
+#  define HAVE_DMA
 #endif
 #ifdef CONFIG_STM32L4_DAC2_DMA
 #  if defined(CONFIG_STM32L4_DMA1)
@@ -149,8 +150,8 @@
 #  else
 #    error "No DMA channel for DAC2"
 #  endif
+#  define HAVE_DMA
 #endif
-#define HAVE_DMA
 
 /* Timer configuration.  The STM32L4 supports 8 different trigger for DAC
  * output:
@@ -225,7 +226,7 @@
 #    define DAC1_TIMER_BASE           STM32L4_TIM4_BASE
 #    define DAC1_TIMER_PCLK_FREQUENCY STM32L4_PCLK1_FREQUENCY
 #  else
-#    error "Unsupported CONFIG_STM32_DAC1_TIMER"
+#    error "Unsupported CONFIG_STM32L4_DAC1_TIMER"
 #  endif
 #else
 #  define DAC1_TSEL_VALUE DAC_CR_TSEL_SW

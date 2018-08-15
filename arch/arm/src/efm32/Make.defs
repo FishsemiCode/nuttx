@@ -1,7 +1,7 @@
 ############################################################################
 # arch/arm/src/efm32/Make.defs
 #
-#   Copyright (C) 2014-2016 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2014-2016, 2018 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,14 +50,12 @@ CMN_CSRCS += up_releasestack.c up_reprioritizertr.c up_schedulesigaction.c
 CMN_CSRCS += up_sigdeliver.c up_stackframe.c up_svcall.c up_systemreset.c
 CMN_CSRCS += up_udelay.c up_unblocktask.c up_usestack.c up_vfork.c
 
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
 CMN_ASRCS += up_lazyexception.S
 else
 CMN_ASRCS += up_exception.S
 endif
 CMN_CSRCS += up_vectors.c
-endif
 
 ifeq ($(CONFIG_ARCH_RAMVECTORS),y)
 CMN_CSRCS += up_ramvec_initialize.c up_ramvec_attach.c
@@ -77,11 +75,7 @@ endif
 
 ifeq ($(CONFIG_ARCH_FPU),y)
 CMN_ASRCS += up_fpu.S
-ifneq ($(CONFIG_ARMV7M_CMNVECTOR),y)
 CMN_CSRCS += up_copyarmstate.c
-else ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
-CMN_CSRCS += up_copyarmstate.c
-endif
 endif
 
 ifeq ($(CONFIG_ARMV7M_ITMSYSLOG),y)
@@ -89,10 +83,6 @@ CMN_CSRCS += up_itm_syslog.c
 endif
 
 CHIP_ASRCS  =
-
-ifeq ($(CONFIG_ARMV7M_CMNVECTOR),y)
-CHIP_ASRCS += efm32_vectors.S
-endif
 
 CHIP_CSRCS  = efm32_start.c efm32_clockconfig.c efm32_irq.c efm32_timerisr.c
 CHIP_CSRCS += efm32_gpio.c efm32_lowputc.c efm32_timer.c efm32_i2c.c

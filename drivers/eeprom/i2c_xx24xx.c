@@ -103,7 +103,7 @@
  ****************************************************************************/
 
 #ifndef CONFIG_EE24XX_FREQUENCY
-#define CONFIG_EE24XX_FREQUENCY 100000
+#  define CONFIG_EE24XX_FREQUENCY 100000
 #endif
 
 /****************************************************************************
@@ -285,7 +285,7 @@ static int ee24xx_writepage(FAR struct ee24xx_dev_s *eedev, uint32_t memaddr,
 
   msgs[1].frequency = msgs[0].frequency;
   msgs[1].addr      = msgs[0].addr;
-  msgs[1].flags     = I2C_M_NORESTART;
+  msgs[1].flags     = I2C_M_NOSTART;
   msgs[1].buffer    = (uint8_t*)buffer;
   msgs[1].length    = len;
 

@@ -1422,6 +1422,7 @@ config STM32_LOWDENSITY
 config STM32_STM32F20XX
 	bool
 	default n
+	select STM32_HAVE_IOCOMPENSATION
 
 config STM32_STM32F205
 	bool
@@ -1570,6 +1571,7 @@ config STM32_STM32F4XXX
 	default n
 	select STM32_HAVE_SPI2
 	select STM32_HAVE_I2C2
+	select STM32_HAVE_IOCOMPENSATION
 
 config STM32_STM32F401xBC
 	bool
@@ -1896,6 +1898,10 @@ config STM32_HAVE_OTGFS
 	default n
 
 config STM32_HAVE_FSMC
+	bool
+	default n
+
+config STM32_HAVE_IOCOMPENSATION
 	bool
 	default n
 
@@ -2366,15 +2372,15 @@ config STM32_HASH
 	default n
 	depends on STM32_STM32F207 || STM32_STM32F4XXX
 
-config HRTIM
-	bool "HRTIM"
+config STM32_HRTIM
+	bool
 	default n
 
 config STM32_HRTIM1
 	bool "HRTIM1"
 	default n
 	depends on STM32_HAVE_HRTIM1
-	select HRTIM
+	select STM32_HRTIM
 
 if STM32_HRTIM1
 
@@ -2436,6 +2442,7 @@ config STM32_I2C3
 config STM32_LTDC
 	bool "LTDC"
 	default n
+	select FB
 	depends on STM32_HAVE_LTDC
 	---help---
 		The STM32 LTDC is an LCD-TFT Display Controller available on
@@ -2446,6 +2453,8 @@ config STM32_LTDC
 config STM32_DMA2D
 	bool "DMA2D"
 	default n
+	select FB
+	select FB_OVERLAY
 	depends on STM32_STM32F429
 	---help---
 		The STM32 DMA2D is an Chrom-Art Accelerator for image manipulation
@@ -2475,16 +2484,27 @@ config STM32_OPAMP4
 	default n
 	depends on STM32_HAVE_OPAMP4
 
+config STM32_RTC
+	bool "RTC"
+	default n
+	select RTC
+
+config STM32_USBHOST
+	bool
+	default n
+
 config STM32_OTGFS
 	bool "OTG FS"
 	default n
 	depends on STM32_HAVE_OTGFS
+	select STM32_USBHOST
 	select USBHOST_HAVE_ASYNCH if USBHOST
 
 config STM32_OTGHS
 	bool "OTG HS"
 	default n
 	depends on STM32_STM32F205 || STM32_STM32F207 || STM32_STM32F4XXX || STM32_STM32F429
+	select STM32_USBHOST
 	select USBHOST_HAVE_ASYNCH if USBHOST
 
 config STM32_PWR
@@ -2505,7 +2525,7 @@ config STM32_SDIO
 	depends on !STM32_CONNECTIVITYLINE && !STM32_VALUELINE
 	select ARCH_HAVE_SDIO
 	select ARCH_HAVE_SDIOWAIT_WRCOMPLETE
-	select SDIO_PREFLIGHT
+	select ARCH_HAVE_SDIO_PREFLIGHT
 
 config STM32_SPI1
 	bool "SPI1"
@@ -2743,6 +2763,19 @@ config STM32_NOEXT_VECTORS
 		Sometimes you may not need any Vector support beyond SysTick
 		and wish to save memory. This applies only to ARMv7-M architectures.
 
+config STM32_SYSCFG_IOCOMPENSATION
+	bool "SYSCFG I/O Compensation"
+	default n
+	depends on STM32_HAVE_IOCOMPENSATION
+	---help---
+		By default the I/O compensation cell is not used. However when the I/O
+		output buffer speed is configured in 50 MHz or 100 MHz mode, it is
+		recommended to use the compensation cell for slew rate control on I/O
+		tf(IO)out)/tr(IO)out commutation to reduce the I/O noise on power supply.
+
+		The I/O compensation cell can be used only when the supply voltage ranges
+		from 2.4 to 3.6 V.
+
 menu "Alternate Pin Mapping"
 
 choice
@@ -2927,9 +2960,9 @@ endmenu
 
 config STM32_FLASH_PREFETCH
 	bool "Enable FLASH Pre-fetch"
-	depends on STM32_STM32F207 || STM32_STM32F4XXX
 	default y if STM32_STM32F427 || STM32_STM32F429 || STM32_STM32F446
 	default n
+	depends on STM32_STM32F207 || STM32_STM32F4XXX
 	---help---
 		Enable FLASH prefetch and F2 and F4 parts (FLASH pre-fetch is always enabled
 		on F1 parts).  Some early revisions of F4 parts do not support FLASH pre-fetch
@@ -2938,6 +2971,7 @@ config STM32_FLASH_PREFETCH
 config STM32_FLASH_WORKAROUND_DATA_CACHE_CORRUPTION_ON_RWW
 	bool "Workaround for FLASH data cache corruption"
 	default n
+	depends on STM32_STM32F20XX || STM32_STM32F4XXX
 	---help---
 		Enable the workaround to fix flash data cache corruption when reading
 		from one flash bank while writing on other flash bank.  See your STM32
@@ -5018,21 +5052,21 @@ choice
 config STM32_TIM1_ADC1
 	bool "TIM1 ADC channel 1"
 	depends on STM32_ADC1
-	select HAVE_ADC1_TIMER
+	select STM32_HAVE_ADC1_TIMER
 	---help---
 		Reserve TIM1 to trigger ADC1
 
 config STM32_TIM1_ADC2
 	bool "TIM1 ADC channel 2"
 	depends on STM32_ADC2
-	select HAVE_ADC2_TIMER
+	select STM32_HAVE_ADC2_TIMER
 	---help---
 		Reserve TIM1 to trigger ADC2
 
 config STM32_TIM1_ADC3
 	bool "TIM1 ADC channel 3"
 	depends on STM32_ADC3
-	select HAVE_ADC3_TIMER
+	select STM32_HAVE_ADC3_TIMER
 	---help---
 		Reserve TIM1 to trigger ADC3
 
@@ -5060,21 +5094,21 @@ choice
 config STM32_TIM2_ADC1
 	bool "TIM2 ADC channel 1"
 	depends on STM32_ADC1
-	select HAVE_ADC1_TIMER
+	select STM32_HAVE_ADC1_TIMER
 	---help---
 		Reserve TIM2 to trigger ADC1
 
 config STM32_TIM2_ADC2
 	bool "TIM2 ADC channel 2"
 	depends on STM32_ADC2
-	select HAVE_ADC2_TIMER
+	select STM32_HAVE_ADC2_TIMER
 	---help---
 		Reserve TIM2 to trigger ADC2
 
 config STM32_TIM2_ADC3
 	bool "TIM2 ADC channel 3"
 	depends on STM32_ADC3
-	select HAVE_ADC3_TIMER
+	select STM32_HAVE_ADC3_TIMER
 	---help---
 		Reserve TIM2 to trigger ADC3
 
@@ -5102,21 +5136,21 @@ choice
 config STM32_TIM3_ADC1
 	bool "TIM3 ADC channel 1"
 	depends on STM32_ADC1
-	select HAVE_ADC1_TIMER
+	select STM32_HAVE_ADC1_TIMER
 	---help---
 		Reserve TIM3 to trigger ADC1
 
 config STM32_TIM3_ADC2
 	bool "TIM3 ADC channel 2"
 	depends on STM32_ADC2
-	select HAVE_ADC2_TIMER
+	select STM32_HAVE_ADC2_TIMER
 	---help---
 		Reserve TIM3 to trigger ADC2
 
 config STM32_TIM3_ADC3
 	bool "TIM3 ADC channel 3"
 	depends on STM32_ADC3
-	select HAVE_ADC3_TIMER
+	select STM32_HAVE_ADC3_TIMER
 	---help---
 		Reserve TIM3 to trigger ADC3
 
@@ -5144,21 +5178,21 @@ choice
 config STM32_TIM4_ADC1
 	bool "TIM4 ADC channel 1"
 	depends on STM32_ADC1
-	select HAVE_ADC1_TIMER
+	select STM32_HAVE_ADC1_TIMER
 	---help---
 		Reserve TIM4 to trigger ADC1
 
 config STM32_TIM4_ADC2
 	bool "TIM4 ADC channel 2"
 	depends on STM32_ADC2
-	select HAVE_ADC2_TIMER
+	select STM32_HAVE_ADC2_TIMER
 	---help---
 		Reserve TIM4 to trigger ADC2
 
 config STM32_TIM4_ADC3
 	bool "TIM4 ADC channel 3"
 	depends on STM32_ADC3
-	select HAVE_ADC3_TIMER
+	select STM32_HAVE_ADC3_TIMER
 	---help---
 		Reserve TIM4 to trigger ADC3
 
@@ -5186,21 +5220,21 @@ choice
 config STM32_TIM5_ADC1
 	bool "TIM5 ADC channel 1"
 	depends on STM32_ADC1
-	select HAVE_ADC1_TIMER
+	select STM32_HAVE_ADC1_TIMER
 	---help---
 		Reserve TIM5 to trigger ADC1
 
 config STM32_TIM5_ADC2
 	bool "TIM5 ADC channel 2"
 	depends on STM32_ADC2
-	select HAVE_ADC2_TIMER
+	select STM32_HAVE_ADC2_TIMER
 	---help---
 		Reserve TIM5 to trigger ADC2
 
 config STM32_TIM5_ADC3
 	bool "TIM5 ADC channel 3"
 	depends on STM32_ADC3
-	select HAVE_ADC3_TIMER
+	select STM32_HAVE_ADC3_TIMER
 	---help---
 		Reserve TIM5 to trigger ADC3
 
@@ -5228,39 +5262,39 @@ choice
 config STM32_TIM8_ADC1
 	bool "TIM8 ADC channel 1"
 	depends on STM32_ADC1
-	select HAVE_ADC1_TIMER
+	select STM32_HAVE_ADC1_TIMER
 	---help---
 		Reserve TIM8 to trigger ADC1
 
 config STM32_TIM8_ADC2
 	bool "TIM8 ADC channel 2"
 	depends on STM32_ADC2
-	select HAVE_ADC2_TIMER
+	select STM32_HAVE_ADC2_TIMER
 	---help---
 		Reserve TIM8 to trigger ADC2
 
 config STM32_TIM8_ADC3
 	bool "TIM8 ADC channel 3"
 	depends on STM32_ADC3
-	select HAVE_ADC3_TIMER
+	select STM32_HAVE_ADC3_TIMER
 	---help---
 		Reserve TIM8 to trigger ADC3
 
 endchoice
 
-config HAVE_ADC1_TIMER
+config STM32_HAVE_ADC1_TIMER
 	bool
 
-config HAVE_ADC2_TIMER
+config STM32_HAVE_ADC2_TIMER
 	bool
 
-config HAVE_ADC3_TIMER
+config STM32_HAVE_ADC3_TIMER
 	bool
 
 config STM32_ADC1_SAMPLE_FREQUENCY
 	int "ADC1 Sampling Frequency"
 	default 100
-	depends on HAVE_ADC1_TIMER
+	depends on STM32_HAVE_ADC1_TIMER
 	---help---
 		ADC1 sampling frequency.  Default:  100Hz
 
@@ -5268,14 +5302,14 @@ config STM32_ADC1_TIMTRIG
 	int "ADC1 Timer Trigger"
 	default 0
 	range 0 4
-	depends on HAVE_ADC1_TIMER
+	depends on STM32_HAVE_ADC1_TIMER
 	---help---
 		Values 0:CC1 1:CC2 2:CC3 3:CC4 4:TRGO
 
 config STM32_ADC2_SAMPLE_FREQUENCY
 	int "ADC2 Sampling Frequency"
 	default 100
-	depends on HAVE_ADC2_TIMER
+	depends on STM32_HAVE_ADC2_TIMER
 	---help---
 		ADC2 sampling frequency.  Default:  100Hz
 
@@ -5283,14 +5317,14 @@ config STM32_ADC2_TIMTRIG
 	int "ADC2 Timer Trigger"
 	default 0
 	range 0 4
-	depends on HAVE_ADC2_TIMER
+	depends on STM32_HAVE_ADC2_TIMER
 	---help---
 		Values 0:CC1 1:CC2 2:CC3 3:CC4 4:TRGO
 
 config STM32_ADC3_SAMPLE_FREQUENCY
 	int "ADC3 Sampling Frequency"
 	default 100
-	depends on HAVE_ADC3_TIMER
+	depends on STM32_HAVE_ADC3_TIMER
 	---help---
 		ADC3 sampling frequency.  Default:  100Hz
 
@@ -5298,7 +5332,7 @@ config STM32_ADC3_TIMTRIG
 	int "ADC3 Timer Trigger"
 	default 0
 	range 0 4
-	depends on HAVE_ADC3_TIMER
+	depends on STM32_HAVE_ADC3_TIMER
 	---help---
 		Values 0:CC1 1:CC2 2:CC3 3:CC4 4:TRGO
 
@@ -7331,7 +7365,7 @@ config STM32_SERIAL_RXDMA_BUFFER_SIZE
 
 		Value given here will be rounded up to next multiple of 4 bytes.
 
-config SERIAL_DISABLE_REORDERING
+config STM32_SERIAL_DISABLE_REORDERING
 	bool "Disable reordering of ttySx devices."
 	default n
 	---help---
@@ -7371,6 +7405,14 @@ config STM32_SERIALBRK_BSDCOMPAT
 		The current STM32 U[S]ARTS have no way to leave the break (TX=LOW)
 		on because the SW starts the break and then the HW automatically clears
 		the break. This makes it is difficult to sent a long break.
+
+config STM32_USART_SINGLEWIRE
+	bool "Single Wire Support"
+	default n
+	depends on STM32_USART
+	---help---
+		Enable single wire UART support.  The option enables support for the
+		TIOCSSINGLEWIRE ioctl in the STM32 serial driver.
 
 endmenu # Serial Driver Configuration
 
@@ -7442,12 +7484,14 @@ config STM32_HCIUART_LOWER_WATERMARK
 endmenu # HCI UART Driver Configuration
 
 if PM
-config PM_SERIAL_ACTIVITY
+
+config STM32_PM_SERIAL_ACTIVITY
 	int "PM serial activity"
 	default 10
 	---help---
 		PM activity reported to power management logic on every serial
 		interrupt.
+
 endif
 
 endmenu # U[S]ART Configuration
@@ -7674,9 +7718,9 @@ config STM32_HAVE_RTC_SUBSECONDS
 	default n
 
 menu "RTC Configuration"
-	depends on RTC
+	depends on STM32_RTC
 
-config RTC_MAGIC_REG
+config STM32_RTC_MAGIC_REG
 	int "BKP register"
 	default 0
 	range  0 19
@@ -7685,16 +7729,16 @@ config RTC_MAGIC_REG
 		The BKP register used to store/check the Magic value to determine if
 		RTC is already setup
 
-config RTC_MAGIC
+config STM32_RTC_MAGIC
 	hex "RTC Magic 1"
-	default 0xfacefeee
+	default 0xfacefeed
 	depends on !STM32_HAVE_RTC_COUNTER
 	---help---
 		Value used as Magic to determine if the RTC is already setup
 
-config RTC_MAGIC_TIME_SET
+config STM32_RTC_MAGIC_TIME_SET
 	hex "RTC Magic 2"
-	default 0xfacefeef
+	default 0xf00dface
 	depends on !STM32_HAVE_RTC_COUNTER
 	---help---
 		Value used as Magic to determine if the RTC has been setup and has
@@ -7702,19 +7746,19 @@ config RTC_MAGIC_TIME_SET
 
 choice
 	prompt "RTC clock source"
-	default RTC_LSECLOCK
+	default STM32_RTC_LSECLOCK
 
-config RTC_LSECLOCK
+config STM32_RTC_LSECLOCK
 	bool "LSE clock"
 	---help---
 		Drive the RTC with the LSE clock
 
-config RTC_LSICLOCK
+config STM32_RTC_LSICLOCK
 	bool "LSI clock"
 	---help---
 		Drive the RTC with the LSI clock
 
-config RTC_HSECLOCK
+config STM32_RTC_HSECLOCK
 	bool "HSE clock"
 	---help---
 		Drive the RTC with the HSE clock, divided down to 1MHz.
@@ -7957,46 +8001,41 @@ config STM32_ETHMAC_REGDEBUG
 endmenu # Ethernet MAC configuration
 
 menu "USB FS Host Configuration"
+	depends on STM32_OTGFS
 
 config STM32_OTGFS_RXFIFO_SIZE
 	int "Rx Packet Size"
 	default 128
-	depends on USBHOST && STM32_OTGFS
 	---help---
 		Size of the RX FIFO in 32-bit words. Default 128 (512 bytes)
 
 config STM32_OTGFS_NPTXFIFO_SIZE
 	int "Non-periodic Tx FIFO Size"
 	default 96
-	depends on USBHOST && STM32_OTGFS
 	---help---
 		Size of the non-periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
 
 config STM32_OTGFS_PTXFIFO_SIZE
 	int "Periodic Tx FIFO size"
 	default 128
-	depends on USBHOST && STM32_OTGFS
 	---help---
 		Size of the periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
 
 config STM32_OTGFS_DESCSIZE
 	int "Descriptor Size"
 	default 128
-	depends on USBHOST && STM32_OTGFS
 	---help---
 		Maximum size to allocate for descriptor memory descriptor.  Default: 128
 
 config STM32_OTGFS_SOFINTR
 	bool "Enable SOF interrupts"
 	default n
-	depends on USBHOST && STM32_OTGFS
 	---help---
 		Enable SOF interrupts.  Why would you ever want to do that?
 
 config STM32_OTGFS_VBUS_CONTROL
 	bool "Enable VBus Control"
 	default y
-	depends on USBHOST && STM32_OTGFS
 	---help---
 		Enable VBus control.  Used when the board has VBus sensing and
 		a power switch for the OTG FS USB port.  Disable this config
@@ -8005,39 +8044,35 @@ config STM32_OTGFS_VBUS_CONTROL
 endmenu
 
 menu "USB HS Host Configuration"
+	depends on STM32_OTGHS
 
 config STM32_OTGHS_RXFIFO_SIZE
 	int "Rx Packet Size"
 	default 128
-	depends on USBHOST && STM32_OTGHS
 	---help---
 		Size of the RX FIFO in 32-bit words. Default 128 (512 bytes)
 
 config STM32_OTGHS_NPTXFIFO_SIZE
 	int "Non-periodic Tx FIFO Size"
 	default 96
-	depends on USBHOST && STM32_OTGHS
 	---help---
 		Size of the non-periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
 
 config STM32_OTGHS_PTXFIFO_SIZE
 	int "Periodic Tx FIFO size"
 	default 128
-	depends on USBHOST && STM32_OTGHS
 	---help---
 		Size of the periodic Tx FIFO in 32-bit words.  Default 96 (384 bytes)
 
 config STM32_OTGHS_DESCSIZE
 	int "Descriptor Size"
 	default 128
-	depends on USBHOST && STM32_OTGHS
 	---help---
 		Maximum size to allocate for descriptor memory descriptor.  Default: 128
 
 config STM32_OTGHS_SOFINTR
 	bool "Enable SOF interrupts"
 	default n
-	depends on USBHOST && STM32_OTGHS
 	---help---
 		Enable SOF interrupts.  Why would you ever want to do that?
 
@@ -8048,14 +8083,14 @@ menu "USB Host Debug Configuration"
 config STM32_USBHOST_REGDEBUG
 	bool "Register-Level Debug"
 	default n
-	depends on USBHOST && DEBUG_USB_INFO && (STM32_OTGFS || STM32_OTGHS)
+	depends on STM32_USBHOST && DEBUG_USB_INFO
 	---help---
 		Enable very low-level register access debug.
 
 config STM32_USBHOST_PKTDUMP
 	bool "Packet Dump Debug"
 	default n
-	depends on USBHOST && DEBUG_USB_INFO && (STM32_OTGFS || STM32_OTGHS)
+	depends on STM32_USBHOST && DEBUG_USB_INFO
 	---help---
 		Dump all incoming and outgoing USB packets.
 
@@ -8078,27 +8113,27 @@ config STM32_USB_ITRMP
 menu "CAN driver configuration"
 	depends on STM32_CAN
 
-config CAN1_BAUD
+config STM32_CAN1_BAUD
 	int "CAN1 BAUD"
 	default 250000
 	depends on STM32_CAN1
 	---help---
 		CAN1 BAUD rate.  Required if CONFIG_STM32_CAN1 is defined.
 
-config CAN2_BAUD
+config STM32_CAN2_BAUD
 	int "CAN2 BAUD"
 	default 250000
 	depends on STM32_CAN2
 	---help---
 		CAN2 BAUD rate.  Required if CONFIG_STM32_CAN2 is defined.
 
-config CAN_TSEG1
+config STM32_CAN_TSEG1
 	int "TSEG1 quanta"
 	default 6
 	---help---
 		The number of CAN time quanta in segment 1. Default: 6
 
-config CAN_TSEG2
+config STM32_CAN_TSEG2
 	int "TSEG2 quanta"
 	default 7
 	---help---
@@ -8117,12 +8152,6 @@ endmenu
 if STM32_LTDC
 
 menu "LTDC Configuration"
-
-config STM32_LTDC_INTERFACE
-	bool "LTDC interface support"
-	default n
-	---help---
-		Enable the ltdc interface to support ltdc layer control.
 
 config STM32_LTDC_BACKLIGHT
 	bool "Backlight support"
@@ -8169,6 +8198,7 @@ config STM32_LTDC_DITHER_BLUE
 
 config STM32_LTDC_FB_BASE
 	hex "Framebuffer memory start address"
+	default 0
 	---help---
 		If you are using the LTDC, then you must provide the address
 		of the start of the framebuffer.  This address will typically
@@ -8177,6 +8207,20 @@ config STM32_LTDC_FB_BASE
 config STM32_LTDC_FB_SIZE
 	int "Framebuffer memory size (bytes)"
 	default 0
+	---help---
+		Must be the whole size of the active LTDC layer.
+
+config STM32_LTDC_L1_CHROMAKEYEN
+	bool "Enable chromakey support for layer 1"
+	default y
+
+config STM32_LTDC_L1_CHROMAKEY
+	hex "Layer L1 initial chroma key"
+	default 0x00000000
+
+config STM32_LTDC_L1_COLOR
+	hex "Layer L1 default color"
+	default 0x00000000
 
 choice
 	prompt "Layer 1 color format"
@@ -8184,27 +8228,35 @@ choice
 
 config STM32_LTDC_L1_L8
 	bool "8 bpp L8 (8-bit CLUT)"
+	depends on STM32_FB_CMAP
 
 config STM32_LTDC_L1_AL44
 	bool "8 bpp AL44 (4-bit alpha + 4-bit CLUT)"
+	depends on STM32_FB_CMAP
 
 config STM32_LTDC_L1_AL88
 	bool "16 bpp AL88 (8-bit alpha + 8-bit CLUT)"
+	depends on STM32_FB_CMAP
 
 config STM32_LTDC_L1_RGB565
 	bool "16 bpp RGB 565"
+	depends on !STM32_FB_CMAP
 
 config STM32_LTDC_L1_ARGB4444
 	bool "16 bpp ARGB 4444"
+	depends on !STM32_FB_CMAP
 
 config STM32_LTDC_L1_ARGB1555
 	bool "16 bpp ARGB 1555"
+	depends on !STM32_FB_CMAP
 
 config STM32_LTDC_L1_RGB888
 	bool "24 bpp RGB 888"
+	depends on !STM32_FB_CMAP
 
 config STM32_LTDC_L1_ARGB8888
 	bool "32 bpp ARGB 8888"
+	depends on !STM32_FB_CMAP
 
 endchoice # Layer 1 color format
 
@@ -8214,53 +8266,79 @@ config STM32_LTDC_L2
 
 if STM32_LTDC_L2
 
+config STM32_LTDC_L2_COLOR
+	hex "Layer L2 default color"
+	default 0x00000000
+
+config STM32_LTDC_L2_CHROMAKEYEN
+	bool "Enable chromakey support for layer 2"
+	default y
+
+config STM32_LTDC_L2_CHROMAKEY
+	hex "Layer L2 initial chroma key"
+	default 0x00000000
+
 choice
 	prompt "Layer 2 (top layer) color format"
 	default STM32_LTDC_L2_RGB565
 
 config STM32_LTDC_L2_L8
+	depends on STM32_LTDC_L1_L8
 	bool "8 bpp L8 (8-bit CLUT)"
 
 config STM32_LTDC_L2_AL44
+	depends on STM32_LTDC_L1_AL44
 	bool "8 bpp AL44 (4-bit alpha + 4-bit CLUT)"
 
 config STM32_LTDC_L2_AL88
+	depends on STM32_LTDC_L1_AL88
 	bool "16 bpp AL88 (8-bit alpha + 8-bit CLUT)"
 
 config STM32_LTDC_L2_RGB565
+	depends on STM32_LTDC_L1_RGB565
 	bool "16 bpp RGB 565"
 
 config STM32_LTDC_L2_ARGB4444
+	depends on STM32_LTDC_L1_ARGB4444
 	bool "16 bpp ARGB 4444"
 
 config STM32_LTDC_L2_ARGB1555
+	depends on STM32_LTDC_L1_ARGB1555
 	bool "16 bpp ARGB 1555"
 
 config STM32_LTDC_L2_RGB888
+	depends on STM32_LTDC_L1_RGB888
 	bool "24 bpp RGB 888"
 
 config STM32_LTDC_L2_ARGB8888
+	depends on STM32_LTDC_L1_ARGB8888
 	bool "32 bpp ARGB 8888"
 
 endchoice # Layer 2 color format
 
 endif # STM32_LTDC_L2
 
-if STM32_LTDC_L1_L8 || STM32_LTDC_L2_L8
-
-config FB_CMAP
-	bool "Enable color map support"
+config STM32_FB_CMAP
+	bool "Color map support"
 	default y
+	select FB_CMAP
 	---help---
-		Enabling color map support is neccessary for ltdc L8 format.
+		Enabling color map support is necessary for LTDC L8 format.
 
-config FB_TRANSPARENCY
-	bool "Enable transparency color map support"
+config STM32_FB_TRANSPARENCY
+	bool "Transparency color map support"
 	default y
+	depends on STM32_FB_CMAP
+	select FB_TRANSPARENCY
 	---help---
-		Enabling transparency color map support is neccessary for ltdc L8 format.
+		Enabling transparency color map support is necessary for LTDC L8 format.
 
-endif
+config STM32_LTDC_REGDEBUG
+	bool "LTDC Register level debug"
+	depends on DEBUG_INFO && DEBUG_LCD
+	default n
+	---help---
+		Output detailed register-level LTDC device debug information.
 endmenu
 
 endif # STM32_LTDC
@@ -8270,49 +8348,93 @@ if STM32_DMA2D
 menu "DMA2D Configuration"
 
 config STM32_DMA2D_NLAYERS
-	int "Number DMA2D layers"
-	default 2
+	int "Number DMA2D overlays"
+	default 1
+	range 1 256
 	---help---
-		Number of allocatable DMA2D layers except the LTDC layer.
+		Number of supported DMA2D layer.
+
+config STM32_DMA2D_LAYER_SHARED
+	bool "Overlays shared memory region"
+	default n
+	---help---
+		Several overlays can share the same memory region.
+		Setup a whole memory area (usually multiple size of the visible screen)
+		allows image preprocessing before they become visible by blit operation.
+
+config STM32_DMA2D_LAYER_PPLINE
+	int "Pixel per line"
+	default 1
+	range 1 65535
+	---help---
+		If you are using the DMA2D, then you must provide the pixel per line or
+		width of the overlay.
+
+config STM32_DMA2D_FB_BASE
+	hex "Framebuffer memory start address"
+	default 0
+	---help---
+		If you are using the DMA2D, then you must provide the address
+		of the start of the DMA2D overlays framebuffer. This address will typically
+		be in the SRAM or SDRAM memory region of the FSMC.
+
+config STM32_DMA2D_FB_SIZE
+	int "Framebuffer memory size (bytes)"
+	default 0
+	---help---
+		Must be the whole size of all DMA2D overlays.
 
 menu "Supported pixel format"
 
 config STM32_DMA2D_L8
-	depends on FB_CMAP
+	depends on STM32_FB_CMAP && STM32_LTDC_L1_L8
 	bool "8 bpp L8 (8-bit CLUT)"
 	default y
 
 config STM32_DMA2D_AL44
-	depends on FB_CMAP
+	depends on STM32_FB_CMAP && STM32_LTDC_L1_AL44
 	bool "8 bpp AL44 (4-bit alpha + 4-bit CLUT)"
-	default n
+	default y
 
 config STM32_DMA2D_AL88
-	depends on FB_CMAP
+	depends on STM32_FB_CMAP && STM32_LTDC_L1_AL88
 	bool "16 bpp AL88 (8-bit alpha + 8-bit CLUT)"
-	default n
+	default y
 
 config STM32_DMA2D_RGB565
 	bool "16 bpp RGB 565"
+	depends on STM32_LTDC_L1_RGB565
 	default y
 
 config STM32_DMA2D_ARGB4444
 	bool "16 bpp ARGB 4444"
-	default n
+	depends on STM32_LTDC_L1_ARGB4444
+	default y
 
 config STM32_DMA2D_ARGB1555
 	bool "16 bpp ARGB 1555"
-	default n
+	depends on STM32_LTDC_L1_ARGB15555
+	default y
 
 config STM32_DMA2D_RGB888
 	bool "24 bpp RGB 888"
+	depends on STM32_LTDC_L1_RGB888
 	default y
 
 config STM32_DMA2D_ARGB8888
 	bool "32 bpp ARGB 8888"
-	default n
+	depends on STM32_LTDC_L1_ARGB8888
+	default y
 
 endmenu
+
+config STM32_DMA2D_REGDEBUG
+	bool "DMA2D Register level debug"
+	depends on DEBUG_INFO && DEBUG_LCD
+	default n
+	---help---
+		Output detailed register-level DMA2D device debug information.
+
 endmenu
 endif # STM32_DMA2D
 

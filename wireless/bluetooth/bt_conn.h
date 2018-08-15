@@ -388,7 +388,7 @@ FAR struct bt_conn_s *bt_conn_create_le(FAR const bt_addr_le_t *peer);
  * Input Parameters:
  *   conn       - The connection to send the command on.
  *   rand, ediv - Values to use for the encryption key
- *   ltk        - 
+ *   ltk        -
  *
  * Returned Value:
  *   Zero is returned on success; a negated errno value is returned on any
@@ -400,13 +400,15 @@ int bt_conn_le_start_encryption(FAR struct bt_conn_s *conn, uint64_t rand,
                                 uint16_t ediv, FAR const uint8_t *ltk);
 
 /****************************************************************************
- * Name:
+ * Name: bt_conn_le_conn_update
  *
  * Description:
  *
  * Input Parameters:
  *
  * Returned Value:
+ *   Zero is returned on success; a negated errno value is returned on any
+ *   failure.
  *
  ****************************************************************************/
 

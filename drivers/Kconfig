@@ -170,6 +170,20 @@ if DRIVERS_AUDIO
 source drivers/audio/Kconfig
 endif # DRIVERS_AUDIO
 
+config FB_CMAP
+	bool
+	default n
+	---help---
+		Set by driver-specific configuration to indicate support for color
+		mapping.  Not directly user selectable.
+
+config FB_TRANSPARENCY
+	bool
+	default n
+	---help---
+		Set by driver-specific configuration to indicate support for color
+		transparency.  Not directly user selectable.
+
 menuconfig DRIVERS_VIDEO
 	bool "Video Device Support"
 	default n
@@ -221,6 +235,20 @@ menuconfig MBOX
 if MBOX
 source drivers/mbox/Kconfig
 endif # MBOX
+
+# MMC/SD-related platform capabilities
+
+config ARCH_HAVE_SDIO
+	bool
+	default n
+
+config ARCH_HAVE_SDIOWAIT_WRCOMPLETE
+	bool
+	default n
+
+config ARCH_HAVE_SDIO_PREFLIGHT
+	bool
+	default n
 
 menuconfig MMCSD
 	bool "MMC/SD Driver Support"

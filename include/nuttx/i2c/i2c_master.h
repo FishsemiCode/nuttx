@@ -73,7 +73,36 @@
 #define I2C_READADDR10H(a)   (I2C_ADDR10H(a) | I2C_READBIT)
 #define I2C_READADDR10L(a)   I2C_ADDR10L(a)
 
-/* Bit definitions for the flags field in struct i2c_msg_s */
+/* Bit definitions for the flags field in struct i2c_msg_s
+ *
+ * START/STOP Rules:
+ *
+ * 1. The lower half I2C driver will always issue the START condition at the
+ *    beginning of a message unless I2C_M_NOSTART flat is set in the
+ *    message.
+ *
+ * 2. The lower half I2C driver will always issue the STOP condition at the
+ *    end of the messages unless:
+ *
+ *    a. The I2C_M_NOSTOP flag is set in the message, OR
+ *    b. The following message has the I2C_M_NOSTART flag set (meaning
+ *       that following message is simply a continuation of the transfer).
+ *
+ * A proper I2C repeated start would then have I2C_M_NOSTOP set on msg[n]
+ * and I2C_M_NOSTART *not* set on msg[n+1].  See the following table:
+ *
+ *   msg[n].flags  msg[n+1].flags Behavior
+ *   ------------ --------------- -----------------------------------------
+ *   0            0                Two normal, separate messages with STOP
+ *                                 on msg[n] then START on msg[n+1]
+ *   0*           I2C_M_NOSTART    Continuation of the same transfer (must
+ *                                 be the same direction).  See NOTE below.
+ *   NO_STOP      0                No STOP on msg[n]; repeated START on
+ *                                 msg[n+1].
+ *
+ * * NOTE: NO_STOP is implied in this case and may or not be explicitly
+ *   included in the msg[n] flags
+ */
 
 #define I2C_M_READ           0x0001 /* Read data, from slave to master */
 #define I2C_M_TEN            0x0002 /* Ten bit address */
@@ -84,6 +113,8 @@
 #define I2C_SPEED_STANDARD  ( 100000) /* Standard speed (100Khz) */
 #define I2C_SPEED_FAST      ( 400000) /* Fast speed     (400Khz) */
 #define I2C_SPEED_HIGH      (3400000) /* High speed     (3.4Mhz) */
+#define I2C_M_NOSTOP         0x0040 /* Message should not end with a STOP */
+#define I2C_M_NOSTART        0x0080 /* Message should not begin with a START */
 
 /* I2C Character Driver IOCTL Commands **************************************/
 /* The I2C driver is intended to support application testing of the I2C bus.
@@ -157,7 +188,7 @@
  * Public Types
  ****************************************************************************/
 
-/* The I2C vtable */
+/* The I2C lower half driver interface */
 
 struct i2c_master_s;
 struct i2c_msg_s;

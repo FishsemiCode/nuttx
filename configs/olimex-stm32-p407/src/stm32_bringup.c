@@ -48,9 +48,15 @@
 #include <nuttx/board.h>
 #include <nuttx/mmcsd.h>
 #include <nuttx/input/buttons.h>
+#include <nuttx/binfmt/elf.h>
 
 #ifdef CONFIG_USBMONITOR
 #  include <nuttx/usb/usbmonitor.h>
+#endif
+
+#ifdef CONFIG_MODULE
+#  include "nuttx/symtab.h"
+#  include "nuttx/lib/modlib.h"
 #endif
 
 #ifdef CONFIG_STM32_OTGFS
@@ -59,6 +65,15 @@
 
 #include "stm32.h"
 #include "olimex-stm32-p407.h"
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifdef HAVE_MODSYMS
+extern const struct symtab_s MODSYMS_SYMTAB_ARRAY[];
+extern const int MODSYMS_NSYMBOLS_VAR;
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -92,6 +107,23 @@ int stm32_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: Failed to mount procfs at /proc: %d\n", ret);
+    }
+#endif
+
+#ifdef HAVE_MODSYMS
+  /* Install the module symbol table */
+
+  modlib_setsymtab(MODSYMS_SYMTAB_ARRAY, MODSYMS_NSYMBOLS_VAR);
+#endif
+
+#ifdef HAVE_ELF
+  /* Initialize the ELF binary loader */
+
+  ret = elf_initialize();
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Initialization of the ELF loader failed: %d\n",
+             ret);
     }
 #endif
 

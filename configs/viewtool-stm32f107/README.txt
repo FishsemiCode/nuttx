@@ -7,7 +7,7 @@ README
     - STM32F107VCT6, or
     - STM32F103VCT6
 
-  The board is vary modular with connectors for a variety of peripherals.
+  The board is very modular with connectors for a variety of peripherals.
   Features on the base board include:
 
     - User and Wake-Up Keys
@@ -31,6 +31,7 @@ Contents
   o Freescale MPL115A barometer sensor
   o LCD/Touchscreen Interface
   o FT80x Integration
+  o MAX3421E Integration
   o Toolchains
     - NOTE about Windows native toolchains
   o Configurations
@@ -372,8 +373,7 @@ ViewTool DP83848 Ethernet Module
       CONFIG_NSOCKET_DESCRIPTORS=10          : Socket-related
       CONFIG_NET_SOCKOPTS=y
 
-      CONFIG_NET_ETH_MTU=650                 : Maximum packet size
-      CONFIG_NET_ETH_TCP_RECVWNDO=650
+      CONFIG_NET_ETH_PKTSIZE=650             : Maximum packet size
       CONFIG_NET_TCP_READAHEAD=y             : Enable read-ahead buffering
       CONFIG_NET_TCP_READAHEAD_BUFSIZE=650
 
@@ -698,6 +698,90 @@ FT80x Integration
     CONFIG_LCD_FT80X_AUDIO_NOSHUTDOWN=y
     CONFIG_EXAMPLES_FT80X_DEVPATH="/dev/ft801"
 
+MAX3421E Integration
+====================
+
+  Board Connections
+  -----------------
+
+  USBHostShield-v13 (See schematic).
+
+  DuinoFun UHS mini v2.0.  No schematics available.  This is how the pins
+  are labeled:
+
+     INT                                                 MAX_RST
+      o     o     o     o     o     o     o     o     o     o     o     o
+      o     o     o     o     o
+    V_BUS  INT   GPX MAX_RST  SS
+
+      o     o     o     o     o     o     o     o     o     o     o     o
+      SS   CLK*  MISO  MOSI*                         VCC         GND**
+
+  *  NOTE:  There is a error in the silkscreen:  The pin labeled CLK is
+     actually MOSI; the pin labeled MOSI is the clock
+  ** Not labeled
+
+  Using SPI1 on J8 pins 7-12, discretes on J18
+
+    ------ ----------- ----------- ------------------ ----------------------
+    NAME   VIEWTOOL    STM32       USBHostShield-v13  DuinoFun UHS mini v2.0
+    ------ ----------- ----------- ------------------ ----------------------
+    CS#    J8  Pin 12  PA4/NSS1    D10                SS
+    SCK    J8  Pin 11  PA5/SCK1    D13                CLK (label MOSI)
+    MISO   J8  Pin  9  PA6/MISO1   D12                MISO
+    MOSI   J8  Pin 10  PA7/MOSI1   D11                MOSI (label CLK)
+    INT#   J18 Pin 10  PA0         D9                 INT
+    RST#   J18 Pin  8  PA1         D7                 MAX_RST
+    GPX    J18 Pin  6  PC5         D8                 GPX (not used)
+    VBUS   J18 Pin  2  5V          VIN                V_BUS
+    3.3V   J8  Pin  7              N/C                VCC
+    GND    J8  Pin  8              GND                GND (no label)
+
+  Using SPI2 on J8 pins 1-6, discretes on J18
+
+    ------ ----------- ----------- ------------------ ----------------------
+    NAME   VIEWTOOL    STM32       USBHostShield-v13 DuinoFun UHS mini v2.0
+    ------ ----------- ----------- ------------------ ----------------------
+    CS#    J8  Pin  6  PB12/NSS2   D10                SS
+    SCK    J8  Pin  5  PB13/SCK2   D13                CLK (label MOSI)
+    MISO   J8  Pin  3  PB14/MISO2  D12                MISO
+    MOSI   J8  Pin  4  PB15/MOSI2  D11                MOSI (label CLK)
+    INT#   J18 Pin 10  PA0         D9                 INT
+    RST#   J18 Pin  8  PA1         D7                 MAX_RST
+    GPX    J18 Pin  6  PC5         D8                 GPX (not used)
+    VBUS   J18 Pin  2  5V          VIN                V_BUS
+    3.3V   J8  Pin  1              N/C                VCC
+    GND    J8  Pin  2              GND                GND (no label)
+
+  5V VBUS power is also needed.  This might be directly connected to the USB
+  host connector (as assumed here), or switched via additional logic.  Then
+  GPX pin might also be necessary if VBUS detect is used with self-powered
+  devices.
+
+  Configuration Options
+  ---------------------
+  These options have to be added to the basic NSH configuration in order to
+  support the MAX3421E:
+
+    CONFIG_EXPERIMENTAL=y         # EXPERIMENTAL required for now (might change)
+    CONFIG_NSH_ARCHINIT=y         # Board level initialization required
+    CONFIG_STM32_SPI1=y           # SPI for the MAX3421E (could use SPI2)
+    CONFIG_USBHOST=y              # General USB host support
+    CONFIG_USBHOST_ISOC_DISABLE=y # Does not support Isochronous endpoints
+    CONFIG_USBHOST_MAX3421E=y     # MAX3421E support
+    CONFIG_USBHOST_MSC=y          # USB MSC class
+
+  Using SPI1:
+
+    CONFIG_VIEWTOOL_MAX3421E_SPI1=y
+    CONFIG_VIEWTOOL_MAX3421E_FREQUENCY=20000000
+    CONFIG_VIEWTOOL_MAX3421E_RST=y
+    # CONFIG_VIEWTOOL_MAX3421E_PWR is not set
+    CONFIG_VIEWTOOL_MAX3421E_CONNMON_STACKSIZE=2048
+    CONFIG_VIEWTOOL_MAX3421E_CONNMON_PRIORITY=100
+
+  Settings not listed above can be left at their default values.
+
 Toolchains
 ==========
 
@@ -1000,4 +1084,22 @@ Configurations
     of much interest now other than for reference.
 
     This configuration targets the viewtool board with the STM32F103VCT6
-    mounted.  It uses TIM6 to generated high rate interrupts for the test.
+
+  tcpblaster:
+
+    The tcpblaster example derives from the nettest example and basically
+    duplicates that application when the nettest PERFORMANCE option is selected.
+    tcpblaster has a little better reporting of performance stats, however.
+
+    This configuration derives directly from the netnsh configuration and most
+    of the notes there should apply equally here.
+
+    General usage instructions:
+
+    1. On the host:
+       a. cd to apps/examples/tcpblaster
+       b. Run the host tcpserver[.exe] program that was built in that directory
+    2. On the target:
+       a. Run the tcpclient built in application.
+    3. When you get tire of watch the numbers scroll by, just kill the tcpserver
+       on the host.

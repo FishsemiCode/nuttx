@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/sixlowpan/sixlowpan_framelist.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Parts of this file derive from Contiki:
@@ -59,6 +59,7 @@
 #include <nuttx/net/radiodev.h>
 #include <nuttx/wireless/ieee802154/ieee802154_mac.h>
 
+#include "utils/utils.h"
 #include "sixlowpan/sixlowpan_internal.h"
 
 #ifdef CONFIG_NET_6LOWPAN
@@ -84,7 +85,7 @@
  * won't work unless there are a few more.
  */
 
-#if CONFIG_NET_6LOWPAN_MTU > (CONFIG_IOB_BUFSIZE * CONFIG_IOB_NBUFFERS)
+#if CONFIG_NET_6LOWPAN_PKTSIZE > (CONFIG_IOB_BUFSIZE * CONFIG_IOB_NBUFFERS)
 #  error Not enough IOBs to hold one full 6LoWPAN packet
 #endif
 
@@ -341,7 +342,7 @@ static int sixlowpan_pktradio_metadata(FAR struct radio_driver_s *radio,
  *
  * Description:
  *   Process an outgoing UDP, TCP, or ICMPv6 packet.  This function is
- *   called from send interrupt logic when a TX poll is received.  It
+ *   called from send event handler when a TX poll is received.  It
  *   formats the list of frames to be sent by the IEEE802.15.4 MAC driver.
  *
  *   The payload data is in the caller 'buf' and is of length 'buflen'.
@@ -409,7 +410,7 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
    * necessary.
    */
 
-  iob = iob_alloc(false);
+  iob = net_ioballoc(false);
   DEBUGASSERT(iob != NULL);
 
   /* Initialize the IOB */
@@ -633,7 +634,7 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
            * necessary.
            */
 
-          iob = iob_alloc(false);
+          iob = net_ioballoc(false);
           DEBUGASSERT(iob != NULL);
 
           /* Initialize the IOB */

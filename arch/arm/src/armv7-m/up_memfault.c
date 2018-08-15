@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-m/up_memfault.c
  *
- *   Copyright (C) 2011, 2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2013, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,11 +52,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_HARDFAULT
-  #define DEBUG_MEMFAULTS      /* Define to debug memory management faults */
-#endif
-
-#ifdef DEBUG_MEMFAULTS
+#ifdef CONFIG_DEBUG_MEMFAULT
 # define mferr(format, ...)  _alert(format, ##__VA_ARGS__)
 # define mfinfo(format, ...) _alert(format, ##__VA_ARGS__)
 #else
@@ -81,7 +77,7 @@
 
 int up_memfault(int irq, FAR void *context, FAR void *arg)
 {
-#ifdef DEBUG_MEMFAULTS
+#if defined(CONFIG_DEBUG_MEMFAULT)
   uint32_t *regs = (uint32_t *)context;
 #endif
 
@@ -89,7 +85,7 @@ int up_memfault(int irq, FAR void *context, FAR void *arg)
 
   (void)up_irq_save();
   _alert("PANIC!!! Memory Management Fault:\n");
-  mfinfo("  IRQ: %d context: %p\n", irq, regs);
+  mfinfo("  IRQ: %d context: %p\n", irq, context);
   _alert("  CFAULTS: %08x MMFAR: %08x\n",
         getreg32(NVIC_CFAULTS), getreg32(NVIC_MEMMANAGE_ADDR));
   mfinfo("  BASEPRI: %08x PRIMASK: %08x IPSR: %08x CONTROL: %08x\n",

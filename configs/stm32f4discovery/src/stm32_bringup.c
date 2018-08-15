@@ -112,13 +112,25 @@ int stm32_bringup(void)
 #endif
 
 #ifdef CONFIG_SENSORS_BH1750FVI
-  stm32_bh1750initialize("/dev/light0");
+  ret = stm32_bh1750initialize("/dev/light0");
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: stm32_bh1750initialize() failed: %d\n", ret);
+    }
 #endif
 
 #ifdef CONFIG_SENSORS_ZEROCROSS
   /* Configure the zero-crossing driver */
 
   stm32_zerocross_initialize();
+#endif
+
+#ifdef CONFIG_LEDS_MAX7219
+  ret = stm32_max7219init("/dev/numdisp0");
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: max7219_leds_register failed: %d\n", ret);
+    }
 #endif
 
 #ifdef CONFIG_RGBLED

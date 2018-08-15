@@ -179,9 +179,9 @@
                                  CONFIG_LPC54_ETH_NTXDESC0)
 #endif
 
-#define LPC54_BUFFER_SIZE       MAX_NET_DEV_MTU
-#define LPC54_BUFFER_ALLOC      ((MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE + 3) & ~3)
-#define LPC54_BUFFER_WORDS      ((MAX_NET_DEV_MTU + CONFIG_NET_GUARDSIZE + 3) >> 2)
+#define LPC54_BUFFER_SIZE       MAX_NETDEV_PKTSIZE
+#define LPC54_BUFFER_ALLOC      ((MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE + 3) & ~3)
+#define LPC54_BUFFER_WORDS      ((MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE + 3) >> 2)
 #define LPC54_BUFFER_MAX        16384
 
 /* DMA and DMA descriptor definitions */
@@ -2884,7 +2884,7 @@ static int lpc54_phy_autonegotiate(struct lpc54_ethdriver_s *priv)
     {
       if (timeout-- <= 0)
         {
-          nerr("ERROR: Autonegotion timed out\n");
+          nerr("ERROR: Autonegotiation timed out\n");
           return -ETIMEDOUT;
         }
 

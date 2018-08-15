@@ -64,4 +64,16 @@ ifeq ($(CONFIG_SPORADIC_INSTRUMENTATION),y)
 CSRCS += stm32_sporadic.c
 endif
 
+ifeq ($(CONFIG_STM32F7_LTDC),y)
+CSRCS += stm32_lcd.c
+endif
+
+ifeq ($(CONFIG_STM32F7_FMC),y)
+CSRCS += stm32_extmem.c
+endif
+
+ifeq ($(CONFIG_INPUT_FT5X06),y)
+CSRCS += stm32_touchscreen.c
+endif
+
 include $(TOPDIR)/configs/Board.mk

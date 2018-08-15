@@ -29,7 +29,7 @@ config USERLED_LOWER
 		2. The board.h header file must provide the definition
 		   BOARD_NLEDS, and
 		3. The board.h header file must not include any other
-		   header files that are not accessibble in this context
+		   header files that are not accessible in this context
 		   (such as those in arch/<arch>/src/<chip>) UNLESS those
 		   inclusions are conditioned on __KERNEL__.  button_lower.c
 		   will undefine __KERNEL__ before included board.h.
@@ -47,6 +47,13 @@ config LEDS_APA102
 	select SPI
 	---help---
 		Enable support for the APA102 LED Strip driver.
+
+config LEDS_MAX7219
+	bool "MAX7219 Numeric Display"
+	default n
+	select SPI
+	---help---
+		Enable support for the MAX7219 to control 7-segment displays.
 
 config RGBLED
         bool "RGB LED Driver Support"

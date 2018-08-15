@@ -1,8 +1,8 @@
 /****************************************************************************
- * libc/netdb/lib_getservbyname.c
+ * libs/libc/netdb/lib_getservbyname.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
- *   Author: Guiding Li <ligduiding@pinecone.net>
+ *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
+ *   Author: Juha Niskanen <juha.niskanen@haltian.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -40,10 +40,6 @@
 #include <nuttx/config.h>
 
 #include <netdb.h>
-#include <errno.h>
-
-#include "libc.h"
-#include "netdb/lib_netdb.h"
 
 #ifdef CONFIG_LIBC_NETDB
 
@@ -52,42 +48,19 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: getservname
- *
- * Description:
- *   The getservbyname() function returns a structure of type servent for
- *   the given serv name. Here name is either a servname, or an IPv4 address
- *   in standard dot notation (as for inet_addr(3)), or an IPv6 address in
- *   colon (and possibly dot) notation.
- *
- *   If name is an IPv4 or IPv6 address, no lookup is performed and
- *   getservbyname_r() simply copies name into the h_name field
- *   and its struct in_addr equivalent into the h_addr_list[0] field of the
- *   returned servent structure.
- *
- * Input Parameters:
- *   name  - The name of the serv to find.
- *   proto - The protocol to use.
- *
- * Returned Value:
- *   Upon successful completion, this function will return a pointer to a
- *   servent structure if the requested entry was found, and a null pointer
- *   if the end of the database was reached or the requested entry was not
- *   found.
- *
- *   Upon unsuccessful completion, getservbyname() will set h_errno to
- *   indicate the error
- *
+ * Name: getservbyname
  ****************************************************************************/
 
 FAR struct servent *getservbyname(FAR const char *name, FAR const char *proto)
 {
+  static struct servent ent;
+  static char *buf[2];
+  struct servent *res;
   int ret;
 
-  DEBUGASSERT(name != NULL);
-  ret = getservbyname_r(name, proto, &g_servent, g_servbuffer,
-                        CONFIG_NETDB_BUFSIZE, &h_errno);
-  return ret == 0 ? &g_servent : NULL;
+  ret = getservbyname_r(name, proto, &ent, (void *)buf, sizeof buf, &res);
+  return (ret != OK) ? NULL : res;
 }
 
 #endif /* CONFIG_LIBC_NETDB */
+

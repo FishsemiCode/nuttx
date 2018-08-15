@@ -326,7 +326,7 @@ struct sporadic_s
   uint8_t   nrepls;                 /* Number of active replenishments          */
   uint32_t  repl_period;            /* Sporadic replenishment period            */
   uint32_t  budget;                 /* Sporadic execution budget period         */
-  systime_t eventtime;              /* Time thread suspended or [re-]started    */
+  clock_t   eventtime;              /* Time thread suspended or [re-]started    */
 
   /* This is the last interval timer activated */
 
@@ -421,6 +421,10 @@ struct dspace_s
 struct join_s;                      /* Forward reference                        */
                                     /* Defined in sched/pthread/pthread.h       */
 #endif
+#ifdef CONFIG_BINFMT_LOADABLE
+struct binary_s;                    /* Forward reference                        */
+                                    /* Defined in include/nuttx/binfmt/binfmt.h */
+#endif
 
 struct task_group_s
 {
@@ -464,6 +468,12 @@ struct task_group_s
   onexitfunc_t tg_onexitfunc;       /* Called when exit is called.             */
   FAR void *tg_onexitarg;           /* The argument passed to the function     */
 # endif
+#endif
+
+#ifdef CONFIG_BINFMT_LOADABLE
+  /* Loadable module support ****************************************************/
+
+  FAR struct binary_s *tg_bininfo;  /* Describes resources used by program      */
 #endif
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
@@ -615,7 +625,7 @@ struct tcb_s
   uint16_t flags;                        /* Misc. general status flags          */
   int16_t  lockcount;                    /* 0=preemptable (not-locked)          */
 #ifdef CONFIG_SMP
-  int16_t  irqcount;                     /* 0=interrupts enabled                */
+  int16_t  irqcount;                     /* 0=Not in critical section           */
 #endif
 #ifdef CONFIG_CANCELLATION_POINTS
   int16_t  cpcount;                      /* Nested cancellation point count     */
@@ -865,6 +875,31 @@ void task_starthook(FAR struct task_tcb_s *tcb, starthook_t starthook,
 FAR struct task_tcb_s *task_vforksetup(start_t retaddr, size_t *argsize);
 pid_t task_vforkstart(FAR struct task_tcb_s *child);
 void task_vforkabort(FAR struct task_tcb_s *child, int errcode);
+
+/****************************************************************************
+ * Name: group_exitinfo
+ *
+ * Description:
+ *   This function may be called to when a task is loaded into memory.  It
+ *   will setup the to automatically unload the module when the task exits.
+ *
+ * Input Parameters:
+ *   pid     - The task ID of the newly loaded task
+ *   bininfo - This structure allocated with kmm_malloc().  This memory
+ *             persists until the task exits and will be used unloads
+ *             the module from memory.
+ *
+ * Returned Value:
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_BINFMT_LOADABLE
+struct binary_s;  /* Forward reference */
+int group_exitinfo(pid_t pid, FAR struct binary_s *bininfo);
+#endif
 
 /********************************************************************************
  * Name: sched_resume_scheduler

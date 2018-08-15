@@ -77,6 +77,10 @@
 static void _up_assert(int errorcode) noreturn_function;
 static void _up_assert(int errorcode)
 {
+  /* Flush any buffered SYSLOG data */
+
+  (void)syslog_flush();
+
 #ifdef CONFIG_BOARD_RESET_ON_ASSERT
   while (1)
     {
@@ -146,6 +150,10 @@ void up_assert(const uint8_t *filename, int lineno)
 
   board_autoled_on(LED_ASSERTION);
 
+  /* Flush any buffered SYSLOG data (prior to the assertion) */
+
+  (void)syslog_flush();
+
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
         filename, lineno, rtcb->name);
@@ -161,6 +169,10 @@ void up_assert(const uint8_t *filename, int lineno)
 
   (void)usbtrace_enumerate(assert_tracecallback, NULL);
 #endif
+
+  /* Flush any buffered SYSLOG data (from the above) */
+
+  (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
   board_crashdump(up_getsp(), this_task(), filename, lineno);

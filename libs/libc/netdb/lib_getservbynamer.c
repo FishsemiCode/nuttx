@@ -1,8 +1,8 @@
 /****************************************************************************
- * libc/netdb/lib_getservbynamer.c
+ * libs/libc/netdb/lib_getservbynamer.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
- *   Author: Guiding Li <ligduiding@pinecone.net>
+ *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
+ *   Author: Juha Niskanen <juha.niskanen@haltian.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,214 +39,131 @@
 
 #include <nuttx/config.h>
 
-#include <arpa/inet.h>
-#include <ctype.h>
-#include <errno.h>
 #include <string.h>
-#include <netdb.h>
+#include <stdlib.h>
+#include <errno.h>
+#include <assert.h>
+#include <nuttx/net/ip.h>
 
-#include "libc.h"
-#include "netdb/lib_netdb.h"
+#include <netdb.h>
 
 #ifdef CONFIG_LIBC_NETDB
 
-#define MAXSERVS 2
-#define ALIGN (sizeof(struct { char a; char *b; }) - sizeof(char *))
-
-struct service
-{
-  uint16_t port;
-  unsigned char proto, socktype;
-};
-
-static int __lookup_serv(struct service buf[MAXSERVS],
-        const char *name, int proto, int socktype, int flags)
-{
-  char line[128];
-  int cnt = 0;
-  char *p, *z = "";
-  unsigned long port = 0;
-
-  switch (socktype)
-    {
-    case SOCK_STREAM:
-      switch (proto)
-        {
-        case 0:
-            proto = IPPROTO_TCP;
-        case IPPROTO_TCP:
-            break;
-        default:
-            return EAI_SERVICE;
-        }
-      break;
-    case SOCK_DGRAM:
-      switch (proto)
-        {
-        case 0:
-            proto = IPPROTO_UDP;
-        case IPPROTO_UDP:
-            break;
-        default:
-            return EAI_SERVICE;
-        }
-    default:
-      if (name) return EAI_SERVICE;
-      buf[0].port = 0;
-
-      buf[0].proto = proto;
-      buf[0].socktype = socktype;
-      return 1;
-    }
-
-  if (name)
-    {
-      if (!*name) return EAI_SERVICE;
-      port = strtoul(name, &z, 10);
-    }
-  if (!*z)
-    {
-      if (port > 65535) return EAI_SERVICE;
-      if (proto != IPPROTO_UDP)
-        {
-          buf[cnt].port = port;
-          buf[cnt].socktype = SOCK_STREAM;
-          buf[cnt++].proto = IPPROTO_TCP;
-        }
-      if (proto != IPPROTO_TCP)
-        {
-          buf[cnt].port = port;
-          buf[cnt].socktype = SOCK_DGRAM;
-          buf[cnt++].proto = IPPROTO_UDP;
-        }
-      return cnt;
-    }
-
-  if (flags & AI_NUMERICSERV) return EAI_NONAME;
-
-  size_t l = strlen(name);
-
-  FILE *f = fopen(CONFIG_NETDB_SERVICES_PATH, "rb");
-  if (!f) switch (errno)
-    {
-      case ENOENT:
-      case ENOTDIR:
-      case EACCES:
-          return EAI_SERVICE;
-      default:
-          return EAI_SYSTEM;
-    }
-
-  while (fgets(line, sizeof line, f) && cnt < MAXSERVS)
-    {
-      if ((p=strchr(line, '#'))) *p++='\n', *p=0;
-
-      /* Find service name */
-      for(p=line; (p=strstr(p, name)); p++)
-        {
-          if (p>line && !isspace(p[-1])) continue;
-          if (p[l] && !isspace(p[l])) continue;
-          break;
-        }
-      if (!p) continue;
-
-      /* Skip past canonical name at beginning of line */
-      for (p=line; *p && !isspace(*p); p++);
-
-      port = strtoul(p, &z, 10);
-      if (port > 65535 || z==p) continue;
-      if (!strncmp(z, "/udp", 4))
-        {
-          if (proto == IPPROTO_TCP) continue;
-          buf[cnt].port = port;
-          buf[cnt].socktype = SOCK_DGRAM;
-          buf[cnt++].proto = IPPROTO_UDP;
-        }
-      if (!strncmp(z, "/tcp", 4))
-        {
-          if (proto == IPPROTO_UDP) continue;
-          buf[cnt].port = port;
-          buf[cnt].socktype = SOCK_STREAM;
-          buf[cnt++].proto = IPPROTO_TCP;
-        }
-    }
-  fclose(f);
-  return cnt > 0 ? cnt : EAI_SERVICE;
-}
-
 /****************************************************************************
- * Name: getservname_r
- *
- * Description:
- *   The getservbyname_r() function returns a structure of type servent for
- *   the given serv name. Here name is either a servname, or an IPv4 address
- *   in standard dot notation (as for inet_addr(3)), or an IPv6 address in
- *   colon (and possibly dot) notation.
- *
- *   If name is an IPv4 or IPv6 address, no lookup is performed and
- *   getservbyname_r() simply copies name into the h_name field
- *   and its struct in_addr equivalent into the h_addr_list[0] field of the
- *   returned servent structure.
- *
- *   getservname_r() is *not* POSIX but is similar to a Glibc extension and is
- *   used internally by NuttX to implement the POSIX getservname().
- *
- * Input Parameters:
- *   name - The name of the serv to find.
- *   prots - The protocol to use.
- *   serv - Caller provided location to return the serv data.
- *   buf - Caller provided buffer to hold string data associated with the
- *     serv data.
- *   buflen - The size of the caller-provided buffer
- *   h_errnop - There h_errno value returned in the event of a failure.
- *
- * Returned Value:
- *   Zero (OK) is returned on success, -1 (ERROR) is returned on a failure
- *   with the returned h_errno value provided the reason for the failure.
- *
+ * Pre-processor Definitions
  ****************************************************************************/
 
-int getservbyname_r(FAR const char *name, FAR const char *proto_,
-                    FAR struct servent *serv, FAR char *buf, size_t buflen,
-                    int *h_errnop)
+#ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#endif
+
+/****************************************************************************
+ * Private Data Types
+ ****************************************************************************/
+
+struct services_db_s
 {
-  struct service servs[MAXSERVS];
-  int cnt, proto, align;
+  const char *s_name;
+  int s_port;
+  int s_protocol;
+};
 
-  /* Don't treat numeric port number strings as service records. */
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+/* Declare your services here. TODO: read from /etc/services?
+ * REVISIT: This is just an example, lets not add full list here.
+ */
+
+const static struct services_db_s g_services_db[] =
+{
+  { "ntp", 123, IP_PROTO_TCP },
+  { "ntp", 123, IP_PROTO_UDP },
+};
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: getservbyname_r
+ ****************************************************************************/
+
+int getservbyname_r(FAR const char *name, FAR const char *proto,
+                    FAR struct servent *result_buf, FAR char *buf,
+                    size_t buflen, FAR struct servent **result)
+{
   char *end = "";
-  strtoul(name, &end, 10);
-  if (!*end) return ENOENT;
+  int protocol;
+  int i;
 
-  /* Align buffer */
-  align = -(uintptr_t)buf & (ALIGN-1);
-  if (buflen < 2*sizeof(char *)+align)
+  DEBUGASSERT(name != NULL && buf != NULL);
+  DEBUGASSERT(result_buf != NULL && result != NULL);
+
+  /* Linux man page says result must be NULL in case of failure. */
+
+  *result = NULL;
+
+  /* We need space for two pointers for hostalias strings. */
+
+  if (buflen < 2 * sizeof(char *))
+    {
       return ERANGE;
-  buf += align;
+    }
 
-  if (!proto_) proto = 0;
-  else if (!strcmp(proto_, "tcp")) proto = IPPROTO_TCP;
-  else if (!strcmp(proto_, "udp")) proto = IPPROTO_UDP;
-  else return EINVAL;
+  /* Numeric port number strings are not service records. */
 
-  cnt = __lookup_serv(servs, name, proto, 0, 0);
-  if (cnt<0) switch (cnt)
-  {
-      case EAI_MEMORY:
-      case EAI_SYSTEM:
-          return ENOMEM;
-      default:
-          return ENOENT;
-  }
+  strtoul(name, &end, 10);
+  if (*end == '\0')
+    {
+      return ENOENT;
+    }
 
-  serv->s_name = (char *)name;
-  serv->s_aliases = (void *)buf;
-  serv->s_aliases[0] = serv->s_name;
-  serv->s_aliases[1] = 0;
-  serv->s_port = htons(servs[0].port);
-  serv->s_proto = servs[0].proto == IPPROTO_TCP ? "tcp" : "udp";
+  if (proto == NULL)
+    {
+      protocol = 0;
+    }
+  else if (strcmp(proto, "tcp") == 0)
+    {
+      protocol = IPPROTO_TCP;
+    }
+  else if (strcmp(proto, "udp") == 0)
+    {
+      protocol = IPPROTO_UDP;
+    }
+  else
+    {
+      return EINVAL;
+    }
 
-  return 0;
+  for (i = 0; i < ARRAY_SIZE(g_services_db); i++)
+    {
+      if (strcmp(name, g_services_db[i].s_name) == 0 &&
+          (protocol == 0 || protocol == g_services_db[i].s_protocol))
+        {
+          result_buf->s_name = (char *)name;
+          result_buf->s_aliases = (void *)buf;
+          result_buf->s_aliases[0] = (char *)name;
+          result_buf->s_aliases[1] = NULL;
+          result_buf->s_port = HTONS(g_services_db[i].s_port);
+
+          if (g_services_db[i].s_protocol == IPPROTO_TCP)
+            {
+              result_buf->s_proto = "tcp";
+            }
+          else
+            {
+              result_buf->s_proto = "udp";
+            }
+
+          *result = result_buf;
+          return 0;
+        }
+    }
+
+  return ENOENT;
 }
 
 #endif /* CONFIG_LIBC_NETDB */
+

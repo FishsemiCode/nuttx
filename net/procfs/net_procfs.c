@@ -521,11 +521,45 @@ static int netprocfs_readdir(FAR struct fs_dirent_s *dir)
       else
 #endif
         {
-          int devndx = index - DEV_INDEX;
+          int ifindex;
 
+#ifdef CONFIG_NETDEV_IFINDEX
+          /* For the first network device, ifindex will be zero.  We have
+           * to take some special action to get the correct starting
+           * ifindex.
+           */
+
+          if (level1->ifindex == 0)
+            {
+              ifindex = netdev_nextindex(1);
+            }
+          else
+            {
+              ifindex = netdev_nextindex(level1->ifindex);
+            }
+
+          if (ifindex < 0)
+            {
+              /* There are no more... one must have been unregistered */
+
+              return -ENOENT;
+            }
+
+          level1->ifindex = ifindex + 1;
+#else
+          /* Get the raw index, accounting for 1 based indexing */
+
+          ifindex = index - DEV_INDEX + 1;
+#endif
           /* Find the device corresponding to this device index */
 
-          dev = netdev_findbyindex(devndx);
+          dev = netdev_findbyindex(ifindex);
+          if (dev == NULL)
+            {
+              /* What happened? */
+
+              return -ENOENT;
+            }
 
           /* Copy the device statistics file entry */
 

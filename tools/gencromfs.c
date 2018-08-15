@@ -47,6 +47,7 @@
 
 #define _GNU_SOURCE 1
 #include <sys/stat.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -100,8 +101,8 @@
 
 #define NUTTX_IRXUSR       (NUTTX_IRUSR | NUTTX_IXUSR)
 
-#define NUTTX_IFDIR        (2 << 12)
-#define NUTTX_IFREG        (4 << 12)
+#define NUTTX_IFDIR        (2 << 11)
+#define NUTTX_IFREG        (4 << 11)
 
 #define NUTTX_IFLNK        (1 << 15)  /* Bit 15: Symbolic link */
 

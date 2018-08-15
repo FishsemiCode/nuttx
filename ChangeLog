@@ -7164,7 +7164,7 @@
 	  structures are initialized, they will not behave properly
 	  (2014-4-10).
 	* arch/arm/src/sama5/sam_twi.c: TWI data sending is fails to increment
-	  the number of byes transferred on first byte sent.  from David Sidrane
+	  the number of bytes transferred on first byte sent.  From David Sidrane
 	  (2014-4-10).
 	* configs/sama5d3x-ek/src: The red LED is controlled by PE24 which is
 	  also the camera/ISI interface reset line.  So if the a camera is
@@ -10049,7 +10049,7 @@
 	  The check on RTC_MAGIC on the BK0R register lead to rtc_setup() call
 	  that rightfully enables the lsi clock; but the next times, when the
 	  rtc is already setup, the rtc_resume() call does NOT start the lsi
-	  clock! The right place to put LSE/LSI initialisation is inside
+	  clock! The right place to put LSE/LSI initialization is inside
 	  stm32_stdclockconfig() in stm32fxxxxx_rcc.c.  Doing this I checked
 	  the possible uses of the LSI and the LSE sources: the LSI can be used
 	  for RTC and/or the IWDG, while the LSE only for the RTC (and to output
@@ -12336,7 +12336,7 @@
 	* STM32L4: Port foward bugfix from stm32 of oneshot timer.  From
 	  ziggurat29 (2016-07-13).
 	* STM32 and EFM32: I'm using syslog through ITM. In this case
-	  syslog_channel function is call before RAM initialisation in
+	  syslog_channel function is call before RAM initialization in
 	  stm32_clockconfig. But syslog channel uses a global variable that is
 	  reset to default by the RAM initialization.  From Pierre-noel
 	  Bouteville (2016-07-14).
@@ -18170,7 +18170,7 @@
 	  almost complete... still lacking GPIO support and LED support.  There are
 	  still no significant drivers available.
 	* SMP: Introduce spin_lock_irqsave() and spin_unlock_irqrestore().  These
-	  APIs are simplified version of enter_critical_section() and 
+	  APIs are simplified version of enter_critical_section() and
 	  leave_critical_section() to protect data (e.g. registers) in SMP mode.  By
 	  using these APIs inside drivers, performance will be improved.  From
 	  Masayuki Ishikawa (2017-12-07).
@@ -18660,7 +18660,7 @@
 	  longer returns an errno.  From Gregory Nutt (2018-01-31).
 	* graphics/:  Review return values for all calls to kthread_start() because
 	  it no longer returns an errno.  From Gregory Nutt (2018-01-31).
-	* sched/:  Convert legitimate uses of task_create() to nxtask_create(). 
+	* sched/:  Convert legitimate uses of task_create() to nxtask_create().
 	  Review handling of returned values from all uses of kthread_create() (as
 	  well as nxtask_create()).  From Gregory Nutt (2018-01-31).
 	* arm/src/kinetis:  Correct some Ethernet PHY register bit tests for the
@@ -18815,7 +18815,7 @@
 	  Mayencourt (2018-02-19).
 	* drivers/mtd:  mtd_config.c:  Add still more error handling (to detect bad
 	  underlying flash implementations).  Remove MTD_ERASE that was erasing data
-	  block instead of erase block.  This is a partial revert of 4f18b4. 
+	  block instead of erase block.  This is a partial revert of 4f18b4.
 	  Reported-by: Pascal Speck <iktek01@yahoo.com>
 	* arch/arm/src/stm32l4:  stm32l4_flash: change flash programming to use
 	  page buffer for unaligned writes.  From Juha Niskanen (2018-02-19).

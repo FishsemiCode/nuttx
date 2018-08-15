@@ -85,6 +85,8 @@
 #  include "stm32l4x5xx_rcc.c"
 #elif defined(CONFIG_STM32L4_STM32L4X6)
 #  include "stm32l4x6xx_rcc.c"
+#elif defined(CONFIG_STM32L4_STM32L4XR)
+#  include "stm32l4xrxx_rcc.c"
 #else
 #  error "Unsupported STM32L4 chip"
 #endif
@@ -110,7 +112,7 @@
  *
  ****************************************************************************/
 
-#if defined(CONFIG_STM32L4_PWR) && defined(CONFIG_RTC)
+#if defined(CONFIG_STM32L4_PWR) && defined(CONFIG_STM32L4_RTC)
 static inline void rcc_resetbkp(void)
 {
   bool init_stat;

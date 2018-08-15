@@ -222,7 +222,7 @@ static int syslog_rpmsg_putc(int ch)
 
   if (priv->channel && !priv->suspend && !priv->transfer)
     {
-      systime_t delay = SYSLOG_RPMSG_WORK_DELAY;
+      clock_t delay = SYSLOG_RPMSG_WORK_DELAY;
       size_t space = SYSLOG_RPMSG_SPACE(priv->head, priv->tail, priv->size);
 
       /* Start work immediately when data more then 75% and meet '\n' */

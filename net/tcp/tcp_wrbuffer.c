@@ -40,7 +40,6 @@
  ****************************************************************************/
 
 #include <nuttx/net/netconfig.h>
-#if defined(CONFIG_NET) && defined(CONFIG_NET_TCP) && defined(CONFIG_NET_TCP_WRITE_BUFFERS)
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_NET_TCP_WRBUFFER_DEBUG)
 /* Force debug output (from this file only) */
@@ -59,7 +58,10 @@
 #include <nuttx/net/net.h>
 #include <nuttx/mm/iob.h>
 
+#include "utils/utils.h"
 #include "tcp/tcp.h"
+
+#if defined(CONFIG_NET_TCP) && defined(CONFIG_NET_TCP_WRITE_BUFFERS)
 
 /****************************************************************************
  * Private Types
@@ -142,7 +144,7 @@ FAR struct tcp_wrbuffer_s *tcp_wrbuffer_alloc(void)
   /* We need to allocate two things:  (1) A write buffer structure and (2)
    * at least one I/O buffer to start the chain.
    *
-   * Allocate the write buffer structure first then the IOBG.  In order to
+   * Allocate the write buffer structure first then the IOB.  In order to
    * avoid deadlocks, we will need to free the IOB first, then the write
    * buffer
    */
@@ -159,8 +161,13 @@ FAR struct tcp_wrbuffer_s *tcp_wrbuffer_alloc(void)
 
   /* Now get the first I/O buffer for the write buffer structure */
 
-  wrb->wb_iob = iob_alloc(false);
-  if (!wrb->wb_iob)
+  wrb->wb_iob = net_ioballoc(false);
+
+  /* Did we get an IOB?  We should always get one except under some really weird
+   * error conditions.
+   */
+
+  if (wrb->wb_iob == NULL)
     {
       nerr("ERROR: Failed to allocate I/O buffer\n");
       tcp_wrbuffer_release(wrb);
@@ -284,4 +291,4 @@ int tcp_wrbuffer_test(void)
   return ret;
 }
 
-#endif /* CONFIG_NET && CONFIG_NET_TCP && CONFIG_NET_TCP_WRITE_BUFFERS */
+#endif /* CONFIG_NET_TCP && CONFIG_NET_TCP_WRITE_BUFFERS */

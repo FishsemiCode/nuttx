@@ -1,5 +1,4 @@
 /****************************************************************************
-
  * arch/arm/src/stm32l4/stm32l4_comp.c
  *
  *   Copyright (c) 2017 Gregory Nutt. All rights reserved.
@@ -38,7 +37,6 @@
  ****************************************************************************/
 
 /****************************************************************************
-
  * Included Files
  ****************************************************************************/
 
@@ -56,8 +54,8 @@
 
 #include <errno.h>
 
-#if !(defined(CONFIG_STM32L4_STM32L4X3) || defined(CONFIG_STM32L4_STM32L4X5) || \
-      defined(CONFIG_STM32L4_STM32L4X6))
+#if !(defined(CONFIG_STM32L4_STM32L4X3) || \
+      defined(CONFIG_STM32L4_STM32L4X5) || defined(CONFIG_STM32L4_STM32L4X6))
 #  error "Unrecognized STM32 chip"
 #endif
 

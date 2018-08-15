@@ -53,9 +53,11 @@
 
 /* Configuration ********************************************************************/
 
-#define HAVE_PROC             1
-#define HAVE_RTC_DRIVER       1
-#define HAVE_MMCSD 1
+#define HAVE_PROC           1
+#define HAVE_RTC_DRIVER     1
+
+#define HAVE_MMCSD_SPI      1
+#define HAVE_MMCSD_SDIO     1
 
 #if !defined(CONFIG_FS_PROCFS)
 #  undef HAVE_PROC
@@ -72,9 +74,14 @@
 #  undef HAVE_RTC_DRIVER
 #endif
 
+#if !defined(CONFIG_STM32L4_SPI1) || !defined(CONFIG_MMCSD) || \
+    !defined(CONFIG_MMCSD_SPI)
+#  undef  HAVE_MMCSD_SPI
+#endif
+
 #if !defined(CONFIG_STM32L4_SDIO) || !defined(CONFIG_MMCSD) || \
     !defined(CONFIG_MMCSD_SDIO)
-#  undef HAVE_MMCSD
+#  undef HAVE_MMCSD_SDIO
 #endif
 
 /* LED.  User LD2: the green LED is a user LED connected to Arduino signal D13
@@ -122,15 +129,6 @@
  *  mostly from: https://mbed.org/platforms/ST-Nucleo-F401RE/
  */
 
-/* SPI1 off */
-
-#define GPIO_SPI1_MOSI_OFF (GPIO_INPUT | GPIO_PULLDOWN | \
-                            GPIO_PORTB | GPIO_PIN5)
-#define GPIO_SPI1_MISO_OFF (GPIO_INPUT | GPIO_PULLDOWN | \
-                            GPIO_PORTB | GPIO_PIN4)
-#define GPIO_SPI1_SCK_OFF  (GPIO_INPUT | GPIO_PULLDOWN | \
-                            GPIO_PORTB | GPIO_PIN3)
-
 #ifdef CONFIG_WL_CC1101
 #  define GPIO_CC1101_PWR  (GPIO_PORTC | GPIO_PIN6 | GPIO_OUTPUT_SET | \
                             GPIO_OUTPUT | GPIO_PULLUP | GPIO_SPEED_50MHz)
@@ -141,18 +139,12 @@
                             GPIO_EXTI | GPIO_SPEED_50MHz)
 #endif
 
-#ifdef HAVE_MMCSD
-#  define GPIO_SPI_CS_SD_CARD_OFF \
-    (GPIO_INPUT | GPIO_PULLDOWN | GPIO_SPEED_2MHz | \
-     GPIO_PORTB | GPIO_PIN5)
-#endif
-
 /* SPI chip selects */
 
-#ifdef HAVE_MMCSD
+#ifdef CONFIG_MMCSD_SPI
 #  define GPIO_SPI_CS_SD_CARD \
-    (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_2MHz | \
-     GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN5)
+                          (GPIO_OUTPUT | GPIO_PUSHPULL | GPIO_SPEED_50MHz | \
+                           GPIO_OUTPUT_SET | GPIO_PORTB | GPIO_PIN10)
 #endif
 
 #ifdef CONFIG_LCD_PCD8544
@@ -287,7 +279,7 @@ extern struct spi_dev_s *g_spi1;
 #ifdef CONFIG_STM32L4_SPI2
 extern struct spi_dev_s *g_spi2;
 #endif
-#ifdef HAVE_MMCSD
+#ifdef HAVE_MMCSD_SDIO
 extern struct sdio_dev_s *g_sdio;
 #endif
 
@@ -375,6 +367,18 @@ int stm32l4_adc_setup(void);
 
 #ifdef CONFIG_AJOYSTICK
 int board_ajoy_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32l4_mmcsd_initialize
+ *
+ * Description:
+ *   Initializes SPI-based SD card
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_MMCSD_SPI
+int stm32l4_mmcsd_initialize(int minor);
 #endif
 
 /****************************************************************************

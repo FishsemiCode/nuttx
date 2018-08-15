@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/netdb.h
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Reference: http://pubs.opengroup.org/onlinepubs/009695399/basedefs/netdb.h.html
@@ -114,23 +114,14 @@
 #define NI_NUMERICSCOPE (1 << 4)
 #define NI_DGRAM        (1 << 5)
 
-/* The <netdb.h> header shall define the following macros for use as error
- * values for gethostbyaddr() and gethostbyname()
- */
-
-#define HOST_NOT_FOUND  1
-#define NO_DATA         2
-#define NO_RECOVERY     3
-#define TRY_AGAIN       4
-
 /* Address Information Errors.  The <netdb.h> header shall define the
  * following macros for use as error values for getaddrinfo() and
  * getnameinfo():
  *
  *   EAI_AGAIN       - The name could not be resolved at this time. Future
  *                     attempts may succeed.
- *   EAI_BADFLAGS    - The flags had an invalid value.EAI_FAILA non-
- *                     recoverable error occurred.
+ *   EAI_BADFLAGS    - The flags had an invalid value.
+ *   EAI_FAIL        - A non-recoverable error occurred.
  *   EAI_FAMILY      - The address family was not recognized or the address
  *                     length was invalid for the specified family.
  *   EAI_MEMORY      - There was a memory allocation failure.
@@ -148,13 +139,14 @@
 
 #define EAI_AGAIN       -1
 #define EAI_BADFLAGS    -2
-#define EAI_FAMILY      -3
-#define EAI_MEMORY      -4
-#define EAI_NONAME      -5
-#define EAI_SERVICE     -6
-#define EAI_SOCKTYPE    -7
-#define EAI_SYSTEM      -8
-#define EAI_OVERFLOW    -9
+#define EAI_FAIL        -3
+#define EAI_FAMILY      -4
+#define EAI_MEMORY      -5
+#define EAI_NONAME      -6
+#define EAI_SERVICE     -7
+#define EAI_SOCKTYPE    -8
+#define EAI_SYSTEM      -9
+#define EAI_OVERFLOW    -10
 
 /* h_errno values that may be returned by gethosbyname(), gethostbyname_r(),
  * gethostbyaddr(), or gethostbyaddr_r()
@@ -170,6 +162,9 @@
  *
  *   TRY_AGAIN - A temporary and possibly transient error occurred, such as
  *     a failure of a server to respond.
+ *
+ * These are obsolete and were removed in the Open Group Base Specifications
+ * Issue 7, 2018 edition.
  */
 
 #define HOST_NOT_FOUND 1
@@ -257,9 +252,13 @@ extern "C"
 /* When the <netdb.h> header is included, h_errno shall be available as a
  * modifiable lvalue of type int. It is unspecified whether h_errno is a
  * macro or an identifier declared with external linkage.
+ *
+ * h_errno is obsolete and was removed in the Open Group Base Specifications
+ * Issue 7, 2018 edition.
  */
 
 /* REVISIT:  This should at least be per-task? */
+
 EXTERN int h_errno;
 
 /****************************************************************************
@@ -274,38 +273,36 @@ void                 endnetent(void);
 void                 endprotoent(void);
 void                 endservent(void);
 #endif
-
-void                 freeaddrinfo(FAR struct addrinfo *);
+void                 freeaddrinfo(FAR struct addrinfo *ai);
 FAR const char      *gai_strerror(int);
-int                  getaddrinfo(FAR const char *restrict,
-                                 FAR const char *restrict,
-                                 FAR const struct addrinfo *restrict,
-                                 FAR struct addrinfo **restrict);
+int                  getaddrinfo(FAR const char *nodename,
+                                 FAR const char *servname,
+                                 FAR const struct addrinfo *hints,
+                                 FAR struct addrinfo **res);
+
 FAR struct hostent  *gethostbyaddr(FAR const void *addr, socklen_t len,
                                    int type);
 FAR struct hostent  *gethostbyname(FAR const char *name);
+FAR struct servent  *getservbyname(FAR const char *name,
+                                   FAR const char *proto);
 
 #if 0 /* None of these are yet supported */
 FAR struct hostent  *gethostent(void);
-int                  getnameinfo(FAR const struct sockaddr *restrict, socklen_t,
-                                 FAR char *restrict, socklen_t, FAR char *restrict,
-                                 socklen_t, int);
-FAR struct netent   *getnetbyaddr(uint32_t, int);
-FAR struct netent   *getnetbyname(FAR const char *);
+int                  getnameinfo(FAR const struct sockaddr *sa,
+                                 socklen_t salen, FAR char *node,
+                                 socklen_t nodelen, FAR char *service,
+                                 socklen_t servicelen, int flags);
+FAR struct netent   *getnetbyaddr(uint32_t net, int type);
+FAR struct netent   *getnetbyname(FAR const char *name);
 FAR struct netent   *getnetent(void);
-FAR struct protoent *getprotobyname(FAR const char *);
-FAR struct protoent *getprotobynumber(int);
+FAR struct protoent *getprotobyname(FAR const char *name);
+FAR struct protoent *getprotobynumber(int proto);
 FAR struct protoent *getprotoent(void);
-#endif
-
-FAR struct servent  *getservbyname(FAR const char *, FAR const char *);
-
-#if 0 /* None of these are yet supported */
-FAR struct servent  *getservbyport(int, FAR const char *);
+FAR struct servent  *getservbyport(int port, FAR const char *proto);
 FAR struct servent  *getservent(void);
 void                 sethostent(int);
-void                 setnetent(int);
-void                 setprotoent(int);
+void                 setnetent(int stayopen);
+void                 setprotoent(int stayopen);
 void                 setservent(int);
 #endif /* None of these are yet supported */
 
@@ -317,8 +314,8 @@ int gethostbyaddr_r(FAR const void *addr, socklen_t len, int type,
 int gethostbyname_r(FAR const char *name, FAR struct hostent *host,
                     FAR char *buf, size_t buflen, int *h_errnop);
 int getservbyname_r(FAR const char *name, FAR const char *proto,
-                    FAR struct servent *serv, FAR char *buf,
-                    size_t buflen, int *h_errnop);
+                    FAR struct servent *result_buf, FAR char *buf,
+                    size_t buflen, FAR struct servent **result);
 
 #endif /* CONFIG_LIBC_NETDB */
 

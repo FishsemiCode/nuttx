@@ -132,7 +132,7 @@ void __start(void) __attribute__ ((no_instrument_function));
  ****************************************************************************/
 
 #ifdef CONFIG_ARCH_FPU
-#if defined(CONFIG_ARMV7M_CMNVECTOR) && !defined(CONFIG_ARMV7M_LAZYFPU)
+#ifndef CONFIG_ARMV7M_LAZYFPU
 
 static inline void imxrt_fpuconfig(void)
 {
@@ -356,13 +356,13 @@ void __start(void)
   imxrt_boardinitialize();
 
 #ifdef CONFIG_ARM_MPU
+#ifdef CONFIG_BUILD_PROTECTED
   /* For the case of the separate user-/kernel-space build, perform whatever
    * platform specific initialization of the user memory is required.
    * Normally this just means initializing the user space .data and .bss
    * segments.
    */
 
-#ifdef CONFIG_BUILD_PROTECTED
   imxrt_userspace();
 #endif
 

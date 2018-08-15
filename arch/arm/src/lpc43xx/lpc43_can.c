@@ -83,8 +83,8 @@
 
 /* A CAN bit rate must be provided */
 
-#  ifndef CONFIG_CAN0_BAUD
-#    define CONFIG_CAN0_BAUD 1000000
+#  ifndef CONFIG_LPC43_CAN0_BAUD
+#    define CONFIG_LPC43_CAN0_BAUD 1000000
 #   endif
 #endif
 
@@ -92,27 +92,27 @@
 
 /* A CAN bit rate must be provided */
 
-#  ifndef CONFIG_CAN1_BAUD
-#    define CONFIG_CAN1_BAUD 1000000
+#  ifndef CONFIG_LPC43_CAN1_BAUD
+#    define CONFIG_LPC43_CAN1_BAUD 1000000
 #  endif
 #endif
 
 /* User-defined TSEG1 and TSEG2 settings may be used.
  *
- * CONFIG_CAN_TSEG1 = the number of CAN time quanta in segment 1
- * CONFIG_CAN_TSEG2 = the number of CAN time quanta in segment 2
+ * CONFIG_LPC43_CAN_TSEG1 = the number of CAN time quanta in segment 1
+ * CONFIG_LPC43_CAN_TSEG2 = the number of CAN time quanta in segment 2
  * CAN_BIT_QUANTA   = The number of CAN time quanta in on bit time
  */
 
-#ifndef CONFIG_CAN_TSEG1
-#  define CONFIG_CAN_TSEG1 12
+#ifndef CONFIG_LPC43_CAN_TSEG1
+#  define CONFIG_LPC43_CAN_TSEG1 12
 #endif
 
-#ifndef CONFIG_CAN_TSEG2
-#  define CONFIG_CAN_TSEG2 4
+#ifndef CONFIG_LPC43_CAN_TSEG2
+#  define CONFIG_LPC43_CAN_TSEG2 4
 #endif
 
-#define CAN_BIT_QUANTA (CONFIG_CAN_TSEG1 + CONFIG_CAN_TSEG2 + 1)
+#define CAN_BIT_QUANTA (CONFIG_LPC43_CAN_TSEG1 + CONFIG_LPC43_CAN_TSEG2 + 1)
 
 /* Timing *******************************************************************/
 
@@ -142,14 +142,14 @@ struct up_dev_s
  ****************************************************************************/
 /* CAN Register access */
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static void can_printreg(uint32_t addr, uint32_t value);
 #endif
 
 static uint32_t can_getreg(struct up_dev_s *priv, int offset);
 static void can_putreg(struct up_dev_s *priv, int offset, uint32_t value);
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static uint32_t can_getcommon(uint32_t addr);
 static void can_putcommon(uint32_t addr, uint32_t value);
 #else
@@ -215,7 +215,7 @@ static struct up_dev_s g_can0priv =
 {
   .port   = 0,
   .clkdiv = CAN_CLKDIVVAL + 1,
-  .baud   = CONFIG_CAN0_BAUD,
+  .baud   = CONFIG_LPC43_CAN0_BAUD,
   .base   = LPC43_CAN0_BASE,
   .irq    = LPC43M4_IRQ_CAN0,
 };
@@ -232,7 +232,7 @@ static struct up_dev_s g_can1priv =
 {
   .port   = 1,
   .clkdiv = CAN_CLKDIVVAL + 1,
-  .baud   = CONFIG_CAN1_BAUD,
+  .baud   = CONFIG_LPC43_CAN1_BAUD,
   .base   = LPC43_CAN1_BASE,
   .irq    = LPC43M4_IRQ_CAN1,
 };
@@ -263,7 +263,7 @@ static struct can_dev_s g_can1dev =
  *
  ****************************************************************************/
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static void can_printreg(uint32_t addr, uint32_t value)
 {
   static uint32_t prevaddr = 0;
@@ -311,7 +311,7 @@ static void can_printreg(uint32_t addr, uint32_t value)
 
   caninfo("%08x->%08x\n", addr, value);
 }
-#endif /* CONFIG_CAN_REGDEBUG */
+#endif /* CONFIG_LPC43_CAN_REGDEBUG */
 
 /****************************************************************************
  * Name: can_getreg
@@ -327,7 +327,7 @@ static void can_printreg(uint32_t addr, uint32_t value)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static uint32_t can_getreg(struct up_dev_s *priv, int offset)
 {
   uint32_t addr;
@@ -345,7 +345,7 @@ static uint32_t can_getreg(struct up_dev_s *priv, int offset)
 {
   return getreg32(priv->base + offset);
 }
-#endif /* CONFIG_CAN_REGDEBUG */
+#endif /* CONFIG_LPC43_CAN_REGDEBUG */
 
 /****************************************************************************
  * Name: can_putreg
@@ -363,7 +363,7 @@ static uint32_t can_getreg(struct up_dev_s *priv, int offset)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static void can_putreg(struct up_dev_s *priv, int offset, uint32_t value)
 {
   uint32_t addr = priv->base + offset;
@@ -381,7 +381,7 @@ static void can_putreg(struct up_dev_s *priv, int offset, uint32_t value)
 {
   putreg32(value, priv->base + offset);
 }
-#endif /* CONFIG_CAN_REGDEBUG */
+#endif /* CONFIG_LPC43_CAN_REGDEBUG */
 
 /****************************************************************************
  * Name: can_getcommon
@@ -397,7 +397,7 @@ static void can_putreg(struct up_dev_s *priv, int offset, uint32_t value)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static uint32_t can_getcommon(uint32_t addr)
 {
   uint32_t value;
@@ -408,7 +408,7 @@ static uint32_t can_getcommon(uint32_t addr)
   can_printreg(addr, value);
   return value;
 }
-#endif /* CONFIG_CAN_REGDEBUG */
+#endif /* CONFIG_LPC43_CAN_REGDEBUG */
 
 /****************************************************************************
  * Name: can_putcommon
@@ -425,7 +425,7 @@ static uint32_t can_getcommon(uint32_t addr)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_CAN_REGDEBUG
+#ifdef CONFIG_LPC43_CAN_REGDEBUG
 static void can_putcommon(uint32_t addr, uint32_t value)
 {
   /* Show the register value being written */
@@ -436,7 +436,7 @@ static void can_putcommon(uint32_t addr, uint32_t value)
 
   putreg32(value, addr);
 }
-#endif /* CONFIG_CAN_REGDEBUG */
+#endif /* CONFIG_LPC43_CAN_REGDEBUG */
 
 /****************************************************************************
  * Name: can_reset
@@ -1150,7 +1150,7 @@ static void can_setuprxobj(struct up_dev_s *priv)
  *   Tq = brp * Tcan
  *
  * Where:
- *   Tcan is the period of the APB clock (PCLK = CCLK / CONFIG_CAN1_DIVISOR).
+ *   Tcan is the period of the APB clock.
  *
  * Input Parameters:
  *   priv - A reference to the CAN block status
@@ -1162,8 +1162,8 @@ static void can_setuprxobj(struct up_dev_s *priv)
 
 static int can_bittiming(struct up_dev_s *priv)
 {
-  uint32_t ts1 = CONFIG_CAN_TSEG1;
-  uint32_t ts2 = CONFIG_CAN_TSEG2;
+  uint32_t ts1 = CONFIG_LPC43_CAN_TSEG1;
+  uint32_t ts2 = CONFIG_LPC43_CAN_TSEG2;
   uint32_t sjw = 1;
   uint32_t brp = CAN_CLOCK_FREQUENCY(priv->clkdiv) /
                  (priv->baud * CAN_BIT_QUANTA);

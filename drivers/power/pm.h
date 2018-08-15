@@ -134,7 +134,7 @@ struct pm_domain_s
 
   /* stime - The time (in ticks) at the start of the current time slice */
 
-  systime_t stime;
+  clock_t stime;
 
   /* The power state lock count */
 
@@ -211,7 +211,7 @@ EXTERN struct pm_global_s g_pmglobals;
  *
  ****************************************************************************/
 
-void pm_update(int domain, int16_t accum, systime_t elapsed);
+void pm_update(int domain, int16_t accum, clock_t elapsed);
 
 #undef EXTERN
 #if defined(__cplusplus)

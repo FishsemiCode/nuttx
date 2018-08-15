@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32l15xxx_rtcc.c
  *
- *   Copyright (C) 2012-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *           Juha Niskanen <juha.niskanen@haltian.com>
  *
@@ -59,7 +59,7 @@
 #include "stm32_exti.h"
 #include "stm32_rtc.h"
 
-#ifdef CONFIG_RTC
+#ifdef CONFIG_STM32_RTC
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -83,34 +83,34 @@
 #  error "CONFIG_STM32_PWR must selected to use this driver"
 #endif
 
-#if defined(CONFIG_RTC_HSECLOCK)
+#if defined(CONFIG_STM32_RTC_HSECLOCK)
 #  warning "RTC with HSE clock not yet tested on STM32L15XXX"
-#elif defined(CONFIG_RTC_LSICLOCK)
+#elif defined(CONFIG_STM32_RTC_LSICLOCK)
 #  warning "RTC with LSI clock not yet tested on STM32L15XXX"
 #endif
 
-#if !defined(CONFIG_RTC_MAGIC)
-# define CONFIG_RTC_MAGIC (0xfacefeee)
+#if !defined(CONFIG_STM32_RTC_MAGIC)
+# define CONFIG_STM32_RTC_MAGIC           (0xfacefeed)
 #endif
 
-#if !defined(CONFIG_RTC_MAGIC_TIME_SET)
-#  define CONFIG_RTC_MAGIC_TIME_SET (CONFIG_RTC_MAGIC + 1)
+#if !defined(CONFIG_STM32_RTC_MAGIC_TIME_SET)
+#  define CONFIG_STM32_RTC_MAGIC_TIME_SET (0xf00dface)
 #endif
 
-#if !defined(CONFIG_RTC_MAGIC_REG)
-# define CONFIG_RTC_MAGIC_REG (0)
+#if !defined(CONFIG_STM32_RTC_MAGIC_REG)
+# define CONFIG_STM32_RTC_MAGIC_REG       (0)
 #endif
 
-#define RTC_MAGIC            CONFIG_RTC_MAGIC
-#define RTC_MAGIC_TIME_SET   CONFIG_RTC_MAGIC_TIME_SET
-#define RTC_MAGIC_REG        STM32_RTC_BKR(CONFIG_RTC_MAGIC_REG)
+#define RTC_MAGIC                         CONFIG_STM32_RTC_MAGIC
+#define RTC_MAGIC_TIME_SET                CONFIG_STM32_RTC_MAGIC_TIME_SET
+#define RTC_MAGIC_REG                     STM32_RTC_BKR(CONFIG_STM32_RTC_MAGIC_REG)
 
 /* Constants ****************************************************************/
 
-#define SYNCHRO_TIMEOUT  (0x00020000)
-#define INITMODE_TIMEOUT (0x00010000)
+#define SYNCHRO_TIMEOUT                   (0x00020000)
+#define INITMODE_TIMEOUT                  (0x00010000)
 
-#define RTC_ALRMR_ENABLE 0
+#define RTC_ALRMR_ENABLE                  0
 
 /****************************************************************************
  * Private Types
@@ -918,11 +918,11 @@ int up_rtc_initialize(void)
 
       stm32_pwr_enablebkp(true);
 
-#if defined(CONFIG_RTC_HSECLOCK)
+#if defined(CONFIG_STM32_RTC_HSECLOCK)
       modifyreg32(STM32_RCC_CSR, RCC_CSR_RTCSEL_MASK, RCC_CSR_RTCSEL_HSE);
-#elif defined(CONFIG_RTC_LSICLOCK)
+#elif defined(CONFIG_STM32_RTC_LSICLOCK)
       modifyreg32(STM32_RCC_CSR, RCC_CSR_RTCSEL_MASK, RCC_CSR_RTCSEL_LSI);
-#elif defined(CONFIG_RTC_LSECLOCK)
+#elif defined(CONFIG_STM32_RTC_LSECLOCK)
       modifyreg32(STM32_RCC_CSR, RCC_CSR_RTCSEL_MASK, RCC_CSR_RTCSEL_LSE);
 #else
 #  error "No clock for RTC!"
@@ -964,7 +964,7 @@ int up_rtc_initialize(void)
 
           /* Configure RTC pre-scaler with the required values */
 
-#ifdef CONFIG_RTC_HSECLOCK
+#ifdef CONFIG_STM32_RTC_HSECLOCK
           /* The HSE is divided by 32 prior to the prescaler we set here.
            *
            * NOTE: max HSE/32 is 4 MHz if it is to be used with RTC
@@ -977,13 +977,13 @@ int up_rtc_initialize(void)
           putreg32(((uint32_t)7812 << RTC_PRER_PREDIV_S_SHIFT) |
                   ((uint32_t)0x7f << RTC_PRER_PREDIV_A_SHIFT),
                   STM32_RTC_PRER);
-#elif defined(CONFIG_RTC_LSICLOCK)
+#elif defined(CONFIG_STM32_RTC_LSICLOCK)
           /* Suitable values for 32.000 KHz LSI clock (29.5 - 34 KHz, though) */
 
           putreg32(((uint32_t)0xf9 << RTC_PRER_PREDIV_S_SHIFT) |
                   ((uint32_t)0x7f << RTC_PRER_PREDIV_A_SHIFT),
                   STM32_RTC_PRER);
-#else /* defined(CONFIG_RTC_LSECLOCK) */
+#else /* defined(CONFIG_STM32_RTC_LSECLOCK) */
           /* Correct values for 32.768 KHz LSE clock */
 
           putreg32(((uint32_t)0xff << RTC_PRER_PREDIV_S_SHIFT) |
@@ -1734,11 +1734,11 @@ int stm32_rtc_setperiodic(FAR const struct timespec *period, wakeupcb_t callback
   uint32_t secs;
   uint32_t millisecs;
 
-#if defined(CONFIG_RTC_HSECLOCK)
+#if defined(CONFIG_STM32_RTC_HSECLOCK)
 #  error "Periodic wakeup not available for HSE"
-#elif defined(CONFIG_RTC_LSICLOCK)
+#elif defined(CONFIG_STM32_RTC_LSICLOCK)
 #  error "Periodic wakeup not available for LSI (and it is too inaccurate!)"
-#elif defined(CONFIG_RTC_LSECLOCK)
+#elif defined(CONFIG_STM32_RTC_LSECLOCK)
   const uint32_t rtc_div16_max_msecs = 16 * 1000 * 0xffffU / STM32_LSE_FREQUENCY;
 #else
 #  error "No clock for RTC!"
@@ -1903,4 +1903,4 @@ int stm32_rtc_cancelperiodic(void)
 }
 #endif
 
-#endif /* CONFIG_RTC */
+#endif /* CONFIG_STM32_RTC */
