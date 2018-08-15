@@ -165,9 +165,7 @@ void pm_stay(int domain, enum pm_state_e state)
 void pm_relax(int domain, enum pm_state_e state)
 {
   FAR struct pm_domain_s *pdom;
-  clock_t now, elapsed;
   irqstate_t flags;
-  int16_t accum;
 
   /* Get a convenience pointer to minimize all of the indexing */
 
@@ -175,22 +173,9 @@ void pm_relax(int domain, enum pm_state_e state)
   pdom = &g_pmglobals.domain[domain];
 
   flags = enter_critical_section();
-
   DEBUGASSERT(state < PM_COUNT);
   DEBUGASSERT(pdom->stay[state] > 0);
-
-  if (--pdom->stay[state] == 0)
-    {
-      now     = clock_systimer();
-      elapsed = now - pdom->stime;
-
-      accum       = pdom->accum;
-      pdom->stime = now;
-      pdom->accum = 0;
-
-      pm_update(domain, accum, elapsed);
-    }
-
+  pdom->stay[state]--;
   leave_critical_section(flags);
 }
 
