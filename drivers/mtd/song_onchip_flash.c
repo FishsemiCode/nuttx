@@ -98,6 +98,8 @@ struct song_onchip_flash_dev_s
 static inline uint32_t flash_regread(FAR struct song_onchip_flash_dev_s *priv, uint32_t offset);
 static inline void flash_regwrite(FAR struct song_onchip_flash_dev_s *priv,
                           uint32_t offset, uint32_t val);
+static void flash_timing_configure(FAR struct song_onchip_flash_dev_s *priv,
+                          FAR const struct song_onchip_flash_timing_s *timing);
 static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv);
 static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *priv,
                           uint32_t opt_cmd);
@@ -143,6 +145,16 @@ static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv)
   flash_regwrite(priv, INT_EN, value);
   /* mask write, erase interrupt, use polling */
   flash_regwrite(priv, INT_MASK, value);
+}
+
+static void flash_timing_configure(FAR struct song_onchip_flash_dev_s *priv,
+                          FAR const struct song_onchip_flash_timing_s *timing)
+{
+  while (timing->offset != -1)
+    {
+      flash_regwrite(priv, timing->offset, timing->value);
+      timing++;
+    }
 }
 
 __ramfunc__ static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *priv,
@@ -328,6 +340,7 @@ FAR struct mtd_dev_s *song_onchip_flash_initialize(FAR const struct song_onchip_
 
   priv->cfg        = cfg;
 
+  flash_timing_configure(priv, cfg->timing);
   flash_int_configure(priv);
 
   /* Register the MTD with the procfs system if enabled */

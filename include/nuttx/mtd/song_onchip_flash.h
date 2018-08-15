@@ -52,6 +52,12 @@
  * Public Types
  ****************************************************************************/
 
+struct song_onchip_flash_timing_s
+{
+  uint32_t offset;
+  uint32_t value;
+};
+
 /* This structure describes the configuration of song platform on-chip flash
  * controller and flash IP parameters.
  */
@@ -63,6 +69,9 @@ struct song_onchip_flash_config_s
   uint32_t xaddr_shift;     /* xaddr shift in erase block */
   uint32_t yaddr_shift;     /* yaddr shift in write/read block */
   uint32_t neraseblocks;    /* number of erase blocks */
+                            /* flash port timing configuration, must be
+                               end with {-1, 0} */
+  FAR const struct song_onchip_flash_timing_s *timing;
 };
 
 /****************************************************************************

@@ -710,6 +710,13 @@ static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
 
 static void up_flash_init(void)
 {
+  static const struct song_onchip_flash_timing_s timing[] =
+  {
+    {0x00, 0x00},   /* RD_CTRL1 */
+    {0x04, 0x00},   /* RD_CTRL2 */
+    {-1,0},
+  };
+
   static const struct song_onchip_flash_config_s config =
   {
     .base = 0xb0130000,
@@ -717,6 +724,7 @@ static void up_flash_init(void)
     .xaddr_shift = 4,
     .yaddr_shift = 5,
     .neraseblocks = 256,
+    .timing = timing,
   };
   FAR struct mtd_dev_s *mtd;
 
