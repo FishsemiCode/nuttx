@@ -100,8 +100,9 @@ struct song_rtc_lowerhalf_s
   rtc_alarm_callback_t cb;  /* Callback when the alarm expires */
   FAR void *priv;           /* Private argument to accompany callback */
 #endif
+
 #ifdef CONFIG_PM
-  struct pm_callback_s pm_cb;
+  uint32_t last_state;
 #endif
 };
 
@@ -148,31 +149,22 @@ static const struct rtc_ops_s g_song_rtc_ops =
  ****************************************************************************/
 
 #ifdef CONFIG_PM
-static enum pm_state_e song_rtc_pm_evaluate(FAR struct pm_callback_s *cb, int domain)
+static void song_rtc_pm(FAR struct song_rtc_lowerhalf_s *lower,
+                            uint32_t new_state)
 {
-  FAR struct song_rtc_lowerhalf_s *lower = container_of(cb, struct song_rtc_lowerhalf_s, pm_cb);
-  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
-  FAR struct song_rtc_alarm_s *alarm = &base->ALARM[lower->config->index];
-  uint32_t diff;
+  if (lower->last_state != new_state)
+    {
+      if (lower->last_state != PM_SLEEP)
+        {
+          pm_relax(PM_IDLE_DOMAIN, lower->last_state);
+        }
 
-  if (alarm->INT_EN == 0)
-    {
-      return PM_SLEEP;
-    }
-  /* RTC alarm is set. */
+      if (new_state != PM_SLEEP)
+        {
+          pm_stay(PM_IDLE_DOMAIN, new_state);
+        }
 
-  diff = alarm->CNT_HI - base->SET_CNT2;
-  if (diff >= CONFIG_RTC_SONG_SLEEPENTER_THRESH)
-    {
-      return PM_SLEEP;
-    }
-  else if (diff >= CONFIG_RTC_SONG_STANDBYENTER_THRESH)
-    {
-      return PM_STANDBY;
-    }
-  else
-    {
-      return PM_IDLE;
+      lower->last_state = new_state;
     }
 }
 #endif
@@ -247,6 +239,9 @@ static int song_rtc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct song_rtc_lowerhalf_s *lower = arg;
 
+#ifdef CONFIG_PM
+  song_rtc_pm(lower, PM_SLEEP);
+#endif
   song_rtc_cancelalarm(arg, 0);
   if (lower->cb)
     {
@@ -265,6 +260,10 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   uint32_t cnt_hi, cnt_lo;
   irqstate_t flags;
   bool first_alarm;
+#ifdef CONFIG_PM
+  uint32_t new_state;
+  uint64_t ms;
+#endif
 
   cnt_hi = mktime((FAR struct tm *)&alarminfo->time);
   cnt_lo = song_rtc_nsec2cnt(alarminfo->time.tm_nsec);
@@ -277,6 +276,22 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   alarm->CNT_LO     = cnt_lo;
   alarm->INT_UPDATE = 1; /* Trigger the update */
   alarm->INT_EN     = 1; /* Then enable interrupt */
+#ifdef CONFIG_PM
+  ms = cnt_hi * 1000ull + alarminfo->time.tm_nsec / 1000000;
+  if (ms < CONFIG_RTC_SONG_STANDBYENTER_THRESH)
+    {
+      new_state = PM_IDLE;
+    }
+  else if (ms < CONFIG_RTC_SONG_SLEEPENTER_THRESH)
+    {
+      new_state = PM_STANDBY;
+    }
+  else
+    {
+      new_state = PM_SLEEP;
+    }
+  song_rtc_pm(lower, new_state);
+#endif
   leave_critical_section(flags);
 
   if (first_alarm)
@@ -317,6 +332,9 @@ static int song_rtc_cancelalarm(FAR struct rtc_lowerhalf_s *lower_,
   flags = enter_critical_section();
   alarm->INT_EN     = 0; /* Disable interrupt first */
   alarm->INT_STATUS = 1; /* Clear the request */
+#ifdef CONFIG_PM
+  song_rtc_pm(lower, PM_SLEEP);
+#endif
   leave_critical_section(flags);
 
   return 0;
@@ -364,8 +382,7 @@ FAR struct rtc_lowerhalf_s *song_rtc_initialize(FAR const struct song_rtc_config
       lower->config = config;
       lower->ops = &g_song_rtc_ops;
 #ifdef CONFIG_PM
-      lower->pm_cb.evaluate = song_rtc_pm_evaluate;
-      pm_register(&lower->pm_cb);
+      lower->last_state = PM_SLEEP;
 #endif
     }
 
