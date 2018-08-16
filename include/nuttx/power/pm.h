@@ -340,27 +340,6 @@ struct pm_callback_s
 
   void (*notify)(FAR struct pm_callback_s *cb, int domain,
                  enum pm_state_e pmstate);
-
-  /**************************************************************************
-   * Name: evaluate
-   *
-   * Description:
-   *   According to this callback, driver has the opportunity to evaluate
-   *   state in pm_checkstate.
-   *
-   * Input Parameters:
-   *   cb      - Returned to the driver.  The driver version of the callback
-   *             structure may include additional, driver-specific state
-   *             data at the end of the structure.
-   *   domain  - Identifies the activity domain of the state evaluate
-   *
-   * Returned Value:
-   *   driver state
-   *
-   **************************************************************************/
-
-  enum pm_state_e (*evaluate)(FAR struct pm_callback_s *cb, int domain);
-
 };
 
 /****************************************************************************

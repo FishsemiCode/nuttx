@@ -50,46 +50,6 @@
 #ifdef CONFIG_PM
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-static void pm_evaluateall(int domain)
-{
-  FAR struct pm_domain_s *pdom;
-  FAR dq_entry_t *entry;
-  enum pm_state_e ret = PM_SLEEP;
-  enum pm_state_e cb_ret = PM_SLEEP;
-
-  DEBUGASSERT(domain >= 0 && domain < CONFIG_PM_NDOMAINS);
-  pdom = &g_pmglobals.domain[domain];
-
-  /* Visit each registered callback structure */
-
-  for (entry = dq_peek(&g_pmglobals.registry);
-       entry;
-       entry = dq_next(entry))
-    {
-      /* Is the evaluate callback supported? */
-
-      FAR struct pm_callback_s *cb = (FAR struct pm_callback_s *)entry;
-      if (cb->evaluate)
-        {
-          /* Yes.. evaluate driver state */
-
-          cb_ret = cb->evaluate(cb, domain);
-          if (cb_ret < ret)
-            {
-              ret = cb_ret;
-            }
-        }
-    }
-  if (ret < pdom->recommended)
-    {
-      pdom->recommended = ret;
-    }
-}
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -167,10 +127,6 @@ enum pm_state_e pm_checkstate(int domain)
 
       (void)pm_update(domain, accum, elapsed);
     }
-
-  /* evaluate all drivers state */
-
-  (void)pm_evaluateall(domain);
 
   leave_critical_section(flags);
 
