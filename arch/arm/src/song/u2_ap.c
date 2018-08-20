@@ -72,8 +72,6 @@
 
 #define CPU_NAME_ADSP               "adsp"
 
-#define RSCTBL_BASE_ADSP            ((uintptr_t)&_srsctbl_adsp)
-
 #define TOP_MAILBOX_BASE            (0xa0050000)
 
 #define TOP_PWR_BASE                (0xa00e0000)
@@ -100,8 +98,6 @@ static FAR struct dma_dev_s *g_dma[3] =
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
-extern uint32_t _srsctbl_adsp;
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -281,7 +277,6 @@ static void up_openamp_initialize(void)
       .rsc_tab   = &rptun_rsc_adsp.rsc_tbl_hdr,
       .size      = sizeof(rptun_rsc_adsp),
     },
-    .rsc_flash   = RSCTBL_BASE_ADSP,
   };
 
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);

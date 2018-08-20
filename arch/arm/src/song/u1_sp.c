@@ -84,9 +84,6 @@
 #define CPU_NAME_AP                 "ap"
 #define CPU_NAME_CP                 "cp"
 
-#define RSCTBL_BASE_AP              ((uintptr_t)&_srsctbl_ap)
-#define RSCTBL_BASE_CP              ((uintptr_t)&_srsctbl_cp)
-
 #define CPRAM1_RSVD_BASE            (0x60054000)
 #define CPRAM1_RSVD_SIZE            (CPRAM1_RSVD_BASE + 0x4)
 
@@ -151,9 +148,6 @@ static FAR struct dma_dev_s *g_dma[2] =
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
-extern uint32_t _srsctbl_ap;
-extern uint32_t _srsctbl_cp;
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -551,7 +545,6 @@ static void up_openamp_initialize(void)
       .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
       .size      = sizeof(rptun_rsc_ap),
     },
-    .rsc_flash   = RSCTBL_BASE_AP,
     .boot        = ap_boot,
   };
 
@@ -602,7 +595,6 @@ static void up_openamp_initialize(void)
       .rsc_tab   = &rptun_rsc_cp.rsc_tbl_hdr,
       .size      = sizeof(rptun_rsc_cp),
     },
-    .rsc_flash   = RSCTBL_BASE_CP,
   };
 
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);

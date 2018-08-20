@@ -58,12 +58,14 @@ config ARCH_CHIP_U1_SP
 	select SONG_CORTEXM4
 	select SONG_HAVE_RNG
 	select SONG_ICACHE
+	select SONG_COPY_TABLE
 
 config ARCH_CHIP_U2_AP
 	bool "U2 AP"
 	select ARCH_HAVE_FPU
 	select ARCH_HAVE_HEAP2
 	select SONG_CORTEXM4
+	select SONG_COPY_TABLE
 
 endchoice
 
