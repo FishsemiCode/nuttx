@@ -721,6 +721,57 @@ config ARCH_NUSER_INTERRUPTS
 		defines the actual number of valid, mapped interrupts in g_irqmap.
 		This number will be the new size of the OS vector table
 
+# Bring-up debug configuration options.  These are only intended for low level
+# bring-up and not part of normal platform configuration.  They should never be
+# selected in a "normal" configuration and, hence, depend on both EXPERIMENTAL
+# and DEBUG_FEATURES.
+
+menu "Bring-Up Options"
+	depends on EXPERIMENTAL && DEBUG_FEATURES
+
+config SUPPRESS_CLOCK_CONFIG
+	bool "Suppress clock configuration"
+	default n
+	depends on ARCH_XTENSA
+	---help---
+		Do not configure clocking.  Instead relies on the reset clock
+		configuration (or clock configuration provided by a bootloader).
+
+config SUPPRESS_INTERRUPTS
+	bool "Suppress all interrupts"
+	default n
+	---help---
+		Do not enable interrupts
+
+config SUPPRESS_TIMER_INTS
+	bool "No timer"
+	default n
+	---help---
+		Do not initialize or enable the system timer
+
+config SUPPRESS_SERIAL_INTS
+	bool "Suppress serial interrupts"
+	default n
+	---help---
+		Console will poll
+
+config SUPPRESS_UART_CONFIG
+	bool "Do no re-configure UART"
+	default n
+	---help---
+		Do not re-configure the serial console UART from its start-up state.
+		This is useful when a boot loader has already initialized the serial
+		port.
+
+config DUMP_ON_EXIT
+	bool "Dump task state"
+	default n
+	depends on DEBUG_SCHED_INFO
+	---help---
+		Dump task state on exit()
+
+endmenu # Bring-Up Options
+
 comment "Board Settings"
 
 config BOARD_LOOPSPERMSEC
@@ -730,16 +781,6 @@ config BOARD_LOOPSPERMSEC
 		Simple delay loops are used by some logic, especially during boot-up,
 		driver initialization.  These delay loops must be calibrated for each
 		board in order to assure accurate timing by the delay loops.
-
-config ARCH_CALIBRATION
-	bool "Calibrate delay loop"
-	default n
-	---help---
-		Enables some built in instrumentation that causes a 100 second delay
-		during boot-up.  This 100 second delay serves no purpose other than it
-		allows you to calibrate BOARD_LOOPSPERMSEC.  You simply use a stop
-		watch to measure the actual delay then adjust BOARD_LOOPSPERMSEC until
-		the actual delay is 100 seconds.
 
 comment "Interrupt options"
 
