@@ -206,11 +206,6 @@ struct rptun_dev_s *song_rptun_initialize(
   struct song_rptun_dev_s *priv;
   int ret;
 
-  if (config->rsc_flash)
-    {
-      memcpy(config->rsc.rsc_tab, (void *)config->rsc_flash, config->rsc.size);
-    }
-
   priv = kmm_zalloc(sizeof(struct song_rptun_dev_s));
   if (priv == NULL)
     {
