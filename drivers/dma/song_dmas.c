@@ -520,6 +520,8 @@ static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned in
       song_dmas_write(dev, SONG_DMAS_REG_INTV_UNIT, intv_unit);
     }
 
+  song_dmas_stop(&dev->channels[ident].chan);
+
   return &dev->channels[ident].chan;
 }
 
