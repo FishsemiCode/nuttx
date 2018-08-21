@@ -148,7 +148,7 @@ static int gplh_handler(FAR struct ioexpander_dev_s *ioe,
    * upper half GPIO driver via its callback.
    */
 
-  return priv->callback(&priv->gpio);
+  return priv->callback(&priv->gpio, priv->pin);
 }
 #endif
 

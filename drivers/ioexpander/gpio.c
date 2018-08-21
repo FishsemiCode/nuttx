@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 #include <stdio.h>
+#include <string.h>
 #include <signal.h>
 #include <assert.h>
 #include <errno.h>
@@ -55,7 +56,7 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static int     gpio_handler(FAR struct gpio_dev_s *dev);
+static int     gpio_handler(FAR struct gpio_dev_s *dev, uint8_t pin);
 static int     gpio_open(FAR struct file *filep);
 static int     gpio_close(FAR struct file *filep);
 static ssize_t gpio_read(FAR struct file *filep, FAR char *buffer,
@@ -97,10 +98,37 @@ static const struct file_operations g_gpio_drvrops =
  *
  ****************************************************************************/
 
-static int gpio_handler(FAR struct gpio_dev_s *dev)
+static int gpio_handler(FAR struct gpio_dev_s *dev, uint8_t pin)
 {
   DEBUGASSERT(dev != NULL);
-  (void)nxsig_kill(dev->gp_pid, dev->gp_signo);
+  if (dev->gp_event.sigev_notify == SIGEV_SIGNAL)
+    {
+      nxsig_kill(dev->gp_pid, dev->gp_event.sigev_signo);
+    }
+  else if (dev->gp_event.sigev_notify == SIGEV_THREAD)
+    {
+      if (dev->gp_event.sigev_value.sival_ptr != NULL)
+        {
+          struct gpio_changed_s *gp_changed;
+          struct timespec now;
+          int ret;
+
+          ret = clock_gettime(CLOCK_REALTIME, &now);
+          if (ret != OK)
+            return ret;
+
+          gp_changed =
+              (struct gpio_changed_s *)dev->gp_event.sigev_value.sival_ptr;
+          gp_changed->gp_time = now.tv_sec * 1000 + now.tv_nsec / 1000000;
+          gp_changed->gp_pin = pin;
+          ret = dev->gp_ops->go_read(dev, &gp_changed->gp_state);
+          if (ret != OK)
+            return ret;
+        }
+
+      DEBUGVERIFY(nxsig_notification(dev->gp_pid, &dev->gp_event));
+    }
+
   return OK;
 }
 
@@ -246,10 +274,16 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
               {
                 /* Save signal information */
 
-                DEBUGASSERT(GOOD_SIGNO(arg));
-
                 dev->gp_pid   = getpid();
-                dev->gp_signo = (uint8_t)arg;
+                if (arg)
+                  {
+                    memcpy((FAR void *)&dev->gp_event,
+                            (FAR const void *)arg, sizeof(struct sigevent));
+                  }
+                else
+                  {
+                    dev->gp_event.sigev_notify = SIGEV_NONE;
+                  }
 
                 /* Register our handler */
 
@@ -287,7 +321,7 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                 ret = dev->gp_ops->go_attach(dev, NULL);
 
                 dev->gp_pid   = 0;
-                dev->gp_signo = 0;
+                dev->gp_event.sigev_notify = SIGEV_NONE;
               }
           }
         else

@@ -45,6 +45,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #include <nuttx/fs/ioctl.h>
 
@@ -108,10 +109,18 @@ enum gpio_pintype_e
   GPIO_NPINTYPES
 };
 
+struct gpio_changed_s
+{
+  uint8_t gp_pin;
+  bool gp_state;
+  uint32_t gp_time;
+  FAR void *gp_ptr;
+};
+
 /* Interrupt callback */
 
 struct gpio_dev_s;
-typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev);
+typedef CODE int (*pin_interrupt_t)(FAR struct gpio_dev_s *dev, uint8_t pin);
 
 /* Pin interface vtable definition.  Instances of this vtable are read-only
  * and may reside in FLASH.
@@ -149,7 +158,7 @@ struct gpio_dev_s
 
   /* Writable storage used by the upper half driver */
 
-  uint8_t gp_signo;    /* signo to use when signaling a GPIO interrupt */
+  struct sigevent gp_event;        /* Notification information */
   pid_t gp_pid;        /* The task to be signalled */
 
   /* Read-only pointer to GPIO device operations (also provided by the
