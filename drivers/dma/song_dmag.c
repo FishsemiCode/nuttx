@@ -338,6 +338,8 @@ static struct dma_chan_s *song_dmag_get_chan(struct dma_dev_s *dev_,
       clk_enable(dev->clk);
     }
 
+  song_dmag_stop(&dev->channels[ident].chan);
+
   return &dev->channels[ident].chan;
 }
 
