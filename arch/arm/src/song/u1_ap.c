@@ -69,10 +69,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CPU_NAME_CP                 "cp"
 #define CPU_NAME_SP                 "sp"
-
-#define LOGBUF_BASE                 ((uintptr_t)&_slog)
-#define LOGBUF_SIZE                 ((uint32_t)&_logsize)
 
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
@@ -145,10 +143,6 @@ void up_earlyinitialize(void)
   /* Forbid the AP power down, AP will power down following SP */
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
            TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
-
-#ifdef CONFIG_SYSLOG_RPMSG
-  syslog_rpmsg_init_early(CPU_NAME_SP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
-#endif
 }
 
 #ifdef CONFIG_RTC_SONG
@@ -238,19 +232,17 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-#  ifdef CONFIG_SERIAL_CONSOLE
-  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, false);
-#  else
-  uart_rpmsg_init(CPU_NAME_SP, "AP", 1024, true);
-#  endif
-  uart_rpmsg_init(CPU_NAME_SP, "ATAP", 1024, false);
+  uart_rpmsg_server_init("SP", 1024);
+  uart_rpmsg_server_init("CP", 1024);
+  uart_rpmsg_server_init("AT", 1024);
+  uart_rpmsg_server_init("GPS", 1024);
 }
 #endif
 
 #ifdef CONFIG_OPENAMP
 static void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_ap, *mbox_sp;
+  struct mbox_dev_s *mbox_ap, *mbox_cp, *mbox_sp;
 
   static const struct song_mbox_config_s mbox_cfg_ap =
   {
@@ -264,6 +256,18 @@ static void up_openamp_initialize(void)
     .irq        = 21,
   };
 
+  static const struct song_mbox_config_s mbox_cfg_cp =
+  {
+    .base       = TOP_MAILBOX_BASE,
+    .set_off    = 0x0,
+    .en_off     = 0x4,
+    .en_bit     = 16,
+    .src_en_off = 0x4,
+    .sta_off    = 0x8,
+    .chnl_count = 16,
+    .irq        = -1,
+  };
+
   static const struct song_mbox_config_s mbox_cfg_sp =
   {
     .base       = TOP_MAILBOX_BASE,
@@ -274,6 +278,21 @@ static void up_openamp_initialize(void)
     .sta_off    = 0x28,
     .chnl_count = 16,
     .irq        = -1,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_cp =
+  {
+    .cpu_name    = CPU_NAME_CP,
+    .role        = RPMSG_MASTER,
+    .ch_start_tx = 2,
+    .ch_vring_tx = 3,
+    .ch_start_rx = 2,
+    .ch_vring_rx = 3,
+    .rsc         =
+    {
+      .rsc_tab   = (void *)0xb0003000,
+      .size      = sizeof(struct rptun_rsc_s),
+    },
   };
 
   static const struct song_rptun_config_s rptun_cfg_sp =
@@ -292,12 +311,14 @@ static void up_openamp_initialize(void)
   };
 
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
+  mbox_cp = song_mbox_initialize(&mbox_cfg_cp);
   mbox_sp = song_mbox_initialize(&mbox_cfg_sp);
 
+  song_rptun_initialize(&rptun_cfg_cp, mbox_cp, mbox_ap);
   song_rptun_initialize(&rptun_cfg_sp, mbox_sp, mbox_ap);
 
-#  ifdef CONFIG_SYSLOG_RPMSG
-  syslog_rpmsg_init();
+#  ifdef CONFIG_SYSLOG_RPMSG_SERVER
+  syslog_rpmsg_server_init();
 #  endif
 
 #  ifdef CONFIG_CLK_RPMSG

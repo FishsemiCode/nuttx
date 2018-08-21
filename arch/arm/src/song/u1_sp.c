@@ -84,6 +84,9 @@
 #define CPU_NAME_AP                 "ap"
 #define CPU_NAME_CP                 "cp"
 
+#define LOGBUF_BASE                 ((uintptr_t)&_slog)
+#define LOGBUF_SIZE                 ((uint32_t)&_logsize)
+
 #define CPRAM1_RSVD_BASE            (0x60054000)
 #define CPRAM1_RSVD_SIZE            (CPRAM1_RSVD_BASE + 0x4)
 
@@ -137,6 +140,9 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+extern uint32_t _slog;
+extern uint32_t _logsize;
 
 #ifdef CONFIG_ARCH_DMA
 static FAR struct dma_dev_s *g_dma[2] =
@@ -194,6 +200,10 @@ void up_earlyinitialize(void)
   /* Set the DMAS no effort to power down */
   putreg32(TOP_PWR_SLP_DMA_MK << 16 |
            TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
+#endif
 }
 
 #ifdef CONFIG_RTC_SONG
@@ -283,12 +293,11 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_server_init("AP", 1024);
-  uart_rpmsg_server_init("ATAP", 1024);
-
-  uart_rpmsg_server_init("CP", 1024);
-  uart_rpmsg_server_init("AT", 1024);
-  uart_rpmsg_server_init("GPS", 1024);
+#  ifdef CONFIG_SERIAL_CONSOLE
+  uart_rpmsg_init(CPU_NAME_AP, "SP", 1024, false);
+#  else
+  uart_rpmsg_init(CPU_NAME_AP, "SP", 1024, true);
+#  endif
 }
 #endif
 
@@ -529,7 +538,7 @@ static void up_openamp_initialize(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x600,
+    .buf_size        = 0x5e0,
   };
 
   static const struct song_rptun_config_s rptun_cfg_ap =
@@ -579,7 +588,7 @@ static void up_openamp_initialize(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x600,
+    .buf_size        = 0x5e0,
   };
 
   static const struct song_rptun_config_s rptun_cfg_cp =
@@ -597,6 +606,41 @@ static void up_openamp_initialize(void)
     },
   };
 
+  static struct rptun_rsc_s rptun_rsc_acp
+    __attribute__ ((section(".resource_table.acp")))
+    __attribute__ ((used)) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x1e0,
+  };
+
   mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
   mbox_cp = song_mbox_initialize(&mbox_cfg_cp);
   mbox_sp = song_mbox_initialize(&mbox_cfg_sp);
@@ -604,8 +648,8 @@ static void up_openamp_initialize(void)
   song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_sp);
   song_rptun_initialize(&rptun_cfg_cp, mbox_cp, mbox_sp);
 
-#  ifdef CONFIG_SYSLOG_RPMSG_SERVER
-  syslog_rpmsg_server_init();
+#  ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
 #  endif
 
 #  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
