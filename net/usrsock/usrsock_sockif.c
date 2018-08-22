@@ -59,11 +59,6 @@
 static int        usrsock_sockif_setup(FAR struct socket *psock, int protocol);
 static sockcaps_t usrsock_sockif_sockcaps(FAR struct socket *psock);
 static void       usrsock_sockif_addref(FAR struct socket *psock);
-static int        usrsock_sockif_listen(FAR struct socket *psock, int backlog);
-static int        usrsock_sockif_accept(FAR struct socket *psock,
-                                        FAR struct sockaddr *addr,
-                                        FAR socklen_t *addrlen,
-                                        FAR struct socket *newsock);
 static ssize_t    usrsock_sockif_send(FAR struct socket *psock,
                                       FAR const void *buf, size_t len,
                                       int flags);
