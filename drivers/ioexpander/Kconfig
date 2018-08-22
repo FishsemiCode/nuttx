@@ -199,6 +199,11 @@ config DEV_GPIO
 		Enables a simple GPIO input/output driver to support application-
 		space testing of hardware.
 
+config DEV_GPIO_NSIGNALS
+	int "Max number of signal could register to GPIO driver"
+	default 1
+	depends on DEV_GPIO
+
 config GPIO_LOWER_HALF
 	bool "GPIO Lower Half"
 	default n

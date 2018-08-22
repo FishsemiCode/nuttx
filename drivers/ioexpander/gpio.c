@@ -100,33 +100,40 @@ static const struct file_operations g_gpio_drvrops =
 
 static int gpio_handler(FAR struct gpio_dev_s *dev, uint8_t pin)
 {
+  uint32_t time;
+  bool state;
+  int ret;
+  int i;
+
   DEBUGASSERT(dev != NULL);
-  if (dev->gp_event.sigev_notify == SIGEV_SIGNAL)
+
+  time = TICK2MSEC(clock_systimer());
+  ret = dev->gp_ops->go_read(dev, &state);
+  if (ret != OK)
     {
-      nxsig_kill(dev->gp_pid, dev->gp_event.sigev_signo);
+      return ret;
     }
-  else if (dev->gp_event.sigev_notify == SIGEV_THREAD)
+
+  for (i = 0; i < CONFIG_DEV_GPIO_NSIGNALS; i++)
     {
-      if (dev->gp_event.sigev_value.sival_ptr != NULL)
+      FAR struct gpio_signal_s *signal = &dev->gp_signals[i];
+
+      if (signal->gp_pid == 0)
         {
-          struct gpio_changed_s *gp_changed;
-          struct timespec now;
-          int ret;
-
-          ret = clock_gettime(CLOCK_REALTIME, &now);
-          if (ret != OK)
-            return ret;
-
-          gp_changed =
-              (struct gpio_changed_s *)dev->gp_event.sigev_value.sival_ptr;
-          gp_changed->gp_time = now.tv_sec * 1000 + now.tv_nsec / 1000000;
-          gp_changed->gp_pin = pin;
-          ret = dev->gp_ops->go_read(dev, &gp_changed->gp_state);
-          if (ret != OK)
-            return ret;
+          break;
         }
 
-      DEBUGVERIFY(nxsig_notification(dev->gp_pid, &dev->gp_event));
+      if (signal->gp_event.sigev_value.sival_ptr != NULL)
+        {
+          struct gpio_changed_s *changed;
+
+          changed = signal->gp_event.sigev_value.sival_ptr;
+          changed->gp_pin   = pin;
+          changed->gp_state = state;
+          changed->gp_time  = time;
+        }
+
+      DEBUGVERIFY(nxsig_notification(signal->gp_pid, &signal->gp_event, SI_QUEUE));
     }
 
   return OK;
@@ -198,7 +205,11 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct inode *inode;
   FAR struct gpio_dev_s *dev;
+  irqstate_t flags;
+  pid_t pid;
   int ret;
+  int i;
+  int j;
 
   DEBUGASSERT(filep != NULL && filep->f_inode != NULL);
   inode = filep->f_inode;
@@ -265,26 +276,26 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
        */
 
       case GPIOC_REGISTER:
-        if (dev->gp_pintype == GPIO_INTERRUPT_PIN)
+        if (arg && dev->gp_pintype == GPIO_INTERRUPT_PIN)
           {
-            /* Make sure that the pin interrupt is disabled */
-
-            ret = dev->gp_ops->go_enable(dev, false);
-            if (ret >= 0)
+            pid = getpid();
+            flags = enter_critical_section();
+            for (i = 0; i < CONFIG_DEV_GPIO_NSIGNALS; i++)
               {
-                /* Save signal information */
+                FAR struct gpio_signal_s *signal = &dev->gp_signals[i];
 
-                dev->gp_pid   = getpid();
-                if (arg)
+                if (signal->gp_pid == 0 || signal->gp_pid == pid)
                   {
-                    memcpy((FAR void *)&dev->gp_event,
-                            (FAR const void *)arg, sizeof(struct sigevent));
+                    memcpy(&signal->gp_event, (FAR void *)arg, sizeof(signal->gp_event));
+                    signal->gp_pid = pid;
+                    ret = OK;
+                    break;
                   }
-                else
-                  {
-                    dev->gp_event.sigev_notify = SIGEV_NONE;
-                  }
+              }
+            leave_critical_section(flags);
 
+            if (i == 0)
+              {
                 /* Register our handler */
 
                 ret = dev->gp_ops->go_attach(dev,
@@ -295,6 +306,10 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
                     ret = dev->gp_ops->go_enable(dev, true);
                   }
+              }
+            else if (i == CONFIG_DEV_GPIO_NSIGNALS)
+              {
+                ret = -EBUSY;
               }
           }
         else
@@ -311,17 +326,45 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case GPIOC_UNREGISTER:
         if (dev->gp_pintype == GPIO_INTERRUPT_PIN)
           {
-            /* Make sure that the pin interrupt is disabled */
-
-            ret = dev->gp_ops->go_enable(dev, false);
-            if (ret >= 0)
+            pid = getpid();
+            flags = enter_critical_section();
+            for (i = 0; i < CONFIG_DEV_GPIO_NSIGNALS; i++)
               {
-                /* Detach the handler */
+                if (pid == dev->gp_signals[i].gp_pid)
+                  {
+                    for (j = i + 1; j < CONFIG_DEV_GPIO_NSIGNALS; j++)
+                      {
+                        if (dev->gp_signals[j].gp_pid == 0)
+                          {
+                            break;
+                          }
+                      }
+                    if (i != --j)
+                      {
+                        memcpy(&dev->gp_signals[i], &dev->gp_signals[j], sizeof(dev->gp_signals[i]));
+                      }
+                    dev->gp_signals[j].gp_pid = 0;
+                    ret = OK;
+                    break;
+                  }
+                }
+            leave_critical_section(flags);
 
-                ret = dev->gp_ops->go_attach(dev, NULL);
+            if (i == 0 && j == 0)
+              {
+                /* Make sure that the pin interrupt is disabled */
 
-                dev->gp_pid   = 0;
-                dev->gp_event.sigev_notify = SIGEV_NONE;
+                ret = dev->gp_ops->go_enable(dev, false);
+                if (ret >= 0)
+                  {
+                    /* Detach the handler */
+
+                    ret = dev->gp_ops->go_attach(dev, NULL);
+                  }
+              }
+            else if (i == CONFIG_DEV_GPIO_NSIGNALS)
+              {
+                ret = -EINVAL;
               }
           }
         else
