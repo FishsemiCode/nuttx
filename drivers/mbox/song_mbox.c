@@ -211,11 +211,10 @@ struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config)
           goto fail;
         }
 
-      /* Clear the INT bit and disable all the ch interrupt */
+      /* Disable all the ch interrupt */
 
       for (i = 0; i < config->chnl_count; i += 32)
         {
-          song_mbox_write(config, config->sta_off + i/8, 0xFFFFFFF);
           song_mbox_write(config, config->src_en_off + i/8, 0);
         }
 
