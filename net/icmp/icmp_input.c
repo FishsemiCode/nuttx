@@ -324,8 +324,6 @@ void icmp_input(FAR struct net_driver_s *dev)
               goto drop;
             }
         }
-
-      goto send_nothing;
     }
 #endif
 
@@ -351,10 +349,6 @@ drop:
 
 #ifdef CONFIG_NET_STATISTICS
   g_netstats.icmp.drop++;
-#endif
-
-#ifdef CONFIG_NET_ICMP_SOCKET
-send_nothing:
 #endif
   dev->d_len = 0;
 }
