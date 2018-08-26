@@ -53,7 +53,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: netdev_findbyname_ext
+ * Name: netdev_findbyname
  *
  * Description:
  *   Find a previously registered network device using its assigned
@@ -61,29 +61,23 @@
  *
  * Input Parameters:
  *   ifname The interface name of the device of interest
- *   index  Output value, index of g_netdevices
  *
  * Returned Value:
  *  Pointer to driver on success; null on failure
  *
  ****************************************************************************/
 
-FAR struct net_driver_s *netdev_findbyname_ext(FAR const char *ifname, int *index)
+FAR struct net_driver_s *netdev_findbyname(FAR const char *ifname)
 {
   FAR struct net_driver_s *dev;
-  int i;
 
   if (ifname)
     {
       net_lock();
-      for (i = 0, dev = g_netdevices; dev; i++, dev = dev->flink)
+      for (dev = g_netdevices; dev; dev = dev->flink)
         {
           if (strcmp(ifname, dev->d_ifname) == 0)
             {
-              if (index)
-                {
-                  *index = i;
-                }
               net_unlock();
               return dev;
             }

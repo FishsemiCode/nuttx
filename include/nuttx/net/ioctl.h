@@ -130,10 +130,6 @@
 #define SIOCTELNET       _SIOC(0x0029)  /* Create a Telnet sessions.
                                          * See include/nuttx/net/telnet.h */
 
-/* Net dev */
-#define SIOCGIFNAME      _SIOC(0x0030)  /* Get iface name by index */
-#define SIOCGIFINDEX     _SIOC(0x0031)  /* Get iface index by name */
-
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/

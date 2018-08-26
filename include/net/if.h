@@ -204,7 +204,6 @@ struct ifreq
     struct sockaddr           ifru_broadaddr;           /* Broadcast address */
     struct sockaddr           ifru_netmask;             /* Netmask */
     struct sockaddr           ifru_hwaddr;              /* MAC address */
-    int                       ifru_ifindex;             /* Interface index */
     int                       ifru_count;               /* Number of devices */
     int                       ifru_mtu;                 /* MTU size */
     uint8_t                   ifru_flags;               /* Interface flags */
@@ -221,7 +220,6 @@ struct ifreq
 #define ifr_mtu               ifr_ifru.ifru_mtu         /* MTU */
 #define ifr_count             ifr_ifru.ifru_count       /* Number of devices */
 #define ifr_flags             ifr_ifru.ifru_flags       /* interface flags */
-#define ifr_ifindex           ifr_ifru.ifru_ifindex     /* Interface index */
 #define ifr_mii_notify_pid    ifr_ifru.ifru_mii_notify.pid   /* PID to be notified */
 #define ifr_mii_notify_signo  ifr_ifru.ifru_mii_notify.signo /* Signal to notify with */
 #define ifr_mii_notify_arg    ifr_ifru.ifru_mii_notify.arg   /* sigval argument */
