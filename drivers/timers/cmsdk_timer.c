@@ -126,6 +126,18 @@ static inline uint64_t usec_to_count(uint32_t usec, uint32_t freq)
   return (uint64_t)usec * freq / USEC_PER_SEC;
 }
 
+static bool cmsdk_timer_irq_pending(struct cmsdk_timer_lowerhalf_s *lower)
+{
+  if (lower->next_interval)
+    {
+      return false; /* Interrupt is in process */
+    }
+  else
+    {
+      return !!lower->tim->INT_STATUS;
+    }
+}
+
 static int cmsdk_timer_start(FAR struct timer_lowerhalf_s *lower_)
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
@@ -157,6 +169,20 @@ static int cmsdk_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
   status->flags |= lower->tim->CTRL & CMSDK_TIMER_CTRL_ENABLE ? TCFLAGS_ACTIVE : 0;
   status->timeout = usec_from_count(lower->tim->RELOAD, lower->freq);
   status->timeleft = usec_from_count(lower->tim->VALUE, lower->freq);
+  if (cmsdk_timer_irq_pending(lower))
+    {
+      /* Interrupt is pending and the timer wrap happen? */
+      if (status->timeleft)
+        {
+          /* Make timeout-timeleft equal the real elapsed time */
+          status->timeout += status->timeout - status->timeleft;
+          status->timeleft = 0;
+        }
+    }
+  else if (status->timeleft == 0)
+    {
+      status->timeleft = status->timeout;
+    }
   leave_critical_section(flags);
 
   return 0;

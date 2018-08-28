@@ -128,6 +128,18 @@ static inline uint64_t usec_to_count(uint32_t usec, uint32_t freq)
   return count < DW_TIMER_MINCOUNT ? DW_TIMER_MINCOUNT : count;
 }
 
+static bool dw_timer_irq_pending(struct dw_timer_lowerhalf_s *lower)
+{
+  if (lower->next_interval)
+    {
+      return false; /* Interrupt is in process */
+    }
+  else
+    {
+      return !!lower->tim->INT_STATUS;
+    }
+}
+
 static int dw_timer_start(FAR struct timer_lowerhalf_s *lower_)
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
@@ -161,12 +173,19 @@ static int dw_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
   status->flags |= lower->tim->CONTROL & DW_TIMER_ENABLE ? TCFLAGS_ACTIVE : 0;
   status->timeout = usec_from_count(lower->tim->LOAD_COUNT, lower->freq);
   status->timeleft = usec_from_count(lower->tim->CURRENT_VALUE, lower->freq);
-  /* Interrupt is pending and the timer wrap happen? */
-  if (lower->tim->INT_STATUS && status->timeleft)
+  if (dw_timer_irq_pending(lower))
     {
-      /* Make timeout-timeleft equal the real elapsed time */
-      status->timeout += status->timeout - status->timeleft;
-      status->timeleft = 0;
+      /* Interrupt is pending and the timer wrap happen? */
+      if (status->timeleft)
+        {
+          /* Make timeout-timeleft equal the real elapsed time */
+          status->timeout += status->timeout - status->timeleft;
+          status->timeleft = 0;
+        }
+    }
+  else if (status->timeleft == 0)
+    {
+      status->timeleft = status->timeout;
     }
   leave_critical_section(flags);
 
@@ -239,9 +258,6 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct dw_timer_lowerhalf_s *lower = arg;
 
-  /* Clear interrupt by reading EOI */
-  lower->tim->EOI;
-
   if (lower->callback && (lower->tim->CONTROL & DW_TIMER_ENABLE))
     {
       uint32_t interval, next_interval;
@@ -268,6 +284,9 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
         }
       lower->next_interval = NULL;
     }
+
+  /* Clear interrupt by reading EOI */
+  lower->tim->EOI;
 
   return 0;
 }
