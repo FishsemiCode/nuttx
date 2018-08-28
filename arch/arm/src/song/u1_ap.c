@@ -366,7 +366,7 @@ void up_wdtinit(void)
     .path = CONFIG_WATCHDOG_DEVPATH,
     .base = 0xb0090000,
     .irq  = 20,
-    .tclk = "sp/apwdt_tclk",
+    .tclk = "apwdt_tclk",
   };
 
   dw_wdt_initialize(&config);
@@ -461,7 +461,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_PWM_SONG
-  song_pwm_initialize(0, 0xb0100000, 4, "sp/pwm_mclk");
+  song_pwm_initialize(0, 0xb0100000, 4, "pwm_mclk");
 #endif
 }
 

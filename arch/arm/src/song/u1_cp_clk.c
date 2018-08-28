@@ -70,6 +70,16 @@ static const char * const gnss_i_rf0_src[] =
   "rfphy_gnss_rf0_clk",
 };
 
+static const char * const timer_clk_src[] =
+{
+  "gnss_i_rf0_clk",
+  "sp/top_bus_mclk0",
+  "sp/pll1_mclk",
+  "sp/pll0_out",
+  "sp/pll0_out",
+  "sp/clk32k",
+};
+
 /* This describes unicorn cp clk input */
 static const struct song_fixed_rate_clk fixed_rate[] =
 {
@@ -115,6 +125,23 @@ static const struct song_fixed_factor_clk fixed_factor[] =
     .parent_name = "rfphy_lte_clk",
     .fixed_mult = 1,
     .fixed_div = 2,
+  },
+  {},
+};
+
+static const struct song_timer_clk timer[] =
+{
+  {
+    .name = "timer0",
+    .parent_names = timer_clk_src,
+    .num_parents = ARRAY_SIZE(timer_clk_src),
+    .ctl_offset = 0x2b0,
+  },
+  {
+    .name = "timer1",
+    .parent_names = timer_clk_src,
+    .num_parents = ARRAY_SIZE(timer_clk_src),
+    .ctl_offset = 0x2b4,
   },
   {},
 };
@@ -181,6 +208,15 @@ static const struct song_div_clk div[] =
     .div_width = 4,
   },
   {
+    .name = "gnss_clk",
+    .parent_name = "sp/pll1_out",
+    .en_offset = 0x078,
+    .en_shift = 0,
+    .div_offset = 0x078,
+    .div_shift = 4,
+    .div_width = 4,
+  },
+  {
     .name = "rfif_match_rx_clk",
     .parent_name = "rfphy_lte_clk_div2",
     .en_offset = 0x2e0,
@@ -234,49 +270,49 @@ static const struct song_gate_clk gate[] =
 {
   {
     .name = "gnss_hclk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 0,
   },
   {
     .name = "gnss_pp_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 1,
   },
   {
     .name = "gnss_ae_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 2,
   },
   {
     .name = "gnss_ae_fifo_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 3,
   },
   {
     .name = "gnss_conf_mem_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 4,
   },
   {
     .name = "gnss_te_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 5,
   },
   {
     .name = "gnss_te_mem_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 6,
   },
   {
     .name = "gnss_te_fifo_clk",
-    .parent_name = "sp/gnss_clk",
+    .parent_name = "gnss_clk",
     .en_offset = 0x090,
     .en_shift = 7,
   },
@@ -430,6 +466,12 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x2d0,
     .en_shift = 3,
   },
+  {
+    .name = "cp_m4_dapclk",
+    .parent_name = "sp/top_pclk0",
+    .en_offset = 0x0b8,
+    .en_shift = 12,
+  },
   {},
 };
 
@@ -506,6 +548,7 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .div_clks          = div,
   .gate_clks         = gate,
   .mux_clks          = mux,
+  .timer_clks        = timer,
   .patch_table       = patch_tbl,
   .def_rate          = def_rate,
   .rpmsg_server      = false,

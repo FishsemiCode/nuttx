@@ -171,13 +171,6 @@ FAR struct spi_dev_s *g_spi[3] =
 };
 #endif
 
-#ifdef CONFIG_I2C_DW
-FAR struct i2c_master_s *g_i2c[3] =
-{
-  [2] = DEV_END,
-};
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -692,46 +685,6 @@ static void up_spi_init(void)
 }
 #endif
 
-#ifdef CONFIG_I2C_DW
-static void up_i2c_init(void)
-{
-  static const struct dw_i2c_config_s configs[] =
-  {
-    {
-      .bus        = 0,
-      .base       = 0xb00e0000,
-      .irq        = 25,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 73,
-      .ss_lcnt    = 74,
-      .fs_hcnt    = 11,
-      .fs_lcnt    = 12,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 7,
-    },
-    {
-      .bus        = 1,
-      .base       = 0xb00f0000,
-      .irq        = 26,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 73,
-      .ss_lcnt    = 74,
-      .fs_hcnt    = 11,
-      .fs_lcnt    = 12,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 7,
-    }
-  };
-  int config_num = sizeof(configs) / sizeof(configs[0]);
-
-  dw_i2c_allinitialize(configs, config_num, g_i2c);
-}
-#endif
-
 #ifdef CONFIG_SONG_ONCHIP_FLASH
 static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
 {
@@ -797,16 +750,8 @@ void up_lateinitialize(void)
   up_spi_init();
 #endif
 
-#ifdef CONFIG_I2C_DW
-  up_i2c_init();
-#endif
-
 #ifdef CONFIG_SONG_ONCHIP_FLASH
   up_flash_init();
-#endif
-
-#ifdef CONFIG_PWM_SONG
-  song_pwm_initialize(0, 0xb0100000, 4, "pwm_mclk");
 #endif
 
 #ifdef CONFIG_SONG_PMIC_APB
