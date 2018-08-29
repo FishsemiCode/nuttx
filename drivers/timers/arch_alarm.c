@@ -175,11 +175,16 @@ static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower, FAR void *ar
   struct timespec delta;
   static uint64_t tick = 1;
 
-  timespec_from_usec(&next, ++tick * USEC_PER_TICK);
-  ONESHOT_CURRENT(g_oneshot_lower, &now);
-  clock_timespec_subtract(&next, &now, &delta);
+  do
+    {
+      timespec_from_usec(&next, ++tick * USEC_PER_TICK);
+      ONESHOT_CURRENT(g_oneshot_lower, &now);
+      clock_timespec_subtract(&next, &now, &delta);
+      sched_process_timer();
+    }
+  while(delta.tv_sec == 0 && delta.tv_nsec == 0);
+
   ONESHOT_START(g_oneshot_lower, oneshot_callback, NULL, &delta);
-  sched_process_timer();
 #endif
 }
 
