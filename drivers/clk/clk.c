@@ -92,6 +92,8 @@ static void __clk_disable(struct clk *clk);
 static struct clk *__clk_lookup(const char *name, struct clk *clk);
 static int __clk_register(struct clk *clk);
 
+static void clk_disable_unused_subtree(struct clk *clk);
+
 /* File system methods */
 
 #if !defined(CONFIG_FS_PROCFS_EXCLUDE_CLK) && defined(CONFIG_FS_PROCFS)
@@ -695,9 +697,50 @@ static int __clk_register(struct clk *clk)
   return 0;
 }
 
+static void clk_disable_unused_subtree(struct clk *clk)
+{
+  struct clk *child = NULL;
+
+  list_for_every_entry(&clk->children, child, struct clk, node)
+    clk_disable_unused_subtree(child);
+
+  if (clk->enable_count)
+    return;
+
+  if (clk->flags & CLK_IGNORE_UNUSED)
+    return;
+
+  if (clk_is_enabled(clk))
+    {
+      if (clk->ops->disable)
+        {
+          clk->ops->disable(clk);
+        }
+    }
+}
+
 /****************************************************************************
    * Public Functions
 ****************************************************************************/
+
+void clk_disable_unused(void)
+{
+  struct clk *root_clk = NULL;
+
+  clk_list_lock();
+
+  list_for_every_entry(&g_clk_root_list, root_clk, struct clk, node)
+    {
+      clk_disable_unused_subtree(root_clk);
+    }
+
+  list_for_every_entry(&g_clk_orphan_list, root_clk, struct clk, node)
+    {
+      clk_disable_unused_subtree(root_clk);
+    }
+
+  clk_list_unlock();
+}
 
 void clk_disable(struct clk *clk)
 {
@@ -788,13 +831,12 @@ int clk_is_enabled(struct clk *clk)
   if (!clk)
     return 0;
 
-  if (clk->enable_count)
+  /* when hardware .is_enabled missing, used software counter */
+
+  if (!clk->ops->is_enabled)
     return clk->enable_count;
 
-  if (clk->ops->is_enabled)
-    return clk->ops->is_enabled(clk);
-
-  return 0;
+  return clk->ops->is_enabled(clk);
 }
 
 struct clk *clk_get(const char *name)

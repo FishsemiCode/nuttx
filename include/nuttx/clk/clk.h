@@ -84,6 +84,7 @@ int      clk_get_phase(struct clk *clk);
 
 /* Clk helper API */
 
+void clk_disable_unused(void);
 const char *clk_get_name(const struct clk *clk);
 
 #undef EXTERN

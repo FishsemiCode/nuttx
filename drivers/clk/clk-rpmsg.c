@@ -785,7 +785,7 @@ struct clk *clk_register_rpmsg(const char *name, uint8_t flags)
   if (strchr(name, '/') == NULL)
     return NULL;
 
-  return clk_register(name, NULL, 0, flags, &clk_rpmsg_ops, NULL, 0);
+  return clk_register(name, NULL, 0, flags | CLK_IGNORE_UNUSED, &clk_rpmsg_ops, NULL, 0);
 }
 
 int clk_rpmsg_initialize(bool server)
