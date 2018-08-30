@@ -115,6 +115,15 @@ void z8_registerdump(void)
 
       case Z8_IRQSTATE_NONE:
       default:
+        {
+          static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
+
+          z8_saveusercontext(s_last_regs);
+          regs = s_last_regs;
+          z8_dumpregs(regs);
+          z8_dumpstate(regs[XCPT_SP], regs[XCPT_PC],
+                       regs[XCPT_IRQCTL], regs[XCPT_RPFLAGS]);
+        }
         break;
     }
 }

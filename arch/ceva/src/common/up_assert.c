@@ -130,22 +130,29 @@ static inline void up_showtasks(void)
 #ifdef CONFIG_ARCH_STACKDUMP
 static inline void up_registerdump(void)
 {
+  volatile uint32_t *regs = CURRENT_REGS;
+  int rx;
+
   /* Are user registers available from interrupt processing? */
 
-  if (CURRENT_REGS)
+  if (regs == NULL)
     {
-      int rx;
+      static uint32_t s_last_regs[XCPTCONTEXT_REGS];
 
-      /* Yes.. dump the interrupt registers */
+      /* No.. capture user registers by hand */
 
-      for (rx = 0; rx < XCPTCONTEXT_REGS; rx += 8)
-        {
-          _alert("R%03d: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-                rx, CURRENT_REGS[rx],  CURRENT_REGS[rx + 1],
-                CURRENT_REGS[rx + 2],  CURRENT_REGS[rx + 3],
-                CURRENT_REGS[rx + 4],  CURRENT_REGS[rx + 5],
-                CURRENT_REGS[rx + 6],  CURRENT_REGS[rx + 7]);
-        }
+      up_saveusercontext(s_last_regs);
+      regs = s_last_regs;
+    }
+
+
+  /* Dump the interrupt registers */
+
+  for (rx = 0; rx < XCPTCONTEXT_REGS; rx += 8)
+    {
+      _alert("R%03d: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+            rx, regs[rx], regs[rx + 1], regs[rx + 2], regs[rx + 3],
+            regs[rx + 4], regs[rx + 5], regs[rx + 6], regs[rx + 7]);
     }
 }
 #else
