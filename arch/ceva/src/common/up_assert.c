@@ -217,6 +217,7 @@ static void up_dumpstate(void)
   if (sp > stackbase || sp < stackbase - stacksize)
     {
       _alert("ERROR: Stack pointer is not within the allocated stack\n");
+      up_stackdump(stackbase - stacksize, stackbase);
     }
   else
     {
