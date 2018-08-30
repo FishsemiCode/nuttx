@@ -103,6 +103,14 @@ config LIB_SLCDCODEC
 		library, it is included here because the encoding side of this
 		interface must be accessible by end user programs.
 
+config LIB_ENVPATH
+	bool "Support Get Environment Variable"
+	default n
+	depends on !DISABLE_ENVIRON
+	---help---
+		Use the contents of the common environment variable to locate executable
+		or library files.  Default: n
+
 config LIB_NEWLIB
 	bool "Compensation for newlib"
 	default y if ARCH_ARM
