@@ -240,6 +240,11 @@ config AUDIO_NULL_WORKER_STACKSIZE
 
 endif # AUDIO_NULL
 
+config AUDIO_I2S
+        bool "Audio I2S"
+        depends on AUDIO
+        depends on I2S
+
 config AUDIO_DMA
 	bool "Audio Dma"
 	select AUDIO_DRIVER_SPECIFIC_BUFFERS
@@ -252,8 +257,3 @@ config AUDIO_THINKER
 	depends on AUDIO
 	---help---
 		Select to enable support for the thinker-S device.
-
-config AUDIO_I2S
-        bool "Audio I2S"
-        depends on AUDIO
-        depends on I2S

@@ -1,7 +1,7 @@
 /********************************************************************************
  * include/signal.h
  *
- *   Copyright (C) 2007-2009, 2011, 2013-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2013-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,62 @@
 #define SIGRTMIN        MIN_SIGNO  /* First real time signal */
 #define SIGRTMAX        MAX_SIGNO  /* Last real time signal */
 
+/* NuttX does not support standard signal actions.  NuttX supports only what
+ * are referred to as "real time" signals.  The default action of all NuttX
+ * signals is to simply ignore the signal.
+ *
+ * This is not POSIX compliant.  Per OpenGroup.org:  The following signals
+ * and default signal action s must be supported on all implementations:
+ *
+ *   ---------- ------- ----------------------------------------------------
+ *   Signal     Default Description
+ *   Name       Action
+ *   ---------- ------- ----------------------------------------------------
+ *   SIGABRT    A       Process abort signal
+ *   SIGALRM    T       Alarm clock
+ *   SIGBUS     A       Access to an undefined portion of a memory object
+ *   SIGCHLD    I       Child process terminated, stopped
+ *                      (or continued XSI extension)
+ *   SIGCONT    C       Continue executing, if stopped
+ *   SIGFPE     A       Erroneous arithmetic operation
+ *   SIGHUP     T       Hangup
+ *   SIGILL     A       Illegal instruction
+ *   SIGINT     T       Terminal interrupt signal
+ *   SIGKILL    T       Kill (cannot be caught or ignored)
+ *   SIGPIPE    T       Write on a pipe with no one to read it
+ *   SIGQUIT    A       Terminal quit signal
+ *   SIGSEGV    A       Invalid memory reference
+ *   SIGSTOP    S       Stop executing (cannot be caught or ignored)
+ *   SIGTERM    T       Termination signal
+ *   SIGTSTP    S       Terminal stop signal
+ *   SIGTTIN    S       Background process attempting read
+ *   SIGTTOU    S       Background process attempting write
+ *   SIGUSR1    T       User-defined signal 1
+ *   SIGUSR2    T       User-defined signal 2
+ *   SIGPOLL    T       Poll-able event (XSI extension)
+ *   SIGPROF    T       Profiling timer expired (XSI extension)
+ *   SIGSYS     A       Bad system call (XSI extension)
+ *   SIGTRAP    A       Trace/breakpoint trap (XSI extension)
+ *   SIGURG     I       High bandwidth data is available at a socket
+ *   SIGVTALRM  T       Virtual timer expired (XSI extension)
+ *   SIGXCPU    A       CPU time limit exceeded (XSI extension)
+ *   SIGXFSZ    A       File size limit exceeded (XSI extension)
+ *   ---------- ------- ----------------------------------------------------
+ *
+ * Where default action codes are:
+ *
+ * T  Abnormal termination of the process. The process is terminated with
+ *    all the consequences of _exit() except that the status made available
+ *    to wait() and waitpid() indicates abnormal termination by the
+ *    specified signal.
+ * A  Abnormal termination of the process. Additionally with the XSI
+ *    extension, implementation-defined abnormal termination actions, such
+ *    as creation of a core file, may occur.
+ * I  Ignore the signal.
+ * S  Stop the process.
+ * C  Continue the process, if it is stopped; otherwise, ignore the signal.
+ */
+
 /* A few of the real time signals are used within the OS.  They have
  * default values that can be overridden from the configuration file. The
  * rest are all user signals.
@@ -90,11 +146,11 @@
 #  define SIGUSR2       CONFIG_SIG_SIGUSR2
 #endif
 
-#ifndef CONFIG_SIG_SIGALARM
+#ifndef CONFIG_SIG_SIGALRM
 #  define SIGALRM       3  /* Default signal used with POSIX timers (used only */
                            /* no other signal is provided) */
 #else
-#  define SIGALRM       CONFIG_SIG_SIGALARM
+#  define SIGALRM       CONFIG_SIG_SIGALRM
 #endif
 
 #ifdef CONFIG_SCHED_HAVE_PARENT
@@ -113,9 +169,14 @@
 #  endif
 #endif
 
-#ifdef CONFIG_SIG_SIGKILL
+#ifdef CONFIG_SIG_DEFAULT
+#  ifndef CONFIG_SIG_INT
+#    define SIGINT      6  /* Sent when ctrl-c event  */
+#  else
+#    define SIGINT      CONFIG_SIG_INT
+#  endif
 #  ifndef CONFIG_SIG_KILL
-#    define SIGKILL     9  /* Sent when ctrl-c envent  */
+#    define SIGKILL     9  /* Sent from shell as 'kill -9 <task>'  */
 #  else
 #    define SIGKILL     CONFIG_SIG_KILL
 #  endif
@@ -186,9 +247,15 @@
  */
 
 #define SIG_ERR         ((_sa_handler_t)-1)  /* And error occurred */
-#define SIG_DFL         ((_sa_handler_t)0)   /* Default is SIG_IGN for all signals */
 #define SIG_IGN         ((_sa_handler_t)0)   /* Ignore the signal */
-#define SIG_HOLD        ((_sa_handler_t)1)   /* Used only with sigset() */
+
+#ifdef CONFIG_SIG_DEFAULT
+#  define SIG_DFL       ((_sa_handler_t)1)   /* Default signal action */
+#  define SIG_HOLD      ((_sa_handler_t)2)   /* Used only with sigset() */
+#else
+#  define SIG_DFL       ((_sa_handler_t)0)   /* Default is SIG_IGN for all signals */
+#  define SIG_HOLD      ((_sa_handler_t)1)   /* Used only with sigset() */
+#endif
 
 /********************************************************************************
  * Public Type Definitions

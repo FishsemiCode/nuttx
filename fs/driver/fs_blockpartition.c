@@ -166,6 +166,7 @@ static ssize_t part_read(FAR struct inode *inode, unsigned char *buffer,
     {
       nsectors = dev->nsectors - start_sector;
     }
+
   start_sector += dev->firstsector;
 
   return parent->u.i_bops->read(parent, buffer, start_sector, nsectors);
@@ -189,6 +190,7 @@ static ssize_t part_write(FAR struct inode *inode, const unsigned char *buffer,
     {
       nsectors = dev->nsectors - start_sector;
     }
+
   start_sector += dev->firstsector;
 
   return parent->u.i_bops->write(parent, buffer, start_sector, nsectors);
@@ -241,7 +243,7 @@ static int part_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
           ret = parent->u.i_bops->geometry(parent, &geo);
           if (ret >= 0)
             {
-              *base += dev->firstsector * geo.geo_nsectors;
+              *base += dev->firstsector * geo.geo_sectorsize;
             }
         }
     }
@@ -343,3 +345,4 @@ errout_free:
   kmm_free(dev);
   return ret;
 }
+

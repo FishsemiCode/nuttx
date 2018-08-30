@@ -72,6 +72,7 @@
 /**************************************************************************
  * GD25 Instructions
  **************************************************************************/
+
 /*      Command                    Value      Description                 */
 /*                                                                        */
 #define GD25_WREN                   0x06    /* Write enable               */
@@ -93,6 +94,7 @@
 /**************************************************************************
  * GD25 Registers
  **************************************************************************/
+
 /* JEDEC Read ID register values */
 
 #define GD25_JEDEC_MANUFACTURER     0xc8  /* GigaDevice manufacturer ID */
@@ -121,8 +123,8 @@
 /**************************************************************************
  * Chip Geometries
  **************************************************************************/
-/*
- * All members of the family support uniform 4K-byte sectors and 256 byte pages */
+
+/* All members of the family support uniform 4K-byte sectors and 256 byte pages */
 
 #define GD25_SECTOR_SHIFT           12        /* Sector size 1 << 12 = 4Kb */
 #define GD25_SECTOR_SIZE            (1 << 12) /* Sector size 1 << 12 = 4Kb */
@@ -231,46 +233,64 @@ static inline int gd25_readid(struct gd25_dev_s *priv)
   uint16_t capacity;
 
   /* Lock and configure the SPI bus */
+
   gd25_lock(priv->spi);
 
   /* Select this FLASH part. */
+
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
   /* Send the "Read ID (RDID)" command and read the first three ID bytes */
+
   (void)SPI_SEND(priv->spi, GD25_JEDEC_ID);
   manufacturer = SPI_SEND(priv->spi, GD25_DUMMY);
   memory       = SPI_SEND(priv->spi, GD25_DUMMY);
   capacity     = SPI_SEND(priv->spi, GD25_DUMMY);
 
   /* Deselect the FLASH and unlock the bus */
+
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
   gd25_unlock(priv->spi);
 
   finfo("manufacturer: %02x memory: %02x capacity: %02x\n",
-      manufacturer, memory, capacity);
+        manufacturer, memory, capacity);
 
   /* Check for a valid manufacturer and memory type */
+
   if (manufacturer == GD25_JEDEC_MANUFACTURER &&
       (memory == GD25L_JEDEC_MEMORY_TYPE ||
        memory == GD25Q_JEDEC_MEMORY_TYPE))
     {
       if (capacity == GD25_JEDEC_CAPACITY_8MBIT)
-        priv->nsectors = GD25_NSECTORS_8MBIT;
+        {
+          priv->nsectors = GD25_NSECTORS_8MBIT;
+        }
       else if (capacity == GD25_JEDEC_CAPACITY_16MBIT)
-        priv->nsectors = GD25_NSECTORS_16MBIT;
+        {
+          priv->nsectors = GD25_NSECTORS_16MBIT;
+        }
       else if (capacity == GD25_JEDEC_CAPACITY_32MBIT)
-        priv->nsectors = GD25_NSECTORS_32MBIT;
+        {
+          priv->nsectors = GD25_NSECTORS_32MBIT;
+        }
       else if (capacity == GD25_JEDEC_CAPACITY_64MBIT)
-        priv->nsectors = GD25_NSECTORS_64MBIT;
+        {
+          priv->nsectors = GD25_NSECTORS_64MBIT;
+        }
       else if (capacity == GD25_JEDEC_CAPACITY_128MBIT)
-        priv->nsectors = GD25_NSECTORS_128MBIT;
+        {
+          priv->nsectors = GD25_NSECTORS_128MBIT;
+        }
       else
-        return -ENODEV;
+        {
+          return -ENODEV;
+        }
 
       return OK;
     }
 
   /* We don't understand the manufacturer or the memory type */
+
   return -ENODEV;
 }
 
@@ -282,26 +302,32 @@ static inline int gd25_readid(struct gd25_dev_s *priv)
 static void gd25_unprotect(FAR struct gd25_dev_s *priv)
 {
   /* Lock and configure the SPI bus */
+
   gd25_lock(priv->spi);
 
   /* Wait for any preceding write or erase operation to complete. */
+
   (void)gd25_waitwritecomplete(priv);
 
   /* Send "Write enable (WREN)" */
+
   gd25_wren(priv);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
   /* Send "Write enable status (EWSR)" */
+
   SPI_SEND(priv->spi, GD25_WRSR);
 
   /* Following by the new status value */
+
   SPI_SEND(priv->spi, 0);
   SPI_SEND(priv->spi, 0);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
 
   /* Unlock the SPI bus */
+
   gd25_unlock(priv->spi);
 }
 #endif
@@ -375,9 +401,11 @@ static bool gd25_is_erased(struct gd25_dev_s *priv, off_t address, off_t size)
   memset(&erased_32, GD25_ERASED_STATE, sizeof(erased_32));
 
   /* Walk all pages in given area. */
+
   while (npages)
     {
       /* Check if all bytes of page is in erased state. */
+
       gd25_byteread(priv, (uint8_t *)buf, address, GD25_PAGE_SIZE);
 
       for (i = 0; i < GD25_PAGE_SIZE / sizeof(uint32_t); i++)
@@ -385,6 +413,7 @@ static bool gd25_is_erased(struct gd25_dev_s *priv, off_t address, off_t size)
           if (buf[i] != erased_32)
             {
               /* Page not in erased state! */
+
               return false;
             }
         }
@@ -407,28 +436,33 @@ static void gd25_sectorerase(struct gd25_dev_s *priv, off_t sector)
   finfo("sector: %08lx\n", (long)sector);
 
   /* Check if sector is already erased. */
+
   if (gd25_is_erased(priv, address, GD25_SECTOR_SIZE))
     {
       /* Sector already in erased state, so skip erase. */
+
       return;
     }
 
   /* Wait for any preceding write or erase operation to complete. */
+
   (void)gd25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
+
   gd25_wren(priv);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
   /* Send the "Sector Erase (SE)" instruction */
+
   (void)SPI_SEND(priv->spi, GD25_SE);
   priv->prev_instr = GD25_SE;
 
-  /* Send the sector address high byte first.
-   * Only the most significant bits (those
-   * corresponding to the sector) have any meaning.
+  /* Send the sector address high byte first.  Only the most significant
+   * bits (those corresponding to the sector) have any meaning.
    */
+
   (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
   (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
   (void)SPI_SEND(priv->spi, address & 0xff);
@@ -443,14 +477,17 @@ static void gd25_sectorerase(struct gd25_dev_s *priv, off_t sector)
 static inline int gd25_chiperase(struct gd25_dev_s *priv)
 {
   /* Wait for any preceding write or erase operation to complete. */
+
   (void)gd25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
+
   gd25_wren(priv);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
   /* Send the "Chip Erase (CE)" instruction */
+
   (void)SPI_SEND(priv->spi, GD25_CE);
   priv->prev_instr = GD25_CE;
 
@@ -468,14 +505,17 @@ static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
   finfo("address: %08lx nbytes: %d\n", (long)address, (int)nbytes);
 
   /* Wait for any preceding write or erase operation to complete. */
+
   gd25_waitwritecomplete(priv);
 
   /* Make sure that writing is disabled */
+
   gd25_wrdi(priv);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
   /* Send "Read from Memory " instruction */
+
 #ifdef CONFIG_GD25_SLOWREAD
   (void)SPI_SEND(priv->spi, GD25_RDDATA);
   priv->prev_instr = GD25_RDDATA;
@@ -485,16 +525,19 @@ static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
 #endif
 
   /* Send the address high byte first. */
+
   (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
   (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
   (void)SPI_SEND(priv->spi, address & 0xff);
 
   /* Send a dummy byte */
+
 #ifndef CONFIG_GD25_SLOWREAD
   (void)SPI_SEND(priv->spi, GD25_DUMMY);
 #endif
 
   /* Then read all of the requested bytes */
+
   SPI_RECVBLOCK(priv->spi, buffer, nbytes);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
@@ -514,28 +557,34 @@ static void gd25_pagewrite(struct gd25_dev_s *priv, FAR const uint8_t *buffer,
   for (; nbytes > 0; nbytes -= GD25_PAGE_SIZE)
     {
       /* Wait for any preceding write or erase operation to complete. */
+
       gd25_waitwritecomplete(priv);
 
       /* Enable write access to the FLASH */
+
       gd25_wren(priv);
 
       SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
       /* Send the "Page Program (GD25_PP)" Command */
+
       SPI_SEND(priv->spi, GD25_PP);
       priv->prev_instr = GD25_PP;
 
       /* Send the address high byte first. */
+
       (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
       (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
       (void)SPI_SEND(priv->spi, address & 0xff);
 
       /* Then send the page of data */
+
       SPI_SNDBLOCK(priv->spi, buffer, GD25_PAGE_SIZE);
 
       SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
 
       /* Update addresses */
+
       address += GD25_PAGE_SIZE;
       buffer  += GD25_PAGE_SIZE;
     }
@@ -557,23 +606,28 @@ static inline void gd25_bytewrite(struct gd25_dev_s *priv,
    * the beginning of ALL operations), but have the wait first will slightly
    * improve performance.
    */
+
   gd25_waitwritecomplete(priv);
 
   /* Enable the write access to the FLASH */
+
   gd25_wren(priv);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), true);
 
   /* Send "Page Program (PP)" command */
+
   (void)SPI_SEND(priv->spi, GD25_PP);
   priv->prev_instr = GD25_PP;
 
   /* Send the page offset high byte first. */
+
   (void)SPI_SEND(priv->spi, (offset >> 16) & 0xff);
   (void)SPI_SEND(priv->spi, (offset >> 8) & 0xff);
   (void)SPI_SEND(priv->spi, offset & 0xff);
 
   /* Then write the specified number of bytes */
+
   SPI_SNDBLOCK(priv->spi, buffer, count);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(0), false);
@@ -597,11 +651,13 @@ static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
   /* Lock access to the SPI bus until we complete the erase */
+
   gd25_lock(priv->spi);
 
   while (blocksleft-- > 0)
     {
       /* Erase each sector */
+
       gd25_sectorerase(priv, startblock);
       startblock++;
     }
@@ -624,7 +680,9 @@ static ssize_t gd25_bread(FAR struct mtd_dev_s *dev, off_t startblock,
 
   nbytes = gd25_read(dev, startblock << GD25_PAGE_SHIFT, nblocks << GD25_PAGE_SHIFT, buffer);
   if (nbytes > 0)
-    nbytes >>= GD25_PAGE_SHIFT;
+    {
+      nbytes >>= GD25_PAGE_SHIFT;
+    }
 
   return nbytes;
 }
@@ -644,9 +702,10 @@ static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
   /* Lock the SPI bus and write all of the pages to FLASH */
+
   gd25_lock(priv->spi);
   gd25_pagewrite(priv, buffer, startblock << GD25_PAGE_SHIFT,
-      nblocks << GD25_PAGE_SHIFT);
+                 nblocks << GD25_PAGE_SHIFT);
   gd25_unlock(priv->spi);
 
   return nblocks;
@@ -665,6 +724,7 @@ static ssize_t gd25_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
   finfo("offset: %08lx nbytes: %d\n", (long)offset, (int)nbytes);
 
   /* Lock the SPI bus and select this FLASH part */
+
   gd25_lock(priv->spi);
   gd25_byteread(priv, buffer, offset, nbytes);
   gd25_unlock(priv->spi);
@@ -697,6 +757,7 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
    * and perform individual writes.  The devices can only write in
    * page increments.
    */
+
   startpage = offset / GD25_PAGE_SIZE;
   endpage = (offset + nbytes) / GD25_PAGE_SIZE;
 
@@ -704,32 +765,38 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
   if (startpage == endpage)
     {
       /* All bytes within one programmable page.  Just do the write. */
+
       gd25_bytewrite(priv, buffer, offset, nbytes);
     }
   else
     {
       /* Write the 1st partial-page */
+
       count = nbytes;
       bytestowrite = GD25_PAGE_SIZE - (offset & (GD25_PAGE_SIZE-1));
       gd25_bytewrite(priv, buffer, offset, bytestowrite);
 
       /* Update offset and count */
+
       offset += bytestowrite;
       count -=  bytestowrite;
       index = bytestowrite;
 
       /* Write full pages */
+
       while (count >= GD25_PAGE_SIZE)
         {
           gd25_bytewrite(priv, &buffer[index], offset, GD25_PAGE_SIZE);
 
           /* Update offset and count */
+
           offset += GD25_PAGE_SIZE;
           count -= GD25_PAGE_SIZE;
           index += GD25_PAGE_SIZE;
         }
 
       /* Now write any partial page at the end */
+
       if (count > 0)
         {
           gd25_bytewrite(priv, &buffer[index], offset, count);
@@ -767,7 +834,7 @@ static int gd25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
               ret               = OK;
 
               finfo("blocksize: %d erasesize: %d neraseblocks: %d\n",
-                geo->blocksize, geo->erasesize, geo->neraseblocks);
+                    geo->blocksize, geo->erasesize, geo->neraseblocks);
             }
         }
         break;
@@ -775,6 +842,7 @@ static int gd25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
       case MTDIOC_BULKERASE:
         {
           /* Erase the entire device */
+
           gd25_lock(priv->spi);
           ret = gd25_chiperase(priv);
           gd25_unlock(priv->spi);
@@ -816,6 +884,7 @@ FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *spi)
       /* Initialize the allocated structure (unsupported methods were
        * nullified by kmm_zalloc).
        */
+
       priv->mtd.erase  = gd25_erase;
       priv->mtd.bread  = gd25_bread;
       priv->mtd.bwrite = gd25_bwrite;
@@ -827,9 +896,11 @@ FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *spi)
       priv->spi        = spi;
 
       /* Deselect the FLASH */
+
       SPI_SELECT(spi, SPIDEV_FLASH(0), false);
 
       /* Identify the FLASH chip and get its capacity */
+
       ret = gd25_readid(priv);
       if (ret != OK)
         {
@@ -839,10 +910,10 @@ FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *spi)
         }
       else
         {
-          /*
-           * Make sure that the FLASH is unprotected
+          /* Make sure that the FLASH is unprotected
            * so that we can write into it
            */
+
 #ifndef CONFIG_GD25_READONLY
           gd25_unprotect(priv);
 #endif
@@ -850,10 +921,12 @@ FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *spi)
     }
 
   /* Register the MTD with the procfs system if enabled */
+
 #ifdef CONFIG_MTD_REGISTRATION
   mtd_register(&priv->mtd, "gd25");
 #endif
 
   /* Return the implementation-specific state structure as the MTD device */
+
   return (FAR struct mtd_dev_s *)priv;
 }

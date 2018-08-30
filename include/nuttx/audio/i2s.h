@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/audio/i2s.h
  *
- *   Copyright(C) 2013 Gregory Nutt. All rights reserved.
+ *   Copyright(C) 2013, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,8 @@
  *
  ****************************************************************************/
 
-#define I2S_RXCHANNELS(d,c) ((d)->ops->i2s_rxchannels ? (d)->ops->i2s_rxchannels(d,c) : -ENOTTY)
+#define I2S_RXCHANNELS(d,c) \
+  ((d)->ops->i2s_rxchannels ? (d)->ops->i2s_rxchannels(d,c) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_RXSAMPLERATE
@@ -91,7 +92,8 @@
  *
  ****************************************************************************/
 
-#define I2S_RXSAMPLERATE(d,r) ((d)->ops->i2s_rxsamplerate ? (d)->ops->i2s_rxsamplerate(d,r) : -ENOTTY)
+#define I2S_RXSAMPLERATE(d,r) \
+  ((d)->ops->i2s_rxsamplerate ? (d)->ops->i2s_rxsamplerate(d,r) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_RXDATAWIDTH
@@ -109,7 +111,8 @@
  *
  ****************************************************************************/
 
-#define I2S_RXDATAWIDTH(d,b) ((d)->ops->i2s_rxdatawidth ? (d)->ops->i2s_rxdatawidth(d,b) : -ENOTTY)
+#define I2S_RXDATAWIDTH(d,b) \
+  ((d)->ops->i2s_rxdatawidth ? (d)->ops->i2s_rxdatawidth(d,b) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_RECEIVE
@@ -141,7 +144,8 @@
  *
  ****************************************************************************/
 
-#define I2S_RECEIVE(d,b,c,a,t) ((d)->ops->i2s_receive ? (d)->ops->i2s_receive(d,b,c,a,t) : -ENOTTY)
+#define I2S_RECEIVE(d,b,c,a,t) \
+  ((d)->ops->i2s_receive ? (d)->ops->i2s_receive(d,b,c,a,t) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_RXCHANNELS
@@ -159,7 +163,8 @@
  *
  ****************************************************************************/
 
-#define I2S_TXCHANNELS(d,c) ((d)->ops->i2s_txchannels ? (d)->ops->i2s_txchannels(d,c) : -ENOTTY)
+#define I2S_TXCHANNELS(d,c) \
+  ((d)->ops->i2s_txchannels ? (d)->ops->i2s_txchannels(d,c) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_TXSAMPLERATE
@@ -179,7 +184,8 @@
  *
  ****************************************************************************/
 
-#define I2S_TXSAMPLERATE(d,r) ((d)->ops->i2s_txsamplerate ? (d)->ops->i2s_txsamplerate(d,r) : -ENOTTY)
+#define I2S_TXSAMPLERATE(d,r) \
+  ((d)->ops->i2s_txsamplerate ? (d)->ops->i2s_txsamplerate(d,r) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_TXDATAWIDTH
@@ -197,7 +203,8 @@
  *
  ****************************************************************************/
 
-#define I2S_TXDATAWIDTH(d,b) ((d)->ops->i2s_txdatawidth ? (d)->ops->i2s_txdatawidth(d,b) : -ENOTTY)
+#define I2S_TXDATAWIDTH(d,b) \
+  ((d)->ops->i2s_txdatawidth ? (d)->ops->i2s_txdatawidth(d,b) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_SEND
@@ -229,7 +236,8 @@
  *
  ****************************************************************************/
 
-#define I2S_SEND(d,b,c,a,t) ((d)->ops->i2s_send ? (d)->ops->i2s_send(d,b,c,a,t) : -ENOTTY)
+#define I2S_SEND(d,b,c,a,t) \
+  ((d)->ops->i2s_send ? (d)->ops->i2s_send(d,b,c,a,t) : -ENOTTY)
 
 /****************************************************************************
  * Name: I2S_IOCTL
@@ -247,7 +255,8 @@
  *
  ****************************************************************************/
 
-#define I2S_IOCTL(d,c,a) ((d)->ops->i2s_ioctl ? (d)->ops->i2s_ioctl(d,c,a) : -ENOTTY)
+#define I2S_IOCTL(d,c,a) \
+  ((d)->ops->i2s_ioctl ? (d)->ops->i2s_ioctl(d,c,a) : -ENOTTY)
 
 /****************************************************************************
  * Public Types

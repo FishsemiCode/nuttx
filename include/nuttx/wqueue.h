@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/wqueue.h
  *
- *   Copyright (C) 2009, 2011-2014, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2014, 2017-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -65,6 +66,8 @@
  *   (which runs at the lowest of priority and may not be appropriate
  *   if memory reclamation is of high priority).  If CONFIG_SCHED_HPWORK
  *   is enabled, then the following options can also be used:
+ * CONFIG_SCHED_HPNTHREADS - The number of thread in the high-priority queue's
+ *   thread pool.  Default: 1
  * CONFIG_SCHED_HPWORKPRIORITY - The execution priority of the high-
  *   priority worker thread.  Default: 224
  * CONFIG_SCHED_HPWORKSTACKSIZE - The stack size allocated for the worker
@@ -93,8 +96,6 @@
  *   user-mode work queue will be created.
  * CONFIG_LIB_USRWORKPRIORITY - The minimum execution priority of the lower
  *   priority worker thread.  Default: 100
- * CONFIG_LIB_USRWORKPERIOD - How often the lower priority worker thread
- *  checks for work in units of microseconds.  Default: 100*1000 (100 MS).
  * CONFIG_LIB_USRWORKSTACKSIZE - The stack size allocated for the lower
  *   priority worker thread.  Default: 2048.
  */
@@ -141,7 +142,7 @@
 
 #  ifndef CONFIG_SCHED_HPNTHREADS
 #    define CONFIG_SCHED_HPNTHREADS 1
-#endif
+#  endif
 
 #  ifndef CONFIG_SCHED_HPWORKPRIORITY
 #    define CONFIG_SCHED_HPWORKPRIORITY 224
@@ -208,10 +209,6 @@
 
 #  ifndef CONFIG_LIB_USRWORKPRIORITY
 #    define CONFIG_LIB_USRWORKPRIORITY 100
-#  endif
-
-#  ifndef CONFIG_LIB_USRWORKPERIOD
-#    define CONFIG_LIB_USRWORKPERIOD (100*1000) /* 100 milliseconds */
 #  endif
 
 #  ifndef CONFIG_LIB_USRWORKSTACKSIZE

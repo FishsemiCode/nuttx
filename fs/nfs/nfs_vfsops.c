@@ -182,6 +182,7 @@ static int     nfs_stat(struct inode *mountpt, FAR const char *relpath,
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
 /* nfs vfs operations. */
 
 const struct mountpt_operations nfs_operations =
@@ -1470,14 +1471,16 @@ static int nfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
   reqlen += DIRENT_NFS_VERFLEN;
 
   /* Number of directory entries (We currently only process one entry at a time) */
+
   readsize = nmp->nm_readdirsize;
-  tmp = SIZEOF_rpc_reply_readdir(readsize);
+  tmp      = SIZEOF_rpc_reply_readdir(readsize);
   if (tmp > nmp->nm_buflen)
     {
       readsize -= (tmp - nmp->nm_buflen);
     }
-  *ptr    = txdr_unsigned(readsize);
-  reqlen += sizeof(uint32_t);
+
+  *ptr     = txdr_unsigned(readsize);
+  reqlen  += sizeof(uint32_t);
 
   /* And read the directory */
 

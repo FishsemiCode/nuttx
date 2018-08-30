@@ -500,7 +500,7 @@ static inline void nxf_fillglyph(FAR struct nxfonts_fcache_s *priv,
   else
 #endif
     {
-      PANIC();
+      DEBUGPANIC();
     }
 }
 
@@ -836,7 +836,7 @@ void nxf_cache_disconnect(FCACHE fhandle)
            fcache != priv && fcache != NULL;
            fcache = fcache->flink);
 
-      ASSERT(fcache == priv);
+      DEBUGASSERT(fcache == priv);
       nxf_removecache(fcache, prev);
       nxf_list_unlock();
 

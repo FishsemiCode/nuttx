@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/ioexpander/gpio.c
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -339,7 +339,7 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         {
           ret = dev->gp_ops->go_setpintype(dev, arg);
         }
-      break;
+        break;
 
       /* Unrecognized command */
 

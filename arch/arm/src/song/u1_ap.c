@@ -263,6 +263,13 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
+void up_netinitialize(void)
+{
+  /* usrsock don't need any special initialization at all */
+}
+#endif
+
 #ifdef CONFIG_OPENAMP
 static void up_openamp_initialize(void)
 {

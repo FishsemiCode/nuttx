@@ -1,7 +1,8 @@
 /****************************************************************************
  * net/arp/arp_out.c
  *
- *   Copyright (C) 2007-2011, 2014-2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2011, 2014-2015, 2017-2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Based on uIP which also has a BSD style license:
@@ -136,11 +137,12 @@ static const uint8_t g_multicast_ethaddr[3] =
 
 void arp_out(FAR struct net_driver_s *dev)
 {
-  FAR const struct arp_entry *tabptr = NULL;
-  FAR struct eth_hdr_s       *peth   = ETHBUF;
-  FAR struct arp_iphdr_s     *pip    = IPBUF;
-  in_addr_t                   ipaddr;
-  in_addr_t                   destipaddr;
+  struct ether_addr ethaddr;
+  FAR struct eth_hdr_s *peth = ETHBUF;
+  FAR struct arp_iphdr_s *pip = IPBUF;
+  in_addr_t ipaddr;
+  in_addr_t destipaddr;
+  int ret;
 
 #if defined(CONFIG_NET_PKT) || defined(CONFIG_NET_ARP_SEND)
   /* Skip sending ARP requests when the frame to be transmitted was
@@ -249,8 +251,8 @@ void arp_out(FAR struct net_driver_s *dev)
 
   /* Check if we already have this destination address in the ARP table */
 
-  tabptr = arp_find(ipaddr);
-  if (tabptr == NULL)
+  ret = arp_find(ipaddr, &ethaddr);
+  if (ret < 0)
     {
       ninfo("ARP request for IP %08lx\n", (unsigned long)ipaddr);
 
@@ -265,7 +267,7 @@ void arp_out(FAR struct net_driver_s *dev)
 
   /* Build an Ethernet header. */
 
-  memcpy(peth->dest, tabptr->at_ethaddr.ether_addr_octet, ETHER_ADDR_LEN);
+  memcpy(peth->dest, ethaddr.ether_addr_octet, ETHER_ADDR_LEN);
 
   /* Finish populating the Ethernet header */
 

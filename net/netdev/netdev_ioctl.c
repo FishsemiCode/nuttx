@@ -1257,7 +1257,7 @@ static int netdev_arp_ioctl(FAR struct socket *psock, int cmd,
 
               /* Find the existing ARP table entry for this protocol address. */
 
-              FAR struct arp_entry *entry = arp_find(addr->sin_addr.s_addr);
+              FAR struct arp_entry_s *entry = arp_lookup(addr->sin_addr.s_addr);
               if (entry != NULL)
                 {
                   /* The ARP table is fixed size; an entry is deleted
@@ -1286,22 +1286,18 @@ static int netdev_arp_ioctl(FAR struct socket *psock, int cmd,
               FAR struct sockaddr_in *addr =
                 (FAR struct sockaddr_in *)&req->arp_pa;
 
-              /* Find the existing ARP table entry for this protocol address. */
+              /* Get the hardware address from an existing ARP table entry
+               * matching this protocol address.
+               */
 
-              FAR struct arp_entry *entry = arp_find(addr->sin_addr.s_addr);
-              if (entry != NULL)
+              ret = arp_find(addr->sin_addr.s_addr,
+                            (FAR struct ether_addr *)req->arp_ha.sa_data);
+              if (ret >= 0)
                 {
                   /* Return the mapped hardware address. */
 
                   req->arp_ha.sa_family = ARPHRD_ETHER;
-                  memcpy(req->arp_ha.sa_data,
-                         entry->at_ethaddr.ether_addr_octet,
-                         ETHER_ADDR_LEN);
                   ret = OK;
-                }
-              else
-                {
-                  ret = -ENOENT;
                 }
             }
           else
@@ -1432,7 +1428,7 @@ static int netdev_rt_ioctl(FAR struct socket *psock, int cmd,
 #endif
 
 /****************************************************************************
- * Name: netdev_sock_ioctl
+ * Name: netdev_usrsock_ioctl
  *
  * Description:
  *   Perform user private ioctl operations.
@@ -1448,8 +1444,9 @@ static int netdev_rt_ioctl(FAR struct socket *psock, int cmd,
  *
  ****************************************************************************/
 
-static int netdev_sock_ioctl(FAR struct socket *psock, int cmd,
-                                   unsigned long arg)
+#ifdef CONFIG_NET_USRSOCK
+static int netdev_usrsock_ioctl(FAR struct socket *psock, int cmd,
+                                unsigned long arg)
 {
   if (psock->s_sockif && psock->s_sockif->si_ioctl)
     {
@@ -1468,6 +1465,7 @@ static int netdev_sock_ioctl(FAR struct socket *psock, int cmd,
       return -ENOTTY;
     }
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -1488,6 +1486,7 @@ static int netdev_sock_ioctl(FAR struct socket *psock, int cmd,
  *
  ****************************************************************************/
 
+#ifdef CONFIG_NET_USRSOCK
 ssize_t net_ioctl_arglen(int cmd)
 {
   switch (cmd)
@@ -1559,10 +1558,17 @@ ssize_t net_ioctl_arglen(int cmd)
             return sizeof(struct pktradio_ifreq_s);
           }
 #  endif
+#  ifdef CONFIG_WIRELESS_BLUETOOTH
+        if (WL_IBLUETOOTHCMD(cmd))
+          {
+            return sizeof(struct btreq_s);
+          }
+#  endif
 #endif
         return -ENOTTY;
     }
 }
+#endif
 
 /****************************************************************************
  * Name: psock_ioctl
@@ -1606,12 +1612,17 @@ int psock_ioctl(FAR struct socket *psock, int cmd, unsigned long arg)
       return -EBADF;
     }
 
-  ret = netdev_sock_ioctl(psock, cmd, arg);
-
   /* Execute the command.  First check for a standard network IOCTL command. */
 
+#ifdef CONFIG_NET_USRSOCK
+  /* Check for a USRSOCK ioctl command */
+
+  ret = netdev_usrsock_ioctl(psock, cmd, arg);
   if (ret == -ENOTTY)
+#endif
     {
+      /* Check for a standard network IOCTL command. */
+
       ret = netdev_ifr_ioctl(psock, cmd, (FAR struct ifreq *)((uintptr_t)arg));
     }
 

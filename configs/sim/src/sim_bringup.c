@@ -107,10 +107,27 @@ int sim_bringup(void)
 #endif
   int ret;
 
+#ifdef CONFIG_FS_PROCFS
+  /* Mount the procfs file system */
+
+  ret = mount(NULL, SIM_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: Failed to mount procfs at %s: %d\n",
+             SIM_PROCFS_MOUNTPOINT, ret);
+    }
+#endif
+
 #ifdef CONFIG_LIB_ZONEINFO_ROMFS
   /* Mount the TZ database */
 
   (void)sim_zoneinfo(3);
+#endif
+
+#ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO
+  /* Special initialization for the Traveler game simulation */
+
+  (void)trv_mount_world(0, CONFIG_GRAPHICS_TRAVELER_DEFPATH);
 #endif
 
 #ifdef CONFIG_EXAMPLES_GPIO
@@ -208,23 +225,6 @@ int sim_bringup(void)
   if (ret < 0)
     {
       syslog(LOG_ERR, "ERROR: sim_tsc_setup failed: %d\n", ret);
-    }
-#endif
-
-#ifdef CONFIG_GRAPHICS_TRAVELER_ROMFSDEMO
-  /* Special initialization for the Traveler game simulation */
-
-  (void)trv_mount_world(0, CONFIG_GRAPHICS_TRAVELER_DEFPATH);
-#endif
-
-#ifdef CONFIG_FS_PROCFS
-  /* Mount the procfs file system */
-
-  ret = mount(NULL, SIM_PROCFS_MOUNTPOINT, "procfs", 0, NULL);
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "ERROR: Failed to mount procfs at %s: %d\n",
-             SIM_PROCFS_MOUNTPOINT, ret);
     }
 #endif
 

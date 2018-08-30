@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/audio/audio_comp.c
+ * audio/audio_comp.c
  *
  * A general audio driver to composite other lower level audio driver.
  *
@@ -52,6 +52,7 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
 /* This structure describes the internal state of the audio composite */
 
 struct audio_comp_priv_s
@@ -189,7 +190,8 @@ static int audio_comp_getcaps(FAR struct audio_lowerhalf_s *dev, int type,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   caps->ac_channels   = 0;
   caps->ac_format.hw  = 0;
@@ -199,7 +201,7 @@ static int audio_comp_getcaps(FAR struct audio_lowerhalf_s *dev, int type,
     {
       if (lower[i]->ops->getcaps)
         {
-          struct audio_caps_s dup = *caps;
+          FAR struct audio_caps_s dup = *caps;
 
           int tmp = lower[i]->ops->getcaps(lower[i], type, &dup);
           if (tmp == -ENOTTY)
@@ -217,6 +219,7 @@ static int audio_comp_getcaps(FAR struct audio_lowerhalf_s *dev, int type,
             {
               caps->ac_channels = dup.ac_channels;
             }
+
           caps->ac_format.hw   |= dup.ac_format.hw;
           caps->ac_controls.w  |= dup.ac_controls.w;
         }
@@ -247,7 +250,8 @@ static int audio_comp_configure(FAR struct audio_lowerhalf_s *dev,
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -286,7 +290,8 @@ static int audio_comp_shutdown(FAR struct audio_lowerhalf_s *dev)
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -328,7 +333,8 @@ static int audio_comp_start(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -389,7 +395,8 @@ static int audio_comp_stop(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -436,7 +443,8 @@ static int audio_comp_pause(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -483,7 +491,8 @@ static int audio_comp_resume(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -536,7 +545,8 @@ static int audio_comp_allocbuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -570,7 +580,8 @@ static int audio_comp_freebuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -605,7 +616,8 @@ static int audio_comp_enqueuebuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -634,7 +646,8 @@ static int audio_comp_cancelbuffer(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -663,7 +676,8 @@ static int audio_comp_ioctl(FAR struct audio_lowerhalf_s *dev, int cmd,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -698,7 +712,8 @@ static int audio_comp_read(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -727,7 +742,8 @@ static int audio_comp_write(FAR struct audio_lowerhalf_s *dev,
 {
   FAR struct audio_comp_priv_s *priv = (FAR struct audio_comp_priv_s *)dev;
   FAR struct audio_lowerhalf_s **lower = priv->lower;
-  int i, ret = -ENOTTY;
+  int ret = -ENOTTY;
+  int i;
 
   for (i = 0; i < priv->count; i++)
     {
@@ -763,7 +779,8 @@ static int audio_comp_reserve(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess;
 #endif
-  int i, ret = OK;
+  int ret = OK;
+  int i;
 
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   sess = kmm_calloc(priv->count, sizeof(*sess));
@@ -804,6 +821,7 @@ static int audio_comp_reserve(FAR struct audio_lowerhalf_s *dev)
 #endif
                 }
             }
+
 #ifdef CONFIG_AUDIO_MULTI_SESSION
           kmm_free(sess);
           sess = NULL;
@@ -838,7 +856,8 @@ static int audio_comp_release(FAR struct audio_lowerhalf_s *dev)
 #ifdef CONFIG_AUDIO_MULTI_SESSION
   FAR void **sess = session;
 #endif
-  int i, ret = OK;
+  int ret = OK;
+  int i;
 
   for (i = priv->count - 1; i >= 0; i--)
     {
@@ -925,17 +944,20 @@ static void audio_comp_callback(FAR void *arg, uint16_t reason,
 int audio_comp_initialize(FAR const char *name, ...)
 {
   FAR struct audio_comp_priv_s *priv;
-  int i, ret = -ENOMEM;
-  va_list ap, cp;
+  va_list ap;
+  va_list cp;
+  int ret = -ENOMEM;
+  int i;
 
   va_start(ap, name);
   va_copy(cp, ap);
 
   priv = kmm_zalloc(sizeof(struct audio_comp_priv_s));
   if (priv == NULL)
-  {
-    goto end_va;
-  }
+    {
+      goto end_va;
+    }
+
   priv->export.ops = &g_audio_comp_ops;
 
   while(va_arg(ap, FAR struct audio_lowerhalf_s *))

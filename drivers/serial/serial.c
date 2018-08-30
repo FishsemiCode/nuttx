@@ -1,7 +1,7 @@
 /************************************************************************************
  * drivers/serial/serial.c
  *
- *   Copyright (C) 2007-2009, 2011-2013, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -356,7 +356,10 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
 
 static inline void uart_putc(FAR uart_dev_t *dev, int ch)
 {
-  while (!uart_txready(dev));
+  while (!uart_txready(dev))
+    {
+    }
+
   uart_send(dev, ch);
 }
 
@@ -598,9 +601,9 @@ static int uart_open(FAR struct file *filep)
            goto errout_with_sem;
         }
 
+#ifdef CONFIG_SERIAL_TERMIOS
       /* Initialize termios state */
 
-#ifdef CONFIG_SERIAL_TERMIOS
       dev->tc_iflag = 0;
       if (dev->isconsole)
         {
@@ -681,6 +684,13 @@ static int uart_close(FAR struct file *filep)
       (void)uart_tcdrain(dev, 4 * TICK_PER_SEC);
     }
 
+  /* Mark the I/O buffers empty */
+
+  dev->xmit.head = 0;
+  dev->xmit.tail = 0;
+  dev->recv.head = 0;
+  dev->recv.tail = 0;
+
   /* Free the IRQ and disable the UART */
 
   flags = enter_critical_section();  /* Disable interrupts */
@@ -698,7 +708,6 @@ static int uart_close(FAR struct file *filep)
    */
 
   uart_reset_sem(dev);
-
   uart_givesem(&dev->closesem);
   return OK;
 }
@@ -878,26 +887,44 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
 
       else
         {
-          /* Disable interrupts and test again... */
+#ifdef CONFIG_SERIAL_DMA
+          /* Disable all interrupts and test again...
+           * uart_disablerxint() is insufficient for the check in DMA mode.
+           */
 
           flags = enter_critical_section();
+#else
+          /* Disable Rx interrupts and test again... */
 
+          uart_disablerxint(dev);
+#endif
 
-          /* If the Rx ring buffer still empty?  Bytes may have been addded
+          /* If the Rx ring buffer still empty?  Bytes may have been added
            * between the last time that we checked and when we disabled
            * interrupts.
            */
 
           if (rxbuf->head == rxbuf->tail)
             {
-              /* Yes.. the buffer is still empty.  Wait for some characters
-               * to be received into the buffer with the RX interrupt enabled.
+              /* Yes.. the buffer is still empty.  We will need to wait for
+               * additional data to be received.
                */
 
 #ifdef CONFIG_SERIAL_DMA
               /* Notify DMA that there is free space in the RX buffer */
 
               uart_dmarxfree(dev);
+#else
+              /* Wait with the RX interrupt re-enabled.  All interrupts are
+               * disabled briefly to assure that the following operations
+               * are atomic.
+               */
+
+              flags = enter_critical_section();
+
+              /* Re-enable UART Rx interrupts */
+
+              uart_enablerxint(dev);
 #endif
 
 #ifdef CONFIG_SERIAL_REMOVABLE
@@ -959,24 +986,32 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             }
           else
             {
-              /* No... the ring buffer is no longer empty.  Just re-enable
+              /* No... the ring buffer is no longer empty.  Just re-enable Rx
                * interrupts and accept the new data on the next time through
                * the loop.
                */
 
+#ifdef CONFIG_SERIAL_DMA
               leave_critical_section(flags);
+#else
+              uart_enablerxint(dev);
+#endif
             }
         }
     }
 
 #ifdef CONFIG_SERIAL_DMA
-  flags = enter_critical_section();
-
   /* Notify DMA that there is free space in the RX buffer */
 
+  flags = enter_critical_section();
   uart_dmarxfree(dev);
-
   leave_critical_section(flags);
+#endif
+
+#ifndef CONFIG_SERIAL_DMA
+  /* RX interrupt could be disabled by RX buffer overflow. Enable it now. */
+
+  uart_enablerxint(dev);
 #endif
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
@@ -1126,10 +1161,10 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
 
           /* Specifically not handled:
            *
-           * OXTABS - primarily a full-screen terminal optimisation
+           * OXTABS - primarily a full-screen terminal optimization
            * ONOEOT - Unix interoperability hack
            * OLCUC  - Not specified by POSIX
-           * ONOCR  - low-speed interactive optimisation
+           * ONOCR  - low-speed interactive optimization
            */
         }
 
@@ -1144,7 +1179,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
 
       /* Put the character into the transmit buffer */
 
-      if (ret == OK)
+      if (ret >= 0)
         {
           ret = uart_putxmitchar(dev, ch, oktoblock);
         }
@@ -1310,9 +1345,9 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                   dev->recv.tail = dev->recv.head;
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
-                  /* Activate RX flow control. */
+                  /* De-activate RX flow control. */
 
-                  uart_rxflowcontrol(dev, 0, false);
+                  (void)uart_rxflowcontrol(dev, 0, false);
 #endif
                 }
 
@@ -1336,11 +1371,27 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             }
             break;
 #endif
+
+#ifdef CONFIG_TTY_SIGINT
+          /* Make the given terminal the controlling terminal of the calling process */
+
           case TIOCSCTTY:
             {
-              dev->pid = arg;
+              /* Check if the ISIG flag is set in the termios c_lflag to enable
+               * this feature.  This flag is set automatically for a serial console
+               * device.
+               */
+
+             if ((dev->tc_lflag & ISIG) != 0)
+               {
+                  /* Save the PID of the recipient of the SIGINT signal. */
+
+                  dev->pid = (pid_t)arg;
+                  DEBUGASSERT((unsigned long)(dev->pid) == arg);
+               }
             }
             break;
+#endif
         }
     }
 
@@ -1384,6 +1435,17 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
               dev->tc_iflag = termiosp->c_iflag;
               dev->tc_oflag = termiosp->c_oflag;
               dev->tc_lflag = termiosp->c_lflag;
+
+#ifdef CONFIG_TTY_SIGINT
+              /* If the ISIG flag has been cleared in c_lflag, then un-
+               * register the controlling terminal.
+               */
+
+              if ((dev->tc_lflag & ISIG) == 0)
+                {
+                  dev->pid = (pid_t)-1;
+                }
+#endif
             }
             break;
         }
@@ -1549,9 +1611,18 @@ errout:
 
 int uart_register(FAR const char *path, FAR uart_dev_t *dev)
 {
-  /* Initialize pid */
+#ifdef CONFIG_TTY_SIGINT
+  /* Initialize  of the task that will receive SIGINT signals. */
 
-  dev->pid = -1;
+  dev->pid = (pid_t)-1;
+
+  /* If this UART is a serial console, then enable signals by default */
+
+  if (dev->isconsole)
+    {
+      dev->tc_lflag |= ISIG;
+    }
+#endif
 
   /* Initialize semaphores */
 

@@ -1,7 +1,7 @@
 /************************************************************************************
  * drivers/serial/serial_io.c
  *
- *   Copyright (C) 2007-2009, 2011, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011, 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -123,7 +123,7 @@ void uart_recvchars(FAR uart_dev_t *dev)
 #ifdef CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS
   unsigned int watermark;
 #endif
-#ifdef CONFIG_SIG_SIGKILL
+#ifdef CONFIG_TTY_SIGINT
   bool needkill = false;
 #endif
   unsigned int status;
@@ -197,12 +197,22 @@ void uart_recvchars(FAR uart_dev_t *dev)
 #endif
 #endif
 
+      /* Get this next character from the hardware */
+
       ch = uart_receive(dev, &status);
-#ifdef CONFIG_SIG_SIGKILL
-      if (dev->pid != -1 && ch == CONFIG_SERIAL_SIGKILL_CHAR)
+
+#ifdef CONFIG_TTY_SIGINT
+      /* Is this the special character that will generate the SIGINT signal? */
+
+      if (dev->pid >= 0 && ch == CONFIG_TTY_SIGINT_CHAR)
         {
+          /* Yes.. note that the kill is needed and do not put the character
+           * into the Rx buffer.  It should not be read as normal data.
+           */
+
           needkill = true;
         }
+      else
 #endif
 
       /* If the RX buffer becomes full, then the serial data is discarded.  This is
@@ -239,10 +249,12 @@ void uart_recvchars(FAR uart_dev_t *dev)
       uart_datareceived(dev);
     }
 
-#ifdef CONFIG_SIG_SIGKILL
+#ifdef CONFIG_TTY_SIGINT
+  /* Send the SIGINT signal if needed */
+
   if (needkill)
     {
-      kill(dev->pid, SIGKILL);
+      kill(dev->pid, SIGINT);
       uart_reset_sem(dev);
     }
 #endif

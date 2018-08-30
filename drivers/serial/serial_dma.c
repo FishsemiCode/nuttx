@@ -1,7 +1,7 @@
 /************************************************************************************
  * drivers/serial/serial_dma.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author:  Max Neklyudov <macscomp@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,14 +52,22 @@
  * Private Functions
  ************************************************************************************/
 
-#ifdef CONFIG_SIG_SIGKILL
-static bool uart_check_sigkill(const char *buf, size_t size)
+/************************************************************************************
+ * Name: uart_check_sigint
+ *
+ * Description:
+ *   Check if the SIGINT character is in the contiguous Rx DMA buffer region.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_TTY_SIGINT
+static bool uart_check_sigint(const char *buf, size_t size)
 {
   size_t i;
 
   for (i = 0; i < size; i++)
     {
-      if (buf[i] == CONFIG_SERIAL_SIGKILL_CHAR)
+      if (buf[i] == CONFIG_TTY_SIGINT_CHAR)
         {
           return true;
         }
@@ -67,23 +75,36 @@ static bool uart_check_sigkill(const char *buf, size_t size)
 
   return false;
 }
+#endif
 
+/************************************************************************************
+ * Name: uart_recvchars_sigkill
+ *
+ * Description:
+ *   Check if the SIGINT character is anywhere in the newly received DMA buffer.
+ *
+ *   REVISIT:  We must also remove the SIGINT character from the Rx buffer.  It
+ *   should not be read as normal data by the caller.
+ *
+ ************************************************************************************/
+
+#ifdef CONFIG_TTY_SIGINT
 static bool uart_recvchars_sigkill(FAR uart_dev_t *dev)
 {
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
 
   if (xfer->nbytes <= xfer->length)
     {
-      return uart_check_sigkill(xfer->buffer, xfer->nbytes);
+      return uart_check_sigint(xfer->buffer, xfer->nbytes);
     }
   else
     {
-      if (uart_check_sigkill(xfer->buffer, xfer->length))
+      if (uart_check_sigint(xfer->buffer, xfer->length))
         {
           return true;
         }
 
-      return uart_check_sigkill(xfer->nbuffer, xfer->nbytes - xfer->length);
+      return uart_check_sigint(xfer->nbuffer, xfer->nbytes - xfer->length);
     }
 }
 #endif
@@ -184,8 +205,13 @@ void uart_recvchars_dma(FAR uart_dev_t *dev)
 
   if (rxbuf->head == rxbuf->tail)
     {
-      rxbuf->head = rxbuf->tail = 0;
+      rxbuf->head = 0;
+      rxbuf->tail = 0;
     }
+
+  /* Get the next head index and check if there is room to adding another
+   * byte to the buffer.
+   */
 
   nexthead = rxbuf->head + 1;
   if (nexthead >= rxbuf->size)
@@ -298,10 +324,12 @@ void uart_recvchars_done(FAR uart_dev_t *dev)
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
   FAR struct uart_buffer_s *rxbuf = &dev->recv;
   size_t nbytes = xfer->nbytes;
-#ifdef CONFIG_SIG_SIGKILL
+#ifdef CONFIG_TTY_SIGINT
   bool needkill = false;
 
-  if (dev->pid != -1 && uart_recvchars_sigkill(dev))
+  /* Check if the SIGINT character is anywhere in the newly received DMA buffer. */
+
+  if (dev->pid >= 0 && uart_recvchars_sigkill(dev))
     {
       needkill = true;
     }
@@ -322,10 +350,12 @@ void uart_recvchars_done(FAR uart_dev_t *dev)
       uart_datareceived(dev);
     }
 
-#ifdef CONFIG_SIG_SIGKILL
+#ifdef CONFIG_TTY_SIGINT
+  /* Send the SIGINT signal if needed */
+
   if (needkill)
     {
-      kill(dev->pid, SIGKILL);
+      kill(dev->pid, SIGINT);
       uart_reset_sem(dev);
     }
 #endif

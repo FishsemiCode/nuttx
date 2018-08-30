@@ -92,6 +92,7 @@
 #define sq_peek(q)  ((q)->head)
 #define dq_peek(q)  ((q)->head)
 
+#define sq_tail(q)  ((q)->tail)
 #define dq_tail(q)  ((q)->tail)
 
 /****************************************************************************

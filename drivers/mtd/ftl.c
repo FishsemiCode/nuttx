@@ -1,7 +1,8 @@
 /****************************************************************************
  * drivers/mtd/ftl.c
  *
- *   Copyright (C) 2009, 2011-2012, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009, 2011-2012, 2016, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -45,6 +46,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <debug.h>
 #include <errno.h>
@@ -59,9 +61,17 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Check if read/write buffer support is needed */
+
 #if defined(CONFIG_FTL_READAHEAD) || defined(CONFIG_FTL_WRITEBUFFER)
 #  define FTL_HAVE_RWBUFFER 1
 #endif
+
+/* The maximum length of the device name paths is the maximum length of a
+ * name plus 5 for the the length of "/dev/" and a NUL terminator.
+ */
+
+#define DEV_NAME_MAX    (NAME_MAX + 5)
 
 /****************************************************************************
  * Private Types
@@ -499,28 +509,28 @@ static int ftl_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ftl_initialize
+ * Name: ftl_initialize_by_name
  *
  * Description:
  *   Initialize to provide a block driver wrapper around an MTD interface
  *
  * Input Parameters:
- *   minor - The minor device number.  The MTD block device will be
- *      registered as as /dev/mtdblockN where N is the minor number.
- *   mtd - The MTD device that supports the FLASH interface.
+ *   name - The device name.  The MTD block device will be
+ *          registered as as /dev/mtdNAME where NAME is the device name.
+ *   mtd  - The MTD device that supports the FLASH interface.
  *
  ****************************************************************************/
 
 int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
 {
   struct ftl_struct_s *dev;
-  char devname[64];
+  char devname[DEV_NAME_MAX];
   int ret = -ENOMEM;
 
+#ifdef CONFIG_DEBUG_FEATURES
   /* Sanity check */
 
-#ifdef CONFIG_DEBUG_FEATURES
-  if (!name || !mtd)
+  if (name == NULL || mtd == NULL)
     {
       return -EINVAL;
     }
@@ -596,7 +606,7 @@ int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
 
       /* Create a MTD block device name */
 
-      snprintf(devname, 64, "/dev/mtd%d", name);
+      snprintf(devname, DEV_NAME_MAX, "/dev/mtd%s", name);
 
       /* Inode private data is a reference to the FTL device structure */
 
@@ -614,13 +624,26 @@ int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
   return ret;
 }
 
+/****************************************************************************
+ * Name: ftl_initialize
+ *
+ * Description:
+ *   Initialize to provide a block driver wrapper around an MTD interface
+ *
+ * Input Parameters:
+ *   minor - The minor device number.  The MTD block device will be
+ *           registered as as /dev/mtdblockN where N is the minor number.
+ *   mtd   - The MTD device that supports the FLASH interface.
+ *
+ ****************************************************************************/
+
 int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
 {
   char name[16];
 
+#ifdef CONFIG_DEBUG_FEATURES
   /* Sanity check */
 
-#ifdef CONFIG_DEBUG_FEATURES
   if (minor < 0 || minor > 255)
     {
       return -EINVAL;

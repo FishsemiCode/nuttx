@@ -306,8 +306,8 @@ static int oneshot_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         break;
 
       /* OSIOC_CURRENT - Get the current time
-       *                Argument: A reference to a struct timespec in
-       *                which the current time will be returned.
+       *                 Argument: A reference to a struct timespec in
+       *                 which the current time will be returned.
        */
 
       case OSIOC_CURRENT:

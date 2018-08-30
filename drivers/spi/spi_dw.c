@@ -40,6 +40,7 @@
 #include <errno.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/mutex.h>
+#include <nuttx/nuttx.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>

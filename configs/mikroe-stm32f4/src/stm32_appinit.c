@@ -65,12 +65,12 @@
 #endif
 #endif
 
-#ifdef CONFIG_STM32_OTGFS
-#  include "stm32_usbhost.h"
+#ifdef CONFIG_AUDIO
+#  include <nuttx/audio/audio.h>
 #endif
 
-#ifdef CONFIG_AUDIO
-#  include "nuttx/audio/audio.h"
+#ifdef CONFIG_STM32_OTGFS
+#  include "stm32_usbhost.h"
 #endif
 
 #include "stm32.h"

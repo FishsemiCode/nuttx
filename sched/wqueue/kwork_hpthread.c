@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/wqueue/work_hpthread.c
  *
- *   Copyright (C) 2009-2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2014, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -133,7 +133,7 @@ static int work_hpthread(int argc, char *argv[])
 #endif
         {
 #ifndef CONFIG_SCHED_LPWORK
-          /* Perform garbage collection.  This cleans-up memory
+          /* First, perform garbage collection.  This cleans-up memory
            * de-allocations that were queued because they could not be freed in
            * that execution context (for example, if the memory was freed from
            * an interrupt handler).
@@ -142,16 +142,13 @@ static int work_hpthread(int argc, char *argv[])
            * the IDLE thread (at a very, very low priority).  If the low-priority
            * work thread is enabled, then the garbage collection is done on that
            * thread instead.
-           *
-           * In the event of multiple high priority threads, on index == 0 will do
-           * the garbage collection.
            */
 
           sched_garbage_collection();
 #endif
 
-          /* Then process queued work.  work_process will not return until:
-           * (1) there is no further work in the work queue, and (2) signal is
+          /* Then process queued work.  work_process will not return until: (1)
+           * there is no further work in the work queue, and (2) signal is
            * triggered, or delayed work expires.
            */
 

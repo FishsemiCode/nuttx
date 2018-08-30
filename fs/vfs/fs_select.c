@@ -137,8 +137,10 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
 
   if (npfds > 0)
     {
-      pollset = (struct pollfd *)kmm_zalloc(npfds * sizeof(struct pollfd));
-      if (!pollset)
+      pollset = (FAR struct pollfd *)
+        kmm_zalloc(npfds * sizeof(struct pollfd));
+
+      if (pollset == NULL)
         {
           errcode = ENOMEM;
           goto errout;

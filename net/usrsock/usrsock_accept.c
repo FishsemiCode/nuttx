@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/usrsock/usrsock_accept.c
  *
- *  Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *  Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -215,7 +215,7 @@ static int do_accept_request(FAR struct usrsock_conn_s *conn, socklen_t addrlen)
  *
  * Returned Value:
  *   Returns 0 (OK) on success.  On failure, it returns a negated errno
- *   value.  See accept() for a desrciption of the approriate error value.
+ *   value.  See accept() for a description of the appropriate error value.
  *
  * Assumptions:
  *   The network is locked.

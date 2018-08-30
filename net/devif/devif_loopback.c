@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/devif/loopback_out.c
+ * net/devif/devif_loopback.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -38,7 +38,6 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#ifdef CONFIG_NET
 
 #include <debug.h>
 
@@ -70,6 +69,7 @@ static bool is_loopback(FAR struct net_driver_s *dev)
           return true;
         }
 #endif
+
 #ifdef CONFIG_NET_IPv6
       if ((IPv6BUF->vtc & IP_VERSION_MASK) == IPv6_VERSION &&
           net_ipv6addr_hdrcmp(IPv6BUF->destipaddr, dev->d_ipv6addr))
@@ -83,7 +83,7 @@ static bool is_loopback(FAR struct net_driver_s *dev)
 }
 
 /****************************************************************************
- * Name: loopback_out
+ * Name: devif_loopback
  *
  * Description:
  *   This function should be called before sending out a packet. The function
@@ -97,7 +97,7 @@ static bool is_loopback(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-int loopback_out(FAR struct net_driver_s *dev)
+int devif_loopback(FAR struct net_driver_s *dev)
 {
   if (!is_loopback(dev))
     {
@@ -125,18 +125,25 @@ int loopback_out(FAR struct net_driver_s *dev)
       if ((IPv4BUF->vhl & IP_VERSION_MASK) == IPv4_VERSION)
         {
           ninfo("IPv4 frame\n");
+
           NETDEV_RXIPV4(dev);
           ipv4_input(dev);
         }
+      else
 #endif
 #ifdef CONFIG_NET_IPv6
       if ((IPv6BUF->vtc & IP_VERSION_MASK) == IPv6_VERSION)
         {
           ninfo("Iv6 frame\n");
+
           NETDEV_RXIPV6(dev);
           ipv6_input(dev);
         }
+      else
 #endif
+        {
+          NETDEV_RXDROPPED(dev);
+        }
 
       NETDEV_TXDONE(dev);
 
@@ -151,4 +158,4 @@ int loopback_out(FAR struct net_driver_s *dev)
 
   return 1;
 }
-#endif /* CONFIG_NET */
+

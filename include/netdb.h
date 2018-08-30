@@ -137,16 +137,16 @@
  *   EAI_OVERFLOW    - An argument buffer overflowed.
  */
 
-#define EAI_AGAIN       -1
-#define EAI_BADFLAGS    -2
-#define EAI_FAIL        -3
-#define EAI_FAMILY      -4
-#define EAI_MEMORY      -5
-#define EAI_NONAME      -6
-#define EAI_SERVICE     -7
-#define EAI_SOCKTYPE    -8
-#define EAI_SYSTEM      -9
-#define EAI_OVERFLOW    -10
+#define EAI_AGAIN       1
+#define EAI_BADFLAGS    2
+#define EAI_FAIL        3
+#define EAI_FAMILY      4
+#define EAI_MEMORY      5
+#define EAI_NONAME      6
+#define EAI_SERVICE     7
+#define EAI_SOCKTYPE    8
+#define EAI_SYSTEM      9
+#define EAI_OVERFLOW    10
 
 /* h_errno values that may be returned by gethosbyname(), gethostbyname_r(),
  * gethostbyaddr(), or gethostbyaddr_r()
@@ -171,9 +171,6 @@
 #define NO_DATA        2
 #define NO_RECOVERY    3
 #define TRY_AGAIN      4
-
-#define NI_MAXHOST     256
-#define NI_MAXSERV     32
 
 /****************************************************************************
  * Public Types
@@ -304,6 +301,7 @@ void                 sethostent(int);
 void                 setnetent(int stayopen);
 void                 setprotoent(int stayopen);
 void                 setservent(int);
+
 #endif /* None of these are yet supported */
 
 /* Non-standard interfaces similar to Glibc 2 interfaces */

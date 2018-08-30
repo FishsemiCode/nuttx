@@ -179,7 +179,7 @@ struct timer_ops_s
   /* Get the maximum supported timeout value */
 
   CODE int (*maxtimeout)(FAR struct timer_lowerhalf_s *lower,
-                         uint32_t *maxtimeout);
+                         FAR uint32_t *maxtimeout);
 };
 
 /* This structure provides the publicly visible representation of the

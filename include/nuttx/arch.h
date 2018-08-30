@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/arch.h
  *
- *   Copyright (C) 2007-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -731,6 +731,17 @@ void up_allocate_pgheap(FAR void **heap_start, size_t *heap_size);
 uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
 #endif
 
+/****************************************************************************
+ * Name: up_sched_have_garbage and up_sched_garbage_collection
+ *
+ * Description:
+ *   Some architectures may soft unique memory allocators.  If
+ *   CONFIG_ARCH_HAVE_GARBAGE is defined, those architectures must provide
+ *   both up_sched_have_garbage and up_sched_garbage_collection.  These will
+ *   be tied into the NuttX memory garbage collection logic.
+ *
+ ****************************************************************************/
+
 #ifdef CONFIG_ARCH_HAVE_GARBAGE
 bool up_sched_have_garbage(void);
 void up_sched_garbage_collection(void);
@@ -740,7 +751,7 @@ void up_sched_garbage_collection(void);
 #endif
 
 /****************************************************************************
- * Name: up_setpicbase, up_getpicbase
+ * Name: up_setpicbase and up_getpicbase
  *
  * Description:
  *   It NXFLAT external modules (or any other binary format that requires)
@@ -823,6 +834,7 @@ void up_sched_garbage_collection(void);
  *   up_addrenv_kstackfree   - Destroy the kernel stack.
  *
  ****************************************************************************/
+
 /****************************************************************************
  * Name: up_addrenv_create
  *
@@ -1231,7 +1243,10 @@ int up_addrenv_kstackfree(FAR struct tcb_s *tcb);
  * Name: up_addrenv_pa_to_va
  *
  * Description:
- *   Map phy address to virtual address.
+ *   Map phy address to virtual address.  Not supported by all architectures.
+ *
+ *   REVISIT:  Should this not then be conditional on having that
+ *   architecture-specific support?
  *
  * Input Parameters:
  *   pa - The phy address to be mapped.
@@ -1241,23 +1256,26 @@ int up_addrenv_kstackfree(FAR struct tcb_s *tcb);
  *
  ****************************************************************************/
 
-void *up_addrenv_pa_to_va(uintptr_t pa);
+FAR void *up_addrenv_pa_to_va(uintptr_t pa);
 
 /****************************************************************************
  * Name: up_addrenv_va_to_pa
  *
  * Description:
- *   Map virtual address to phy address.
+ *   Map virtual address to phy address.  Not supported by all architectures.
+ *
+ *   REVISIT:  Should this not then be conditional on having that
+ *   architecture-specific support?
  *
  * Input Parameters:
- *   va - The virtual address to be mapped.
+ *   va - The virtual address to be mapped.  Not supported by all architectures.
  *
  * Returned Value:
  *   Phy address on success; NULL on failure.
  *
  ****************************************************************************/
 
-uintptr_t up_addrenv_va_to_pa(void *va);
+uintptr_t up_addrenv_va_to_pa(FAR void *va);
 
 /****************************************************************************
  * Name: up_shmat
@@ -1433,11 +1451,11 @@ void up_disable_irq(int irq);
  * Name: up_trigger_irq
  *
  * Description:
- *   Trigger an IRQ by software.
+ *   Trigger an IRQ by software. May not be supported by all architectures.
  *
  ****************************************************************************/
 
-#ifndef CONFIG_ARCH_NOINTC
+#ifdef CONFIG_ARCH_HAVE_IRQTRIGGER
 void up_trigger_irq(int irq);
 #endif
 

@@ -270,9 +270,7 @@ static inline size_t vfork_argsize(FAR struct tcb_s *parent)
  *
  * Input Parameters:
  *   retaddr - Return address
- *
- * Output Parameters:
- *   argsize - Argument size
+ *   argsize - Location to return the argument size
  *
  * Returned Value:
  *   Upon successful completion, task_vforksetup() returns a pointer to
@@ -289,7 +287,7 @@ FAR struct task_tcb_s *task_vforksetup(start_t retaddr, size_t *argsize)
   int priority;
   int ret;
 
-  DEBUGASSERT(retaddr);
+  DEBUGASSERT(retaddr != NULL && argsize != NULL);
 
   /* Get the type of the fork'ed task (kernel or user) */
 

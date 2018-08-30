@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/wqueue/work_process.c
  *
- *   Copyright (C) 2009-2014, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2014, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -68,14 +68,14 @@
 #  define WORK_CLOCK CLOCK_REALTIME
 #endif
 
-#ifndef MIN
-#  define MIN(a,b) ((a) < (b) ? (a) : (b))
+#ifdef CONFIG_SYSTEM_TIME64
+#  define WORK_DELAY_MAX UINT64_MAX
+#else
+#  define WORK_DELAY_MAX UINT32_MAX
 #endif
 
-#ifdef CONFIG_SYSTEM_TIME64
-#  define WORK_DELAY_MAX ((clock_t)UINT64_MAX)
-#else
-#  define WORK_DELAY_MAX ((clock_t)UINT32_MAX)
+#ifndef MIN
+#  define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
 /****************************************************************************

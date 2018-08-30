@@ -233,7 +233,7 @@ uint8_t mpu_log2regionceil(uintptr_t base, size_t size)
 
   for (l2size = 5; l2size < 32; l2size++)
     {
-       if ((base & ((1 << l2size) - 1)) + size <= (1 << l2size))
+      if ((base & ((1 << l2size) - 1)) + size <= (1 << l2size))
         {
           break;
         }

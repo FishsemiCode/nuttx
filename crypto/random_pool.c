@@ -541,10 +541,15 @@ void up_randompool_initialize(void)
 }
 
 /****************************************************************************
- * Name: up_getrandom
+ * Name: getrandom
  *
  * Description:
- *   Fill a buffer of arbitrary length with randomness.
+ *   Fill a buffer of arbitrary length with randomness. This is the
+ *   preferred interface for getting random numbers. The traditional
+ *   /dev/random approach is susceptible for things like the attacker
+ *   exhausting file descriptors on purpose.
+ *
+ *   Note that this function cannot fail, other than by asserting.
  *
  * Input Parameters:
  *   bytes  - Buffer for returned random bytes
@@ -555,7 +560,7 @@ void up_randompool_initialize(void)
  *
  ****************************************************************************/
 
-void up_getrandom(FAR void *bytes, size_t nbytes)
+void getrandom(FAR void *bytes, size_t nbytes)
 {
   int ret;
 

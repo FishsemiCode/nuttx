@@ -1,7 +1,8 @@
 /****************************************************************************
  * drivers/pipes/pipe_common.c
  *
- *   Copyright (C) 2008-2009, 2011, 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011, 2015-2016, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -531,10 +532,18 @@ ssize_t pipecommon_write(FAR struct file *filep, FAR const char *buffer,
   DEBUGASSERT(dev);
   pipe_dumpbuffer("To PIPE:", (FAR uint8_t *)buffer, len);
 
+  /* Handle zero-length writes */
+
   if (len == 0)
     {
       return 0;
     }
+
+  /* REVISIT:  "If all file descriptors referring to the read end of a pipe
+   * have been closed, then a write will cause a SIGPIPE signal to be
+   * generated for the calling process.  If the calling process is ignoring
+   * this signal, then write(2) fails with the error EPIPE."
+   */
 
   if (dev->d_nreaders <= 0)
     {
@@ -713,17 +722,18 @@ int pipecommon_poll(FAR struct file *filep, FAR struct pollfd *fds,
         }
 
       /* Notify the POLLOUT event if the pipe is not full, but only if
-       * there is readers. */
+       * there is readers.
+       */
 
       eventset = 0;
-      if ((filep->f_oflags & O_WRONLY) && (nbytes < (dev->d_bufsize - 1)))
+      if ((filep->f_oflags & O_WROK) && (nbytes < (dev->d_bufsize - 1)))
         {
           eventset |= POLLOUT;
         }
 
       /* Notify the POLLIN event if the pipe is not empty */
 
-      if ((filep->f_oflags & O_RDONLY) && (nbytes > 0))
+      if ((filep->f_oflags & O_RDOK) && (nbytes > 0))
         {
           eventset |= POLLIN;
         }

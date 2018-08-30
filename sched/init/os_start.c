@@ -55,6 +55,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/sched_note.h>
 #include <nuttx/syslog/syslog.h>
+#include <nuttx/binfmt/binfmt.h>
 #include <nuttx/init.h>
 #include <nuttx/version.h>
 
@@ -154,31 +155,31 @@ volatile dq_queue_t g_pendingtasks;
 
 volatile dq_queue_t g_waitingforsemaphore;
 
+#ifndef CONFIG_DISABLE_SIGNALS
 /* This is the list of all tasks that are blocked waiting for a signal */
 
-#ifndef CONFIG_DISABLE_SIGNALS
 volatile dq_queue_t g_waitingforsignal;
 #endif
 
+#ifndef CONFIG_DISABLE_MQUEUE
 /* This is the list of all tasks that are blocked waiting for a message
  * queue to become non-empty.
  */
 
-#ifndef CONFIG_DISABLE_MQUEUE
 volatile dq_queue_t g_waitingformqnotempty;
 #endif
 
+#ifndef CONFIG_DISABLE_MQUEUE
 /* This is the list of all tasks that are blocked waiting for a message
  * queue to become non-full.
  */
 
-#ifndef CONFIG_DISABLE_MQUEUE
 volatile dq_queue_t g_waitingformqnotfull;
 #endif
 
+#ifdef CONFIG_PAGING
 /* This is the list of all tasks that are blocking waiting for a page fill */
 
-#ifdef CONFIG_PAGING
 volatile dq_queue_t g_waitingforfill;
 #endif
 
@@ -188,14 +189,14 @@ volatile dq_queue_t g_waitingforfill;
 
 volatile dq_queue_t g_inactivetasks;
 
+#if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
+     defined(CONFIG_MM_KERNEL_HEAP)
 /* These are lists of delayed memory deallocations that need to be handled
  * within the IDLE loop or worker thread.  These deallocations get queued
  * by sched_kufree and sched_kfree() if the OS needs to deallocate memory
  * while it is within an interrupt handler.
  */
 
-#if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
-     defined(CONFIG_MM_KERNEL_HEAP)
 volatile sq_queue_t g_delayed_kfree;
 #endif
 
@@ -723,6 +724,12 @@ void os_start(void)
    */
 
   lib_initialize();
+
+#ifndef CONFIG_BINFMT_DISABLE
+  /* Initialize the binfmt system */
+
+  binfmt_initialize();
+#endif
 
   /* IDLE Group Initialization **********************************************/
   /* Announce that the CPU0 IDLE task has started */

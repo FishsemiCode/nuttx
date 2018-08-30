@@ -165,12 +165,14 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
               ret = poll_fdsetup(fds[i].fd, &fds[i], true);
             }
           break;
+
         case POLLFILE:
           if (fds[i].ptr != NULL)
             {
               ret = file_poll(fds[i].ptr, &fds[i], true);
             }
           break;
+
 #ifdef CONFIG_NET
         case POLLSOCK:
           if (fds[i].ptr != NULL)
@@ -179,6 +181,7 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
             }
           break;
 #endif
+
         default:
           ret = -EINVAL;
           break;
@@ -199,14 +202,17 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
                 case POLLFD:
                   (void)poll_fdsetup(fds[j].fd, &fds[j], false);
                   break;
+
                 case POLLFILE:
                   (void)file_poll(fds[j].ptr, &fds[j], false);
                   break;
+
 #ifdef CONFIG_NET
                 case POLLSOCK:
                   (void)psock_poll(fds[j].ptr, &fds[j], false);
                   break;
 #endif
+
                 default:
                   break;
                 }
@@ -252,12 +258,14 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds, int *count,
               status = poll_fdsetup(fds[i].fd, &fds[i], false);
             }
           break;
+
         case POLLFILE:
           if (fds[i].ptr != NULL)
             {
               status = file_poll(fds[i].ptr, &fds[i], false);
             }
           break;
+
 #ifdef CONFIG_NET
         case POLLSOCK:
             if (fds[i].ptr != NULL)
@@ -266,6 +274,7 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds, int *count,
             }
           break;
 #endif
+
         default:
           status = -EINVAL;
           break;
@@ -300,7 +309,7 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds, int *count,
  * Name: file_poll
  *
  * Description:
- *   Low-level poll operation based on struc file.  This is used both to (1)
+ *   Low-level poll operation based on struct file.  This is used both to (1)
  *   support detached file, and also (2) by fdesc_poll() to perform all
  *   normal operations on file descriptors descriptors.
  *

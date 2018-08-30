@@ -569,7 +569,7 @@ void neighbor_out(FAR struct net_driver_s *dev);
 #endif /* CONFIG_NET_IPv6 */
 
 /****************************************************************************
- * Name: loopback_out
+ * Name: devif_loopback
  *
  * Description:
  *   This function should be called before sending out a packet. The function
@@ -583,7 +583,7 @@ void neighbor_out(FAR struct net_driver_s *dev);
  *
  ****************************************************************************/
 
-int loopback_out(FAR struct net_driver_s *dev);
+int devif_loopback(FAR struct net_driver_s *dev);
 
 /****************************************************************************
  * Carrier detection
@@ -614,7 +614,9 @@ int netdev_carrier_off(FAR struct net_driver_s *dev);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_NET_USRSOCK
 ssize_t net_ioctl_arglen(int cmd);
+#endif
 
 /****************************************************************************
  * Name: net_chksum

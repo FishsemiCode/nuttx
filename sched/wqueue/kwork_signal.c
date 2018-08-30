@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/wqueue/work_signal.c
  *
- *   Copyright (C) 2014, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014, 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -71,16 +71,16 @@
 
 int work_signal(int qid)
 {
-  struct kwork_wqueue_s *work;
-  int i, threads;
-  pid_t pid;
+  FAR struct kwork_wqueue_s *work;
+  int threads;
+  int i;
 
   /* Get the process ID of the worker thread */
 
 #ifdef CONFIG_SCHED_HPWORK
   if (qid == HPWORK)
     {
-      work = (struct kwork_wqueue_s *)&g_hpwork;
+      work = (FAR struct kwork_wqueue_s *)&g_hpwork;
       threads = CONFIG_SCHED_HPNTHREADS;
     }
   else
@@ -88,7 +88,7 @@ int work_signal(int qid)
 #ifdef CONFIG_SCHED_LPWORK
   if (qid == LPWORK)
     {
-      work = (struct kwork_wqueue_s *)&g_lpwork;
+      work = (FAR struct kwork_wqueue_s *)&g_lpwork;
       threads = CONFIG_SCHED_LPNTHREADS;
     }
   else
@@ -120,9 +120,7 @@ int work_signal(int qid)
 
   /* Otherwise, signal the first IDLE thread found */
 
-  pid = work->worker[i].pid;
-
-  return nxsig_kill(pid, SIGWORK);
+  return nxsig_kill(work->worker[i].pid, SIGWORK);
 }
 
 #endif /* CONFIG_SCHED_WORKQUEUE */

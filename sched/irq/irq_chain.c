@@ -93,7 +93,8 @@ static int irqchain_dispatch(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct irqchain_s *curr;
   FAR struct irqchain_s *prev;
-  int ndx, ret = 0;
+  int ndx;
+  int ret = 0;
 
 #ifdef CONFIG_ARCH_MINIMAL_VECTORTABLE
   ndx = g_irqmap[irq];
@@ -137,8 +138,8 @@ void irqchain_initialize(void)
 
 bool is_irqchain(int ndx, xcpt_t isr)
 {
-  if (g_irqvector[ndx].handler == irq_unexpected_isr
-      || g_irqvector[ndx].handler == NULL)
+  if (g_irqvector[ndx].handler == irq_unexpected_isr ||
+      g_irqvector[ndx].handler == NULL)
     {
       return false;
     }
@@ -163,7 +164,7 @@ int irqchain_attach(int ndx, xcpt_t isr, FAR void *arg)
         {
           if (sq_count(&g_irqchainfreelist) < 2)
             {
-             return -ENOMEM;
+              return -ENOMEM;
             }
 
           node = (FAR struct irqchain_s *)sq_remfirst(&g_irqchainfreelist);
@@ -192,6 +193,7 @@ int irqchain_attach(int ndx, xcpt_t isr, FAR void *arg)
         {
           curr = curr->next;
         }
+
       curr->next = node;
     }
   else
@@ -234,7 +236,9 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg)
       if (g_irqvector[ndx].handler == irqchain_dispatch)
         {
           first = g_irqvector[ndx].arg;
-          for (prev = NULL, curr = first; curr != NULL; prev = curr, curr = curr->next)
+          for (prev = NULL, curr = first;
+               curr != NULL;
+               prev = curr, curr = curr->next)
             {
               if (curr->handler == isr && curr->arg == arg)
                 {
@@ -250,6 +254,7 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg)
                     {
                       prev->next = curr->next;
                     }
+
                   sq_addlast((FAR struct sq_entry_s *)curr, &g_irqchainfreelist);
 
                   first = g_irqvector[ndx].arg;
@@ -259,6 +264,7 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg)
                       g_irqvector[ndx].arg     = first->arg;
                       sq_addlast((FAR struct sq_entry_s *)first, &g_irqchainfreelist);
                     }
+
                   ret = OK;
                   break;
                 }

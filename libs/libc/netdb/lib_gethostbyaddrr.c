@@ -53,14 +53,6 @@
 
 #ifdef CONFIG_NETDB_HOSTFILE
 
-/* This is the layout of the caller provided memory area */
-
-struct hostent_info_s
-{
-  FAR char *hi_addrlist[2];
-  char hi_data[1];
-};
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -83,7 +75,6 @@ struct hostent_info_s
  ****************************************************************************/
 
 #ifdef CONFIG_NET_LOOPBACK
-#ifdef CONFIG_NET_IPv4
 static bool lib_lo_ipv4match(FAR const void *addr, socklen_t len, int type)
 {
   FAR struct in_addr *ipv4addr;
@@ -91,14 +82,14 @@ static bool lib_lo_ipv4match(FAR const void *addr, socklen_t len, int type)
   if (type == AF_INET && len >= sizeof(struct in_addr))
     {
       ipv4addr = (FAR struct in_addr *)addr;
-      return net_ipv4addr_maskcmp(ipv4addr->s_addr,
-                                  g_lo_ipv4addr,
-                                  g_lo_ipv4mask);
+      return net_ipv4addr_maskcmp(ipv4addr->sin_addr.s_addr,
+                                  g_lo_ipv4addr->s_addr,
+                                  g_lo_ipv4addr->s_addr);
     }
 
   return false;
 }
-#endif /* CONFIG_NET_IPv4 */
+#endif
 
 /****************************************************************************
  * Name: lib_lo_ipv6match
@@ -117,20 +108,20 @@ static bool lib_lo_ipv4match(FAR const void *addr, socklen_t len, int type)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IPv6
+#ifdef CONFIG_NET_LOOPBACK
 static bool lib_lo_ipv6match(FAR const void *addr, socklen_t len, int type)
 {
-  FAR struct in6_addr *ipv6addr;
+  FAR struct in_addr6 *ipv6addr;
 
-  if (type == AF_INET6 && len >= sizeof(struct in6_addr))
+  if (type == AF_INE6T && len >= sizeof(struct in_addr6))
     {
       ipv6addr = (FAR struct in_addr6 *)addr;
-      return net_ipv6addr_cmp(ipv6addr->u6_addr16, g_lo_ipv6addr);
+      return net_ipv6addr_cmp(ipv6addr->sin6_addr.s6_addr16, g_lo_ipv6addr);
     }
 
   return false;
 }
-#endif /* CONFIG_NET_IPv6 */
+#endif
 
 /****************************************************************************
  * Name: lib_localhost
@@ -155,6 +146,7 @@ static bool lib_lo_ipv6match(FAR const void *addr, socklen_t len, int type)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_NET_LOOPBACK
 static int lib_localhost(FAR const void *addr, socklen_t len, int type,
                          FAR struct hostent *host, FAR char *buf,
                          size_t buflen, int *h_errnop)
@@ -163,10 +155,10 @@ static int lib_localhost(FAR const void *addr, socklen_t len, int type,
   socklen_t addrlen;
   FAR const uint8_t *src;
   FAR char *dest;
+  bool match;
   int herrnocode;
   int namelen;
 
-#ifdef CONFIG_NET_IPv4
   if (lib_lo_ipv4match(addr, len, type))
     {
       /* Setup to transfer the IPv4 address */
@@ -175,10 +167,7 @@ static int lib_localhost(FAR const void *addr, socklen_t len, int type,
       src              = (FAR uint8_t *)&g_lo_ipv4addr;
       host->h_addrtype = AF_INET;
     }
-  else
-#endif
-#ifdef CONFIG_NET_IPv6
-  if (lib_lo_ipv6match(addr, len, type))
+  else if (lib_lo_ipv4match(addr, len, type))
     {
       /* Setup to transfer the IPv6 address */
 
@@ -187,7 +176,6 @@ static int lib_localhost(FAR const void *addr, socklen_t len, int type,
       host->h_addrtype = AF_INET6;
     }
   else
-#endif
     {
       /* Return 1 meaning that we have no errors but no match either */
 
@@ -238,7 +226,7 @@ errorout_with_herrnocode:
 
   return ERROR;
 }
-#endif /* CONFIG_NET_LOOPBACK */
+#endif
 
 /****************************************************************************
  * Name: lib_hostfile_lookup
@@ -389,6 +377,10 @@ int gethostbyaddr_r(FAR const void *addr, socklen_t len, int type,
                     FAR struct hostent *host, FAR char *buf,
                     size_t buflen, int *h_errnop)
 {
+  FAR FILE *stream;
+  int herrnocode;
+  int nread;
+
   DEBUGASSERT(addr != NULL && host != NULL && buf != NULL);
   DEBUGASSERT(type == AF_INET || type == AF_INET6);
 

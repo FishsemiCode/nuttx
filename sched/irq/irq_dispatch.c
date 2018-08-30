@@ -45,10 +45,13 @@
 #include <nuttx/random.h>
 
 #include "irq/irq.h"
+#include "clock/clock.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
+/* INCR_COUNT - Increment the count of interrupts taken on this IRQ number */
 
 #ifdef CONFIG_SCHED_IRQMONITOR
 #  ifdef CONFIG_HAVE_LONG_LONG
@@ -69,6 +72,15 @@
          } \
        while (0)
 #  endif
+#else
+#  define INCR_COUNT(ndx)
+#endif
+
+/* CALL_VECTOR - Call the interrupt service routine attached to this interrupt
+ * request
+ */
+
+#if defined(CONFIG_SCHED_IRQMONITOR) && defined(CONFIG_SCHED_TICKLESS)
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      do \
        { \
@@ -86,7 +98,6 @@
        } \
      while (0)
 #else
-#  define INCR_COUNT(ndx)
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      vector(irq, context, arg)
 #endif
@@ -109,7 +120,7 @@ void irq_dispatch(int irq, FAR void *context)
 {
   xcpt_t vector = irq_unexpected_isr;
   FAR void *arg = NULL;
-  unsigned ndx = irq;
+  unsigned int ndx = irq;
 
 #if NR_IRQS > 0
   if ((unsigned)irq < NR_IRQS)
@@ -118,15 +129,22 @@ void irq_dispatch(int irq, FAR void *context)
       ndx = g_irqmap[irq];
       if (ndx < CONFIG_ARCH_NUSER_INTERRUPTS)
         {
-#endif
           if (g_irqvector[ndx].handler)
             {
               vector = g_irqvector[ndx].handler;
               arg    = g_irqvector[ndx].arg;
-              INCR_COUNT(ndx);
             }
-#ifdef CONFIG_ARCH_MINIMAL_VECTORTABLE
+
+          INCR_COUNT(ndx);
         }
+#else
+      if (g_irqvector[ndx].handler)
+        {
+          vector = g_irqvector[ndx].handler;
+          arg    = g_irqvector[ndx].arg;
+        }
+
+      INCR_COUNT(ndx);
 #endif
     }
 #endif

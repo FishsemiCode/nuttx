@@ -27,6 +27,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <nuttx/nuttx.h>
+
 #include <stddef.h>
 #include <stdbool.h>
 

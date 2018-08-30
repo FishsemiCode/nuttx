@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmp/icmp_netpoll.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,8 +47,8 @@
 #include <nuttx/net/net.h>
 
 #include <devif/devif.h>
-#include "icmp/icmp.h"
 #include "netdev/netdev.h"
+#include "icmp/icmp.h"
 
 #ifdef CONFIG_MM_IOB
 
@@ -202,12 +202,12 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
    * dev value will be zero and there will be no NETDEV_DOWN notifications.
    */
 
-  /* Allocate a ICMP callback structure */
-
   if (conn->dev == NULL)
     {
       conn->dev = netdev_default();
     }
+
+  /* Allocate a ICMP callback structure */
 
   cb = icmp_callback_alloc(conn->dev);
   if (cb == NULL)

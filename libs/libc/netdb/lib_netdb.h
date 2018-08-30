@@ -64,12 +64,6 @@
 #  define CONFIG_NETDB_HOSTCONF_PATH "/etc/hosts"
 #endif
 
-/* This is the path to the system services file */
-
-#ifndef CONFIG_NETDB_SERVICES_PATH
-#  define CONFIG_NETDB_SERVICES_PATH "/etc/services"
-#endif
-
 /* Size of the buffer available for host data */
 
 #ifndef CONFIG_NETDB_BUFSIZE
@@ -90,9 +84,6 @@ extern "C"
 
 EXTERN struct hostent g_hostent;
 EXTERN char g_hostbuffer[CONFIG_NETDB_BUFSIZE];
-
-EXTERN struct servent g_servent;
-EXTERN char g_servbuffer[CONFIG_NETDB_BUFSIZE];
 
 /****************************************************************************
  * Public Function Prototypes

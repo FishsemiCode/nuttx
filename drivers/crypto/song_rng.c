@@ -114,7 +114,30 @@ static const struct file_operations g_song_rng_fops =
 static ssize_t song_rng_read(FAR struct file *filep, FAR char *buffer,
                              size_t len)
 {
-  getrandom(buffer, len);
+  size_t nbytes = len;
+
+  while (nxsem_wait(&g_song_rng_sem) != 0)
+    ; /* Ignore -EINTR error */
+
+  g_song_rng->CTRL &= ~SONG_RNG_STOP;
+  while (nbytes > 0)
+    {
+      size_t copied = sizeof(g_song_rng->DATA);
+
+      if (copied > nbytes)
+        {
+          copied = nbytes;
+        }
+
+      up_udelay(31); /* Wait one 32KHz before copy */
+      memcpy(buffer, (FAR void *)g_song_rng->DATA, copied);
+
+      buffer += copied;
+      nbytes -= copied;
+    }
+  g_song_rng->CTRL |= SONG_RNG_STOP;
+
+  nxsem_post(&g_song_rng_sem);
   return len;
 }
 
@@ -176,51 +199,5 @@ void devurandom_register(void)
   register_driver("/dev/urandom", &g_song_rng_fops, 0444, NULL);
 }
 #endif
-
-/****************************************************************************
- * Name: getrandom
- *
- * Description:
- *   Fill a buffer of arbitrary length with randomness. This is the
- *   preferred interface for getting random numbers. The traditional
- *   /dev/random approach is susceptible for things like the attacker
- *   exhausting file descriptors on purpose.
- *
- *   Note that this function cannot fail, other than by asserting.
- *
- * Parameters:
- *   bytes  - Buffer for returned random bytes
- *   nbytes - Number of bytes requested.
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void getrandom(FAR void *bytes, size_t nbytes)
-{
-  while (nxsem_wait(&g_song_rng_sem) != 0)
-    ; /* Ignore -EINTR error */
-
-  g_song_rng->CTRL &= ~SONG_RNG_STOP;
-  while (nbytes > 0)
-    {
-      size_t copied = sizeof(g_song_rng->DATA);
-
-      if (copied > nbytes)
-        {
-          copied = nbytes;
-        }
-
-      up_udelay(31); /* Wait one 32KHz before copy */
-      memcpy(bytes, (FAR void *)g_song_rng->DATA, copied);
-
-      bytes  += copied;
-      nbytes -= copied;
-    }
-  g_song_rng->CTRL |= SONG_RNG_STOP;
-
-  nxsem_post(&g_song_rng_sem);
-}
 
 #endif /* CONFIG_DEV_RANDOM || CONFIG_DEV_URANDOM_ARCH */

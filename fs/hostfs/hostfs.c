@@ -935,8 +935,8 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 
   /* Create an instance of the mountpt state structure */
 
-  fs = (struct hostfs_mountpt_s *)kmm_zalloc(sizeof(struct hostfs_mountpt_s));
-  if (!fs)
+  fs = (FAR struct hostfs_mountpt_s *)kmm_zalloc(sizeof(struct hostfs_mountpt_s));
+  if (fs == NULL)
     {
       return -ENOMEM;
     }
@@ -998,7 +998,7 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
   /* Now perform the mount.  */
 
   len = strlen(fs->fs_root);
-  if (len > 1 && fs->fs_root[len-1] == '/')
+  if (len > 1 && fs->fs_root[len - 1] == '/')
     {
       /* Remove trailing '/' */
 

@@ -238,7 +238,7 @@ void sched_garbage_collection(void)
 
   sched_kucleanup();
 
-  /* Handle the arch specific garbage collection */
+  /* Handle the architecure-specific garbage collection */
 
   up_sched_garbage_collection();
 }
@@ -268,5 +268,6 @@ void sched_garbage_collection(void)
 
 bool sched_have_garbage(void)
 {
-  return (sched_have_kgarbage() || sched_have_kugarbage() || up_sched_have_garbage());
+  return (sched_have_kgarbage() || sched_have_kugarbage() ||
+          up_sched_have_garbage());
 }

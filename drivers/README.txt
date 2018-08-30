@@ -18,11 +18,6 @@ dev_null.c, dev_urandom, and dev_zero.c
   that should be called if you want to register these devices
   (devnull_register(), devurandom_register(), and devzero_register()).
 
-pwm.c
-  Provides the "upper half" of a pulse width modulation (PWM) driver.
-  The "lower half" of the PWM driver is provided by device-specific
-  logic.  See include/nuttx/drivers/pwm.h for usage information.
-
 ramdisk.c
   Can be used to set up a block of memory or (read-only) FLASH as
   a block driver that can be mounted as a files system.  See
@@ -60,6 +55,9 @@ contactless/
   communication devices with other similar peers, but couplers/interfaces
   to contactless cards and tags.
 
+crypto/
+  Contains crypto drivers and support logic.
+
 eeprom/
   An EEPROM is a form of Memory Technology Device (see drivers/mtd).
   EEPROMs are non-volatile memory like FLASH, but differ in underlying
@@ -76,6 +74,9 @@ eeprom/
 
 i2c/
   I2C drivers and support logic.  See include/nuttx/i2c/i2c_master.h
+
+i2s/
+  I2S drivers and support logic.  See include/nuttx/audio/i2s.h
 
 input/
   This directory holds implementations of human input device (HID)
@@ -126,6 +127,11 @@ power/
   to manage power usage of a platform by monitoring driver activity
   and by placing drivers into reduce power usage modes when the
   drivers are not active.
+
+pwm/
+  Provides the "upper half" of a pulse width modulation (PWM) driver.
+  The "lower half" of the PWM driver is provided by device-specific
+  logic.  See include/nuttx/drivers/pwm.h for usage information.
 
 sensors/
   Drivers for various sensors.  A sensor driver differs little from

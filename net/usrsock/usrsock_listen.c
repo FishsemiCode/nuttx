@@ -1,8 +1,8 @@
 /****************************************************************************
  * net/usrsock/usrsock_listen.c
  *
- *  Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *  Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions

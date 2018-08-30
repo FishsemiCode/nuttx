@@ -55,7 +55,7 @@
 
 static void pm_timer_cb(int argc, wdparm_t arg1, ...)
 {
-  /* Do nothing here, cause we only need TIMER ISR to weak up PM,
+  /* Do nothing here, cause we only need TIMER ISR to wake up PM,
    * for deceasing PM state.
    */
 }
@@ -285,14 +285,10 @@ int pm_changestate(int domain, enum pm_state_e newstate)
   if (ret != OK)
     {
       /* One or more drivers is not ready for this state change.  Revert to
-       * the CONFIG_PM_REVERT_STATE.
+       * the preceding state.
        */
 
-#if CONFIG_PM_REVERT_STATE < 0
-      newstate = g_pmglobals.domain[domain].state;
-#else
-      newstate = CONFIG_PM_REVERT_STATE;
-#endif
+      newstate =  g_pmglobals.domain[domain].state;
       (void)pm_prepall(domain, newstate);
     }
 
@@ -304,12 +300,9 @@ int pm_changestate(int domain, enum pm_state_e newstate)
   if (newstate != PM_RESTORE)
     {
       g_pmglobals.domain[domain].state = newstate;
-    }
 
-  /* Start PM timer for decrease PM state */
+      /* Start PM timer to decrease PM state */
 
-  if (newstate != PM_RESTORE)
-    {
       pm_timer(domain);
     }
 
@@ -318,6 +311,20 @@ int pm_changestate(int domain, enum pm_state_e newstate)
   leave_critical_section(flags);
   return ret;
 }
+
+/****************************************************************************
+ * Name: pm_querystate
+ *
+ * Description:
+ *   This function returns the current power management state.
+ *
+ * Input Parameters:
+ *   domain - The PM domain to check
+ *
+ * Returned Value:
+ *   The current power management state.
+ *
+ ****************************************************************************/
 
 enum pm_state_e pm_querystate(int domain)
 {

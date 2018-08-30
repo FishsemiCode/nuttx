@@ -93,7 +93,7 @@ struct mtd_partition_s
   struct mtd_partition_s  *pnext; /* Pointer to next partition struct */
 #endif
 #ifdef CONFIG_MTD_PARTITION_NAMES
-  char name[NAME_MAX+1];         /* Name of the partition */
+  char name[11];                /* Name of the partition */
 #endif
 };
 
@@ -545,7 +545,7 @@ static ssize_t part_procfs_read(FAR struct file *filep, FAR char *buffer,
   ssize_t blkpererase;
   ssize_t ret;
 #ifdef CONFIG_MTD_PARTITION_NAMES
-  char partname[NAME_MAX+1];
+  char partname[11];
   FAR const char *ptr;
   uint8_t x;
 #endif
@@ -604,33 +604,26 @@ static ssize_t part_procfs_read(FAR struct file *filep, FAR char *buffer,
           /* Copy data from the next known partition */
 
 #ifdef CONFIG_MTD_PARTITION_NAMES
-          if (attr->nextpart->name[0] == '\0')
+          ptr = attr->nextpart->name;
+          for (x = 0; x < sizeof(partname) - 1; x++)
             {
-              strcpy(partname, "(noname)  ");
-            }
-          else
-            {
-              ptr = attr->nextpart->name;
-              for (x = 0; x < sizeof(partname) - 1; x++)
+              /* Test for end of partition name */
+
+              if (*ptr == ',' || *ptr == '\0')
                 {
-                  /* Test for end of partition name */
+                  /* Perform space fill for alignment */
 
-                  if (*ptr == ',' || *ptr == '\0')
-                    {
-                      /* Perform space fill for alignment */
-
-                      partname[x] = ' ';
-                    }
-                  else
-                    {
-                      /* Copy next byte of partition name */
-
-                      partname[x] = *ptr++;
-                    }
+                  partname[x] = ' ';
                 }
+              else
+                {
+                  /* Copy next byte of partition name */
 
-              partname[x] = '\0';
+                  partname[x] = *ptr++;
+                }
             }
+
+          partname[x] = '\0';
 
           /* Terminate the partition name and add to output buffer */
 
@@ -859,6 +852,10 @@ FAR struct mtd_dev_s *mtd_partition(FAR struct mtd_dev_s *mtd, off_t firstblock,
   part->blocksize    = geo.blocksize;
   part->blkpererase  = blkpererase;
 
+#ifdef CONFIG_MTD_PARTITION_NAMES
+  strcpy(part->name, "(noname)");
+#endif
+
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_PROCFS_EXCLUDE_PARTITIONS)
   /* Add this partition to the list of known partitions */
 
@@ -902,13 +899,14 @@ int mtd_setpartitionname(FAR struct mtd_dev_s *mtd, FAR const char *name)
 {
   FAR struct mtd_partition_s *priv = (FAR struct mtd_partition_s *)mtd;
 
-  if (!priv || !name)
+  if (priv == NULL || name == NULL)
     {
       return -EINVAL;
     }
 
   /* Allocate space for the name */
-  strcpy(priv->name, name);
+
+  strncpy(priv->name, name, sizeof(priv->name));
   return OK;
 }
 #endif

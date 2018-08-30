@@ -97,11 +97,15 @@ void irq_initialize(void)
       g_irqvector[i].mscount = 0;
       g_irqvector[i].lscount = 0;
 #endif
+#ifdef CONFIG_SCHED_TICKLESS
       g_irqvector[i].time    = 0;
+#endif
 #endif
     }
 
 #ifdef CONFIG_IRQCHAIN
+  /* Initialize IRQ chain support */
+
   irqchain_initialize();
 #endif
 }

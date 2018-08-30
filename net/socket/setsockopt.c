@@ -97,7 +97,7 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
 
   /* Verify that the sockfd corresponds to valid, allocated socket */
 
-  if (!psock || psock->s_crefs <= 0)
+  if (psock == NULL || psock->s_crefs <= 0)
     {
       return -EBADF;
     }

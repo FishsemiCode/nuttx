@@ -48,7 +48,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-#if defined(CONFIG_DEV_RANDOM) || defined(CONFIG_DEV_URANDOM)
+#ifdef CONFIG_CRYPTO_RANDOM_POOL
 
 /****************************************************************************
  * Name: getrandom
@@ -72,6 +72,6 @@
 
 void getrandom(FAR void *bytes, size_t nbytes);
 
-#endif /* CONFIG_DEV_RANDOM || CONFIG_DEV_URANDOM */
+#endif /* CONFIG_CRYPTO_RANDOM_POOL */
 
 #endif /* __INCLUDE_SYS_RANDOM_H */

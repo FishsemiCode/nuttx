@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/serial/pty.c
  *
- *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -941,7 +941,7 @@ static int pty_poll(FAR struct file *filep, FAR struct pollfd *fds,
   FAR struct inode *inode;
   FAR struct pty_dev_s *dev;
   FAR struct pty_devpair_s *devpair;
-  FAR struct pty_poll_s *p = NULL;
+  FAR struct pty_poll_s *pollp = NULL;
   int ret = -ENOSYS;
   int i;
 
@@ -958,7 +958,7 @@ static int pty_poll(FAR struct file *filep, FAR struct pollfd *fds,
         {
           if (dev->pd_poll[i].src == NULL && dev->pd_poll[i].sink == NULL)
             {
-              p = &dev->pd_poll[i];
+              pollp = &dev->pd_poll[i];
               break;
             }
         }
@@ -971,44 +971,46 @@ static int pty_poll(FAR struct file *filep, FAR struct pollfd *fds,
     }
   else
     {
-      p = (FAR struct pty_poll_s *)fds->priv;
+      pollp = (FAR struct pty_poll_s *)fds->priv;
     }
 
   /* POLLIN: Data other than high-priority data may be read without blocking. */
 
   if ((fds->events & POLLIN) != 0)
     {
-      fds->priv = p->src;
+      fds->priv = pollp->src;
       ret = file_poll(&dev->pd_src, fds, setup);
       if (ret < 0)
         {
           goto errout;
         }
-      p->src = fds->priv;
+
+      pollp->src = fds->priv;
     }
 
   /* POLLOUT: Normal data may be written without blocking. */
 
   if ((fds->events & POLLOUT) != 0)
     {
-      fds->priv = p->sink;
+      fds->priv = pollp->sink;
       ret = file_poll(&dev->pd_sink, fds, setup);
       if (ret < 0)
         {
-          if (p->src)
+          if (pollp->src)
             {
-              fds->priv = p->src;
+              fds->priv = pollp->src;
               file_poll(&dev->pd_src, fds, false);
-              p->src = NULL;
+              pollp->src = NULL;
             }
+
           goto errout;
         }
-      p->sink = fds->priv;
+      pollp->sink = fds->priv;
     }
 
   if (setup)
     {
-      fds->priv = p;
+      fds->priv = pollp;
     }
 
 errout:

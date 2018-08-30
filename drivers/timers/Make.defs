@@ -50,6 +50,7 @@ ifeq ($(CONFIG_WATCHDOG_DW),y)
   TMRDEPPATH = --dep-path timers
   TMRVPATH = :timers
 endif
+
 ifeq ($(CONFIG_TIMER),y)
   CSRCS += timer.c
   TMRDEPPATH = --dep-path timers

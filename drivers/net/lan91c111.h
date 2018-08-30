@@ -46,18 +46,18 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/*
- . Bank Select Register:
- .
- .              yyyy yyyy 0000 00xx
- .              xx              = bank number
- .              yyyy yyyy       = 0x33, for identification purposes.
-*/
-#define BANK_SELECT             14
+/* Bank Select Register:
+ *
+ *              yyyy yyyy 0000 00xx
+ *              xx              = bank number
+ *              yyyy yyyy       = 0x33, for identification purposes.
+ */
 
+#define BANK_SELECT             14
 
 /* Transmit Control Register */
 /* BANK 0 */
+
 #define TCR_REG                 0x0000
 #define TCR_ENABLE              0x0001 /* When 1 we can transmit */
 #define TCR_LOOP                0x0002 /* Controls output pin LBK */
@@ -71,12 +71,14 @@
 #define TCR_SWFDUP              0x8000 /* When 1 enables Switched Full Duplex mode */
 
 #define TCR_CLEAR               0      /* do NOTHING */
-/* the default settings for the TCR register : */
-#define TCR_DEFAULT             (TCR_ENABLE | TCR_PAD_EN)
 
+/* the default settings for the TCR register : */
+
+#define TCR_DEFAULT             (TCR_ENABLE | TCR_PAD_EN)
 
 /* EPH Status Register */
 /* BANK 0 */
+
 #define EPH_STATUS_REG          0x0002
 #define ES_TX_SUC               0x0001 /* Last TX was successful */
 #define ES_SNGL_COL             0x0002 /* Single collision detected for last tx */
@@ -94,9 +96,9 @@
 #define ES_TXUNRN               0x8000 /* Tx Underrun */
 #define ES_ERRORS               (ES_TXUNRN | ES_LOSTCARR | ES_LATCOL | ES_SQET | ES_16COL)
 
-
 /* Receive Control Register */
 /* BANK 0 */
+
 #define RCR_REG                 0x0004
 #define RCR_RX_ABORT            0x0001 /* Set if a rx frame was aborted */
 #define RCR_PRMS                0x0002 /* Enable promiscuous mode */
@@ -108,6 +110,7 @@
 #define RCR_SOFTRST             0x8000 /* resets the chip */
 
 /* the normal settings for the RCR register : */
+
 #ifdef CONFIG_NET_PROMISCUOUS
 #  define RCR_DEFAULT           (RCR_STRIP_CRC | RCR_RXEN | RCR_PRMS)
 #else
@@ -115,19 +118,20 @@
 #endif
 #define RCR_CLEAR               0x0    /* set it to a base state */
 
-
 /* Counter Register */
 /* BANK 0 */
-#define COUNTER_REG             0x0006
 
+#define COUNTER_REG             0x0006
 
 /* Memory Information Register */
 /* BANK 0 */
+
 #define MIR_REG                 0x0008
 #define MIR_FREE_MASK           0xff00
 
 /* Receive/Phy Control Register */
 /* BANK 0 */
+
 #define RPC_REG                 0x000A
 #define RPC_SPEED               0x2000 /* When 1 PHY is in 100Mbps mode. */
 #define RPC_DPLX                0x1000 /* When 1 PHY is in Full-Duplex Mode */
@@ -150,11 +154,12 @@
 
 /* Bank Select Register */
 /* All Banks */
-#define BSR_REG                 0x000E
 
+#define BSR_REG                 0x000E
 
 /* Configuration Reg */
 /* BANK 1 */
+
 #define CONFIG_REG              0x0100
 #define CONFIG_EXT_PHY          0x0200 /* 1=external MII, 0=internal Phy */
 #define CONFIG_GPCNTRL          0x0400 /* Inverse value drives pin nCNTRL */
@@ -162,29 +167,30 @@
 #define CONFIG_EPH_POWER_EN     0x8000 /* When 0 EPH is placed into low power mode. */
 
 /* Default is powered-up, Internal Phy, Wait States, and pin nCNTRL=low */
+
 #define CONFIG_DEFAULT          (CONFIG_EPH_POWER_EN)
 #define CONFIG_CLEAR             0
 
-
 /* Base Address Register */
 /* BANK 1 */
-#define BASE_REG                0x0102
 
+#define BASE_REG                0x0102
 
 /* Individual Address Registers */
 /* BANK 1 */
+
 #define ADDR0_REG               0x0104
 #define ADDR1_REG               0x0106
 #define ADDR2_REG               0x0108
 
-
 /* General Purpose Register */
 /* BANK 1 */
-#define  GP_REG                 0x010A
 
+#define  GP_REG                 0x010A
 
 /* Control Register */
 /* BANK 1 */
+
 #define CTL_REG                 0x010C
 #define CTL_RCV_BAD             0x4000 /* When 1 bad CRC packets are received */
 #define CTL_AUTO_RELEASE        0x0800 /* When 1 tx pages are released automatically */
@@ -198,9 +204,9 @@
 #define CTL_DEFAULT             (CTL_AUTO_RELEASE)
 #define CTL_CLEAR               0
 
-
 /* MMU Command Register */
 /* BANK 2 */
+
 #define MMU_CMD_REG             0x0200
 #define MC_BUSY                 1      /* When 1 the last release has not completed */
 #define MC_NOP                  (0<<5) /* No Op */
@@ -212,25 +218,26 @@
 #define MC_ENQUEUE              (6<<5) /* Enqueue the packet for transmit */
 #define MC_RSTTXFIFO            (7<<5) /* Reset the TX FIFOs */
 
-
 /* Packet Number Register */
 /* BANK 2 */
-#define  PN_REG                 0x0202
 
+#define  PN_REG                 0x0202
 
 /* Allocation Result Register */
 /* BANK 2 */
+
 #define AR_REG                  0x0203
 #define AR_FAILED               0x80   /* Allocation Failed */
 
-
 /* TX FIFO Ports Register */
 /* BANK 2 */
+
 #define TXFIFO_REG              0x0204
 #define TXFIFO_TEMPTY           0x80   /* TX FIFO Empty */
 
 /* RX FIFO Ports Register */
 /* BANK 2 */
+
 #define RXFIFO_REG              0x0205
 #define RXFIFO_REMPTY           0x80   /* RX FIFO Empty */
 
@@ -238,25 +245,26 @@
 
 /* Pointer Register */
 /* BANK 2 */
+
 #define PTR_REG                 0x0206
 #define PTR_RCV                 0x8000 /* 1=Receive area, 0=Transmit area */
 #define PTR_AUTOINC             0x4000 /* Auto increment the pointer on each access */
 #define PTR_READ                0x2000 /* When 1 the operation is a read */
 #define PTR_NOTEMPTY            0x0800 /* When 1 _do not_ write fifo DATA REG */
 
-
 /* Data Register */
 /* BANK 2 */
-#define DATA_REG                0x0208
 
+#define DATA_REG                0x0208
 
 /* Interrupt Status/Acknowledge Register */
 /* BANK 2 */
-#define INT_REG                 0x020C
 
+#define INT_REG                 0x020C
 
 /* Interrupt Mask Register */
 /* BANK 2 */
+
 #define IM_REG                  0x020D
 #define IM_MDINT                0x80   /* PHY MI Register 18 Interrupt */
 #define IM_ERCV_INT             0x40   /* Early Receive Interrupt */
@@ -267,17 +275,17 @@
 #define IM_TX_INT               0x02   /* Transmit Interrrupt */
 #define IM_RCV_INT              0x01   /* Receive Interrupt */
 
-
 /* Multicast Table Registers */
 /* BANK 3 */
+
 #define MCAST_REG1              0x0300
 #define MCAST_REG2              0x0302
 #define MCAST_REG3              0x0304
 #define MCAST_REG4              0x0306
 
-
 /* Management Interface Register (MII) */
 /* BANK 3 */
+
 #define MII_REG                 0x0308
 #define MII_MSK_CRS100          0x4000 /* Disables CRS100 detection during tx half dup */
 #define MII_MDOE                0x0008 /* MII Output Enable */
@@ -285,25 +293,24 @@
 #define MII_MDI                 0x0002 /* MII Input, pin MDI */
 #define MII_MDO                 0x0001 /* MII Output, pin MDO */
 
-
 /* Revision Register */
 /* BANK 3 */
 /* ( hi: chip id   low: rev # ) */
-#define REV_REG                 0x030A
 
+#define REV_REG                 0x030A
 
 /* Early RCV Register */
 /* BANK 3 */
 /* this is NOT on SMC9192 */
+
 #define ERCV_REG                0x030C
 #define ERCV_RCV_DISCRD         0x0080 /* When 1 discards a packet being received */
 #define ERCV_THRESHOLD          0x001F /* ERCV Threshold Mask */
 
-
 /* External Register */
 /* BANK 7 */
-#define EXT_REG                 0x0700
 
+#define EXT_REG                 0x0700
 
 #define CHIP_9192               3
 #define CHIP_9194               4
@@ -313,21 +320,16 @@
 #define CHIP_91100FD            8
 #define CHIP_91111FD            9
 
-
-/*
- * Transmit status bits
- */
+/* Transmit status bits */
 /* Same as ES_xxx */
 
-/*
- * Transmit control bits
- */
+/* Transmit control bits */
+
 #define TC_ODD                  0x20
 #define TC_CRC                  0x10
 
-/*
- * Receive status bits
- */
+/* Receive status bits */
+
 #define RS_ALGNERR              0x8000
 #define RS_BRODCAST             0x4000
 #define RS_BADCRC               0x2000
@@ -337,24 +339,22 @@
 #define RS_MULTICAST            0x0001
 #define RS_ERRORS               (RS_ALGNERR | RS_BADCRC | RS_TOOLONG | RS_TOOSHORT)
 
-/*
- * Receive control bits
- */
+/* Receive control bits */
+
 #define RC_ODD                  0x20
 
-
-/*
- * PHY IDs
+/* PHY IDs
  *  LAN83C183 == LAN91C111 Internal PHY
  */
+
 #define PHY_LAN83C183           0x0016F840
 #define PHY_LAN83C180           0x02821C50
 
 /* LPA full duplex flags */
+
 #define MII_LPA_FULL            (MII_LPA_10BASETXFULL | MII_LPA_100BASETXFULL)
 
-/*
- * PHY Register Addresses (LAN91C111 Internal PHY)
+/* PHY Register Addresses (LAN91C111 Internal PHY)
  *
  * Generic PHY registers can be found in <nuttx/net/mii.h>
  *
@@ -362,6 +362,7 @@
  */
 
 /* PHY Configuration Register 1 */
+
 #define PHY_CFG1_REG            0x10
 #define PHY_CFG1_LNKDIS         0x8000 /* 1=Rx Link Detect Function disabled */
 #define PHY_CFG1_XMTDIS         0x4000 /* 1=TP Transmitter Disabled */
@@ -375,15 +376,16 @@
 #define PHY_CFG1_TLVL_MASK      0x003C
 #define PHY_CFG1_TRF_MASK       0x0003 /* Transmitter Rise/Fall time */
 
-
 /* PHY Configuration Register 2 */
+
 #define PHY_CFG2_REG            0x11
 #define PHY_CFG2_APOLDIS        0x0020 /* 1=Auto Polarity Correction disabled */
 #define PHY_CFG2_JABDIS         0x0010 /* 1=Jabber disabled */
 #define PHY_CFG2_MREG           0x0008 /* 1=Multiple register access (MII mgt) */
 #define PHY_CFG2_INTMDIO        0x0004 /* 1=Interrupt signaled with MDIO pulseo */
 
-// PHY Status Output (and Interrupt status) Register
+/* PHY Status Output (and Interrupt status) Register */
+
 #define PHY_INT_REG             0x12   /* Status Output (Interrupt Status) */
 #define PHY_INT_INT             0x8000 /* 1=bits have changed since last read */
 #define PHY_INT_LNKFAIL         0x4000 /* 1=Link Not detected */
@@ -397,8 +399,9 @@
 #define PHY_INT_DPLXDET         0x0040 /* 1=Device in Full Duplex */
 
 /* PHY Interrupt/Status Mask Register */
-#define PHY_MASK_REG            0x13   /* Interrupt Mask */
-/* Uses the same bit definitions as PHY_INT_REG */
 
+#define PHY_MASK_REG            0x13   /* Interrupt Mask */
+
+/* Uses the same bit definitions as PHY_INT_REG */
 
 #endif /* __DRIVERS_NET_LAN91C111_H */

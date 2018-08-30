@@ -45,6 +45,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* The <stddef.h> header shall define the following macros:
  *
  * NULL
@@ -67,17 +68,10 @@
 
 #define offsetof(a, b) ((size_t)(&(((a *)(0))->b)))
 
-/*
- * container_of(ptr, type, member)
- *   cast a member of a structure out to the containing structure.
- */
-#define container_of(ptr, type, member) \
-      ((type *)((uintptr_t)(ptr) - offsetof(type, member)))
-
-
 /****************************************************************************
  * Type Definitions
  ****************************************************************************/
+
 /* The <stddef.h> header shall define the following types:
  *
  * ptrdiff_t

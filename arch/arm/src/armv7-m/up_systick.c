@@ -51,12 +51,6 @@
 #ifdef CONFIG_ARMV7M_SYSTICK
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define NVIC_IRQ_SYSTICK          15 /* Vector 15: System tick */
-
-/****************************************************************************
  * Private Types
  ****************************************************************************/
 
@@ -156,18 +150,23 @@ static int systick_getstatus(FAR struct timer_lowerhalf_s *lower_,
                              FAR struct timer_status_s *status)
 {
   struct systick_lowerhalf_s *lower = (struct systick_lowerhalf_s *)lower_;
-
   irqstate_t flags = enter_critical_section();
-  status->flags  = lower->callback ? TCFLAGS_HANDLER : 0;
-  status->flags |= systick_is_running() ? TCFLAGS_ACTIVE : 0;
-  status->timeout = usec_from_count(getreg32(NVIC_SYSTICK_RELOAD), lower->freq);
-  status->timeleft = usec_from_count(getreg32(NVIC_SYSTICK_CURRENT), lower->freq);
+
+  status->flags    = lower->callback ? TCFLAGS_HANDLER : 0;
+  status->flags   |= systick_is_running() ? TCFLAGS_ACTIVE : 0;
+  status->timeout  = usec_from_count(getreg32(NVIC_SYSTICK_RELOAD),
+                                     lower->freq);
+  status->timeleft = usec_from_count(getreg32(NVIC_SYSTICK_CURRENT),
+                                     lower->freq);
+
   if (systick_irq_pending(lower))
     {
       /* Interrupt is pending and the timer wrap happen? */
+
       if (status->timeleft)
         {
           /* Make timeout-timeleft equal the real elapsed time */
+
           status->timeout += status->timeout - status->timeleft;
           status->timeleft = 0;
         }
@@ -176,8 +175,8 @@ static int systick_getstatus(FAR struct timer_lowerhalf_s *lower_,
     {
       status->timeleft = status->timeout;
     }
-  leave_critical_section(flags);
 
+  leave_critical_section(flags);
   return 0;
 }
 
@@ -209,8 +208,8 @@ static int systick_settimeout(FAR struct timer_lowerhalf_s *lower_,
             }
         }
     }
-  leave_critical_section(flags);
 
+  leave_critical_section(flags);
   return 0;
 }
 
@@ -220,8 +219,8 @@ static void systick_setcallback(FAR struct timer_lowerhalf_s *lower_,
   struct systick_lowerhalf_s *lower = (struct systick_lowerhalf_s *)lower_;
 
   irqstate_t flags = enter_critical_section();
-  lower->callback = callback;
-  lower->arg      = arg;
+  lower->callback  = callback;
+  lower->arg       = arg;
   leave_critical_section(flags);
 }
 
@@ -267,6 +266,7 @@ static int systick_interrupt(int irq, FAR void *context, FAR void *arg)
         {
           modifyreg32(NVIC_SYSTICK_CTRL, NVIC_SYSTICK_CTRL_ENABLE, 0);
         }
+
       lower->next_interval = NULL;
     }
 
@@ -277,7 +277,8 @@ static int systick_interrupt(int irq, FAR void *context, FAR void *arg)
  * Public Functions
  ****************************************************************************/
 
-struct timer_lowerhalf_s *systick_initialize(bool coreclk, unsigned int freq, int minor)
+struct timer_lowerhalf_s *systick_initialize(bool coreclk,
+                                             unsigned int freq, int minor)
 {
   struct systick_lowerhalf_s *lower = (struct systick_lowerhalf_s *)&g_systick_lower;
 

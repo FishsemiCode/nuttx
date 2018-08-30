@@ -113,7 +113,9 @@ int parse_ptable_partition(FAR struct partition_state_s *state,
   /* PTABLE locate in the first or last erase block */
 
   blkpererase = state->erasesize / state->blocksize;
-  for (block = 0; block < state->nblocks; block += state->nblocks - blkpererase)
+  for (block = 0;
+       block < state->nblocks;
+       block += state->nblocks - blkpererase)
     {
       ret = read_partition_block(state, ptable, block, blkpererase);
       if (ret < 0)
@@ -140,7 +142,7 @@ int parse_ptable_partition(FAR struct partition_state_s *state,
 
       /* Convert the entry to partition */
 
-      strcpy(part.name, entry->name);
+      strncpy(part.name, entry->name, sizeof(part.name));
       part.index      = entry - ptable->entries;
       part.firstblock = entry->offset / state->blocksize;
       part.nblocks    = entry->length / state->blocksize;
@@ -163,3 +165,4 @@ out:
   kmm_free(ptable);
   return ret;
 }
+

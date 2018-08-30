@@ -217,7 +217,7 @@ uint32_t *arm_doirq(int irq, uint32_t *regs)
        */
 
       DEBUGASSERT((unsigned int)irq <= GIC_IRQ_SGI15 &&
-             (g_sgi_pending[cpu] & bit) == 0);
+                  (g_sgi_pending[cpu] & bit) == 0);
 
       /* Mare the SGI as pending and return immediately */
 

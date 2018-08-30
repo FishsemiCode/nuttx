@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/serial/serial.h
  *
- *   Copyright (C) 2007-2008, 2012-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2012-2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -286,6 +286,9 @@ struct uart_dev_s
   tcflag_t             tc_iflag;     /* Input modes */
   tcflag_t             tc_oflag;     /* Output modes */
   tcflag_t             tc_lflag;     /* Local modes */
+#ifdef CONFIG_TTY_SIGINT
+  pid_t                pid;          /* Thread PID to receive SIGINT signals (-1 if none) */
+#endif
 #endif
 
   /* Semaphores */
@@ -323,10 +326,6 @@ struct uart_dev_s
 #ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_SERIAL_NPOLLWAITERS];
 #endif
-
-  /* Thread pid who use uart */
-
-  pid_t                 pid;
 };
 
 typedef struct uart_dev_s uart_dev_t;

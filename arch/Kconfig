@@ -160,6 +160,8 @@ config ARCH_GNU_NO_WEAKFUNCTIONS
 	bool
 	depends on ARCH_TOOLCHAIN_GNU
 	default n
+	---help---
+		Disable support for weak functions.
 
 comment "Architecture Options"
 
@@ -170,6 +172,11 @@ config ARCH_NOINTC
 config ARCH_VECNOTIRQ
 	bool
 	default n
+
+config ARCH_HAVE_IRQTRIGGER
+	bool
+	default n
+	depends on !ARCH_NOINTC
 
 config ARCH_DMA
 	bool

@@ -209,6 +209,7 @@ enum auth_flavor
   AUTH_SHORT = 2,
   AUTH_DES   = 3,
   AUTH_MAX
+
   /* and more to be defined */
 };
 
@@ -400,7 +401,10 @@ struct rpc_reply_read
   uint32_t status;
   struct READ3resok read;        /* Variable length */
 };
-#define SIZEOF_rpc_reply_read(n) (sizeof(struct rpc_reply_header) + sizeof(uint32_t) + SIZEOF_READ3resok(n))
+
+#define SIZEOF_rpc_reply_read(n) \
+  (sizeof(struct rpc_reply_header) + sizeof(uint32_t) + \
+   SIZEOF_READ3resok(n))
 
 struct rpc_reply_remove
 {
@@ -436,7 +440,10 @@ struct rpc_reply_readdir
   uint32_t status;
   struct READDIR3resok readdir;
 };
-#define SIZEOF_rpc_reply_readdir(n) (sizeof(struct rpc_reply_header) + sizeof(uint32_t) + SIZEOF_READDIR3resok(n))
+
+#define SIZEOF_rpc_reply_readdir(n) \
+  (sizeof(struct rpc_reply_header) + sizeof(uint32_t) + \
+   SIZEOF_READDIR3resok(n))
 
 struct rpc_reply_fsinfo
 {

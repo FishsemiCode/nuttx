@@ -53,8 +53,9 @@
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
-/* IRQ detach is a convenience definition, it detach all the handlers sharing the same irq.
- * Detaching an interrupt handler is equivalent to setting a NULL interrupt handler.
+/* IRQ detach is a convenience definition, it detach all the handlers
+ * sharing the same IRQ. Detaching an interrupt handler is equivalent to
+ * setting a NULL interrupt handler.
  */
 
 #  define irq_detach(irq) irq_attach(irq, NULL, NULL)

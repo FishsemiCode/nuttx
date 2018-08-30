@@ -309,7 +309,7 @@ static inline bool psock_send_addrchck(FAR struct tcp_conn_s *conn)
 #endif
 
 #if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
-      if (arp_find(conn->u.ipv4.raddr) != NULL)
+      if (arp_find(conn->u.ipv4.raddr, NULL) >= 0)
         {
           /* Return true if the address was found in the ARP table */
 
@@ -424,7 +424,7 @@ static uint16_t psock_send_eventhandler(FAR struct net_driver_s *dev,
 
   ninfo("flags: %04x\n", flags);
 
-  /* If this packet contains an acknowledgement, then update the count of
+  /* If this packet contains an acknowledgment, then update the count of
    * acknowledged bytes.
    */
 

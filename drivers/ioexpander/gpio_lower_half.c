@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/ioexpander/gpio_lower_half.c
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -88,7 +88,8 @@ static int gplh_write(FAR struct gpio_dev_s *gpio, bool value);
 static int gplh_attach(FAR struct gpio_dev_s *gpio, pin_interrupt_t callback);
 static int gplh_enable(FAR struct gpio_dev_s *gpio, bool enable);
 #endif
-static int gplh_setpintype(FAR struct gpio_dev_s *gpio, enum gpio_pintype_e pintype);
+static int gplh_setpintype(FAR struct gpio_dev_s *gpio,
+                           enum gpio_pintype_e pintype);
 
 /****************************************************************************
  * Private Data
@@ -109,6 +110,10 @@ static const struct gpio_operations_s g_gplh_ops =
 #endif
   gplh_setpintype,
 };
+
+/* REVISIT:  The following violates the NuttX coding standard requirement
+ * for C89 compatibility.
+ */
 
 static const uint32_t g_gplh_inttype[] =
 {
@@ -345,7 +350,7 @@ static int gplh_setpintype(FAR struct gpio_dev_s *gpio, enum gpio_pintype_e pint
     {
       IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_IN);
       IOEXP_SETOPTION(ioe, pin, IOEXPANDER_OPTION_INTCFG,
-        (FAR void *)g_gplh_inttype[pintype]);
+                      (FAR void *)g_gplh_inttype[pintype]);
     }
 
   gpio->gp_pintype = pintype;
@@ -418,10 +423,10 @@ int gpio_lower_half(FAR struct ioexpander_dev_s *ioe, unsigned int pin,
     {
       IOEXP_SETDIRECTION(ioe, pin, IOEXPANDER_DIRECTION_IN);
       IOEXP_SETOPTION(ioe, pin, IOEXPANDER_OPTION_INTCFG,
-        (FAR void *)g_gplh_inttype[pintype]);
+                      (FAR void *)g_gplh_inttype[pintype]);
     }
 
-   /* Register the GPIO driver */
+  /* Register the GPIO driver */
 
   ret = gpio_pin_register(gpio, minor);
   if (ret < 0)

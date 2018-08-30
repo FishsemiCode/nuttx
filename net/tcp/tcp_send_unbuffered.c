@@ -257,9 +257,8 @@ static inline bool psock_send_addrchck(FAR struct tcp_conn_s *conn)
 #ifdef CONFIG_NET_ROUTE
       in_addr_t router;
 #endif
-
 #if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
-      if (arp_find(conn->u.ipv4.raddr) != NULL)
+      if (arp_find(conn->u.ipv4.raddr, NULL) >= 0)
         {
           /* Return true if the address was found in the ARP table */
 

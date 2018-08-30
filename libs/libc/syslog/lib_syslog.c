@@ -66,6 +66,7 @@
 void vsyslog(int priority, FAR const IPTR char *fmt, va_list ap)
 {
   va_list copy;
+
   /* Check if this priority is enabled */
 
   if ((g_syslog_mask & LOG_MASK(priority)) != 0)

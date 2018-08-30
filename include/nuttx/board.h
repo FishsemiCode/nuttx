@@ -169,7 +169,8 @@ int board_app_initialize(uintptr_t arg);
  * Description:
  *   Perform application specific initialization.  This function is never
  *   called directly from application code, but only indirectly via the
- *   (non-standard) boardctl() interface using the command BOARDIOC_FINALINIT.
+ *   (non-standard) boardctl() interface using the command
+ *   BOARDIOC_FINALINIT.
  *
  * Input Parameters:
  *   arg - The argument has no meaning.
@@ -180,7 +181,9 @@ int board_app_initialize(uintptr_t arg);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_BOARDCTL_FINALINIT
 int board_app_finalinitialize(uintptr_t arg);
+#endif
 
 /****************************************************************************
  * Name: board_power_off

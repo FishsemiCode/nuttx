@@ -539,6 +539,7 @@ int sem_setprotocol(FAR sem_t *sem, int protocol);
  *   EINVAL - Invalid attempt to get the semaphore
  *
  ****************************************************************************/
+
 static inline int nxsem_wait_uninterruptible(FAR sem_t *sem)
 {
   int ret;
@@ -549,7 +550,7 @@ static inline int nxsem_wait_uninterruptible(FAR sem_t *sem)
 
       ret = nxsem_wait(sem);
     }
-  while (ret == -EINTR);
+  while (ret == -EINTR || ret == -ECANCELED);
 
   return ret;
 }

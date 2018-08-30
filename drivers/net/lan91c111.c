@@ -95,8 +95,8 @@
  * Private Types
  ****************************************************************************/
 
-/* lan91c111_driver_s encapsulates all state information for a single hardware
- * interface
+/* lan91c111_driver_s encapsulates all state information for a single
+ * hardware interface
  */
 
 struct lan91c111_driver_s
@@ -167,13 +167,14 @@ static int  lan91c111_ioctl(FAR struct net_driver_s *dev, int cmd,
 
 /* MAC register access, assume lock hold by caller */
 
-static uint16_t updatebank(FAR struct lan91c111_driver_s *priv, uint16_t offset)
+static uint16_t updatebank(FAR struct lan91c111_driver_s *priv,
+                           uint16_t offset)
 {
   uint16_t bank = offset >> 8;
 
   if (bank != priv->bank)
     {
-      *(volatile uint16_t *)(priv->base + BSR_REG) = bank;
+      *(FAR volatile uint16_t *)(priv->base + BSR_REG) = bank;
       priv->bank = bank;
     }
 
@@ -183,91 +184,92 @@ static uint16_t updatebank(FAR struct lan91c111_driver_s *priv, uint16_t offset)
 static uint8_t getreg8(FAR struct lan91c111_driver_s *priv, uint16_t offset)
 {
   offset = updatebank(priv, offset);
-  return *(volatile uint8_t *)(priv->base + offset);
+  return *(FAR volatile uint8_t *)(priv->base + offset);
 }
 
 static uint16_t getreg16(FAR struct lan91c111_driver_s *priv, uint16_t offset)
 {
   offset = updatebank(priv, offset);
-  return *(volatile uint16_t *)(priv->base + offset);
+  return *(FAR volatile uint16_t *)(priv->base + offset);
 }
 
 static void putreg8(FAR struct lan91c111_driver_s *priv,
                     uint16_t offset, uint8_t value)
 {
   offset = updatebank(priv, offset);
-  *(volatile uint8_t *)(priv->base + offset) = value;
+  *(FAR volatile uint8_t *)(priv->base + offset) = value;
 }
 
 static void putreg16(FAR struct lan91c111_driver_s *priv,
                      uint16_t offset, uint16_t value)
 {
   offset = updatebank(priv, offset);
-  *(volatile uint16_t *)(priv->base + offset) = value;
+  *(FAR volatile uint16_t *)(priv->base + offset) = value;
 }
 
 static void modifyreg16(FAR struct lan91c111_driver_s *priv,
-                        uint16_t offset, uint16_t clearbits, uint16_t setbits)
+                        uint16_t offset, uint16_t clearbits,
+                        uint16_t setbits)
 {
   uint16_t value;
 
   offset = updatebank(priv, offset);
-  value  = *(volatile uint16_t *)(priv->base + offset);
+  value  = *(FAR volatile uint16_t *)(priv->base + offset);
   value &= ~clearbits;
   value |= setbits;
-  *(volatile uint16_t *)(priv->base + offset) = value;
+  *(FAR volatile uint16_t *)(priv->base + offset) = value;
 }
 
 static void getregs32(FAR struct lan91c111_driver_s *priv,
                       uint16_t offset, void *value_, size_t length)
 {
-  uint32_t *value = value_;
+  FAR uint32_t *value = value_;
   size_t i;
 
   offset = updatebank(priv, offset);
   for (i = 0; i < length; i += sizeof(*value))
     {
-      *value++ = *(volatile uint32_t *)(priv->base + offset);
+      *value++ = *(FAR volatile uint32_t *)(priv->base + offset);
     }
 }
 
 static void putregs32(FAR struct lan91c111_driver_s *priv,
                       uint16_t offset, const void *value_, size_t length)
 {
-  const uint32_t *value = value_;
+  FAR const uint32_t *value = value_;
   size_t i;
 
   offset = updatebank(priv, offset);
   for (i = 0; i < length; i += sizeof(*value))
     {
-      *(volatile uint32_t *)(priv->base + offset) = *value++;
+      *(FAR volatile uint32_t *)(priv->base + offset) = *value++;
     }
 }
 
 static void copyfrom16(FAR struct lan91c111_driver_s *priv,
-                       uint16_t offset, void *value_, size_t length)
+                       uint16_t offset, FAR void *value_, size_t length)
 {
-  uint16_t *value = value_;
+  FAR uint16_t *value = value_;
   size_t i;
 
   offset = updatebank(priv, offset);
   for (i = 0; i < length; i += sizeof(*value))
     {
-      *value++ = *(volatile uint16_t *)(priv->base + offset);
+      *value++ = *(FAR volatile uint16_t *)(priv->base + offset);
       offset  += sizeof(*value);
     }
 }
 
 static void copyto16(FAR struct lan91c111_driver_s *priv,
-                     uint16_t offset, const void *value_, size_t length)
+                     uint16_t offset, FAR const void *value_, size_t length)
 {
-  const uint16_t *value = value_;
+  FAR const uint16_t *value = value_;
   size_t i;
 
   offset = updatebank(priv, offset);
   for (i = 0; i < length; i += sizeof(*value))
     {
-      *(volatile uint16_t *)(priv->base + offset) = *value++;
+      *(FAR volatile uint16_t *)(priv->base + offset) = *value++;
       offset += sizeof(*value);
     }
 }
@@ -287,9 +289,13 @@ static void outmii(FAR struct lan91c111_driver_s *priv,
   for (mask = 1 << (bits - 1); mask; mask >>= 1)
     {
       if (value & mask)
+        {
           mii |= MII_MDO;
+        }
       else
+        {
           mii &= ~MII_MDO;
+        }
 
       putreg16(priv, MII_REG, mii);
       up_udelay(LAN91C111_MIIDELAY);
@@ -313,7 +319,9 @@ static uint32_t inmii(FAR struct lan91c111_driver_s *priv, size_t bits)
       up_udelay(LAN91C111_MIIDELAY);
 
       if (getreg16(priv, MII_REG) & MII_MDI)
+        {
           value |= mask;
+        }
 
       putreg16(priv, MII_REG, mii | MII_MCLK);
       up_udelay(LAN91C111_MIIDELAY);
@@ -352,7 +360,9 @@ static void putphy(FAR struct lan91c111_driver_s *priv,
 
   outmii(priv, 0xffffffff, 32);
 
-  /* Start(01) + write(01) + addr(00000) + offset(5bits) + turnaround(10) + value(16bits) */
+  /* Start(01) + write(01) + addr(00000) + offset(5bits) + turnaround(10) +
+   * value(16bits)
+   */
 
   outmii(priv, 5 << 28 | 0 << 23 | offset << 18 | 2 << 16 | value, 32);
 
@@ -363,7 +373,8 @@ static void putphy(FAR struct lan91c111_driver_s *priv,
 
 /* Small utility function, assume lock hold by caller */
 
-static void lan91c111_command_mmu(FAR struct lan91c111_driver_s *priv, uint16_t cmd)
+static void lan91c111_command_mmu(FAR struct lan91c111_driver_s *priv,
+                                  uint16_t cmd)
 {
   putreg16(priv, MMU_CMD_REG, cmd);
   while (getreg16(priv, MMU_CMD_REG) & MC_BUSY)
@@ -414,6 +425,7 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
   while (1)
     {
       /* Release the received packet if no free memory */
+
       if (!(getreg16(priv, MIR_REG) & MIR_FREE_MASK) &&
           !(getreg8(priv, RXFIFO_REG) & RXFIFO_REMPTY))
         {
@@ -422,18 +434,21 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
         }
 
       /* Now, try to allocate the memory */
+
       lan91c111_command_mmu(priv, MC_ALLOC | pages);
       while (1) /* Then wait the response */
         {
           if (getreg8(priv, INT_REG) & IM_ALLOC_INT)
             {
               /* Acknowledge the interrupt */
+
               putreg8(priv, INT_REG, IM_ALLOC_INT);
               break;
             }
         }
 
       /* Check the result */
+
       packet = getreg8(priv, AR_REG);
       if (!(packet & AR_FAILED))
         {
@@ -449,27 +464,31 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
   /* Send the packet: address=dev->d_buf, length=dev->d_len */
 
   /* Point to the beginning of the packet */
+
   putreg8(priv, PN_REG, packet);
   putreg16(priv, PTR_REG, PTR_AUTOINC);
 
   /* Send the status(set to zeros) and the packet
    * length(+6 for status, length and ctl byte)
    */
+
   putreg16(priv, DATA_REG, 0);
   putreg16(priv, DATA_REG, dev->d_len + 6);
 
   /* Append ctl byte */
+
   dev->d_buf[dev->d_len]     = TC_ODD;
   dev->d_buf[dev->d_len + 1] = 0x00;
 
   /* Copy and enqueue the buffer */
+
   putregs32(priv, DATA_REG, dev->d_buf, dev->d_len + 2);
   lan91c111_command_mmu(priv, MC_ENQUEUE);
 
   /* Assume the transmission no error, otherwise
    * revert the increment in lan91c111_txdone */
-  NETDEV_TXDONE(dev);
 
+  NETDEV_TXDONE(dev);
   return OK;
 }
 
@@ -528,7 +547,7 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      if (!loopback_out(dev))
+      if (!devif_loopback(dev))
         {
           /* Send the packet */
 
@@ -656,7 +675,9 @@ static void lan91c111_receive(FAR struct net_driver_s *dev)
 
   length  = getreg16(priv, DATA_REG);
   length &= 0x07ff; /* Mask off top bits */
+
   /* Remove the header and tail space */
+
   length -= status & RS_ODDFRAME ? 5 : 6;
 
   if (length < ETH_HDRLEN || length > MAX_NETDEV_PKTSIZE)
@@ -791,9 +812,12 @@ static void lan91c111_txdone(FAR struct net_driver_s *dev)
   if (status & ES_ERRORS)
     {
       /* Re-enable transmit */
+
       modifyreg16(priv, TCR_REG, 0, TCR_ENABLE);
+
 #ifdef CONFIG_NETDEV_STATISTICS
       /* Revert the increment in lan91c111_transmit */
+
       dev->d_statistics.tx_done--;
 #endif
       NETDEV_TXERRORS(dev);
@@ -837,6 +861,7 @@ static void lan91c111_phy_notify(FAR struct net_driver_s *dev)
             {
               modifyreg16(priv, TCR_REG, TCR_SWFDUP, 0);
             }
+
           netdev_carrier_on(dev);
         }
       else
@@ -1099,7 +1124,7 @@ static int lan91c111_ifup(FAR struct net_driver_s *dev)
   putreg16(priv, RPC_REG, RPC_DEFAULT);
 
   putreg8(priv, IM_REG,
-    IM_MDINT |IM_RX_OVRN_INT | IM_RCV_INT | IM_TX_INT);
+    IM_MDINT | IM_RX_OVRN_INT | IM_RCV_INT | IM_TX_INT);
 
   putphy(priv, PHY_MASK_REG, /* Interrupts listed here are disabled */
     PHY_INT_LOSSSYNC | PHY_INT_CWRD | PHY_INT_SSD | PHY_INT_ESD |
@@ -1215,7 +1240,9 @@ static void lan91c111_txavail_work(FAR void *arg)
 
   if (IFF_IS_UP(dev->d_flags))
     {
-      /* Check if there is room in the hardware to hold another outgoing packet. */
+      /* Check if there is room in the hardware to hold another outgoing
+       * packet.
+       */
 
       if (getreg16(priv, MIR_REG) & MIR_FREE_MASK)
         {
@@ -1260,7 +1287,8 @@ static int lan91c111_txavail(FAR struct net_driver_s *dev)
     {
       /* Schedule to serialize the poll on the worker thread. */
 
-      work_queue(LAN91C111_WORK, &priv->pollwork, lan91c111_txavail_work, dev, 0);
+      work_queue(LAN91C111_WORK, &priv->pollwork, lan91c111_txavail_work,
+                 dev, 0);
     }
 
   return OK;
@@ -1273,6 +1301,8 @@ static int lan91c111_txavail(FAR struct net_driver_s *dev)
  *   NuttX Callback: Add the specified MAC address to the hardware multicast
  *   address filtering
  *
+ *   IEEE (CRC32) from http://www.microchip.com/wwwproducts/en/LAN91C111
+ *
  * Parameters:
  *   dev  - Reference to the NuttX driver state structure
  *   mac  - The MAC address to be added
@@ -1283,9 +1313,6 @@ static int lan91c111_txavail(FAR struct net_driver_s *dev)
  ****************************************************************************/
 
 #if defined(CONFIG_NET_IGMP) || defined(CONFIG_NET_ICMPv6)
-
-/* IEEE (CRC32) from http://www.microchip.com/wwwproducts/en/LAN91C111 */
-
 static uint32_t lan91c111_crc32(FAR const uint8_t *src, size_t len)
 {
   uint32_t crc = 0xffffffff;
@@ -1300,7 +1327,10 @@ static uint32_t lan91c111_crc32(FAR const uint8_t *src, size_t len)
           carry = (crc & 0x80000000 ? 1 : 0) ^ (temp & 0x01);
           crc <<= 1;
           if (carry)
-            crc = (crc ^ 0x04c11db6) | carry;
+            {
+              crc = (crc ^ 0x04c11db6) | carry;
+            }
+
           temp >>= 1;
         }
     }
@@ -1308,7 +1338,8 @@ static uint32_t lan91c111_crc32(FAR const uint8_t *src, size_t len)
     return crc;
 }
 
-static int lan91c111_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
+static int lan91c111_addmac(FAR struct net_driver_s *dev,
+                            FAR const uint8_t *mac)
 {
   FAR struct lan91c111_driver_s *priv = dev->d_private;
   uint16_t off, bit;
@@ -1343,8 +1374,8 @@ static int lan91c111_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac
  * Name: lan91c111_rmmac
  *
  * Description:
- *   NuttX Callback: Remove the specified MAC address from the hardware multicast
- *   address filtering
+ *   NuttX Callback: Remove the specified MAC address from the hardware
+ *   multicast address filtering
  *
  * Parameters:
  *   dev  - Reference to the NuttX driver state structure
@@ -1356,7 +1387,8 @@ static int lan91c111_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IGMP
-static int lan91c111_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
+static int lan91c111_rmmac(FAR struct net_driver_s *dev,
+                           FAR const uint8_t *mac)
 {
   FAR struct lan91c111_driver_s *priv = dev->d_private;
   uint16_t off, bit;
@@ -1546,6 +1578,7 @@ int lan91c111_initialize(uintptr_t base, int irq)
     {
       return -ENOMEM;
     }
+
   dev = &priv->dev;
 
   priv->base = base;
@@ -1600,7 +1633,7 @@ int lan91c111_initialize(uintptr_t base, int irq)
    */
 
   putreg16(priv, RCR_REG, RCR_SOFTRST);
-  up_udelay(10); /* Pause to make the chip happy */
+  up_udelay(10);                      /* Pause to make the chip happy */
   putreg16(priv, RCR_REG, RCR_CLEAR);
   putreg16(priv, CONFIG_REG, CONFIG_CLEAR);
 

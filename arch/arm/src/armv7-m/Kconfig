@@ -257,7 +257,7 @@ config ARMV7M_ITMSYSLOG_SWODIV
 endif # ARMV7M_ITMSYSLOG
 
 config ARMV7M_SYSTICK
-	bool "SYSTICK support"
+	bool "SysTick timer driver"
 	depends on TIMER
 	---help---
-		Enable SYSTICK timer driver.
+		Enable SysTick timer driver.

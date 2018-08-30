@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated June 21, 2018)
+NuttX TODO List (Last updated August 26, 2018)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
@@ -21,7 +21,7 @@ nuttx/:
   (5)  Binary loaders (binfmt/)
  (16)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
-  (2)  Other drivers (drivers/)
+  (1)  Other drivers (drivers/)
  (12)  Libraries (libc/, libm/)
  (10)  File system/Generic drivers (fs/, drivers/)
  (10)  Graphics Subsystem (graphics/)
@@ -454,10 +454,10 @@ o SMP
   Title:       CORTEX-A GIC SGI INTERRUPT MASKING
   Description: In the ARMv7-A GICv2 architecture, the inter-processor
                interrupts (SGIs) are non maskable and will occur even if
-               interrupts are disabled.  This addes a lot of complexity
+               interrupts are disabled.  This adde a lot of complexity
                to the ARMV7-A critical section design.
 
-               Masayuki Ishakawa has suggest the use of the GICv2 ICCMPR
+               Masayuki Ishakawa has suggested the use of the GICv2 ICCMPR
                register to control SGI interrupts.  This register (much like
                the ARMv7-M BASEPRI register) can be used to mask interrupts
                by interrupt priority.  Since SGIs may be assigned priorities
@@ -2137,14 +2137,6 @@ o Other drivers (drivers/)
   Priority:    Low.  It would be a convenience and would simplify crash
                debug if you could see all of the SYSLOG output up to the
                time of the crash.  But not essential.
-
-  Title:       ADD SUPPORT FOR CONTROL-C
-  Description: Add support for control-C interrupts and perhaps other
-               interrupts generated from a keyboard.
-  Status:      Open
-  Priority:    Low.  This would make working with tasks at the NSH terminal
-               more like working with processes via a Bash shell.  That is
-               a feature enhancement.
 
 o Linux/Cywgin simulation (arch/sim)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

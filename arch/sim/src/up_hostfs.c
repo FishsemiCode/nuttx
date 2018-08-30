@@ -253,6 +253,7 @@ int host_fstat(int fd, struct nuttx_stat_s *buf)
 /****************************************************************************
  * Name: host_truncate
  ****************************************************************************/
+
 int host_ftruncate(int fd, off_t length)
 {
   return ftruncate(fd, length);

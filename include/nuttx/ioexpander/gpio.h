@@ -143,7 +143,8 @@ struct gpio_operations_s
   CODE int (*go_attach)(FAR struct gpio_dev_s *dev,
                         pin_interrupt_t callback);
   CODE int (*go_enable)(FAR struct gpio_dev_s *dev, bool enable);
-  CODE int (*go_setpintype)(FAR struct gpio_dev_s *dev, enum gpio_pintype_e pintype);
+  CODE int (*go_setpintype)(FAR struct gpio_dev_s *dev,
+                            enum gpio_pintype_e pintype);
 };
 
 /* Pin interface definition.  Must lie in writable memory. */

@@ -42,6 +42,7 @@
 #include <nuttx/clk/clk.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/nuttx.h>
 #include <nuttx/power/pm.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/watchdog.h>

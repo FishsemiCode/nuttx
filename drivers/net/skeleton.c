@@ -299,7 +299,12 @@ static int skel_txpoll(FAR struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      if (!loopback_out(&priv->sk_dev))
+      /* Check if the network is sending this packet to the IP address of
+       * this device.  If so, just loop the packet back into the network but
+       * don't attmpt to put it on the wire.
+       */
+
+      if (!devif_loopback(&priv->sk_dev))
         {
           /* Send the packet */
 

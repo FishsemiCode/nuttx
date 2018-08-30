@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************
  * arch/arm/src/armv7-m/systick.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
@@ -31,7 +31,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __ARCH_ARM_SRC_ARMV7_M_SYSTICK_H
 #define __ARCH_ARM_SRC_ARMV7_M_SYSTICK_H
@@ -63,11 +63,12 @@ extern "C"
  *   and return an instance of a "lower half" timer interface.
  *
  * Input parameters:
- *   coreclk - false if SYSTICK working clock come from the external reference
- *     clock, otherwise true.
+ *   coreclk - false if SYSTICK working clock come from the external
+ *     reference clock, otherwise true.
  *   freq - The clock frequency in Hz. If freq is zero, calculate the value
  *     from NVIC_SYSTICK_CALIB register.
- *   minor - The timer driver minor number, skip the registration if minor < 0.
+ *   minor - The timer driver minor number, skip the registration if minor
+ *     < 0.
  *
  * Returned Value:
  *   On success, a non-NULL timer_lowerhalf_s is returned to the caller.
@@ -76,7 +77,8 @@ extern "C"
  ****************************************************************************/
 
 #ifdef CONFIG_ARMV7M_SYSTICK
-struct timer_lowerhalf_s *systick_initialize(bool coreclk, unsigned int freq, int minor);
+struct timer_lowerhalf_s *systick_initialize(bool coreclk, unsigned int freq,
+                                             int minor);
 #else
 #  define systick_initialize(coreclk, freq, minor) NULL
 #endif /* CONFIG_ARMV7M_SYSTICK */

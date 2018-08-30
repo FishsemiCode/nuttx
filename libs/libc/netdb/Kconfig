@@ -43,10 +43,6 @@ config NETDB_BUFSIZE
 
 endif # NETDB_HOSTFILE
 
-config NETDB_SERVICES_PATH
-	string "Path to netdb services file"
-	default "/etc/services"
-
 menuconfig NETDB_DNSCLIENT
 	bool "DNS Name resolution"
 	default n

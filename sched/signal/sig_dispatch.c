@@ -240,7 +240,7 @@ static void nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
   /* Check if the signal is already pending for the group */
 
   sigpend = nxsig_find_pendingsignal(group, info->si_signo);
-  if (sigpend)
+  if (sigpend != NULL)
     {
       /* The signal is already pending... retain only one copy */
 
@@ -254,7 +254,7 @@ static void nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
       /* Allocate a new pending signal entry */
 
       sigpend = nxsig_alloc_pendingsignal();
-      if (sigpend)
+      if (sigpend != NULL)
         {
           /* Put the signal information into the allocated structure */
 
@@ -391,11 +391,11 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
           nxsem_wait_irq(stcb, EINTR);
         }
 
+#ifndef CONFIG_DISABLE_MQUEUE
       /* If the task is blocked waiting on a message queue, then that task
        * must be unblocked when a signal is received.
        */
 
-#ifndef CONFIG_DISABLE_MQUEUE
       if (stcb->task_state == TSTATE_WAIT_MQNOTEMPTY ||
           stcb->task_state == TSTATE_WAIT_MQNOTFULL)
         {

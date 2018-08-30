@@ -48,6 +48,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-struct audio_lowerhalf_s *audio_i2s_initialize(struct i2s_dev_s *i2s, bool playback);
+FAR struct audio_lowerhalf_s *audio_i2s_initialize(FAR struct i2s_dev_s *i2s,
+                                                   bool playback);
 
 #endif

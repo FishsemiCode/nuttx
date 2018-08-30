@@ -206,3 +206,4 @@ int parse_mtd_partition(FAR struct mtd_dev_s *mtd,
 
   return parse_partition(&state, handler, arg);
 }
+

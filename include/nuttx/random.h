@@ -166,23 +166,6 @@ void up_rngreseed(void);
 
 void up_randompool_initialize(void);
 
-/****************************************************************************
- * Name: up_getrandom
- *
- * Description:
- *   Fill a buffer of arbitrary length with randomness.
- *
- * Parameters:
- *   bytes  - Buffer for returned random bytes
- *   nbytes - Number of bytes requested.
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void up_getrandom(FAR void *bytes, size_t nbytes);
-
 #endif /* CONFIG_CRYPTO_RANDOM_POOL */
 
 #endif /* __INCLUDE_NUTTX_RANDOM_H */

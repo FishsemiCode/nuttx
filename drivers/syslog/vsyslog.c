@@ -138,12 +138,14 @@ int nx_vsyslog(int priority, FAR const IPTR char *fmt, FAR va_list *ap)
 #if defined(CONFIG_SYSLOG_PREFIX)
   /* Pre-pend the prefix, if available */
 
-  (void)lib_sprintf(&stream.public, "%s", CONFIG_SYSLOG_PREFIX_STRING);
+  ret = lib_sprintf(&stream.public, "%s", CONFIG_SYSLOG_PREFIX_STRING);
+#else
+  ret = 0;
 #endif
 
   /* Generate the output */
 
-  ret = lib_vsprintf(&stream.public, fmt, *ap);
+  ret += lib_vsprintf(&stream.public, fmt, *ap);
 
 #ifdef CONFIG_SYSLOG_BUFFER
   /* Flush and destroy the syslog stream buffer */

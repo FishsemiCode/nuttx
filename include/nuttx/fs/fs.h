@@ -189,14 +189,18 @@
  * Public Type Definitions
  ****************************************************************************/
 
+/* Forward references */
+
+struct file;
+struct inode;
+struct stat;
+struct statfs;
+struct pollfd;
+struct fs_dirent_s;
+
 /* This structure is provided by devices when they are registered with the
  * system.  It is used to call back to perform device specific operations.
  */
-
-struct file;   /* Forward reference */
-struct pollfd; /* Forward reference */
-struct inode;  /* Forward reference */
-struct stat;   /* Forward reference */
 
 struct file_operations
 {
@@ -265,9 +269,6 @@ struct block_operations
  * struct file_operations or struct mountpt_operations
  */
 
-struct inode;
-struct fs_dirent_s;
-struct statfs;
 struct mountpt_operations
 {
   /* The mountpoint open method differs from the driver open method
@@ -499,7 +500,7 @@ void fs_initialize(void);
  * Input Parameters:
  *   path - The path to the inode to create
  *   fops - The file operations structure
- *   mode - inmode privileges (not used)
+ *   mode - Access privileges (not used)
  *   priv - Private, user data that will be associated with the inode.
  *
  * Returned Value:
@@ -526,7 +527,7 @@ int register_driver(FAR const char *path,
  * Input Parameters:
  *   path - The path to the inode to create
  *   bops - The block driver operations structure
- *   mode - inmode privileges (not used)
+ *   mode - Access privileges (not used)
  *   priv - Private, user data that will be associated with the inode.
  *
  * Returned Value:
@@ -910,7 +911,7 @@ int fs_getfilep(int fd, FAR struct file **filep);
  * Name: file_read
  *
  * Description:
- *   file_read() is an interanl OS interface.  It is functionally similar to
+ *   file_read() is an internal OS interface.  It is functionally similar to
  *   the standard read() interface except:
  *
  *    - It does not modify the errno variable,
@@ -937,7 +938,7 @@ ssize_t file_read(FAR struct file *filep, FAR void *buf, size_t nbytes);
  * Name: nx_read
  *
  * Description:
- *   nx_read() is an interanl OS interface.  It is functionally similar to
+ *   nx_read() is an internal OS interface.  It is functionally similar to
  *   the standard read() interface except:
  *
  *    - It does not modify the errno variable, and
@@ -974,7 +975,7 @@ ssize_t file_write(FAR struct file *filep, FAR const void *buf, size_t nbytes);
  * Name: nx_write
  *
  * Description:
- *  nx_write() writes up to nytes bytes to the file referenced by the file
+ *  nx_write() writes up to nbytes bytes to the file referenced by the file
  *  descriptor fd from the buffer starting at buf.  nx_write() is an
  *  internal OS function.  It is functionally equivalent to write() except
  *  that:
@@ -990,7 +991,7 @@ ssize_t file_write(FAR struct file *filep, FAR const void *buf, size_t nbytes);
  * Returned Value:
  *  On success, the number of bytes written are returned (zero indicates
  *  nothing was written).  On any failure, a negated errno value is returned
- *  (see comments withwrite() for a description of the appropriate errno
+ *  (see comments with write() for a description of the appropriate errno
  *   values).
  *
  ****************************************************************************/
@@ -1141,7 +1142,7 @@ int file_fcntl(FAR struct file *filep, int cmd, ...);
  * Name: file_poll
  *
  * Description:
- *   Low-level poll operation based on struc file.  This is used both to (1)
+ *   Low-level poll operation based on struct file.  This is used both to (1)
  *   support detached file, and also (2) by fdesc_poll() to perform all
  *   normal operations on file descriptors descriptors.
  *
@@ -1164,7 +1165,7 @@ int file_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup);
  * Name: file_fstat
  *
  * Description:
- *   file_fstat() is an interanl OS interface.  It is functionally similar to
+ *   file_fstat() is an internal OS interface.  It is functionally similar to
  *   the standard fstat() interface except:
  *
  *    - It does not modify the errno variable,

@@ -230,13 +230,6 @@ config PM_SLEEPENTER_COUNT
 
 		Default: Fifty IDLE slices to enter SLEEP mode from STANDBY
 
-config PM_REVERT_STATE
-	int "If changestate fail, then revert to this state."
-	default 0
-	---help---
-		If CONFIG_PM_REVERT_STATE = -1, revert to the old state.
-		If CONFIG_PM_REVERT_STATE >= 0, revert to CONFIG_PM_REVERT_STATE.
-
 endif # PM
 
 config DRIVERS_POWERLED

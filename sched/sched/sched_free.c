@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/sched/sched_free.c
  *
- *   Copyright (C) 2007, 2009, 2012-2013, 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2009, 2012-2013, 2015-2016, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -103,6 +104,8 @@ void sched_ufree(FAR void *address)
       sq_addlast((FAR sq_entry_t *)address,
                  (FAR sq_queue_t *)&g_delayed_kufree);
 
+      /* Signal the worker thread that is has some clean up to do */
+
       sched_signal_free();
       leave_critical_section(flags);
     }
@@ -140,6 +143,8 @@ void sched_kfree(FAR void *address)
       sq_addlast((FAR sq_entry_t *)address,
                  (FAR sq_queue_t *)&g_delayed_kfree);
 
+      /* Signal the worker thread that is has some clean up to do */
+
       sched_signal_free();
       leave_critical_section(flags);
     }
@@ -153,11 +158,19 @@ void sched_kfree(FAR void *address)
 }
 #endif
 
+/****************************************************************************
+ * Name: sched_signal_free
+ *
+ * Description:
+ *   Signal the worker thread that is has some clean up to do.
+ *
+ ****************************************************************************/
+
 void sched_signal_free(void)
 {
+#ifdef CONFIG_SCHED_WORKQUEUE
   /* Signal the worker thread that is has some clean up to do */
 
-#ifdef CONFIG_SCHED_WORKQUEUE
   work_signal(LPWORK);
 #endif
 }

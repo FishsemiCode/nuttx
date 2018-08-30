@@ -1,5 +1,5 @@
 /****************************************************************************
- * libc/pthread/pthread_attr_getstack.c
+ * libs/libc/pthread/pthread_attr_getstack.c
  *
  *   Copyright (C) 2018 Pinecone. All rights reserved.
  *   Author:
@@ -64,7 +64,7 @@
  ****************************************************************************/
 
 int pthread_attr_getstack(FAR pthread_attr_t *attr,
-                          void **stackaddr, long *stacksize)
+                          FAR void **stackaddr, FAR long *stacksize)
 {
   int ret;
 

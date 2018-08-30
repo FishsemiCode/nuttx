@@ -145,6 +145,28 @@ void pm_activity(int domain, int priority)
     }
 }
 
+/****************************************************************************
+ * Name: pm_stay
+ *
+ * Description:
+ *   This function is called by a device driver to indicate that it is
+ *   performing meaningful activities (non-idle), needs the power at kept
+ *   last the specified level.
+ *
+ * Input Parameters:
+ *   domain - The domain of the PM activity
+ *   state - The state want to stay.
+ *
+ *     As an example, media player might stay in normal state during playback.
+ *
+ * Returned Value:
+ *   None.
+ *
+ * Assumptions:
+ *   This function may be called from an interrupt handler.
+ *
+ ****************************************************************************/
+
 void pm_stay(int domain, enum pm_state_e state)
 {
   FAR struct pm_domain_s *pdom;
@@ -161,6 +183,27 @@ void pm_stay(int domain, enum pm_state_e state)
   pdom->stay[state]++;
   leave_critical_section(flags);
 }
+
+/****************************************************************************
+ * Name: pm_relax
+ *
+ * Description:
+ *   This function is called by a device driver to indicate that it is
+ *   idle now, could relax the previous requested power level.
+ *
+ * Input Parameters:
+ *   domain - The domain of the PM activity
+ *   state - The state want to relax.
+ *
+ *     As an example, media player might relax power level after playback.
+ *
+ * Returned Value:
+ *   None.
+ *
+ * Assumptions:
+ *   This function may be called from an interrupt handler.
+ *
+ ****************************************************************************/
 
 void pm_relax(int domain, enum pm_state_e state)
 {

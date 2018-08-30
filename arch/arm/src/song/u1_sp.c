@@ -303,7 +303,7 @@ void rpmsg_serialinit(void)
 }
 #endif
 
-#ifdef CONFIG_NETDEVICES
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   net_rpmsg_drv_init(CPU_NAME_CP, "sl0", NET_LL_SLIP);

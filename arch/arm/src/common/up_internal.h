@@ -456,7 +456,7 @@ void rpmsg_serialinit(void);
 #ifdef CONFIG_DEV_LOWCONSOLE
 void lowconsole_init(void);
 #else
-#  define lowconsole_init()
+# define lowconsole_init()
 #endif
 
 /* DMA **********************************************************************/
@@ -497,7 +497,7 @@ void up_wdtinit(void);
  * up_initialize().  Then this stub would not be needed.
  */
 
-#ifdef CONFIG_NETDEVICES
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void);
 #else
 # define up_netinitialize()

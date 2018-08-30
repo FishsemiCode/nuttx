@@ -102,7 +102,9 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
       if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {
           if (kmm_heapmember(dtcb->stack_alloc_ptr))
-            sched_kfree(dtcb->stack_alloc_ptr);
+            {
+              sched_kfree(dtcb->stack_alloc_ptr);
+            }
         }
       else
 #endif
@@ -110,7 +112,9 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
           /* Use the user-space allocator if this is a task or pthread */
 
           if (umm_heapmember(dtcb->stack_alloc_ptr))
-            sched_ufree(dtcb->stack_alloc_ptr);
+            {
+              sched_ufree(dtcb->stack_alloc_ptr);
+            }
         }
 
       /* Mark the stack freed */
