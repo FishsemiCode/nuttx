@@ -122,6 +122,11 @@ typedef void (*up_vector_t)(void);
  */
 
 extern volatile FAR chipreg_t *g_current_regs;
+
+extern FAR chipreg_t *g_last_regs;
+
+struct tcb_s;
+extern FAR struct tcb_s *g_last_task;
 #endif
 
 /****************************************************************************

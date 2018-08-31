@@ -68,7 +68,12 @@
 
 uint32_t *arm_prefetchabort(uint32_t *regs, uint32_t ifar, uint32_t ifsr)
 {
-   uint32_t *savestate;
+  uint32_t *savestate;
+
+  if (CURRENT_REGS == NULL)
+    {
+      LAST_REGS = regs;
+    }
 
   /* Save the saved processor context in CURRENT_REGS where it can be accessed
    * for register dumps and possibly context switching.
@@ -120,6 +125,11 @@ uint32_t *arm_prefetchabort(uint32_t *regs, uint32_t ifar, uint32_t ifsr)
        */
 
       CURRENT_REGS = savestate;
+      if (CURRENT_REGS == NULL)
+        {
+          LAST_TASK = this_task();
+          LAST_REGS = NULL;
+        }
     }
   else
     {
@@ -135,6 +145,8 @@ uint32_t *arm_prefetchabort(uint32_t *regs, uint32_t ifar, uint32_t ifsr)
 
 uint32_t *arm_prefetchabort(uint32_t *regs, uint32_t ifar, uint32_t ifsr)
 {
+  LAST_REGS = regs;
+
   /* Save the saved processor context in CURRENT_REGS where it can be accessed
    * for register dumps and possibly context switching.
    */

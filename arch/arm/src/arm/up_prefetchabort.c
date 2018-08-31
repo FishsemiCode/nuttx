@@ -87,6 +87,10 @@ void up_prefetchabort(uint32_t *regs)
 
   savestate    = (uint32_t *)CURRENT_REGS;
 #endif
+  if (CURRENT_REGS == NULL)
+    {
+      LAST_REGS = regs;
+    }
   CURRENT_REGS = regs;
 
 #ifdef CONFIG_PAGING
@@ -133,6 +137,11 @@ void up_prefetchabort(uint32_t *regs)
        */
 
       CURRENT_REGS = savestate;
+      if (CURRENT_REGS == NULL)
+        {
+          LAST_TASK = this_task();
+          LAST_REGS = NULL;
+        }
     }
   else
 #endif

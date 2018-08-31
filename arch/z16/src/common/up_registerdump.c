@@ -60,7 +60,7 @@
 static void up_registerdump(void)
 {
 #ifdef CONFIG_DEBUG_INFO
-  FAR uint32_t *regs32 = (FAR uint32_t*)g_current_regs;
+  FAR uint32_t *regs32 = (FAR uint32_t *)g_last_regs;
 
   if (regs32 == NULL)
     {

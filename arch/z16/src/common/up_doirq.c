@@ -47,7 +47,15 @@
 #include <arch/board/board.h>
 
 #include "chip/chip.h"
+#include "sched/sched.h"
 #include "up_internal.h"
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+FAR chipreg_t *g_last_regs;
+FAR struct tcb_s *g_last_task;
 
 /****************************************************************************
  * Public Functions
@@ -66,6 +74,10 @@ FAR chipreg_t *up_doirq(int irq, FAR chipreg_t *regs)
 {
   FAR chipreg_t *ret = regs;
 
+  if (g_current_regs == NULL)
+    {
+      g_last_regs = regs;
+    }
   board_autoled_on(LED_INIRQ);
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
   PANIC();
@@ -107,9 +119,12 @@ FAR chipreg_t *up_doirq(int irq, FAR chipreg_t *regs)
       ret          = g_current_regs;
       g_current_regs = savestate;
     }
-
-  board_autoled_off(LED_INIRQ);
 #endif
-
+  board_autoled_off(LED_INIRQ);
+  if (g_current_regs == NULL)
+    {
+      g_last_task = this_task();
+      g_last_regs = NULL;
+    }
   return ret;
 }

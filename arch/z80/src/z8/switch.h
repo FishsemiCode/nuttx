@@ -214,6 +214,11 @@ struct z8_irqstate_s
 /* This structure holds information about the current interrupt processing state */
 
 extern struct z8_irqstate_s g_z8irqstate;
+
+extern chipreg_t *g_last_regs;
+
+struct tcb_s;
+extern struct tcb_s *g_last_task;
 #endif
 
 /************************************************************************************

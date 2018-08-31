@@ -91,6 +91,10 @@ void up_dataabort(uint32_t *regs, uint32_t far, uint32_t fsr)
 
   savestate    = (uint32_t *)CURRENT_REGS;
 #endif
+  if (CURRENT_REGS == NULL)
+    {
+      LAST_REGS = regs;
+    }
   CURRENT_REGS = regs;
 
 #ifdef CONFIG_PAGING
@@ -152,6 +156,11 @@ void up_dataabort(uint32_t *regs, uint32_t far, uint32_t fsr)
    */
 
   CURRENT_REGS = savestate;
+  if (CURRENT_REGS == NULL)
+    {
+      LAST_TASK = this_task();
+      LAST_REGS = NULL;
+    }
   return;
 
 segfault:
@@ -164,6 +173,8 @@ segfault:
 
 void up_dataabort(uint32_t *regs)
 {
+  LAST_REGS = regs;
+
   /* Save the saved processor context in CURRENT_REGS where it can be accessed
    * for register dumps and possibly context switching.
    */

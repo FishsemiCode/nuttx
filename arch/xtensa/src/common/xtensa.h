@@ -174,13 +174,28 @@
  */
 
 int up_cpu_index(void); /* See include/nuttx/arch.h */
+
 extern volatile uint32_t *g_current_regs[CONFIG_SMP_NCPUS];
 #  define CURRENT_REGS (g_current_regs[up_cpu_index()])
+
+EXTERN uint32_t *g_last_regs[CONFIG_SMP_NCPUS];
+#  define LAST_REGS (g_last_regs[up_cpu_index()])
+
+struct tcb_s;
+EXTERN struct tcb_s *g_last_task[CONFIG_SMP_NCPUS];
+#  define LAST_TASK (g_last_task[up_cpu_index()])
 
 #else
 
 extern volatile uint32_t *g_current_regs[1];
 #  define CURRENT_REGS (g_current_regs[0])
+
+EXTERN uint32_t *g_last_regs[1];
+#  define LAST_REGS (g_last_regs[0])
+
+struct tcb_s;
+EXTERN struct tcb_s *g_last_task[1];
+#  define LAST_TASK (g_last_task[0])
 
 #endif
 

@@ -114,6 +114,9 @@ extern "C"
 #endif
 
 EXTERN volatile uint32_t *g_current_regs;
+EXTERN uint32_t *g_last_regs;
+struct tcb_s;
+EXTERN struct tcb_s *g_last_task;
 EXTERN uint32_t g_idle_topstack;
 
 /****************************************************************************

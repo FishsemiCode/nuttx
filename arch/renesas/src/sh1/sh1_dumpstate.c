@@ -96,7 +96,7 @@ static void sh1_stackdump(uint32_t sp, uint32_t stack_base)
 
 static inline void sh1_registerdump(void)
 {
-  uint32_t *ptr = (uint32_t*)g_current_regs;
+  uint32_t *ptr = g_last_regs;
 
   /* Are user registers available from interrupt processing? */
 
@@ -137,7 +137,6 @@ static inline void sh1_registerdump(void)
 
 void up_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
   uint32_t sp = sh1_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -148,15 +147,15 @@ void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (g_last_task->pid == 0)
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
-      ustacksize = (uint32_t)rtcb->adj_stack_size;
+      ustackbase = (uint32_t)g_last_task->adj_stack_ptr;
+      ustacksize = (uint32_t)g_last_task->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -189,7 +188,7 @@ void up_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
-  else if (g_current_regs)
+  else if (g_last_regs)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       sh1_stackdump(istackbase - istacksize, istackbase);

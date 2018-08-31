@@ -87,7 +87,7 @@ static void _up_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (g_current_regs || this_task()->pid == 0)
+  if (g_last_regs || g_last_task->pid == 0)
     {
        (void)up_irq_save();
         for (; ; )
@@ -147,10 +147,6 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 
 void up_assert(const uint8_t *filename, int lineno)
 {
-#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
-  struct tcb_s *rtcb = this_task();
-#endif
-
   board_autoled_on(LED_ASSERTION);
 
   /* Flush any buffered SYSLOG data (prior to the assertion) */
@@ -159,7 +155,7 @@ void up_assert(const uint8_t *filename, int lineno)
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
-        filename, lineno, rtcb->name);
+        filename, lineno, g_last_task->name);
 #else
   _alert("Assertion failed at file:%s line: %d\n",
         filename, lineno);
@@ -178,7 +174,7 @@ void up_assert(const uint8_t *filename, int lineno)
   (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), this_task(), filename, lineno);
+  board_crashdump(up_getsp(), g_last_task, filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

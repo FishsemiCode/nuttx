@@ -96,32 +96,32 @@ static inline void up_registerdump(void)
 {
   /* Are user registers available from interrupt processing? */
 
-  if (g_current_regs)
+  if (g_last_regs)
     {
       _alert("EPC:%08x \n",
-            g_current_regs[REG_EPC]);
+            g_last_regs[REG_EPC]);
       _alert(" X0:%08x  A0:%08x  A1:%08x  A2:%08x  A3:%08x  A4:%08x  A5:%08x  A6:%08x\n",
-            g_current_regs[REG_X0_NDX], g_current_regs[REG_X1_NDX],
-            g_current_regs[REG_X2_NDX], g_current_regs[REG_X3_NDX],
-            g_current_regs[REG_X4_NDX], g_current_regs[REG_X5_NDX],
-            g_current_regs[REG_X6_NDX], g_current_regs[REG_X7_NDX]);
+            g_last_regs[REG_X0_NDX], g_last_regs[REG_X1_NDX],
+            g_last_regs[REG_X2_NDX], g_last_regs[REG_X3_NDX],
+            g_last_regs[REG_X4_NDX], g_last_regs[REG_X5_NDX],
+            g_last_regs[REG_X6_NDX], g_last_regs[REG_X7_NDX]);
       _alert(" A7:%08x  X9:%08x X10:%08x X11:%08x X12:%08x X13:%08x X14:%08x X15:%08x\n",
-            g_current_regs[REG_X8_NDX], g_current_regs[REG_X9_NDX],
-            g_current_regs[REG_X10_NDX], g_current_regs[REG_X11_NDX],
-            g_current_regs[REG_X12_NDX], g_current_regs[REG_X13_NDX],
-            g_current_regs[REG_X14_NDX], g_current_regs[REG_X15_NDX]);
+            g_last_regs[REG_X8_NDX], g_last_regs[REG_X9_NDX],
+            g_last_regs[REG_X10_NDX], g_last_regs[REG_X11_NDX],
+            g_last_regs[REG_X12_NDX], g_last_regs[REG_X13_NDX],
+            g_last_regs[REG_X14_NDX], g_last_regs[REG_X15_NDX]);
       _alert("X16:%08x X17:%08x X18:%08x X19:%08x X20:%08x X21:%08x X22:%08x X23:%08x\n",
-            g_current_regs[REG_X16_NDX], g_current_regs[REG_X17_NDX],
-            g_current_regs[REG_X18_NDX], g_current_regs[REG_X19_NDX],
-            g_current_regs[REG_X20_NDX], g_current_regs[REG_X21_NDX],
-            g_current_regs[REG_X22_NDX], g_current_regs[REG_X23_NDX]);
+            g_last_regs[REG_X16_NDX], g_last_regs[REG_X17_NDX],
+            g_last_regs[REG_X18_NDX], g_last_regs[REG_X19_NDX],
+            g_last_regs[REG_X20_NDX], g_last_regs[REG_X21_NDX],
+            g_last_regs[REG_X22_NDX], g_last_regs[REG_X23_NDX]);
       _alert("X24:%08x X25:%08x  GP:%08x  FP:%08x  SP:%08x  RA:%08x  EA:%08x  BA:%08x\n",
-            g_current_regs[REG_X24_NDX], g_current_regs[REG_X25_NDX],
-            g_current_regs[REG_X26_NDX], g_current_regs[REG_X27_NDX],
-            g_current_regs[REG_X28_NDX], g_current_regs[REG_X29_NDX],
-            g_current_regs[REG_X30_NDX], g_current_regs[REG_X31_NDX]);
+            g_last_regs[REG_X24_NDX], g_last_regs[REG_X25_NDX],
+            g_last_regs[REG_X26_NDX], g_last_regs[REG_X27_NDX],
+            g_last_regs[REG_X28_NDX], g_last_regs[REG_X29_NDX],
+            g_last_regs[REG_X30_NDX], g_last_regs[REG_X31_NDX]);
       _alert(" IE:%08x\n",
-            g_current_regs[REG_X32_NDX]);
+            g_last_regs[REG_X32_NDX]);
     }
 }
 
@@ -135,7 +135,6 @@ static inline void up_registerdump(void)
 
 void lm32_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
   uint32_t sp = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -146,15 +145,15 @@ void lm32_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (g_last_task->pid == 0)
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
-      ustacksize = (uint32_t)rtcb->adj_stack_size;
+      ustackbase = (uint32_t)g_last_task->adj_stack_ptr;
+      ustacksize = (uint32_t)g_last_task->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -187,7 +186,7 @@ void lm32_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
-  else if (g_current_regs)
+  else if (g_last_regs)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);

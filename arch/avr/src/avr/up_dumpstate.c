@@ -106,46 +106,46 @@ static inline void up_registerdump(void)
 {
   /* Are user registers available from interrupt processing? */
 
-  if (g_current_regs)
+  if (g_last_regs)
     {
       _alert("R%02d: %02x %02x %02x %02x %02x %02x %02x %02x\n",
             0,
-            g_current_regs[REG_R0],  g_current_regs[REG_R1],
-            g_current_regs[REG_R2],  g_current_regs[REG_R3],
-            g_current_regs[REG_R4],  g_current_regs[REG_R5],
-            g_current_regs[REG_R6],  g_current_regs[REG_R7]);
+            g_last_regs[REG_R0],  g_last_regs[REG_R1],
+            g_last_regs[REG_R2],  g_last_regs[REG_R3],
+            g_last_regs[REG_R4],  g_last_regs[REG_R5],
+            g_last_regs[REG_R6],  g_last_regs[REG_R7]);
 
       _alert("R%02d: %02x %02x %02x %02x %02x %02x %02x %02x\n",
             8,
-            g_current_regs[REG_R8],  g_current_regs[REG_R9],
-            g_current_regs[REG_R10], g_current_regs[REG_R11],
-            g_current_regs[REG_R12], g_current_regs[REG_R13],
-            g_current_regs[REG_R14], g_current_regs[REG_R15]);
+            g_last_regs[REG_R8],  g_last_regs[REG_R9],
+            g_last_regs[REG_R10], g_last_regs[REG_R11],
+            g_last_regs[REG_R12], g_last_regs[REG_R13],
+            g_last_regs[REG_R14], g_last_regs[REG_R15]);
 
       _alert("R%02d: %02x %02x %02x %02x %02x %02x %02x %02x\n",
             16,
-            g_current_regs[REG_R16], g_current_regs[REG_R17],
-            g_current_regs[REG_R18], g_current_regs[REG_R19],
-            g_current_regs[REG_R20], g_current_regs[REG_R21],
-            g_current_regs[REG_R22], g_current_regs[REG_R23]);
+            g_last_regs[REG_R16], g_last_regs[REG_R17],
+            g_last_regs[REG_R18], g_last_regs[REG_R19],
+            g_last_regs[REG_R20], g_last_regs[REG_R21],
+            g_last_regs[REG_R22], g_last_regs[REG_R23]);
 
       _alert("R%02d: %02x %02x %02x %02x %02x %02x %02x %02x\n",
             24,
-            g_current_regs[REG_R24], g_current_regs[REG_R25],
-            g_current_regs[REG_R26], g_current_regs[REG_R27],
-            g_current_regs[REG_R28], g_current_regs[REG_R29],
-            g_current_regs[REG_R30], g_current_regs[REG_R31]);
+            g_last_regs[REG_R24], g_last_regs[REG_R25],
+            g_last_regs[REG_R26], g_last_regs[REG_R27],
+            g_last_regs[REG_R28], g_last_regs[REG_R29],
+            g_last_regs[REG_R30], g_last_regs[REG_R31]);
 
 #if !defined(REG_PC2)
       _alert("PC:  %02x%02x  SP: %02x%02x SREG: %02x\n",
-            g_current_regs[REG_PC0], g_current_regs[REG_PC1],
-            g_current_regs[REG_SPH], g_current_regs[REG_SPL],
-            g_current_regs[REG_SREG]);
+            g_last_regs[REG_PC0], g_last_regs[REG_PC1],
+            g_last_regs[REG_SPH], g_last_regs[REG_SPL],
+            g_last_regs[REG_SREG]);
 #else
       _alert("PC:  %02x%02x%02x  SP: %02x%02x SREG: %02x\n",
-            g_current_regs[REG_PC0], g_current_regs[REG_PC1],
-            g_current_regs[REG_PC2], g_current_regs[REG_SPH],
-            g_current_regs[REG_SPL], g_current_regs[REG_SREG]);
+            g_last_regs[REG_PC0], g_last_regs[REG_PC1],
+            g_last_regs[REG_PC2], g_last_regs[REG_SPH],
+            g_last_regs[REG_SPL], g_last_regs[REG_SREG]);
 #endif
     }
 }
@@ -160,7 +160,6 @@ static inline void up_registerdump(void)
 
 void up_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
   uint16_t sp = up_getsp();
   uint16_t ustackbase;
   uint16_t ustacksize;
@@ -171,15 +170,15 @@ void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (g_last_task->pid == 0)
     {
       ustackbase = g_idle_topstack - 1;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint16_t)rtcb->adj_stack_ptr;
-      ustacksize = (uint16_t)rtcb->adj_stack_size;
+      ustackbase = (uint16_t)g_last_task->adj_stack_ptr;
+      ustacksize = (uint16_t)g_last_task->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -208,7 +207,7 @@ void up_dumpstate(void)
 
       up_stackdump(sp, istackbase);
     }
-  else if (g_current_regs)
+  else if (g_last_regs)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);
@@ -219,9 +218,9 @@ void up_dumpstate(void)
    * pointer (and the above range check should have failed).
    */
 
-  if (g_current_regs)
+  if (g_last_regs)
     {
-      sp = g_current_regs[REG_R13];
+      sp = g_last_regs[REG_R13];
       _alert("sp:     %04x\n", sp);
     }
 
@@ -229,7 +228,7 @@ void up_dumpstate(void)
   _alert("  base: %04x\n", ustackbase);
   _alert("  size: %04x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("  used: %08x\n", up_check_tcbstack(rtcb));
+  _alert("  used: %08x\n", up_check_tcbstack(g_last_task));
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user
@@ -250,7 +249,7 @@ void up_dumpstate(void)
   _alert("stack base: %04x\n", ustackbase);
   _alert("stack size: %04x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("stack used: %08x\n", up_check_tcbstack(rtcb));
+  _alert("stack used: %08x\n", up_check_tcbstack(g_last_task));
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user

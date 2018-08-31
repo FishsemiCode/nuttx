@@ -100,23 +100,23 @@ static inline void up_registerdump(void)
 {
   /* Are user registers available from interrupt processing? */
 
-  if (g_current_regs)
+  if (g_last_regs)
     {
       _alert("R%d: %08x %08x %08x %08x %08x %08x %08x %08x\n",
             0,
-            g_current_regs[REG_R0], g_current_regs[REG_R1],
-            g_current_regs[REG_R2], g_current_regs[REG_R3],
-            g_current_regs[REG_R4], g_current_regs[REG_R5],
-            g_current_regs[REG_R6], g_current_regs[REG_R7]);
+            g_last_regs[REG_R0], g_last_regs[REG_R1],
+            g_last_regs[REG_R2], g_last_regs[REG_R3],
+            g_last_regs[REG_R4], g_last_regs[REG_R5],
+            g_last_regs[REG_R6], g_last_regs[REG_R7]);
 
       _alert("R%d: %08x %08x %08x %08x %08x %08x %08x %08x\n",
             8,
-            g_current_regs[REG_R8],  g_current_regs[REG_R9],
-            g_current_regs[REG_R10], g_current_regs[REG_R11],
-            g_current_regs[REG_R12], g_current_regs[REG_R13],
-            g_current_regs[REG_R14], g_current_regs[REG_R15]);
+            g_last_regs[REG_R8],  g_last_regs[REG_R9],
+            g_last_regs[REG_R10], g_last_regs[REG_R11],
+            g_last_regs[REG_R12], g_last_regs[REG_R13],
+            g_last_regs[REG_R14], g_last_regs[REG_R15]);
 
-      _alert("SR: %08x\n", g_current_regs[REG_SR]);
+      _alert("SR: %08x\n", g_last_regs[REG_SR]);
     }
 }
 
@@ -126,7 +126,6 @@ static inline void up_registerdump(void)
 
 void up_dumpstate(void)
 {
-  struct tcb_s *rtcb = this_task();
   uint32_t sp = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -137,15 +136,15 @@ void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (g_last_task->pid == 0)
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
-      ustacksize = (uint32_t)rtcb->adj_stack_size;
+      ustackbase = (uint32_t)g_last_task->adj_stack_ptr;
+      ustacksize = (uint32_t)g_last_task->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -174,7 +173,7 @@ void up_dumpstate(void)
 
       up_stackdump(sp, istackbase);
     }
-  else if (g_current_regs)
+  else if (g_last_regs)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);
@@ -185,9 +184,9 @@ void up_dumpstate(void)
    * pointer (and the above range check should have failed).
    */
 
-  if (g_current_regs)
+  if (g_last_regs)
     {
-      sp = g_current_regs[REG_R13];
+      sp = g_last_regs[REG_R13];
       _alert("sp:     %08x\n", sp);
     }
 
@@ -195,7 +194,7 @@ void up_dumpstate(void)
   _alert("  base: %08x\n", ustackbase);
   _alert("  size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("  used: %08x\n", up_check_tcbstack(rtcb));
+  _alert("  used: %08x\n", up_check_tcbstack(g_last_task));
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user
@@ -216,7 +215,7 @@ void up_dumpstate(void)
   _alert("stack base: %08x\n", ustackbase);
   _alert("stack size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("stack used: %08x\n", up_check_tcbstack(rtcb));
+  _alert("stack used: %08x\n", up_check_tcbstack(g_last_task));
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user

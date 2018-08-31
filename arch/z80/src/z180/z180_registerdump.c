@@ -59,7 +59,7 @@
 
 static void z180_registerdump(void)
 {
-  volatile chipreg_t *regs = g_current_regs;
+  chipreg_t *regs = g_last_regs;
 
   if (regs == NULL)
     {

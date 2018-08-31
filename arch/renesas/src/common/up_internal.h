@@ -117,6 +117,11 @@ typedef void (*up_vector_t)(void);
 
 extern volatile uint32_t *g_current_regs;
 
+extern uint32_t *g_last_regs;
+
+struct tcb_s;
+extern struct tcb_s *g_last_task;
+
 /* This is the beginning of heap as provided from up_head.S.
  * This is the first address in DRAM after the loaded
  * program+bss+idle stack.  The end of the heap is

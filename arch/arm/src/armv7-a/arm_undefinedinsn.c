@@ -57,6 +57,7 @@
 
 uint32_t *arm_undefinedinsn(uint32_t *regs)
 {
+  LAST_REGS = regs;
   _alert("Undefined instruction at 0x%x\n", regs[REG_PC]);
   CURRENT_REGS = regs;
   PANIC();
