@@ -161,8 +161,12 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16 |
            TOP_PWR_AP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
 
-  /* Allow AP TCM to LP */
+#ifndef CONFIG_CPULOAD_PERIOD
+  /* Allow TCM to LP, careful with it. At this time,
+   * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
+   */
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16, TOP_PWR_AP_M4_TCM_PD_CTL);
+#endif
 
   /* Forbid the AP power down, AP will power down following SP */
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |

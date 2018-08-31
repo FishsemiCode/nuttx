@@ -300,8 +300,12 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16 |
            TOP_PWR_CP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
 
-  /* Enable TCM auto low power */
+#ifndef CONFIG_CPULOAD_PERIOD
+  /* Allow TCM to LP, careful with it. At this time,
+   * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
+   */
   putreg32(TOP_PWR_CP_M4_TCM_AU_PD_MK << 16, TOP_PWR_CP_M4_TCM_PD_CTL0);
+#endif
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);

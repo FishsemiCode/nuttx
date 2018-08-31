@@ -103,6 +103,7 @@
 #define TOP_PWR_SLPCTL0             (TOP_PWR_BASE + 0x350)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
+#define TOP_PWR_SEC_M4_TCM_PD_CTL   (TOP_PWR_BASE + 0x3e8)
 
 #define TOP_PWR_AP_M4_PORESET       (1 << 0)
 
@@ -129,6 +130,8 @@
 #define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
 
 #define TOP_PWR_CP_AU_PD_MK         (1 << 7)
+
+#define TOP_PWR_SEC_AU_PD_MK        (1 << 7)
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
@@ -191,6 +194,13 @@ void up_earlyinitialize(void)
   /* Always allow enter FLASH_S */
   putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
            TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+
+#ifndef CONFIG_CPULOAD_PERIOD
+  /* Allow TCM to LP, careful with it. At this time,
+   * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
+   */
+  putreg32(TOP_PWR_SEC_AU_PD_MK << 16, TOP_PWR_SEC_M4_TCM_PD_CTL);
+#endif
 
   /* Set the DMAS no effort to power down */
   putreg32(TOP_PWR_SLP_DMA_MK << 16 |
