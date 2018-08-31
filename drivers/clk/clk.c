@@ -187,7 +187,7 @@ static size_t clk_procfs_show_subtree(FAR struct clk* clk, int level,
 
   if (buflen > 0)
     {
-      list_for_every_entry(&clk->children, child, struct clk, child_node)
+      list_for_every_entry(&clk->children, child, struct clk, node)
         {
           ret = clk_procfs_show_subtree(child, level + 1, buffer, buflen, pos);
           buffer += ret;
@@ -211,7 +211,7 @@ static size_t clk_procfs_showtree(FAR char *buffer, size_t buflen, off_t *pos)
 
   clk_list_lock();
 
-  list_for_every_entry(&g_clk_root_list, clk, struct clk, child_node)
+  list_for_every_entry(&g_clk_root_list, clk, struct clk, node)
     {
       ret = clk_procfs_show_subtree(clk, 0, buffer, buflen, pos);
       buffer += ret;
@@ -223,7 +223,7 @@ static size_t clk_procfs_showtree(FAR char *buffer, size_t buflen, off_t *pos)
         }
     }
 
-  list_for_every_entry(&g_clk_orphan_list, clk, struct clk, child_node)
+  list_for_every_entry(&g_clk_orphan_list, clk, struct clk, node)
     {
       ret = clk_procfs_show_subtree(clk, 0, buffer, buflen, pos);
       buffer += ret;
@@ -330,13 +330,13 @@ static int clk_fetch_parent_index(struct clk *clk, struct clk *parent)
 
 static void clk_reparent(struct clk *clk, struct clk *parent)
 {
-  list_delete(&clk->child_node);
+  list_delete(&clk->node);
 
   if (parent)
     {
       if (parent->new_child == clk)
         parent->new_child = NULL;
-      list_add_head(&parent->children, &clk->child_node);
+      list_add_head(&parent->children, &clk->node);
     }
 
   clk->parent = parent;
@@ -359,7 +359,7 @@ static void __clk_recalc_rate(struct clk *clk)
 
   clk->rate = clk_recalc(clk, parent_rate);
 
-  list_for_every_entry(&clk->children, child, struct clk, child_node)
+  list_for_every_entry(&clk->children, child, struct clk, node)
     __clk_recalc_rate(child);
 }
 
@@ -376,7 +376,7 @@ static void clk_calc_subtree(struct clk *clk, uint32_t new_rate,
   if (new_parent && new_parent != clk->parent)
     new_parent->new_child = clk;
 
-  list_for_every_entry(&clk->children, child, struct clk, child_node)
+  list_for_every_entry(&clk->children, child, struct clk, node)
     {
       child->new_rate = clk_recalc(child, new_rate);
       clk_calc_subtree(child, child->new_rate, NULL, 0);
@@ -442,7 +442,7 @@ static void clk_change_rate(struct clk *clk, uint32_t best_parent_rate)
   struct clk *child, *old_parent;
   bool skip_set_rate = false;
 
-  list_for_every_entry(&clk->children, child, struct clk, child_node)
+  list_for_every_entry(&clk->children, child, struct clk, node)
     {
       if (child->new_parent && child->new_parent != clk)
         continue;
@@ -485,7 +485,7 @@ static void clk_change_rate(struct clk *clk, uint32_t best_parent_rate)
 
   clk->rate = clk->new_rate;
 
-  list_for_every_entry(&clk->children, child, struct clk, child_node)
+  list_for_every_entry(&clk->children, child, struct clk, node)
     {
       if (child->new_parent && child->new_parent != clk)
         continue;
@@ -505,7 +505,7 @@ static struct clk *__clk_lookup(const char *name, struct clk *clk)
   if (!strcmp(clk->name, name))
     return clk;
 
-  list_for_every_entry(&clk->children, child, struct clk, child_node)
+  list_for_every_entry(&clk->children, child, struct clk, node)
     {
       ret = __clk_lookup(name, child);
       if (ret)
@@ -659,18 +659,18 @@ static int __clk_register(struct clk *clk)
 
   if (clk->parent)
     {
-      list_add_head(&clk->parent->children, &clk->child_node);
+      list_add_head(&clk->parent->children, &clk->node);
     }
   else if (!clk->num_parents)
     {
-      list_add_head(&g_clk_root_list, &clk->child_node);
+      list_add_head(&g_clk_root_list, &clk->node);
     }
   else
     {
-      list_add_head(&g_clk_orphan_list, &clk->child_node);
+      list_add_head(&g_clk_orphan_list, &clk->node);
     }
 
-  list_for_every_entry_safe(&g_clk_orphan_list, orphan, temp, struct clk, child_node)
+  list_for_every_entry_safe(&g_clk_orphan_list, orphan, temp, struct clk, node)
     {
       if (orphan->num_parents && orphan->ops->get_parent)
         {
@@ -807,14 +807,14 @@ struct clk *clk_get(const char *name)
 
   clk_list_lock();
 
-  list_for_every_entry(&g_clk_root_list, root_clk, struct clk, child_node)
+  list_for_every_entry(&g_clk_root_list, root_clk, struct clk, node)
     {
       ret = __clk_lookup(name, root_clk);
       if (ret)
         goto out;
     }
 
-  list_for_every_entry(&g_clk_orphan_list, root_clk, struct clk, child_node)
+  list_for_every_entry(&g_clk_orphan_list, root_clk, struct clk, node)
     {
       ret = __clk_lookup(name, root_clk);
       if (ret)
@@ -982,7 +982,7 @@ struct clk *clk_register(const char *name, const char * const *parent_names,
         }
     }
 
-  list_initialize(&clk->child_node);
+  list_initialize(&clk->node);
   list_initialize(&clk->children);
 
   if (!__clk_register(clk))

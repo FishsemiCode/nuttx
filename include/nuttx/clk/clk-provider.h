@@ -121,7 +121,7 @@ struct clk
   struct clk              *new_child;
   void                    *private_data;
   struct list_node        children;
-  struct list_node        child_node;
+  struct list_node        node;
   const char              *parent_names[0];
 };
 
