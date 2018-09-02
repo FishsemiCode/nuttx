@@ -53,6 +53,13 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if CONFIG_ARCH_INTERRUPTSTACK == 0
+/* The interrupt stack is required for CEVA porting */
+
+#  undef CONFIG_ARCH_INTERRUPTSTACK
+#  define CONFIG_ARCH_INTERRUPTSTACK CONFIG_IDLETHREAD_STACKSIZE
+#endif
+
 #if defined(CONFIG_ARCH_ADDRENV) && defined(CONFIG_BUILD_KERNEL)
 /* In the kernel build, there a multiple user heaps; one for each task
  * group.  In this build configuration, the user heap structure lies

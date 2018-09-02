@@ -253,8 +253,8 @@ exception_common:
 
 	/* Switch to the dedicated stack */
 
-	mov		#g_int_topstack, r2.ui
-	mov		#g_int_basestack, r3.ui
+	mov		#_g_intstackbase, r2.ui
+	mov		#_g_intstackalloc, r3.ui
 	mov		r2.ui, sp.ui
 
 #ifdef CONFIG_ARCH_XM6_STACKCHECK
@@ -341,6 +341,8 @@ exception_common:
 	.func_end	3 exception_common
 
 	.bss
-g_int_basestack:
+	.public		_g_intstackalloc
+	.public		_g_intstackbase
+_g_intstackalloc:
 	DD		CONFIG_ARCH_INTERRUPTSTACK/4 dup ?
-g_int_topstack:
+_g_intstackbase:

@@ -53,7 +53,7 @@
  * Private Function Prototypes
  ****************************************************************************/
 
-static size_t do_stackcheck(uintptr_t alloc, size_t size);
+static size_t do_stackcheck(uintptr_t alloc, size_t size, bool int_stack);
 
 /****************************************************************************
  * Name: do_stackcheck
@@ -72,7 +72,7 @@ static size_t do_stackcheck(uintptr_t alloc, size_t size);
  *
  ****************************************************************************/
 
-static size_t do_stackcheck(uintptr_t alloc, size_t size)
+static size_t do_stackcheck(uintptr_t alloc, size_t size, bool int_stack)
 {
   uintptr_t start;
   uintptr_t end;
@@ -88,14 +88,20 @@ static size_t do_stackcheck(uintptr_t alloc, size_t size)
   /* Get aligned addresses of the top and bottom of the stack */
 
 #ifdef CONFIG_TLS
-  /* Skip over the TLS data structure at the bottom of the stack */
+  if (!int_stack)
+    {
+      /* Skip over the TLS data structure at the bottom of the stack */
 
-  DEBUGASSERT(alloc & (B2C(TLS_STACK_ALIGN) - 1) == 0);
-  start = alloc + sizeof(struct tls_info_s);
-#else
-  DEBUGASSERT(alloc & (sizeof(uint32_t) - 1) == 0);
-  start = alloc;
+      DEBUGASSERT(alloc & (B2C(TLS_STACK_ALIGN) - 1) == 0);
+      start = alloc + sizeof(struct tls_info_s);
+    }
+  else
 #endif
+    {
+      DEBUGASSERT(alloc & (sizeof(uint32_t) - 1) == 0);
+      start = alloc;
+    }
+
   end   = alloc + size;
 
   /* Get the adjusted size based on the top and bottom of the stack */
@@ -179,7 +185,7 @@ static size_t do_stackcheck(uintptr_t alloc, size_t size)
 
 size_t up_check_tcbstack(FAR struct tcb_s *tcb)
 {
-  return do_stackcheck((uintptr_t)tcb->stack_alloc_ptr, tcb->adj_stack_size);
+  return do_stackcheck((uintptr_t)tcb->stack_alloc_ptr, tcb->adj_stack_size, false);
 }
 
 ssize_t up_check_tcbstack_remain(FAR struct tcb_s *tcb)
@@ -195,6 +201,18 @@ size_t up_check_stack(void)
 ssize_t up_check_stack_remain(void)
 {
   return up_check_tcbstack_remain(this_task());
+}
+
+size_t up_check_intstack(void)
+{
+  return do_stackcheck((uintptr_t)&g_intstackalloc,
+                       &g_intstackbase - &g_intstackalloc,
+                       true);
+}
+
+size_t up_check_intstack_remain(void)
+{
+  return &g_intstackbase - &g_intstackalloc - up_check_intstack();
 }
 
 #endif /* CONFIG_STACK_COLORATION */

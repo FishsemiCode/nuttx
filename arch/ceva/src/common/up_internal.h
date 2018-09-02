@@ -170,6 +170,11 @@ EXTERN struct tcb_s *g_last_task[1];
 EXTERN void *g_idle_basestack;
 EXTERN void *g_idle_topstack;
 
+/* Address of the interrupt stack pointer */
+
+EXTERN char g_intstackalloc; /* Allocated stack base */
+EXTERN char g_intstackbase;  /* Initial top of interrupt stack */
+
 /* These 'addresses' of these values are setup by the linker script.  They are
  * not actual char storage locations! They are only used meaningfully in the
  * following way:

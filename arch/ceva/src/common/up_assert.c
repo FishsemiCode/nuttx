@@ -43,6 +43,7 @@
 #include <debug.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/syslog/syslog.h>
 #include <nuttx/usb/usbdev_trace.h>
 
 #include "sched/sched.h"
@@ -192,35 +193,79 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 static void up_dumpstate(void)
 {
   uint32_t sp = up_getsp();
-  uint32_t stackbase;
-  uint32_t stacksize;
+  uint32_t ustackbase;
+  uint32_t ustacksize;
+  uint32_t istackbase;
+  uint32_t istacksize;
 
   /* Get the limits on the user stack memory */
 
-  stackbase = (uint32_t)LAST_TASK->adj_stack_ptr;
-  stacksize = LAST_TASK->adj_stack_size;
+  ustackbase = (uint32_t)LAST_TASK->adj_stack_ptr;
+  ustacksize = LAST_TASK->adj_stack_size;
+
+  /* Get the limits on the interrupt stack memory */
+
+  istackbase = (uint32_t)&g_intstackbase;
+  istacksize = &g_intstackbase - &g_intstackalloc;
+
+  /* Show interrupt stack info */
+
+  _alert("sp:     %08x\n", sp);
+  _alert("IRQ stack:\n");
+  _alert("  base: %08x\n", istackbase);
+  _alert("  size: %08x\n", istacksize);
+#ifdef CONFIG_STACK_COLORATION
+  _alert("  used: %08x\n", up_check_intstack());
+#endif
+
+  /* Does the current stack pointer lie within the interrupt
+   * stack?
+   */
+
+  if (sp <= istackbase && sp > istackbase - istacksize)
+    {
+      /* Yes.. dump the interrupt stack */
+
+      up_stackdump(sp, istackbase);
+    }
+  else if (LAST_REGS)
+    {
+      _alert("ERROR: Stack pointer is not within the interrupt stack\n");
+      up_stackdump(istackbase - istacksize, istackbase);
+    }
+
+  /* Extract the user stack pointer if we are in an interrupt handler.
+   * If we are not in an interrupt handler.  Then sp is the user stack
+   * pointer (and the above range check should have failed).
+   */
+
+  if (LAST_REGS)
+    {
+      sp = (uint32_t)LAST_REGS;
+    }
 
   /* Show user stack info */
 
-  _alert("sp:         %08x\n", sp);
-  _alert("stack base: %08x\n", stackbase);
-  _alert("stack size: %08x\n", stacksize);
+  _alert("sp:     %08x\n", sp);
+  _alert("User stack:\n");
+  _alert("  base: %08x\n", ustackbase);
+  _alert("  size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("stack used: %08x\n", up_check_tcbstack(LAST_TASK));
+  _alert("  used: %08x\n", up_check_tcbstack(LAST_TASK));
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user
    * stack memory.
    */
 
-  if (sp > stackbase || sp < stackbase - stacksize)
+  if (sp > ustackbase || sp < ustackbase - ustacksize)
     {
       _alert("ERROR: Stack pointer is not within the allocated stack\n");
-      up_stackdump(stackbase - stacksize, stackbase);
+      up_stackdump(ustackbase - ustacksize, ustackbase);
     }
   else
     {
-      up_stackdump(sp, stackbase);
+      up_stackdump(sp, ustackbase);
     }
 
 #ifdef CONFIG_SMP
@@ -254,6 +299,10 @@ static void up_dumpstate(void)
 static void _up_assert(int errorcode) noreturn_function;
 static void _up_assert(int errorcode)
 {
+  /* Flush any buffered SYSLOG data */
+
+  syslog_flush();
+
   /* Are we in an interrupt handler or the idle task? */
 
   if (LAST_REGS || LAST_TASK->pid == 0)
@@ -290,6 +339,10 @@ static void _up_assert(int errorcode)
 
 void up_assert(const uint8_t *filename, int lineno)
 {
+  /* Flush any buffered SYSLOG data (prior to the assertion) */
+
+  syslog_flush();
+
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
         filename, lineno, LAST_TASK->name);
@@ -299,6 +352,10 @@ void up_assert(const uint8_t *filename, int lineno)
 #endif
 
   up_dumpstate();
+
+  /* Flush any buffered SYSLOG data (from the above) */
+
+  syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
   board_crashdump(up_getsp(), LAST_TASK, filename, lineno);

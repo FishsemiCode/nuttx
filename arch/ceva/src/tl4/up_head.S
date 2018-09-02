@@ -222,7 +222,7 @@ exception_common:
 
 	/* Switch to the dedicated stack and go */
 
-	mov		#g_int_topstack, sp
+	mov		#_g_intstackbase, sp
 	nop
 	pushdw		retreg
 	callr		#_up_doirq
@@ -287,6 +287,8 @@ exception_common:
 	.func_end	3 exception_common
 
 	.bss
-g_int_basestack:
+	.public		_g_intstackalloc
+	.public		_g_intstackbase
+_g_intstackalloc:
 	dd		CONFIG_ARCH_INTERRUPTSTACK/4 dup ?
-g_int_topstack:
+_g_intstackbase:
