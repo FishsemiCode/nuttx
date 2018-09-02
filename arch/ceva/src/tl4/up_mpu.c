@@ -155,6 +155,7 @@ static inline uint32_t range_to_cdacrl(uintptr_t base, size_t size)
 
 static void mpu_apply_region(uintptr_t base, size_t size, uint32_t attr)
 {
+  uint32_t cdacrl;
   int i, j;
 
   if (base + size <= B2C(CONFIG_ARCH_DTCM_SIZE))
@@ -163,10 +164,14 @@ static void mpu_apply_region(uintptr_t base, size_t size, uint32_t attr)
       return;
     }
 
+  cdacrl = attr | range_to_cdacrl(base, size) | DMSS_CDACRL_V;
+  base = base_from_cdacrl(cdacrl);
+  size = size_from_cdacrl(cdacrl);
+
   for (i = 0, j = -1; i < DMSS_NR_CDACR; i++)
     {
-      uint32_t cdacrl = getcpm(DMSS_CDACR0L + 8 * i);
-      if (!(cdacrl & DMSS_CDACRL_V))
+      uint32_t ncdacrl = getcpm(DMSS_CDACR0L + 8 * i);
+      if (!(ncdacrl & DMSS_CDACRL_V))
         {
           /* Remember the first unused region */
           if (j == -1)
@@ -174,35 +179,27 @@ static void mpu_apply_region(uintptr_t base, size_t size, uint32_t attr)
               j = i;
             }
         }
-      else if (attr == attr_from_cdacrl(cdacrl))
+      else if (attr == attr_from_cdacrl(ncdacrl))
         {
-          uintptr_t nbase = base_from_cdacrl(cdacrl);
-          size_t nsize = size_from_cdacrl(cdacrl);
-          uintptr_t nend = nbase + nsize;
-          uintptr_t end = base + size;
+          uintptr_t nbase = base_from_cdacrl(ncdacrl);
+          size_t nsize = size_from_cdacrl(ncdacrl);
 
-          /* Do these two regions overlap? */
-          if (end >= nbase || nend >= base)
+          if (base <= nbase && base + size >= nbase + nsize)
             {
-              j = i; /* Extend the current region */
-
-              if (nbase < base)
-                {
-                  base = nbase;
-                }
-              if (nend > end)
-                {
-                  end = nend;
-                }
-              size = end - base;
+              /* The new region cover an entire old region */
+              j = i;
               break;
+            }
+          else if (base >= nbase && base + size <= nbase + nsize)
+            {
+              /* An old region cover the entire new region */
+              return;
             }
         }
     }
 
   DEBUGASSERT(j != -1);
-  putcpm(DMSS_CDACR0L + 8 * j,
-    attr | range_to_cdacrl(base, size) | DMSS_CDACRL_V);
+  putcpm(DMSS_CDACR0L + 8 * j, cdacrl);
 }
 
 /****************************************************************************
