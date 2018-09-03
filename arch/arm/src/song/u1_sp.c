@@ -697,15 +697,10 @@ static void up_spi_init(void)
 #ifdef CONFIG_SONG_ONCHIP_FLASH
 static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
 {
-#ifdef CONFIG_MTD_PARTITION
-  FAR struct mtd_dev_s *mtd;
+  char path[NAME_MAX];
 
-  mtd = mtd_partition(arg, part->firstblock, part->nblocks);
-#ifdef CONFIG_MTD_PARTITION_NAMES
-  mtd_setpartitionname(mtd, part->name);
-#endif
-  blk_initialize_by_name(part->name, mtd);
-#endif
+  snprintf(path, NAME_MAX, "/dev/%s", part->name);
+  register_blockpartition(path, 0, arg, part->firstblock, part->nblocks);
 }
 
 static void up_flash_init(void)
@@ -716,7 +711,6 @@ static void up_flash_init(void)
     {0x04, 0x00},   /* RD_CTRL2 */
     {-1,0},
   };
-
   static const struct song_onchip_flash_config_s config =
   {
     .base         = 0xb0130000,
@@ -728,10 +722,12 @@ static void up_flash_init(void)
     .mclk         = "flash_ctrl_hclk",
     .rate         = 102400000,
   };
+  char *path = "/dev/onchip";
   FAR struct mtd_dev_s *mtd;
 
   mtd = song_onchip_flash_initialize(&config);
-  parse_mtd_partition(mtd, up_partition_init, mtd);
+  blk_initialize_by_path(path, mtd);
+  parse_block_partition(path, up_partition_init, path);
 }
 #endif
 

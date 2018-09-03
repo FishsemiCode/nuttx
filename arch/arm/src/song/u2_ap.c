@@ -392,23 +392,20 @@ static void up_i2c_init(void)
 #ifdef CONFIG_MTD_GD25
 static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
 {
-#ifdef CONFIG_MTD_PARTITION
-  FAR struct mtd_dev_s *mtd;
+  char path[NAME_MAX];
 
-  mtd = mtd_partition(arg, part->firstblock, part->nblocks);
-#ifdef CONFIG_MTD_PARTITION_NAMES
-  mtd_setpartitionname(mtd, part->name);
-#endif
-  blk_initialize_by_name(part->name, mtd);
-#endif
+  snprintf(path, NAME_MAX, "/dev/%s", part->name);
+  register_blockpartition(path, 0, arg, part->firstblock, part->nblocks);
 }
 
 static void up_flash_init(void)
 {
+  char *path = "/dev/gd25";
   FAR struct mtd_dev_s *mtd;
 
   mtd = gd25_initialize(g_spi[0]);
-  parse_mtd_partition(mtd, up_partition_init, mtd);
+  blk_initialize_by_path(path, mtd);
+  parse_block_partition(path, up_partition_init, path);
 }
 #endif
 
