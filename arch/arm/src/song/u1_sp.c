@@ -734,10 +734,6 @@ void up_lateinitialize(void)
   up_clk_initialize();
 #endif
 
-#ifdef CONFIG_SONG_PMIC_APB
-  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
-#endif
-
 #ifdef CONFIG_WATCHDOG_DW
   up_wdtinit();
 #endif
@@ -755,7 +751,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_PMIC_APB
-  spmu_regulator_apb_initialize(0xB2010000, 0xB0180000);
+  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
 #endif
 
 #ifdef CONFIG_RPMSG_REGULATOR
