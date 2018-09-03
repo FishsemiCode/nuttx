@@ -137,6 +137,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .gr_offset = 0x0,
     .div_offset = 0x8c,
   },
+  {},
 };
 
 static const struct song_div_clk div[] =
@@ -178,6 +179,7 @@ static const struct song_div_clk div[] =
     .div_width = 3,
     .div_flags = CLK_DIVIDER_ONE_BASED | CLK_DIVIDER_MAX_HALF,
   },
+  {},
 };
 
 static const struct song_gate_clk gate[] =
