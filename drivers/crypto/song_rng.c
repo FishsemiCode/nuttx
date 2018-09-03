@@ -62,8 +62,9 @@
 
 struct song_rng_s
 {
+  volatile uint32_t STA;
   volatile uint32_t CTRL;
-  volatile uint32_t SKIP[35];
+  volatile uint32_t SKIP[34];
   volatile uint32_t DATA[8];
 };
 
