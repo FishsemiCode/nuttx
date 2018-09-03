@@ -404,7 +404,7 @@ static void up_flash_init(void)
   FAR struct mtd_dev_s *mtd;
 
   mtd = gd25_initialize(g_spi[0]);
-  blk_initialize_by_path(path, mtd);
+  ftl_initialize_by_path(path, mtd);
   parse_block_partition(path, up_partition_init, path);
 }
 #endif
