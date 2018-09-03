@@ -109,73 +109,45 @@ static inline size_t size_from_cdacrl(uint32_t cdacrl)
 static inline uint32_t range_to_cdacrl(uintptr_t base, size_t size)
 {
   uint32_t psflag;
-  uintptr_t align;
 
   base = C2B(base);
   size = C2B(size);
 
   if (size <= 16 * 1024)
     {
+      base  &= ~(16 * 1024 - 1);
       psflag = DMSS_CDACRL_PS_16KB;
-      align = base & (16 * 1024 - 1);
-      size += align + 16 * 1024 - 1;
-      size &= ~(16 * 1024 - 1);
-      base -= align;
     }
-
-  if (size > 16 * 1024 && size <= 32 * 1024)
+  else if (size <= 32 * 1024)
     {
+      base  &= ~(32 * 1024 - 1);
       psflag = DMSS_CDACRL_PS_32KB;
-      align = base & (32 * 1024 - 1);
-      size += align + 32 * 1024 - 1;
-      size &= ~(32 * 1024 - 1);
-      base -= align;
     }
-
-  if (size > 32 * 1024 && size <= 64 * 1024)
+  else if (size <= 64 * 1024)
     {
+      base  &= ~(64 * 1024 - 1);
       psflag = DMSS_CDACRL_PS_64KB;
-      align = base & (64 * 1024 - 1);
-      size += align + 64 * 1024 - 1;
-      size &= ~(64 * 1024 - 1);
-      base -= align;
     }
-
-  if (size > 64 * 1024 && size <= 512 * 1024)
+  else if (size <= 512 * 1024)
     {
+      base  &= ~(512 * 1024 - 1);
       psflag = DMSS_CDACRL_PS_512KB;
-      align = base & (512 * 1024 - 1);
-      size += align + 512 * 1024 - 1;
-      size &= ~(512 * 1024 - 1);
-      base -= align;
     }
-
-  if (size > 512 * 1024 && size <= 1024 * 1024)
+  else if (size <= 1024 * 1024)
     {
+      base  &= ~(1024 * 1024 - 1);
       psflag = DMSS_CDACRL_PS_1MB;
-      align = base & (1024 * 1024 - 1);
-      size += align + 1024 * 1024 - 1;
-      size &= ~(1024 * 1024 - 1);
-      base -= align;
     }
-
-  if (size > 1024 * 1024 && size <= 2 * 1024 * 1024)
+  else if (size <= 2 * 1024 * 1024)
     {
+      base  &= ~(2 * 1024 * 1024 - 1);
       psflag = DMSS_CDACRL_PS_2MB;
-      align = base & (2 * 1024 * 1024 - 1);
-      size += align + 2 * 1024 * 1024 - 1;
-      size &= ~(2 * 1024 * 1024 - 1);
-      base -= align;
     }
-
-  if (size > 2 * 1024 * 1024)
+  else
     {
-      psflag = DMSS_CDACRL_PS_4MB;
-      align = base & (4 * 1024 * 1024 - 1);
-      size += align + 4 * 1024 * 1024 - 1;
-      size &= ~(4 * 1024 * 1024 - 1);
-      base -= align;
       DEBUGASSERT(size <= 4 * 1024 * 1024);
+      base  &= ~(4 * 1024 * 1024 - 1);
+      psflag = DMSS_CDACRL_PS_4MB;
     }
 
   return psflag | ((base >> 12) << DMSS_CDACRL_BA_SHIFT);
