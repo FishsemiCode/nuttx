@@ -67,12 +67,6 @@
 #  define FTL_HAVE_RWBUFFER 1
 #endif
 
-/* The maximum length of the device name paths is the maximum length of a
- * name plus 5 for the the length of "/dev/" and a NUL terminator.
- */
-
-#define DEV_NAME_MAX    (NAME_MAX + 5)
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -520,32 +514,28 @@ static int ftl_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ftl_initialize_by_name
+ * Name: ftl_initialize_by_path
  *
  * Description:
  *   Initialize to provide a block driver wrapper around an MTD interface
  *
  * Input Parameters:
- *   name - The device name.  The MTD block device will be
- *          registered as as /dev/mtdNAME where NAME is the device name.
+ *   path - The block device path.
  *   mtd  - The MTD device that supports the FLASH interface.
  *
  ****************************************************************************/
 
-int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
+int ftl_initialize_by_path(FAR const char *path, FAR struct mtd_dev_s *mtd)
 {
   struct ftl_struct_s *dev;
-  char devname[DEV_NAME_MAX];
   int ret = -ENOMEM;
 
-#ifdef CONFIG_DEBUG_FEATURES
   /* Sanity check */
 
-  if (name == NULL || mtd == NULL)
+  if (path == NULL || mtd == NULL)
     {
       return -EINVAL;
     }
-#endif
 
   /* Allocate a FTL device structure */
 
@@ -615,13 +605,9 @@ int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
         }
 #endif
 
-      /* Create a MTD block device name */
-
-      snprintf(devname, DEV_NAME_MAX, "/dev/mtd%s", name);
-
       /* Inode private data is a reference to the FTL device structure */
 
-      ret = register_blockdriver(devname, &g_bops, 0, dev);
+      ret = register_blockdriver(path, &g_bops, 0, dev);
       if (ret < 0)
         {
           ferr("ERROR: register_blockdriver failed: %d\n", -ret);
@@ -650,7 +636,7 @@ int ftl_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
 
 int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
 {
-  char name[16];
+  char path[16];
 
 #ifdef CONFIG_DEBUG_FEATURES
   /* Sanity check */
@@ -661,8 +647,8 @@ int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
     }
 #endif
 
-  /* Do the real work by ftl_initialize_by_name */
+  /* Do the real work by ftl_initialize_by_path */
 
-  snprintf(name, 16, "block%d", minor);
-  return ftl_initialize_by_name(name, mtd);
+  snprintf(path, 16, "/dev/mtdblock%d", minor);
+  return ftl_initialize_by_path(path, mtd);
 }
