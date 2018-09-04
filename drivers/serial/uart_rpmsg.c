@@ -319,6 +319,11 @@ static void uart_rpmsg_dmareceive(FAR struct uart_dev_s *dev)
   uart_recvchars_done(dev);
 
   msg->header.result = len;
+
+  if (len != msg->count)
+    {
+      uart_rpmsg_rxflowcontrol(dev, 0, true);
+    }
 }
 
 static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev)
@@ -425,6 +430,8 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
 
   if (header->response)
     {
+      /* Get write-cmd reponse, this tell how many data have snet */
+
       dev->dmatx.nbytes = header->result;
       if (header->result < 0)
         {
@@ -432,6 +439,8 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
         }
 
       uart_xmitchars_done(dev);
+
+      /* If have sent some data succeed, then continue send */
 
       if (msg->count == header->result)
         {
@@ -442,6 +451,8 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
     {
       struct uart_rpmsg_priv_s *priv = dev->priv;
 
+      /* Get write-cmd, there are some data, we need receive them */
+
       priv->recv_data = data;
       uart_recvchars_dma(dev);
       priv->recv_data = NULL;
@@ -451,6 +462,8 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
     }
   else if (header->command == UART_RPMSG_TTY_WAKEUP)
     {
+      /* Remote core have space, then wakeup current core, continue send */
+
       uart_rpmsg_dmatxavail(dev);
     }
 }
