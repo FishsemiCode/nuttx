@@ -135,6 +135,22 @@ static void up_dumpstate(void)
   uint32_t istacksize;
 #endif
 
+  /* Dump the registers (if available) */
+
+  if (g_last_regs != NULL)
+    {
+      up_registerdump(g_last_regs);
+    }
+  else
+    {
+      static uint32_t s_last_regs[XCPTCONTEXT_REGS];
+
+      /* Capture and dump user registers by hand */
+
+      up_saveusercontext(s_last_regs);
+      up_registerdump(s_last_regs);
+    }
+
   /* Get the limits on the user stack memory */
 
   if (g_last_task->pid == 0)
@@ -207,22 +223,6 @@ static void up_dumpstate(void)
   else
     {
       up_stackdump(sp, ustackbase);
-    }
-
-  /* Then dump the registers (if available) */
-
-  if (g_last_regs != NULL)
-    {
-      up_registerdump(g_last_regs);
-    }
-  else
-    {
-      static uint32_t s_last_regs[XCPTCONTEXT_REGS];
-
-      /* Capture and dump user registers by hand */
-
-      up_saveusercontext(s_last_regs);
-      up_registerdump(s_last_regs);
     }
 
 #ifdef CONFIG_ARCH_USBDUMP

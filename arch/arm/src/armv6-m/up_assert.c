@@ -229,6 +229,10 @@ static void up_dumpstate(void)
   uint32_t istacksize;
 #endif
 
+  /* Dump the registers (if available) */
+
+  up_registerdump();
+
   /* Get the limits on the user stack memory */
 
   if (LAST_TASK->pid == 0)
@@ -328,10 +332,6 @@ static void up_dumpstate(void)
       up_stackdump(sp, ustackbase);
     }
 #endif
-
-  /* Then dump the registers (if available) */
-
-  up_registerdump();
 
   /* Dump the state of all tasks (if available) */
 

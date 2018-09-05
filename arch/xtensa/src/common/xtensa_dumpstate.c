@@ -203,6 +203,10 @@ void xtensa_dumpstate(void)
   _alert("CPU%d:\n", up_cpu_index());
 #endif
 
+  /* Dump the registers (if available) */
+
+  xtensa_registerdump();
+
   /* Get the limits on the user stack memory */
 
   if (LAST_TASK->pid == 0)
@@ -286,10 +290,6 @@ void xtensa_dumpstate(void)
     {
       xtensa_stackdump(sp, ustackbase);
     }
-
-  /* Then dump the registers (if available) */
-
-  xtensa_registerdump();
 
   /* Dump the state of all tasks (if available) */
 

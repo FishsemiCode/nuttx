@@ -198,6 +198,10 @@ static void up_dumpstate(void)
   uint32_t istackbase;
   uint32_t istacksize;
 
+  /* Dump the registers (if available) */
+
+  up_registerdump();
+
   /* Get the limits on the user stack memory */
 
   ustackbase = (uint32_t)LAST_TASK->adj_stack_ptr;
@@ -273,10 +277,6 @@ static void up_dumpstate(void)
 
   _alert("CPU%d:\n", up_cpu_index());
 #endif
-
-  /* Then dump the registers (if available) */
-
-  up_registerdump();
 
   /* Dump the state of all tasks (if available) */
 
