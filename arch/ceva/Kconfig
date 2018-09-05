@@ -21,6 +21,7 @@ endchoice
 config ARCH_TL420
 	bool
 	default n
+	select ARCH_HAVE_HARDFAULT_DEBUG
 	---help---
 		CEVA-TL420 is a high-performance fixed-point DSP Core architecture.
 		It is designed for mid- to high-end telecommunications and consumer
@@ -30,6 +31,7 @@ config ARCH_TL420
 config ARCH_TL421
 	bool
 	default n
+	select ARCH_HAVE_HARDFAULT_DEBUG
 	---help---
 		CEVA-TL421 is a high-performance fixed-point DSP Core architecture.
 		It is designed for mid- to high-end telecommunications and consumer
@@ -39,6 +41,7 @@ config ARCH_TL421
 config ARCH_XM6
 	bool
 	default n
+	select ARCH_HAVE_HARDFAULT_DEBUG
 	select ARCH_HAVE_MPU
 	select ARCH_HAVE_MULTICPU
 	---help---
@@ -153,10 +156,14 @@ config ARCH_RTL_MINOR
 config ARCH_RTL_REVISION
 	int "RTL Version Revision Number"
 
+config ARCH_HAVE_HARDFAULT_DEBUG
+	bool
+	default n
+
 config DEBUG_HARDFAULT
 	bool "Verbose Hard-Fault Debug"
 	default n
-	depends on DEBUG_FEATURES
+	depends on ARCH_HAVE_HARDFAULT_DEBUG && DEBUG_ALERT
 	---help---
 		Enables verbose debug output when a hard fault is occurs.  This verbose
 		output is sometimes helpful when debugging difficult hard fault problems,
