@@ -79,7 +79,7 @@ static FAR struct oneshot_lowerhalf_s *g_oneshot_lower;
  ****************************************************************************/
 
 static inline void timespec_from_usec(FAR struct timespec *ts,
-                                      unsigned int microseconds)
+                                      uint64_t microseconds)
 {
   ts->tv_sec    = microseconds / USEC_PER_SEC;
   microseconds -= (uint64_t)ts->tv_sec * USEC_PER_SEC;
