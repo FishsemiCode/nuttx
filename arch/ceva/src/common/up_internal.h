@@ -302,7 +302,7 @@ void up_wdtinit(void);
 
 /* Networking ***************************************************************/
 
-#ifdef CONFIG_NETDEVICES
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void);
 #else
 # define up_netinitialize()
