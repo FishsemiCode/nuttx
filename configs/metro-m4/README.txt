@@ -25,45 +25,78 @@ Contents
   o Unlocking FLASH
   o Serial Console
   o LEDs
-  o Run from FLASH
+  o Run from SRAM
   o Configurations
 
 STATUS
 ======
 
   2018-07-26:  The basic port was merged into master.  It is still
-    incomplete and untested.  It is missing the clock configuration logic.
-    There is a placeholder from the SAML21, but it is currently stubbed out
-    in the Make.defs file.  Configuration options in the board.h header
-    file are bogus and also just cloned from the SAML21.
-  2018-07-29:  Clock configuration logic now complete.  board.h
-    configuration options still need to be verified.  Unverified SERCOM
-    USART, SPI, I2C, Port configuration, and DMA support have been added.
-    I still have no hardware in hand to test.
+    incomplete and untested.
+
+  2018-07-29:  Code complete.  Clock configuration complete.  Unverified
+    SERCOM USART, SPI, I2C, Port configuration, and DMA support have been
+    added. I still have no hardware in hand to test.
+
   2018-07-20:  Brought in the USB driver from the SAML21.  It is the same
     USB IP with only small differences.  There a a few, small open issues
     still to be resolved.
+
   2018-08-01:  Hardware in hand.  Initial attempts to program the board
-    using a Segger J-Link connected via SWD were unsuccessful.  I believe
-    that the FLASH is locked.  See "Unlocking FLASH with J-Link Commander"
-    below.  After unlocking the FLASH, I was able to successfully write
-    the NuttX image.
+    using a Segger J-Link connected via SWD were unsuccessful because the
+    Metro M4 comes with an application in FLASH and the FLASH locked.  See
+    "Unlocking FLASH with J-Link Commander" below.  After unlocking the
+    FLASH, I was able to successfully write the NuttX image.
 
     Unfortunately, the board seems to have become unusable after the first
     NuttX image was written to FLASH.  I am unable to connect the JTAG
-    debugger and so am dead in the water on this unless I get replacement
-    hardware.  The primary JTAG problem seems to be that it is now unable
+    debugger.  The primary JTAG problem seems to be that it is now unable
     to halt the CPU.
 
-    This is most likely a consequence of something happening in the NuttX
-    boot-up sequence that interferes with JTAG operation.  When I continue
-    debugging in the future, I will put an infinite loop, branch-on-self
-    at the code startup up (__start) so that I can attached the debugger
-    and step through the initial configuration.
-  2019-08-03:  Added a configuration option to run out of SRAM vs FLASH.
-    This should be a safer way to do the initial board bring-up since
-    it does not modify the FLASH image nor does it require unlocking
-    the FLASH pages.
+    Future me:  This boot-up failure was do to bad clock initialization
+    logic that caused infinite loops during clock configuration.  Unlocking
+    and erasing the FLASH is innocuous, but the JTAG will apparently not
+    work if the clocks are not in a good state.
+
+    I would say that as a general practice, any changes to the clock
+    configuration should be testing in SRAM first before risking the
+    write to FLASH.
+
+  2018-08-03:  Added a configuration option to run out of SRAM vs FLASH.
+    This is a safer way to do the initial board bring-up since it does
+    not modify the FLASH image nor does it require unlocking the FLASH
+    pages.
+
+  2018-08-31:  I finally have a new Metro M4 and have successfully
+    debugged from SRAM (with FLASH unlocked and erased).  Several
+    errors in clock configuration logic have been corrected and it now
+    gets through clock configuration okay.  It now hangs in the low-level
+    USART initialization.
+
+    It hangs trying to enabled the SERCOM slow clock channel.  The clock
+    sequence is:
+
+      1. 32.678KHz crystal -> XOSC32K
+         This is configured and says that XOSC32K is ready.
+      2. XOSCK32 -> GCLK3.
+         This is configured and it says that is is ready (GENEN=1).
+      3. GCLK3 ->SERCOM slow clock channel.
+         This hangs when I try to enable the peripheral clock.
+
+  2018-09-01:  I found a workaround by substituting OSCULP32K for XOSC32
+    as the source to GCLK3.   With that workaround, the port gets past all
+    clock and USART  configuration.  A new configuration option was added,
+    CONFIG_METRO_M4_32KHZXTAL.  By default this workaround is in place.
+    But you can enable CONFIG_METRO_M4_32KHZXTAL if you want to further
+    study the XOSC32K problem.
+
+    With that workaround (and a bunch of other fixes), the basic NSH
+    configuration appears fully function, indicating the the board bring-
+    up is complete.
+
+    There are additional drivers ported from SAML21 which has, in most cases,
+    identical peripherals.  None of these drivers have been verified on the
+    SAMD51, However.  These include:  DMAC, I2C, SPI, and USB.
 
 Unlocking FLASH
 ===============
@@ -164,6 +197,15 @@ Unlocking FLASH
 
     You will, of course, have to change the path as appropriate for your system.
 
+  4. Erase FLASH (optional)
+
+      J-Link>erase
+      Erasing device (ATSAMD51P19)...
+      J-Link: Flash download: Total time needed: 2.596s (Prepare: 0.031s, Compare: 0.000s, Erase: 2.553s, Program: 0.000s, Verify: 0.000s, Restore: 0.012s)
+      J-Link: Flash download: Total time needed: 0.066s (Prepare: 0.038s, Compare: 0.000s, Erase: 0.016s, Program: 0.000s, Verify: 0.000s, Restore: 0.010s)
+      Erasing done.
+      J-Link>
+
 Serial Console
 ==============
 
@@ -192,8 +234,8 @@ LEDs
     ------ ----------------- -----------
     D13    PA16              GPIO output
 
-Run from FLASH
-==============
+Run from SRAM
+=============
 
   I bricked my first Metro M4 board because there were problems in the
   bring-up logic.  These problems left the chip in a bad state that was
@@ -216,7 +258,7 @@ Run from FLASH
     gdb> mon memu32 0x20000000  << Get the address of initial stack
     gdb> mon reg sp 0x200161c4  << Set the initial stack pointer using this address
     gdb> mon memu32 0x20000004  << Get the address of __start entry point
-    gdb> mon reg pc 0x20000264  << Set the PC using this address
+    gdb> mon reg pc 0x20000264  << Set the PC using this address (without bit 0 set)
     gdb> si                     << Step in just to make sure everything is okay
     gdb> [ set breakpoints ]
     gdb> c                      << Then continue until you hit a breakpoint
@@ -268,4 +310,10 @@ Configuration sub-directories
 -----------------------------
 
   nsh:
-    This configuration directory will built the NuttShell.  See NOTES above.
+    This configuration directory will built the NuttShell.  See NOTES ;for
+    common configuration above and the following:
+
+    NOTES:
+
+    1. The CMCC (Cortex M Cache Controller) is enabled.
+

@@ -142,7 +142,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: stm32_bringup
+ * Name: stm32l4_bringup
  *
  * Description:
  *   Called either by board_intialize() if CONFIG_BOARD_INITIALIZE or by
@@ -156,17 +156,37 @@
 int stm32l4_bringup(void);
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: stm32l4_spidev_initialize
  *
  * Description:
  *   Called to configure SPI chip select GPIO pins for the Nucleo-F401RE and
  *   Nucleo-F411RE boards.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-#if defined(CONFIG_STM32L4_SPI1) || defined(CONFIG_STM32L4_SPI2) || defined(CONFIG_STM32L4_SPI3)
+#if defined(CONFIG_STM32L4_SPI1) || defined(CONFIG_STM32L4_SPI2) || \
+    defined(CONFIG_STM32L4_SPI3)
 void weak_function stm32l4_spidev_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: stm32_timer_driver_setup
+ *
+ * Description:
+ *   Configure the timer drivers.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; A negated errno value is returned
+ *   to indicate the nature of any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_TIMER
+int stm32l4_timer_driver_setup(void);
 #endif
 
 /****************************************************************************

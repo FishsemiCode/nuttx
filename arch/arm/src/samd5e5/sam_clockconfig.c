@@ -78,8 +78,8 @@ static const struct sam_clockconfig_s g_initial_clocking =
 {
   .waitstates        = BOARD_FLASH_WAITSTATES,
   .cpudiv            = BOARD_MCLK_CPUDIV,
-  .glckset1          = BOARD_GCLK_SET1,
-  .glckset2          = BOARD_GCLK_SET2,
+  .gclkset1          = BOARD_GCLK_SET1,
+  .gclkset2          = BOARD_GCLK_SET2,
   .cpu_frequency     = BOARD_CPU_FREQUENCY,
 #if BOARD_HAVE_XOSC32K != 0
    .xosc32k          =
@@ -141,6 +141,7 @@ static const struct sam_clockconfig_s g_initial_clocking =
      .bplckc         = BOARD_DFLL_BPLCKC,
      .waitlock       = BOARD_DFLL_WAITLOCK,
      .caliben        = BOARD_DFLL_CALIBEN,
+     .gclklock       = BOARD_DFLL_GCLKLOCK,
      .fcalib         = BOARD_DFLL_FCALIB,
      .ccalib         = BOARD_DFLL_CCALIB,
      .fstep          = BOARD_DFLL_FSTEP,
@@ -148,7 +149,7 @@ static const struct sam_clockconfig_s g_initial_clocking =
      .gclk           = BOARD_DFLL_GCLK,
      .mul            = BOARD_DFLL_MUL
    },
-   .dpll            =
+   .dpll             =
    {
      {
        .enable       = BOARD_DPLL0_ENABLE,
@@ -157,6 +158,7 @@ static const struct sam_clockconfig_s g_initial_clocking =
        .wuf          = BOARD_DPLL0_WUF,
        .runstdby     = BOARD_DPLL0_RUNSTDBY,
        .ondemand     = BOARD_DPLL0_ONDEMAND,
+       .reflock      = BOARD_DPLL0_REFLOCK,
        .refclk       = BOARD_DPLL0_REFCLK,
        .ltime        = BOARD_DPLL0_LTIME,
        .filter       = BOARD_DPLL0_FILTER,
@@ -173,6 +175,7 @@ static const struct sam_clockconfig_s g_initial_clocking =
        .wuf          = BOARD_DPLL1_WUF,
        .runstdby     = BOARD_DPLL1_RUNSTDBY,
        .ondemand     = BOARD_DPLL1_ONDEMAND,
+       .reflock      = BOARD_DPLL1_REFLOCK,
        .refclk       = BOARD_DPLL1_REFCLK,
        .ltime        = BOARD_DPLL1_LTIME,
        .filter       = BOARD_DPLL1_FILTER,
@@ -186,124 +189,100 @@ static const struct sam_clockconfig_s g_initial_clocking =
    .gclk             =
    {
      {
-     .enable        = BOARD_GCLK0_ENABLE,
-     .idc           = BOARD_GCLK0_IDC,
-     .oov           = BOARD_GCLK0_OOV,
-     .oe            = BOARD_GCLK0_OE,
-     .divsel        = BOARD_GCLK0_DIVSEL,
-     .runstdby      = BOARD_GCLK0_RUNSTDBY,
-     .source        = BOARD_GCLK0_SOURCE,
-     .div           = BOARD_GCLK0_DIV
+     .enable         = BOARD_GCLK0_ENABLE,
+     .oov            = BOARD_GCLK0_OOV,
+     .oe             = BOARD_GCLK0_OE,
+     .runstdby       = BOARD_GCLK0_RUNSTDBY,
+     .source         = BOARD_GCLK0_SOURCE,
+     .div            = BOARD_GCLK0_DIV
      },
      {
-     .enable        = BOARD_GCLK1_ENABLE,
-     .idc           = BOARD_GCLK1_IDC,
-     .oov           = BOARD_GCLK1_OOV,
-     .oe            = BOARD_GCLK1_OE,
-     .divsel        = BOARD_GCLK1_DIVSEL,
-     .runstdby      = BOARD_GCLK1_RUNSTDBY,
-     .source        = BOARD_GCLK1_SOURCE,
-     .div           = BOARD_GCLK1_DIV
+     .enable         = BOARD_GCLK1_ENABLE,
+     .oov            = BOARD_GCLK1_OOV,
+     .oe             = BOARD_GCLK1_OE,
+     .runstdby       = BOARD_GCLK1_RUNSTDBY,
+     .source         = BOARD_GCLK1_SOURCE,
+     .div            = BOARD_GCLK1_DIV
      },
      {
-     .enable        = BOARD_GCLK2_ENABLE,
-     .idc           = BOARD_GCLK2_IDC,
-     .oov           = BOARD_GCLK2_OOV,
-     .oe            = BOARD_GCLK2_OE,
-     .divsel        = BOARD_GCLK2_DIVSEL,
-     .runstdby      = BOARD_GCLK2_RUNSTDBY,
-     .source        = BOARD_GCLK2_SOURCE,
-     .div           = BOARD_GCLK2_DIV
+     .enable         = BOARD_GCLK2_ENABLE,
+     .oov            = BOARD_GCLK2_OOV,
+     .oe             = BOARD_GCLK2_OE,
+     .runstdby       = BOARD_GCLK2_RUNSTDBY,
+     .source         = BOARD_GCLK2_SOURCE,
+     .div            = BOARD_GCLK2_DIV
      },
      {
-     .enable        = BOARD_GCLK3_ENABLE,
-     .idc           = BOARD_GCLK3_IDC,
-     .oov           = BOARD_GCLK3_OOV,
-     .oe            = BOARD_GCLK3_OE,
-     .divsel        = BOARD_GCLK3_DIVSEL,
-     .runstdby      = BOARD_GCLK3_RUNSTDBY,
-     .source        = BOARD_GCLK3_SOURCE,
-     .div           = BOARD_GCLK3_DIV
+     .enable         = BOARD_GCLK3_ENABLE,
+     .oov            = BOARD_GCLK3_OOV,
+     .oe             = BOARD_GCLK3_OE,
+     .runstdby       = BOARD_GCLK3_RUNSTDBY,
+     .source         = BOARD_GCLK3_SOURCE,
+     .div            = BOARD_GCLK3_DIV
      },
      {
-     .enable        = BOARD_GCLK4_ENABLE,
-     .idc           = BOARD_GCLK4_IDC,
-     .oov           = BOARD_GCLK4_OOV,
-     .oe            = BOARD_GCLK4_OE,
-     .divsel        = BOARD_GCLK4_DIVSEL,
-     .runstdby      = BOARD_GCLK4_RUNSTDBY,
-     .source        = BOARD_GCLK4_SOURCE,
-     .div           = BOARD_GCLK4_DIV
+     .enable         = BOARD_GCLK4_ENABLE,
+     .oov            = BOARD_GCLK4_OOV,
+     .oe             = BOARD_GCLK4_OE,
+     .runstdby       = BOARD_GCLK4_RUNSTDBY,
+     .source         = BOARD_GCLK4_SOURCE,
+     .div            = BOARD_GCLK4_DIV
      },
      {
-     .enable        = BOARD_GCLK5_ENABLE,
-     .idc           = BOARD_GCLK5_IDC,
-     .oov           = BOARD_GCLK5_OOV,
-     .oe            = BOARD_GCLK5_OE,
-     .divsel        = BOARD_GCLK5_DIVSEL,
-     .runstdby      = BOARD_GCLK5_RUNSTDBY,
-     .source        = BOARD_GCLK5_SOURCE,
-     .div           = BOARD_GCLK5_DIV
+     .enable         = BOARD_GCLK5_ENABLE,
+     .oov            = BOARD_GCLK5_OOV,
+     .oe             = BOARD_GCLK5_OE,
+     .runstdby       = BOARD_GCLK5_RUNSTDBY,
+     .source         = BOARD_GCLK5_SOURCE,
+     .div            = BOARD_GCLK5_DIV
      },
      {
-     .enable        = BOARD_GCLK6_ENABLE,
-     .idc           = BOARD_GCLK6_IDC,
-     .oov           = BOARD_GCLK6_OOV,
-     .oe            = BOARD_GCLK6_OE,
-     .divsel        = BOARD_GCLK6_DIVSEL,
-     .runstdby      = BOARD_GCLK6_RUNSTDBY,
-     .source        = BOARD_GCLK6_SOURCE,
-     .div           = BOARD_GCLK6_DIV
+     .enable         = BOARD_GCLK6_ENABLE,
+     .oov            = BOARD_GCLK6_OOV,
+     .oe             = BOARD_GCLK6_OE,
+     .runstdby       = BOARD_GCLK6_RUNSTDBY,
+     .source         = BOARD_GCLK6_SOURCE,
+     .div            = BOARD_GCLK6_DIV
      },
      {
-     .enable        = BOARD_GCLK7_ENABLE,
-     .idc           = BOARD_GCLK7_IDC,
-     .oov           = BOARD_GCLK7_OOV,
-     .oe            = BOARD_GCLK7_OE,
-     .divsel        = BOARD_GCLK7_DIVSEL,
-     .runstdby      = BOARD_GCLK7_RUNSTDBY,
-     .source        = BOARD_GCLK7_SOURCE,
-     .div           = BOARD_GCLK7_DIV
+     .enable         = BOARD_GCLK7_ENABLE,
+     .oov            = BOARD_GCLK7_OOV,
+     .oe             = BOARD_GCLK7_OE,
+     .runstdby       = BOARD_GCLK7_RUNSTDBY,
+     .source         = BOARD_GCLK7_SOURCE,
+     .div            = BOARD_GCLK7_DIV
      },
      {
-     .enable        = BOARD_GCLK8_ENABLE,
-     .idc           = BOARD_GCLK8_IDC,
-     .oov           = BOARD_GCLK8_OOV,
-     .oe            = BOARD_GCLK8_OE,
-     .divsel        = BOARD_GCLK8_DIVSEL,
-     .runstdby      = BOARD_GCLK8_RUNSTDBY,
-     .source        = BOARD_GCLK8_SOURCE,
-     .div           = BOARD_GCLK8_DIV
+     .enable         = BOARD_GCLK8_ENABLE,
+     .oov            = BOARD_GCLK8_OOV,
+     .oe             = BOARD_GCLK8_OE,
+     .runstdby       = BOARD_GCLK8_RUNSTDBY,
+     .source         = BOARD_GCLK8_SOURCE,
+     .div            = BOARD_GCLK8_DIV
      },
      {
-     .enable        = BOARD_GCLK9_ENABLE,
-     .idc           = BOARD_GCLK9_IDC,
-     .oov           = BOARD_GCLK9_OOV,
-     .oe            = BOARD_GCLK9_OE,
-     .divsel        = BOARD_GCLK9_DIVSEL,
-     .runstdby      = BOARD_GCLK9_RUNSTDBY,
-     .source        = BOARD_GCLK9_SOURCE,
-     .div           = BOARD_GCLK9_DIV
+     .enable         = BOARD_GCLK9_ENABLE,
+     .oov            = BOARD_GCLK9_OOV,
+     .oe             = BOARD_GCLK9_OE,
+     .runstdby       = BOARD_GCLK9_RUNSTDBY,
+     .source         = BOARD_GCLK9_SOURCE,
+     .div            = BOARD_GCLK9_DIV
      },
      {
-     .enable        = BOARD_GCLK10_ENABLE,
-     .idc           = BOARD_GCLK10_IDC,
-     .oov           = BOARD_GCLK10_OOV,
-     .oe            = BOARD_GCLK10_OE,
-     .divsel        = BOARD_GCLK10_DIVSEL,
-     .runstdby      = BOARD_GCLK10_RUNSTDBY,
-     .source        = BOARD_GCLK10_SOURCE,
-     .div           = BOARD_GCLK10_DIV
+     .enable         = BOARD_GCLK10_ENABLE,
+     .oov            = BOARD_GCLK10_OOV,
+     .oe             = BOARD_GCLK10_OE,
+     .runstdby       = BOARD_GCLK10_RUNSTDBY,
+     .source         = BOARD_GCLK10_SOURCE,
+     .div            = BOARD_GCLK10_DIV
      },
      {
-     .enable        = BOARD_GCLK11_ENABLE,
-     .idc           = BOARD_GCLK11_IDC,
-     .oov           = BOARD_GCLK11_OOV,
-     .oe            = BOARD_GCLK11_OE,
-     .divsel        = BOARD_GCLK11_DIVSEL,
-     .runstdby      = BOARD_GCLK11_RUNSTDBY,
-     .source        = BOARD_GCLK11_SOURCE,
-     .div           = BOARD_GCLK11_DIV
+     .enable         = BOARD_GCLK11_ENABLE,
+     .oov            = BOARD_GCLK11_OOV,
+     .oe             = BOARD_GCLK11_OE,
+     .runstdby       = BOARD_GCLK11_RUNSTDBY,
+     .source         = BOARD_GCLK11_SOURCE,
+     .div            = BOARD_GCLK11_DIV
      }
    }
 };
@@ -606,69 +585,10 @@ static inline void sam_mclk_configure(uint8_t cpudiv)
 }
 
 /****************************************************************************
- * Name: sam_gclk_configure
- *
- * Description:
- *   Configure one GLCK
- *
- ****************************************************************************/
-
-static void sam_gclk_configure(uintptr_t regaddr,
-                               const struct sam_gclk_config_s *config)
-{
-  uint32_t regval;
-
-  /* Are we enabling or disabling the GLCK? */
-
-  if (config->enable)
-    {
-      /* Get the GLCK configuration */
-
-      regval = GCLK_GENCTRL_SRC(config->source) | GCLK_GENCTRL_GENEN |
-               GCLK_GENCTRL1_DIV(config->div);
-
-      if (config->idc)
-        {
-          regval |= GCLK_GENCTRL_IDC;
-        }
-
-      if (config->oov)
-        {
-          regval |= GCLK_GENCTRL_OOV;
-        }
-
-      if (config->oe)
-        {
-          regval |= GCLK_GENCTRL_OE;
-        }
-
-      if (config->divsel)
-        {
-          regval |= GCLK_GENCTRL_DIVSEL;
-        }
-
-      if (config->runstdby)
-        {
-          regval |= GCLK_GENCTRL_RUNSTDBY;
-        }
-    }
-  else
-    {
-      /* Disable the GLCK */
-
-      regval = 0;
-    }
-
-  /* Write the GCLK configuration */
-
-  putreg32(regval, regaddr);
-}
-
-/****************************************************************************
  * Name: sam_gclkset_configure
  *
  * Description:
- *   Configure a set of GLCKs
+ *   Configure a set of GCLKs
  *
  ****************************************************************************/
 
@@ -680,7 +600,7 @@ static void sam_gclkset_configure(uint16_t gclkset,
 
   /* Try every GCLK */
 
-  for (gclk = 0; gclk < SAM_NGLCK && gclkset != 0; gclk++)
+  for (gclk = 0; gclk < SAM_NGCLK && gclkset != 0; gclk++)
     {
       /* Check if this one is in the set */
 
@@ -690,7 +610,7 @@ static void sam_gclkset_configure(uint16_t gclkset,
           /* Yes.. Remove it from the set and configure it */
 
           gclkset &= ~mask;
-          sam_gclk_configure(SAM_GCLK_GENCTRL(gclk), &config[gclk]);
+          sam_gclk_configure(gclk, &config[gclk]);
         }
     }
 }
@@ -710,24 +630,27 @@ static void sam_dfll_configure(const struct sam_dfll_config_s *config)
 
   /* Set GCLK0 source to OSCULP32K (temporarily) */
 
-  regval32  = getreg32(SAM_GCLK_GENCTRL_OFFSET(0));
-  regval32 &= GCLK_GENCTRL_SRC_MASK;
+  regval32  = getreg32(SAM_GCLK_GENCTRL(0));
+  regval32 &= ~GCLK_GENCTRL_SRC_MASK;
   regval32 |= GCLK_GENCTRL_SRC_OSCULP32K;
-  putreg32(regval32, SAM_GCLK_GENCTRL_OFFSET(0));
+  putreg32(regval32, SAM_GCLK_GENCTRL(0));
 
   /* Disable the DFLL */
 
   putreg8(0, SAM_OSCCTRL_DFLLCTRLA);
 
   /* If we are running in closed loop mode and we are in USB clock recover
-   * mode, then set up the input source GCLK channel.
+   * mode, then set up the input source GCLK channel (unless it has already
+   * been configured and the configuration is locked).
    */
 
-  if (config->usbcrm && config->mode)
+  if (config->usbcrm && config->mode &&
+      !sam_gclk_chan_locked(GCLK_CHAN_OSCCTRL_DFLL))
     {
-      /* Configure the GCLK channel */
+      /* Configure the DFLL GCLK channel to use the GCLK source. */
 
-      sam_gclk_chan_enable(GCLK_CHAN_OSCCTRL_DFLL, config->gclk, true);
+      sam_gclk_chan_enable(GCLK_CHAN_OSCCTRL_DFLL, config->gclk,
+                           (bool)config->gclklock);
     }
 
   /* Setup the DFLLMUL register */
@@ -905,12 +828,12 @@ static void sam_dfll_gclkready(const struct sam_dfll_config_s *config)
     {
     }
 
-  /* Set the source of GLCK0 to to the configured source. */
+  /* Set the source of GCLK0 to to the configured source. */
 
-  regval32  = getreg32(SAM_GCLK_GENCTRL_OFFSET(0));
-  regval32 &= GCLK_GENCTRL_SRC_MASK;
+  regval32  = getreg32(SAM_GCLK_GENCTRL(0));
+  regval32 &= ~GCLK_GENCTRL_SRC_MASK;
   regval32 |= GCLK_GENCTRL_SRC(config->gclk);
-  putreg32(regval32, SAM_GCLK_GENCTRL_OFFSET(0));
+  putreg32(regval32, SAM_GCLK_GENCTRL(0));
 }
 
 /****************************************************************************
@@ -924,13 +847,16 @@ static void sam_dfll_gclkready(const struct sam_dfll_config_s *config)
 static void sam_dpll_gclkchannel(uint8_t chan,
                                  const struct sam_dpll_config_s *config)
 {
-  /* Check if we are using a dedicated GCLK as the reference clock */
+  /* Check if we are using a dedicated GCLK as the reference clock.  If so
+   * configure GCLK unless it has already been configured and configuration
+   * registers have been locked.
+   */
 
-  if (config->refclk == 0)
+  if (config->refclk == 0 && !sam_gclk_chan_locked(chan))
     {
-      /* Yes.. configure the GCLK channel */
+      /* Yes.. configure the GCLK channel that will be used as refclk source */
 
-      sam_gclk_chan_enable(chan, config->gclk, true);
+      sam_gclk_chan_enable(chan, config->gclk, (bool)config->reflock);
     }
 }
 
@@ -998,11 +924,11 @@ static void sam_dpll_ready(uintptr_t base,
 
   if (config->enable)
     {
-      uint32_t lockready = (OSCCTRL_DPLL0STATUS_LOCK |
-                            OSCCTRL_DPLL0STATUS_CLKRDY);
+      uint32_t lockready = (OSCCTRL_DPLLSTATUS_LOCK |
+                            OSCCTRL_DPLLSTATUS_CLKRDY);
       do
         {
-          regval = getreg32(base + SAM_OSCCTRL_DPLLSTATUS_OFFSET);
+          regval  = getreg32(base + SAM_OSCCTRL_DPLLSTATUS_OFFSET);
           regval &= lockready;
         }
       while (regval != lockready);
@@ -1107,7 +1033,7 @@ void sam_clock_configure(const struct sam_clockconfig_s *config)
 
   /* Pre-configure some GCLKs before configuring the DPLLs */
 
-  sam_gclkset_configure(config->glckset1, config->gclk);
+  sam_gclkset_configure(config->gclkset1, config->gclk);
 
   /* Configure loops:  DFLL, DPLL0, and DPLL1. */
 
@@ -1115,7 +1041,7 @@ void sam_clock_configure(const struct sam_clockconfig_s *config)
 
   /* Configure the renaming GCLKs before configuring the DPLLs */
 
-  sam_gclkset_configure(config->glckset2, config->gclk);
+  sam_gclkset_configure(config->gclkset2, config->gclk);
 
   /* Check if the number of wait states is increasing or decreasing */
 

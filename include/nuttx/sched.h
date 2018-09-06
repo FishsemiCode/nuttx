@@ -245,6 +245,10 @@ enum tstate_e
 #ifdef CONFIG_PAGING
   TSTATE_WAIT_PAGEFILL,       /* BLOCKED      - Waiting for page fill */
 #endif
+#ifdef CONFIG_SIG_SIGSTOP_ACTION
+  TSTATE_TASK_STOPPED,        /* BLOCKED      - Waiting for SIGCONT */
+#endif
+
   NUM_TASK_STATES             /* Must be last */
 };
 typedef enum tstate_e tstate_t;
@@ -498,8 +502,9 @@ struct task_group_s
   /* Simple mechanism used only when there is no support for SIGCHLD            */
 
   uint8_t tg_nwaiters;              /* Number of waiters                        */
+  uint8_t tg_waitflags;             /* User flags for waitpid behavior          */
   sem_t tg_exitsem;                 /* Support for waitpid                      */
-  int *tg_statloc;                  /* Location to return exit status           */
+  FAR int *tg_statloc;              /* Location to return exit status           */
 #endif
 
 #ifndef CONFIG_DISABLE_PTHREAD

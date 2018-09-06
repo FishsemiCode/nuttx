@@ -4152,8 +4152,14 @@ Configurations
 
         A. Build with no symbol table
 
+        $ make menuconfig
+
+          Disable ROMFS support in the .config file; Enable FAT file system
+          support in the .config file.  Enable "HSMCIO boot mount" support in
+          the board
+
         $ cd nuttx                          : Go to the NuttX build directory
-        $ tools/configure.sh sama5d4-ek/kernel  : Establish this configuration
+        $ tools/configure.sh sama5d4-ek/knsh  : Establish this configuration
         $ export PATH=???:$PATH             : Set up the PATH variable
         $ make                              : Build the kerne with a dummy ROMFS image
                                             : This should create the nuttx ELF
@@ -4170,25 +4176,6 @@ Configurations
         $ tools/mkimport.sh -x <zip-file>   : Use the full path to nuttx-export-*.zip
         $ make import                       : This will build the file system.
 
-        D. Create the symbol table from the apps/bin/content and copy back to NuttX
-
-        $ make symtab                       : Create the symbol table
-        $ ar rcs ../nuttx/binfmt/libbinfmt.a import/symtab.o
-
-        NOTE: There are many ways to create symbol tables.  The above will create
-        the minimal symbol tabled needed.
-
-        E. Reconfigure and rebuild NuttX
-
-          Enable the following in the configuration:
-            CONFIG_EXECFUNCS_HAVE_SYMTAB=y
-            CONFIG_EXECFUNCS_SYMTAB_ARRAY="g_symtab"
-            CONFIG_EXEDFUNCS_NSYMBOLS_VAR="g_nsymbols"
-            CONFIG_USER_INITPATH="/bin/init"
-
-        $ cd nuttx/                         : Rebuild the system with the correct
-        $ make clean_context all            : symbol table
-
       You will then need to copy the files from apps/bin to an SD card or USB
       FLASH drive to create the bootable SD card.
 
@@ -4201,7 +4188,12 @@ Configurations
 
         A. Build with dummy ROMFS file system image and no symbol table
 
-        $ tools/configure.sh sama5d4-ek/kernel  : Establish this configuration
+        $ make menuconfig
+
+          Enable the ROMFS file system and board-specific "ROMFS boot mount"
+          support to auto-mount the ROMFS file system on bootup.
+
+        $ tools/configure.sh sama5d4-ek/knsh  : Establish this configuration
         $ export PATH=???:$PATH             : Set up the PATH variable
         $ touch configs/sama5d4-ek/include/boot_romfsimg.h
         $ make                              : Build the kernel with a dummy ROMFS image
@@ -4224,24 +4216,10 @@ Configurations
         $ tools/mkromfsimg.sh               : Create the real ROMFS image
         $ mv boot_romfsimg.h ../nuttx/configs/sama5d4-ek/include/boot_romfsimg.h
 
-        E. Create the symbol table from the apps/bin and copy it back to NuttX
-
-        $ make symtab                       : Create the symbol table
-        $ ar rcs ../nuttx/binfmt/libbinfmt.a import/symtab.o
-
-        NOTE: There are many ways to create symbol tables.  The above will create
-        the minimal symbol tabled needed.
-
-        F. Reconfigure and rebuild NuttX/bin
-
-          Enable the following in the configuration:
-            CONFIG_EXECFUNCS_HAVE_SYMTAB=y
-            CONFIG_EXECFUNCS_SYMTAB_ARRAY="g_symtab"
-            CONFIG_EXEDFUNCS_NSYMBOLS_VAR="g_nsymbols"
-            CONFIG_USER_INITPATH="/bin/init"
+        E. Rebuild NuttX with the new file system image
 
         $ cd nuttx/                         : Rebuild the system with the correct
-        $ make clean_context all            : ROMFS file system and symbol table
+        $ make clean clean_context all      : ROMFS file system and symbol table
 
       But how does the ROMFS file system get mounted?  This is done in board-
       specific logic before the 'init' program is started.
@@ -4517,10 +4495,10 @@ Configurations
          |   |      |- fd                : File descriptors open in the group
          |   |      `- status            : Status of the group
          |   |- 1/                       : Information about Task ID 1
-         |   |  `- ...                   : Same psuedo-directories as for Task ID 0
+         |   |  `- ...                   : Same pseudo-directories as for Task ID 0
          |   |- ...                      : ...
          |   |- n/                       : Information about Task ID n
-         |   |  `- ...                   : Same psuedo-directories as for Task ID 0
+         |   |  `- ...                   : Same pseudo-directories as for Task ID 0
          |   |- uptime                   : Processor uptime
          `- tmp/
 

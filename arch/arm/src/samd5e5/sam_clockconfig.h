@@ -41,6 +41,7 @@
  ************************************************************************************/
 
 #include <nuttx/config.h>
+#include "sam_gclk.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -127,6 +128,7 @@ struct sam_dfll_config_s
   uint8_t bplckc     : 1;             /* Bypass coarse clock */
   uint8_t waitlock   : 1;             /* Wait lock */
   uint8_t caliben    : 1;             /* Overwrite factory calibration */
+  uint8_t gclklock   : 1;             /* Lock GCLK source clock configuration */
   uint8_t fcalib;                     /* Fine calibration value (if caliben != 0) */
   uint8_t ccalib;                     /* Coarse calibration value (if caliben != 0) */
   uint8_t fstep;                      /* Fine maximum step */
@@ -145,6 +147,7 @@ struct sam_dpll_config_s
   uint8_t wuf        : 1;             /* Wake up fast */
   uint8_t runstdby   : 1;             /* Run in standby */
   uint8_t ondemand   : 1;             /* On demand clock activation */
+  uint8_t reflock    : 1;             /* Lock GCLK clock reference configuration */
   uint8_t refclk;                     /* Reference clock selection
                                        * 0  Dedicated GCLK clock reference
                                        * 1  XOSC32K clock reference
@@ -180,37 +183,14 @@ struct sam_dpll_config_s
   uint16_t div;                       /* Clock divider */
 };
 
-/* This structure defines the configuration of a GCLK */
-
-struct sam_gclk_config_s
-{
-  uint8_t enable     : 1;             /* True:  Enable GCLK */
-  uint8_t idc        : 1;             /* True:  Improve duty cycle */
-  uint8_t oov        : 1;             /* True:  Clock output selection */
-  uint8_t oe         : 1;             /* True:  Output enable */
-  uint8_t divsel     : 1;             /* True:  Clock source divider */
-  uint8_t runstdby   : 1;             /* Run in standby */
-  uint8_t source;                     /* GLCK clock source:
-                                       *   0  XOSC 0 oscillator input
-                                       *   1  XOSC 1 oscillator input
-                                       *   2  Generator input pad
-                                       *   3  Generic clock generator 1 output
-                                       *   4  OSCULP32K oscillator output
-                                       *   5  XOSC32K oscillator output
-                                       *   6  DFLL oscillator output
-                                       *   7  DPLL0 output
-                                       *   8  DPLL1 output */
-  uint16_t div;                       /* Division factor: 8-bits for all but GCLK1 */
-};
-
 /* This structure defines the configuration of the clock sus-system */
 
 struct sam_clockconfig_s
 {
   uint8_t waitstates;                 /* NVM read wait states 9-15 */
   uint8_t cpudiv;                     /* MCLK divider to get CPU frequency */
-  uint16_t glckset1;                  /* GLCKs to initialize prior to DPLL init */
-  uint16_t glckset2;                  /* GLCKs to initialize after to DPLL init */
+  uint16_t gclkset1;                  /* GCLKs to initialize prior to DPLL init */
+  uint16_t gclkset2;                  /* GCLKs to initialize after to DPLL init */
   uint32_t cpu_frequency;             /* Resulting CPU frequency */
 #if BOARD_HAVE_XOSC32K != 0
   struct sam_xosc32_config_s xosc32k; /* XOSC32 configuration */
@@ -223,7 +203,7 @@ struct sam_clockconfig_s
 #endif
   struct sam_dfll_config_s dfll;      /* DFLL configuration */
   struct sam_dpll_config_s dpll[2];   /* DPLL0/1 configurations */
-  struct sam_gclk_config_s gclk[12];  /* GLCK configurations */
+  struct sam_gclk_config_s gclk[12];  /* GCLK configurations */
 };
 
 /************************************************************************************

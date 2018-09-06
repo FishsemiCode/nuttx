@@ -48,7 +48,7 @@
  * Pre-processor Definitions
  ********************************************************************************************/
 
-#define SAM_NGLCK                    12     /* 12 Clock generators, 0-11 */
+#define SAM_NGCLK                    12     /* 12 Clock generators, 0-11 */
 #define SAM_NCHANNELS                48     /* 48 Clock generators, 0..47 */
 
 /* GCLK register offsets ********************************************************************/
@@ -98,7 +98,7 @@
 #  define GCLK_GENCTRL_SRC_XOSC0     (0 << GCLK_GENCTRL_SRC_SHIFT) /* XOSC 0 oscillator input */
 #  define GCLK_GENCTRL_SRC_XOSC1     (1 << GCLK_GENCTRL_SRC_SHIFT) /* XOSC 1 oscillator input */
 #  define GCLK_GENCTRL_SRC_GCLK_IN   (2 << GCLK_GENCTRL_SRC_SHIFT) /* Generator input pad */
-#  define GCLK_GENCTRL_SRC_GLCK_GEN1 (3 << GCLK_GENCTRL_SRC_SHIFT) /* Generic clock generater 1 output */
+#  define GCLK_GENCTRL_SRC_GCLK_GEN1 (3 << GCLK_GENCTRL_SRC_SHIFT) /* Generic clock generater 1 output */
 #  define GCLK_GENCTRL_SRC_OSCULP32K (4 << GCLK_GENCTRL_SRC_SHIFT) /* OSCULP32K oscillator output */
 #  define GCLK_GENCTRL_SRC_XOSC32K   (5 << GCLK_GENCTRL_SRC_SHIFT) /* XOSC32K oscillator output */
 #  define GCLK_GENCTRL_SRC_DFLL      (6 << GCLK_GENCTRL_SRC_SHIFT) /* DFLL oscillator output */
@@ -110,10 +110,10 @@
 #define GCLK_GENCTRL_OE              (1 << 11) /* Bit 11: Clock output enable */
 #define GCLK_GENCTRL_DIVSEL          (1 << 12) /* Bit 12: Clock source divider */
 #define GCLK_GENCTRL_RUNSTDBY        (1 << 13) /* Bit 13: Run in standby */
-#define GCLK_GENCTRL_DIV_SHIFT       (16)      /* Bits 16-31: Generator 0,2-11 Division factor */
+#define GCLK_GENCTRL_DIV_SHIFT       (16)      /* Bits 16-23: Generator 0,2-11 Division factor */
 #define GCLK_GENCTRL_DIV_MASK        (0xff << GCLK_GENCTRL_DIV_SHIFT)
 #  define GCLK_GENCTRL_DIV(n)        ((uint32_t)(n) << GCLK_GENCTRL_DIV_SHIFT)
-#define GCLK_GENCTRL1_DIV_SHIFT      (16)      /* Bits 16-23: Generator 1 Division factor **/
+#define GCLK_GENCTRL1_DIV_SHIFT      (16)      /* Bits 16-31: Generator 1 Division factor **/
 #define GCLK_GENCTRL1_DIV_MASK       (0xffff << GCLK_GENCTRL1_DIV_SHIFT)
 #  define GCLK_GENCTRL1_DIV(n)       ((uint32_t)(n) << GCLK_GENCTRL1_DIV_SHIFT)
 
@@ -147,7 +147,7 @@
 #define GCLK_CHAN_SDHCn_SLOW         3         /* SDHC0-1 Slow */
 #define GCLK_CHAN_SDHC0_SLOW         3         /* SDHC0 Slow */
 #define GCLK_CHAN_SDHC1_SLOW         3         /* SDHC1 Slow */
-#define GCLK_CHAN_SERCOMn_SLOW       3         /* SERCOM0=7 Slow */
+#define GCLK_CHAN_SERCOMn_SLOW       3         /* SERCOM Slow (common) */
 #define GCLK_CHAN_SERCOM0_SLOW       3         /* SERCOM0 Slow */
 #define GCLK_CHAN_SERCOM1_SLOW       3         /* SERCOM1 Slow */
 #define GCLK_CHAN_SERCOM2_SLOW       3         /* SERCOM2 Slow */
