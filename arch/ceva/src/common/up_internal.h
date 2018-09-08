@@ -103,6 +103,7 @@
  */
 
 #define STACK_COLOR    0xdeadbeef
+#define INTSTACK_COLOR 0xdeadbeef
 #define HEAP_COLOR     'h'
 
 /****************************************************************************

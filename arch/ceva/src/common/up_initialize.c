@@ -54,39 +54,36 @@
 #include <nuttx/serial/pty.h>
 #include <nuttx/crypto/crypto.h>
 
-#include "sched/sched.h"
+#include "up_arch.h"
 #include "up_internal.h"
+
+#include "sched/sched.h"
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_calibratedelay
+ * Name: up_color_intstack
  *
  * Description:
- *   Delay loops are provided for short timing loops.  This function, if
- *   enabled, will just wait for 100 seconds.  Using a stopwatch, you can
- *   can then determine if the timing loops are properly calibrated.
+ *   Set the interrupt stack to a value so that later we can determine how
+ *   much stack space was used by interrupt handling logic
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CALIBRATION) && defined(CONFIG_DEBUG_FEATURES)
-static void up_calibratedelay(void)
+static inline void up_color_intstack(void)
 {
-  int i;
+  uint32_t *ptr = (uint32_t *)&g_intstackalloc;
+  ssize_t size;
 
-  _warn("Beginning 100s delay\n");
-  for (i = 0; i < 100; i++)
+  for (size = &g_intstackbase - &g_intstackalloc;
+       size > 0;
+       size -= sizeof(uint32_t))
     {
-      up_mdelay(1000);
+      *ptr++ = INTSTACK_COLOR;
     }
-
-  _warn("End 100s delay\n");
 }
-#else
-# define up_calibratedelay()
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -124,9 +121,9 @@ void up_initialize(void)
   idle->adj_stack_ptr   = g_idle_topstack;
   idle->adj_stack_size  = g_idle_topstack - g_idle_basestack;
 
-  /* Calibrate the timing loop */
+  /* Colorize the interrupt stack */
 
-  up_calibratedelay();
+  up_color_intstack();
 
   /* Add any extra memory fragments to the memory manager */
 
