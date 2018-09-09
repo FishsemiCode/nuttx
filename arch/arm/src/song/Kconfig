@@ -7,7 +7,6 @@ comment "Song Configuration Options"
 
 config ARCH_CHIP_SONG
 	bool
-	select ARCH_HAVE_SERIAL_TERMIOS
 
 choice
 	prompt "Song Chip Selection"

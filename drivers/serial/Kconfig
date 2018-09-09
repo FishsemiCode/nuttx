@@ -21,6 +21,7 @@ config SERIAL_CONSOLE
 
 menuconfig 16550_UART
 	bool "16550 UART Chip support"
+	select ARCH_HAVE_SERIAL_TERMIOS
 	default n
 
 if 16550_UART
@@ -29,6 +30,7 @@ endif
 
 menuconfig CMSDK_UART
 	bool "CMSDK UART Chip support"
+	select ARCH_HAVE_SERIAL_TERMIOS
 	default n
 
 if CMSDK_UART
@@ -52,6 +54,7 @@ config RPMSG_UART
 	bool "UART rpmsg support"
 	default n
 	depends on OPENAMP
+	select ARCH_HAVE_SERIAL_TERMIOS
 	select SERIAL_DMA
 	select SERIAL_REMOVABLE
 	select SERIAL_IFLOWCONTROL
