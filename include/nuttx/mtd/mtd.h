@@ -82,10 +82,6 @@
                                            * OUT: None */
 #define MTDIOC_ECCSTATUS  _MTDIOC(0x0008) /* IN:  Pointer to uint8_t
                                            * OUT: ECC status */
-#define MTDIOC_ERASE      _MTDIOC(0x0009) /* IN:  Pointer to read-able struct
-                                           *      mtd_erase_s that provides
-                                           *      the region to erase.
-                                           * OUT: None */
 
 /* Macros to hide implementation */
 
@@ -128,25 +124,15 @@ struct mtd_geometry_s
   uint32_t neraseblocks;  /* Number of erase blocks */
 };
 
-/* This structure describes a range of sectors.
- */
-
-struct mtd_block_range_s
-{
-  off_t  startblock;      /* First block to be operated */
-  size_t nblocks;         /* Number of blocks to operate */
-};
-
 /* This structure describes a range of sectors to be protected or
  * unprotected.
  */
 
-#define mtd_protect_s mtd_block_range_s
-
-/* This structure describes a range of sectors to be erased.
- */
-
-#define mtd_erase_s mtd_block_range_s
+struct mtd_protect_s
+{
+  off_t  startblock;      /* First block to be [un-]protected */
+  size_t nblocks;         /* Number of blocks to [un-]protect */
+};
 
 /* The following defines the information for writing bytes to a sector
  * that are not a full page write (bytewrite).
@@ -300,23 +286,6 @@ int mtd_setpartitionname(FAR struct mtd_dev_s *mtd, FAR const char *name);
 #if defined(CONFIG_MTD_WRBUFFER) || defined(CONFIG_MTD_READAHEAD)
 FAR struct mtd_dev_s *mtd_rwb_initialize(FAR struct mtd_dev_s *mtd);
 #endif
-
-/****************************************************************************
- * Name: blk_initialize
- *
- * Description:
- *   Initialize to provide a block driver wrapper around an MTD interface
- *   but without automatically erasing
- *
- * Input Parameters:
- *   minor - The minor device number. The MTD block device will be
- *      registered as /dev/mtdrawN where N is the minor number.
- *   mtd - The MTD device that supports the FLASH interface.
- *
- ****************************************************************************/
-
-int blk_initialize_by_path(FAR const char *path, FAR struct mtd_dev_s *mtd);
-int blk_initialize(int minor, FAR struct mtd_dev_s *mtd);
 
 /****************************************************************************
  * Name: ftl_initialize_by_name

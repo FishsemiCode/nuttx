@@ -39,7 +39,7 @@
 
 ifeq ($(CONFIG_MTD),y)
 
-CSRCS += blk.c ftl.c mtd_config.c
+CSRCS += ftl.c mtd_config.c
 
 ifeq ($(CONFIG_MTD_PARTITION),y)
 CSRCS += mtd_partition.c
