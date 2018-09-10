@@ -75,6 +75,7 @@ CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++
 CPP = $(CROSSDEV)gcc -E -P -x c
 LD = $(CROSSDEV)gcc
+STRIP = $(CROSSDEV)strip --strip-unneeded
 AR = $(ARCROSSDEV)gcc-ar rcs
 NM = $(ARCROSSDEV)gcc-nm
 OBJCOPY = $(CROSSDEV)objcopy
@@ -122,6 +123,14 @@ else
 NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
 endif
 LDNXFLATFLAGS = -e main -s 2048
+
+# ELF module definitions
+
+CELFFLAGS = $(CFLAGS) -mlong-calls -fno-common
+CXXELFFLAGS = $(CXXFLAGS) -mlong-calls -fno-common
+AELFFLAGS = $(AFLAGS)
+LDELFFLAGS = -r -e main -Bstatic $(LDFLAGS)
+LDELFFLAGS += -T $(TOPDIR)/arch/arm/src/song/gnu-elf.ld
 
 # Loadable module definitions
 
