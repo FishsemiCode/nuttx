@@ -232,27 +232,21 @@ static int blk_ioctl(FAR struct inode *inode, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-int blk_initialize_by_name(FAR const char *name, FAR struct mtd_dev_s *mtd)
+int blk_initialize_by_path(FAR const char *path, FAR struct mtd_dev_s *mtd)
 {
-  char devname[64];
-
-  if (!name || !mtd)
+  if (!path || !mtd)
     {
       return -EINVAL;
     }
 
-  /* Create a MTD block device name */
-
-  snprintf(devname, 64, "/dev/mtd%s", name);
-
   /* Inode private data is a reference to the MTD device structure */
 
-  return register_blockdriver(devname, &g_bops, 0, mtd);
+  return register_blockdriver(path, &g_bops, 0, mtd);
 }
 
 int blk_initialize(int minor, FAR struct mtd_dev_s *mtd)
 {
-  char name[16];
+  char path[16];
 
   if (minor < 0)
     {
@@ -261,6 +255,6 @@ int blk_initialize(int minor, FAR struct mtd_dev_s *mtd)
 
   /* Do the real work by blk_initialize_by_name */
 
-  snprintf(name, 16, "raw%d", minor);
-  return blk_initialize_by_name(name, mtd);
+  snprintf(path, 16, "/dev/mtdraw%d", minor);
+  return blk_initialize_by_path(path, mtd);
 }
