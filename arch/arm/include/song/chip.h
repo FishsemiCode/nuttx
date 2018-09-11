@@ -41,12 +41,6 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-
-#ifndef __ASSEMBLY__
-#include <nuttx/ioexpander/ioexpander.h>
-#include <nuttx/spi/spi.h>
-#endif
-
 #include <arch/chip/cache.h>
 
 /****************************************************************************
