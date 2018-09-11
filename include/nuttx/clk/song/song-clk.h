@@ -84,6 +84,7 @@ struct song_gate_clk
   const char         *parent_name;
   uint16_t           en_offset;
   uint8_t            en_shift;
+  uint8_t            clk_flags;
 };
 
 struct song_div_clk
@@ -95,6 +96,7 @@ struct song_div_clk
   uint8_t            en_shift;
   uint8_t            div_shift;
   uint8_t            div_width;
+  uint8_t            clk_flags;
   uint16_t           div_flags;
 };
 
@@ -107,6 +109,7 @@ struct song_gr_clk
   uint8_t            en_shift;
   uint8_t            mult_shift;
   uint8_t            mult_width;
+  uint8_t            clk_flags;
 };
 
 struct song_sdiv_sdiv_clk
@@ -132,6 +135,7 @@ struct song_gr_fdiv_clk
   uint16_t           gr_offset;
   uint16_t           div_offset;
   uint8_t            en_shift;
+  uint8_t            clk_flags;
 };
 
 struct song_sdiv_gr_clk

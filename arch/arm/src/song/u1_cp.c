@@ -41,6 +41,7 @@
 
 #include <crc32.h>
 
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -527,6 +528,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, 0);
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  clk_disable_unused();
 #endif
 }
 

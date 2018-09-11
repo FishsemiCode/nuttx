@@ -42,6 +42,7 @@
 #include <fcntl.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -724,7 +725,7 @@ static void up_flash_init(void)
     .yaddr_shift  = 5,
     .neraseblocks = 256,
     .timing       = timing,
-    .mclk         = "flash_ctrl_clk",
+    .mclk         = "flash_ctrl_hclk",
     .rate         = 102400000,
   };
   FAR struct mtd_dev_s *mtd;
@@ -770,6 +771,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_AP, 1);
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  clk_disable_unused();
 #endif
 }
 

@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -465,6 +466,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_PWM_SONG
   song_pwm_initialize(0, 0xb0100000, 4, "pwm_mclk");
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  clk_disable_unused();
 #endif
 }
 

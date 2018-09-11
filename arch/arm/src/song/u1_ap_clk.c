@@ -268,6 +268,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "ap_m4_bus_clk",
     .en_offset = 0x0b8,
     .en_shift = 3,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "i2c_ahb_hclk",
@@ -286,18 +287,21 @@ static const struct song_gate_clk gate[] =
     .parent_name = "ap_m4_bus_clk",
     .en_offset = 0x0c4,
     .en_shift = 0,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "ap_m4_wic_clk",
     .parent_name = "ap_m4_clk",
     .en_offset = 0x0c4,
     .en_shift = 1,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "ap_m4_stclk",
     .parent_name = "sp/clk32k",
     .en_offset = 0x0c4,
     .en_shift = 2,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "apwdt_tclk",
@@ -310,12 +314,14 @@ static const struct song_gate_clk gate[] =
     .parent_name = "ap_m4_clk",
     .en_offset = 0x0c4,
     .en_shift = 5,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "ap_m4_icache_clk",
     .parent_name = "ap_m4_clk",
     .en_offset = 0x0c4,
     .en_shift = 6,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {},
 };

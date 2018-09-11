@@ -359,30 +359,35 @@ static const struct song_gate_clk gate[] =
     .parent_name = "cp_m4_clk",
     .en_offset = 0x090,
     .en_shift = 15,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "cp_m4_clk",
     .parent_name = "cp_bus_mclk0",
     .en_offset = 0x094,
     .en_shift = 0,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "cp_m4_wic_clk",
     .parent_name = "cp_m4_clk",
     .en_offset = 0x094,
     .en_shift = 1,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "cp_m4_stclk",
     .parent_name = "clk32k",
     .en_offset = 0x094,
     .en_shift = 2,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "rfif_bus_clk",
     .parent_name = "cp_bus_mclk1",
     .en_offset = 0x094,
     .en_shift = 3,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "viterbi_clk",
@@ -433,6 +438,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "cp_m4_clk",
     .en_offset = 0x094,
     .en_shift = 11,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "rfphy_lte_clk_gated1",
