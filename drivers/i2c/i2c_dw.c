@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <errno.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/mutex.h>
@@ -164,6 +165,7 @@ struct dw_i2c_hw_s
 struct dw_i2c_dev_s
 {
   struct i2c_master_s dev;              /* I2c private data */
+  struct clk *mclk;                     /* I2c master clk */
   FAR struct dw_i2c_hw_s *hw;           /* Hardware i2c controller info */
 
   uint32_t msgs_num;                    /* number of mesgs */
@@ -423,6 +425,13 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
   i2c->internal_status  = 0;
   i2c->rx_outstanding   = 0;
 
+  ret = clk_enable(i2c->mclk);
+  if (ret)
+    {
+      nxmutex_unlock(&i2c->mutex);
+      return ret;
+    }
+
   /* don't enable irq. otherwise when master transfer first
    * bytes(address+write/read) to slave, slave may NACK
    */
@@ -459,6 +468,7 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
 
 done:
   dw_i2c_disable(i2c);
+  clk_disable(i2c->mclk);
   nxmutex_unlock(&i2c->mutex);
   return ret;
 }
@@ -843,7 +853,23 @@ FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *con
   if (ret < 0)
     goto sem_prio_err;
 
+  i2c->mclk = clk_get(config->mclk);
+  if (!i2c->mclk)
+    {
+      i2cerr("i2c:%p mclk invalid\n", config->base);
+      goto sem_prio_err;
+    }
+
+  ret = clk_enable(i2c->mclk);
+  if (ret)
+    {
+      i2cerr("i2c:%p open mclk failed\n", config->base);
+      goto sem_prio_err;
+    }
+
   dw_i2c_hw_init(i2c, config);
+
+  clk_disable(i2c->mclk);
 
   ret = irq_attach(config->irq, dw_i2c_isr, i2c);
   if (ret < 0)

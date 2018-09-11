@@ -386,6 +386,7 @@ static void up_i2c_init(void)
     {
       .bus        = 0,
       .base       = 0xf8b11000,
+      .mclk       = "i2c0_mclk",
       .irq        = 23,
       .sda_hold   = 8,
       .fs_spklen  = 1,
@@ -400,6 +401,7 @@ static void up_i2c_init(void)
     {
       .bus        = 1,
       .base       = 0xf8b12000,
+      .mclk       = "i2c1_mclk",
       .irq        = 24,
       .sda_hold   = 8,
       .fs_spklen  = 1,

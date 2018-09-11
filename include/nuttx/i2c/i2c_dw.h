@@ -50,6 +50,7 @@ struct dw_i2c_config_s
 {
   int bus;
   uintptr_t base;
+  FAR const char *mclk;
   uint32_t irq;
   uint32_t sda_hold;
   uint32_t fs_spklen;
