@@ -50,46 +50,25 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifndef NVIC_IRQ_RESERVED
-#define NVIC_IRQ_RESERVED          0 /* Reserved */
-#endif
-                                     /* Vector  0: Reset stack pointer value */
-                                     /* Vector  1: Reset (not handler as an IRQ) */
-#ifndef NVIC_IRQ_NMI
-#define NVIC_IRQ_NMI               2 /* Vector  2: Non-Maskable Interrupt (NMI) */
-#endif
-#ifndef NVIC_IRQ_HARDFAULT
-#define NVIC_IRQ_HARDFAULT         3 /* Vector  3: Hard fault */
-#endif
-#ifndef NVIC_IRQ_MEMFAULT
-#define NVIC_IRQ_MEMFAULT          4 /* Vector  4: Memory management (MPU) */
-#endif
-#ifndef NVIC_IRQ_BUSFAULT
-#define NVIC_IRQ_BUSFAULT          5 /* Vector  5: Bus fault */
-#endif
-#ifndef NVIC_IRQ_USAGEFAULT
-#define NVIC_IRQ_USAGEFAULT        6 /* Vector  6: Usage fault */
-#endif
-                                     /* Vectors 7-10: Reserved */
-#ifndef NVIC_IRQ_SVCALL
-#define NVIC_IRQ_SVCALL           11 /* Vector 11: SVC call */
-#endif
-#ifndef NVIC_IRQ_DBGMONITOR
-#define NVIC_IRQ_DBGMONITOR       12 /* Vector 12: Debug Monitor */
-#endif
-                                     /* Vector 13: Reserved */
-#ifndef NVIC_IRQ_PENDSV
-#define NVIC_IRQ_PENDSV           14 /* Vector 14: Pendable system service request */
-#endif
-#ifndef NVIC_IRQ_SYSTICK
-#define NVIC_IRQ_SYSTICK          15 /* Vector 15: System tick */
-#endif
+/* Exception/interrupt vector numbers */
+
+/* Vector  0: Reset stack pointer value */
+/* Vector  1: Reset */
+#define NVIC_IRQ_NMI                    (2)    /* Vector  2: Non-Maskable Interrupt (NMI) */
+#define NVIC_IRQ_HARDFAULT              (3)    /* Vector  3: Hard fault */
+#define NVIC_IRQ_MEMFAULT               (4)    /* Vector  4: Memory management (MPU) */
+#define NVIC_IRQ_BUSFAULT               (5)    /* Vector  5: Bus fault */
+#define NVIC_IRQ_USAGEFAULT             (6)    /* Vector  6: Usage fault */
+/* Vectors 7-10: Reserved */
+#define NVIC_IRQ_SVCALL                 (11)   /* Vector 11: SVC call */
+#define NVIC_IRQ_DBGMONITOR             (12)   /* Vector 12: Debug Monitor */
+/* Vector 13: Reserved */
+#define NVIC_IRQ_PENDSV                 (14)   /* Vector 14: Pendable system service request */
+#define NVIC_IRQ_SYSTICK                (15)   /* Vector 15: System tick */
 
 /* External interrupts (vectors >= 16).  These definitions are chip-specific */
 
-#ifndef NVIC_IRQ_FIRST
-#define NVIC_IRQ_FIRST            16 /* Vector number of the first external interrupt */
-#endif
+#define NVIC_IRQ_FIRST                  (16)    /* Vector number of the first interrupt */
 
 /* IRQ numbers.  The IRQ number corresponds vector number and hence map directly to
  * bits in the INTC.  This does, however, waste several words of memory in the IRQ
