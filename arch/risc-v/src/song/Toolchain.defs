@@ -1,0 +1,162 @@
+############################################################################
+# arch/risc-v/src/song/Toolchain.defs
+#
+#   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+#   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions
+# are met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in
+#    the documentation and/or other materials provided with the
+#    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+# OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+# AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+############################################################################
+
+ifeq ($(CONFIG_WINDOWS_CYGWIN),y)
+  # Windows-native toolchains
+  HOST = windows
+  DIRLINK = $(TOPDIR)/tools/copydir.sh
+  DIRUNLINK = $(TOPDIR)/tools/unlink.sh
+  MKDEP = $(TOPDIR)/tools/mkwindeps.sh
+  ARCHINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}"
+  ARCHXXINCLUDES = -I. -isystem "${shell cygpath -w $(TOPDIR)/include}" -isystem "${shell cygpath -w $(TOPDIR)/include/cxx}"
+  ARCHSCRIPT = -T "${shell cygpath -w $(LDSCRIPT)}"
+
+  ifeq ($(CONFIG_UCLIBCXX),y)
+    ARCHXXINCLUDES += -isystem "${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)uClibc++}"
+  endif
+  ifeq ($(CONFIG_LIBCXX),y)
+    ARCHXXINCLUDES += -isystem "${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)libcxx}"
+    ARCHXXINCLUDES += -isystem "${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)machine}"
+  endif
+else
+  # Linux/Cygwin-native toolchain
+  HOST = linux
+  MKDEP = $(TOPDIR)/tools/mkdeps$(HOSTEXEEXT)
+  ARCHINCLUDES = -I. -isystem $(TOPDIR)/include
+  ARCHXXINCLUDES = -I. -isystem $(TOPDIR)/include -isystem $(TOPDIR)/include/cxx
+  ARCHSCRIPT = -T$(LDSCRIPT)
+
+  ifeq ($(CONFIG_UCLIBCXX),y)
+    ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)uClibc++
+  endif
+  ifeq ($(CONFIG_LIBCXX),y)
+    ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)libcxx
+    ARCHXXINCLUDES += -isystem $(OUTDIR)$(DELIM)include$(DELIM)machine
+  endif
+endif
+
+CROSSDEV   ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/riscv/bin/riscv32-unknown-elf-
+ARCROSSDEV ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/riscv/bin/riscv32-unknown-elf-
+include ${TOPDIR}/arch/risc-v/src/rv32im/Toolchain.defs
+
+CC = $(CROSSDEV)gcc
+CXX = $(CROSSDEV)g++
+CPP = $(CROSSDEV)gcc -E -P -x c
+LD = $(CROSSDEV)gcc
+STRIP = $(CROSSDEV)strip --strip-unneeded
+AR = $(ARCROSSDEV)gcc-ar rcs
+NM = $(ARCROSSDEV)gcc-nm
+OBJCOPY = $(CROSSDEV)objcopy
+OBJDUMP = $(CROSSDEV)objdump
+
+ARCHOPTIMIZATION =
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  ARCHOPTIMIZATION = -g
+endif
+
+ifneq ($(CONFIG_DEBUG_NOOPT),y)
+  ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
+  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections
+endif
+
+ARCHCFLAGS = -fno-builtin
+ARCHCXXFLAGS = -fno-builtin -fexceptions -fcheck-new -fno-rtti -fpermissive
+ifeq ($(CONFIG_LIBCXX),y)
+  ARCHCXXFLAGS += -std=c++11 -D__NuttX__
+endif
+ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
+ARCHWARNINGSXX = -Wall -Wshadow -Wundef
+ARCHDEFINES =
+ARCHPICFLAGS = -fpic -msingle-pic-base -mpic-register=r10
+
+CFLAGS = $(ARCHCFLAGS) $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
+CPICFLAGS = $(ARCHPICFLAGS) $(CFLAGS)
+CXXFLAGS = $(ARCHCXXFLAGS) $(ARCHWARNINGSXX) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(ARCHXXINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES) -pipe
+CXXPICFLAGS = $(ARCHPICFLAGS) $(CXXFLAGS)
+CPPFLAGS = $(ARCHINCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+AFLAGS = $(CFLAGS) -D__ASSEMBLY__
+
+# ELF module definitions
+
+CELFFLAGS = $(CFLAGS) -mlong-calls -fno-common
+CXXELFFLAGS = $(CXXFLAGS) -mlong-calls -fno-common
+AELFFLAGS = $(AFLAGS)
+LDELFFLAGS = -r -e main -Bstatic $(LDFLAGS)
+LDELFFLAGS += -T $(TOPDIR)/binfmt/libelf/gnu-elf.ld
+
+# Loadable module definitions
+
+CMODULEFLAGS = $(CFLAGS) -mlong-calls -fno-common
+
+LDMODULEFLAGS = -r -e module_initialize $(LDFLAGS)
+ifeq ($(WINTOOL),y)
+  LDMODULEFLAGS += -T "${shell cygpath -w $(TOPDIR)/libs/libc/modlib/gnu-elf.ld}"
+else
+  LDMODULEFLAGS += -T $(TOPDIR)/libs/libc/modlib/gnu-elf.ld
+endif
+
+ASMEXT = .S
+OBJEXT = .o
+LIBEXT = .a
+EXEEXT =
+
+LDSTARTGROUP = -Wl,--start-group
+LDENDGROUP   = -Wl,--end-group
+
+ifeq ($(filter -nuttx-, $(CROSSDEV)),)
+  LDFLAGS += -nostartfiles -nodefaultlibs
+endif
+ifeq ($(CONFIG_DEBUG_SYMBOLS),y)
+  LDFLAGS += -g
+endif
+
+ifneq ($(CONFIG_DEBUG_NOOPT),y)
+  LDFLAGS += -Wl,--gc-sections
+endif
+
+LIBM = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libm.a}"
+ifeq ($(filter $(LIBM), $(EXTRA_LIBS)),)
+  EXTRA_LIBS += $(LIBM)
+endif
+
+LIBSUPPORT = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libsupc++.a}"
+ifeq ($(filter $(LIBSUPPORT), $(EXTRA_LIBS)),)
+  EXTRA_LIBS += $(LIBSUPPORT)
+endif
+
+HOSTCC = gcc
+HOSTINCLUDES = -I.
+HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe
+HOSTLDFLAGS =
