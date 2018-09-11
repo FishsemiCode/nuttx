@@ -27,6 +27,10 @@ config 16550_UART0_BASE
 config 16550_UART0_CLOCK
 	int "16550 UART0 clock"
 
+config 16550_UART0_CLOCK_NAME
+	string "16550 UART0 clock name"
+	depends on CLK
+
 config 16550_UART0_IRQ
 	int "16550 UART0 IRQ number"
 
@@ -129,6 +133,10 @@ config 16550_UART1_BASE
 
 config 16550_UART1_CLOCK
 	int "16550 UART1 clock"
+
+config 16550_UART1_CLOCK_NAME
+	string "16550 UART1 clock name"
+	depends on CLK
 
 config 16550_UART1_IRQ
 	int "16550 UART1 IRQ number"
@@ -233,6 +241,10 @@ config 16550_UART2_BASE
 config 16550_UART2_CLOCK
 	int "16550 UART2 clock"
 
+config 16550_UART2_CLOCK_NAME
+	string "16550 UART2 clock name"
+	depends on CLK
+
 config 16550_UART2_IRQ
 	int "16550 UART2 IRQ number"
 
@@ -335,6 +347,10 @@ config 16550_UART3_BASE
 
 config 16550_UART3_CLOCK
 	int "16550 UART3 clock"
+
+config 16550_UART3_CLOCK_NAME
+	string "16550 UART3 clock name"
+	depends on CLK
 
 config 16550_UART3_IRQ
 	int "16550 UART3 IRQ number"

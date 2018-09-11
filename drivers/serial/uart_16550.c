@@ -49,6 +49,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/clk/clk.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/dma/dma.h>
@@ -91,6 +92,10 @@ struct u16550_s
 #if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_SERIAL_DMA)
   uint32_t         baud;      /* Configured baud */
   uint32_t         uartclk;   /* UART clock frequency */
+#endif
+#ifdef CONFIG_CLK
+  char            *clk_name;  /* UART clock name */
+  struct clk      *mclk;      /* UART clock descriptor */
 #endif
   uart_datawidth_t ier;       /* Saved IER value */
   uint8_t          irq;       /* IRQ associated with this UART */
@@ -219,6 +224,9 @@ static struct u16550_s g_uart0priv =
   .baud           = CONFIG_16550_UART0_BAUD,
   .uartclk        = CONFIG_16550_UART0_CLOCK,
 #endif
+#ifdef CONFIG_CLK
+  .clk_name       = CONFIG_16550_UART0_CLOCK_NAME,
+#endif
   .irq            = CONFIG_16550_UART0_IRQ,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
   .parity         = CONFIG_16550_UART0_PARITY,
@@ -268,6 +276,9 @@ static struct u16550_s g_uart1priv =
 #if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_16550_UART1_DMA)
   .baud           = CONFIG_16550_UART1_BAUD,
   .uartclk        = CONFIG_16550_UART1_CLOCK,
+#endif
+#ifdef CONFIG_CLK
+  .clk_name       = CONFIG_16550_UART1_CLOCK_NAME,
 #endif
   .irq            = CONFIG_16550_UART1_IRQ,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
@@ -319,6 +330,9 @@ static struct u16550_s g_uart2priv =
   .baud           = CONFIG_16550_UART2_BAUD,
   .uartclk        = CONFIG_16550_UART2_CLOCK,
 #endif
+#ifdef CONFIG_CLK
+  .clk_name       = CONFIG_16550_UART2_CLOCK_NAME,
+#endif
   .irq            = CONFIG_16550_UART2_IRQ,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
   .parity         = CONFIG_16550_UART2_PARITY,
@@ -368,6 +382,9 @@ static struct u16550_s g_uart3priv =
 #if !defined(CONFIG_16550_SUPRESS_CONFIG) || defined(CONFIG_16550_UART3_DMA)
   .baud           = CONFIG_16550_UART3_BAUD,
   .uartclk        = CONFIG_16550_UART3_CLOCK,
+#endif
+#ifdef CONFIG_CLK
+  .clk_name       = CONFIG_16550_UART3_CLOCK_NAME,
 #endif
   .irq            = CONFIG_16550_UART3_IRQ,
 #ifndef CONFIG_16550_SUPRESS_CONFIG
@@ -844,6 +861,17 @@ static int u16550_attach(struct uart_dev_s *dev)
   FAR struct u16550_s *priv = (FAR struct u16550_s *)dev->priv;
   int ret;
 
+#ifdef CONFIG_CLK
+  /* Clk enable */
+
+  priv->mclk = clk_get(priv->clk_name);
+  if (priv->mclk)
+    {
+      clk_set_rate(priv->mclk, priv->uartclk);
+      clk_enable(priv->mclk);
+    }
+#endif
+
   /* Attach and enable the IRQ */
 
   ret = irq_attach(priv->irq, u16550_interrupt, dev);
@@ -891,6 +919,15 @@ static void u16550_detach(FAR struct uart_dev_s *dev)
 
   up_disable_irq(priv->irq);
   irq_detach(priv->irq);
+
+#ifdef CONFIG_CLK
+  /* Clk disaable */
+
+  if (priv->mclk)
+    {
+      clk_disable(priv->mclk);
+    }
+#endif
 }
 
 /****************************************************************************
