@@ -46,11 +46,38 @@
 #include <nuttx/lib/modlib.h>
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#ifdef CONFIG_MODLIB_HAVE_SYMTAB
+  /* Symbol table used by dlsym */
+
+#  ifndef CONFIG_MODLIB_SYMTAB_ARRAY
+#    error "CONFIG_MODLIB_SYMTAB_ARRAY must be defined"
+#  endif
+
+  /* Number of Symbols in the Table */
+
+#  ifndef CONFIG_MODLIB_NSYMBOLS_VAR
+#    error "CONFIG_MODLIB_NSYMBOLS_VAR must be defined"
+#  endif
+#endif
+
+/****************************************************************************
  * Public Data
  ****************************************************************************/
 
-FAR const struct symtab_s *g_modlib_symtab;
-FAR int g_modlib_nsymbols;
+#ifdef CONFIG_MODLIB_HAVE_SYMTAB
+extern const struct symtab_s CONFIG_MODLIB_SYMTAB_ARRAY[];
+extern int CONFIG_MODLIB_NSYMBOLS_VAR;
+#endif
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static FAR const struct symtab_s *g_modlib_symtab;
+static FAR int g_modlib_nsymbols;
 
 /****************************************************************************
  * Public Functions
@@ -78,6 +105,13 @@ void modlib_getsymtab(FAR const struct symtab_s **symtab, FAR int *nsymbols)
   /* Borrow the registry lock to assure atomic access */
 
   modlib_registry_lock();
+#ifdef CONFIG_MODLIB_HAVE_SYMTAB
+  if (g_modlib_symtab == NULL)
+    {
+      g_modlib_symtab = CONFIG_MODLIB_SYMTAB_ARRAY;
+      g_modlib_nsymbols = CONFIG_MODLIB_NSYMBOLS_VAR;
+    }
+#endif
   *symtab   = g_modlib_symtab;
   *nsymbols = g_modlib_nsymbols;
   modlib_registry_unlock();

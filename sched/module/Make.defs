@@ -49,7 +49,7 @@ endif
 
 # Hook the module subdirectory into the build
 
-VPATH += module
+VPATH += :module
 SUBDIRS += module
 DEPPATH += --dep-path module
 
