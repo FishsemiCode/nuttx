@@ -94,7 +94,7 @@ struct u16550_s
   uint32_t         uartclk;   /* UART clock frequency */
 #endif
 #ifdef CONFIG_CLK
-  char            *clk_name;  /* UART clock name */
+  const char      *clk_name;  /* UART clock name */
   struct clk      *mclk;      /* UART clock descriptor */
 #endif
   uart_datawidth_t ier;       /* Saved IER value */
