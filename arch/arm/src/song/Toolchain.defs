@@ -134,13 +134,13 @@ LDELFFLAGS += -T $(TOPDIR)/arch/arm/src/song/gnu-elf.ld
 
 # Loadable module definitions
 
-CMODULEFLAGS = $(CFLAGS) -mlong-calls # --target1-abs
+CMODULEFLAGS = $(CFLAGS) -mlong-calls -fno-common
 
-LDMODULEFLAGS = -r -e module_initialize
+LDMODULEFLAGS = -r -e module_initialize $(LDFLAGS)
 ifeq ($(WINTOOL),y)
-  LDMODULEFLAGS += -T "${shell cygpath -w $(TOPDIR)/libc/modlib/gnu-elf.ld}"
+  LDMODULEFLAGS += -T "${shell cygpath -w $(TOPDIR)/arch/arm/src/song/gnu-elf.ld}"
 else
-  LDMODULEFLAGS += -T$(TOPDIR)/libc/modlib/gnu-elf.ld
+  LDMODULEFLAGS += -T $(TOPDIR)/arch/arm/src/song/gnu-elf.ld
 endif
 
 ASMEXT = .S
