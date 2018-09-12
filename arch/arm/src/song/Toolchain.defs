@@ -120,7 +120,7 @@ NXFLATLDFLAGS1 = -r -d -warn-common
 ifeq ($(WINTOOL),y)
 NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T "${shell cygpath -w $(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld}" -no-check-sections
 else
-NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T$(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
+NXFLATLDFLAGS2 = $(NXFLATLDFLAGS1) -T $(TOPDIR)/binfmt/libnxflat/gnu-nxflat-pcrel.ld -no-check-sections
 endif
 LDNXFLATFLAGS = -e main -s 2048
 
@@ -130,7 +130,7 @@ CELFFLAGS = $(CFLAGS) -mlong-calls -fno-common
 CXXELFFLAGS = $(CXXFLAGS) -mlong-calls -fno-common
 AELFFLAGS = $(AFLAGS)
 LDELFFLAGS = -r -e main -Bstatic $(LDFLAGS)
-LDELFFLAGS += -T $(TOPDIR)/arch/arm/src/song/gnu-elf.ld
+LDELFFLAGS += -T $(TOPDIR)/binfmt/libelf/gnu-elf.ld
 
 # Loadable module definitions
 
@@ -138,9 +138,9 @@ CMODULEFLAGS = $(CFLAGS) -mlong-calls -fno-common
 
 LDMODULEFLAGS = -r -e module_initialize $(LDFLAGS)
 ifeq ($(WINTOOL),y)
-  LDMODULEFLAGS += -T "${shell cygpath -w $(TOPDIR)/arch/arm/src/song/gnu-elf.ld}"
+  LDMODULEFLAGS += -T "${shell cygpath -w $(TOPDIR)/libs/libc/modlib/gnu-elf.ld}"
 else
-  LDMODULEFLAGS += -T $(TOPDIR)/arch/arm/src/song/gnu-elf.ld
+  LDMODULEFLAGS += -T $(TOPDIR)/libs/libc/modlib/gnu-elf.ld
 endif
 
 ASMEXT = .S
