@@ -276,7 +276,7 @@ tools/mkversion$(HOSTEXEEXT):
 	$(Q) $(MAKE) -C tools -f $(TOPDIR)/tools/Makefile.host -I $(TOPDIR)/tools TOPDIR="$(TOPDIR)"  mkversion$(HOSTEXEEXT)
 
 version:
-	$(Q) if [ -f $(TOPDIR)/.version ]; then \
+	-$(Q) if [ -f $(TOPDIR)/.version ]; then \
 			cp $(TOPDIR)/.version .version; \
 		 else \
 			echo "No .version file found, creating one"; \

@@ -148,7 +148,7 @@ endif
 ifeq ($(CONFIG_FS_HOSTFS),y)
   HOSTSRCS += up_hostfs.c
 
-$(SRCDIR)/up_hostfs.c: hostfs.h
+up_hostfs.c: hostfs.h
 
 hostfs.h: $(TOPDIR)/include/nuttx/fs/hostfs.h
 	@echo "CP:  $<"
