@@ -317,18 +317,6 @@ static const struct song_default_rate_clk def_rate[] =
     .name = "i2c1_mclk",
     .rate = 80000000,
   },
-#ifdef CONFIG_16550_UART2
-  {
-    .name = "uart2_clk",
-    .rate = CONFIG_16550_UART2_CLOCK,
-  },
-#endif
-#ifdef CONFIG_16550_UART3
-  {
-    .name = "uart3_clk",
-    .rate = CONFIG_16550_UART3_CLOCK,
-  },
-#endif
   {}
 };
 
