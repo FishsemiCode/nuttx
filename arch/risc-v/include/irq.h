@@ -71,8 +71,9 @@ typedef uint32_t  irqstate_t;
  * Public Function Prototypes
  ****************************************************************************/
 
-irqstate_t  irqsave(void);
+irqstate_t up_irq_save(void);
+irqstate_t up_irq_enable(void);
 
-void irqrestore(irqstate_t);
+void up_irq_restore(irqstate_t);
 
 #endif /* __ARCH_RISCV_INCLUDE_IRQ_H */

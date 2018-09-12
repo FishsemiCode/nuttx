@@ -44,6 +44,9 @@
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/mm/iob.h>
+#include <nuttx/drivers/drivers.h>
+#include <nuttx/syslog/syslog.h>
+#include <nuttx/syslog/syslog_console.h>
 #include <nuttx/serial/pty.h>
 #include <nuttx/syslog/syslog.h>
 #include <nuttx/drivers/drivers.h>

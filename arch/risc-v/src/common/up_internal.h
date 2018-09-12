@@ -96,6 +96,16 @@
 #  endif
 #endif
 
+/* If some other device is used as the console, then the serial driver may
+ * still be needed.  Let's assume that if the upper half serial driver is
+ * built, then the lower half will also be needed.  There is no need for
+ * the early serial initialization in this case.
+ */
+
+#if !defined(USE_SERIALDRIVER) && defined(CONFIG_STANDARD_SERIAL)
+#  define USE_SERIALDRIVER 1
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -114,7 +124,35 @@ extern "C"
 #endif
 
 EXTERN volatile uint32_t *g_current_regs;
-EXTERN uint32_t g_idle_topstack;
+
+/* This is the beginning of heap as provided from up_head.S.
+ * This is the first address in DRAM after the loaded
+ * program+bss+idle stack.  The end of the heap is
+ * CONFIG_RAM_END
+ */
+
+EXTERN const uint32_t g_idle_topstack;
+
+
+/* These 'addresses' of these values are setup by the linker script.  They are
+ * not actual uint32_t storage locations! They are only used meaningfully in the
+ * following way:
+ *
+ *  - The linker script defines, for example, the symbol_sdata.
+ *  - The declareion extern uint32_t _sdata; makes C happy.  C will believe
+ *    that the value _sdata is the address of a uint32_t variable _data (it is
+ *    not!).
+ *  - We can recoved the linker value then by simply taking the address of
+ *    of _data.  like:  uint32_t *pdata = &_sdata;
+ */
+
+EXTERN uint32_t _stext;           /* Start of .text */
+EXTERN uint32_t _etext;           /* End_1 of .text + .rodata */
+EXTERN const uint32_t _eronly;    /* End+1 of read only section (.text + .rodata) */
+EXTERN uint32_t _sdata;           /* Start of .data */
+EXTERN uint32_t _edata;           /* End+1 of .data */
+EXTERN uint32_t _sbss;            /* Start of .bss */
+EXTERN uint32_t _ebss;            /* End+1 of .bss */
 
 /****************************************************************************
  * Public Functions
@@ -128,14 +166,16 @@ void up_boot(void);
 
 /* Memory allocation ********************************************************/
 
+#if CONFIG_MM_REGIONS > 1
 void up_addregion(void);
-void up_allocat_eheap(FAR void **heap_start, size_t *heap_size);
+#else
+# define up_addregion()
+#endif
 
 /* IRQ initialization *******************************************************/
 
 void up_irqinitialize(void);
 void up_copystate(uint32_t *dest, uint32_t *src);
-void up_dumpstate(void);
 void up_sigdeliver(void);
 int up_swint(int irq, FAR void *context, FAR void *arg);
 uint32_t up_get_newintctx(void);
@@ -151,9 +191,25 @@ void up_lowputc(char ch);
 void up_puts(const char *str);
 void up_lowputs(const char *str);
 
-/* The OS start routine    **************************************************/
+#ifdef USE_SERIALDRIVER
+void up_serialinit(void);
+#else
+#  define up_serialinit()
+#endif
 
-void os_start(void);
+#ifdef USE_EARLYSERIALINIT
+void up_earlyserialinit(void);
+#else
+#  define up_earlyserialinit()
+#endif
+
+/* Debug */
+
+#ifdef CONFIG_ARCH_STACKDUMP
+void up_dumpstate(void);
+#else
+#  define up_dumpstate()
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

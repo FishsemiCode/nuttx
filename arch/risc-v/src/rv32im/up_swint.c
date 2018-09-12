@@ -144,6 +144,10 @@ int up_swint(int irq, FAR void *context, FAR void *arg)
   up_registerdump(regs);
 #endif
 
+  /* Skip ECALL instruction */
+
+  regs[REG_EPC] += 4;
+
   /* Handle the SWInt according to the command in $a0 */
 
   switch (regs[REG_A0])

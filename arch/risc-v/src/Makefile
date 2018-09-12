@@ -108,6 +108,11 @@ KBIN = libkarch$(LIBEXT)
 UBIN = libuarch$(LIBEXT)
 BIN  = libarch$(LIBEXT)
 
+# Override in Make.defs if linker is not 'ld'
+
+LDSTARTGROUP ?= --start-group
+LDENDGROUP ?= --end-group
+
 LDFLAGS += $(ARCHSCRIPT)
 
 EXTRA_LIBS ?=
@@ -182,7 +187,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	$(Q) echo "LD: nuttx"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
-		--start-group $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
 	$(Q) $(NM) -S --numeric-sort $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.sym
@@ -238,4 +243,4 @@ info:
 	@echo $(ASRCS)
 	@echo $(CONFIG_ARCH_CHIP)
 
-#-include Make.dep
+-include Make.dep
