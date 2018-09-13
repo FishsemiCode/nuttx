@@ -392,7 +392,7 @@ static int net_rpmsg_drv_txpoll(FAR struct net_driver_s *dev)
         }
 #endif /* CONFIG_NET_IPv4 */
 
-#ifdef CONFIG_NET_IPv6
+#if defined(CONFIG_NET_IPv6) && defined(CONFIG_NET_ETHERNET)
 #ifdef CONFIG_NET_IPv4
       else
 #endif
@@ -403,7 +403,7 @@ static int net_rpmsg_drv_txpoll(FAR struct net_driver_s *dev)
               neighbor_out(dev);
             }
         }
-#endif /* CONFIG_NET_IPv6 */
+#endif /* CONFIG_NET_IPv6 && CONFIG_NET_ETHERNET */
 
       if (!devif_loopback(dev))
         {
@@ -476,7 +476,7 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev)
         }
 #endif
 
-#ifdef CONFIG_NET_IPv6
+#if defined(CONFIG_NET_IPv6) && defined(CONFIG_NET_ETHERNET)
 #ifdef CONFIG_NET_IPv4
       /* Otherwise, it must be an outgoing IPv6 packet */
 
@@ -575,7 +575,7 @@ static bool net_rpmsg_drv_is_ipv6(struct net_driver_s *dev)
     }
   else
     {
-      return (ip->vhl & IP_VERSION_MASK) == IPv6_VERSION;
+      return (ip->vtc & IP_VERSION_MASK) == IPv6_VERSION;
     }
 }
 #endif
