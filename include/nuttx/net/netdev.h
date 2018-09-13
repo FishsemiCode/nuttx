@@ -247,9 +247,6 @@ struct net_driver_s
 
   uint16_t d_pktsize;           /* Maximum packet size */
 
-#if defined(CONFIG_NET_ETHERNET) || defined(CONFIG_NET_6LOWPAN) || \
-    defined(CONFIG_NET_BLUETOOTH) || defined(CONFIG_NET_IEEE802154)
-
   /* Link layer address */
 
   union
@@ -267,7 +264,6 @@ struct net_driver_s
     struct netdev_varaddr_s radio;
 #endif
   } d_mac;
-#endif /* CONFIG_NET_ETHERNET || CONFIG_NET_6LOWPAN ... || CONFIG_NET_IEEE802154 */
 
   /* Network identity */
 
