@@ -219,8 +219,8 @@ static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
   flags = enter_critical_section();
   base->SET_CNT2     = cnt2;
   base->SET_CNT1     = cnt1;
-  base->SET_UPDATE   = 1; /* Trigger the update */
   base->USER_DEFINED = 1; /* Mark the change */
+  base->SET_UPDATE   = 1; /* Trigger the update */
   leave_critical_section(flags);
 
   return 0;
@@ -274,8 +274,8 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   lower->priv       = alarminfo->priv;
   alarm->CNT_HI     = cnt_hi;
   alarm->CNT_LO     = cnt_lo;
-  alarm->INT_UPDATE = 1; /* Trigger the update */
   alarm->INT_EN     = 1; /* Then enable interrupt */
+  alarm->INT_UPDATE = 1; /* Trigger the update */
 #ifdef CONFIG_PM
   ms = cnt_hi * 1000ull + alarminfo->time.tm_nsec / 1000000;
   if (ms < CONFIG_RTC_SONG_STANDBYENTER_THRESH)
@@ -332,6 +332,7 @@ static int song_rtc_cancelalarm(FAR struct rtc_lowerhalf_s *lower_,
   flags = enter_critical_section();
   alarm->INT_EN     = 0; /* Disable interrupt first */
   alarm->INT_STATUS = 1; /* Clear the request */
+  alarm->INT_UPDATE = 1; /* Trigger the update */
 #ifdef CONFIG_PM
   song_rtc_pm(lower, PM_SLEEP);
 #endif
