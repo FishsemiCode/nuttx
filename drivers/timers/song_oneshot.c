@@ -82,7 +82,7 @@ struct song_oneshot_lowerhalf_s
   FAR void *arg;
 
 #ifdef CONFIG_PM
-  uint32_t last_state;
+  struct pm_callback_s pm_cb;
 #endif
 };
 
@@ -305,36 +305,12 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
   song_oneshot_putreg(config->base, config->spec_off, spec);
 }
 
-#ifdef CONFIG_PM
-static void song_oneshot_pm(FAR struct song_oneshot_lowerhalf_s *lower,
-                            uint32_t new_state)
-{
-  if (lower->last_state != new_state)
-    {
-      if (lower->last_state != PM_SLEEP)
-        {
-          pm_relax(PM_IDLE_DOMAIN, lower->last_state);
-        }
-
-      if (new_state != PM_SLEEP)
-        {
-          pm_stay(PM_IDLE_DOMAIN, new_state);
-        }
-
-      lower->last_state = new_state;
-    }
-}
-#endif
-
 static int song_oneshot_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct song_oneshot_lowerhalf_s *lower = arg;
 
   if (song_oneshot_getintr(lower))
     {
-#ifdef CONFIG_PM
-      song_oneshot_pm(lower, PM_SLEEP);
-#endif
       song_oneshot_disableintr(lower);
       if (lower->callback)
         {
@@ -364,10 +340,6 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
   struct timespec now, spec;
   irqstate_t flags;
-#ifdef CONFIG_PM
-  uint32_t new_state;
-  uint64_t ms;
-#endif
 
   flags = enter_critical_section();
   lower->callback = callback;
@@ -377,28 +349,6 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   clock_timespec_add(&now, ts, &spec);
   song_oneshot_putspec(lower, &spec);
   song_oneshot_enableintr(lower);
-
-#ifdef CONFIG_PM
-  ms = ts->tv_sec * 1000ull + ts->tv_nsec / 1000000;
-  if (ms < CONFIG_ONESHOT_SONG_IDLEENTER_THRESH)
-    {
-      new_state = PM_NORMAL;
-    }
-  else if (ms < CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH)
-    {
-      new_state = PM_IDLE;
-    }
-  else if (ms < CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH)
-    {
-      new_state = PM_STANDBY;
-    }
-  else
-    {
-      new_state = PM_SLEEP;
-    }
-  song_oneshot_pm(lower, new_state);
-#endif
-
   leave_critical_section(flags);
 
   return 0;
@@ -417,9 +367,6 @@ static int song_oneshot_cancel(FAR struct oneshot_lowerhalf_s *lower_,
   song_oneshot_getspec(lower, &spec);
   song_oneshot_gettime(lower, &now);
   clock_timespec_subtract(&spec, &now, ts);
-#ifdef CONFIG_PM
-  song_oneshot_pm(lower, PM_SLEEP);
-#endif
   leave_critical_section(flags);
 
   return 0;
@@ -434,6 +381,43 @@ static int song_oneshot_current(FAR struct oneshot_lowerhalf_s *lower_,
   song_oneshot_gettime(lower, ts);
   return 0;
 }
+
+#ifdef CONFIG_PM
+static enum pm_state_e song_oneshot_pm_evaluate(FAR struct pm_callback_s *cb, int domain)
+{
+  FAR struct song_oneshot_lowerhalf_s *lower =
+    container_of(cb, struct song_oneshot_lowerhalf_s, pm_cb);
+  FAR const struct song_oneshot_config_s *config = lower->config;
+
+  if (song_oneshot_getbit(config->base, config->intren_off, config->intr_bit))
+    {
+      uint32_t c2 = song_oneshot_getreg(config->base, config->c2_off);
+      uint32_t spec = song_oneshot_getreg(config->base, config->spec_off);
+      uint64_t count = 1ull * (spec - c2) * lower->c1_max;
+      uint64_t ms = msec_from_count(count, config->c1_freq);
+
+      if (ms >= CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH)
+        {
+          return PM_SLEEP;
+        }
+      else if (ms >= CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH)
+        {
+          return PM_STANDBY;
+        }
+      else if (ms >= CONFIG_ONESHOT_SONG_IDLEENTER_THRESH)
+        {
+          return PM_IDLE;
+        }
+      else
+        {
+          return PM_NORMAL;
+        }
+    }
+  /* There is no OS timer. */
+
+  return PM_SLEEP;
+}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -451,7 +435,8 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config)
       lower->c2_base = UINT64_MAX;
       lower->ops = &g_song_oneshot_ops;
 #ifdef CONFIG_PM
-      lower->last_state = PM_SLEEP;
+      lower->pm_cb.evaluate = song_oneshot_pm_evaluate;
+      pm_register(&lower->pm_cb);
 #endif
 
       song_oneshot_disableintr(lower);
