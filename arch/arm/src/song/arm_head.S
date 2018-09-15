@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/arm_start.S
+ * arch/arm/src/song/arm_head.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -47,7 +47,7 @@
 
 	.syntax		unified
 	.thumb
-	.file		"arm_start.S"
+	.file		"arm_head.S"
 	.globl		up_start
 	.globl		_ebss
 	.globl		__aeabi_d2f
