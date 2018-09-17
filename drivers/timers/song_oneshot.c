@@ -382,43 +382,6 @@ static int song_oneshot_current(FAR struct oneshot_lowerhalf_s *lower_,
   return 0;
 }
 
-#ifdef CONFIG_PM
-static enum pm_state_e song_oneshot_pm_evaluate(FAR struct pm_callback_s *cb, int domain)
-{
-  FAR struct song_oneshot_lowerhalf_s *lower =
-    container_of(cb, struct song_oneshot_lowerhalf_s, pm_cb);
-  FAR const struct song_oneshot_config_s *config = lower->config;
-
-  if (song_oneshot_getbit(config->base, config->intren_off, config->intr_bit))
-    {
-      uint32_t c2 = song_oneshot_getreg(config->base, config->c2_off);
-      uint32_t spec = song_oneshot_getreg(config->base, config->spec_off);
-      uint64_t count = 1ull * (spec - c2) * lower->c1_max;
-      uint64_t ms = msec_from_count(count, config->c1_freq);
-
-      if (ms >= CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH)
-        {
-          return PM_SLEEP;
-        }
-      else if (ms >= CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH)
-        {
-          return PM_STANDBY;
-        }
-      else if (ms >= CONFIG_ONESHOT_SONG_IDLEENTER_THRESH)
-        {
-          return PM_IDLE;
-        }
-      else
-        {
-          return PM_NORMAL;
-        }
-    }
-  /* There is no OS timer. */
-
-  return PM_SLEEP;
-}
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -434,10 +397,6 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config)
       lower->config = config;
       lower->c2_base = UINT64_MAX;
       lower->ops = &g_song_oneshot_ops;
-#ifdef CONFIG_PM
-      lower->pm_cb.evaluate = song_oneshot_pm_evaluate;
-      pm_register(&lower->pm_cb);
-#endif
 
       song_oneshot_disableintr(lower);
       irq_attach(config->irq, song_oneshot_interrupt, lower);
