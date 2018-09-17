@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/risc-v/src/common/up_arch.h
+ * arch/risc-v/src/common/up_modifyreg32.c
  *
- *   Copyright (C) 2007-2009 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,54 +33,41 @@
  *
  ****************************************************************************/
 
-#ifndef ___ARCH_RISCV_SRC_COMMON_UP_ARCH_H
-#define ___ARCH_RISCV_SRC_COMMON_UP_ARCH_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#ifndef __ASSEMBLY__
-# include <stdint.h>
-#endif
+
+#include <stdint.h>
+#include <debug.h>
+
+#include <nuttx/irq.h>
+#include <nuttx/arch.h>
+
+#include "up_arch.h"
 
 /****************************************************************************
- * Inline Functions
+ * Public Functions
  ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-# define getreg8(a)           (*(volatile uint8_t *)(a))
-# define putreg8(v,a)         (*(volatile uint8_t *)(a) = (v))
-# define getreg16(a)          (*(volatile uint16_t *)(a))
-# define putreg16(v,a)        (*(volatile uint16_t *)(a) = (v))
-# define getreg32(a)          (*(volatile uint32_t *)(a))
-# define putreg32(v,a)        (*(volatile uint32_t *)(a) = (v))
 
 /****************************************************************************
- * Public Function Prototypes
+ * Name: modifyreg32
+ *
+ * Description:
+ *   Atomically modify the specified bits in a memory mapped register
+ *
  ****************************************************************************/
 
-#undef EXTERN
-#if defined(__cplusplus)
-#define EXTERN extern "C"
-extern "C"
+void modifyreg32(unsigned int addr, uint32_t clearbits, uint32_t setbits)
 {
-#else
-#define EXTERN extern
-#endif
+  irqstate_t flags;
+  uint32_t   regval;
 
-/* Atomic modification of registers */
-
-void modifyreg8(unsigned int addr, uint8_t clearbits, uint8_t setbits);
-void modifyreg16(unsigned int addr, uint16_t clearbits, uint16_t setbits);
-void modifyreg32(unsigned int addr, uint32_t clearbits, uint32_t setbits);
-
-#undef EXTERN
-#if defined(__cplusplus)
+  flags   = spin_lock_irqsave();
+  regval  = getreg32(addr);
+  regval &= ~clearbits;
+  regval |= setbits;
+  putreg32(regval, addr);
+  spin_unlock_irqrestore(flags);
 }
-#endif
-
-#endif /* __ASSEMBLY__ */
-#endif  /* ___ARCH_RISCV_SRC_COMMON_UP_ARCH_H */
