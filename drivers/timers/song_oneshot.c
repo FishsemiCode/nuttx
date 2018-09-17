@@ -51,6 +51,18 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#if CONFIG_ONESHOT_SONG_IDLEENTER_THRESH > CONFIG_PM_IDLEENTER_COUNT * CONFIG_PM_SLICEMS
+#error "CONFIG_ONESHOT_SONG_IDLEENTER_THRESH should smaller than CONFIG_PM_IDLEENTER_COUNT * CONFIG_PM_SLICEMS"
+#endif
+
+#if CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH > CONFIG_PM_STANDBYENTER_COUNT * CONFIG_PM_SLICEMS
+#error "CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH should smaller than CONFIG_PM_STANDBYENTER_COUNT * CONFIG_PM_SLICEMS"
+#endif
+
+#if CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH > CONFIG_PM_SLEEPENTER_COUNT * CONFIG_PM_SLICEMS
+#error "CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH should smaller than CONFIG_PM_SLEEPENTER_COUNT * CONFIG_PM_SLICEMS"
+#endif
+
 #define SONG_ONESHOT_RESET_BIT    0
 #define SONG_ONESHOT_C1_MAX_BIT   16
 #define SONG_ONESHOT_C1_MAX_MASK  0xffff
@@ -82,7 +94,7 @@ struct song_oneshot_lowerhalf_s
   FAR void *arg;
 
 #ifdef CONFIG_PM
-  struct pm_callback_s pm_cb;
+  uint32_t last_state;
 #endif
 };
 
@@ -305,12 +317,36 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
   song_oneshot_putreg(config->base, config->spec_off, spec);
 }
 
+#ifdef CONFIG_PM
+static void song_oneshot_pm(FAR struct song_oneshot_lowerhalf_s *lower,
+                            uint32_t new_state)
+{
+  if (lower->last_state != new_state)
+    {
+      if (lower->last_state != PM_SLEEP)
+        {
+          pm_relax(PM_IDLE_DOMAIN, lower->last_state);
+        }
+
+      if (new_state != PM_SLEEP)
+        {
+          pm_stay(PM_IDLE_DOMAIN, new_state);
+        }
+
+      lower->last_state = new_state;
+    }
+}
+#endif
+
 static int song_oneshot_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct song_oneshot_lowerhalf_s *lower = arg;
 
   if (song_oneshot_getintr(lower))
     {
+#ifdef CONFIG_PM
+      song_oneshot_pm(lower, PM_SLEEP);
+#endif
       song_oneshot_disableintr(lower);
       if (lower->callback)
         {
@@ -340,6 +376,10 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
   struct timespec now, spec;
   irqstate_t flags;
+#ifdef CONFIG_PM
+  uint32_t new_state;
+  uint64_t ms;
+#endif
 
   flags = enter_critical_section();
   lower->callback = callback;
@@ -349,6 +389,28 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   clock_timespec_add(&now, ts, &spec);
   song_oneshot_putspec(lower, &spec);
   song_oneshot_enableintr(lower);
+
+#ifdef CONFIG_PM
+  ms = ts->tv_sec * 1000ull + ts->tv_nsec / 1000000;
+  if (ms < CONFIG_ONESHOT_SONG_IDLEENTER_THRESH)
+    {
+      new_state = PM_NORMAL;
+    }
+  else if (ms < CONFIG_ONESHOT_SONG_STANDBYENTER_THRESH)
+    {
+      new_state = PM_IDLE;
+    }
+  else if (ms < CONFIG_ONESHOT_SONG_SLEEPENTER_THRESH)
+    {
+      new_state = PM_STANDBY;
+    }
+  else
+    {
+      new_state = PM_SLEEP;
+    }
+  song_oneshot_pm(lower, new_state);
+#endif
+
   leave_critical_section(flags);
 
   return 0;
@@ -367,6 +429,9 @@ static int song_oneshot_cancel(FAR struct oneshot_lowerhalf_s *lower_,
   song_oneshot_getspec(lower, &spec);
   song_oneshot_gettime(lower, &now);
   clock_timespec_subtract(&spec, &now, ts);
+#ifdef CONFIG_PM
+  song_oneshot_pm(lower, PM_SLEEP);
+#endif
   leave_critical_section(flags);
 
   return 0;
@@ -397,6 +462,9 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config)
       lower->config = config;
       lower->c2_base = UINT64_MAX;
       lower->ops = &g_song_oneshot_ops;
+#ifdef CONFIG_PM
+      lower->last_state = PM_SLEEP;
+#endif
 
       song_oneshot_disableintr(lower);
       irq_attach(config->irq, song_oneshot_interrupt, lower);

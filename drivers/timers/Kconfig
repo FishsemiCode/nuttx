@@ -59,10 +59,12 @@ if ONESHOT_SONG && PM
 
 config ONESHOT_SONG_SLEEPENTER_THRESH
 	int "Song oneshot SLEEP enter threshold(millisecond)"
-	default 28800000
+	default 3600000
 	---help---
 		According to flash writing lifetime, interval between two
-		writes should more than 8 hours.
+		writes should more than 1 hours.
+		Rules:
+		ONESHOT_SONG_SLEEPENTER_THRESH <= PM_SLEEPENTER_COUNT * PM_SLICEMS
 
 config ONESHOT_SONG_STANDBYENTER_THRESH
 	int "Song oneshot STANDBY enter threshold(millisecond)"
@@ -70,6 +72,8 @@ config ONESHOT_SONG_STANDBYENTER_THRESH
 	---help---
 		According to comsumption and warmreset time,
 		PM_STANDBY is suitable when idle time is more than 1 s.
+		Rules:
+		ONESHOT_SONG_STANDBYENTER_THRESH <= PM_STANDBYENTER_COUNT * PM_SLICEMS
 
 config ONESHOT_SONG_IDLEENTER_THRESH
 	int "Song oneshot IDLE enter threshold(millisecond)"
@@ -77,6 +81,8 @@ config ONESHOT_SONG_IDLEENTER_THRESH
 	---help---
 		According to comsumption and clock gating time,
 		PM_IDLE is suitable when idle time is more than 10 ms.
+		Rules:
+		ONESHOT_SONG_IDLEENTER_THRESH <= PM_IDLEENTER_COUNT * PM_SLICEMS
 
 endif # ONESHOT_SONG && PM
 
