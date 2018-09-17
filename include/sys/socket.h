@@ -235,7 +235,7 @@
 struct sockaddr_storage
 {
   sa_family_t ss_family;       /* Address family */
-  char        ss_data[18];     /* 18-bytes of address data */
+  char        ss_data[30];     /* 30-bytes of address data */
 };
 #else
 struct sockaddr_storage
