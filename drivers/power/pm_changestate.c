@@ -41,6 +41,7 @@
 
 #include <queue.h>
 #include <assert.h>
+#include <stdlib.h>
 
 #include <nuttx/power/pm.h>
 #include <nuttx/irq.h>
@@ -48,6 +49,12 @@
 #include "pm.h"
 
 #ifdef CONFIG_PM
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define PM_TIMER_GAP        (TIME_SLICE_TICKS * 2)
 
 /****************************************************************************
  * Private Functions
@@ -78,7 +85,6 @@ static void pm_timer_cb(int argc, wdparm_t arg1, ...)
 static void pm_timer(int domain)
 {
   FAR struct pm_domain_s *pdom = &g_pmglobals.domain[domain];
-  uint32_t delay;
 
   if (!pdom->wdog)
     {
@@ -87,15 +93,20 @@ static void pm_timer(int domain)
 
   if (pdom->state < PM_SLEEP)
     {
-      const uint16_t g_pmcount[3] =
+      const int pmtick[3] =
       {
-        CONFIG_PM_IDLEENTER_COUNT,
-        CONFIG_PM_STANDBYENTER_COUNT,
-        CONFIG_PM_SLEEPENTER_COUNT
+        TIME_SLICE_TICKS * CONFIG_PM_IDLEENTER_COUNT,
+        TIME_SLICE_TICKS * CONFIG_PM_STANDBYENTER_COUNT,
+        TIME_SLICE_TICKS * CONFIG_PM_SLEEPENTER_COUNT
       };
 
-      delay = (g_pmcount[pdom->state] - pdom->thrcnt) * CONFIG_PM_SLICEMS;
-      wd_start(pdom->wdog, MSEC2TICK(delay), pm_timer_cb, 0);
+      int delay = pmtick[pdom->state] + pdom->btime - clock_systimer();
+      int left  = wd_gettime(pdom->wdog);
+
+      if (left == 0 || abs(delay - left) > PM_TIMER_GAP)
+        {
+          wd_start(pdom->wdog, delay, pm_timer_cb, 0);
+        }
     }
   else
     {
