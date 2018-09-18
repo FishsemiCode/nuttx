@@ -57,6 +57,9 @@ ifeq ($(CONFIG_ARCH_TL420)$(CONFIG_ARCH_TL421),y)
 else ifeq ($(CONFIG_ARCH_XM6),y)
   CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/xm6)/
   include ${TOPDIR}/arch/ceva/src/xm6/Toolchain.defs
+  ifeq ($(SNCSDT_LICENSE_FILE),)
+    export SNCSDT_LICENSE_FILE=27000@10.235.240.121
+  endif
 endif
 
 LD = $(CROSSDEV)cofflnk -quiet
