@@ -161,6 +161,12 @@ pid_t up_vfork(const uint32_t *regs)
   newsp = child->cmn.adj_stack_ptr - stackutil;
   memcpy(newsp, sp, stackutil);
 
+  /* Allocate the context and copy the parent snapshot */
+
+  newsp -= XCPTCONTEXT_SIZE;
+  memcpy(newsp, regs, XCPTCONTEXT_SIZE);
+  child->cmn.xcp.regs = newsp;
+
   /* Was there a frame pointer in place before? */
 
   if (regs[REG_FP] <= (uint32_t)parent->adj_stack_ptr &&
@@ -179,19 +185,15 @@ pid_t up_vfork(const uint32_t *regs)
   sinfo("Child:  stack base:%08x SP:%08x FP:%08x\n",
         child->cmn.adj_stack_ptr, newsp, newfp);
 
-  /* Allocate the context and copy the parent snapshot */
-
-  child->cmn.xcp.regs = newsp - XCPTCONTEXT_SIZE;
-  memcpy(child->cmn.xcp.regs, regs, XCPTCONTEXT_SIZE);
-
-  /* Update the frame pointer, and the return value in A0
+  /* Update the stack pointer, frame pointer, and the return value in A0
    * should be cleared to zero, providing the indication to the newly started
    * child thread.
    */
 
-  child->cmn.xcp.regs[REG_A0] = 0;            /* Return value */
-  child->cmn.xcp.regs[REG_FP] = newfp;        /* Frame pointer */
-  child->cmn.xcp.regs[REG_PC] = regs[REG_LR]; /* Program counter */
+  child->cmn.xcp.regs[REG_A0] = 0;               /* Return value */
+  child->cmn.xcp.regs[REG_FP] = newfp;           /* Frame pointer */
+  child->cmn.xcp.regs[REG_PC] = regs[REG_LR];    /* Program counter */
+  child->cmn.xcp.regs[REG_SP] = (uint32_t)newsp; /* Stack pointer */
 
 #ifdef CONFIG_LIB_SYSCALL
   /* If we got here via a syscall, then we are going to have to setup some

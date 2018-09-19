@@ -116,6 +116,18 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
        */
 
       CURRENT_IRQS |= REG_IRQS_IE;
+
+      if (regs != (uint32_t *)regs[REG_SP])
+        {
+          /* We are returning with a pending context switch. This case is different
+           * because in this case, the register save structure does not lie on the
+           * stack but, rather within other storage. We'll have to copy some values
+           * to the stack.
+           */
+
+          memcpy((uint32_t *)regs[REG_SP], regs, XCPTCONTEXT_SIZE);
+          regs = (uint32_t *)regs[REG_SP];
+        }
     }
 
   return regs;

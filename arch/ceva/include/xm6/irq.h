@@ -73,9 +73,8 @@
 #define REG_A4              REG_R4
 #define REG_A5              REG_R5
 #define REG_A6              REG_R6
-#define REG_SB              REG_DBG_STACK_END
-#define REG_SL              REG_DBG_STACK_START
 #define REG_FP              REG_R8
+//#define REG_SP            REG_SP
 #define REG_LR              REG_RETREG
 #define REG_PC              REG_RETREGI
 #define REG_OM              REG_MODC  /* Operation Mode */

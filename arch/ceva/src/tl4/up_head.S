@@ -204,6 +204,11 @@ exception_common:
 	pushdw		modg
 .ENDIF
 
+	add		#-0x02, sp
+	nop
+	mov		sp, r1
+	st		r1, (r1).dw
+
 	/* Prepare the C language environment */
 
 	mov		#REG_MOD2_DEFAULT, r1
@@ -234,6 +239,8 @@ exception_common:
 
 	mov		a0, sp
 	nop		0x02
+	add		#0x02, sp
+	nop
 
 	/* Unwind the same stack frame that we created at entry */
 

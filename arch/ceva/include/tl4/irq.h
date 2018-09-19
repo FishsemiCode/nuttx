@@ -78,6 +78,7 @@
 #define REG_A5              REG_R1
 #define REG_A6              REG_R2
 #define REG_FP              REG_R7
+//#define REG_SP            REG_SP
 #define REG_LR              REG_RETREG
 //#define REG_PC            REG_PC
 

@@ -167,6 +167,8 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
               memcpy(g_current_regs[cpu], g_current_regs[cpu]
                     + XCPTCONTEXT_REGS, XCPTCONTEXT_SIZE);
 
+              g_current_regs[cpu][REG_SP]  = (uint32_t)g_current_regs[cpu];
+
               /* Then set up to vector to the trampoline with interrupts
                * unchanged.  We must already be in privileged thread mode
                * to be here.
@@ -208,6 +210,8 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
           tcb->xcp.regs -= XCPTCONTEXT_REGS;
           memcpy(tcb->xcp.regs, tcb->xcp.regs
                 + XCPTCONTEXT_REGS, XCPTCONTEXT_SIZE);
+
+          tcb->xcp.regs[REG_SP]  = (uint32_t)tcb->xcp.regs;
 
           /* Then set up to vector to the trampoline with interrupts
            * unchanged.  We must already be in privileged thread mode to be

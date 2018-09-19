@@ -81,6 +81,10 @@ void up_initial_state(struct tcb_s *tcb)
       xcp->regs = tcb->adj_stack_ptr - XCPTCONTEXT_SIZE;
       memset(xcp->regs, 0, XCPTCONTEXT_SIZE);
 
+      /* Save the initial stack pointer */
+
+      xcp->regs[REG_SP]      = (uint32_t)xcp->regs;
+
       /* Save the task entry point */
 
       xcp->regs[REG_PC]      = (uint32_t)tcb->start;

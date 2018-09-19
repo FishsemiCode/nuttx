@@ -239,6 +239,11 @@ exception_common:
 	push {in1}	r2.ui
 #endif
 
+	modr		(sp.ui).ui +#-4
+	mov		sp.ui, r1.ui
+	nop		#0x02
+	st		r1.ui, (r1.ui).ui
+
 	/* Prepare the C language environment */
 
 	lbf {sv}	#0x00
@@ -248,8 +253,6 @@ exception_common:
 	 *   r0 = The IRQ number
 	 *   r1 = The top of the stack points to the saved state
 	 */
-
-	mov		sp.ui, r1.ui
 
 	/* Switch to the dedicated stack */
 
@@ -274,6 +277,8 @@ exception_common:
 	/* On return from up_doirq, r0 will hold a pointer to register context
 	 * array to use for the interrupt return.
 	 */
+
+	modr		(r0.ui).ui +#4
 
 #ifdef CONFIG_ARCH_XM6_STACKCHECK
 	/* Restore the stack violation exception registers */
