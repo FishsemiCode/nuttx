@@ -112,7 +112,7 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
 #endif
 
           /* CASE 1:  We are not in an interrupt handler and a task is
-           * signalling itself for some reason.
+           * signaling itself for some reason.
            */
 
           if (cpu == me && !CURRENT_REGS)
@@ -132,6 +132,27 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
 
           else
             {
+#ifdef CONFIG_SMP
+              /* If we signaling a task running on the other CPU, we have
+               * to PAUSE the other CPU.
+               */
+
+              if (cpu != me)
+                {
+                  /* Pause the CPU */
+
+                  up_cpu_pause(cpu);
+
+                  /* Wait while the pause request is pending */
+
+                  while (up_cpu_pausereq(cpu))
+                    {
+                    }
+                }
+
+              /* Now tcb on the other CPU can be accessed safely */
+#endif
+
               /* Save the current register context location */
 
               tcb->xcp.saved_regs = g_current_regs[cpu];
@@ -156,12 +177,21 @@ void up_schedule_sigaction(struct tcb_s *tcb, sig_deliver_t sigdeliver)
               g_current_regs[cpu][REG_OM] &= ~REG_OM_MASK;
               g_current_regs[cpu][REG_OM] |=  REG_OM_KERNEL;
 #endif
+
+#ifdef CONFIG_SMP
+              /* RESUME the other CPU if it was PAUSED */
+
+              if (cpu != me)
+                {
+                  up_cpu_resume(cpu);
+                }
+#endif
             }
         }
 
       /* Otherwise, we are (1) signaling a task is not running from an
        * interrupt handler or (2) we are not in an interrupt handler and the
-       * running task is signalling some other non-running task.
+       * running task is signaling some other non-running task.
        */
 
       else
