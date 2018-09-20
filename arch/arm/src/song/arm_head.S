@@ -56,6 +56,7 @@
 	.globl		__aeabi_d2uiz
 	.globl		__aeabi_ddiv
 	.globl		__aeabi_dmul
+	.globl		__aeabi_l2f
 	.globl		__aeabi_ldivmod
 	.globl		__aeabi_ui2d
 	.globl		__aeabi_uldivmod
@@ -124,6 +125,7 @@ __start:
 	bl		__aeabi_d2uiz
 	bl		__aeabi_ddiv
 	bl		__aeabi_dmul
+	bl		__aeabi_l2f
 	bl		__aeabi_ldivmod
 	bl		__aeabi_ui2d
 	bl		__aeabi_uldivmod
