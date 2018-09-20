@@ -459,15 +459,20 @@ unsigned int wd_timer(int ticks)
 
       decr = MIN(wdog->lag, ticks);
 
-      /* There are.  Decrement the lag counter */
+      /* There are.  De/encrement the lag counter */
 
-      wdog->lag -= decr;
-      ticks     -= decr;
+      wdog->lag    -= decr;
+      ticks        -= decr;
+      g_wdtickbase += decr;
 
       /* Check if the watchdog at the head of the list is ready to run */
 
       wd_expiration();
     }
+
+  /* Update clock tickbase */
+
+  g_wdtickbase += ticks;
 
   /* Return the delay for the next watchdog to expire */
 
@@ -500,6 +505,10 @@ void wd_timer(void)
 
   flags = enter_critical_section();
 #endif
+
+  /* Update clock tickbase */
+
+  g_wdtickbase++;
 
   /* Check if there are any active watchdogs to process */
 

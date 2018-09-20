@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clock.h>
 #include <nuttx/wdog.h>
 #include <nuttx/irq.h>
 
@@ -88,6 +89,7 @@ int wd_gettime(WDOG_ID wdog)
           delay += curr->lag;
           if (curr == wdog)
             {
+              delay -= clock_systimer() - g_wdtickbase;
               leave_critical_section(flags);
               return delay;
             }

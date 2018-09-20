@@ -41,6 +41,8 @@
 
 #include <queue.h>
 
+#include <nuttx/clock.h>
+
 #include "wdog/wdog.h"
 
 /****************************************************************************
@@ -66,6 +68,12 @@ sq_queue_t g_wdactivelist;
  */
 
 uint16_t g_wdnfree;
+
+/* This is wdog tickbase, for wd_gettime() may called many times
+ * between 2 times of wd_timer(), we use it to update wd_gettime().
+ */
+
+clock_t g_wdtickbase;
 
 /****************************************************************************
  * Private Data
@@ -122,4 +130,8 @@ void wd_initialize(void)
   /* All watchdogs are free */
 
   g_wdnfree = CONFIG_PREALLOC_WDOGS;
+
+  /* Setup clock tickbase */
+
+  g_wdtickbase = clock_systimer();
 }
