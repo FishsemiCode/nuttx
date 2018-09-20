@@ -126,7 +126,6 @@ static const uint16_t g_pmcount[3] =
  *   domain - The PM domain associated with the accumulator
  *   accum - The value of the activity accumulator at the end of the time
  *     slice.
- *   elapsed - The elapsed time from last called pm_update, unit ms
  *
  * Returned Value:
  *   None.
@@ -138,7 +137,7 @@ static const uint16_t g_pmcount[3] =
  *
  ****************************************************************************/
 
-void pm_update(int domain, int16_t accum, clock_t elapsed)
+void pm_update(int domain, int16_t accum)
 {
   FAR struct pm_domain_s *pdom;
   int32_t Y;
@@ -238,7 +237,7 @@ void pm_update(int domain, int16_t accum, clock_t elapsed)
         {
           /* Yes... reset the count and recommend the normal state. */
 
-          pdom->thrcnt      = 0;
+          pdom->btime       = clock_systimer();
           pdom->recommended = PM_NORMAL;
           return;
         }
@@ -269,7 +268,7 @@ void pm_update(int domain, int16_t accum, clock_t elapsed)
         {
           /* No... reset the count and recommend the current state */
 
-          pdom->thrcnt      = 0;
+          pdom->btime       = clock_systimer();
           pdom->recommended = pdom->state;
         }
 
@@ -277,21 +276,18 @@ void pm_update(int domain, int16_t accum, clock_t elapsed)
 
       else if (pdom->recommended < nextstate)
         {
-          uint16_t thrcnt = pdom->thrcnt;
-
-          /* No.. increment the count.  Has it passed the count required
+          /* No.. calculate the count.  Has it passed the count required
            * for a state transition?
            */
 
-          pdom->thrcnt += elapsed / TIME_SLICE_TICKS;
-
-          if (pdom->thrcnt < thrcnt || pdom->thrcnt >= g_pmcount[index])
+          if (clock_systimer() - pdom->btime >=
+                  g_pmcount[index] * TIME_SLICE_TICKS)
             {
               /* Yes, recommend the new state and set up for the next
                * transition.
                */
 
-              pdom->thrcnt      = 0;
+              pdom->btime       = clock_systimer();
               pdom->recommended = nextstate;
             }
         }

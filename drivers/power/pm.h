@@ -112,12 +112,9 @@ struct pm_domain_s
   uint8_t mndx;
   uint8_t mcnt;
 
-  /* accum - The accumulated counts in this time interval
-   * thrcnt - The number of below threshold counts seen.
-   */
+  /* accum - The accumulated counts in this time interval */
 
   int16_t accum;
-  uint16_t thrcnt;
 
   /* This is the averaging "memory."  The averaging algorithm is simply:
    * Y = (An*X + SUM(Ai*Yi))/SUM(Aj), where i = 1..n-1 and j= 1..n, n is the
@@ -135,6 +132,10 @@ struct pm_domain_s
   /* stime - The time (in ticks) at the start of the current time slice */
 
   clock_t stime;
+
+  /* btime - The time (in ticks) at the start of the current state */
+
+  clock_t btime;
 
   /* The power state lock count */
 
@@ -199,7 +200,6 @@ EXTERN struct pm_global_s g_pmglobals;
  *   domain - The domain associated with the accumulator.
  *   accum - The value of the activity accumulator at the end of the time
  *     slice.
- *   elapsed - The elapsed time from last called pm_update, unit ms
  *
  * Returned Value:
  *   None.
@@ -211,7 +211,7 @@ EXTERN struct pm_global_s g_pmglobals;
  *
  ****************************************************************************/
 
-void pm_update(int domain, int16_t accum, clock_t elapsed);
+void pm_update(int domain, int16_t accum);
 
 #undef EXTERN
 #if defined(__cplusplus)
