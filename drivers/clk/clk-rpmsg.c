@@ -489,13 +489,17 @@ static void clk_rpmsg_channel_created(struct rpmsg_channel *channel)
 static void clk_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 {
   struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
-  struct list_node *clk_list = &priv->clk_list;
   struct clk_rpmsg_s *clkrp, *clkrp_tmp;
+
+  if (!priv)
+    {
+      return;
+    }
 
   nxsem_wait_uninterruptible(&priv->sem);
   priv->channel = NULL;
 
-  list_for_every_entry_safe(clk_list, clkrp, clkrp_tmp,
+  list_for_every_entry_safe(&priv->clk_list, clkrp, clkrp_tmp,
                               struct clk_rpmsg_s, node)
     {
       while (clkrp->count--)

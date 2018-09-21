@@ -585,7 +585,6 @@ static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
     }
 
   nxsem_init(&priv->sem, 0, 1);
-
   rpmsg_set_privdata(channel, priv);
 }
 
@@ -593,6 +592,11 @@ static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 {
   struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   int i;
+
+  if (!priv)
+    {
+      return;
+    }
 
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
