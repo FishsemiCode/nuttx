@@ -142,6 +142,10 @@
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
 #define SECURITY_CFG_0_VALUE        (0x00010000)
 
+#define MUX_PIN23                   (0xb005004c)
+#define MUX_PIN24                   (0xb0050050)
+#define MUX_PIN25                   (0xb0050054)
+#define MUX_PIN26                   (0xb0050058)
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -691,6 +695,12 @@ static void up_spi_init(void)
     .mclk = "spi1_mclk",
   };
 
+  /* XXX: temporarily set the spi1 pinmux, later we will use official
+   * pinmux api instead */
+  putreg32(0x10, MUX_PIN23);
+  putreg32(0x10, MUX_PIN24);
+  putreg32(0x10, MUX_PIN25);
+  putreg32(0x12, MUX_PIN26);
   g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0]);
 }
 #endif

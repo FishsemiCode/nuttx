@@ -701,6 +701,13 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   if (ret)
     goto clk_en_err;
 
+  /* XXX: temporarily set MCLK to ~15M to be able to driver for high
+   * speed slave devices; later we will introduce a more flexible
+   * method under clock framework */
+  ret = clk_set_rate(spi->mclk, 15000000);
+  if (ret)
+    spiwarn("DW_SPI-%p clk set failed:%d\n", ret);
+
   dw_spi_hw_init(spi);
 
   ret = irq_attach(config->irq, dw_spi_isr, spi);
