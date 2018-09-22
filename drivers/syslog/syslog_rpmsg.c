@@ -111,9 +111,6 @@ static struct syslog_rpmsg_s g_syslog_rpmsg;
 
 static const struct syslog_channel_s g_syslog_rpmsg_channel =
 {
-#ifdef CONFIG_SYSLOG_WRITE
-  syslog_default_write,
-#endif
   syslog_rpmsg_putc,
   syslog_rpmsg_putc,
   syslog_rpmsg_flush
