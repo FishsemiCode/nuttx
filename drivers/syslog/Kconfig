@@ -177,6 +177,7 @@ config SYSLOG_RPMSG
 	bool "Log to RPMSG"
 	depends on OPENAMP
 	depends on SCHED_WORKQUEUE
+	select SYSLOG_WRITE
 	---help---
 		Use the rpmsg as a SYSLOG output device, send message to remote proc.
 

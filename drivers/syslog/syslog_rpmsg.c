@@ -46,6 +46,7 @@
 
 #include <openamp/open_amp.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 #include <nuttx/syslog/syslog.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
@@ -95,8 +96,9 @@ struct syslog_rpmsg_s
  ****************************************************************************/
 
 static void syslog_rpmsg_work(void *priv_);
-static int  syslog_rpmsg_putc(int ch);
+static void syslog_rpmsg_putc(struct syslog_rpmsg_s *priv, int ch, bool last);
 static int  syslog_rpmsg_flush(void);
+static ssize_t syslog_rpmsg_write(const char *buffer, size_t buflen);
 static void syslog_rpmsg_device_created(struct remote_device *rdev, void *priv_);
 static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel);
 static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
@@ -111,9 +113,10 @@ static struct syslog_rpmsg_s g_syslog_rpmsg;
 
 static const struct syslog_channel_s g_syslog_rpmsg_channel =
 {
-  syslog_rpmsg_putc,
-  syslog_rpmsg_putc,
-  syslog_rpmsg_flush
+  up_putc,
+  up_putc,
+  syslog_rpmsg_flush,
+  syslog_rpmsg_write,
 };
 
 /****************************************************************************
@@ -179,13 +182,8 @@ static void syslog_rpmsg_work(void *priv_)
   rpmsg_send_nocopy(priv->channel, msg, sizeof(*msg) + len);
 }
 
-static int syslog_rpmsg_putc(int ch)
+static void syslog_rpmsg_putc(struct syslog_rpmsg_s *priv, int ch, bool last)
 {
-  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
-  irqstate_t flags;
-
-  flags = enter_critical_section();
-
   if (B2C_REM(priv->head) == 0)
     {
       priv->buffer[B2C_OFF(priv->head)] = 0;
@@ -217,7 +215,7 @@ static int syslog_rpmsg_putc(int ch)
         }
     }
 
-  if (priv->channel && !priv->suspend && !priv->transfer)
+  if (last && priv->channel && !priv->suspend && !priv->transfer)
     {
       clock_t delay = SYSLOG_RPMSG_WORK_DELAY;
       size_t space = SYSLOG_RPMSG_SPACE(priv->head, priv->tail, priv->size);
@@ -231,15 +229,30 @@ static int syslog_rpmsg_putc(int ch)
 
       work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv, delay);
     }
-
-  leave_critical_section(flags);
-
-  return ch;
 }
 
 static int syslog_rpmsg_flush(void)
 {
+  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
+
+  work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv, 0);
   return OK;
+}
+
+static ssize_t syslog_rpmsg_write(FAR const char *buffer, size_t buflen)
+{
+  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
+  irqstate_t flags;
+  size_t nwritten;
+
+  flags = enter_critical_section();
+  for (nwritten = 1; nwritten <= buflen; nwritten++)
+    {
+      syslog_rpmsg_putc(priv, *buffer++, nwritten == buflen);
+    }
+  leave_critical_section(flags);
+
+  return buflen;
 }
 
 static void syslog_rpmsg_device_created(struct remote_device *rdev, void *priv_)
@@ -354,12 +367,19 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
 }
 
 /****************************************************************************
- * Public Funtions
+ * Public Functions
  ****************************************************************************/
 
 int up_putc(int ch)
 {
-  return syslog_rpmsg_putc(ch);
+  struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
+  irqstate_t flags;
+
+  flags = enter_critical_section();
+  syslog_rpmsg_putc(priv, ch, true);
+  leave_critical_section(flags);
+
+  return ch;
 }
 
 int syslog_rpmsg_init_early(const char *cpu_name, void *buffer, size_t size)
