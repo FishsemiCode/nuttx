@@ -10,7 +10,6 @@ config ARCH_CHIP_SONG
 
 choice
 	prompt "Song Chip Selection"
-	default ARCH_CHIP_ABIES_ADSP
 	depends on ARCH_CHIP_SONG
 
 config ARCH_CHIP_ABIES_ADSP
