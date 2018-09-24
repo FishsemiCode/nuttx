@@ -95,12 +95,6 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
 
   for (i = 0; i < CONFIG_NET_IPv6_NCONF_ENTRIES; ++i)
     {
-      if (g_neighbors[i].ne_time == NEIGHBOR_MAXTIME)
-        {
-          oldest_ndx = i;
-          break;
-        }
-
       if (g_neighbors[i].ne_addr.na_lltype == lltype &&
           net_ipv6addr_cmp(g_neighbors[i].ne_ipaddr, ipaddr))
         {
