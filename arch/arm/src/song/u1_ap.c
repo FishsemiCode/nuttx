@@ -173,22 +173,6 @@ void up_earlyinitialize(void)
            TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
 }
 
-#ifdef CONFIG_RTC_SONG
-int up_rtc_initialize(void)
-{
-  static const struct song_rtc_config_s config =
-  {
-    .minor = 0,
-    .base  = 0xb2020000,
-    .irq   = 16,
-    .index = 1,
-  };
-
-  up_rtc_set_lowerhalf(song_rtc_initialize(&config));
-  return 0;
-}
-#endif
-
 void up_wic_initialize(void)
 {
   putreg32(0xffffffff, TOP_PWR_AP_M4_INTR2SLP_MK0);
@@ -362,6 +346,22 @@ static void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_RTC_SONG
+int up_rtc_initialize(void)
+{
+  static const struct song_rtc_config_s config =
+  {
+    .minor = 0,
+    .base  = 0xb2020000,
+    .irq   = 16,
+    .index = 1,
+  };
+
+  up_rtc_set_lowerhalf(song_rtc_initialize(&config));
+  return 0;
+}
+#endif
+
 #ifdef CONFIG_WATCHDOG_DW
 void up_wdtinit(void)
 {
@@ -444,6 +444,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
+#endif
+
+#ifdef CONFIG_RTC_SONG
+  up_rtc_initialize();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
