@@ -73,7 +73,7 @@ static ssize_t syslog_default_write(FAR const char *buffer, size_t buflen)
 {
   size_t nwritten;
 
-  if (up_interrupt_context() || sched_idletask())
+  if (up_interrupt_context())
     {
       for (nwritten = 0; nwritten < buflen; nwritten++)
         {

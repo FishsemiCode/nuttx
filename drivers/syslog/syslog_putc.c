@@ -74,7 +74,7 @@ int syslog_putc(int ch)
 
   /* Is this an attempt to do SYSLOG output from an interrupt handler? */
 
-  if (up_interrupt_context() || sched_idletask())
+  if (up_interrupt_context())
     {
 #if defined(CONFIG_SYSLOG_INTBUFFER)
       /* Buffer the character in the interrupt buffer.  The interrupt buffer
