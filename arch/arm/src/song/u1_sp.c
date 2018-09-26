@@ -541,7 +541,6 @@ static void up_openamp_initialize(void)
       .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
       .size      = sizeof(rptun_rsc_ap),
     },
-    .boot        = ap_boot,
   };
 
   static struct rptun_rsc_s rptun_rsc_cp
@@ -780,6 +779,7 @@ void up_lateinitialize(void)
 void up_finalinitialize(void)
 {
 #ifdef CONFIG_SONG_RPTUN
+  ap_boot(NULL);
   cp_boot(NULL);
 #endif
 }
