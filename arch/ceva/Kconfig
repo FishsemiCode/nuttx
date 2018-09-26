@@ -142,11 +142,6 @@ config ARCH_KERNEL_STACK_HEAP
 	depends on MM_KERNEL_HEAP
 	default 0
 
-config ARCH_PM_STAY_TIME
-	int "PM stay idle time (ms)"
-	default 5000
-	depends on PM
-
 config ARCH_RTL_MAJOR
 	int "RTL Version Major Number"
 

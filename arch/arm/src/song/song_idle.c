@@ -42,7 +42,6 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
-#include <nuttx/wqueue.h>
 
 #include "arm_fpu.h"
 #include "chip.h"
@@ -57,28 +56,9 @@
 
 static uint32_t g_up_cpu_regs[XCPTCONTEXT_REGS];
 
-#ifdef CONFIG_PM
-static struct work_s g_pm_worker;
-#endif
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: up_relaxpm_work
- *
- * Description:
- *   Relax PM state work
- *
- ****************************************************************************/
-
-#ifdef CONFIG_PM
-static void up_relaxpm_work(void *p)
-{
-  pm_relax(PM_IDLE_DOMAIN, PM_IDLE);
-}
-#endif
 
 /****************************************************************************
  * Name: up_idlepm
@@ -272,13 +252,5 @@ void up_pminitialize(void)
   /* Then initialize the power management subsystem proper */
 
   pm_initialize();
-
-  /* Set PM state to PM_IDLE, and relax after system booted,
-   * for we don't allow DEEP_SLEEP when system booting.
-   */
-
-  pm_stay(PM_IDLE_DOMAIN, PM_IDLE);
-  work_queue(LPWORK, &g_pm_worker, up_relaxpm_work, NULL,
-             MSEC2TICK(CONFIG_SONG_PM_STAY_TIME));
 }
 #endif
