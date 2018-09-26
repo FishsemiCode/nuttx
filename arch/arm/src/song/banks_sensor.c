@@ -90,7 +90,7 @@
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_ARCH_DMA
+#ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
 {
   [1] = DEV_END,
@@ -169,16 +169,14 @@ void up_wic_disable_irq(int irq)
     }
 }
 
-#ifdef CONFIG_ARCH_DMA
+#ifdef CONFIG_SONG_DMAS
 void up_dmainitialize(void)
 {
-#  ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(0, 0xf8b1d000, 18, "sen_dmas_hclk");
-#  endif
 }
 #endif
 
-#ifdef CONFIG_16550_UART
+#if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 {
   return NULL; /* Can't use top dmas */
