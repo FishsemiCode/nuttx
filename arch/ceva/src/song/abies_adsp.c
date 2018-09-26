@@ -297,20 +297,18 @@ static void up_openamp_initialize(void)
 }
 #endif
 
-#ifdef CONFIG_AUDIO
 static void up_audio_init(void)
 {
-  struct i2s_dev_s *i2s_dev;
-
-  i2s_dev = song_pcm_initialize(B2C(0xf9007000), "ap/com_pcm_clk");
+#ifdef CONFIG_SONG_PCM
+  struct i2s_dev_s *pcm = song_pcm_initialize(B2C(0xf9007000), "ap/com_pcm_clk");
   audio_comp_initialize("pcm0p",
                         audio_dma_initialize(g_dma[0], 2, true, 4, B2C(0xf9007018)),
-                        audio_i2s_initialize(i2s_dev, true), NULL);
+                        audio_i2s_initialize(pcm, true), NULL);
   audio_comp_initialize("pcm0c",
                         audio_dma_initialize(g_dma[0], 10, false, 4, B2C(0xf9007014)),
-                        audio_i2s_initialize(i2s_dev, false), NULL);
-}
+                        audio_i2s_initialize(pcm, false), NULL);
 #endif
+}
 
 void up_lateinitialize(void)
 {
@@ -322,9 +320,7 @@ void up_lateinitialize(void)
   g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT5);
 #endif
 
-#ifdef CONFIG_AUDIO
   up_audio_init();
-#endif
 }
 
 void up_finalinitialize(void)

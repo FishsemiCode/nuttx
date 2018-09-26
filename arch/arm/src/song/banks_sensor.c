@@ -418,36 +418,36 @@ static void up_i2c_init(void)
 }
 #endif
 
-#ifdef CONFIG_AUDIO
 static void up_audio_init(void)
 {
-  struct i2s_dev_s *i2s_dev;
-
-  i2s_dev = song_i2s_initialize(0xf8b15000, "sen_i2s_mclk");
+#ifdef CONFIG_SONG_I2S
+  struct i2s_dev_s *i2s = song_i2s_initialize(0xf8b15000, "sen_i2s_mclk");
   audio_comp_initialize("pcm0p",
                         audio_dma_initialize(g_dma[0], 0, true, 4, 0xf8b15018),
-                        audio_i2s_initialize(i2s_dev, true), NULL);
+                        audio_i2s_initialize(i2s, true), NULL);
   audio_comp_initialize("pcm0c",
                         audio_dma_initialize(g_dma[0], 8, false, 4, 0xf8b15014),
-                        audio_i2s_initialize(i2s_dev, false), NULL);
+                        audio_i2s_initialize(i2s, false), NULL);
+#endif
 
-  i2s_dev = song_pdm_initialize(0xf8b17000, "sen_pdm0_clk", 64, 15);
+#ifdef CONFIG_SONG_PDM
+  struct i2s_dev_s *pdm0 = song_pdm_initialize(0xf8b17000, "sen_pdm0_clk", 64, 15);
   audio_comp_initialize("pcm1p",
                         audio_dma_initialize(g_dma[0], 3, true, 4, 0xf8b17008),
-                        audio_i2s_initialize(i2s_dev, true), NULL);
+                        audio_i2s_initialize(pdm0, true), NULL);
   audio_comp_initialize("pcm1c",
                         audio_dma_initialize(g_dma[0], 11, false, 4, 0xf8b17008),
-                        audio_i2s_initialize(i2s_dev, false), NULL);
+                        audio_i2s_initialize(pdm0, false), NULL);
 
-  i2s_dev = song_pdm_initialize(0xf8b18000, "sen_pdm1_clk", 64, 15);
+  struct i2s_dev_s *pdm1 = song_pdm_initialize(0xf8b18000, "sen_pdm1_clk", 64, 15);
   audio_comp_initialize("pcm2p",
                         audio_dma_initialize(g_dma[0], 4, true, 4, 0xf8b18008),
-                        audio_i2s_initialize(i2s_dev, true), NULL);
+                        audio_i2s_initialize(pdm1, true), NULL);
   audio_comp_initialize("pcm2c",
                         audio_dma_initialize(g_dma[0], 12, false, 4, 0xf8b18008),
-                        audio_i2s_initialize(i2s_dev, false), NULL);
-}
+                        audio_i2s_initialize(pdm1, false), NULL);
 #endif
+}
 
 void up_lateinitialize(void)
 {
@@ -479,9 +479,7 @@ void up_lateinitialize(void)
   up_i2c_init();
 #endif
 
-#ifdef CONFIG_AUDIO
   up_audio_init();
-#endif
 }
 
 void up_cpu_doze(void)
