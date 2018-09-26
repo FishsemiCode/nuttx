@@ -86,6 +86,7 @@ config 16550_UART0_OFLOWCONTROL
 config 16550_UART0_DMA
 	bool "16550 UART0 DMA support"
 	default n
+	depends on ARCH_DMA
 	select SERIAL_DMA
 	---help---
 		Enable DMA transfers on 16550 UART0
@@ -193,6 +194,7 @@ config 16550_UART1_OFLOWCONTROL
 config 16550_UART1_DMA
 	bool "16550 UART1 DMA support"
 	default n
+	depends on ARCH_DMA
 	select SERIAL_DMA
 	---help---
 		Enable DMA transfers on 16550 UART1
@@ -300,6 +302,7 @@ config 16550_UART2_OFLOWCONTROL
 config 16550_UART2_DMA
 	bool "16550 UART2 DMA support"
 	default n
+	depends on ARCH_DMA
 	select SERIAL_DMA
 	---help---
 		Enable DMA transfers on 16550 UART2
@@ -407,6 +410,7 @@ config 16550_UART3_OFLOWCONTROL
 config 16550_UART3_DMA
 	bool "16550 UART3 DMA support"
 	default n
+	depends on ARCH_DMA
 	select SERIAL_DMA
 	---help---
 		Enable DMA transfers on 16550 UART3
