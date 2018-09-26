@@ -245,7 +245,7 @@ void rpmsg_serialinit(void)
 }
 #endif
 
-#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
+#ifdef CONFIG_RPMSG_USRSOCK
 void up_netinitialize(void)
 {
   /* usrsock don't need any special initialization at all */

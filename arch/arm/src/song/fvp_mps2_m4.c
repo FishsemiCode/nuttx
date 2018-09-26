@@ -72,12 +72,10 @@ void arm_timer_initialize(void)
 #endif
 }
 
-#ifdef CONFIG_NETDEVICES
+#ifdef CONFIG_NET_LAN91C111
 void up_netinitialize(void)
 {
-#  ifdef CONFIG_NET_LAN91C111
   lan91c111_initialize(0x40200000, 29);
-#  endif
 }
 #endif
 
