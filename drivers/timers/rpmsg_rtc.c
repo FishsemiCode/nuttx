@@ -43,7 +43,6 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/timers/rpmsg_rtc.h>
-#include <nuttx/wqueue.h>
 
 #include <openamp/open_amp.h>
 
@@ -101,10 +100,9 @@ struct rpmsg_rtc_lowerhalf_s
    * this file.
    */
 
+  sem_t                sem;
   struct rpmsg_channel *channel;
   const char           *cpu_name;
-  volatile bool        synced;
-  struct work_s        work;
 };
 
 /****************************************************************************
@@ -155,11 +153,6 @@ static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv)
     }
 }
 
-static void rpmsg_rtc_synchronize(FAR void *arg)
-{
-  clock_synchronize();
-}
-
 static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
 {
   struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
@@ -167,12 +160,7 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
   if (lower != NULL)
     {
       lower->channel = channel;
-      if (!lower->synced)
-        {
-          lower->synced = true;
-          /* Synchronize in background to avoid the deadlock */
-          work_queue(LPWORK, &lower->work, rpmsg_rtc_synchronize, NULL, 0);
-        }
+      nxsem_post(&lower->sem);
     }
 }
 
@@ -182,6 +170,7 @@ static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel)
 
   if (lower != NULL)
     {
+      nxsem_wait(&lower->sem);
       lower->channel = NULL;
     }
 }
@@ -208,7 +197,9 @@ static int rpmsg_rtc_msg_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
 
   if (!lower->channel)
     {
-      return -EAGAIN;
+      nxsem_wait(&lower->sem);
+      nxsem_post(&lower->sem);
+      DEBUGASSERT(lower->channel);
     }
 
   nxsem_init(&cookie.sem, 0, 0);
@@ -303,6 +294,9 @@ FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(const char *cpu_name, int minor
   lower = kmm_zalloc(sizeof(*lower));
   if (lower != NULL)
     {
+      nxsem_init(&lower->sem, 0, 0);
+      nxsem_setprotocol(&lower->sem, SEM_PRIO_NONE);
+
       lower->ops = &g_rpmsg_rtc_ops;
       lower->cpu_name = cpu_name;
 

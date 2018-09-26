@@ -289,7 +289,6 @@ config RTC_RPMSG
 	default n
 	depends on OPENAMP
 	depends on RTC_EXTERNAL
-	depends on SCHED_WORKQUEUE
 	select ARCH_HAVE_RTC_SUBSECONDS
 
 config RTC_SONG
