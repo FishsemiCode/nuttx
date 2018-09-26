@@ -252,14 +252,10 @@ static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev)
   size_t len = xfer->length + xfer->nlength;
   uint32_t space;
 
-  if (!priv->channel)
-    {
-      return;
-    }
-
   msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
   if (!msg)
     {
+      dev->dmatx.length = 0;
       return;
     }
 
@@ -332,7 +328,9 @@ static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev)
 
 static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev)
 {
-  if (dev->dmatx.length == 0)
+  struct uart_rpmsg_priv_s *priv = dev->priv;
+
+  if (priv->channel && dev->dmatx.length == 0)
     {
       uart_xmitchars_dma(dev);
     }
