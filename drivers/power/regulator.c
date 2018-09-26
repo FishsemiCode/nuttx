@@ -298,7 +298,7 @@ struct regulator *regulator_get(void *dev, const char *id)
 
   nxsem_wait_uninterruptible(&rdev->regulator_sem);
   rdev->open_count++;
-  list_add_tail(&regulator->list, &rdev->consumer_list);
+  list_add_tail(&rdev->consumer_list, &regulator->list);
   nxsem_post(&rdev->regulator_sem);
 
   return regulator;
