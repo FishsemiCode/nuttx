@@ -274,7 +274,7 @@ void up_netinitialize(void)
 }
 #endif
 
-#ifdef CONFIG_OPENAMP
+#ifdef CONFIG_SONG_RPTUN
 static void up_openamp_initialize(void)
 {
   struct mbox_dev_s *mbox_ap, *mbox_cp, *mbox_sp;
@@ -438,7 +438,7 @@ static void up_i2c_init(void)
 
 void up_lateinitialize(void)
 {
-#ifdef CONFIG_OPENAMP
+#ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
 #endif
 

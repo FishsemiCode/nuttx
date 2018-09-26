@@ -317,7 +317,7 @@ void up_netinitialize(void)
 }
 #endif
 
-#ifdef CONFIG_OPENAMP
+#ifdef CONFIG_SONG_RPTUN
 static int ap_boot(const struct song_rptun_config_s *config)
 {
   /* SP <--shram0--> AP
@@ -746,7 +746,7 @@ static void up_flash_init(void)
 
 void up_lateinitialize(void)
 {
-#ifdef CONFIG_OPENAMP
+#ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
 #endif
 
@@ -781,7 +781,7 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
-#ifdef CONFIG_OPENAMP
+#ifdef CONFIG_SONG_RPTUN
   cp_boot(NULL);
 #endif
 }
