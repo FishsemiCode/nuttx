@@ -1,0 +1,15 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "CK802 Configuration Options"
+
+config CK802_CUSTOM_IRQ_SUPPORT
+	bool "Has custom implementation for IRQ handling"
+	default n
+	---help---
+		Allows overriding the standard IRQ processing as described
+		in the CSKY CK802 architecture documents.  This allows architecture
+		specific code to support non-standard IRQ processing in the core.
+

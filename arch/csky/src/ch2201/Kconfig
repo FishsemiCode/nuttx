@@ -1,0 +1,62 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "CSKY CH2201 Configuration Options"
+
+choice
+	prompt "CSKY Chip Selection"
+	default ARCH_CHIP_CH2201
+	depends on ARCH_CHIP_CSKY
+
+config ARCH_CHIP_CH2201
+	bool "CH2201"
+	select CH2201_HAVE_UART0
+	---help---
+		CH2201, 8K ROM, 80K SRAM, 254KB FLASH
+
+endchoice
+
+config CSKY_CH2201
+	bool
+	default y
+	select CH2201_HAVE_UART0
+
+menu "CH2201 Peripheral Support"
+
+# These "hidden" settings determine is a peripheral option is available for the
+# selection MCU
+
+config CH2201_HAVE_UART0
+	bool
+	default n
+	select UART0_SERIALDRIVER
+	select ARCH_HAVE_SERIAL_TERMIOS
+
+config CH2201_UART0
+	bool "UART0"
+	default n
+	select ARCH_HAVE_UART0
+	select ARCH_HAVE_SERIAL_TERMIOS
+	select CH2201_UART
+
+endmenu
+
+config CH2201_UART
+	bool
+
+config CH2201_UART_RX_BUF_SIZE
+	int "UART RX Bufer size"
+	default 64
+	depends on CH2201_UART
+	---help---
+		Size of RX buffers for CH2201 UARTs
+
+config CH2201_UART_TX_BUF_SIZE
+	int "UART TX Bufer size"
+	default 64
+	depends on CH2201_UART
+	---help---
+		Size of TX buffers for CH2201 UARTs
+

@@ -75,6 +75,13 @@ config ARCH_RISCV
 	---help---
 		RISC-V 32 and 64-bit RV32 / RV64 architectures.
 
+config ARCH_CSKY
+        bool "csky"
+        select ARCH_HAVE_INTERRUPTSTACK
+        select ARCH_HAVE_CUSTOMOPT
+        ---help---
+                CSKY architectures.
+
 config ARCH_SIM
 	bool "Simulation"
 	select ARCH_HAVE_MULTICPU
@@ -126,6 +133,7 @@ config ARCH
 	default "misoc"   if ARCH_MISOC
 	default "renesas" if ARCH_RENESAS
 	default "risc-v"  if ARCH_RISCV
+	default "csky"    if ARCH_CSKY
 	default "sim"     if ARCH_SIM
 	default "x86"     if ARCH_X86
 	default "xtensa"  if ARCH_XTENSA
@@ -141,6 +149,7 @@ source arch/mips/Kconfig
 source arch/misoc/Kconfig
 source arch/renesas/Kconfig
 source arch/risc-v/Kconfig
+source arch/csky/Kconfig
 source arch/sim/Kconfig
 source arch/x86/Kconfig
 source arch/xtensa/Kconfig
