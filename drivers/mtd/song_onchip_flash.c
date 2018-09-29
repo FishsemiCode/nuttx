@@ -200,7 +200,7 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
   up_invalidate_icache(startblock * erasesize,
       (startblock + nblocks) * erasesize);
 
-  return 0;
+  return nblocks;
 }
 
 __ramfunc__ static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev,
