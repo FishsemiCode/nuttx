@@ -707,12 +707,14 @@ static void clk_disable_unused_subtree(struct clk *clk)
   if (clk->enable_count)
     return;
 
-  if (clk->flags & CLK_IGNORE_UNUSED)
-    return;
-
   if (clk_is_enabled(clk))
     {
-      if (clk->ops->disable)
+      if (clk->flags & CLK_IGNORE_UNUSED)
+        {
+          /* let ignore_unused same as enable the clk */
+          __clk_enable(clk);
+        }
+      else if (clk->ops->disable)
         {
           clk->ops->disable(clk);
         }
