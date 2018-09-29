@@ -42,8 +42,8 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <stdint.h>
-#ifdef CONFIG_CLK
 
 /****************************************************************************
  * Public Types
@@ -64,6 +64,7 @@ struct clk_ops;
  * Public Function Prototypes
  ****************************************************************************/
 
+#ifdef CONFIG_CLK
 /* Clk Operate API */
 struct   clk *clk_get(const char *name);
 
@@ -86,11 +87,68 @@ int      clk_get_phase(struct clk *clk);
 
 void clk_disable_unused(void);
 const char *clk_get_name(const struct clk *clk);
+#else
+static inline struct clk *clk_get(const char *name)
+  {
+    return (uintptr_t)(-ENOENT);
+  }
+static inline struct clk *clk_get_parent(struct clk *clk)
+  {
+    return (uintptr_t)(-ENOENT);
+  }
+static inline struct clk *clk_get_parent_by_index(struct clk *clk, uint8_t index)
+  {
+    return (uintptr_t)(-ENOENT);
+  }
+static inline int clk_set_parent(struct clk *clk, struct clk *parent)
+  {
+    return 0;
+  }
+static inline int clk_enable(struct clk *clk)
+  {
+    return 0;
+  }
+static inline void clk_disable(struct clk *clk)
+  {
+    return;
+  }
+static inline int clk_is_enabled(struct clk *clk)
+  {
+    return 0;
+  }
+static inline uint32_t clk_round_rate(struct clk *clk, uint32_t rate)
+  {
+    return 0;
+  }
+static inline int clk_set_rate(struct clk *clk, uint32_t rate)
+  {
+    return 0;
+  }
+static inline uint32_t clk_get_rate(struct clk *clk)
+  {
+    return 0;
+  }
+static inline int clk_set_phase(struct clk *clk, int degrees)
+  {
+    return 0;
+  }
+static inline int clk_get_phase(struct clk *clk)
+  {
+    return 0;
+  }
+static inline void clk_disable_unused(void)
+  {
+    return;
+  }
+static inline const char *clk_get_name(const struct clk *clk)
+  {
+    return (uintptr_t)(-ENOENT);
+  }
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CONFIG_CLK */
 #endif /* __INCLUDE_NUTTX_CLK_CLK_H */
