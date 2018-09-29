@@ -220,6 +220,14 @@
                            * operations
                            */
 
+/* The maximum backlog queue length */
+
+#ifdef CONFIG_NET_TCPBACKLOG_CONNS
+#  define SO_MAXCONN CONFIG_NET_TCPBACKLOG_CONNS
+#else
+#  define SO_MAXCONN 0
+#endif
+
 /****************************************************************************
  * Type Definitions
  ****************************************************************************/
