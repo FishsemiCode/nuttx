@@ -66,7 +66,6 @@
 #include <sys/stat.h>
 
 #include "chip.h"
-#include "nvic.h"
 #include "song_addrenv.h"
 #include "song_idle.h"
 #include "systick.h"

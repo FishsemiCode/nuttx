@@ -44,6 +44,8 @@
 
 #include <arch/song/chip.h>
 
+#include "nvic.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -52,7 +54,26 @@
  * definition in this file that provides the number of supported external interrupts.
  */
 
-#define ARMV7M_PERIPHERAL_INTERRUPTS (CONFIG_SONG_NR_IRQS - 16)
+#define ARMV7M_PERIPHERAL_INTERRUPTS  (CONFIG_SONG_NR_IRQS - 16)
+
+/* Vector Table Offset Register (VECTAB).  Redefine the mask defined in
+ * arch/arm/src/armv7-m/nvic.h; The base address of the new vector table
+ * must be aligned to the size of the vector table extended to the next
+ * larger power of 2.
+ */
+
+#undef NVIC_VECTAB_TBLOFF_MASK
+#if CONFIG_SONG_NR_IRQS > 256
+#  error CONFIG_SONG_NR_IRQS can not be bigger than 256
+#elif CONFIG_SONG_NR_IRQS > 128
+#  define NVIC_VECTAB_TBLOFF_MASK     (0xffffc00)
+#elif CONFIG_SONG_NR_IRQS > 64
+#  define NVIC_VECTAB_TBLOFF_MASK     (0xffffe00)
+#elif CONFIG_SONG_NR_IRQS > 32
+#  define NVIC_VECTAB_TBLOFF_MASK     (0xfffff00)
+#else
+#  define NVIC_VECTAB_TBLOFF_MASK     (0xfffff80)
+#endif
 
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))

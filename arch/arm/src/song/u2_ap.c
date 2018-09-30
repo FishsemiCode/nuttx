@@ -58,7 +58,6 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
-#include "nvic.h"
 #include "song_addrenv.h"
 #include "song_idle.h"
 #include "systick.h"
