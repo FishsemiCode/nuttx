@@ -57,7 +57,7 @@ config ARCH_FAMILY
 
 config ARCH_CHIP
 	string
-	default "song"		if ARCH_CHIP_SONG
+	default "song"		if ARCH_CEVA_SONG
 
 config ARCH_ITCM_SIZE
 	int "ITCM Size"
