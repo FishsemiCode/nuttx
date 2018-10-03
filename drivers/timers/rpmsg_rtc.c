@@ -72,8 +72,8 @@ begin_packed_struct struct rpmsg_rtc_header_s
 begin_packed_struct struct rpmsg_rtc_set_s
 {
   struct rpmsg_rtc_header_s header;
-  uint32_t                  tv_sec;
-  uint32_t                  tv_nsec;
+  int64_t                   tv_sec;
+  int32_t                   tv_nsec;
 } end_packed_struct;
 
 #define rpmsg_rtc_get_s rpmsg_rtc_set_s
@@ -114,7 +114,7 @@ static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel);
 static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel);
 static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
                     void *data, int len, void *priv, unsigned long src);
-static int rpmsg_rtc_msg_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
+static int rpmsg_rtc_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
                 uint32_t command, struct rpmsg_rtc_header_s *msg, int len);
 
 static int rpmsg_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
@@ -189,10 +189,10 @@ static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
     }
 }
 
-static int rpmsg_rtc_msg_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
+static int rpmsg_rtc_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
                 uint32_t command, struct rpmsg_rtc_header_s *msg, int len)
 {
-  struct rpmsg_rtc_cookie_s cookie = {0};
+  struct rpmsg_rtc_cookie_s cookie;
   int ret;
 
   if (!lower->channel)
@@ -204,7 +204,6 @@ static int rpmsg_rtc_msg_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
 
   nxsem_init(&cookie.sem, 0, 0);
   nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
-
   cookie.msg = msg;
 
   msg->command = command;
@@ -242,11 +241,12 @@ static int rpmsg_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
   struct rpmsg_rtc_get_s msg;
   int ret;
 
-  ret = rpmsg_rtc_msg_send_recv(lower, RPMSG_RTC_GET,
+  ret = rpmsg_rtc_send_recv(lower, RPMSG_RTC_GET,
           (struct rpmsg_rtc_header_s *)&msg, sizeof(msg));
   if (ret == 0)
     {
-      gmtime_r(&msg.tv_sec, (FAR struct tm *)rtctime);
+      time_t time = msg.tv_sec;
+      gmtime_r(&time, (FAR struct tm *)rtctime);
       rtctime->tm_nsec = msg.tv_nsec;
     }
 
@@ -262,7 +262,7 @@ static int rpmsg_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
   msg.tv_sec  = mktime((FAR struct tm *)rtctime);
   msg.tv_nsec = rtctime->tm_nsec;
 
-  return rpmsg_rtc_msg_send_recv(lower, RPMSG_RTC_SET,
+  return rpmsg_rtc_send_recv(lower, RPMSG_RTC_SET,
           (struct rpmsg_rtc_header_s *)&msg, sizeof(msg));
 }
 
