@@ -117,7 +117,7 @@ begin_packed_struct struct clk_rpmsg_setrate_s
   char                      name[0];
 } end_packed_struct;
 
-#define clk_rpmsg_getrate_s clk_rpmsg_setrate_s
+#define clk_rpmsg_getrate_s clk_rpmsg_enable_s
 #define clk_rpmsg_roundrate_s clk_rpmsg_setrate_s
 
 begin_packed_struct struct clk_rpmsg_setphase_s
@@ -127,7 +127,7 @@ begin_packed_struct struct clk_rpmsg_setphase_s
   char                      name[0];
 } end_packed_struct;
 
-#define clk_rpmsg_getphase_s clk_rpmsg_setphase_s
+#define clk_rpmsg_getphase_s clk_rpmsg_enable_s
 
 /****************************************************************************
  * Private Function Prototypes
@@ -178,10 +178,10 @@ static int clk_rpmsg_set_phase(struct clk *clk, int degrees);
  * Private Datas
  ****************************************************************************/
 
-static mutex_t g_clk_rpmsg_lock                = MUTEX_INITIALIZER;
-static struct list_node g_clk_rpmsg_priv       = LIST_INITIAL_VALUE(g_clk_rpmsg_priv);
+static mutex_t g_clk_rpmsg_lock          = MUTEX_INITIALIZER;
+static struct list_node g_clk_rpmsg_priv = LIST_INITIAL_VALUE(g_clk_rpmsg_priv);
 
-static const rpmsg_rx_cb_t clk_rpmsg_handler[] =
+static const rpmsg_rx_cb_t g_clk_rpmsg_handler[] =
 {
   [CLK_RPMSG_ENABLE]    = clk_rpmsg_enable_handler,
   [CLK_RPMSG_DISABLE]   = clk_rpmsg_disable_handler,
@@ -321,10 +321,7 @@ static void clk_rpmsg_getrate_handler(struct rpmsg_channel *channel,
   struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
 
   if (clkrp)
-    {
-      msg->rate = clk_get_rate(clkrp->clk);
-      msg->header.result = msg->rate;
-    }
+    msg->header.result = clk_get_rate(clkrp->clk);
   else
     msg->header.result = -ENOENT;
 
@@ -338,10 +335,7 @@ static void clk_rpmsg_roundrate_handler(struct rpmsg_channel *channel,
   struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
 
   if (clkrp)
-    {
-      msg->rate = clk_round_rate(clkrp->clk, msg->rate);
-      msg->header.result = msg->rate;
-    }
+    msg->header.result = clk_round_rate(clkrp->clk, msg->rate);
   else
     msg->header.result = -ENOENT;
 
@@ -383,10 +377,7 @@ static void clk_rpmsg_getphase_handler(struct rpmsg_channel *channel,
   struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
 
   if (clkrp)
-    {
-      msg->degrees = clk_get_phase(clkrp->clk);
-      msg->header.result = msg->degrees;
-    }
+    msg->header.result = clk_get_phase(clkrp->clk);
   else
     msg->header.result = -ENOENT;
 
@@ -528,10 +519,10 @@ static void clk_rpmsg_channel_received(struct rpmsg_channel *channel, void *data
           nxsem_post(&cookie->sem);
         }
     }
-  else if (cmd < ARRAY_SIZE(clk_rpmsg_handler) && clk_rpmsg_handler[cmd])
+  else if (cmd < ARRAY_SIZE(g_clk_rpmsg_handler) && g_clk_rpmsg_handler[cmd])
     {
       hdr->response = 1;
-      clk_rpmsg_handler[cmd](channel, data, len, priv, src);
+      g_clk_rpmsg_handler[cmd](channel, data, len, priv, src);
     }
 }
 
