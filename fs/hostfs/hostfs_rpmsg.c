@@ -108,7 +108,7 @@ static const rpmsg_rx_cb_t g_hostfs_rpmsg_handler[] =
   [HOSTFS_RPMSG_IOCTL]     = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_SYNC]      = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_DUP]       = hostfs_rpmsg_handler,
-  [HOSTFS_RPMSG_FSTAT]     = hostfs_rpmsg_handler,
+  [HOSTFS_RPMSG_FSTAT]     = hostfs_rpmsg_stat_handler,
   [HOSTFS_RPMSG_FTRUNCATE] = hostfs_rpmsg_handler,
   [HOSTFS_RPMSG_OPENDIR]   = hostfs_rpmsg_opendir_handler,
   [HOSTFS_RPMSG_READDIR]   = hostfs_rpmsg_handler,
@@ -186,12 +186,20 @@ static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
   struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
   struct hostfs_rpmsg_statfs_s *recv = data;
+  struct statfs *buf = cookie->privdata;
 
   cookie->result = header->result;
 
   if (header->result >= 0)
     {
-      memcpy(cookie->privdata, &recv->buf, sizeof(recv->buf));
+      buf->f_type    = recv->buf.f_type;
+      buf->f_namelen = recv->buf.f_namelen;
+      buf->f_bsize   = B2C(recv->buf.f_bsize);
+      buf->f_blocks  = recv->buf.f_blocks;
+      buf->f_bfree   = recv->buf.f_bfree;
+      buf->f_bavail  = recv->buf.f_bavail;
+      buf->f_files   = recv->buf.f_files;
+      buf->f_ffree   = recv->buf.f_ffree;
     }
 
   nxsem_post(&cookie->sem);
@@ -204,12 +212,19 @@ static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
   struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
   struct hostfs_rpmsg_stat_s *recv = data;
+  struct stat *buf = cookie->privdata;
 
   cookie->result = header->result;
 
   if (header->result >= 0)
     {
-      memcpy(cookie->privdata, &recv->buf, sizeof(recv->buf));
+      buf->st_mode    = recv->buf.st_mode;
+      buf->st_size    = B2C(recv->buf.st_size);
+      buf->st_blksize = B2C(recv->buf.st_blksize);
+      buf->st_blocks  = recv->buf.st_blocks;
+      buf->st_atime   = recv->buf.st_atime;
+      buf->st_mtime   = recv->buf.st_mtime;
+      buf->st_ctime   = recv->buf.st_ctime;
     }
 
   nxsem_post(&cookie->sem);
@@ -480,7 +495,7 @@ int host_fstat(int fd, struct stat *buf)
 
   msg.fd = fd;
 
-  ret = hostfs_msg_send_recv(HOSTFS_RPMSG_FSTAT, true, NULL,
+  ret = hostfs_msg_send_recv(HOSTFS_RPMSG_FSTAT, true, buf,
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg));
   if (ret == 0)
     {
