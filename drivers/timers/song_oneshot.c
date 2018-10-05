@@ -263,13 +263,7 @@ static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
   while (*c2 != song_oneshot_getreg(config->base, config->c2_off));
 
   flags = enter_critical_section();
-  if (lower->c2_base == UINT64_MAX)
-    {
-      /* First call, initialize base */
-
-      lower->c2_base = UINT64_MAX - *c2 + 1;
-    }
-  else if (*c2 < c2_prev)
+  if (*c2 < c2_prev)
     {
       /* C2 overflow, increment base */
 
@@ -460,7 +454,6 @@ song_oneshot_initialize(FAR const struct song_oneshot_config_s *config)
   if (lower != NULL)
     {
       lower->config = config;
-      lower->c2_base = UINT64_MAX;
       lower->ops = &g_song_oneshot_ops;
 #ifdef CONFIG_PM
       lower->last_state = PM_SLEEP;
