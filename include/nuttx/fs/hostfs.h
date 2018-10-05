@@ -65,11 +65,12 @@
 
 /* These must exactly match the definitions from include/sys/stat.h: */
 
-#define NUTTX_S_IFIFO           0
+#define NUTTX_S_IFIFO           (0 << 11)
 #define NUTTX_S_IFCHR           (1 << 11)
 #define NUTTX_S_IFDIR           (2 << 11)
 #define NUTTX_S_IFBLK           (3 << 11)
 #define NUTTX_S_IFREG           (4 << 11)
+#define NUTTX_S_IFSOCK          (8 << 11)
 #define NUTTX_S_IFLNK           (1 << 15)
 
 /* These must exactly match the definitions from include/fcntl.h: */

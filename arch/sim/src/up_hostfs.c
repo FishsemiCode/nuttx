@@ -88,9 +88,13 @@ static void host_stat_convert(struct stat *hostbuf, struct nuttx_stat_s *buf)
     {
       buf->st_mode |= NUTTX_S_IFLNK;
     }
-  else /* if (hostbuf->st_mode & S_IFIFO) */
+  else if (hostbuf->st_mode & S_IFIFO)
     {
       buf->st_mode |= NUTTX_S_IFIFO;
+    }
+  else if (hostbuf->st_mode & S_IFSOCK)
+    {
+      buf->st_mode |= NUTTX_S_IFSOCK;
     }
 
   buf->st_size    = hostbuf->st_size;
