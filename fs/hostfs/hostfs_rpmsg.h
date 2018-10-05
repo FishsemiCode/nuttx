@@ -147,26 +147,19 @@ begin_packed_struct struct hostfs_rpmsg_ftruncate_s
 begin_packed_struct struct hostfs_rpmsg_opendir_s
 {
   struct hostfs_rpmsg_header_s header;
-  uint32_t                     dirp;
-  uint32_t                     reserved;
   char                         pathname[0];
 } end_packed_struct;
 
 begin_packed_struct struct hostfs_rpmsg_readdir_s
 {
   struct hostfs_rpmsg_header_s header;
-  uint32_t                     dirp;
+  int32_t                      fd;
   uint32_t                     type;
-  char                         name[NAME_MAX];
+  char                         name[0];
 } end_packed_struct;
 
-begin_packed_struct struct hostfs_rpmsg_rewinddir_s
-{
-  struct hostfs_rpmsg_header_s header;
-  uint32_t                     dirp;
-} end_packed_struct;
-
-#define hostfs_rpmsg_closedir_s hostfs_rpmsg_rewinddir_s
+#define hostfs_rpmsg_rewinddir_s hostfs_rpmsg_close_s
+#define hostfs_rpmsg_closedir_s hostfs_rpmsg_close_s
 
 begin_packed_struct struct hostfs_rpmsg_statfs_s
 {
@@ -179,11 +172,7 @@ begin_packed_struct struct hostfs_rpmsg_statfs_s
   char                         pathname[0];
 } end_packed_struct;
 
-begin_packed_struct struct hostfs_rpmsg_unlink_s
-{
-  struct hostfs_rpmsg_header_s header;
-  char                         pathname[0];
-} end_packed_struct;
+#define hostfs_rpmsg_unlink_s hostfs_rpmsg_opendir_s
 
 begin_packed_struct struct hostfs_rpmsg_mkdir_s
 {
@@ -193,8 +182,8 @@ begin_packed_struct struct hostfs_rpmsg_mkdir_s
   char                         pathname[0];
 } end_packed_struct;
 
-#define hostfs_rpmsg_rmdir_s  hostfs_rpmsg_unlink_s
-#define hostfs_rpmsg_rename_s hostfs_rpmsg_unlink_s
+#define hostfs_rpmsg_rmdir_s hostfs_rpmsg_opendir_s
+#define hostfs_rpmsg_rename_s hostfs_rpmsg_opendir_s
 
 begin_packed_struct struct hostfs_rpmsg_stat_s
 {

@@ -61,7 +61,7 @@
 struct hostfs_rpmsg_server_s
 {
   struct file files[CONFIG_NFILE_DESCRIPTORS];
-  void        *dirps[CONFIG_NFILE_DESCRIPTORS];
+  void        *dirs[CONFIG_NFILE_DESCRIPTORS];
   sem_t       sem;
 };
 
@@ -98,21 +98,21 @@ static void hostfs_rpmsg_rewinddir_handler(struct rpmsg_channel *channel,
 static void hostfs_rpmsg_closedir_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src);
 static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void hostfs_rpmsg_unlink_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void hostfs_rpmsg_mkdir_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void hostfs_rpmsg_rmdir_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void hostfs_rpmsg_rename_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel);
 static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
 static void hostfs_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 
 /****************************************************************************
  * Private Data
@@ -157,24 +157,18 @@ static void hostfs_rpmsg_open_handler(struct rpmsg_channel *channel,
   if (fd >= 0)
     {
       nxsem_wait(&priv->sem);
-
       for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
         {
           if (!priv->files[i].f_inode)
             {
+              ret = file_detach(fd, &priv->files[i]);
+              if (ret == 0)
+                {
+                  ret = i;
+                }
               break;
             }
         }
-
-      if (i != CONFIG_NFILE_DESCRIPTORS)
-        {
-          ret = file_detach(fd, &priv->files[i]);
-          if (ret == 0)
-            {
-              ret = i;
-            }
-        }
-
       nxsem_post(&priv->sem);
 
       if (ret < 0)
@@ -184,7 +178,6 @@ static void hostfs_rpmsg_open_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -198,14 +191,11 @@ static void hostfs_rpmsg_close_handler(struct rpmsg_channel *channel,
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
       nxsem_wait(&priv->sem);
-
       ret = file_close_detached(&priv->files[msg->fd]);
-
       nxsem_post(&priv->sem);
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -215,15 +205,14 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
   struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_read_s *msg = data;
   struct hostfs_rpmsg_read_s *rsp;
-  uint32_t space;
   int ret = -ENOENT;
+  uint32_t space;
 
   rsp = rpmsg_get_tx_payload_buffer(channel, &space, true);
   if (!rsp)
     {
       return;
     }
-
   *rsp = *msg;
 
   space -= sizeof(*msg);
@@ -238,7 +227,6 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
     }
 
   rsp->header.result = ret;
-
   rpmsg_send_nocopy(channel, rsp, (ret < 0 ? 0 : ret) + sizeof(*rsp));
 }
 
@@ -255,7 +243,6 @@ static void hostfs_rpmsg_write_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -268,12 +255,10 @@ static void hostfs_rpmsg_lseek_handler(struct rpmsg_channel *channel,
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
-      msg->offset = file_seek(&priv->files[msg->fd], msg->offset, msg->whence);
-      ret = msg->offset;
+      ret = file_seek(&priv->files[msg->fd], msg->offset, msg->whence);
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -290,7 +275,6 @@ static void hostfs_rpmsg_ioctl_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -307,7 +291,6 @@ static void hostfs_rpmsg_sync_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -324,24 +307,18 @@ static void hostfs_rpmsg_dup_handler(struct rpmsg_channel *channel,
       if (newfd >= 0)
         {
           nxsem_wait(&priv->sem);
-
           for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
             {
               if (!priv->files[i].f_inode)
                 {
+                  ret = file_detach(newfd, &priv->files[i]);
+                  if (ret == 0)
+                    {
+                      ret = i;
+                    }
                   break;
                 }
             }
-
-          if (i != CONFIG_NFILE_DESCRIPTORS)
-            {
-              ret = file_detach(newfd, &priv->files[i]);
-              if (ret == 0)
-                {
-                  ret = i;
-                }
-            }
-
           nxsem_post(&priv->sem);
 
           if (ret < 0)
@@ -352,7 +329,6 @@ static void hostfs_rpmsg_dup_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -369,7 +345,6 @@ static void hostfs_rpmsg_fstat_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -386,7 +361,6 @@ static void hostfs_rpmsg_ftruncate_handler(struct rpmsg_channel *channel,
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -396,70 +370,71 @@ static void hostfs_rpmsg_opendir_handler(struct rpmsg_channel *channel,
   struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_opendir_s *msg = data;
   int i, ret = -ENOENT;
-  void *dirp;
+  void *dir;
 
-  dirp = opendir(msg->pathname);
-  if (dirp)
+  dir = opendir(msg->pathname);
+  if (dir)
     {
       nxsem_wait(&priv->sem);
-
-      for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
+      for (i = 1; i < CONFIG_NFILE_DESCRIPTORS; i++)
         {
-          if (!priv->dirps[i])
+          if (!priv->dirs[i])
             {
+              priv->dirs[i] = dir;
+              ret = i;
               break;
             }
         }
-
-      if (i != CONFIG_NFILE_DESCRIPTORS)
-        {
-          priv->dirps[i] = dirp;
-          msg->dirp = (uintptr_t)dirp;
-          ret = 0;
-        }
-
       nxsem_post(&priv->sem);
 
       if (ret < 0)
         {
-          closedir(dirp);
+          closedir(dir);
         }
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_readdir_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
+  struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_readdir_s *msg = data;
   struct dirent *entry;
   int ret = -ENOENT;
 
-  entry = readdir((void *)(uintptr_t)msg->dirp);
-  if (entry)
+  if (msg->fd >= 1 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
-      msg->type = entry->d_type;
-      memcpy(msg->name, entry->d_name, sizeof(msg->name));
-      ret = 0;
+      entry = readdir(priv->dirs[msg->fd]);
+      if (entry)
+        {
+          msg->type = entry->d_type;
+          strcpy(msg->name, entry->d_name);
+          len += strlen(entry->d_name) + 1;
+          ret = 0;
+        }
     }
 
   msg->header.result = ret;
-
-  rpmsg_send(channel, msg, sizeof(*msg));
+  rpmsg_send(channel, msg, len);
 }
 
 static void hostfs_rpmsg_rewinddir_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv_, unsigned long src)
 {
+  struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_rewinddir_s *msg = data;
+  int ret = -ENOENT;
 
-  rewinddir((void *)(uintptr_t)msg->dirp);
+  if (msg->fd >= 1 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
+    {
+      rewinddir(priv->dirs[msg->fd]);
+      ret = 0;
+    }
 
-  msg->header.result = 0;
-
+  msg->header.result = ret;
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -468,109 +443,76 @@ static void hostfs_rpmsg_closedir_handler(struct rpmsg_channel *channel,
 {
   struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_closedir_s *msg = data;
-  int i, ret;
+  int ret = -ENOENT;
 
-  ret = closedir((void *)(uintptr_t)msg->dirp);
-  if (ret == 0)
+  if (msg->fd >= 1 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
+      ret = closedir(priv->dirs[msg->fd]);
       nxsem_wait(&priv->sem);
-
-      for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
-        {
-          if (priv->dirps[i] == (void *)(uintptr_t)msg->dirp)
-            {
-              priv->dirps[i] = NULL;
-            }
-        }
-
+      priv->dirs[msg->fd] = NULL;
       nxsem_post(&priv->sem);
     }
 
   msg->header.result = ret;
-
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_statfs_s *msg = data;
-  int ret;
 
-  ret = statfs(msg->pathname, &msg->buf);
-
-  msg->header.result = ret;
-
+  msg->header.result = statfs(msg->pathname, &msg->buf);
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_unlink_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_unlink_s *msg = data;
-  int ret;
 
-  ret = unlink(msg->pathname);
-
-  msg->header.result = ret;
-
+  msg->header.result = unlink(msg->pathname);
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_mkdir_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_mkdir_s *msg = data;
-  int ret;
 
-  ret = mkdir(msg->pathname, msg->mode);
-
-  msg->header.result = ret;
-
+  msg->header.result = mkdir(msg->pathname, msg->mode);
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_rmdir_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_rmdir_s *msg = data;
-  int ret;
 
-  ret = rmdir(msg->pathname);
-
-  msg->header.result = ret;
-
+  msg->header.result = rmdir(msg->pathname);
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_rename_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_rename_s *msg = data;
   char *newpath;
   size_t oldlen;
-  int ret;
 
   oldlen = (strlen(msg->pathname) + 1 + 0x7) & ~0x7;
   newpath = msg->pathname + oldlen;
 
-  ret = rename(msg->pathname, newpath);
-
-  msg->header.result = ret;
-
+  msg->header.result = rename(msg->pathname, newpath);
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
 static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_stat_s *msg = data;
-  int ret;
 
-  ret = stat(msg->pathname, &msg->buf);
-
-  msg->header.result = ret;
-
+  msg->header.result = stat(msg->pathname, &msg->buf);
   rpmsg_send(channel, msg, sizeof(*msg));
 }
 
@@ -579,13 +521,11 @@ static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
   struct hostfs_rpmsg_server_s *priv;
 
   priv = kmm_zalloc(sizeof(*priv));
-  if (!priv)
+  if (priv)
     {
-      return;
+      nxsem_init(&priv->sem, 0, 1);
+      rpmsg_set_privdata(channel, priv);
     }
-
-  nxsem_init(&priv->sem, 0, 1);
-  rpmsg_set_privdata(channel, priv);
 }
 
 static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
@@ -608,9 +548,9 @@ static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
-      if (priv->dirps[i])
+      if (priv->dirs[i])
         {
-          closedir(priv->dirps[i]);
+          closedir(priv->dirs[i]);
         }
     }
 
@@ -619,14 +559,14 @@ static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 }
 
 static void hostfs_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct hostfs_rpmsg_header_s *header = data;
   uint32_t command = header->command;
 
   if (command < ARRAY_SIZE(g_hostfs_rpmsg_handler))
     {
-      g_hostfs_rpmsg_handler[command](channel, data, len, priv_, src);
+      g_hostfs_rpmsg_handler[command](channel, data, len, priv, src);
     }
 }
 
