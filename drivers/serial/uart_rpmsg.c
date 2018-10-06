@@ -415,7 +415,7 @@ static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 }
 
 static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct uart_dev_s *dev = rpmsg_get_privdata(channel);
   struct uart_rpmsg_header_s *header = data;
@@ -543,7 +543,7 @@ fail:
  ****************************************************************************/
 
 int uart_rpmsg_init(const char *cpu_name, const char *dev_name,
-                                    int buf_size, bool isconsole)
+                    int buf_size, bool isconsole)
 {
   return uart_rpmsg_init_(cpu_name, dev_name, buf_size, isconsole);
 }
