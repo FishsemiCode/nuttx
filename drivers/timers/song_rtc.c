@@ -257,7 +257,6 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   FAR struct song_rtc_alarm_s *alarm = &base->ALARM[lower->config->index];
   uint32_t cnt_hi, cnt_lo;
   irqstate_t flags;
-  bool first_alarm;
 #ifdef CONFIG_PM
   uint32_t new_state;
   uint64_t ms;
@@ -267,7 +266,6 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   cnt_lo = song_rtc_nsec2cnt(alarminfo->time.tm_nsec);
 
   flags = enter_critical_section();
-  first_alarm       = !lower->cb;
   lower->cb         = alarminfo->cb;
   lower->priv       = alarminfo->priv;
   alarm->CNT_HI     = cnt_hi;
@@ -291,12 +289,6 @@ static int song_rtc_setalarm(FAR struct rtc_lowerhalf_s *lower_,
   song_rtc_pm(lower, new_state);
 #endif
   leave_critical_section(flags);
-
-  if (first_alarm)
-    {
-      irq_attach(lower->config->irq, song_rtc_interrupt, lower);
-      up_enable_irq(lower->config->irq);
-    }
 
   return 0;
 }
@@ -376,11 +368,14 @@ FAR struct rtc_lowerhalf_s *song_rtc_initialize(FAR const struct song_rtc_config
 #ifdef CONFIG_PM
       lower->last_state = PM_SLEEP;
 #endif
-    }
 
-  if (config->minor >= 0)
-    {
-      rtc_initialize(config->minor, (FAR struct rtc_lowerhalf_s *)lower);
+      irq_attach(lower->config->irq, song_rtc_interrupt, lower);
+      up_enable_irq(lower->config->irq);
+
+      if (config->minor >= 0)
+        {
+          rtc_initialize(config->minor, (FAR struct rtc_lowerhalf_s *)lower);
+        }
     }
 
   return (FAR struct rtc_lowerhalf_s *)lower;
