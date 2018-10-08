@@ -265,3 +265,7 @@ config AUDIO_AK4332
 config AUDIO_DP_ADC
 	bool "DP ADC driver"
 	depends on AUDIO
+
+config AUDIO_DP_VAD
+	bool "DP VAD driver"
+	depends on AUDIO
