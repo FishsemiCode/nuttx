@@ -1,4 +1,10 @@
 if SONG_CLK
 
+config DEBUG_SONG_PCLK
+	bool "enable pclks"
+	default n
+	depends on DEBUG_CLK
+	---help---
+		Showing song platform pclks to enable and debug clk issues.
 
 endif

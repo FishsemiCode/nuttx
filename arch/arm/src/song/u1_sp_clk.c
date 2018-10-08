@@ -160,20 +160,20 @@ static const struct song_div_clk div[] =
     .div_width = 4,
   },
   {
-    .name = "pll1_mclk",
-    .parent_name = "pll1_out",
-    .en_offset = 0x050,
-    .en_shift = 0,
-    .div_offset = 0x050,
-    .div_shift = 4,
-    .div_width = 4,
-  },
-  {
     .name = "top_pclk2",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x054,
     .en_shift = 0,
     .div_offset = 0x054,
+    .div_shift = 4,
+    .div_width = 4,
+  },
+  {
+    .name = "pll1_mclk",
+    .parent_name = "pll1_out",
+    .en_offset = 0x050,
+    .en_shift = 0,
+    .div_offset = 0x050,
     .div_shift = 4,
     .div_width = 4,
   },
@@ -240,12 +240,6 @@ static const struct song_gate_clk gate[] =
     .en_shift = 1,
   },
   {
-    .name = "swdt_pclk",
-    .parent_name = "top_pclk0",
-    .en_offset = 0x098,
-    .en_shift = 2,
-  },
-  {
     .name = "swdt_tclk",
     .parent_name = "clk32k",
     .en_offset = 0x098,
@@ -270,16 +264,23 @@ static const struct song_gate_clk gate[] =
     .en_shift = 6,
   },
   {
-    .name = "gpio_pclk",
-    .parent_name = "top_pclk0",
-    .en_offset = 0x098,
-    .en_shift = 7,
-  },
-  {
     .name = "gpio_clk32k",
     .parent_name = "clk32k",
     .en_offset = 0x098,
     .en_shift = 8,
+  },
+#ifdef CONFIG_DEBUG_SONG_PCLK
+  {
+    .name = "swdt_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x098,
+    .en_shift = 2,
+  },
+  {
+    .name = "gpio_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x098,
+    .en_shift = 7,
   },
   {
     .name = "spi1_pclk",
@@ -305,6 +306,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x09c,
     .en_shift = 1,
   },
+#endif
   {
     .name = "flash_ctrl_hclk",
     .parent_name = "flash_ctrl_clk",

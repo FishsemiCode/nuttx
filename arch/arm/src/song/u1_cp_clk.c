@@ -334,6 +334,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x090,
     .en_shift = 11,
   },
+#ifdef CONFIG_DEBUG_SONG_PCLK
   {
     .name = "rfphy_pclk",
     .parent_name = "sp/top_pclk2",
@@ -346,6 +347,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x090,
     .en_shift = 13,
   },
+#endif
   {
     .name = "cpwdt_tclk",
     .parent_name = "clk32k",
@@ -412,12 +414,14 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x094,
     .en_shift = 8,
   },
+#ifdef CONFIG_DEBUG_SONG_PCLK
   {
     .name = "sim_pclk",
     .parent_name = "cp_pclk",
     .en_offset = 0x094,
     .en_shift = 9,
   },
+#endif
   {
     .name = "cp_rfif_adc_clk",
     .parent_name = "rfphy_agc_adcclk",

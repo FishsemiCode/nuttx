@@ -326,28 +326,29 @@ static const struct song_gate_clk gate[] =
     .en_shift = 3,
   },
   {
-    .name = "sen_wdt_pclk",
-    .parent_name = "sen_pclk",
-    .en_offset = 0x094,
-    .en_shift = 4,
-  },
-  {
     .name = "sen_wdt_tclk",
     .parent_name = "sen_wdt_tclk_en",
     .en_offset = 0x094,
     .en_shift = 5,
   },
   {
-    .name = "sen_gpio_pclk",
-    .parent_name = "sen_pclk",
-    .en_offset = 0x094,
-    .en_shift = 6,
-  },
-  {
     .name = "sen_gpio_clk32k",
     .parent_name = "sen_clk32k",
     .en_offset = 0x094,
     .en_shift = 7,
+  },
+#ifdef CONFIG_DEBUG_SONG_PCLK
+  {
+    .name = "sen_wdt_pclk",
+    .parent_name = "sen_pclk",
+    .en_offset = 0x094,
+    .en_shift = 4,
+  },
+  {
+    .name = "sen_gpio_pclk",
+    .parent_name = "sen_pclk",
+    .en_offset = 0x094,
+    .en_shift = 6,
   },
   {
     .name = "sen_pdm0_pclk",
@@ -391,6 +392,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x094,
     .en_shift = 14,
   },
+#endif
   {},
 };
 

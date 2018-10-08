@@ -422,12 +422,6 @@ static const struct song_gate_clk gate[] =
     .en_shift = 3,
   },
   {
-    .name = "tl421_wdt_pclk",
-    .parent_name = "top_pclk0",
-    .en_offset = 0x090,
-    .en_shift = 4,
-  },
-  {
     .name = "at_calib_clk",
     .parent_name = "rfphy_pll0_clk",
     .en_offset = 0x090,
@@ -438,6 +432,13 @@ static const struct song_gate_clk gate[] =
     .parent_name = "codec_ref_clk",
     .en_offset = 0x090,
     .en_shift = 6,
+  },
+#ifdef CONFIG_DEBUG_SONG_PCLK
+  {
+    .name = "tl421_wdt_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x090,
+    .en_shift = 4,
   },
   {
     .name = "pcm_pclk",
@@ -457,6 +458,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x090,
     .en_shift = 9,
   },
+#endif
   {
     .name = "audio_sys_hclk",
     .parent_name = "audio_mclk",
@@ -500,12 +502,6 @@ static const struct song_gate_clk gate[] =
     .en_shift = 1,
   },
   {
-    .name = "m4_wdt_pclk",
-    .parent_name = "top_pclk0",
-    .en_offset = 0x098,
-    .en_shift = 2,
-  },
-  {
     .name = "m4_wdt_tclk",
     .parent_name = "clk32k",
     .en_offset = 0x098,
@@ -518,16 +514,23 @@ static const struct song_gate_clk gate[] =
     .en_shift = 4,
   },
   {
-    .name = "gpio_pclk",
-    .parent_name = "top_pclk1",
-    .en_offset = 0x098,
-    .en_shift = 5,
-  },
-  {
     .name = "gpio_clk32k",
     .parent_name = "clk32k",
     .en_offset = 0x098,
     .en_shift = 6,
+  },
+#ifdef CONFIG_DEBUG_SONG_PCLK
+  {
+    .name = "m4_wdt_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x098,
+    .en_shift = 2,
+  },
+  {
+    .name = "gpio_pclk",
+    .parent_name = "top_pclk1",
+    .en_offset = 0x098,
+    .en_shift = 5,
   },
   {
     .name = "pwm_pclk",
@@ -572,12 +575,6 @@ static const struct song_gate_clk gate[] =
     .en_shift = 13,
   },
   {
-    .name = "mailbox_hclk",
-    .parent_name = "top_bus_mclk",
-    .en_offset = 0x09c,
-    .en_shift = 0,
-  },
-  {
     .name = "uart0_pclk",
     .parent_name = "top_pclk1",
     .en_offset = 0x09c,
@@ -589,6 +586,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x09c,
     .en_shift = 3,
   },
+#endif
   {
     .name = "cs_dap_clk",
     .parent_name = "top_pclk0",
@@ -600,6 +598,12 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_pclk0",
     .en_offset = 0x0a0,
     .en_shift = 9,
+  },
+  {
+    .name = "mailbox_hclk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x09c,
+    .en_shift = 0,
   },
   {
     .name = "m4_stclk",
