@@ -73,10 +73,6 @@ volatile uint32_t g_system_timer;
 
 #ifndef CONFIG_CLOCK_TIMEKEEPING
 struct timespec   g_basetime;
-
-#ifdef CONFIG_CLOCK_MONOTONIC
-struct timespec   g_monotonic_basetime;
-#endif
 #endif
 
 /****************************************************************************
@@ -199,18 +195,6 @@ static void clock_inittime(void)
           g_basetime.tv_nsec += NSEC_PER_SEC;
           g_basetime.tv_sec--;
         }
-
-#ifdef CONFIG_CLOCK_MONOTONIC
-      /* Adjust monotonic clock offset to hide initial timer ticks. */
-
-      g_monotonic_basetime.tv_sec  -= ts.tv_sec;
-      g_monotonic_basetime.tv_nsec -= ts.tv_nsec;
-      while (g_monotonic_basetime.tv_nsec < 0)
-        {
-          g_monotonic_basetime.tv_nsec += NSEC_PER_SEC;
-          g_monotonic_basetime.tv_sec--;
-        }
-#endif /* CONFIG_CLOCK_MONOTONIC */
     }
 #endif /* !CONFIG_SCHED_TICKLESS */
 #else
@@ -434,24 +418,6 @@ void clock_resynchronize(FAR struct timespec *rtc_diff)
           rtc_diff->tv_sec  += carry;
           rtc_diff->tv_nsec -= (carry * NSEC_PER_SEC);
         }
-
-#ifdef CONFIG_CLOCK_MONOTONIC
-      /* Monotonic clock follows wall time since system start-up. Adjust
-       * CLOCK_MONOTONIC same amount as CLOCK_REALTIME.
-       */
-
-      g_monotonic_basetime.tv_sec  += (uint32_t)rtc_diff->tv_sec;
-      g_monotonic_basetime.tv_nsec += (uint32_t)rtc_diff->tv_nsec;
-
-      /* Handle carry to seconds. */
-
-      if (g_monotonic_basetime.tv_nsec >= NSEC_PER_SEC)
-        {
-          carry = g_monotonic_basetime.tv_nsec / NSEC_PER_SEC;
-          g_monotonic_basetime.tv_sec += carry;
-          g_monotonic_basetime.tv_nsec -= (carry * NSEC_PER_SEC);
-        }
-#endif
     }
 
 skip:
