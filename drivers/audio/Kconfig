@@ -261,3 +261,7 @@ config AUDIO_THINKER
 config AUDIO_AK4332
 	bool "AK4332 dac driver"
 	depends on AUDIO
+
+config AUDIO_DP_ADC
+	bool "DP ADC driver"
+	depends on AUDIO

@@ -93,6 +93,10 @@ ifeq ($(CONFIG_AUDIO_AK4332),y)
 CSRCS += ak4332.c
 endif
 
+ifeq ($(CONFIG_AUDIO_DP_ADC),y)
+CSRCS += dp_adc.c
+endif
+
 # Include Audio driver support
 
 DEPPATH += --dep-path audio
