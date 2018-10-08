@@ -123,7 +123,7 @@ static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_);
 static void uart_rpmsg_channel_created(struct rpmsg_channel *channel);
 static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
 static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
+                    void *data, int len, void *priv_, unsigned long src);
 static int  uart_rpmsg_init_(const char *cpu_name, const char *dev_name_,
                     int buf_size, bool isconsole);
 
@@ -415,7 +415,7 @@ static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 }
 
 static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+                    void *data, int len, void *priv_, unsigned long src)
 {
   struct uart_dev_s *dev = rpmsg_get_privdata(channel);
   struct uart_rpmsg_header_s *header = data;
