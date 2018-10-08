@@ -391,10 +391,6 @@ static const struct song_gate_clk gate[] =
 static const struct song_default_rate_clk def_rate[] =
 {
   {
-    .name = "flash_ctrl_clk",
-    .rate = 102400000,
-  },
-  {
     .name = "top_bus_mclk",
     .rate = 81920000,
   },

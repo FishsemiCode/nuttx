@@ -718,12 +718,14 @@ static void up_flash_init(void)
 
   static const struct song_onchip_flash_config_s config =
   {
-    .base = 0xb0130000,
-    .cpu_base = 0x04000000,
-    .xaddr_shift = 4,
-    .yaddr_shift = 5,
+    .base         = 0xb0130000,
+    .cpu_base     = 0x04000000,
+    .xaddr_shift  = 4,
+    .yaddr_shift  = 5,
     .neraseblocks = 256,
-    .timing = timing,
+    .timing       = timing,
+    .mclk         = "flash_ctrl_clk",
+    .rate         = 102400000,
   };
   FAR struct mtd_dev_s *mtd;
 

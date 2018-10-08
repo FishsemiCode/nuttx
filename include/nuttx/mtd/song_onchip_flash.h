@@ -69,6 +69,8 @@ struct song_onchip_flash_config_s
   uint32_t xaddr_shift;     /* xaddr shift in erase block */
   uint32_t yaddr_shift;     /* yaddr shift in write/read block */
   uint32_t neraseblocks;    /* number of erase blocks */
+  FAR const char *mclk;     /* flash controller clk name for operate on it */
+  uint32_t rate;            /* if not zero: flash controller clk rate */
                             /* flash port timing configuration, must be
                                end with {-1, 0} */
   FAR const struct song_onchip_flash_timing_s *timing;

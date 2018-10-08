@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/mtd/song_onchip_flash.h>
@@ -325,11 +326,25 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
 FAR struct mtd_dev_s *song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg)
 {
   FAR struct song_onchip_flash_dev_s *priv;
+  struct clk *mclk;
 
   priv = kmm_zalloc(sizeof(struct song_onchip_flash_dev_s));
   if (priv == NULL)
     {
       return NULL;
+    }
+
+  mclk = clk_get(cfg->mclk);
+  if (!mclk)
+    goto fail;
+
+  if (clk_enable(mclk))
+    goto fail;
+
+  if (cfg->rate)
+    {
+      if (clk_set_rate(mclk, cfg->rate))
+        goto fail;
     }
 
   priv->mtd.erase  = song_onchip_flash_erase;
@@ -349,4 +364,8 @@ FAR struct mtd_dev_s *song_onchip_flash_initialize(FAR const struct song_onchip_
 #endif
 
   return (FAR struct mtd_dev_s *)priv;
+
+fail:
+  kmm_free(priv);
+  return NULL;
 }
