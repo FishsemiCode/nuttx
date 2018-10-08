@@ -127,7 +127,11 @@ int clock_systimespec(FAR struct timespec *ts)
        * code.  Let the platform timer do the work.
        */
 
+#  ifdef CONFIG_CLOCK_TIMEKEEPING
+      return clock_timekeeping_get_monotonic_time(&ts);
+#  else
       return up_timer_gettime(ts);
+#  endif
 
 #elif defined(CONFIG_HAVE_LONG_LONG) && (CONFIG_USEC_PER_TICK % 1000) != 0
       /* 64-bit microsecond calculations should improve our accuracy
