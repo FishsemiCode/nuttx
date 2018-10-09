@@ -134,7 +134,7 @@ struct song_dmas_dev_s
   uintptr_t base;
   int cpu;
   const char *clkname;
-  struct clk *clk;
+  bool clkinit;
   struct song_dmas_chan_s channels[16];
 };
 
@@ -192,7 +192,7 @@ static int song_dmas_set_timeout(struct song_dmas_dev_s *dev,
   if (!timeout)
     return OK;
 
-  if (!dev->clk)
+  if (!dev->clkinit)
     return -EPERM;
 
   if (index < 8)
@@ -503,21 +503,28 @@ static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned in
   if (ident > 15)
     return NULL;
 
-  if (dev->clkname && !dev->clk)
+  if (dev->clkname && !dev->clkinit)
     {
+      struct clk *dma_clk;
       uint32_t intv_unit;
 
-      dev->clk = clk_get(dev->clkname);
-      if (dev->clk == NULL)
+      dma_clk = clk_get(dev->clkname);
+      if (dma_clk == NULL)
         {
           return NULL;
         }
-      clk_enable(dev->clk);
 
-      intv_unit = clk_get_rate(dev->clk) / 1000000; /* microsecond */
+      if(clk_enable(dma_clk))
+        {
+          return NULL;
+        }
+
+      intv_unit = clk_get_rate(dma_clk) / 1000000; /* microsecond */
       intv_unit = MAX(intv_unit, SONG_DMAS_INTV_UNIT_MIN);
       intv_unit = MIN(intv_unit, SONG_DMAS_INTV_UNIT_MAX);
       song_dmas_write(dev, SONG_DMAS_REG_INTV_UNIT, intv_unit);
+
+      dev->clkinit = true;
     }
 
   song_dmas_stop(&dev->channels[ident].chan);
