@@ -185,6 +185,29 @@ static inline void wd_expiration(void)
  * Public Functions
  ****************************************************************************/
 
+#ifdef CONFIG_ARCH_CHIP_U1_CP
+#include <syslog.h>
+void wd_show_activelist(void)
+{
+  FAR struct wdog_s *wdog = (FAR struct wdog_s *)g_wdactivelist.head;
+  FAR struct wdog_s *last;
+  static int save_lag = 0;
+
+  while (wdog)
+    {
+      last = wdog;
+      wdog = wdog->next;
+    }
+
+  if (save_lag - last->lag > 100000)
+    {
+      syslog(LOG_INFO, "wdog big_gap save_lag %d, lag %d\n", save_lag, last->lag);
+    }
+
+  save_lag = last->lag;
+}
+#endif
+
 /****************************************************************************
  * Name: wd_start
  *
@@ -437,6 +460,10 @@ unsigned int wd_timer(int ticks)
    */
 
   flags = enter_critical_section();
+#endif
+
+#ifdef CONFIG_ARCH_CHIP_U1_CP
+  wd_show_activelist();
 #endif
 
   /* Check if there are any active watchdogs to process */
