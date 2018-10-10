@@ -141,7 +141,7 @@ struct song_dmag_dev_s
   uintptr_t base;
   int cpu;
   const char *clkname;
-  struct clk *clk;
+  bool clkinit;
   struct song_dmag_chan_s channels[16];
 };
 
@@ -328,14 +328,19 @@ static struct dma_chan_s *song_dmag_get_chan(struct dma_dev_s *dev_,
   if (ident > 15)
     return NULL;
 
-  if (dev->clkname && !dev->clk)
+  if (dev->clkname && !dev->clkinit)
     {
-      dev->clk = clk_get(dev->clkname);
-      if (dev->clk == NULL)
+      struct clk *dma_clk;
+      dma_clk = clk_get(dev->clkname);
+      if (dma_clk == NULL)
         {
           return NULL;
         }
-      clk_enable(dev->clk);
+      if (clk_enable(dma_clk))
+        {
+          return NULL;
+        }
+      dev->clkinit = true;
     }
 
   song_dmag_stop(&dev->channels[ident].chan);
