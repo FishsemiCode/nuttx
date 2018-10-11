@@ -71,7 +71,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: net_setup
+ * Name: net_initialize
  *
  * Description:
  *   This is called from the OS initialization logic at power-up reset in
@@ -93,7 +93,7 @@
  *
  ****************************************************************************/
 
-void net_setup(void)
+void net_initialize(void)
 {
   /* Initialize the locking facility */
 
@@ -210,30 +210,6 @@ void net_setup(void)
 
   usrsock_initialize();
 #endif
-}
-
-/****************************************************************************
- * Name: net_initialize
- *
- * Description:
- *   This function is called from the OS initialization logic at power-up
- *   reset AFTER initialization of hardware facilities such as timers and
- *   interrupts.   This logic completes the initialization started by
- *   net_setup().
- *
- * Input Parameters:
- *   None
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-void net_initialize(void)
-{
-  /* Initialize the periodic ARP timer */
-
-  arp_timer_initialize();
 }
 
 #endif /* CONFIG_NET */
