@@ -141,6 +141,7 @@ struct wdog_s
   FAR void          *picbase;    /* PIC base address */
 #endif
   int                lag;        /* Timer associated with the delay */
+  int                delay;      /* Timer delay for debug*/
   uint8_t            flags;      /* See WDOGF_* definitions above */
   uint8_t            argc;       /* The number of parameters to pass */
   wdparm_t           parm[CONFIG_MAX_WDOGPARMS];
