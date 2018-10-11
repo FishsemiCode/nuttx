@@ -170,6 +170,7 @@ static inline int clock_basetime(FAR struct timespec *tp)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_RTC
 static void clock_inittime(void)
 {
   /* (Re-)initialize the time value to match the RTC */
@@ -193,6 +194,7 @@ static void clock_inittime(void)
     }
 #endif
 }
+#endif
 
 /****************************************************************************
  * Public Functions
