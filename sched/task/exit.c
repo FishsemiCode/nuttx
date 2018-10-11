@@ -47,6 +47,7 @@
 #include <nuttx/fs/fs.h>
 
 #include "task/task.h"
+#include "group/group.h"
 #include "sched/sched.h"
 
 /****************************************************************************
@@ -74,6 +75,10 @@ void exit(int status)
   /* Only the lower 8-bits of status are used */
 
   status &= 0xff;
+
+#ifdef CONFIG_SCHED_EXIT_KILL_CHILDREN
+  group_killchildren((FAR struct task_tcb_s *)tcb);
+#endif
 
   /* Perform common task termination logic.  This will get called again later
    * through logic kicked off by _exit().  However, we need to call it before
