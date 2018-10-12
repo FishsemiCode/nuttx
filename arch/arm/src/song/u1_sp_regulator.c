@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/arm/src/song/chip.h
+ * arch/arm/src/song/u1_sp_regulator.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Author: zhuyanlin <zhuyanlin@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,66 +33,91 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_SONG_CHIP_H
-#define __ARCH_ARM_SRC_SONG_CHIP_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
 
-#include <arch/song/chip.h>
+#include <nuttx/power/consumer.h>
+#include <nuttx/power/regulator.h>
+#include <nuttx/power/pm.h>
 
-#include "nvic.h"
+#include "chip.h"
+
+#if defined(CONFIG_ARCH_CHIP_U1_SP) && defined(CONFIG_SONG_PMIC_APB)
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* If the common ARMv7-M vector handling logic is used, then it expects the following
- * definition in this file that provides the number of supported external interrupts.
- */
-
-#define ARMV7M_PERIPHERAL_INTERRUPTS  (CONFIG_SONG_NR_IRQS - 16)
-
-/* Vector Table Offset Register (VECTAB).  Redefine the mask defined in
- * arch/arm/src/armv7-m/nvic.h; The base address of the new vector table
- * must be aligned to the size of the vector table extended to the next
- * larger power of 2.
- */
-
-#undef NVIC_VECTAB_TBLOFF_MASK
-#if CONFIG_SONG_NR_IRQS > 256
-#  error CONFIG_SONG_NR_IRQS can not be bigger than 256
-#elif CONFIG_SONG_NR_IRQS > 128
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xffffc00)
-#elif CONFIG_SONG_NR_IRQS > 64
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xffffe00)
-#elif CONFIG_SONG_NR_IRQS > 32
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xfffff00)
-#else
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xfffff80)
+#ifdef CONFIG_PM
+struct pm_regulator_s
+{
+  struct pm_callback_s cb;
+  struct regulator *reg;
+  uint32_t voltage[2];
+};
 #endif
 
-#ifndef ARRAY_SIZE
-#  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static struct pm_regulator_s g_pm_regulator;
+#endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void regulator_pm_notify(struct pm_callback_s *cb, int domain,
+                           enum pm_state_e pmstate)
+{
+  FAR struct pm_regulator_s *pm = (FAR struct pm_regulator_s *)cb;
+
+  switch (pmstate)
+    {
+      case PM_RESTORE:
+        if (pm->reg)
+          {
+            regulator_set_voltage(pm->reg, pm->voltage[1], pm->voltage[1]);
+          }
+        break;
+
+      case PM_SLEEP:
+        if (pm->reg)
+          {
+            regulator_set_voltage(pm->reg, pm->voltage[0], pm->voltage[0]);
+          }
+        break;
+
+      default:
+        break;
+    }
+}
 #endif
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
+void up_regulator_initialize(void)
+{
+  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
 
-/* Clock management *********************************************************/
+#ifdef CONFIG_PM
+  g_pm_regulator.reg = regulator_get(NULL, "ldo0");
+  if (g_pm_regulator.reg)
+    {
+      g_pm_regulator.voltage[0] = 625000;
+      g_pm_regulator.voltage[1] = 900000;
+      g_pm_regulator.cb.notify = regulator_pm_notify;
+      pm_register(&g_pm_regulator.cb);
+    }
+#endif
+}
 
-void up_clk_initialize(void);
-void up_clk_finalinitialize(void);
-
-/* regulator management *****************************************************/
-
-void up_regulator_initialize(void);
-
-#endif /* __ASSEMBLY__ */
-#endif /* __ARCH_ARM_SRC_SONG_CHIP_H */
+#endif /* CONFIG_ARCH_CHIP_U1_SP */
