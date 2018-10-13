@@ -81,7 +81,7 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
                   FAR uint8_t *addr)
 {
   uint8_t lltype;
-  uint8_t oldest_time;
+  clock_t oldest_time;
   int     oldest_ndx;
   int     i;
 
@@ -89,7 +89,7 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
 
   /* Find the first unused entry or the oldest used entry. */
 
-  oldest_time = 0;
+  oldest_time = g_neighbors[0].ne_time;
   oldest_ndx  = 0;
   lltype      = dev->d_lltype;
 
@@ -102,7 +102,7 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
           break;
         }
 
-      if (g_neighbors[i].ne_time > oldest_time)
+      if ((int)(g_neighbors[i].ne_time - oldest_time) < 0)
         {
           oldest_ndx = i;
           oldest_time = g_neighbors[i].ne_time;
@@ -113,7 +113,7 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
    * "oldest_ndx" variable).
    */
 
-  g_neighbors[oldest_ndx].ne_time = 0;
+  g_neighbors[oldest_ndx].ne_time = clock_systimer();
   net_ipv6addr_copy(g_neighbors[oldest_ndx].ne_ipaddr, ipaddr);
 
   g_neighbors[oldest_ndx].ne_addr.na_lltype = lltype;

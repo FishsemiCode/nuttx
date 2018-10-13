@@ -1,7 +1,7 @@
 /****************************************************************************
- * net/neighbor/neighbor_periodic.c
+ * net/neighbor/neighbor_globals.c
  *
- *   Copyright (C) 2007-2009, 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * A leverage of logic from uIP which also has a BSD style license
@@ -42,49 +42,16 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/clock.h>
 
 #include "neighbor/neighbor.h"
 
 /****************************************************************************
- * Public Functions
+ * Public Data
  ****************************************************************************/
 
-/****************************************************************************
- * Name: neighbor_periodic
- *
- * Description:
- *   Called from the timer poll logic in order to perform agin operations on
- *   entries in the Neighbor Table
- *
- * Input Parameters:
- *   hsec - Elapsed time in half seconds since the last check
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
+/* This is the Neighbor table.  The network should be locked when accessing
+ * this table.
+ */
 
-void neighbor_periodic(int hsec)
-{
-  int i;
-
-  /* Only perform the aging when more than a half second has elapsed */
-
-  if (hsec > 0)
-    {
-      /* Add the elapsed half seconds from each activate entry in the
-       * Neighbor table.
-       */
-
-      for (i = 0; i < CONFIG_NET_IPv6_NCONF_ENTRIES; ++i)
-        {
-          uint32_t newtime = g_neighbors[i].ne_time + hsec;
-          if (newtime > NEIGHBOR_MAXTIME)
-            {
-              newtime = NEIGHBOR_MAXTIME;
-            }
-
-          g_neighbors[i].ne_time = newtime;
-        }
-    }
-}
+struct neighbor_entry g_neighbors[CONFIG_NET_IPv6_NCONF_ENTRIES];
