@@ -49,7 +49,6 @@
 #include "devif/devif.h"
 #include "netdev/netdev.h"
 #include "ipforward/ipforward.h"
-#include "arp/arp.h"
 #include "sixlowpan/sixlowpan.h"
 #include "neighbor/neighbor.h"
 #include "icmp/icmp.h"
@@ -98,10 +97,6 @@ void net_initialize(void)
   /* Initialize the locking facility */
 
   net_lockinitialize();
-
-  /* Clear the ARP table */
-
-  arp_reset();
 
 #ifdef CONFIG_NET_IPv6
   /* Initialize the Neighbor Table data structures */

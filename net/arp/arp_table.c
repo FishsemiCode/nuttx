@@ -175,24 +175,6 @@ arp_return_old_entry(FAR struct arp_entry_s *e1, FAR struct arp_entry_s *e2)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: arp_reset
- *
- * Description:
- *   Re-initialize the ARP table.
- *
- ****************************************************************************/
-
-void arp_reset(void)
-{
-  int i;
-
-  for (i = 0; i < CONFIG_NET_ARPTAB_SIZE; ++i)
-    {
-      memset(&g_arptable[i].at_ipaddr, 0, sizeof(in_addr_t));
-    }
-}
-
-/****************************************************************************
  * Name: arp_update
  *
  * Description:

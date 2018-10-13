@@ -177,16 +177,6 @@ struct arp_notify_s
 
 #ifdef CONFIG_NET_ARP
 /****************************************************************************
- * Name: arp_reset
- *
- * Description:
- *   Re-initialize the ARP table.
- *
- ****************************************************************************/
-
-void arp_reset(void);
-
-/****************************************************************************
  * Name: arp_format
  *
  * Description:
@@ -459,7 +449,6 @@ void arp_dump(FAR struct arp_hdr_s *arp);
 
 /* If ARP is disabled, stub out all ARP interfaces */
 
-#  define arp_reset()
 #  define arp_format(d,i);
 #  define arp_send(i) (0)
 #  define arp_poll(d,c) (0)
