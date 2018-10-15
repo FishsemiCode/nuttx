@@ -316,14 +316,14 @@ static void _up_assert(int errorcode)
           spin_trylock(&g_cpu_irqlock);
 #endif
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 1
-          board_reset(0);
+          board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
         }
     }
   else
     {
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 2
-      board_reset(0);
+      board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
       exit(errorcode);
     }
