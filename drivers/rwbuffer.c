@@ -856,8 +856,8 @@ ssize_t rwb_read(FAR struct rwbuffer_s *rwb, off_t startblock,
       rwb_semgive(&rwb->rhsem);
       ret = nblocks;
     }
-#else
   else
+#else
     {
       /* No read-ahead buffering, (re)load the data directly into
        * the user buffer.
