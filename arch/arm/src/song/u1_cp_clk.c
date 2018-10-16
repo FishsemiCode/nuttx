@@ -525,7 +525,7 @@ static const struct song_default_rate_clk def_rate[] =
 {
   {
     .name = "cp_bus_mclk0",
-    .rate = 204800000,
+    .rate = 163840000,
   },
   {
     .name = "cp_bus_mclk1",
