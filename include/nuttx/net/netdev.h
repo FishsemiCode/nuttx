@@ -204,8 +204,8 @@ struct netdev_maxaddr_s
 
 struct netdev_varaddr_s
 {
-  uint8_t nv_addrlen;
   uint8_t nv_addr[RADIO_MAX_ADDRLEN];
+  uint8_t nv_addrlen;
 };
 #endif
 
