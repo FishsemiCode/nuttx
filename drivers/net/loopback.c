@@ -76,7 +76,7 @@
 
 /* TX poll delay = 1 seconds. CLK_TCK is the number of clock ticks per second */
 
-#define LO_WDDELAY   (36000*CLK_TCK)
+#define LO_WDDELAY   (1*CLK_TCK)
 
 /* This is a helper pointer for accessing the contents of the Ethernet header */
 

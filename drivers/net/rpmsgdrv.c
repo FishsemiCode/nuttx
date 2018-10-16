@@ -153,7 +153,7 @@
 
 /* TX poll delay = 1 seconds. CLK_TCK is the number of clock ticks per second */
 
-#define NET_RPMSG_DRV_WDDELAY      (36000*CLK_TCK)
+#define NET_RPMSG_DRV_WDDELAY      (1*CLK_TCK)
 
 /****************************************************************************
  * Private Types
