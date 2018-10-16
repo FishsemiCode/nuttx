@@ -230,9 +230,6 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
       song_oneshot_putbit(config->base, config->ctl_off, SONG_ONESHOT_RESET_BIT, false);
     }
 
-  while (song_oneshot_getbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_BIT))
-    ; /* Wait until the calibration finish */
-
   /* Remember C1 period for later use */
 
   if (config->c1_max)
