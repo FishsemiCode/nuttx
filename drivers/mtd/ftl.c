@@ -401,7 +401,7 @@ static ssize_t ftl_write(FAR struct inode *inode, const unsigned char *buffer,
 
   DEBUGASSERT(inode && inode->i_private);
   dev = (struct ftl_struct_s *)inode->i_private;
-#ifdef CONFIG_HAVE_RWBUFFER
+#ifdef FTL_HAVE_RWBUFFER
   return rwb_write(&dev->rwb, start_sector, nsectors, buffer);
 #else
   return ftl_flush(dev, buffer, start_sector, nsectors);
