@@ -226,7 +226,7 @@ static void rwb_wrstarttimeout(FAR struct rwbuffer_s *rwb)
    * provides the clock tick of the system (frequency in Hz).
    */
 
-  int ticks = (CONFIG_DRVR_WRDELAY + CLK_TCK/2) / CLK_TCK;
+  int ticks = MSEC2TICK(CONFIG_DRVR_WRDELAY);
   (void)work_queue(LPWORK, &rwb->work, rwb_wrtimeout, (FAR void *)rwb, ticks);
 #endif
 }
