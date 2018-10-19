@@ -50,6 +50,17 @@
 	.file		"arm_head.S"
 	.globl		up_start
 	.globl		_ebss
+	.globl		__aeabi_d2f
+	.globl		__aeabi_d2iz
+	.globl		__aeabi_d2lz
+	.globl		__aeabi_d2uiz
+	.globl		__aeabi_ddiv
+	.globl		__aeabi_dmul
+	.globl		__aeabi_l2f
+	.globl		__aeabi_ldivmod
+	.globl		__aeabi_ui2d
+	.globl		__aeabi_uldivmod
+	.globl		__popcountsi2
 
 /****************************************************************************
  * Name: __start
@@ -94,7 +105,32 @@ __start:
 
 	sub 		r10, sp, #(CONFIG_IDLETHREAD_STACKSIZE - 64)
 #endif
+
 	bl		up_start
+
+/****************************************************************************
+ *   GCC in LTO mode interoperates poorly with non-standard libraries that
+ *   provide implementations of compiler intrinsics such as memcpy/memset
+ *   or the stack protector entry points.
+ *
+ *   By referencing these functions from a non-LTO object that can be passed
+ *   to the linker via the -plugin-opt=-pass-through=-lxxx options, the
+ *   intrinsics are included in the link in a way that allows them to be
+ *   pruned again if no other references to them exist.
+ ****************************************************************************/
+
+	bl		__aeabi_d2f
+	bl		__aeabi_d2iz
+	bl		__aeabi_d2lz
+	bl		__aeabi_d2uiz
+	bl		__aeabi_ddiv
+	bl		__aeabi_dmul
+	bl		__aeabi_l2f
+	bl		__aeabi_ldivmod
+	bl		__aeabi_ui2d
+	bl		__aeabi_uldivmod
+	bl		__popcountsi2
+
 	.size		__start, .-__start
 
 #if CONFIG_EARLY_STACKSIZE > 0
