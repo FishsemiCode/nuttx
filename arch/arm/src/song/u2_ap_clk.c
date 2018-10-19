@@ -616,6 +616,19 @@ static const struct song_gate_clk gate[] =
 
 static const struct song_default_rate_clk def_rate[] =
 {
+  /* support 1Mhz i2c speed */
+  {
+    .name = "i2c0_mclk",
+    .rate = 25600000,
+  },
+  {
+    .name = "i2c1_mclk",
+    .rate = 25600000,
+  },
+  {
+    .name = "i2c2_mclk",
+    .rate = 25600000,
+  },
   {
     .name = "spi0_mclk",
     .rate = 76800000,
