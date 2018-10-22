@@ -49,7 +49,7 @@
 #include <debug.h>
 
 #include <net/if.h>
-#include <net/ethernet.h>
+#include <nuttx/net/ethernet.h>
 #include <nuttx/net/netconfig.h>
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/bluetooth.h>
