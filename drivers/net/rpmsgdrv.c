@@ -1235,25 +1235,7 @@ static int net_rpmsg_drv_addmac(FAR struct net_driver_s *dev, FAR const uint8_t 
 
   /* Add the MAC address to the hardware multicast routing table */
 
-  if (dev->d_lltype == NET_LL_ETHERNET || dev->d_lltype == NET_LL_IEEE80211)
-    {
-      msg.lnkaddr.length = ETHER_ADDR_LEN;
-    }
-  else if (dev->d_lltype == NET_LL_IEEE802154)
-    {
-      msg.lnkaddr.length = 8;
-    }
-#ifdef CONFIG_WIRELESS_PKTRADIO
-  else if (dev->d_lltype == NET_LL_PKTRADIO)
-    {
-      msg.lnkaddr.length = CONFIG_PKTRADIO_ADDRLEN;
-    }
-#endif
-  else
-    {
-      return -EOPNOTSUPP;
-    }
-
+  msg.lnkaddr.length = netdev_lladdrsize(dev);
   memcpy(msg.lnkaddr.addr, mac, msg.lnkaddr.length);
   return net_rpmsg_drv_send_recv(dev, &msg, NET_RPMSG_ADDMCAST, sizeof(msg));
 }
@@ -1282,25 +1264,7 @@ static int net_rpmsg_drv_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *
 
   /* Remove the MAC address from the hardware multicast routing table */
 
-  if (dev->d_lltype == NET_LL_ETHERNET || dev->d_lltype == NET_LL_IEEE80211)
-    {
-      msg.lnkaddr.length = ETHER_ADDR_LEN;
-    }
-  else if (dev->d_lltype == NET_LL_IEEE802154)
-    {
-      msg.lnkaddr.length = 8;
-    }
-#ifdef CONFIG_WIRELESS_PKTRADIO
-  else if (dev->d_lltype == NET_LL_PKTRADIO)
-    {
-      msg.lnkaddr.length = CONFIG_PKTRADIO_ADDRLEN;
-    }
-#endif
-  else
-    {
-      return -EOPNOTSUPP;
-    }
-
+  msg.lnkaddr.length = netdev_lladdrsize(dev);
   memcpy(msg.lnkaddr.addr, mac, msg.lnkaddr.length);
   return net_rpmsg_drv_send_recv(dev, &msg, NET_RPMSG_RMMCAST, sizeof(msg));
 }
@@ -1356,7 +1320,7 @@ static void net_rpmsg_drv_ipv6multicast(FAR struct net_driver_s *dev)
 
       net_rpmsg_drv_addmac(dev, mac);
 
-#ifdef CONFIG_NET_ICMPv6_AUTOCONF
+#if defined(CONFIG_NET_ETHERNET) && defined(CONFIG_NET_ICMPv6_AUTOCONF)
       /* Add the IPv6 all link-local nodes Ethernet address.  This is the
        * address that we expect to receive ICMPv6 Router Advertisement
        * packets.
@@ -1364,9 +1328,9 @@ static void net_rpmsg_drv_ipv6multicast(FAR struct net_driver_s *dev)
 
       net_rpmsg_drv_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
 
-#endif /* CONFIG_NET_ICMPv6_AUTOCONF */
+#endif /* CONFIG_NET_ETHERNET && CONFIG_NET_ICMPv6_AUTOCONF */
 
-#ifdef CONFIG_NET_ICMPv6_ROUTER
+#if defined(CONFIG_NET_ETHERNET) && defined(CONFIG_NET_ICMPv6_ROUTER)
       /* Add the IPv6 all link-local routers Ethernet address.  This is the
        * address that we expect to receive ICMPv6 Router Solicitation
        * packets.
@@ -1374,7 +1338,7 @@ static void net_rpmsg_drv_ipv6multicast(FAR struct net_driver_s *dev)
 
       net_rpmsg_drv_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
 
-#endif /* CONFIG_NET_ICMPv6_ROUTER */
+#endif /* CONFIG_NET_ETHERNET && CONFIG_NET_ICMPv6_ROUTER */
     }
 }
 #endif /* CONFIG_NET_ICMPv6 */
