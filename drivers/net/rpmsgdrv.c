@@ -961,23 +961,8 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
 
   /* Prepare the message */
 
-  switch (dev->d_lltype)
-    {
-#ifdef CONFIG_NET_ETHERNET
-    case NET_LL_ETHERNET:
-    case NET_LL_IEEE80211:
-      msg.lnkaddr.length = ETHER_ADDR_LEN;
-      memcpy(msg.lnkaddr.addr, &dev->d_mac.ether, msg.lnkaddr.length);
-      break;
-#endif
-#if defined(CONFIG_NET_6LOWPAN) || defined(CONFIG_NET_IEEE802154)
-    case NET_LL_IEEE802154:
-    case NET_LL_PKTRADIO:
-      msg.lnkaddr.length = dev->d_mac.radio.nv_addrlen;
-      memcpy(msg.lnkaddr.addr, dev->d_mac.radio.nv_addr, msg.lnkaddr.length);
-      break;
-#endif
-    }
+  msg.lnkaddr.length = netdev_lladdrsize(dev);
+  memcpy(msg.lnkaddr.addr, &dev->d_mac, msg.lnkaddr.length);
 
 #ifdef CONFIG_NET_IPv4
   net_ipv4addr_copy(msg.ipaddr, dev->d_ipaddr);
@@ -1001,22 +986,7 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
 
   /* Update net_driver_t field */
 
-  switch (dev->d_lltype)
-    {
-#ifdef CONFIG_NET_ETHERNET
-    case NET_LL_ETHERNET:
-    case NET_LL_IEEE80211:
-      memcpy(&dev->d_mac.ether, msg.lnkaddr.addr, msg.lnkaddr.length);
-      break;
-#endif
-#if defined(CONFIG_NET_6LOWPAN) || defined(CONFIG_NET_IEEE802154)
-    case NET_LL_IEEE802154:
-    case NET_LL_PKTRADIO:
-      dev->d_mac.radio.nv_addrlen = msg.lnkaddr.length;
-      memcpy(dev->d_mac.radio.nv_addr, msg.lnkaddr.addr, msg.lnkaddr.length);
-      break;
-#endif
-    }
+  memcpy(&dev->d_mac, msg.lnkaddr.addr, msg.lnkaddr.length);
 
 #ifdef CONFIG_NET_IPv4
   net_ipv4addr_copy(dev->d_ipaddr, msg.ipaddr);
