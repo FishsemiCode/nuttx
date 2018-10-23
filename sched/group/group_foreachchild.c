@@ -77,7 +77,7 @@ int group_foreachchild(FAR struct task_group_s *group,
 
   DEBUGASSERT(group);
 
-  for (i = 0; i < group->tg_nmembers; i++)
+  for (i = group->tg_nmembers - 1; i >= 0; i--)
     {
       ret = handler(group->tg_members[i], arg);
       if (ret != 0)
