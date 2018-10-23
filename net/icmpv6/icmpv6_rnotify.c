@@ -94,10 +94,6 @@ static void icmpv6_setaddresses(FAR struct net_driver_s *dev,
 {
   unsigned int i;
 
-  /* Make sure that the network is down before changing any addresses */
-
-  netdev_ifdown(dev);
-
   /* Create an address mask from the prefix */
 
   if (preflen > 128)

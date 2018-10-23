@@ -340,12 +340,6 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
   DEBUGASSERT(dev);
   ninfo("Auto-configuring %s\n", dev->d_ifname);
 
-  /* The interface should be in the down state */
-
-  net_lock();
-  netdev_ifdown(dev);
-  net_unlock();
-
   /* IPv6 Stateless Autoconfiguration
    * Reference: http://www.tcpipguide.com/free/t_IPv6AutoconfigurationandRenumbering.htm
    *
@@ -367,12 +361,6 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
         lladdr[4], lladdr[6], lladdr[6], lladdr[7]);
 
 #ifdef CONFIG_NET_ICMPv6_NEIGHBOR
-  /* Bring the interface up with no IP address */
-
-  net_lock();
-  netdev_ifup(dev);
-  net_unlock();
-
   /* 2. Link-Local Address Uniqueness Test: The node tests to ensure that
    *    the address it generated isn't for some reason already in use on the
    *    local network. (This is very unlikely to be an issue if the link-local
@@ -386,13 +374,6 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
    */
 
   ret = icmpv6_neighbor(lladdr);
-
-  /* Take the interface back down */
-
-  net_lock();
-  netdev_ifdown(dev);
-  net_unlock();
-
   if (ret == OK)
     {
       /* Hmmm... someone else responded to our Neighbor Solicitation.  We
@@ -412,10 +393,6 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
 
   net_lock();
   net_ipv6addr_copy(dev->d_ipv6addr, lladdr);
-
-  /* Bring the interface up with the new, temporary IP address */
-
-  netdev_ifup(dev);
 
   /* 4. Router Contact: The node next attempts to contact a local router for
    *    more information on continuing the configuration. This is done either
@@ -473,7 +450,6 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
       if (ret < 0)
         {
           nerr("ERROR: Failed send neighbor advertisement: %d\n", ret);
-          netdev_ifdown(dev);
         }
 
       /* No off-link communications; No router address. */
@@ -483,13 +459,6 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
       /* Set a netmask for the local link address */
 
       net_ipv6addr_copy(dev->d_ipv6netmask, g_ipv6_llnetmask);
-
-      /* Leave the network up and return success (even though things did not
-       * work out quite the way we wanted).
-       */
-
-      net_unlock();
-      return ret;
     }
 
   /* 5. Router Direction: The router provides direction to the node on how to
@@ -506,13 +475,10 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
    *    first step.
    */
 
-  /* On success, the new address was already set (in icmpv_rnotify()).  We
-   * need only to bring the network back to the up state and return success.
-   */
+  /* On success, the new address was already set (in icmpv_rnotify()). */
 
-  netdev_ifup(dev);
   net_unlock();
-  return OK;
+  return ret;
 }
 
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
