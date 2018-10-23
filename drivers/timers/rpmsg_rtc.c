@@ -86,13 +86,13 @@ begin_packed_struct struct rpmsg_rtc_alarm_set_s
   struct rpmsg_rtc_header_s header;
   int64_t                   sec;
   int32_t                   nsec;
-  uint32_t                  id;
+  int32_t                   id;
 } end_packed_struct;
 
 begin_packed_struct struct rpmsg_rtc_alarm_cancel_s
 {
   struct rpmsg_rtc_header_s header;
-  uint32_t                  id;
+  int32_t                   id;
 } end_packed_struct;
 
 #define rpmsg_rtc_alarm_fire_s rpmsg_rtc_alarm_cancel_s
