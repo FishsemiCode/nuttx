@@ -317,6 +317,10 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
 
   if (g_wdactivelist.head == NULL)
     {
+      /* Update clock tickbase */
+
+      g_wdtickbase = clock_systimer();
+
       /* Add the watchdog to the head == tail of the queue. */
 
       sq_addlast((FAR sq_entry_t *)wdog, &g_wdactivelist);
@@ -328,6 +332,14 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
     {
       now = 0;
       prev = curr = (FAR struct wdog_s *)g_wdactivelist.head;
+
+      /* Correct/compensate delay */
+
+      delay += wd_elapse();
+      if (delay <= 0)
+        {
+          delay = INT32_MAX;
+        }
 
       /* Advance to positive time */
 
@@ -531,10 +543,6 @@ void wd_timer(void)
 
   flags = enter_critical_section();
 #endif
-
-  /* Update clock tickbase */
-
-  g_wdtickbase++;
 
   /* Check if there are any active watchdogs to process */
 

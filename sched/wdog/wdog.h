@@ -49,6 +49,27 @@
 #include <nuttx/wdog.h>
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: wd_elapse
+ *
+ * Description:
+ *   This function is used to get time-elapse from last time wd_timer() be
+ *   called. In case of CONFIG_SCHED_TICKLESS configured, wd_timer() may
+ *   take lots of ticks, during this time, wd_start()/wd_cancel() may
+ *   called, so we need wd_elapse() to correct the delay/lag.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SCHED_TICKLESS
+#define wd_elapse() (clock_systimer() - g_wdtickbase)
+#else
+#define wd_elapse()
+#endif
+
+/****************************************************************************
  * Public Data
  ****************************************************************************/
 
@@ -84,7 +105,9 @@ extern uint16_t g_wdnfree;
  * between 2 times of wd_timer(), we use it to update wd_gettime().
  */
 
+#ifdef CONFIG_SCHED_TICKLESS
 extern clock_t g_wdtickbase;
+#endif
 
 /****************************************************************************
  * Public Function Prototypes

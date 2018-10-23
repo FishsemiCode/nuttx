@@ -73,7 +73,9 @@ uint16_t g_wdnfree;
  * between 2 times of wd_timer(), we use it to update wd_gettime().
  */
 
+#ifdef CONFIG_SCHED_TICKLESS
 clock_t g_wdtickbase;
+#endif
 
 /****************************************************************************
  * Private Data
@@ -130,8 +132,4 @@ void wd_initialize(void)
   /* All watchdogs are free */
 
   g_wdnfree = CONFIG_PREALLOC_WDOGS;
-
-  /* Setup clock tickbase */
-
-  g_wdtickbase = clock_systimer();
 }
