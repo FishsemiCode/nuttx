@@ -91,7 +91,7 @@ static void pm_timer(int domain)
       pdom->wdog = wd_create();
     }
 
-  if (pdom->state < PM_SLEEP)
+  if (pdom->state < PM_SLEEP && pdom->stay[pdom->state] == 0)
     {
       const int pmtick[3] =
       {
