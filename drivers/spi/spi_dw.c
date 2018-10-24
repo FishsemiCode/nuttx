@@ -495,6 +495,11 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   struct timespec abstime;
   int ret;
 
+  if (!nwords)
+    {
+      return;
+    }
+
   spi->len = nwords * spi->n_bytes;
   spi->tx = txbuffer;
   spi->tx_end = txbuffer + spi->len;
