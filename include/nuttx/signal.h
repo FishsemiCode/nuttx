@@ -434,14 +434,14 @@ int nxsig_usleep(useconds_t usec);
  * Name: nxsig_notification
  *
  * Description:
- *   Notify a client a signal event via a function call.  This function is
- *   an internal OS interface that implements the common logic for signal
- *   event notification for the case of SIGEV_THREAD.
+ *   Notify a client an event via either a signal or a function call
+ *   base on the sigev_notify field.
  *
  * Input Parameters:
  *   pid   - The task/thread ID a the client thread to be signaled.
  *   event - The instance of struct sigevent that describes how to signal
  *           the client.
+ *   code  - Source: SI_USER, SI_QUEUE, SI_TIMER, SI_ASYNCIO, or SI_MESGQ
  *
  * Returned Value:
  *   This is an internal OS interface and should not be used by applications.
@@ -450,8 +450,6 @@ int nxsig_usleep(useconds_t usec);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SIG_EVTHREAD) && defined(CONFIG_BUILD_FLAT)
-int nxsig_notification(pid_t pid, FAR struct sigevent *event);
-#endif
+int nxsig_notification(pid_t pid, FAR struct sigevent *event, int code);
 
 #endif /* __INCLUDE_NUTTX_SIGNAL_H */

@@ -41,7 +41,7 @@ CSRCS += sig_kill.c sig_queue.c sig_waitinfo.c sig_timedwait.c
 CSRCS += sig_findaction.c sig_allocpendingsigaction.c
 CSRCS += sig_releasependingsigaction.c sig_unmaskpendingsignal.c
 CSRCS += sig_removependingsignal.c sig_releasependingsignal.c sig_lowest.c
-CSRCS += sig_mqnotempty.c sig_cleanup.c sig_dispatch.c sig_deliver.c
+CSRCS += sig_notification.c sig_cleanup.c sig_dispatch.c sig_deliver.c
 CSRCS += sig_pause.c sig_nanosleep.c sig_usleep.c sig_sleep.c
 
 ifeq ($(CONFIG_SIG_DEFAULT),y)
@@ -49,7 +49,7 @@ CSRCS += sig_default.c
 endif
 
 ifeq ($(CONFIG_SIG_EVTHREAD),y)
-CSRCS += sig_notification.c
+CSRCS += sig_thread.c
 endif
 
 # Include signal build support

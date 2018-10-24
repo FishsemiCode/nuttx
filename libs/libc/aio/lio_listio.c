@@ -191,25 +191,7 @@ static void lio_sighandler(int signo, siginfo_t *info, void *ucontext)
 
       /* Signal the client */
 
-      if (sighand->sig->sigev_notify == SIGEV_SIGNAL)
-        {
-#ifdef CONFIG_CAN_PASS_STRUCTS
-          DEBUGASSERT(sigqueue(sighand->pid, sighand->sig->sigev_signo,
-                               sighand->sig->sigev_value));
-#else
-          DEBUGASSERT(sigqueue(sighand->pid, sighand->sig->sigev_signo,
-                               sighand->sig->sigev_value.sival_ptr));
-#endif
-        }
-
-#ifdef CONFIG_SIG_EVTHREAD
-      /* Notify the client via a function call */
-
-      else if (ighand->sig->sigev_notify == SIGEV_THREAD)
-        {
-          DEBUGASSERT(nxsig_notification(sighand->pid, &sighand->sig));
-        }
-#endif
+      DEBUGVERIFY(nxsig_notification(sighand->pid, &sighand->sig, SI_ASYNCIO));
 
       /* And free the container */
 
