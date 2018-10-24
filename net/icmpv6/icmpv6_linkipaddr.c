@@ -55,8 +55,8 @@ icmpv6_linkipaddr_0(FAR struct net_driver_s *dev, net_ipv6addr_t ipaddr)
   ipaddr[2]  = 0;
   ipaddr[3]  = 0;
   ipaddr[4]  = 0;
-  ipaddr[5]  = HTONS(0x00ff);
-  ipaddr[6]  = HTONS(0xfe00);
+  ipaddr[5]  = 0;
+  ipaddr[6]  = 0;
 #ifdef CONFIG_NETDEV_IFINDEX
   ipaddr[7]  = HTONS(dev->d_ifindex);
 #else
