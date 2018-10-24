@@ -53,6 +53,12 @@
 #ifdef CONFIG_ARCH_STACKDUMP
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static uint8_t s_last_regs[XCPTCONTEXT_REGS];
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -114,8 +120,6 @@ static inline void m16c_registerdump(void)
 
   if (ptr == NULL)
     {
-      static uint8_t s_last_regs[XCPTCONTEXT_SIZE];
-
       /* No.. capture user registers by hand */
 
       up_saveusercontext((uint32_t *)s_last_regs);

@@ -71,6 +71,14 @@
 #endif
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_STACKDUMP
+static uint32_t s_last_regs[XCPTCONTEXT_REGS];
+#endif
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -143,8 +151,6 @@ static void up_dumpstate(void)
     }
   else
     {
-      static uint32_t s_last_regs[XCPTCONTEXT_REGS];
-
       /* Capture and dump user registers by hand */
 
       up_saveusercontext(s_last_regs);

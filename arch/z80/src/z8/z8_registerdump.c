@@ -51,6 +51,12 @@
 #ifdef CONFIG_ARCH_STACKDUMP
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -115,8 +121,6 @@ void z8_registerdump(void)
       case Z8_IRQSTATE_NONE:
       default:
         {
-          static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
-
           z8_saveusercontext(s_last_regs);
           regs = s_last_regs;
           z8_dumpregs(regs);

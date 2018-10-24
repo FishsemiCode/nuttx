@@ -50,6 +50,12 @@
 #ifdef CONFIG_ARCH_STACKDUMP
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -63,8 +69,6 @@ static void z80_registerdump(void)
 
   if (regs == NULL)
     {
-      static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
-
       z80_saveusercontext(s_last_regs);
       regs = s_last_regs;
     }

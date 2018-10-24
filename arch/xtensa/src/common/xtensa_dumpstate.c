@@ -56,6 +56,12 @@
 #ifdef CONFIG_DEBUG_ALERT
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static uint32_t s_last_regs[XCPTCONTEXT_REGS];
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -143,8 +149,6 @@ static inline void xtensa_registerdump(void)
 
   if (regs == NULL)
     {
-      static uint32_t s_last_regs[XCPTCONTEXT_REGS];
-
       /* No.. capture user registers by hand */
 
       xtensa_context_save(s_last_regs);

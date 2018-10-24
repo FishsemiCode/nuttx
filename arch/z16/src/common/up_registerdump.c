@@ -50,6 +50,12 @@
 #ifdef CONFIG_ARCH_STACKDUMP
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
+
+/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -64,8 +70,6 @@ static void up_registerdump(void)
 
   if (regs32 == NULL)
     {
-      static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
-
       up_saveusercontext(s_last_regs);
       regs32 = (FAR uint32_t *)s_last_regs;
     }
