@@ -317,9 +317,11 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
 
   if (g_wdactivelist.head == NULL)
     {
+#ifdef CONFIG_SCHED_TICKLESS
       /* Update clock tickbase */
 
       g_wdtickbase = clock_systimer();
+#endif
 
       /* Add the watchdog to the head == tail of the queue. */
 
