@@ -196,17 +196,17 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev);
 /* RPMSG related functions */
 
 static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 
 static void net_rpmsg_drv_device_created(struct remote_device *rdev, void *priv_);
 static void net_rpmsg_drv_channel_created(struct rpmsg_channel *channel);
 static void net_rpmsg_drv_channel_destroyed(struct rpmsg_channel *channel);
 static void net_rpmsg_drv_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+                    void *data, int len, void *priv, unsigned long src);
 
 static int  net_rpmsg_drv_send_recv(struct net_driver_s *dev,
                     void *header_, uint32_t command, int len);
@@ -500,7 +500,7 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev)
 /* RPMSG related functions */
 
 static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct net_rpmsg_header_s *header = data;
   struct net_rpmsg_drv_cookie_s *cookie =
@@ -510,14 +510,19 @@ static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
   nxsem_post(&cookie->sem);
 }
 
-static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+static void net_rpmsg_drv_sockioctl_work(FAR void *arg)
 {
-  struct net_rpmsg_ioctl_s *msg = data;
+  struct net_rpmsg_ioctl_s *msg = arg;
+  struct rpmsg_channel *channel;
   struct socket sock;
+
+  /* Recover channel pointer from result field */
+
+  channel = (struct rpmsg_channel *)msg->header.result;
 
   /* We need a temporary sock for ioctl here */
 
+  sock.s_crefs = 1; /* Initialize reference count manually */
   msg->header.result = psock_socket(NET_RPMSG_DRV_FAMILY,
           NET_RPMSG_DRV_TYPE, NET_RPMSG_DRV_PROTOCOL, &sock);
   if (msg->header.result >= 0)
@@ -526,7 +531,24 @@ static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
       psock_close(&sock); /* Close the temporary sock */
     }
 
-  rpmsg_send(channel, data, len);
+  rpmsg_send(channel, msg, sizeof(*msg) + msg->length);
+  rpmsg_release_rx_buffer(channel, arg);
+}
+
+static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
+                    void *data, int len, void *priv, unsigned long src)
+{
+  struct net_rpmsg_ioctl_s *msg = data;
+  FAR struct work_s *work = data + len;
+
+  /* Reuse result field to hold channel pointer */
+
+  msg->header.result = (uintptr_t)channel;
+
+  /* Move the action into work thread to avoid the deadlock */
+
+  rpmsg_hold_rx_buffer(channel, data);
+  work_queue(NET_RPMSG_DRV_WORK, work, net_rpmsg_drv_sockioctl_work, data, 0);
 }
 
 /****************************************************************************
@@ -597,7 +619,7 @@ static bool net_rpmsg_drv_is_arp(struct net_driver_s *dev)
 #endif
 
 static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct net_driver_s *dev = rpmsg_get_privdata(channel);
   struct net_rpmsg_transfer_s *msg = data;
@@ -773,14 +795,14 @@ static void net_rpmsg_drv_channel_destroyed(struct rpmsg_channel *channel)
 }
 
 static void net_rpmsg_drv_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+                    void *data, int len, void *priv, unsigned long src)
 {
   struct net_rpmsg_header_s *header = data;
   uint32_t command = header->command;
 
   if (command < sizeof(g_net_rpmsg_drv_handler) / sizeof(g_net_rpmsg_drv_handler[0]))
     {
-      g_net_rpmsg_drv_handler[command](channel, data, len, priv_, src);
+      g_net_rpmsg_drv_handler[command](channel, data, len, priv, src);
     }
 }
 
