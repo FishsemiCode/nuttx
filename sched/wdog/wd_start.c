@@ -114,11 +114,13 @@ void wd_show_activelist(void)
   syslog(LOG_INFO, "wdog active list:\n");
   while (wdog)
     {
-      syslog(LOG_INFO, "lag %d, delay %d\n", wdog->lag, wdog->delay);
+      syslog(LOG_INFO, "lag %d, delay %d, start %d\n", wdog->lag, wdog->delay, (int)wdog->start);
       wdog = wdog->next;
     }
 
-  syslog(LOG_INFO, "g_wdtickbase %lld, current time %lld\n", g_wdtickbase, clock_systimer());
+#ifdef CONFIG_SCHED_TICKLESS
+  syslog(LOG_INFO, "g_wdtickbase %d, current time %d\n", (int)g_wdtickbase, (int)clock_systimer());
+#endif
 }
 
 static inline void wd_expiration(void)
@@ -410,6 +412,7 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
 
   wdog->lag   = delay;
   wdog->delay = save;
+  wdog->start = clock_systimer();
   WDOG_SETACTIVE(wdog);
 
 #ifdef CONFIG_SCHED_TICKLESS
