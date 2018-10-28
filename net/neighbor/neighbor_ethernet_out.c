@@ -88,7 +88,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: neighbor_out
+ * Name: neighbor_ethernet_out
  *
  * Description:
  *   This function should be called before sending out an IPv6 packet. The
@@ -114,7 +114,7 @@
  *
  ****************************************************************************/
 
-void neighbor_out(FAR struct net_driver_s *dev)
+void neighbor_ethernet_out(FAR struct net_driver_s *dev)
 {
   FAR struct eth_hdr_s *eth = ETHBUF;
   FAR struct ipv6_hdr_s *ip = IPv6BUF;
