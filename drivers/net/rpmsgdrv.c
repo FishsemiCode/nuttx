@@ -171,16 +171,16 @@ struct net_rpmsg_drv_cookie_s
 
 struct net_rpmsg_drv_s
 {
-  FAR const char *cpuname;
-  char chname[RPMSG_NAME_SIZE];
-  sem_t channelready;
+  FAR const char       *cpuname;
+  char                 channelname[RPMSG_NAME_SIZE];
+  sem_t                channelready;
   struct rpmsg_channel *channel;
-  WDOG_ID txpoll;           /* TX poll timer */
-  struct work_s pollwork;   /* For deferring poll work to the work queue */
+  WDOG_ID              txpoll;   /* TX poll timer */
+  struct work_s        pollwork; /* For deferring poll work to the work queue */
 
   /* This holds the information visible to the NuttX network */
 
-  struct net_driver_s dev;  /* Interface understood by the network */
+  struct net_driver_s  dev;      /* Interface understood by the network */
 };
 
 /****************************************************************************
@@ -380,30 +380,18 @@ static int net_rpmsg_drv_txpoll(FAR struct net_driver_s *dev)
        */
 
 #ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv4(dev->d_flags))
-#endif
         {
-          if (dev->d_lltype == NET_LL_ETHERNET ||
-              dev->d_lltype == NET_LL_IEEE80211)
-            {
-              arp_out(dev);
-            }
+          arp_out(dev);
         }
-#endif /* CONFIG_NET_IPv4 */
-
-#if defined(CONFIG_NET_IPv6) && defined(CONFIG_NET_ETHERNET)
-#ifdef CONFIG_NET_IPv4
       else
-#endif
+#endif /* CONFIG_NET_IPv4 */
+#ifdef CONFIG_NET_IPv6
+      if (IFF_IS_IPv6(dev->d_flags))
         {
-          if (dev->d_lltype == NET_LL_ETHERNET ||
-              dev->d_lltype == NET_LL_IEEE80211)
-            {
-              neighbor_out(dev);
-            }
+          neighbor_out(dev);
         }
-#endif /* CONFIG_NET_IPv6 && CONFIG_NET_ETHERNET */
+#endif /* CONFIG_NET_IPv6 */
 
       if (!devif_loopback(dev))
         {
@@ -462,32 +450,20 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev)
       /* Update the Ethernet header with the correct MAC address */
 
 #ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
       /* Check for an outgoing IPv4 packet */
 
       if (IFF_IS_IPv4(dev->d_flags))
-#endif
         {
-          if (dev->d_lltype == NET_LL_ETHERNET ||
-              dev->d_lltype == NET_LL_IEEE80211)
-            {
-              arp_out(dev);
-            }
+          arp_out(dev);
         }
-#endif
-
-#if defined(CONFIG_NET_IPv6) && defined(CONFIG_NET_ETHERNET)
-#ifdef CONFIG_NET_IPv4
-      /* Otherwise, it must be an outgoing IPv6 packet */
-
       else
 #endif
+#ifdef CONFIG_NET_IPv6
+        /* Check for an outgoing IPv6 packet */
+
+      if (IFF_IS_IPv6(dev->d_flags))
         {
-          if (dev->d_lltype == NET_LL_ETHERNET ||
-              dev->d_lltype == NET_LL_IEEE80211)
-            {
-              neighbor_out(dev);
-            }
+          neighbor_out(dev);
         }
 #endif
 
@@ -649,6 +625,7 @@ static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
   if (msg->length < dev->d_llhdrlen || msg->length > dev->d_pktsize)
     {
       NETDEV_RXERRORS(dev);
+      net_unlock();
       return;
     }
   else
@@ -683,12 +660,7 @@ static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
        * layer.
        */
 
-      if (dev->d_lltype == NET_LL_ETHERNET ||
-          dev->d_lltype == NET_LL_IEEE80211)
-        {
-          arp_ipin(dev);
-        }
-
+      arp_ipin(dev);
       ipv4_input(dev);
 
       /* Check for a reply to the IPv4 packet */
@@ -723,14 +695,9 @@ static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
 
       arp_arpin(dev);
 
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field d_len will set to a value > 0.
-       */
+      /* Check for a reply to the ARP packet */
 
-      if (dev->d_len > 0)
-        {
-          net_rpmsg_drv_transmit(dev, false);
-        }
+      net_rpmsg_drv_reply(dev);
     }
   else
 #endif
@@ -750,7 +717,7 @@ static void net_rpmsg_drv_device_created(struct remote_device *rdev, void *priv_
 
   if (strcmp(priv->cpuname, rdev->proc->cpu_name) == 0)
     {
-      channel = rpmsg_create_channel(rdev, priv->chname);
+      channel = rpmsg_create_channel(rdev, priv->channelname);
       if (channel != NULL)
         {
           rpmsg_set_privdata(channel, dev);
@@ -783,7 +750,6 @@ static void net_rpmsg_drv_channel_destroyed(struct rpmsg_channel *channel)
 {
   struct net_driver_s *dev = rpmsg_get_privdata(channel);
   struct net_rpmsg_drv_s *priv;
-
 
   if (dev != NULL)
     {
@@ -1319,7 +1285,6 @@ static void net_rpmsg_drv_ipv6multicast(FAR struct net_driver_s *dev)
        */
 
       net_rpmsg_drv_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
-
 #endif /* CONFIG_NET_ETHERNET && CONFIG_NET_ICMPv6_AUTOCONF */
 
 #if defined(CONFIG_NET_ETHERNET) && defined(CONFIG_NET_ICMPv6_ROUTER)
@@ -1329,7 +1294,6 @@ static void net_rpmsg_drv_ipv6multicast(FAR struct net_driver_s *dev)
        */
 
       net_rpmsg_drv_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
-
 #endif /* CONFIG_NET_ETHERNET && CONFIG_NET_ICMPv6_ROUTER */
     }
 }
@@ -1428,7 +1392,7 @@ int net_rpmsg_drv_init(FAR const char *cpuname,
   dev = &priv->dev;
 
   priv->cpuname = cpuname;
-  sprintf(priv->chname, NET_RPMSG_CHANNEL_NAME, devname);
+  sprintf(priv->channelname, NET_RPMSG_CHANNEL_NAME, devname);
 
   nxsem_init(&priv->channelready, 0, 0);
   nxsem_setprotocol(&priv->channelready, SEM_PRIO_NONE);
@@ -1455,7 +1419,7 @@ int net_rpmsg_drv_init(FAR const char *cpuname,
 
   /* Register the device with the openamp */
 
-  rpmsg_register_callback(priv->chname, dev,
+  rpmsg_register_callback(priv->channelname, dev,
     net_rpmsg_drv_device_created, NULL, net_rpmsg_drv_channel_created,
     net_rpmsg_drv_channel_destroyed, net_rpmsg_drv_channel_received);
 
