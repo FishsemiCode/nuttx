@@ -306,7 +306,7 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
   count = (uint64_t)ts->tv_sec * config->c1_freq;
   count += (uint64_t)ts->tv_nsec * config->c1_freq / NSEC_PER_SEC;
 
-  spec = count / lower->c1_max + 1 - lower->c2_base;
+  spec = count / lower->c1_max - lower->c2_base;
   song_oneshot_putreg(config->base, config->spec_off, spec);
 }
 
@@ -363,11 +363,11 @@ static int song_oneshot_max_delay(FAR struct oneshot_lowerhalf_s *lower_,
 
 static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
                               oneshot_callback_t callback, FAR void *arg,
-                              FAR const struct timespec *ts)
+                              FAR const struct timespec *ts_)
 {
   FAR struct song_oneshot_lowerhalf_s *lower
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
-  struct timespec now, spec;
+  struct timespec now, spec, ts;
   irqstate_t flags;
 #ifdef CONFIG_PM
   uint32_t new_state;
@@ -378,13 +378,21 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   lower->callback = callback;
   lower->arg = arg;
 
+  /* add jitter to ts when ts is very small */
+
+  memcpy(&ts, ts_, sizeof(struct timespec));
+  if (ts.tv_sec == 0 && ts.tv_nsec < NSEC_PER_TICK)
+    {
+      ts.tv_nsec = NSEC_PER_TICK;
+    }
+
   song_oneshot_gettime(lower, &now);
-  clock_timespec_add(&now, ts, &spec);
+  clock_timespec_add(&now, &ts, &spec);
   song_oneshot_putspec(lower, &spec);
   song_oneshot_enableintr(lower);
 
 #ifdef CONFIG_PM
-  ms = ts->tv_sec * 1000ull + ts->tv_nsec / 1000000;
+  ms = ts.tv_sec * 1000ull + ts.tv_nsec / 1000000;
   if (ms < CONFIG_ONESHOT_SONG_IDLEENTER_THRESH)
     {
       new_state = PM_NORMAL;
