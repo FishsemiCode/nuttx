@@ -384,7 +384,6 @@ static int net_rpmsg_drv_txpoll(FAR struct net_driver_s *dev)
         {
           arp_out(dev);
         }
-      else
 #endif /* CONFIG_NET_IPv4 */
 #ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv6(dev->d_flags))
@@ -450,17 +449,12 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev)
       /* Update the Ethernet header with the correct MAC address */
 
 #ifdef CONFIG_NET_IPv4
-      /* Check for an outgoing IPv4 packet */
-
       if (IFF_IS_IPv4(dev->d_flags))
         {
           arp_out(dev);
         }
-      else
 #endif
 #ifdef CONFIG_NET_IPv6
-        /* Check for an outgoing IPv6 packet */
-
       if (IFF_IS_IPv6(dev->d_flags))
         {
           neighbor_out(dev);
