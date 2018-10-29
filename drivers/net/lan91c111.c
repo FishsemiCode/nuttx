@@ -530,18 +530,13 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
        */
 
 #ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv4(dev->d_flags))
-#endif
         {
           arp_out(dev);
         }
 #endif /* CONFIG_NET_IPv4 */
-
 #ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-      else
-#endif
+      if (IFF_IS_IPv6(dev->d_flags))
         {
           neighbor_out(dev);
         }
