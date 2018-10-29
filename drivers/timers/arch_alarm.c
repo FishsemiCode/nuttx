@@ -68,19 +68,23 @@
 #define timespec_to_usec(ts) \
     ((uint64_t)(ts)->tv_sec * USEC_PER_SEC + (ts)->tv_nsec / NSEC_PER_USEC)
 
+#ifdef CONFIG_ARCH_CHIP_U1_CP
+static time_t g_last = 0;
 #define TIMECHECK(ts)   \
     ({ \
      if (((ts)->tv_sec - g_last) > 3600) \
        PANIC(); \
      g_last = (ts)->tv_sec; \
      })
+#else
+#define TIMECHECK(ts)
+#endif
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 static FAR struct oneshot_lowerhalf_s *g_oneshot_lower;
-static time_t g_last = 0;
 
 /****************************************************************************
  * Private Functions
