@@ -111,6 +111,11 @@
 #  define BUF ((struct eth_hdr_s *)priv->dev.d_buf)
 #endif
 
+/* This is a helper pointer for accessing the contents of the ip header */
+
+#define IPv4BUF ((struct ipv4_hdr_s *)(priv->dev.d_buf + priv->dev.d_llhdrlen))
+#define IPv6BUF ((struct ipv6_hdr_s *)(priv->dev.d_buf + priv->dev.d_llhdrlen))
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -196,8 +201,8 @@ static int tun_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static void tun_ipv6multicast(FAR struct tun_device_s *priv);
 #endif
 
-static int tun_dev_init(FAR struct tun_device_s *priv,
-                        FAR struct file *filep, FAR const char *devfmt);
+static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
+                        FAR const char *devfmt, bool tun);
 static int tun_dev_uninit(FAR struct tun_device_s *priv);
 
 /* File interface */
@@ -329,7 +334,7 @@ static void tun_pollnotify(FAR struct tun_device_s *priv, pollevent_t eventset)
 #endif
 
 /****************************************************************************
- * Name: tun_transmit
+ * Name: tun_fd_transmit
  *
  * Description:
  *   Start hardware transmission.  Called either from the txdone interrupt
@@ -451,29 +456,27 @@ static int tun_txpoll_tap(struct net_driver_s *dev)
        */
 
 #ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv4(priv->dev.d_flags))
-#endif
         {
           arp_out(&priv->dev);
         }
 #endif /* CONFIG_NET_IPv4 */
-
 #ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-      else
-#endif
+      if (IFF_IS_IPv6(priv->dev.d_flags))
         {
           neighbor_out(&priv->dev);
         }
 #endif /* CONFIG_NET_IPv6 */
 
-      /* Send the packet */
+      if (!devif_loopback(dev))
+        {
+          /* Send the packet */
 
-      priv->read_d_len = priv->dev.d_len;
-      tun_fd_transmit(priv);
+          priv->read_d_len = priv->dev.d_len;
+          tun_fd_transmit(priv);
 
-      return 1;
+          return 1;
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -519,12 +522,15 @@ static int tun_txpoll_tun(struct net_driver_s *dev)
 
   if (priv->dev.d_len > 0)
     {
-      /* Send the packet */
+      if (!devif_loopback(dev))
+        {
+          /* Send the packet */
 
-      priv->read_d_len = priv->dev.d_len;
-      tun_fd_transmit(priv);
+          priv->read_d_len = priv->dev.d_len;
+          tun_fd_transmit(priv);
 
-      return 1;
+          return 1;
+        }
     }
 
   /* If zero is returned, the polling will continue until all connections have
@@ -585,8 +591,6 @@ static void tun_net_receive(FAR struct tun_device_s *priv)
 #ifdef CONFIG_NET_ETHERNET
 static void tun_net_receive_tap(FAR struct tun_device_s *priv)
 {
-  int ret;
-
   /* Copy the data data from the hardware to priv->dev.d_buf.  Set amount of
    * data in priv->dev.d_len
    */
@@ -607,53 +611,10 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
       ninfo("IPv4 frame\n");
       NETDEV_RXIPV4(&priv->dev);
 
-      /* Give the IPv4 packet to the network layer.  ipv4_input will return
-       * an error if it is unable to dispatch the packet at this time.
-       */
+      /* Give the IPv4 packet to the network layer. */
 
       arp_ipin(&priv->dev);
-      ret = ipv4_input(&priv->dev);
-
-      if (ret == OK)
-        {
-          /* If the above function invocation resulted in data that should be
-           * sent out on the network, the field d_len will set to a value > 0.
-           */
-
-          if (priv->dev.d_len > 0)
-            {
-
-              /* Update the Ethernet header with the correct MAC address */
-
-#ifdef CONFIG_NET_IPv6
-              if (IFF_IS_IPv4(priv->dev.d_flags))
-#endif
-                {
-                  arp_out(&priv->dev);
-                }
-#ifdef CONFIG_NET_IPv6
-              else
-                {
-                  neighbor_out(&priv->dev);
-                }
-#endif
-
-              /* And send the packet */
-
-              priv->write_d_len = priv->dev.d_len;
-              tun_fd_transmit(priv);
-            }
-          else
-            {
-              tun_pollnotify(priv, POLLOUT);
-            }
-        }
-      else
-        {
-          priv->dev.d_len = 0;
-          tun_pollnotify(priv, POLLOUT);
-        }
-
+      ipv4_input(&priv->dev);
     }
   else
 #endif
@@ -663,44 +624,9 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
       ninfo("Iv6 frame\n");
       NETDEV_RXIPV6(&priv->dev);
 
-      /* Give the IPv6 packet to the network layer.  ipv6_input will return
-       * an error if it is unable to dispatch the packet at this time.
-       */
+      /* Give the IPv6 packet to the network layer. */
 
-      ret = ipv6_input(&priv->dev);
-
-      if (ret == OK)
-        {
-          if (priv->dev.d_len > 0)
-            {
-              /* Update the Ethernet header with the correct MAC address */
-
-#ifdef CONFIG_NET_IPv4
-              if (IFF_IS_IPv4(priv->dev.d_flags))
-                {
-                  arp_out(&priv->dev);
-                }
-              else
-#endif
-#ifdef CONFIG_NET_IPv6
-                {
-                  neighbor_out(&priv->dev);
-                }
-#endif
-
-              priv->write_d_len = priv->dev.d_len;
-              tun_fd_transmit(priv);
-            }
-          else
-            {
-              tun_pollnotify(priv, POLLOUT);
-            }
-        }
-      else
-        {
-          priv->write_d_len = 0;
-          tun_pollnotify(priv, POLLOUT);
-        }
+      ipv6_input(&priv->dev);
     }
   else
 #endif
@@ -709,23 +635,41 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
     {
       arp_arpin(&priv->dev);
       NETDEV_RXARP(&priv->dev);
-
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field  d_len will set to a value > 0.
-       */
-
-      if (priv->dev.d_len > 0)
-        {
-          priv->write_d_len = priv->dev.d_len;
-          tun_fd_transmit(priv);
-        }
     }
   else
 #endif
     {
       NETDEV_RXDROPPED(&priv->dev);
+      priv->dev.d_len = 0;
     }
 
+  /* If the above function invocation resulted in data that should be
+   * sent out on the network, the field d_len will set to a value > 0.
+   */
+
+  if (priv->dev.d_len > 0)
+    {
+
+      /* Update the Ethernet header with the correct MAC address */
+
+#ifdef CONFIG_NET_IPv4
+      if (IFF_IS_IPv4(priv->dev.d_flags))
+        {
+          arp_out(&priv->dev);
+        }
+#endif
+#ifdef CONFIG_NET_IPv6
+      if (IFF_IS_IPv6(priv->dev.d_flags))
+        {
+          neighbor_out(&priv->dev);
+        }
+#endif
+
+      /* And send the packet */
+
+      priv->write_d_len = priv->dev.d_len;
+      tun_fd_transmit(priv);
+    }
 }
 #endif
 
@@ -748,8 +692,6 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
 
 static void tun_net_receive_tun(FAR struct tun_device_s *priv)
 {
-  int ret;
-
   /* Copy the data data from the hardware to priv->dev.d_buf.  Set amount of
    * data in priv->dev.d_len
    */
@@ -762,73 +704,46 @@ static void tun_net_receive_tun(FAR struct tun_device_s *priv)
   pkt_input(&priv->dev);
 #endif
 
-  /* We only accept IP packets of the configured type and ARP packets */
+  /* We only accept IP packets of the configured type */
 
 #if defined(CONFIG_NET_IPv4)
-  ninfo("IPv4 frame\n");
-  NETDEV_RXIPV4(&priv->dev);
-
-  /* Give the IPv4 packet to the network layer.  ipv4_input will return
-   * an error if it is unable to dispatch the packet at this time.
-   */
-
-  ret = ipv4_input(&priv->dev);
-  if (ret == OK)
+  if ((IPv4BUF->vhl & IP_VERSION_MASK) == IPv4_VERSION)
     {
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field d_len will set to a value > 0.
-       */
+      ninfo("IPv4 frame\n");
+      NETDEV_RXIPV4(&priv->dev);
 
-      if (priv->dev.d_len > 0)
-        {
-          priv->write_d_len = priv->dev.d_len;
-          tun_fd_transmit(priv);
-        }
-      else
-        {
-          tun_pollnotify(priv, POLLOUT);
-        }
+      /* Give the IPv4 packet to the network layer. */
+
+      ipv4_input(&priv->dev);
     }
   else
-    {
-      priv->dev.d_len = 0;
-      tun_pollnotify(priv, POLLOUT);
-    }
-
-#elif defined(CONFIG_NET_IPv6)
-  ninfo("Iv6 frame\n");
-  NETDEV_RXIPV6(&priv->dev);
-
-  /* Give the IPv6 packet to the network layer.  ipv6_input will return
-   * an error if it is unable to dispatch the packet at this time.
-   */
-
-  ret = ipv6_input(&priv->dev);
-  if (ret == OK)
-    {
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field  d_len will set to a value > 0.
-       */
-
-      if (priv->dev.d_len > 0)
-        {
-          priv->write_d_len = priv->dev.d_len;
-          tun_fd_transmit(priv);
-        }
-      else
-        {
-          tun_pollnotify(priv, POLLOUT);
-        }
-    }
-  else
-    {
-      priv->write_d_len = 0;
-      tun_pollnotify(priv, POLLOUT);
-    }
-
-#else
-  NETDEV_RXDROPPED(&priv->dev);
 #endif
+#if defined(CONFIG_NET_IPv6)
+  if ((IPv6BUF->vtc & IP_VERSION_MASK) == IPv6_VERSION)
+    {
+      ninfo("Iv6 frame\n");
+      NETDEV_RXIPV6(&priv->dev);
+
+      /* Give the IPv6 packet to the network layer. */
+
+      ipv6_input(&priv->dev);
+    }
+  else
+#endif
+    {
+      NETDEV_RXDROPPED(&priv->dev);
+      priv->dev.d_len = 0;
+    }
+
+  /* If the above function invocation resulted in data that should be
+   * sent out on the network, the field  d_len will set to a value > 0.
+   */
+
+  if (priv->dev.d_len > 0)
+    {
+      priv->write_d_len = priv->dev.d_len;
+      tun_fd_transmit(priv);
+    }
 }
 
 /****************************************************************************
@@ -1047,7 +962,7 @@ static void tun_txavail_work(FAR void *arg)
 
   /* Check if there is room to hold another network packet. */
 
-  if (priv->read_d_len != 0 || priv->write_d_len != 0)
+  if (priv->read_d_len != 0)
     {
       tun_unlock(priv);
       return;
@@ -1191,7 +1106,7 @@ static void tun_ipv6multicast(FAR struct tun_device_s *priv)
  ****************************************************************************/
 
 static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
-                        FAR const char *devfmt)
+                        FAR const char *devfmt, bool tun)
 {
   int ret;
 
@@ -1222,15 +1137,6 @@ static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
 
   priv->txpoll        = wd_create();  /* Create periodic poll timer */
 
-  /* Initialize other variables */
-
-  priv->write_d_len   = 0;
-  priv->read_wait     = false;
-
-  /* Put the interface in the down state */
-
-  tun_ifdown(&priv->dev);
-
   /* Assign d_ifname if specified. */
 
   if (devfmt)
@@ -1240,8 +1146,7 @@ static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  ret = netdev_register(&priv->dev, NET_LL_TUN);
-
+  ret = netdev_register(&priv->dev, tun ? NET_LL_TUN : NET_LL_ETHERNET);
   if (ret != OK)
     {
       nxsem_destroy(&priv->waitsem);
@@ -1394,14 +1299,8 @@ static ssize_t tun_read(FAR struct file *filep, FAR char *buffer,
       ret = (ssize_t)write_d_len;
 
       priv->write_d_len = 0;
+      NETDEV_TXDONE(&priv->dev);
       tun_pollnotify(priv, POLLOUT);
-
-      if (priv->read_d_len == 0)
-        {
-          net_lock();
-          tun_txdone(priv);
-          net_unlock();
-        }
 
       goto out;
     }
@@ -1455,16 +1354,11 @@ int tun_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
   pollevent_t eventset;
   int ret = OK;
 
-  if (!priv)
-    {
-      return -EINVAL;
-    }
-
   /* Some sanity checking */
 
   if (!priv || !fds)
     {
-      return -ENODEV;
+      return -EINVAL;
     }
 
   tun_lock(priv);
@@ -1552,7 +1446,8 @@ static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
            intf++, free_tuns >>= 1);
 
       ret = tun_dev_init(&g_tun_devices[intf], filep,
-                         *ifr->ifr_name ? ifr->ifr_name : 0);
+                         *ifr->ifr_name ? ifr->ifr_name : 0,
+                         (ifr->ifr_flags & IFF_MASK) == IFF_TUN);
       if (ret != OK)
         {
           tundev_unlock(tun);
@@ -1563,30 +1458,6 @@ static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       priv = filep->f_priv;
       strncpy(ifr->ifr_name, priv->dev.d_ifname, IFNAMSIZ);
-
-#ifdef CONFIG_NET_ETHERNET
-      if ((ifr->ifr_flags & IFF_MASK) == IFF_TAP)
-        {
-          /* TAP device -> handling raw Ethernet packets
-           * -> set appropriate Ethernet header length
-           */
-
-          priv->dev.d_llhdrlen = ETH_HDRLEN;
-
-          /* Also, set the link type to NET_LL_ETHERNET */
-
-          priv->dev.d_lltype = NET_LL_ETHERNET;
-        }
-      else if ((ifr->ifr_flags & IFF_MASK) == IFF_TUN)
-#endif
-        {
-          /* TUN device -> handling an application data stream
-           * -> no header
-           */
-
-          priv->dev.d_llhdrlen = 0;
-        }
-
       tundev_unlock(tun);
 
       return OK;
@@ -1603,7 +1474,7 @@ static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Name: tun_initialize
  *
  * Description:
- *   Instantiate a SLIP network interface.
+ *   Instantiate a TUN network interface.
  *
  * Input Parameters:
  *
