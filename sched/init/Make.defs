@@ -43,8 +43,3 @@ endif
 
 DEPPATH += --dep-path init
 VPATH += :init
-
-# To ensure version information is newest,
-# add os_start to phony target for force rebuild
-
-.PHONY: os_start$(OBJEXT)
