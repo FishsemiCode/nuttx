@@ -188,25 +188,51 @@ void regulator_unregister(struct regulator_dev *rdev);
  * Name: song_pmic_regulator_apb_initialize
  *
  * Description:
+ *   Initialize song pmic module with apb interface.
+ *
+ * Input Parameters:
+ *   base    - the base addr for song pmic module
+ *   rf_base - the base addr for rf power module
+ *
+ * Returned Value:
+ *
+ ****************************************************************************/
+#if defined(CONFIG_SONG_PMIC_APB)
+int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base);
+#endif
+
+/****************************************************************************
+ * Name: song_pmic_regulator_i2c_initialize
+ *
+ * Description:
+ *   Initialize song pmic module with i2c interface.
+ *
+ * Input Parameters:
+ *   i2c  - the i2c master
+ *   addr - the device i2c address
+ *   freq - the i2c frequency
+
+ * Returned Value:
+ *
+ ****************************************************************************/
+#if defined(CONFIG_SONG_PMIC_I2C)
+int spmu_regulator_i2c_initialize(struct i2c_master_s *i2c, uint8_t addr, uint32_t freq);
+#endif
+
+#endif /* CONFIG_REGULATOR */
+
+/****************************************************************************
+ * Name: rpmsg_regulator_init
+ *
+ * Description:
  *
  * Input Parameters:
  *
  * Returned Value:
  *
  ****************************************************************************/
-
-#if defined(CONFIG_SONG_PMIC_APB)
-
-int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base);
-
-#endif
-
-#endif /* CONFIG_REGULATOR */
-
 #if defined(CONFIG_RPMSG_REGULATOR)
-
 int rpmsg_regulator_init(const char *cpu_name, bool server);
-
 #endif
 
 #undef EXTERN

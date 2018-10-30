@@ -47,6 +47,7 @@
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
@@ -441,6 +442,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_PWM_SONG
   song_pwm_initialize(0, 0xa0100000, 4, "pwm_mclk");
+#endif
+
+#ifdef CONFIG_SONG_PMIC_I2C
+  spmu_regulator_i2c_initialize(g_i2c[0], 0x70, 400000);
 #endif
 }
 

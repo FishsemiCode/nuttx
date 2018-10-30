@@ -412,6 +412,13 @@ config SONG_PMIC_APB
 	---help---
 		The song pmic apb driver provides the low layer regulator implementation.
 
+config SONG_PMIC_I2C
+	bool "Song pmic i2c driver"
+	default n
+	depends on REGULATOR
+	---help---
+		The song pmic i2c driver provides the low layer regulator implementation.
+
 config RPMSG_REGULATOR
 	bool "Regulator rpmsg driver support"
 	default n

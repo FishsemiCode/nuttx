@@ -156,6 +156,10 @@ ifeq ($(CONFIG_SONG_PMIC_APB), y)
 CSRCS += song_pmic_apb.c
 endif
 
+ifeq ($(CONFIG_SONG_PMIC_I2C), y)
+CSRCS += song_pmic_i2c.c
+endif
+
 POWER_DEPPATH := --dep-path power
 POWER_VPATH := :power
 POWER_CFLAGS := ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)power}
