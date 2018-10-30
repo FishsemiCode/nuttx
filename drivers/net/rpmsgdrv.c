@@ -46,6 +46,7 @@
 #include <openamp/open_amp.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/kthread.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/wdog.h>
 #include <nuttx/wqueue.h>
@@ -480,15 +481,16 @@ static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
   nxsem_post(&cookie->sem);
 }
 
-static void net_rpmsg_drv_sockioctl_work(FAR void *arg)
+static int net_rpmsg_drv_sockioctl_task(int argc, FAR char *argv[])
 {
-  struct net_rpmsg_ioctl_s *msg = arg;
+  struct net_rpmsg_ioctl_s *msg;
   struct rpmsg_channel *channel;
   struct socket sock;
 
-  /* Recover channel pointer from result field */
+  /* Restore pointers from argv */
 
-  channel = (struct rpmsg_channel *)msg->header.result;
+  channel = (struct rpmsg_channel *)strtoul(argv[1], NULL, 0);
+  msg = (struct net_rpmsg_ioctl_s *)strtoul(argv[2], NULL, 0);
 
   /* We need a temporary sock for ioctl here */
 
@@ -502,23 +504,39 @@ static void net_rpmsg_drv_sockioctl_work(FAR void *arg)
     }
 
   rpmsg_send(channel, msg, sizeof(*msg) + msg->length);
-  rpmsg_release_rx_buffer(channel, arg);
+  rpmsg_release_rx_buffer(channel, msg);
+
+  return 0;
 }
 
 static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
                     void *data, int len, void *priv, unsigned long src)
 {
-  struct net_rpmsg_ioctl_s *msg = data;
-  FAR struct work_s *work = data + len;
+  char *argv[3];
+  char arg1[16];
+  char arg2[16];
+  int pid;
 
-  /* Reuse result field to hold channel pointer */
+  /* Save pointers into argv */
 
-  msg->header.result = (uintptr_t)channel;
+  sprintf(arg1, "%#p", channel);
+  sprintf(arg2, "%#p", data);
 
-  /* Move the action into work thread to avoid the deadlock */
+  argv[0] = arg1;
+  argv[1] = arg2;
+  argv[2] = NULL;
+
+  /* Move the action into a temp thread to avoid the deadlock */
 
   rpmsg_hold_rx_buffer(channel, data);
-  work_queue(NET_RPMSG_DRV_WORK, work, net_rpmsg_drv_sockioctl_work, data, 0);
+
+  pid = kthread_create("rpmsg-net", CONFIG_RPTUN_PRIORITY,
+          CONFIG_RPTUN_STACKSIZE, net_rpmsg_drv_sockioctl_task, argv);
+  if (pid < 0)
+    {
+      rpmsg_send(channel, data, len);
+      rpmsg_release_rx_buffer(channel, data);
+    }
 }
 
 /****************************************************************************
