@@ -717,17 +717,19 @@ static void up_flash_init(void)
     .cpu_base     = 0x04000000,
     .xaddr_shift  = 4,
     .yaddr_shift  = 5,
-    .neraseblocks = 256,
+    .neraseblocks = {256, 1},
     .timing       = timing,
     .mclk         = "flash_ctrl_hclk",
     .rate         = 102400000,
   };
   char *path = "/dev/onchip";
-  FAR struct mtd_dev_s *mtd;
+  FAR struct mtd_dev_s *mtd[2];
 
-  mtd = song_onchip_flash_initialize(&config);
-  register_mtddriver(path, mtd, 0, mtd);
+  song_onchip_flash_initialize(&config, mtd);
+  register_mtddriver(path, mtd[0], 0, mtd[0]);
   parse_block_partition(path, up_partition_init, path);
+
+  register_mtddriver("/dev/onchip-info", mtd[1], 0, mtd[1]);
 }
 #endif
 

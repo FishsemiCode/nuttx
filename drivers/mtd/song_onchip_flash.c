@@ -64,6 +64,7 @@
 #define DIN1                  0x5c
 #define DIN2                  0x60
 #define DIN3                  0x64
+#define ACCESS_CTRL           0x68
 #define CPU0_ACCESS_MEM_SIZE  0x6c
 #define CPU1_ACCESS_MEM_SIZE  0x70
 #define CPU2_ACCESS_MEM_SIZE  0x74
@@ -71,6 +72,10 @@
 
 /* Identifies the flash write priority */
 #define PRIO_WR_LOW           (1 << 1)
+
+/* Identifies flash info memory access ctrl */
+#define ACC_MAIN              0x10
+#define ACC_INFO              0x11
 
 /* Identifies the flash operation commands */
 #define CMD_WRITE_PREPARE     (1 << 0)
@@ -80,6 +85,7 @@
 #define CMD_MAS_ERASE         (1 << 4)
 
 /* Identifies the flash smallest block write unit */
+#define BLOCK_SHIFT           4
 #define BLOCK_SIZE            B2C(16)
 
 /****************************************************************************
@@ -89,6 +95,8 @@
 struct song_onchip_flash_dev_s
 {
   struct mtd_dev_s mtd;
+  uint32_t         type;
+  uint32_t         neraseblocks;
   FAR const struct song_onchip_flash_config_s *cfg;
 };
 
@@ -174,9 +182,14 @@ __ramfunc__ static int song_onchip_flash_mas_erase(FAR struct mtd_dev_s *dev)
   irqstate_t flags;
 
   flags = enter_critical_section();
+  flash_regwrite(priv, ACCESS_CTRL, priv->type);
   flash_sendop_wait(priv, CMD_MAS_ERASE);
   leave_critical_section(flags);
-  up_invalidate_icache_all();
+
+  if (priv->type == ACC_MAIN)
+    {
+      up_invalidate_icache_all();
+    }
 
   return 0;
 }
@@ -193,13 +206,17 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
   for (i = 0; i < nblocks; i++)
     {
       flags = enter_critical_section();
+      flash_regwrite(priv, ACCESS_CTRL, priv->type);
       flash_regwrite(priv, XADDR, (startblock + i) << cfg->xaddr_shift);
       flash_sendop_wait(priv, CMD_ERASE);
       leave_critical_section(flags);
     }
 
-  up_invalidate_icache(startblock * erasesize,
-      (startblock + nblocks) * erasesize);
+  if (priv->type == ACC_MAIN)
+    {
+      up_invalidate_icache(startblock * erasesize,
+          (startblock + nblocks) * erasesize);
+    }
 
   return nblocks;
 }
@@ -209,8 +226,41 @@ __ramfunc__ static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev,
 {
   FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
   FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
+  uint32_t xaddr, haddr, rowsize = (1 << cfg->yaddr_shift) * BLOCK_SIZE;
+  size_t rdsize, i, remain = nbytes;
 
-  memcpy(buffer, (void *)(cfg->cpu_base + offset), nbytes);
+  if (priv->type == ACC_MAIN)
+    {
+      /* Main memory could read from cpu interface */
+
+      memcpy(buffer, (void *)(cfg->cpu_base + offset), nbytes);
+    }
+  else
+    {
+      /* Read from AHB interface */
+
+      irqstate_t flags = enter_critical_section();
+      flash_regwrite(priv, ACCESS_CTRL, priv->type);
+
+      while (remain > 0)
+        {
+          haddr = offset & (rowsize - 1);
+          xaddr = offset >> (cfg->yaddr_shift + BLOCK_SHIFT);
+
+          rdsize = remain < (rowsize - haddr) ?
+                   remain : (rowsize - haddr);
+          flash_regwrite(priv, XADDR, xaddr);
+          for (i = 0; i < rdsize; i++)
+            {
+              *buffer++ = *(uint8_t *)(((haddr + i) | (1 << 15)) + cfg->base);
+            }
+
+          offset += rdsize;
+          remain -= rdsize;
+        }
+
+      leave_critical_section(flags);
+    }
 
   return nbytes;
 }
@@ -218,12 +268,7 @@ __ramfunc__ static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev,
 __ramfunc__ static ssize_t song_onchip_flash_bread(FAR struct mtd_dev_s *dev,
                           off_t startblock, size_t nblocks, FAR uint8_t *buf)
 {
-  FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
-  FAR const struct song_onchip_flash_config_s *cfg = priv->cfg;
-
-  memcpy(buf, (void *)(cfg->cpu_base + startblock * BLOCK_SIZE),
-        nblocks * BLOCK_SIZE);
-
+  song_onchip_flash_read(dev, startblock * BLOCK_SIZE, nblocks * BLOCK_SIZE, buf);
   return nblocks;
 }
 
@@ -243,6 +288,7 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
       yaddr = startblock & yaddr_mask;
 
       flags = enter_critical_section();
+      flash_regwrite(priv, ACCESS_CTRL, priv->type);
 
       flash_regwrite(priv, DIN0, 0xffffffff);
       flash_regwrite(priv, DIN1, 0xffffffff);
@@ -268,8 +314,11 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
       remain--;
     }
 
-  up_invalidate_icache(startblock * BLOCK_SIZE,
-      (startblock + nblocks) * BLOCK_SIZE);
+  if (priv->type == ACC_MAIN)
+    {
+      up_invalidate_icache(startblock * BLOCK_SIZE,
+          (startblock + nblocks) * BLOCK_SIZE);
+    }
 
   return nblocks - remain;
 }
@@ -290,7 +339,7 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
 
               geo->blocksize    = BLOCK_SIZE;
               geo->erasesize    = (1 << (cfg->xaddr_shift + cfg->yaddr_shift)) * BLOCK_SIZE;
-              geo->neraseblocks = cfg->neraseblocks;
+              geo->neraseblocks = priv->neraseblocks;
             }
         }
         break;
@@ -323,45 +372,52 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg)
+int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg,
+                          FAR struct mtd_dev_s *mtd[2])
 {
-  FAR struct song_onchip_flash_dev_s *priv;
+  struct song_onchip_flash_dev_s *priv;
   struct clk *mclk;
-
-  priv = kmm_zalloc(sizeof(struct song_onchip_flash_dev_s));
-  if (priv == NULL)
-    {
-      return NULL;
-    }
+  int i, ret;
 
   mclk = clk_get(cfg->mclk);
   if (!mclk)
-    goto fail;
+    return -EINVAL;
 
-  if (clk_enable(mclk))
-    goto fail;
+  ret = clk_enable(mclk);
+  if (ret < 0)
+    return ret;
 
   if (cfg->rate)
     {
-      if (clk_set_rate(mclk, cfg->rate))
-        goto fail;
+      ret = clk_set_rate(mclk, cfg->rate);
+      if (ret < 0)
+        return ret;
     }
 
-  priv->mtd.erase  = song_onchip_flash_erase;
-  priv->mtd.bread  = song_onchip_flash_bread;
-  priv->mtd.bwrite = song_onchip_flash_bwrite;
-  priv->mtd.read   = song_onchip_flash_read;
-  priv->mtd.ioctl  = song_onchip_flash_ioctl;
-  priv->mtd.name   = "onchip";
+  for (i = 0; i < 2; i++)
+    {
+      priv = kmm_zalloc(sizeof(struct song_onchip_flash_dev_s));
+      if (priv == NULL)
+        {
+          while (i-- > 0)
+            kmm_free(mtd[i]);
 
-  priv->cfg        = cfg;
+          return -ENOMEM;
+        }
+      priv->mtd.erase    = song_onchip_flash_erase;
+      priv->mtd.bread    = song_onchip_flash_bread;
+      priv->mtd.bwrite   = song_onchip_flash_bwrite;
+      priv->mtd.read     = song_onchip_flash_read;
+      priv->mtd.ioctl    = song_onchip_flash_ioctl;
+      priv->mtd.name     = i == 0 ? "onchip": "onchip-info";;
+      priv->type         = i == 0 ? ACC_MAIN: ACC_INFO;
+      priv->neraseblocks = cfg->neraseblocks[i];
+      priv->cfg          = cfg;
+      mtd[i] = (FAR struct mtd_dev_s *)priv;
+    }
 
   flash_timing_configure(priv, cfg->timing);
   flash_int_configure(priv);
 
-  return (FAR struct mtd_dev_s *)priv;
-
-fail:
-  kmm_free(priv);
-  return NULL;
+  return OK;
 }

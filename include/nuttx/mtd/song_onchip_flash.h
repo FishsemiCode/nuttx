@@ -68,7 +68,7 @@ struct song_onchip_flash_config_s
   uint32_t cpu_base;        /* cpu interface flash read base address */
   uint32_t xaddr_shift;     /* xaddr shift in erase block */
   uint32_t yaddr_shift;     /* yaddr shift in write/read block */
-  uint32_t neraseblocks;    /* number of erase blocks */
+  uint32_t neraseblocks[2]; /* number of erase blocks in 0:main 1:info page */
   FAR const char *mclk;     /* flash controller clk name for operate on it */
   uint32_t rate;            /* if not zero: flash controller clk rate */
                             /* flash port timing configuration, must be
@@ -89,6 +89,7 @@ struct song_onchip_flash_config_s
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg);
+int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg,
+                          FAR struct mtd_dev_s *mtd[2]);
 
 #endif /* __INCLUDE_NUTTX_MTD_SONG_ONCHIP_FLASH_H */
