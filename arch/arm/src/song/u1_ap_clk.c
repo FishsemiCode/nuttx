@@ -61,17 +61,6 @@ static const char * const out_clk_src[] =
   "sp/pll0_out",
 };
 
-static const struct song_fixed_factor_clk fixed_factor[] =
-{
-  {
-    .name = "pll0_out_mult",
-    .parent_name = "sp/pll0_out",
-    .fixed_mult = 16,
-    .fixed_div = 1,
-  },
-  {},
-};
-
 static const struct song_out_clk out[] =
 {
   {
@@ -110,43 +99,6 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
     .name = "spi2_mclk",
     .parent_name = "sp/pll1_mclk",
     .div_offset = 0xc8,
-  },
-  {},
-};
-
-static const struct song_gr_fdiv_clk gr_fdiv[] =
-{
-  {
-    .name = "uart0_tx_clk",
-    .parent_name = "pll0_out_mult",
-    .en_offset = 0x9c,
-    .en_shift = 3,
-    .gr_offset = 0x0,
-    .div_offset = 0x80,
-  },
-  {
-    .name = "uart1_clk",
-    .parent_name = "sp/pll1_mclk",
-    .en_offset = 0x9c,
-    .en_shift = 11,
-    .gr_offset = 0x0,
-    .div_offset = 0x84,
-  },
-  {
-    .name = "uart2_clk",
-    .parent_name = "sp/pll1_mclk",
-    .en_offset = 0x9c,
-    .en_shift = 13,
-    .gr_offset = 0x0,
-    .div_offset = 0x88,
-  },
-  {
-    .name = "uart3_clk",
-    .parent_name = "sp/pll1_mclk",
-    .en_offset = 0x9c,
-    .en_shift = 15,
-    .gr_offset = 0x0,
-    .div_offset = 0x8c,
   },
   {},
 };
@@ -227,34 +179,10 @@ static const struct song_gate_clk gate[] =
     .en_shift = 15,
   },
   {
-    .name = "uart0_pclk",
-    .parent_name = "sp/top_pclk1",
-    .en_offset = 0x09c,
-    .en_shift = 2,
-  },
-  {
     .name = "spi2_pclk",
     .parent_name = "sp/top_pclk0",
     .en_offset = 0x09c,
     .en_shift = 9,
-  },
-  {
-    .name = "uart1_pclk",
-    .parent_name = "sp/top_pclk0",
-    .en_offset = 0x09c,
-    .en_shift = 10,
-  },
-  {
-    .name = "uart2_pclk",
-    .parent_name = "sp/top_pclk0",
-    .en_offset = 0x09c,
-    .en_shift = 12,
-  },
-  {
-    .name = "uart3_pclk",
-    .parent_name = "sp/top_pclk0",
-    .en_offset = 0x09c,
-    .en_shift = 14,
   },
   {
     .name = "apwdt_pclk",
@@ -341,9 +269,7 @@ static const struct song_default_rate_clk def_rate[] =
 
 static const struct song_clk_table clk_tbl =
 {
-  .fixed_factor_clks = fixed_factor,
   .gr_clks           = gr,
-  .gr_fdiv_clks      = gr_fdiv,
   .div_clks          = div,
   .sdiv_sdiv_clks    = sdiv_sdiv,
   .gate_clks         = gate,

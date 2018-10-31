@@ -93,6 +93,12 @@ static const struct song_fixed_factor_clk fixed_factor[] =
     .fixed_mult = 1,
     .fixed_div = 2,
   },
+  {
+    .name = "pll0_out_mult",
+    .parent_name = "pll0_out",
+    .fixed_mult = 16,
+    .fixed_div = 1,
+  },
   {},
 };
 
@@ -117,6 +123,43 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
     .name = "spi1_mclk",
     .parent_name = "pll1_mclk",
     .div_offset = 0x74,
+  },
+  {},
+};
+
+static const struct song_gr_fdiv_clk gr_fdiv[] =
+{
+  {
+    .name = "uart0_tx_clk",
+    .parent_name = "pll0_out_mult",
+    .en_offset = 0x9c,
+    .en_shift = 3,
+    .gr_offset = 0x0,
+    .div_offset = 0x80,
+  },
+  {
+    .name = "uart1_clk",
+    .parent_name = "pll1_mclk",
+    .en_offset = 0x9c,
+    .en_shift = 11,
+    .gr_offset = 0x0,
+    .div_offset = 0x84,
+  },
+  {
+    .name = "uart2_clk",
+    .parent_name = "pll1_mclk",
+    .en_offset = 0x9c,
+    .en_shift = 13,
+    .gr_offset = 0x0,
+    .div_offset = 0x88,
+  },
+  {
+    .name = "uart3_clk",
+    .parent_name = "pll1_mclk",
+    .en_offset = 0x9c,
+    .en_shift = 15,
+    .gr_offset = 0x0,
+    .div_offset = 0x8c,
   },
   {},
 };
@@ -314,6 +357,30 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x09c,
     .en_shift = 1,
   },
+  {
+    .name = "uart0_pclk",
+    .parent_name = "top_pclk1",
+    .en_offset = 0x09c,
+    .en_shift = 2,
+  },
+  {
+    .name = "uart1_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x09c,
+    .en_shift = 10,
+  },
+  {
+    .name = "uart2_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x09c,
+    .en_shift = 12,
+  },
+  {
+    .name = "uart3_pclk",
+    .parent_name = "top_pclk0",
+    .en_offset = 0x09c,
+    .en_shift = 14,
+  },
 #endif
   {
     .name = "flash_ctrl_hclk",
@@ -417,6 +484,7 @@ static const struct song_clk_table u1_sp_clk_tbl =
   .fixed_rate_clks   = fixed_rate,
   .fixed_factor_clks = fixed_factor,
   .gr_clks           = gr,
+  .gr_fdiv_clks      = gr_fdiv,
   .div_clks          = div,
   .sdiv_sdiv_clks    = sdiv_sdiv,
   .gate_clks         = gate,
