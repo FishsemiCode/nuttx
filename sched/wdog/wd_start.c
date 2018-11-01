@@ -305,6 +305,16 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
 
   save = delay;
 
+#ifdef CONFIG_SCHED_TICKLESS
+  /* Cancel the interval timer that drives the timing events.  This will cause
+   * wd_timer to be called which update the delay value for the first time
+   * at the head of the timer list (there is a possibility that it could even
+   * remove it).
+   */
+
+  (void)sched_timer_cancel();
+#endif
+
   /* Do the easy case first -- when the watchdog timer queue is empty. */
 
   if (g_wdactivelist.head == NULL)
@@ -406,15 +416,12 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
   WDOG_SETACTIVE(wdog);
 
 #ifdef CONFIG_SCHED_TICKLESS
-  /* Reassess the interval timer that will generate the next interval event.
+  /* Resume the interval timer that will generate the next interval event.
    * If the timer at the head of the list changed, then this will pick that
    * new delay.
    */
 
-  if (wdog == (FAR struct wdog_s *)g_wdactivelist.head)
-    {
-      sched_timer_reassess();
-    }
+  sched_timer_resume();
 #endif
 
   leave_critical_section(flags);
