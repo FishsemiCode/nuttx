@@ -117,13 +117,6 @@ int wd_cancel(WDOG_ID wdog)
       if (curr->next)
         {
           curr->next->lag += curr->lag;
-
-          /* Correct/compensate lag */
-
-          if (prev)
-            {
-              curr->next->lag -= wd_elapse();
-            }
         }
 
       /* Now, remove the watchdog from the timer queue */

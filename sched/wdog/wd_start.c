@@ -309,7 +309,7 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
     {
       /* Correct/compensate delay */
 
-      now = 0 - wd_elapse();
+      now = 0;
       prev = curr = (FAR struct wdog_s *)g_wdactivelist.head;
 
       /* Advance to positive time */
