@@ -212,6 +212,6 @@ int                nxsig_thread(pid_t pid, FAR struct sigevent *event);
 void               nxsig_release_pendingsigaction(FAR sigq_t *sigq);
 void               nxsig_release_pendingsignal(FAR sigpendq_t *sigpend);
 FAR sigpendq_t    *nxsig_remove_pendingsignal(FAR struct tcb_s *stcb, int signo);
-void               nxsig_unmask_pendingsignal(void);
+bool               nxsig_unmask_pendingsignal(void);
 
 #endif /* __SCHED_SIGNAL_SIGNAL_H */
