@@ -106,23 +106,6 @@ typedef void (*wdentry4_t)(int argc, wdparm_t arg1, wdparm_t arg2,
  *
  ****************************************************************************/
 
-#include <syslog.h>
-void wd_show_activelist(void)
-{
-  FAR struct wdog_s *wdog = (FAR struct wdog_s *)g_wdactivelist.head;
-
-  syslog(LOG_INFO, "wdog active list:\n");
-  while (wdog)
-    {
-      syslog(LOG_INFO, "lag %d, delay %d, start %d\n", wdog->lag, wdog->delay, (int)wdog->start);
-      wdog = wdog->next;
-    }
-
-#ifdef CONFIG_SCHED_TICKLESS
-  syslog(LOG_INFO, "g_wdtickbase %d, current time %d\n", (int)g_wdtickbase, (int)clock_systimer());
-#endif
-}
-
 static inline void wd_expiration(void)
 {
   FAR struct wdog_s *wdog;
@@ -154,13 +137,6 @@ static inline void wd_expiration(void)
           /* Indicate that the watchdog is no longer active. */
 
           WDOG_CLRACTIVE(wdog);
-
-          if (wdog->delay > SEC2TICK((uint64_t)10 * 3600))
-            {
-              syslog(LOG_INFO, "current wdog lag %d, delay %d\n", wdog->lag, wdog->delay);
-              wd_show_activelist();
-              PANIC();
-            }
 
           /* Execute the watchdog function */
 
@@ -251,7 +227,6 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
   FAR struct wdog_s *next;
   int32_t now;
   irqstate_t flags;
-  int save;
   int i;
 
   /* Verify the wdog and setup parameters */
@@ -302,8 +277,6 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
     {
       delay--;
     }
-
-  save = delay;
 
 #ifdef CONFIG_SCHED_TICKLESS
   /* Cancel the interval timer that drives the timing events.  This will cause
@@ -410,9 +383,7 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
 
   /* Put the lag into the watchdog structure and mark it as active. */
 
-  wdog->lag   = delay;
-  wdog->delay = save;
-  wdog->start = clock_systimer();
+  wdog->lag = delay;
   WDOG_SETACTIVE(wdog);
 
 #ifdef CONFIG_SCHED_TICKLESS

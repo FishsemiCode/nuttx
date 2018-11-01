@@ -68,18 +68,6 @@
 #define timespec_to_usec(ts) \
     ((uint64_t)(ts)->tv_sec * USEC_PER_SEC + (ts)->tv_nsec / NSEC_PER_USEC)
 
-#ifdef CONFIG_ARCH_CHIP_U1_CP
-static time_t g_last = 0;
-#define TIMECHECK(ts)   \
-    ({ \
-     if (((ts)->tv_sec - g_last) > 3600) \
-       PANIC(); \
-     g_last = (ts)->tv_sec; \
-     })
-#else
-#define TIMECHECK(ts)
-#endif
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -118,7 +106,6 @@ static void udelay_accurate(useconds_t microseconds)
   struct timespec delta;
 
   ONESHOT_CURRENT(g_oneshot_lower, &now);
-  TIMECHECK(&now);
   timespec_from_usec(&delta, microseconds);
   clock_timespec_add(&now, &delta, &end);
 
@@ -181,7 +168,6 @@ static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower, FAR void *ar
   struct timespec now;
 
   ONESHOT_CURRENT(g_oneshot_lower, &now);
-  TIMECHECK(&now);
   sched_alarm_expiration(&now);
 #else
   struct timespec now;
@@ -306,7 +292,6 @@ int up_timer_gettime(FAR struct timespec *ts)
     }
 
   ONESHOT_CURRENT(g_oneshot_lower, ts);
-  TIMECHECK(ts);
   return 0;
 }
 #endif
@@ -355,7 +340,6 @@ int up_alarm_cancel(FAR struct timespec *ts)
 
   ONESHOT_CANCEL(g_oneshot_lower, ts);
   ONESHOT_CURRENT(g_oneshot_lower, ts);
-  TIMECHECK(ts);
   return 0;
 }
 #endif
@@ -396,7 +380,6 @@ int up_alarm_start(FAR const struct timespec *ts)
     }
 
   ONESHOT_CURRENT(g_oneshot_lower, &now);
-  TIMECHECK(&now);
   clock_timespec_subtract(ts, &now, &delta);
   ONESHOT_START(g_oneshot_lower, oneshot_callback, NULL, &delta);
   return 0;
