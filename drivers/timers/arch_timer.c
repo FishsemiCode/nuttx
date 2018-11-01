@@ -43,8 +43,6 @@
 #include <nuttx/clock.h>
 #include <nuttx/timers/arch_timer.h>
 
-#include <string.h>
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -294,14 +292,15 @@ void up_timer_set_lowerhalf(FAR struct timer_lowerhalf_s *lower)
 #ifdef CONFIG_CLOCK_TIMEKEEPING
 int up_timer_getcounter(FAR uint64_t *cycles)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower)
     {
-      *cycles = 0;
-      return 0;
+      *cycles = current_usec() / USEC_PER_TICK;
+      ret = 0;
     }
 
-  *cycles = current_usec() / USEC_PER_TICK;
-  return 0;
+  return ret;
 }
 
 void up_timer_getmask(FAR uint64_t *mask)
@@ -322,14 +321,15 @@ void up_timer_getmask(FAR uint64_t *mask)
 #elif defined(CONFIG_SCHED_TICKLESS)
 int up_timer_gettime(FAR struct timespec *ts)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower)
     {
-      memset(ts, 0, sizeof(*ts));
-      return 0;
+      timespec_from_usec(ts, current_usec());
+      ret = 0;
     }
 
-  timespec_from_usec(ts, current_usec());
-  return 0;
+  return ret;
 }
 #endif
 
@@ -372,13 +372,15 @@ int up_timer_gettime(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_timer_cancel(FAR struct timespec *ts)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower)
     {
-      return -EAGAIN;
+      timespec_from_usec(ts, update_timeout(g_timer.maxtimeout));
+      ret = 0;
     }
 
-  timespec_from_usec(ts, update_timeout(g_timer.maxtimeout));
-  return 0;
+  return ret;
 }
 #endif
 
@@ -410,13 +412,15 @@ int up_timer_cancel(FAR struct timespec *ts)
 #ifdef CONFIG_SCHED_TICKLESS
 int up_timer_start(FAR const struct timespec *ts)
 {
-  if (!g_timer.lower)
+  int ret = -EAGAIN;
+
+  if (g_timer.lower)
     {
-      return -EAGAIN;
+      update_timeout(timespec_to_usec(ts));
+      ret = 0;
     }
 
-  update_timeout(timespec_to_usec(ts));
-  return 0;
+  return ret;
 }
 #endif
 

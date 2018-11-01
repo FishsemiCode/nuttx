@@ -42,8 +42,6 @@
 #include <nuttx/arch.h>
 #include <nuttx/timers/arch_rtc.h>
 
-#include <string.h>
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -97,17 +95,16 @@ void up_rtc_set_lowerhalf(FAR struct rtc_lowerhalf_s *lower)
 #ifndef CONFIG_RTC_HIRES
 time_t up_rtc_time(void)
 {
-  struct rtc_time rtctime;
   time_t time = 0;
 
-  if (!g_rtc_lower)
+  if (g_rtc_lower)
     {
-      return 0;
-    }
+      struct rtc_time rtctime;
 
-  if (g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime) == 0)
-    {
-      time = mktime((FAR struct tm *)&rtctime);
+      if (g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime) == 0)
+        {
+          time = mktime((FAR struct tm *)&rtctime);
+        }
     }
 
   return time;
@@ -133,20 +130,18 @@ time_t up_rtc_time(void)
 #ifdef CONFIG_RTC_HIRES
 int up_rtc_gettime(FAR struct timespec *tp)
 {
-  struct rtc_time rtctime;
-  int ret;
+  int ret = -EAGAIN;
 
-  if (!g_rtc_lower)
+  if (g_rtc_lower)
     {
-      memset(tp, 0, sizeof(*tp));
-      return 0;
-    }
+      struct rtc_time rtctime;
 
-  ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
-  if (ret == 0)
-    {
-      tp->tv_sec = mktime((FAR struct tm *)&rtctime);
-      tp->tv_nsec = rtctime.tm_nsec;
+      ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
+      if (ret == 0)
+        {
+          tp->tv_sec = mktime((FAR struct tm *)&rtctime);
+          tp->tv_nsec = rtctime.tm_nsec;
+        }
     }
 
   return ret;
@@ -179,19 +174,17 @@ int up_rtc_gettime(FAR struct timespec *tp)
 #ifdef CONFIG_RTC_DATETIME
 int up_rtc_getdatetime(FAR struct tm *tp)
 {
-  struct rtc_time rtctime;
-  int ret;
+  int ret = -EAGAIN;
 
-  if (!g_rtc_lower)
+  if (g_rtc_lower)
     {
-      memset(tp, 0, sizeof(*tp));
-      return 0;
-    }
+      struct rtc_time rtctime;
 
-  ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
-  if (ret == 0)
-    {
-      *tp = *((FAR struct tm *)&rtctime);
+      ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
+      if (ret == 0)
+        {
+          *tp = *((FAR struct tm *)&rtctime);
+        }
     }
 
   return ret;
@@ -225,21 +218,18 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 #if defined(CONFIG_RTC_DATETIME) && defined(CONFIG_ARCH_HAVE_RTC_SUBSECONDS)
 int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
 {
-  struct rtc_time rtctime;
-  int ret;
+  int ret = -EAGAIN;
 
-  if (!g_rtc_lower)
+  if (g_rtc_lower)
     {
-      memset(tp, 0, sizeof(*tp));
-      *nsec = 0;
-      return 0;
-    }
+      struct rtc_time rtctime;
 
-  ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
-  if (ret == 0)
-    {
-      *tp = *((FAR struct tm *)&rtctime);
-      *nsec = rtctime.tm_nsec;
+      ret = g_rtc_lower->ops->rdtime(g_rtc_lower, &rtctime);
+      if (ret == 0)
+        {
+          *tp = *((FAR struct tm *)&rtctime);
+          *nsec = rtctime.tm_nsec;
+        }
     }
 
   return ret;
@@ -263,17 +253,18 @@ int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
 
 int up_rtc_settime(FAR const struct timespec *tp)
 {
-  struct rtc_time rtctime;
+  int ret = -EAGAIN;
 
-  if (!g_rtc_lower)
+  if (g_rtc_lower)
     {
-      return -EAGAIN;
+      struct rtc_time rtctime;
+
+      gmtime_r(&tp->tv_sec, (FAR struct tm *)&rtctime);
+#if defined(CONFIG_RTC_HIRES) || defined(CONFIG_ARCH_HAVE_RTC_SUBSECONDS)
+      rtctime.tm_nsec = tp->tv_nsec;
+#endif
+      ret = g_rtc_lower->ops->settime(g_rtc_lower, &rtctime);
     }
 
-  gmtime_r(&tp->tv_sec, (FAR struct tm *)&rtctime);
-#if defined(CONFIG_RTC_HIRES) || defined(CONFIG_ARCH_HAVE_RTC_SUBSECONDS)
-  rtctime.tm_nsec = tp->tv_nsec;
-#endif
-
-  return g_rtc_lower->ops->settime(g_rtc_lower, &rtctime);
+  return ret;
 }
