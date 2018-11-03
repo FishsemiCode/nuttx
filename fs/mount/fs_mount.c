@@ -71,13 +71,15 @@
  */
 
 #if defined(CONFIG_FS_FAT) || defined(CONFIG_FS_ROMFS) || \
-    defined(CONFIG_FS_SMARTFS) || defined(CONFIG_FS_LITTLETFS)
+    defined(CONFIG_FS_SMARTFS) || defined(CONFIG_FS_LITTLEFS)
 #  define BDFS_SUPPORT 1
 #endif
 
 /* These file systems require MTD drivers */
 
-#undef MDFS_SUPPORT
+#if defined(CONFIG_FS_LITTLEFS)
+#  define MDFS_SUPPORT 1
+#endif
 
 /* These file systems do not require block or MTD drivers */
 
@@ -139,8 +141,16 @@ static const struct fsmap_t g_bdfsmap[] =
 #ifdef MDFS_SUPPORT
 /* File systems that require MTD drivers */
 
+#ifdef CONFIG_FS_LITTLEFS
+extern const struct mountpt_operations littlefs_operations;
+#endif
+
 static const struct fsmap_t g_mdfsmap[] =
 {
+#ifdef CONFIG_FS_LITTLEFS
+  { "littlefs", &littlefs_operations },
+#endif
+  { NULL,   NULL },
 };
 #endif /* MDFS_SUPPORT */
 
