@@ -507,7 +507,7 @@ static void dw_i2c_xfer_msg(FAR struct dw_i2c_dev_s *i2c)
           buf = msgs[i2c->msg_write_idx].buffer;
           buf_len = msgs[i2c->msg_write_idx].length;
 
-          if (i2c->msg_write_idx > 0 && ~(msgs[i2c->msg_write_idx].flags & I2C_M_NOSTART))
+          if (i2c->msg_write_idx > 0 && !(msgs[i2c->msg_write_idx].flags & I2C_M_NOSTART))
             need_restart = true;
         }
 
