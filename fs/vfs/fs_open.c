@@ -158,7 +158,7 @@ int open(FAR const char *path, int oflags, ...)
     * NOTE: This will recurse to open the character driver proxy.
     */
 
-   if (INODE_IS_BLOCK(inode))
+   if (INODE_IS_BLOCK(inode) || INODE_IS_MTD(inode))
      {
        /* Release the inode reference */
 

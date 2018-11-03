@@ -84,7 +84,7 @@ static inline int readpseudodir(struct fs_dirent_s *idir)
   if (idir->u.pseudo.fd_next->u.i_ops)
     {
 #ifndef CONFIG_DISABLE_MOUNTPOINT
-      if (INODE_IS_BLOCK(idir->u.pseudo.fd_next))
+      if (INODE_IS_BLOCK(idir->u.pseudo.fd_next) || INODE_IS_MTD(idir->u.pseudo.fd_next))
         {
            idir->fd_dir.d_type |= DTYPE_BLK;
         }

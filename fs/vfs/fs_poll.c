@@ -352,7 +352,7 @@ int file_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
        * reading and writing."
        */
 
-      if (INODE_IS_MOUNTPT(inode) || INODE_IS_BLOCK(inode))
+      if (INODE_IS_MOUNTPT(inode) || INODE_IS_BLOCK(inode) || INODE_IS_MTD(inode))
         {
           if (setup)
             {
