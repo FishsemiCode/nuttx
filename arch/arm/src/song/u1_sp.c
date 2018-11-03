@@ -700,7 +700,7 @@ static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
   char path[NAME_MAX];
 
   snprintf(path, NAME_MAX, "/dev/%s", part->name);
-  register_blockpartition(path, 0, arg, part->firstblock, part->nblocks);
+  register_mtdpartition(path, 0, arg, part->firstblock, part->nblocks);
 }
 
 static void up_flash_init(void)
@@ -726,7 +726,7 @@ static void up_flash_init(void)
   FAR struct mtd_dev_s *mtd;
 
   mtd = song_onchip_flash_initialize(&config);
-  ftl_initialize_by_path(path, mtd);
+  register_mtddriver(path, mtd, 0, mtd);
   parse_block_partition(path, up_partition_init, path);
 }
 #endif
