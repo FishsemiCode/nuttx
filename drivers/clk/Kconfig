@@ -15,6 +15,22 @@ config CLK_RPMSG
 		Rpmsg clk are proxy/master pairs clock that operate clks between client and
 		server processor.
 
+if CLK_RPMSG
+
+config CLK_RPMSG_PRIORITY
+	int "clk prmsg priority"
+	default 100
+	---help---
+		The priority for clk rmpsg task.
+
+config CLK_RPMSG_STACKSIZE
+	int "clk rpmsg stack size"
+	default 1024
+	---help---
+	The stack size allocated for the clk rpmsg task.
+
+endif
+
 menuconfig SONG_CLK
 	bool "song clk driver and wrapper for basic clks"
 	default n
