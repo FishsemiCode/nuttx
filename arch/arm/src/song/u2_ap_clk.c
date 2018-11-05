@@ -650,7 +650,6 @@ static const struct song_clk_table clk_tbl =
   .pll_lf_clks       = pll_lf,
   .out_clks          = out,
   .def_rate          = def_rate,
-  .rpmsg_server      = true,
 };
 
 /****************************************************************************

@@ -562,7 +562,6 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .timer_clks        = timer,
   .patch_table       = patch_tbl,
   .def_rate          = def_rate,
-  .rpmsg_server      = false,
 };
 
 /****************************************************************************

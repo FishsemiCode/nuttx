@@ -180,7 +180,13 @@ void arm_timer_initialize(void)
     .intrst_off = 0x21c,
     .intr_bit   = 2,
   };
+#endif
 
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
+
+#ifdef CONFIG_ONESHOT_SONG
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
@@ -416,8 +422,8 @@ void up_lateinitialize(void)
   up_openamp_initialize();
 #endif
 
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(true);
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW

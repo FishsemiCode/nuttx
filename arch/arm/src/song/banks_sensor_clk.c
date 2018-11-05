@@ -456,7 +456,6 @@ static const struct song_clk_table banks_sen_clk_tbl =
   .mux_clks          = mux,
   .pll_clks          = pll,
   .def_rate          = def_rate,
-  .rpmsg_server      = false,
 };
 
 /****************************************************************************
