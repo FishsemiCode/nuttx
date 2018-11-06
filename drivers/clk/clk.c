@@ -810,15 +810,22 @@ int clk_set_phase(struct clk *clk, int degrees)
     degrees += 360;
 
   if (clk->ops->set_phase)
-    ret = clk->ops->set_phase(clk, degrees);
+    {
+      ret = clk->ops->set_phase(clk, degrees);
+      if (ret == 0)
+        clk->degrees = degrees;
+    }
 
   return ret;
 }
 
 int clk_get_phase(struct clk *clk)
 {
-  if (!clk || !clk->ops->get_phase)
+  if (!clk)
     return 0;
+
+  if (!clk->ops->get_phase)
+    return clk->degrees;
 
   return clk->ops->get_phase(clk);
 }
