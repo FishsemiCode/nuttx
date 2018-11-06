@@ -14,6 +14,9 @@
 #    notice, this list of conditions and the following disclaimer in
 #    the documentation and/or other materials provided with the
 #    distribution.
+# 3. Neither the name NuttX nor the names of its contributors may be
+#    used to endorse or promote products derived from this software
+#    without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 # "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -30,8 +33,8 @@
 #
 ############################################################################
 
-include $(TOPDIR)/Make.defs
-include chip/Make.defs
+-include $(TOPDIR)/Make.defs
+-include chip$(DELIM)Make.defs
 
 ifeq ($(CONFIG_ARCH_CK802),y)           # Base Integer support
 ARCH_SUBDIR = ck802
@@ -43,24 +46,27 @@ CXXFLAGS += $(EXTRADEFINES)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
-  NUTTX = "$(TOPDIR)\nuttx$(EXEEXT)"
+  NUTTX = "$(OUTDIR)\nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)\chip
   CFLAGS += -I$(ARCH_SRCDIR)\common
   CFLAGS += -I$(ARCH_SRCDIR)\$(ARCH_SUBDIR)
+  CFLAGS += -I$(ARCH_SRCDIR)\$(CONFIG_ARCH_CHIP)
   CFLAGS += -I$(TOPDIR)\sched
 else
   ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
-  NUTTX = "${shell cygpath -w $(TOPDIR)/nuttx$(EXEEXT)}"
+  NUTTX = "${shell cygpath -w $(OUTDIR)/nuttx$(EXEEXT)}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
+  CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(CONFIG_ARCH_CHIP)}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
 else
-  NUTTX = "$(TOPDIR)/nuttx$(EXEEXT)"
+  NUTTX = "$(OUTDIR)/nuttx$(EXEEXT)"
   CFLAGS += -I$(ARCH_SRCDIR)/chip
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
+  CFLAGS += -I$(ARCH_SRCDIR)/$(CONFIG_ARCH_CHIP)
   CFLAGS += -I$(TOPDIR)/sched
 endif
 endif
@@ -98,32 +104,35 @@ BIN  = libarch$(LIBEXT)
 
 LDFLAGS += $(ARCHSCRIPT)
 
+# Override in Make.defs if linker is not 'ld'
+
+LDSTARTGROUP ?= --start-group
+LDENDGROUP ?= --end-group
+
 EXTRA_LIBS ?=
 EXTRA_LIBPATHS ?=
 LINKLIBS ?=
 
-AFLAGS += -I$(TOPDIR)/include
-
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   BOARDMAKE = $(if $(wildcard .\board\Makefile),y,)
-  LIBPATHS += -L"$(TOPDIR)\staging"
+  LIBPATHS += -L"$(OUTDIR)\staging"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"$(TOPDIR)\arch\$(CONFIG_ARCH)\src\board"
+  LIBPATHS += -L"$(OUTDIR)\arch\$(CONFIG_ARCH)\src\board"
 endif
 
 else
   BOARDMAKE = $(if $(wildcard ./board/Makefile),y,)
 
 ifeq ($(WINTOOL),y)
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/staging"}"
+  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/staging"}"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"${shell cygpath -w "$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"}"
+  LIBPATHS += -L"${shell cygpath -w "$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"}"
 endif
 
 else
-  LIBPATHS += -L"$(TOPDIR)/staging"
+  LIBPATHS += -L"$(OUTDIR)/staging"
 ifeq ($(BOARDMAKE),y)
-  LIBPATHS += -L"$(TOPDIR)/arch/$(CONFIG_ARCH)/src/board"
+  LIBPATHS += -L"$(OUTDIR)/arch/$(CONFIG_ARCH)/src/board"
 endif
 endif
 endif
@@ -136,14 +145,21 @@ endif
 LIBGCC = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-libgcc-file-name}"
 GCC_LIBDIR := ${shell dirname $(LIBGCC)}
 
+VPATH += .
 VPATH += chip
 VPATH += common
 VPATH += $(ARCH_SUBDIR)
-VPATH += $(CHIP_DIR)
+
+VPATH := $(patsubst %,:$(SRCDIR)$(DELIM)%,$(VPATH))
+ifeq ($(WINTOOL),y)
+VPATH += :$(shell cygpath -m $(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip)
+else
+VPATH += :$(OUTDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src$(DELIM)chip
+endif
 
 all: $(HEAD_OBJ) $(BIN)
 
-.PHONY: board/libboard$(LIBEXT)
+.PHONY: board$(DELIM)libboard$(LIBEXT)
 
 $(AOBJS) $(UAOBJS) $(HEAD_OBJ): %$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
@@ -153,48 +169,47 @@ $(COBJS) $(UCOBJS): %$(OBJEXT): %.c
 
 $(BIN) $(KBIN): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
-	@$(MAKE) depend
 
 $(UBIN): $(UOBJS)
 	$(call ARCHIVE, $@, $(UOBJS))
 
-board/libboard$(LIBEXT):
+board$(DELIM)libboard$(LIBEXT):
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
-nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
+nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT)
 	$(Q) echo "LD: nuttx"
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
-		--start-group $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) --end-group
+		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
 	$(Q) $(OBJDUMP) -d $(NUTTX) > $(NUTTX).asm
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) $(NUTTX) | \
 	grep -v '\(compiled\)\|\(\$(OBJEXT)$$\)\|\( [aUw] \)\|\(\.\.ng$$\)\|\(LASH[RL]DI\)' | \
-	sort > $(TOPDIR)/System.map
+	sort > $(OUTDIR)$(DELIM)System.map
 endif
 
 # This is part of the top-level export target
 # Note that there may not be a head object if layout is handled
 # by the linker configuration.
 
-export_startup: board/libboard$(LIBEXT) $(STARTUP_OBJS)
+export_startup: board$(DELIM)libboard$(LIBEXT) $(STARTUP_OBJS)
 ifneq ($(STARTUP_OBJS),)
-	$(Q) if [ -d "$(EXPORT_DIR)/startup" ]; then \
-		cp -f $(STARTUP_OBJS) "$(EXPORT_DIR)/startup/."; \
+	$(Q) if [ -d "$(EXPORT_DIR)$(DELIM)startup" ]; then \
+		cp -f $(STARTUP_OBJS) "$(EXPORT_DIR)$(DELIM)startup$(DELIM)."; \
 	 else \
-		echo "$(EXPORT_DIR)/startup does not exist"; \
+		echo "$(EXPORT_DIR)$(DELIM)startup does not exist"; \
 	exit 1; \
 	fi
 endif
 
 # Dependencies
 
-.depend: Makefile $(SRCS)
+.depend: Makefile chip$(DELIM)Make.defs $(SRCS)
 ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" depend
 endif
 	$(Q) $(MKDEP) $(patsubst %,--dep-path %,$(subst :, ,$(VPATH))) \
-	 "$(CC)" -- $(CFLAGS) -- $(SRCS) > Make.dep
+	 "$(CC)" -- $(CFLAGS) -- $^ >Make.dep
 	$(Q) touch $@
 
 depend: .depend
@@ -206,7 +221,6 @@ endif
 	$(call DELFILE, $(KBIN))
 	$(call DELFILE, $(UBIN))
 	$(call DELFILE, $(BIN))
-	$(call DELFILE, $(HEAD_OBJ))
 	$(call CLEAN)
 
 distclean: clean
@@ -216,9 +230,4 @@ endif
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 
-info:
-	@echo $(HEAD_OBJ)
-	@echo $(ASRCS)
-	@echo $(CONFIG_ARCH_CHIP)
-
-#-include Make.dep
+-include Make.dep
