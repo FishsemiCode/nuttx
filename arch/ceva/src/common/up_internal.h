@@ -235,6 +235,7 @@ void up_cpu_doze(void);
 void up_cpu_idle(void);
 void up_cpu_standby(void);
 void up_cpu_sleep(void);
+void up_cpu_normal(void);
 
 /* Interrupt handling *******************************************************/
 

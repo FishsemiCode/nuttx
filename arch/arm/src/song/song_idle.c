@@ -135,7 +135,7 @@ void up_idle(void)
 {
   irqstate_t flags;
 
-  flags = enter_critical_section();
+  flags = up_irq_save();
 
   /* Perform IDLE mode power management */
 
@@ -143,10 +143,45 @@ void up_idle(void)
 
   /* Quit WFI, restore the power state */
 
+  up_cpu_normal();
   pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
-  leave_critical_section(flags);
+  up_irq_restore(flags);
 }
+
+/****************************************************************************
+ * Power callback default implementation
+ ****************************************************************************/
+
+void weak_function up_cpu_doze(void)
+{
+  modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
+  up_cpu_wfi();
+}
+
+void weak_function up_cpu_idle(void)
+{
+  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
+  up_cpu_wfi();
+}
+
+void weak_function up_cpu_standby(void)
+{
+  up_cpu_idle();
+}
+
+void weak_function up_cpu_sleep(void)
+{
+  up_cpu_standby();
+}
+
+void weak_function up_cpu_normal(void)
+{
+}
+
+/****************************************************************************
+ * Power utility function
+ ****************************************************************************/
 
 void up_cpu_wfi(void)
 {
@@ -173,30 +208,6 @@ void up_cpu_wfi(void)
       : "r" (0xff)
       : "memory"
     );
-}
-
-void weak_function up_cpu_doze(void)
-{
-  modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
-
-  up_cpu_wfi();
-}
-
-void weak_function up_cpu_idle(void)
-{
-  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
-
-  up_cpu_wfi();
-}
-
-void weak_function up_cpu_standby(void)
-{
-  up_cpu_idle();
-}
-
-void weak_function up_cpu_sleep(void)
-{
-  up_cpu_standby();
 }
 
 void up_cpu_save(void)

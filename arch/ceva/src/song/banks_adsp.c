@@ -342,4 +342,8 @@ void up_cpu_sleep(void)
   up_cpu_standby();
 }
 
+void up_cpu_normal(void)
+{
+}
+
 #endif /* CONFIG_ARCH_CHIP_BANKS_ADSP */

@@ -66,13 +66,6 @@ static void up_idlepm(void)
 
   newstate = pm_checkstate(PM_IDLE_DOMAIN);
 
-  /* Enter idle loop means cpu is idle, so the newstate should be PM_IDLE at least. */
-
-  if (newstate < PM_IDLE)
-    {
-      newstate = PM_IDLE;
-    }
-
   /* Then force the global state change */
 
   pm_changestate(PM_IDLE_DOMAIN, newstate);
@@ -131,7 +124,7 @@ void up_idle(void)
 {
   irqstate_t flags;
 
-  flags = enter_critical_section();
+  flags = up_irq_save();
 
   /* Perform IDLE mode power management */
 
@@ -139,9 +132,10 @@ void up_idle(void)
 
   /* Quit lower power mode, restore to PM_NORMAL */
 
-  pm_changestate(PM_IDLE_DOMAIN, PM_NORMAL);
+  up_cpu_normal();
+  pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
-  leave_critical_section(flags);
+  up_irq_restore(flags);
 }
 
 /****************************************************************************

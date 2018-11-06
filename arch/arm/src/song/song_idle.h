@@ -54,12 +54,13 @@ extern "C"
 #define EXTERN extern
 #endif
 
-void up_cpu_wfi(void);
 void up_cpu_doze(void);
 void up_cpu_idle(void);
 void up_cpu_standby(void);
 void up_cpu_sleep(void);
+void up_cpu_normal(void);
 
+void up_cpu_wfi(void);
 void up_cpu_save(void);
 void up_cpu_restore(void);
 
