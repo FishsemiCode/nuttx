@@ -121,6 +121,7 @@ pid_t up_vfork(const struct vfork_s *context)
   size_t stacksize;
   uint32_t newsp;
   uint32_t stackutil;
+  size_t argsize;
   int ret;
 
   sinfo("vfork context [%p]:\n", context);
@@ -133,7 +134,7 @@ pid_t up_vfork(const struct vfork_s *context)
 
   /* Allocate and initialize a TCB for the child task. */
 
-  child = task_vforksetup((start_t)(context->lr & ~1));
+  child = task_vforksetup((start_t)(context->lr & ~1), &argsize);
   if (!child)
     {
       sinfo("ERROR: task_vforksetup failed\n");
@@ -151,7 +152,7 @@ pid_t up_vfork(const struct vfork_s *context)
 
   /* Allocate the stack for the TCB */
 
-  ret = up_create_stack((FAR struct tcb_s *)child, stacksize,
+  ret = up_create_stack((FAR struct tcb_s *)child, stacksize + argsize,
                         parent->flags & TCB_FLAG_TTYPE_MASK);
   if (ret != OK)
     {
