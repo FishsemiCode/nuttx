@@ -454,6 +454,10 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_PMIC_I2C
   spmu_regulator_i2c_initialize(g_i2c[0], 0x70, 400000);
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  clk_disable_unused();
+#endif
 }
 
 void up_reset(int status)
