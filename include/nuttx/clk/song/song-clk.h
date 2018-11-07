@@ -264,7 +264,6 @@ struct song_clk_table
   const struct song_timer_clk *timer_clks;
   const struct song_default_rate_clk *def_rate;
   const struct song_clk_patch *patch_table;
-  bool rpmsg_server;
 };
 
 /****************************************************************************

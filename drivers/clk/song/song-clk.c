@@ -1128,12 +1128,6 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
         return ret;
     }
 
-#ifdef CONFIG_CLK_RPMSG
-  ret = clk_rpmsg_initialize(table->rpmsg_server);
-  if (ret)
-    return ret;
-#endif
-
   if (table->def_rate)
     {
       ret = song_set_default_rate(table->def_rate);
