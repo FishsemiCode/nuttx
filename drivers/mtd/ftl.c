@@ -175,7 +175,10 @@ static int ftl_close(FAR struct inode *inode)
       rwb_uninitialize(&dev->rwb);
 #endif
 #ifdef CONFIG_FS_WRITABLE
-      kmm_free(dev->eblock);
+      if (dev->eblock)
+        {
+          kmm_free(dev->eblock);
+        }
 #endif
       kmm_free(dev);
     }
@@ -582,7 +585,10 @@ static int ftl_unlink(FAR struct inode *inode)
       rwb_uninitialize(&dev->rwb);
 #endif
 #ifdef CONFIG_FS_WRITABLE
-      kmm_free(dev->eblock);
+      if (dev->eblock)
+        {
+          kmm_free(dev->eblock);
+        }
 #endif
       kmm_free(dev);
     }
