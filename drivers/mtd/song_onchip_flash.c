@@ -114,7 +114,6 @@ static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *priv,
                           uint32_t opt_cmd);
 
 /* MTD driver methods */
-static int song_onchip_flash_mas_erase(FAR struct mtd_dev_s *dev);
 static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks);
 static ssize_t song_onchip_flash_bread(FAR struct mtd_dev_s *dev, off_t startblock,
                           size_t nblocks, FAR uint8_t *buf);
@@ -174,24 +173,6 @@ __ramfunc__ static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *pr
 
   while (!(flash_regread(priv, INT_RAW) & opt_cmd));
   flash_regwrite(priv, INT_STATUS, opt_cmd);
-}
-
-__ramfunc__ static int song_onchip_flash_mas_erase(FAR struct mtd_dev_s *dev)
-{
-  FAR struct song_onchip_flash_dev_s *priv = (FAR struct song_onchip_flash_dev_s *)dev;
-  irqstate_t flags;
-
-  flags = enter_critical_section();
-  flash_regwrite(priv, ACCESS_CTRL, priv->type);
-  flash_sendop_wait(priv, CMD_MAS_ERASE);
-  leave_critical_section(flags);
-
-  if (priv->type == ACC_MAIN)
-    {
-      up_invalidate_icache_all();
-    }
-
-  return 0;
 }
 
 __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
@@ -347,7 +328,7 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
       case MTDIOC_BULKERASE:
         {
             /* Erase the entire device */
-          ret = song_onchip_flash_mas_erase(dev);
+          song_onchip_flash_erase(dev, 0, priv->neraseblocks);
         }
         break;
 
