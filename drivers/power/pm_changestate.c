@@ -85,21 +85,20 @@ static void pm_timer_cb(int argc, wdparm_t arg1, ...)
 static void pm_timer(int domain)
 {
   FAR struct pm_domain_s *pdom = &g_pmglobals.domain[domain];
+  const int pmtick[3] =
+  {
+    TIME_SLICE_TICKS * CONFIG_PM_IDLEENTER_COUNT,
+    TIME_SLICE_TICKS * CONFIG_PM_STANDBYENTER_COUNT,
+    TIME_SLICE_TICKS * CONFIG_PM_SLEEPENTER_COUNT
+  };
 
   if (!pdom->wdog)
     {
       pdom->wdog = wd_create();
     }
 
-  if (pdom->state < PM_SLEEP && pdom->stay[pdom->state] == 0)
+  if (pdom->state < PM_SLEEP && !pdom->stay[pdom->state] && pmtick[pdom->state])
     {
-      const int pmtick[3] =
-      {
-        TIME_SLICE_TICKS * CONFIG_PM_IDLEENTER_COUNT,
-        TIME_SLICE_TICKS * CONFIG_PM_STANDBYENTER_COUNT,
-        TIME_SLICE_TICKS * CONFIG_PM_SLEEPENTER_COUNT
-      };
-
       int delay = pmtick[pdom->state] + pdom->btime - clock_systimer();
       int left  = wd_gettime(pdom->wdog);
 
