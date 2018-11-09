@@ -530,8 +530,8 @@ static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
 
   rpmsg_hold_rx_buffer(channel, data);
 
-  pid = kthread_create("rpmsg-net", CONFIG_RPTUN_PRIORITY,
-          CONFIG_RPTUN_STACKSIZE, net_rpmsg_drv_sockioctl_task, argv);
+  pid = kthread_create("rpmsg-net", CONFIG_NET_RPMSG_PRIORITY,
+          CONFIG_NET_RPMSG_STACKSIZE, net_rpmsg_drv_sockioctl_task, argv);
   if (pid < 0)
     {
       rpmsg_send(channel, data, len);
