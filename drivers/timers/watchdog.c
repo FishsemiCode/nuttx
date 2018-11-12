@@ -52,6 +52,7 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/timers/watchdog.h>
 
 #ifdef CONFIG_WATCHDOG
@@ -64,7 +65,12 @@
 
 struct watchdog_upperhalf_s
 {
+#ifdef CONFIG_PM
+  struct pm_callback_s pm_cb;
+#endif
+
   uint8_t   crefs;    /* The number of times the device has been opened */
+  bool      active;   /* The watchdog is running */
   sem_t     exclsem;  /* Supports mutual exclusion */
   FAR char *path;     /* Registration path */
 
@@ -106,6 +112,43 @@ static const struct file_operations g_wdogops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: watchdog_pm_notify
+ ****************************************************************************/
+
+#ifdef CONFIG_PM
+static void watchdog_pm_notify(FAR struct pm_callback_s *cb,
+                               int domain, enum pm_state_e pmstate)
+{
+  FAR struct watchdog_upperhalf_s *upper;
+  FAR struct watchdog_lowerhalf_s *lower;
+
+  upper = (FAR struct watchdog_upperhalf_s *)cb;
+  DEBUGASSERT(upper != NULL);
+  lower = upper->lower;
+  DEBUGASSERT(lower != NULL);
+
+  switch (pmstate)
+    {
+    case PM_RESTORE:
+      if (upper->active)
+        {
+          DEBUGASSERT(lower->ops->start);
+          DEBUGVERIFY(lower->ops->start(lower) >= 0);
+        }
+      break;
+
+    default:
+      if (upper->active)
+        {
+          DEBUGASSERT(lower->ops->stop);
+          DEBUGVERIFY(lower->ops->stop(lower) >= 0);
+        }
+      break;
+    }
+}
+#endif
 
 /************************************************************************************
  * Name: wdog_open
@@ -269,8 +312,15 @@ static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       {
         /* Start the watchdog timer, resetting the time to the current timeout */
 
-        DEBUGASSERT(lower->ops->start); /* Required */
-        ret = lower->ops->start(lower);
+        if (!upper->active)
+          {
+            DEBUGASSERT(lower->ops->start); /* Required */
+            ret = lower->ops->start(lower);
+            if (ret >= 0)
+              {
+                upper->active = true;
+              }
+          }
       }
       break;
 
@@ -283,8 +333,15 @@ static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       {
         /* Stop the watchdog timer */
 
-        DEBUGASSERT(lower->ops->stop); /* Required */
-        ret = lower->ops->stop(lower);
+        if (upper->active)
+          {
+            DEBUGASSERT(lower->ops->stop); /* Required */
+            ret = lower->ops->stop(lower);
+            if (ret >= 0)
+              {
+                upper->active = false;
+              }
+          }
       }
       break;
 
@@ -498,6 +555,11 @@ FAR void *watchdog_register(FAR const char *path,
       goto errout_with_path;
     }
 
+#ifdef CONFIG_PM
+  upper->pm_cb.notify = watchdog_pm_notify;
+  pm_register(&upper->pm_cb);
+#endif
+
   return (FAR void *)upper;
 
 errout_with_path:
@@ -540,10 +602,17 @@ void watchdog_unregister(FAR void *handle)
 
   wdinfo("Unregistering: %s\n", upper->path);
 
+#ifdef CONFIG_PM
+  pm_unregister(&upper->pm_cb);
+#endif
+
   /* Disable the watchdog timer */
 
-  DEBUGASSERT(lower->ops->stop); /* Required */
-  (void)lower->ops->stop(lower);
+  if (upper->active)
+    {
+      DEBUGASSERT(lower->ops->stop); /* Required */
+      (void)lower->ops->stop(lower);
+    }
 
   /* Unregister the watchdog timer device */
 
