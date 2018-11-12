@@ -798,7 +798,6 @@ int vsscanf(FAR const char *buf, FAR const char *fmt, va_list ap)
 
                   strncpy(tmp, buf, width);
                   tmp[width] = '\0';
-                  buf += width;
 
                   linfo("vsscanf: tmp[]=\"%s\"\n", tmp);
 
@@ -863,6 +862,7 @@ int vsscanf(FAR const char *buf, FAR const char *fmt, va_list ap)
                           *pf = fvalue;
                         }
 
+                      buf += (endptr - tmp);
                       count++;
                     }
                 }
