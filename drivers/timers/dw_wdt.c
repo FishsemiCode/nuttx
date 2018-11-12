@@ -42,8 +42,6 @@
 #include <nuttx/clk/clk.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
-#include <nuttx/nuttx.h>
-#include <nuttx/power/pm.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/watchdog.h>
 
@@ -81,12 +79,7 @@ struct dw_wdt_lowerhalf_s
 
   uintptr_t   base;
   struct clk *tclk;
-  bool      active;
   xcpt_t   handler;
-
-#ifdef CONFIG_PM
-  struct pm_callback_s pm_cb;
-#endif
 };
 
 /****************************************************************************
@@ -142,7 +135,7 @@ static inline void dw_wdt_modifyreg(uintptr_t base, uint32_t off,
   dw_wdt_putreg(base, off, temp);
 }
 
-static inline uint32_t dw_wdt_top_in_msec(uint32_t top, uint64_t rate)
+static inline uint32_t dw_wdt_top_in_msec(uint32_t top, uint32_t rate)
 {
   /* There are 16 possible timeout values in 0..15 where the number of
    * cycles is 2 ^ (16 + i) and the watchdog counts down.
@@ -151,13 +144,13 @@ static inline uint32_t dw_wdt_top_in_msec(uint32_t top, uint64_t rate)
   return 1000ull * (1 << (16 + top)) / rate;
 }
 
-static inline uint32_t dw_wdt_get_timeout(uintptr_t base, uint64_t rate)
+static inline uint32_t dw_wdt_get_timeout(uintptr_t base, uint32_t rate)
 {
   uint32_t timeout = dw_wdt_getreg(base, DW_WDT_TIMEOUT_RANGE_OFFSET);
   return dw_wdt_top_in_msec(timeout & DW_WDT_TIMEOUT_RANGE_TOP_MAX, rate);
 }
 
-static inline uint32_t dw_wdt_get_timeleft(uintptr_t base, uint64_t rate)
+static inline uint32_t dw_wdt_get_timeleft(uintptr_t base, uint32_t rate)
 {
   return 1000ull * dw_wdt_getreg(base, DW_WDT_CURRENT_COUNT_OFFSET) / rate;
 }
@@ -178,10 +171,7 @@ static int dw_wdt_start(FAR struct watchdog_lowerhalf_s *lower)
     DW_WDT_COUNTER_RESTART_OFFSET,
     DW_WDT_COUNTER_RESTART_KICK_VALUE);
 
-  clk_enable(wdt->tclk);
-  wdt->active = true;
-
-  return 0;
+  return clk_enable(wdt->tclk);
 }
 
 static int dw_wdt_stop(FAR struct watchdog_lowerhalf_s *lower)
@@ -193,8 +183,6 @@ static int dw_wdt_stop(FAR struct watchdog_lowerhalf_s *lower)
    */
 
   clk_disable(wdt->tclk);
-  wdt->active = false;
-
   return 0;
 }
 
@@ -213,9 +201,9 @@ static int dw_wdt_getstatus(FAR struct watchdog_lowerhalf_s *lower,
                             FAR struct watchdog_status_s *status)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
-  uint64_t rate = clk_get_rate(wdt->tclk);
+  uint32_t rate = clk_get_rate(wdt->tclk);
 
-  status->flags = wdt->active ? WDFLAGS_ACTIVE : 0;
+  status->flags = clk_is_enabled(wdt->tclk) ? WDFLAGS_ACTIVE : 0;
   status->flags |= wdt->handler ? WDFLAGS_CAPTURE : 0;
   status->timeout = dw_wdt_get_timeout(wdt->base, rate);
   status->timeleft = dw_wdt_get_timeleft(wdt->base, rate);
@@ -227,7 +215,7 @@ static int dw_wdt_settimeout(FAR struct watchdog_lowerhalf_s *lower,
                              uint32_t timeout)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
-  uint64_t rate = clk_get_rate(wdt->tclk);
+  uint32_t rate = clk_get_rate(wdt->tclk);
   uint32_t top;
 
   /* Iterate over the timeout values until we find the closest match.
@@ -266,32 +254,6 @@ static xcpt_t dw_wdt_capture(FAR struct watchdog_lowerhalf_s *lower,
   wdt->handler = handler;
   return oldhandler;
 }
-
-#ifdef CONFIG_PM
-static void dw_wdt_pm_notify(FAR struct pm_callback_s *cb,
-                             int domain, enum pm_state_e pmstate)
-{
-  FAR struct dw_wdt_lowerhalf_s *wdt =
-    container_of(cb, struct dw_wdt_lowerhalf_s, pm_cb);
-
-  switch (pmstate)
-    {
-    case PM_RESTORE:
-      if (wdt->active)
-        {
-          clk_enable(wdt->tclk);
-        }
-      break;
-
-    default:
-      if (wdt->active)
-        {
-          clk_disable(wdt->tclk);
-        }
-      break;
-    }
-}
-#endif
 
 static int dw_wdt_interrupt(int irq, FAR void *context, FAR void *arg)
 {
@@ -338,11 +300,6 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
 
   dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
     DW_WDT_CONTROL_RPL_MASK, DW_WDT_CONTROL_RPL_MASK);
-
-#ifdef CONFIG_PM
-  wdt->pm_cb.notify = dw_wdt_pm_notify;
-  pm_register(&wdt->pm_cb);
-#endif
 
   if (config->irq >= 0)
     {
