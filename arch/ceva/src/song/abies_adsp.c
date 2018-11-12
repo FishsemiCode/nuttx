@@ -275,12 +275,12 @@ static void up_openamp_initialize(void)
 
   song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_adsp);
 
-#  ifdef CONFIG_SYSLOG_RPMSG
-  syslog_rpmsg_init();
-#  endif
-
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(false);
+#  endif
+
+#  ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
 #  endif
 
 #  ifdef CONFIG_RTC_RPMSG

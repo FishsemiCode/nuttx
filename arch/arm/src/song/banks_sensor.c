@@ -322,6 +322,10 @@ static void up_openamp_initialize(void)
 
   song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_sensor);
 
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(false);
+#  endif
+
 #  ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
 #  endif
@@ -454,10 +458,6 @@ void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
-#endif
-
-#ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
