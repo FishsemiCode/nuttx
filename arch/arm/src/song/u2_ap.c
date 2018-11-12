@@ -217,6 +217,7 @@ static void up_openamp_initialize(void)
     .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
     .chnl_count = 16,
     .irq        = 32,
+    .clk        = "mailbox_hclk",
   };
 
   static const struct song_mbox_config_s mbox_cfg_adsp =

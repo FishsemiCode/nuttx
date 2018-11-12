@@ -494,6 +494,7 @@ static void up_openamp_initialize(void)
     .sta_off    = 0x28,
     .chnl_count = 16,
     .irq        = 21,
+    .clk        = "mailbox_hclk",
   };
 
   static struct rptun_rsc_s rptun_rsc_ap
