@@ -224,13 +224,6 @@ void rpmsg_serialinit(void)
 }
 #endif
 
-#ifdef CONFIG_RPMSG_USRSOCK
-void up_netinitialize(void)
-{
-  /* usrsock don't need any special initialization at all */
-}
-#endif
-
 #ifdef CONFIG_SONG_RPTUN
 static void up_openamp_initialize(void)
 {
