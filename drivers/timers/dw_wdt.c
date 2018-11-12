@@ -79,6 +79,7 @@ struct dw_wdt_lowerhalf_s
 
   uintptr_t   base;
   struct clk *tclk;
+  void      *upper;
   xcpt_t   handler;
 };
 
@@ -261,7 +262,7 @@ static int dw_wdt_interrupt(int irq, FAR void *context, FAR void *arg)
 
   if (wdt->handler)
     {
-      return wdt->handler(irq, context, arg);
+      return wdt->handler(irq, context, wdt->upper);
     }
   else
     {
@@ -301,12 +302,18 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
   dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
     DW_WDT_CONTROL_RPL_MASK, DW_WDT_CONTROL_RPL_MASK);
 
+  wdt->upper = watchdog_register(config->path, (FAR void *)wdt);
+  if (wdt->upper == NULL)
+    {
+      kmm_free(wdt);
+      return -EINVAL;
+    }
+
   if (config->irq >= 0)
     {
       irq_attach(config->irq, dw_wdt_interrupt, wdt);
       up_enable_irq(config->irq);
     }
 
-  watchdog_register(config->path, (FAR void *)wdt);
   return 0;
 }
