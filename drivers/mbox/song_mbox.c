@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/clk/clk.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -193,7 +192,6 @@ static int song_mbox_isr(int irq, void *context, void *arg)
 struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config)
 {
   struct song_mbox_dev_s *priv;
-  struct clk *hclk = NULL;
   int i, ret;
 
   priv = kmm_zalloc(sizeof(struct song_mbox_dev_s));
@@ -205,25 +203,12 @@ struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config)
   priv->mbox.ops = &g_song_mbox_ops;
   priv->config   = config;
 
-  if (config->clk)
-    {
-      hclk = clk_get(config->clk);
-      if (!hclk)
-        {
-          goto fail;
-        }
-      if (clk_enable(hclk) < 0)
-        {
-          goto fail;
-        }
-    }
-
   if (config->irq >= 0)
     {
       priv->cb = kmm_zalloc(config->chnl_count * sizeof(struct song_mbox_cb_s));
       if (priv->cb == NULL)
         {
-          goto fail1;
+          goto fail;
         }
 
       /* Disable all the ch interrupt */
@@ -236,7 +221,7 @@ struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config)
       ret = irq_attach(config->irq, song_mbox_isr, priv);
       if (ret < 0)
         {
-          goto fail2;
+          goto fail1;
         }
 
       up_enable_irq(config->irq);
@@ -248,13 +233,8 @@ struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config)
 
   return (struct mbox_dev_s *)priv;
 
-fail2:
-  kmm_free(priv->cb);
 fail1:
-  if (hclk)
-    {
-      clk_disable(hclk);
-    }
+  kmm_free(priv->cb);
 fail:
   kmm_free(priv);
   return NULL;

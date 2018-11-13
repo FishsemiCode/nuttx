@@ -59,7 +59,6 @@ struct song_mbox_config_s
   uint32_t  sta_off;
   uint32_t  chnl_count;
   int32_t   irq;
-  FAR const char *clk;
 };
 
 /****************************************************************************
