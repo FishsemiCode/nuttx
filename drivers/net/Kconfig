@@ -53,7 +53,7 @@ config NET_RPMSG_PRIORITY
 
 config NET_RPMSG_STACKSIZE
 	int "net rpmsg stack size"
-	default 1024
+	default 2048
 	---help---
 	The stack size allocated for the net rpmsg task.
 
