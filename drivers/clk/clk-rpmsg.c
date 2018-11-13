@@ -45,7 +45,6 @@
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/kmalloc.h>
-#include <nuttx/kthread.h>
 #include <nuttx/mutex.h>
 #include <nuttx/semaphore.h>
 
@@ -75,9 +74,10 @@
 struct clk_rpmsg_priv_s
 {
   struct rpmsg_channel     *channel;
+  const char               *cpu_name;
+  sem_t                     sem;
   struct list_node          clk_list;  /* head of clk_rpmsg_s struct */
   struct list_node          node;      /* list node for struct priv */
-  char                      cpu_name[];
 };
 
 struct clk_rpmsg_s
@@ -133,12 +133,10 @@ begin_packed_struct struct clk_rpmsg_setphase_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static bool clk_rpmsg_is_local_clk(const char *name);
 static struct clk_rpmsg_priv_s *clk_rpmsg_get_priv(const char *name);
-static struct clk_rpmsg_s *clk_rpmsg_add_clk(struct clk_rpmsg_priv_s *priv,
-                                             const char *name);
+static struct rpmsg_channel *clk_rpmsg_get_chnl(const char **name);
 static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
-                                             const char *name);
+            const char *name);
 
 static void clk_rpmsg_enable_handler(struct rpmsg_channel *channel,
             void *data, int len, void *priv, unsigned long src);
@@ -199,47 +197,56 @@ static const rpmsg_rx_cb_t g_clk_rpmsg_handler[] =
  * Private Functions
  ****************************************************************************/
 
-static bool clk_rpmsg_is_local_clk(const char *name)
-{
-  return strchr(name, '/') ? false : true;
-}
-
 static struct clk_rpmsg_priv_s *clk_rpmsg_get_priv(const char *name)
 {
   struct clk_rpmsg_priv_s *priv;
-  int cpulen = strcspn(name, "/");
 
   nxmutex_lock(&g_clk_rpmsg_lock);
 
   list_for_every_entry(&g_clk_rpmsg_priv, priv, struct clk_rpmsg_priv_s, node)
     {
-      if (!strncmp(priv->cpu_name, name, cpulen) &&
-            (priv->cpu_name[cpulen] == 0))
+      size_t len = strlen(priv->cpu_name);
+
+      if (!strncmp(priv->cpu_name, name, len) &&
+            (name[len] == '/' || name[len] == 0))
         {
           goto out; /* Find the target, exit */
         }
     }
 
-  /* Can't find, create new one */
-
-  priv = kmm_zalloc(sizeof(struct clk_rpmsg_priv_s) + cpulen + 1);
-  if (priv)
-    {
-      strncpy(priv->cpu_name, name, cpulen);
-      priv->cpu_name[cpulen] = '\0';
-
-      list_initialize(&priv->clk_list);
-      list_add_head(&g_clk_rpmsg_priv, &priv->node);
-    }
+  priv = NULL;
 
 out:
   nxmutex_unlock(&g_clk_rpmsg_lock);
   return priv;
 }
 
-static struct clk_rpmsg_s *clk_rpmsg_add_clk(struct clk_rpmsg_priv_s *priv,
+static struct rpmsg_channel *clk_rpmsg_get_chnl(const char **name)
+{
+  struct clk_rpmsg_priv_s *priv;
+
+  priv = clk_rpmsg_get_priv(*name);
+  if (priv == NULL)
+    {
+      return NULL;
+    }
+
+  if (priv->channel == NULL)
+    {
+      nxsem_wait_uninterruptible(&priv->sem);
+      nxsem_post(&priv->sem);
+    }
+
+  /* transfer to local clk name */
+  *name += strlen(priv->cpu_name) + 1;
+
+  return priv->channel;
+}
+
+static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
                                              const char *name)
 {
+  struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
   struct list_node *clk_list = &priv->clk_list;
   struct clk_rpmsg_s *clkrp;
 
@@ -267,13 +274,6 @@ static struct clk_rpmsg_s *clk_rpmsg_add_clk(struct clk_rpmsg_priv_s *priv,
   list_add_head(clk_list, &clkrp->node);
 
   return clkrp;
-}
-
-static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
-                                             const char *name)
-{
-  struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
-  return clk_rpmsg_add_clk(priv, name);
 }
 
 static void clk_rpmsg_enable_handler(struct rpmsg_channel *channel,
@@ -428,11 +428,21 @@ static void clk_rpmsg_device_created(struct remote_device *rdev, void *priv_)
   bool server = (uintptr_t)priv_;
   struct clk_rpmsg_priv_s *priv;
 
-  priv = clk_rpmsg_get_priv(rdev->proc->cpu_name);
+  priv = kmm_zalloc(sizeof(struct clk_rpmsg_priv_s));
   if (!priv)
     {
       return;
     }
+
+  nxsem_init(&priv->sem, 0, 0);
+  nxsem_setprotocol(&priv->sem, SEM_PRIO_NONE);
+
+  priv->cpu_name = rdev->proc->cpu_name;
+  list_initialize(&priv->clk_list);
+
+  nxmutex_lock(&g_clk_rpmsg_lock);
+  list_add_head(&g_clk_rpmsg_priv, &priv->node);
+  nxmutex_unlock(&g_clk_rpmsg_lock);
 
   if (!server)
     {
@@ -454,43 +464,6 @@ static void clk_rpmsg_device_destroyed(struct remote_device *rdev, void *priv_)
     }
 }
 
-static int clk_rpmsg_task(int argc, FAR char *argv[])
-{
-  struct clk_rpmsg_s *clkrp, *clkrp_tmp;
-  struct clk_rpmsg_priv_s *priv;
-
-  priv = (struct clk_rpmsg_priv_s *)strtoul(argv[1], NULL, 0);
-
-  list_for_every_entry_safe(&priv->clk_list, clkrp, clkrp_tmp,
-                            struct clk_rpmsg_s, node)
-    {
-      if (clk_rpmsg_is_local_clk(clk_get_name(clkrp->clk)))
-        {
-          continue;
-        }
-
-      if (clkrp->clk->enable_count > 0)
-        {
-          clk_rpmsg_enable(clkrp->clk);
-        }
-
-      if (clkrp->clk->rate)
-        {
-          clk_rpmsg_set_rate(clkrp->clk, clkrp->clk->rate, 0);
-        }
-
-      if (clkrp->clk->degrees)
-        {
-          clk_rpmsg_set_phase(clkrp->clk, clkrp->clk->degrees);
-        }
-
-      list_delete(&clkrp->node);
-      kmm_free(clkrp);
-    }
-
-  return 0;
-}
-
 static void clk_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
   const char *name = channel->rdev->proc->cpu_name;
@@ -498,21 +471,9 @@ static void clk_rpmsg_channel_created(struct rpmsg_channel *channel)
 
   if (priv)
     {
-      char *argv[2];
-      char arg1[16];
-
-      sprintf(arg1, "%#p", priv);
-      argv[0] = arg1;
-      argv[1] = NULL;
-
       priv->channel = channel;
       rpmsg_set_privdata(channel, priv);
-
-      kthread_create(CLK_RPMSG_NAME,
-                     CONFIG_CLK_RPMSG_PRIORITY,
-                     CONFIG_CLK_RPMSG_STACKSIZE,
-                     clk_rpmsg_task,
-                     argv);
+      nxsem_post(&priv->sem);
     }
 }
 
@@ -526,6 +487,7 @@ static void clk_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
       return;
     }
 
+  nxsem_wait_uninterruptible(&priv->sem);
   priv->channel = NULL;
 
   list_for_every_entry_safe(&priv->clk_list, clkrp, clkrp_tmp,
@@ -567,24 +529,13 @@ static void clk_rpmsg_channel_received(struct rpmsg_channel *channel, void *data
 static int clk_rpmsg_enable(struct clk *clk)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_enable_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv)
-    return -ENOMEM;
-
-  chnl = priv->channel;
+  chnl = clk_rpmsg_get_chnl(&name);
   if (!chnl)
-    {
-      clk_rpmsg_add_clk(priv, name);
-      return 0;
-    }
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+    return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -605,24 +556,13 @@ static int clk_rpmsg_enable(struct clk *clk)
 static void clk_rpmsg_disable(struct clk *clk)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_disable_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv)
-    return;
-
-  chnl = priv->channel;
+  chnl = clk_rpmsg_get_chnl(&name);
   if (!chnl)
-    {
-      clk_rpmsg_add_clk(priv, name);
-      return;
-    }
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+    return;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -643,19 +583,13 @@ static void clk_rpmsg_disable(struct clk *clk)
 static int clk_rpmsg_is_enabled(struct clk *clk)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_enable_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv || !priv->channel)
-    return -ENOMEM;
-
-  chnl = priv->channel;
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+  chnl = clk_rpmsg_get_chnl(&name);
+  if (!chnl)
+    return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -676,22 +610,14 @@ static int clk_rpmsg_is_enabled(struct clk *clk)
 static uint32_t clk_rpmsg_round_rate(struct clk *clk, uint32_t rate, uint32_t *parent_rate)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_roundrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
   int64_t ret;
 
-  /* round_rate maybe called before IPC created, should return rate */
-
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv || !priv->channel)
-    return rate;
-
-  chnl = priv->channel;
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+  chnl = clk_rpmsg_get_chnl(&name);
+  if (!chnl)
+    return 0;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -717,24 +643,13 @@ static uint32_t clk_rpmsg_round_rate(struct clk *clk, uint32_t rate, uint32_t *p
 static int clk_rpmsg_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_setrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv)
-    return -ENOMEM;
-
-  chnl = priv->channel;
+  chnl = clk_rpmsg_get_chnl(&name);
   if (!chnl)
-    {
-      clk_rpmsg_add_clk(priv, name);
-      return 0;
-    }
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+    return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -756,20 +671,14 @@ static int clk_rpmsg_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_ra
 static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_getrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
   int64_t ret;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv || !priv->channel)
+  chnl = clk_rpmsg_get_chnl(&name);
+  if (!chnl)
     return 0;
-
-  chnl = priv->channel;
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -794,19 +703,13 @@ static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate)
 static int clk_rpmsg_get_phase(struct clk *clk)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_getphase_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv || !priv->channel)
-    return -ENOMEM;
-
-  chnl = priv->channel;
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+  chnl = clk_rpmsg_get_chnl(&name);
+  if (!chnl)
+    return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -827,24 +730,13 @@ static int clk_rpmsg_get_phase(struct clk *clk)
 static int clk_rpmsg_set_phase(struct clk *clk, int degrees)
 {
   struct rpmsg_channel *chnl;
-  struct clk_rpmsg_priv_s *priv;
   struct clk_rpmsg_setphase_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  priv = clk_rpmsg_get_priv(name);
-  if (!priv)
-    return -ENOMEM;
-
-  chnl = priv->channel;
+  chnl = clk_rpmsg_get_chnl(&name);
   if (!chnl)
-    {
-      clk_rpmsg_add_clk(priv, name);
-      return 0;
-    }
-
-  /* transfer to local clk name */
-  name += strlen(priv->cpu_name) + 1;
+    return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
@@ -885,7 +777,7 @@ const struct clk_ops clk_rpmsg_ops =
 
 struct clk *clk_register_rpmsg(const char *name, uint8_t flags)
 {
-  if (clk_rpmsg_is_local_clk(name))
+  if (strchr(name, '/') == NULL)
     return NULL;
 
   return clk_register(name, NULL, 0, flags | CLK_IGNORE_UNUSED, &clk_rpmsg_ops, NULL, 0);

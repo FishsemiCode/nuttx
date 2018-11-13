@@ -118,7 +118,6 @@ struct clk
   uint8_t                 flags;
   uint32_t                rate;
   uint32_t                new_rate;
-  int32_t                 degrees;
   struct clk              *new_parent;
   struct clk              *new_child;
   void                    *private_data;
