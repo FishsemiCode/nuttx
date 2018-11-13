@@ -82,12 +82,12 @@ struct dw_wdt_lowerhalf_s
 
   uintptr_t   base;
   struct clk *tclk;
+  bool      active;
   void      *upper;
   xcpt_t   handler;
 
 #ifdef CONFIG_PM
   struct pm_callback_s pm_cb;
-  int tclk_count;
 #endif
 };
 
@@ -168,28 +168,39 @@ static int dw_wdt_start(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
 
-  dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
-                   0, DW_WDT_CONTROL_WDT_EN_MASK);
+  if (!wdt->active)
+    {
+      clk_enable(wdt->tclk);
+      wdt->active = true;
 
-  /* Reload the count immediately because the hardware
-   * always load 0xffff after the enable bit is set
-   */
+      dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
+                       0, DW_WDT_CONTROL_WDT_EN_MASK);
 
-  dw_wdt_putreg(wdt->base, DW_WDT_COUNTER_RESTART_OFFSET,
-                DW_WDT_COUNTER_RESTART_KICK_VALUE);
+      /* Reload the count immediately because the hardware
+       * always load 0xffff after the enable bit is set
+       */
 
-  return clk_enable(wdt->tclk);
+      dw_wdt_putreg(wdt->base, DW_WDT_COUNTER_RESTART_OFFSET,
+                    DW_WDT_COUNTER_RESTART_KICK_VALUE);
+    }
+
+  return 0;
 }
 
 static int dw_wdt_stop(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
 
-  /* Disable clock here since DW_WDT_CONTROL_WDT_EN_MASK
-   * can be cleared only by a system reset
-   */
+  if (wdt->active)
+    {
+      /* Disable clock here since DW_WDT_CONTROL_WDT_EN_MASK
+       * can be cleared only by a system reset
+       */
 
-  clk_disable(wdt->tclk);
+      clk_disable(wdt->tclk);
+      wdt->active = false;
+    }
+
   return 0;
 }
 
@@ -208,7 +219,7 @@ static int dw_wdt_getstatus(FAR struct watchdog_lowerhalf_s *lower,
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
   uint32_t rate = clk_get_rate(wdt->tclk);
 
-  status->flags = clk_is_enabled(wdt->tclk) ? WDFLAGS_ACTIVE : 0;
+  status->flags = wdt->active ? WDFLAGS_ACTIVE : 0;
   status->flags |= wdt->handler ? WDFLAGS_CAPTURE : 0;
   status->timeout = dw_wdt_get_timeout(wdt->base, rate);
   status->timeleft = dw_wdt_get_timeleft(wdt->base, rate);
@@ -269,18 +280,16 @@ static void dw_wdt_pm_notify(FAR struct pm_callback_s *cb,
   switch (pmstate)
     {
     case PM_RESTORE:
-      while (wdt->tclk_count)
+      if (wdt->active)
         {
           clk_enable(wdt->tclk);
-          wdt->tclk_count--;
         }
       break;
 
     default:
-      while (clk_is_enabled(wdt->tclk))
+      if (wdt->active)
         {
           clk_disable(wdt->tclk);
-          wdt->tclk_count++;
         }
       break;
     }
