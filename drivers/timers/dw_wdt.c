@@ -55,6 +55,7 @@
 #define DW_WDT_TIMEOUT_RANGE_OFFSET         0x04
 #define DW_WDT_CURRENT_COUNT_OFFSET         0x08
 #define DW_WDT_COUNTER_RESTART_OFFSET       0x0c
+#define DW_WDT_INTERRUPT_CLEAR_OFFSET       0x14
 
 #define DW_WDT_CONTROL_WDT_EN_MASK          0x01
 #define DW_WDT_CONTROL_IRQ_MASK             0x02
@@ -167,17 +168,15 @@ static int dw_wdt_start(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
 
-  dw_wdt_modifyreg(wdt->base,
-    DW_WDT_CONTROL_OFFSET, 0,
-    DW_WDT_CONTROL_WDT_EN_MASK);
+  dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
+                   0, DW_WDT_CONTROL_WDT_EN_MASK);
 
   /* Reload the count immediately because the hardware
    * always load 0xffff after the enable bit is set
    */
 
-  dw_wdt_putreg(wdt->base,
-    DW_WDT_COUNTER_RESTART_OFFSET,
-    DW_WDT_COUNTER_RESTART_KICK_VALUE);
+  dw_wdt_putreg(wdt->base, DW_WDT_COUNTER_RESTART_OFFSET,
+                DW_WDT_COUNTER_RESTART_KICK_VALUE);
 
   return clk_enable(wdt->tclk);
 }
@@ -198,10 +197,8 @@ static int dw_wdt_keepalive(FAR struct watchdog_lowerhalf_s *lower)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
 
-  dw_wdt_putreg(wdt->base,
-    DW_WDT_COUNTER_RESTART_OFFSET,
-    DW_WDT_COUNTER_RESTART_KICK_VALUE);
-
+  dw_wdt_putreg(wdt->base, DW_WDT_COUNTER_RESTART_OFFSET,
+                DW_WDT_COUNTER_RESTART_KICK_VALUE);
   return 0;
 }
 
@@ -245,8 +242,7 @@ static int dw_wdt_settimeout(FAR struct watchdog_lowerhalf_s *lower,
    */
 
   dw_wdt_putreg(wdt->base, DW_WDT_TIMEOUT_RANGE_OFFSET,
-    top | top << DW_WDT_TIMEOUT_RANGE_TOPINIT_SHIFT);
-
+                top | top << DW_WDT_TIMEOUT_RANGE_TOPINIT_SHIFT);
   return 0;
 }
 
@@ -256,8 +252,8 @@ static xcpt_t dw_wdt_capture(FAR struct watchdog_lowerhalf_s *lower,
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
   xcpt_t oldhandler = wdt->handler;
 
-  dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
-    DW_WDT_CONTROL_IRQ_MASK, handler ? DW_WDT_CONTROL_IRQ_MASK : 0);
+  dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET, DW_WDT_CONTROL_IRQ_MASK,
+                   handler ? DW_WDT_CONTROL_IRQ_MASK : 0);
 
   wdt->handler = handler;
   return oldhandler;
@@ -295,13 +291,16 @@ static int dw_wdt_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = arg;
 
+  /* Clear interrupt request */
+
+  dw_wdt_getreg(wdt->base, DW_WDT_INTERRUPT_CLEAR_OFFSET);
+
   if (wdt->handler)
     {
       return wdt->handler(irq, context, wdt->upper);
     }
   else
     {
-      PANIC();
       return 0;
     }
 }
@@ -332,10 +331,10 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
 
   /* set RPL(reset pulse length) to max value(256 pclk)
    * ensure the reset signal can be caught by the system
+   * and disable the watchdog and irq mode.
    */
 
-  dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
-    DW_WDT_CONTROL_RPL_MASK, DW_WDT_CONTROL_RPL_MASK);
+  dw_wdt_putreg(wdt->base, DW_WDT_CONTROL_OFFSET, DW_WDT_CONTROL_RPL_MASK);
 
   wdt->upper = watchdog_register(config->path, (FAR void *)wdt);
   if (wdt->upper == NULL)
