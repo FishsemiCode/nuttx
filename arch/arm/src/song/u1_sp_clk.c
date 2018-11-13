@@ -269,6 +269,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x2f8,
     .div_shift = 4,
     .div_width = 3,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {},
 };
