@@ -275,6 +275,7 @@ static const struct song_clk_table clk_tbl =
   .gate_clks         = gate,
   .out_clks          = out,
   .def_rate          = def_rate,
+  .rpmsg_server      = false,
 };
 
 /****************************************************************************

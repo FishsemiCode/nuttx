@@ -182,10 +182,6 @@ void arm_timer_initialize(void)
   };
 #endif
 
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
-#endif
-
 #ifdef CONFIG_ONESHOT_SONG
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
@@ -284,10 +280,6 @@ static void up_openamp_initialize(void)
   mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
 
   song_rptun_initialize(&rptun_cfg_adsp, mbox_adsp, mbox_ap);
-
-#  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(true);
-#  endif
 
 #  ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
@@ -424,6 +416,10 @@ void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
