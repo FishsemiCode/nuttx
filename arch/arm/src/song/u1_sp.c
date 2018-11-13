@@ -632,6 +632,10 @@ static void up_openamp_initialize(void)
   song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_sp);
   song_rptun_initialize(&rptun_cfg_cp, mbox_cp, mbox_sp);
 
+#  ifdef CONFIG_RPMSG_REGULATOR
+  rpmsg_regulator_init(CPU_NAME_AP, true);
+#  endif
+
 #  ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
 #  endif
@@ -767,10 +771,6 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_PMIC_APB
   spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
-#endif
-
-#ifdef CONFIG_RPMSG_REGULATOR
-  rpmsg_regulator_init(CPU_NAME_AP, 1);
 #endif
 
 #ifdef CONFIG_SONG_CLK
