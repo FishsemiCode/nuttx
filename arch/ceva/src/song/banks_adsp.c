@@ -204,7 +204,6 @@ static void up_openamp_initialize(void)
     .sta_off    = 0x78,
     .chnl_count = 16,
     .irq        = IRQ_INT1,
-    .clk        = "ap/top_mail_box_clk",
   };
 
   static struct rptun_rsc_s rptun_rsc_ap
