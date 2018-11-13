@@ -42,6 +42,8 @@
 #include <nuttx/clk/clk.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/nuttx.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/watchdog.h>
 
@@ -81,6 +83,11 @@ struct dw_wdt_lowerhalf_s
   struct clk *tclk;
   void      *upper;
   xcpt_t   handler;
+
+#ifdef CONFIG_PM
+  struct pm_callback_s pm_cb;
+  int tclk_count;
+#endif
 };
 
 /****************************************************************************
@@ -256,6 +263,34 @@ static xcpt_t dw_wdt_capture(FAR struct watchdog_lowerhalf_s *lower,
   return oldhandler;
 }
 
+#ifdef CONFIG_PM
+static void dw_wdt_pm_notify(FAR struct pm_callback_s *cb,
+                             int domain, enum pm_state_e pmstate)
+{
+  FAR struct dw_wdt_lowerhalf_s *wdt =
+    container_of(cb, struct dw_wdt_lowerhalf_s, pm_cb);
+
+  switch (pmstate)
+    {
+    case PM_RESTORE:
+      while (wdt->tclk_count)
+        {
+          clk_enable(wdt->tclk);
+          wdt->tclk_count--;
+        }
+      break;
+
+    default:
+      while (clk_is_enabled(wdt->tclk))
+        {
+          clk_disable(wdt->tclk);
+          wdt->tclk_count++;
+        }
+      break;
+    }
+}
+#endif
+
 static int dw_wdt_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   FAR struct dw_wdt_lowerhalf_s *wdt = arg;
@@ -308,6 +343,11 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
       kmm_free(wdt);
       return -EINVAL;
     }
+
+#ifdef CONFIG_PM
+  wdt->pm_cb.notify = dw_wdt_pm_notify;
+  pm_register(&wdt->pm_cb);
+#endif
 
   if (config->irq >= 0)
     {
