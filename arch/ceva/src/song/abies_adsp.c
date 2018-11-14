@@ -194,8 +194,41 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = B2C(TOP_MAILBOX_BASE),
+      .set_off    = 0x40,
+      .en_off     = 0x44,
+      .en_bit     = 0,
+      .src_en_off = 0x48,
+      .sta_off    = 0x50,
+      .chnl_count = 64,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_ADSP,
+      .base       = B2C(TOP_MAILBOX_BASE),
+      .set_off    = 0x70,
+      .en_off     = 0x74,
+      .en_bit     = 16,
+      .src_en_off = 0x74,
+      .sta_off    = 0x78,
+      .chnl_count = 16,
+      .irq        = IRQ_INT1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
-static void up_openamp_initialize(void)
+static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".DSECT resource_table"))) =
@@ -274,6 +307,13 @@ static void up_openamp_initialize(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_IOE
+void up_ioe_init(void)
+{
+  g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT5);
+}
+#endif
+
 static void up_audio_init(void)
 {
 #ifdef CONFIG_SONG_PCM
@@ -287,39 +327,6 @@ static void up_audio_init(void)
 #endif
 }
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
-{
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = B2C(TOP_MAILBOX_BASE),
-      .set_off    = 0x40,
-      .en_off     = 0x44,
-      .en_bit     = 0,
-      .src_en_off = 0x48,
-      .sta_off    = 0x50,
-      .chnl_count = 64,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_ADSP,
-      .base       = B2C(TOP_MAILBOX_BASE),
-      .set_off    = 0x70,
-      .en_off     = 0x74,
-      .en_bit     = 16,
-      .src_en_off = 0x74,
-      .sta_off    = 0x78,
-      .chnl_count = 16,
-      .irq        = IRQ_INT1,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
-}
-#endif
-
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_MBOX
@@ -327,11 +334,11 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  up_openamp_initialize();
+  up_rptun_init();
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT5);
+  up_ioe_init();
 #endif
 
   up_audio_init();

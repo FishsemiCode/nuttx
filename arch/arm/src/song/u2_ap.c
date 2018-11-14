@@ -208,8 +208,41 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0, /* MAILBOX_M4_INTR_SET */
+      .en_off     = 0x4, /* MAILBOX_M4_INTR_EN */
+      .en_bit     = 16,
+      .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
+      .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
+      .chnl_count = 16,
+      .irq        = 32,
+    },
+    {
+      .index      = CPU_INDEX_ADSP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
+      .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
+      .en_bit     = 16,
+      .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
+      .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
+      .chnl_count = 16,
+      .irq        = -1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
-static void up_openamp_initialize(void)
+static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_adsp
     __attribute__ ((section(".resource_table.adsp"))) =
@@ -287,36 +320,10 @@ void up_wdtinit(void)
 }
 #endif
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
+#ifdef CONFIG_SONG_IOE
+void up_ioe_init(void)
 {
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x0, /* MAILBOX_M4_INTR_SET */
-      .en_off     = 0x4, /* MAILBOX_M4_INTR_EN */
-      .en_bit     = 16,
-      .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
-      .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
-      .chnl_count = 16,
-      .irq        = 32,
-    },
-    {
-      .index      = CPU_INDEX_ADSP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
-      .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
-      .en_bit     = 16,
-      .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
-      .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
-      .chnl_count = 16,
-      .irq        = -1,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+  g_ioe[0] = song_ioe_initialize(0, 0xa00f0000, 26);
 }
 #endif
 
@@ -433,7 +440,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  up_openamp_initialize();
+  up_rptun_init();
 #endif
 
 #ifdef CONFIG_SONG_CLK
@@ -445,7 +452,11 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(0, 0xa00f0000, 26);
+  up_ioe_init();
+#endif
+
+#ifdef CONFIG_PWM_SONG
+  song_pwm_initialize(0, 0xa0100000, 4, "pwm_mclk");
 #endif
 
 #ifdef CONFIG_SPI_DW
@@ -456,16 +467,12 @@ void up_lateinitialize(void)
   up_i2c_init();
 #endif
 
-#ifdef CONFIG_MTD_GD25
-  up_flash_init();
-#endif
-
-#ifdef CONFIG_PWM_SONG
-  song_pwm_initialize(0, 0xa0100000, 4, "pwm_mclk");
-#endif
-
 #ifdef CONFIG_SONG_PMIC_I2C
   spmu_regulator_i2c_initialize(g_i2c[0], 0x70, 400000);
+#endif
+
+#ifdef CONFIG_MTD_GD25
+  up_flash_init();
 #endif
 
 #ifdef CONFIG_SONG_CLK

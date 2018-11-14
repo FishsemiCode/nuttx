@@ -229,8 +229,41 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = SEN_PWR_BASE,
+      .set_off    = 0x120,
+      .en_off     = UINT32_MAX,
+      .en_bit     = UINT32_MAX,
+      .src_en_off = UINT32_MAX,
+      .sta_off    = UINT32_MAX,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_SENSOR,
+      .base       = SEN_PWR_BASE,
+      .set_off    = UINT32_MAX,
+      .en_off     = 0x12c,
+      .en_bit     = 16,
+      .src_en_off = 0x12c,
+      .sta_off    = 0x130,
+      .chnl_count = 16,
+      .irq        = 30,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
-static void up_openamp_initialize(void)
+static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".resource_table"))) =
@@ -320,36 +353,14 @@ void up_wdtinit(void)
 }
 #endif
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
+#ifdef CONFIG_SONG_IOE
+void up_ioe_init(void)
 {
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = SEN_PWR_BASE,
-      .set_off    = 0x120,
-      .en_off     = UINT32_MAX,
-      .en_bit     = UINT32_MAX,
-      .src_en_off = UINT32_MAX,
-      .sta_off    = UINT32_MAX,
-      .chnl_count = 16,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_SENSOR,
-      .base       = SEN_PWR_BASE,
-      .set_off    = UINT32_MAX,
-      .en_off     = 0x12c,
-      .en_bit     = 16,
-      .src_en_off = 0x12c,
-      .sta_off    = 0x130,
-      .chnl_count = 16,
-      .irq        = 30,
-    }
-  };
+  /* sensor gpio initialization */
+  g_ioe[0] = song_ioe_initialize(0, 0xf8b13000, 22);
 
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+  /* general gpio initialization */
+  g_ioe[1] = song_ioe_initialize(4, 0xf900c000, 28);
 }
 #endif
 
@@ -459,7 +470,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  up_openamp_initialize();
+  up_rptun_init();
 #endif
 
 #ifdef CONFIG_SONG_CLK
@@ -471,11 +482,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  /* sensor gpio initialization */
-  g_ioe[0] = song_ioe_initialize(0, 0xf8b13000, 22);
-
-  /* general gpio initialization */
-  g_ioe[1] = song_ioe_initialize(4, 0xf900c000, 28);
+  up_ioe_init();
 #endif
 
 #ifdef CONFIG_SPI_DW

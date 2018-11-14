@@ -462,7 +462,51 @@ static int cp_boot(const struct song_rptun_config_s *config)
   return 0;
 }
 
-static void up_openamp_initialize(void)
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_SP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x20,
+      .en_off     = 0x24,
+      .en_bit     = 16,
+      .src_en_off = 0x24,
+      .sta_off    = 0x28,
+      .chnl_count = 16,
+      .irq        = 21,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
+static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".resource_table.ap"))) =
@@ -645,47 +689,10 @@ void up_wdtinit(void)
 }
 #endif
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
+#ifdef CONFIG_SONG_IOE
+void up_ioe_init(void)
 {
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x10,
-      .en_off     = 0x14,
-      .en_bit     = 16,
-      .src_en_off = 0x14,
-      .sta_off    = 0x18,
-      .chnl_count = 16,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_CP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x0,
-      .en_off     = 0x4,
-      .en_bit     = 16,
-      .src_en_off = 0x4,
-      .sta_off    = 0x8,
-      .chnl_count = 16,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_SP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x20,
-      .en_off     = 0x24,
-      .en_bit     = 16,
-      .src_en_off = 0x24,
-      .sta_off    = 0x28,
-      .chnl_count = 16,
-      .irq        = 21,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+  g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
 }
 #endif
 
@@ -758,7 +765,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  up_openamp_initialize();
+  up_rptun_init();
 #endif
 
 #ifdef CONFIG_SONG_CLK
@@ -774,19 +781,19 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
+  up_ioe_init();
 #endif
 
 #ifdef CONFIG_SPI_DW
   up_spi_init();
 #endif
 
-#ifdef CONFIG_SONG_ONCHIP_FLASH
-  up_flash_init();
-#endif
-
 #ifdef CONFIG_SONG_PMIC_APB
   spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
+#endif
+
+#ifdef CONFIG_SONG_ONCHIP_FLASH
+  up_flash_init();
 #endif
 
 #ifdef CONFIG_SONG_CLK

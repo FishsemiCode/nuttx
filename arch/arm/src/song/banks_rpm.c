@@ -206,8 +206,41 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x40,
+      .en_off     = UINT32_MAX,
+      .en_bit     = UINT32_MAX,
+      .src_en_off = UINT32_MAX,
+      .sta_off    = UINT32_MAX,
+      .chnl_count = 64,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_RPM,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = UINT32_MAX,
+      .en_off     = 0x324,
+      .en_bit     = 16,
+      .src_en_off = 0x324,
+      .sta_off    = 0x328,
+      .chnl_count = 16,
+      .irq        = 27,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
-static void up_openamp_initialize(void)
+static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".resource_table"))) =
@@ -301,36 +334,10 @@ void up_wdtinit(void)
 }
 #endif
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
+#ifdef CONFIG_SONG_IOE
+void up_ioe_init(void)
 {
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x40,
-      .en_off     = UINT32_MAX,
-      .en_bit     = UINT32_MAX,
-      .src_en_off = UINT32_MAX,
-      .sta_off    = UINT32_MAX,
-      .chnl_count = 64,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_RPM,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = UINT32_MAX,
-      .en_off     = 0x324,
-      .en_bit     = 16,
-      .src_en_off = 0x324,
-      .sta_off    = 0x328,
-      .chnl_count = 16,
-      .irq        = 27,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+  g_ioe[0] = song_ioe_initialize(1, 0xf900c000, 23);
 }
 #endif
 
@@ -341,7 +348,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  up_openamp_initialize();
+  up_rptun_init();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
@@ -349,7 +356,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-  g_ioe[0] = song_ioe_initialize(1, 0xf900c000, 23);
+  up_ioe_init();
 #endif
 }
 

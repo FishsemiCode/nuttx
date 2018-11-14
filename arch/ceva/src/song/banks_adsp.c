@@ -187,8 +187,41 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = B2C(TOP_MAILBOX_BASE),
+      .set_off    = 0x40,
+      .en_off     = 0x44,
+      .en_bit     = 0,
+      .src_en_off = 0x48,
+      .sta_off    = 0x50,
+      .chnl_count = 64,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_ADSP,
+      .base       = B2C(TOP_MAILBOX_BASE),
+      .set_off    = 0x70,
+      .en_off     = 0x74,
+      .en_bit     = 16,
+      .src_en_off = 0x74,
+      .sta_off    = 0x78,
+      .chnl_count = 16,
+      .irq        = IRQ_INT1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
-static void up_openamp_initialize(void)
+static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".DSECT resource_table"))) =
@@ -267,19 +300,6 @@ static void up_openamp_initialize(void)
 }
 #endif
 
-static void up_audio_init(void)
-{
-#ifdef CONFIG_SONG_PCM
-  struct i2s_dev_s *pcm = song_pcm_initialize(B2C(0xf8107000), "ap/audio_pcm_mclk");
-  audio_comp_initialize("pcm0p",
-                        audio_dma_initialize(g_dma[0], 0, true, 4, B2C(0xf8107018)),
-                        audio_i2s_initialize(pcm, true), NULL);
-  audio_comp_initialize("pcm0c",
-                        audio_dma_initialize(g_dma[0], 8, false, 4, B2C(0xf8107014)),
-                        audio_i2s_initialize(pcm, false), NULL);
-#endif
-}
-
 #ifdef CONFIG_WATCHDOG_DW
 void up_wdtinit(void)
 {
@@ -295,38 +315,18 @@ void up_wdtinit(void)
 }
 #endif
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
+static void up_audio_init(void)
 {
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = B2C(TOP_MAILBOX_BASE),
-      .set_off    = 0x40,
-      .en_off     = 0x44,
-      .en_bit     = 0,
-      .src_en_off = 0x48,
-      .sta_off    = 0x50,
-      .chnl_count = 64,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_ADSP,
-      .base       = B2C(TOP_MAILBOX_BASE),
-      .set_off    = 0x70,
-      .en_off     = 0x74,
-      .en_bit     = 16,
-      .src_en_off = 0x74,
-      .sta_off    = 0x78,
-      .chnl_count = 16,
-      .irq        = IRQ_INT1,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
-}
+#ifdef CONFIG_SONG_PCM
+  struct i2s_dev_s *pcm = song_pcm_initialize(B2C(0xf8107000), "ap/audio_pcm_mclk");
+  audio_comp_initialize("pcm0p",
+                        audio_dma_initialize(g_dma[0], 0, true, 4, B2C(0xf8107018)),
+                        audio_i2s_initialize(pcm, true), NULL);
+  audio_comp_initialize("pcm0c",
+                        audio_dma_initialize(g_dma[0], 8, false, 4, B2C(0xf8107014)),
+                        audio_i2s_initialize(pcm, false), NULL);
 #endif
+}
 
 void up_lateinitialize(void)
 {
@@ -335,7 +335,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  up_openamp_initialize();
+  up_rptun_init();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
