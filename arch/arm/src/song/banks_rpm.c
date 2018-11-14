@@ -68,6 +68,8 @@
  ****************************************************************************/
 
 #define CPU_NAME_AP                 "ap"
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_RPM               1
 
 #define _LOGBUF_BASE                ((uintptr_t)&_slog)
 #define _LOGBUF_SIZE                ((uint32_t)&_logsize)
@@ -97,6 +99,13 @@ static FAR struct dma_dev_s *g_dma[2] =
 
 extern uint32_t _slog;
 extern uint32_t _logsize;
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[3] =
+{
+  [2] = DEV_END,
+};
+#endif
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -200,32 +209,6 @@ void rpmsg_serialinit(void)
 #ifdef CONFIG_SONG_RPTUN
 static void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_ap, *mbox_rpm;
-
-  static const struct song_mbox_config_s mbox_cfg_ap =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x40,
-    .en_off     = UINT32_MAX,
-    .en_bit     = UINT32_MAX,
-    .src_en_off = UINT32_MAX,
-    .sta_off    = UINT32_MAX,
-    .chnl_count = 64,
-    .irq        = -1,
-  };
-
-  static const struct song_mbox_config_s mbox_cfg_rpm =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = UINT32_MAX,
-    .en_off     = 0x324,
-    .en_bit     = 16,
-    .src_en_off = 0x324,
-    .sta_off    = 0x328,
-    .chnl_count = 16,
-    .irq        = 27,
-  };
-
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".resource_table"))) =
   {
@@ -283,10 +266,7 @@ static void up_openamp_initialize(void)
     },
   };
 
-  mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
-  mbox_rpm = song_mbox_initialize(&mbox_cfg_rpm);
-
-  song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_rpm);
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_RPM]);
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(false);
@@ -321,8 +301,45 @@ void up_wdtinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x40,
+      .en_off     = UINT32_MAX,
+      .en_bit     = UINT32_MAX,
+      .src_en_off = UINT32_MAX,
+      .sta_off    = UINT32_MAX,
+      .chnl_count = 64,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_RPM,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = UINT32_MAX,
+      .en_off     = 0x324,
+      .en_bit     = 16,
+      .src_en_off = 0x324,
+      .sta_off    = 0x328,
+      .chnl_count = 16,
+      .irq        = 27,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
 #endif

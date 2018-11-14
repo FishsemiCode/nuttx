@@ -121,6 +121,9 @@ extern "C"
 
 /* Global driver instances */
 
+/* Song mailbox instances */
+extern FAR struct mbox_dev_s *g_mbox[];
+
 /* Song general gpio instance */
 extern FAR struct ioexpander_dev_s *g_ioe[];
 

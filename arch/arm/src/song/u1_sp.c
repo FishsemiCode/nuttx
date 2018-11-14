@@ -81,6 +81,9 @@
 
 #define CPU_NAME_AP                 "ap"
 #define CPU_NAME_CP                 "cp"
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_CP                1
+#define CPU_INDEX_SP                2
 
 #define LOGBUF_BASE                 ((uintptr_t)&_slog)
 #define LOGBUF_SIZE                 ((uint32_t)&_logsize)
@@ -163,6 +166,13 @@ static FAR struct dma_dev_s *g_dma[2] =
 
 extern uint32_t _slog;
 extern uint32_t _logsize;
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[4] =
+{
+  [3] = DEV_END,
+};
+#endif
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -454,44 +464,6 @@ static int cp_boot(const struct song_rptun_config_s *config)
 
 static void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_ap, *mbox_cp, *mbox_sp;
-
-  static const struct song_mbox_config_s mbox_cfg_ap =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x10,
-    .en_off     = 0x14,
-    .en_bit     = 16,
-    .src_en_off = 0x14,
-    .sta_off    = 0x18,
-    .chnl_count = 16,
-    .irq        = -1,
-  };
-
-  static const struct song_mbox_config_s mbox_cfg_cp =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x0,
-    .en_off     = 0x4,
-    .en_bit     = 16,
-    .src_en_off = 0x4,
-    .sta_off    = 0x8,
-    .chnl_count = 16,
-    .irq        = -1,
-  };
-
-  static const struct song_mbox_config_s mbox_cfg_sp =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x20,
-    .en_off     = 0x24,
-    .en_bit     = 16,
-    .src_en_off = 0x24,
-    .sta_off    = 0x28,
-    .chnl_count = 16,
-    .irq        = 21,
-  };
-
   static struct rptun_rsc_s rptun_rsc_ap
     __attribute__ ((section(".resource_table.ap"))) =
   {
@@ -625,12 +597,8 @@ static void up_openamp_initialize(void)
     .buf_size        = 0x1e0,
   };
 
-  mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
-  mbox_cp = song_mbox_initialize(&mbox_cfg_cp);
-  mbox_sp = song_mbox_initialize(&mbox_cfg_sp);
-
-  song_rptun_initialize(&rptun_cfg_ap, mbox_ap, mbox_sp);
-  song_rptun_initialize(&rptun_cfg_cp, mbox_cp, mbox_sp);
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_SP]);
+  song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_SP]);
 
 #  ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_AP, true);
@@ -674,6 +642,50 @@ void up_wdtinit(void)
   };
 
   dw_wdt_initialize(&config);
+}
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_SP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x20,
+      .en_off     = 0x24,
+      .en_bit     = 16,
+      .src_en_off = 0x24,
+      .sta_off    = 0x28,
+      .chnl_count = 16,
+      .irq        = 21,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
 }
 #endif
 
@@ -741,6 +753,10 @@ static void up_flash_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
 #endif

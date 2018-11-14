@@ -1,8 +1,8 @@
-/********************************************************************************************
- * include/nuttx/mbox/song_mbox.h
+/****************************************************************************
+ * arch/ceva/src/song/chip.h
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
- *   Author: Guiding Li<liguiding@pinecone.net>
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -31,57 +31,29 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_MBOX_SONG_MBOX_H
-#define __INCLUDE_NUTTX_MBOX_SONG_MBOX_H
-
-#ifdef CONFIG_SONG_MBOX
+#ifndef __ARCH_CEVA_SRC_SONG_CHIP_H
+#define __ARCH_CEVA_SRC_SONG_CHIP_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/mbox/mbox.h>
+
+#include <arch/song/chip.h>
 
 /****************************************************************************
- * Public Types
+ * Pre-processor Definitions
  ****************************************************************************/
 
-struct song_mbox_config_s
-{
-  int       index;
-  uintptr_t base;
-  uint32_t  set_off;
-  uint32_t  en_off;
-  uint32_t  en_bit;
-  uint32_t  src_en_off;
-  uint32_t  sta_off;
-  uint32_t  chnl_count;
-  int32_t   irq;
-};
+#ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
+#endif
 
 /****************************************************************************
- * Public Function Prototypes
+ * Public Functions
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
-
-struct mbox_dev_s *song_mbox_initialize(const struct song_mbox_config_s *config);
-
-void song_mbox_allinitialize(FAR const struct song_mbox_config_s *config, int config_num,
-                          FAR struct mbox_dev_s **mbox);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* CONFIG_SONG_MBOX */
-#endif /* __INCLUDE_NUTTX_MBOX_SONG_MBOX_H */
+#endif /* __ARCH_CEVA_SRC_SONG_CHIP_H */

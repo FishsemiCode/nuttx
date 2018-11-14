@@ -239,3 +239,17 @@ fail:
   kmm_free(priv);
   return NULL;
 }
+
+void song_mbox_allinitialize(FAR const struct song_mbox_config_s *config, int config_num,
+                          FAR struct mbox_dev_s **mbox)
+{
+  struct mbox_dev_s *mbox_dev;
+  int i;
+
+  for (i = 0; i < config_num; i++)
+    {
+      mbox_dev = song_mbox_initialize(&config[i]);
+      if (config[i].index >= 0)
+        mbox[config[i].index] = mbox_dev;
+    }
+}

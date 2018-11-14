@@ -73,6 +73,8 @@
  ****************************************************************************/
 
 #define CPU_NAME_ADSP               "adsp"
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_ADSP              1
 
 #define TOP_MAILBOX_BASE            (0xa0050000)
 
@@ -100,6 +102,13 @@ static FAR struct dma_dev_s *g_dma[3] =
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[3] =
+{
+  [2] = DEV_END,
+};
+#endif
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -202,32 +211,6 @@ void rpmsg_serialinit(void)
 #ifdef CONFIG_SONG_RPTUN
 static void up_openamp_initialize(void)
 {
-  struct mbox_dev_s *mbox_ap, *mbox_adsp;
-
-  static const struct song_mbox_config_s mbox_cfg_ap =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x0, /* MAILBOX_M4_INTR_SET */
-    .en_off     = 0x4, /* MAILBOX_M4_INTR_EN */
-    .en_bit     = 16,
-    .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
-    .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
-    .chnl_count = 16,
-    .irq        = 32,
-  };
-
-  static const struct song_mbox_config_s mbox_cfg_adsp =
-  {
-    .base       = TOP_MAILBOX_BASE,
-    .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
-    .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
-    .en_bit     = 16,
-    .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
-    .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
-    .chnl_count = 16,
-    .irq        = -1,
-  };
-
   static struct rptun_rsc_s rptun_rsc_adsp
     __attribute__ ((section(".resource_table.adsp"))) =
   {
@@ -277,10 +260,7 @@ static void up_openamp_initialize(void)
     },
   };
 
-  mbox_ap = song_mbox_initialize(&mbox_cfg_ap);
-  mbox_adsp = song_mbox_initialize(&mbox_cfg_adsp);
-
-  song_rptun_initialize(&rptun_cfg_adsp, mbox_adsp, mbox_ap);
+  song_rptun_initialize(&rptun_cfg_adsp, g_mbox[CPU_INDEX_ADSP], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
@@ -304,6 +284,39 @@ void up_wdtinit(void)
   };
 
   dw_wdt_initialize(&config);
+}
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0, /* MAILBOX_M4_INTR_SET */
+      .en_off     = 0x4, /* MAILBOX_M4_INTR_EN */
+      .en_bit     = 16,
+      .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
+      .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
+      .chnl_count = 16,
+      .irq        = 32,
+    },
+    {
+      .index      = CPU_INDEX_ADSP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
+      .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
+      .en_bit     = 16,
+      .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
+      .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
+      .chnl_count = 16,
+      .irq        = -1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
 }
 #endif
 
@@ -415,6 +428,10 @@ static void up_flash_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
   up_openamp_initialize();
 #endif
