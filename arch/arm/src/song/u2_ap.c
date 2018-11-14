@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
