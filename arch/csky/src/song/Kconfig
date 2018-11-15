@@ -1,0 +1,34 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+comment "Song Configuration Options"
+
+config ARCH_CHIP_SONG
+	bool
+
+choice
+	prompt "Song Chip Selection"
+	depends on ARCH_CHIP_SONG
+
+config ARCH_CHIP_U1_CK
+	bool "U1 CK"
+	select ARCH_CK802
+	select SONG_ICACHE
+
+endchoice
+
+config SONG_COPY_TABLE
+	bool
+
+config SONG_ZERO_TABLE
+	bool
+
+config SONG_ICACHE
+	bool
+	select ARCH_HAVE_COHERENT_DCACHE
+
+config SONG_ICACHE_BASE
+	hex "Song icache base address"
+	depends on SONG_ICACHE

@@ -16,6 +16,15 @@ config ARCH_CHIP_CSKY
 	---help---
 		CSKY architectures (CK802 cores).
 
+config ARCH_CSKY_SONG
+	bool "Pinecone Song"
+	select ARCH_CHIP_SONG
+	select ARCH_HAVE_HEAPCHECK
+	select ARCH_HAVE_RESET
+	select ARCH_HAVE_STACKCHECK
+	---help---
+		Pinecone Song(CSKY series) architectures
+
 endchoice
 
 config ARCH_CK802
@@ -29,12 +38,16 @@ config ARCH_FAMILY
 config ARCH_CHIP
 	string
 	default "ch2201"	if ARCH_CHIP_CSKY
+	default "song"		if ARCH_CSKY_SONG
 
 if ARCH_CK802
 source arch/csky/src/ck802/Kconfig
 endif
 if ARCH_CHIP_CSKY
 source arch/csky/src/ch2201/Kconfig
+endif
+if ARCH_CSKY_SONG
+source arch/csky/src/song/Kconfig
 endif
 
 endif
