@@ -50,6 +50,16 @@
  * Private Data
  ****************************************************************************/
 
+/* This describes unicorn 32k osc clk */
+static const struct song_fixed_rate_clk fixed_rate[] =
+{
+  {
+    .name = "clk32k",
+    .fixed_rate = 32768,
+  },
+  {},
+};
+
 /* This describes mux clk parent source */
 static const char * const out_clk_src[] =
 {
@@ -57,7 +67,7 @@ static const char * const out_clk_src[] =
   "sp/top_bus_mclk0",
   "sp/pll1_mclk",
   "sp/pll0_out",
-  "sp/clk32k",
+  "clk32k",
   "sp/pll0_out",
 };
 
@@ -226,14 +236,14 @@ static const struct song_gate_clk gate[] =
   },
   {
     .name = "ap_m4_stclk",
-    .parent_name = "sp/clk32k",
+    .parent_name = "clk32k",
     .en_offset = 0x0c4,
     .en_shift = 2,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "apwdt_tclk",
-    .parent_name = "sp/clk32k",
+    .parent_name = "clk32k",
     .en_offset = 0x0c4,
     .en_shift = 4,
   },
@@ -269,6 +279,7 @@ static const struct song_default_rate_clk def_rate[] =
 
 static const struct song_clk_table clk_tbl =
 {
+  .fixed_rate_clks   = fixed_rate,
   .gr_clks           = gr,
   .div_clks          = div,
   .sdiv_sdiv_clks    = sdiv_sdiv,

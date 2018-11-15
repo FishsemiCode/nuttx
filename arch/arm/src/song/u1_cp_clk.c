@@ -77,7 +77,7 @@ static const char * const timer_clk_src[] =
   "sp/pll1_mclk",
   "sp/pll0_out",
   "sp/pll0_out",
-  "sp/clk32k",
+  "clk32k",
 };
 
 /* This describes unicorn cp clk input */
