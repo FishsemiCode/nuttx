@@ -539,7 +539,7 @@ static void up_rptun_init(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x5e0,
+    .buf_size        = 0x640,
   };
 
   static const struct song_rptun_config_s rptun_cfg_ap =
@@ -588,7 +588,7 @@ static void up_rptun_init(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x5e0,
+    .buf_size        = 0x640,
   };
 
   static const struct song_rptun_config_s rptun_cfg_cp =
@@ -638,7 +638,7 @@ static void up_rptun_init(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x1e0,
+    .buf_size        = 0x170,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_SP]);
