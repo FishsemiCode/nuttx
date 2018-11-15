@@ -76,11 +76,11 @@ config ARCH_RISCV
 		RISC-V 32 and 64-bit RV32 / RV64 architectures.
 
 config ARCH_CSKY
-        bool "csky"
-        select ARCH_HAVE_INTERRUPTSTACK
-        select ARCH_HAVE_CUSTOMOPT
-        ---help---
-                CSKY architectures.
+	bool "csky"
+	select ARCH_HAVE_INTERRUPTSTACK
+	select ARCH_HAVE_CUSTOMOPT
+	---help---
+		CSKY architectures.
 
 config ARCH_SIM
 	bool "Simulation"

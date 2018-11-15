@@ -43,17 +43,17 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
+#include <nuttx/syslog/syslog.h>
 #include <nuttx/usb/usbdev_trace.h>
 
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-//#include "sched/sched.h"
+#include "sched/sched.h"
 #include "up_internal.h"
 
 #define THIS_MODULE MODULE_ARCH
 
-#if 0
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -76,9 +76,17 @@
 #  define CONFIG_PRINT_TASKNAME 1
 #endif
 
+#ifndef CONFIG_BOARD_RESET_ON_ASSERT
+#  define CONFIG_BOARD_RESET_ON_ASSERT 0
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+#ifdef CONFIG_ARCH_STACKDUMP
+static uint32_t s_last_regs[XCPTCONTEXT_REGS];
+#endif
 
 /****************************************************************************
  * Private Functions
@@ -94,14 +102,11 @@ static inline uint32_t up_getsp(void)
 {
     uint32_t sp=0;//set initial value to 0
 
-//hge delete
-#if 0
     __asm__
     (
         "\tmov %0, sp\n\t"
         : "=r"(sp)
     );
-#endif
     return sp;
 }
 
@@ -116,7 +121,7 @@ static void up_stackdump(uint32_t sp, uint32_t stack_base)
 
     for (stack = sp & ~0x1f; stack < stack_base; stack += 32) {
         uint32_t *ptr = (uint32_t *)stack;
-        sinfo("%08x: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+        _alert("%08x: %08x %08x %08x %08x %08x %08x %08x %08x\n",
               stack, ptr[0], ptr[1], ptr[2], ptr[3],
               ptr[4], ptr[5], ptr[6], ptr[7]);
     }
@@ -135,11 +140,11 @@ static void up_taskdump(FAR struct tcb_s *tcb, FAR void *arg)
     /* Dump interesting properties of this task */
 
 #ifdef CONFIG_PRINT_TASKNAME
-    sinfo("%s: PID=%d Stack Used=%lu of %lu\n",
+    _alert("%s: PID=%d Stack Used=%lu of %lu\n",
           tcb->name, tcb->pid, (unsigned long)up_check_tcbstack(tcb),
           (unsigned long)tcb->adj_stack_size);
 #else
-    sinfo("PID: %d Stack Used=%lu of %lu\n",
+    _alert("PID: %d Stack Used=%lu of %lu\n",
           tcb->pid, (unsigned long)up_check_tcbstack(tcb),
           (unsigned long)tcb->adj_stack_size);
 #endif
@@ -168,36 +173,27 @@ static inline void up_showtasks(void)
 #ifdef CONFIG_ARCH_STACKDUMP
 static inline void up_registerdump(void)
 {
+  volatile uint32_t *regs = current_regs;
+
     /* Are user registers available from interrupt processing? */
 
-    if (current_regs) {
-        /* Yes.. dump the interrupt registers */
+    if (regs == NULL) {
+        /* No.. capture user registers by hand */
 
-        sinfo("R0: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-              current_regs[REG_R0],  current_regs[REG_R1],
-              current_regs[REG_R2],  current_regs[REG_R3],
-              current_regs[REG_R4],  current_regs[REG_R5],
-              current_regs[REG_R6],  current_regs[REG_R7]);
-        sinfo("R8: %08x %08x %08x %08x %08x %08x %08x %08x\n",
-              current_regs[REG_R8],  current_regs[REG_R9],
-              current_regs[REG_R10], current_regs[REG_R11],
-              current_regs[REG_R12], current_regs[REG_R13],
-              current_regs[REG_R14], current_regs[REG_R15]);
-
-#ifdef CONFIG_ARMV7M_USEBASEPRI
-        sinfo("xPSR: %08x BASEPRI: %08x CONTROL: %08x\n",
-              current_regs[REG_XPSR],  current_regs[REG_BASEPRI],
-              getcontrol());
-#else
-        sinfo("xPSR: %08x PRIMASK: %08x CONTROL: %08x\n",
-              current_regs[REG_XPSR],  current_regs[REG_PRIMASK],
-              getcontrol());
-#endif
-
-#ifdef REG_EXC_RETURN
-        sinfo("EXC_RETURN: %08x\n", current_regs[REG_EXC_RETURN]);
-#endif
+        up_saveusercontext(s_last_regs);
+        regs = s_last_regs;
     }
+
+    /* Dump the interrupt registers */
+
+    _alert("R0: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+          regs[REG_R0],  regs[REG_R1], regs[REG_R2],  regs[REG_R3],
+          regs[REG_R4],  regs[REG_R5], regs[REG_R6],  regs[REG_R7]);
+    _alert("R8: %08x %08x %08x %08x %08x %08x %08x %08x\n",
+          regs[REG_R8],  regs[REG_R9], regs[REG_R10], regs[REG_R11],
+          regs[REG_R12], regs[REG_R13], regs[REG_R14], regs[REG_R15]);
+    _alert("PSR: %08x PC: %08x\n",
+          regs[REG_PSR], regs[REG_PC]);
 }
 #else
 # define up_registerdump()
@@ -216,7 +212,7 @@ static int usbtrace_syslog(FAR const char *fmt, ...)
     /* Let vsyslog do the real work */
 
     va_start(ap, fmt);
-    ret = lowvsyslog(LOG_INFO, fmt, ap);
+    ret = nx_vsyslog(LOG_EMERG, fmt, &ap);
     va_end(ap);
     return ret;
 }
@@ -244,6 +240,10 @@ static void up_dumpstate(void)
     uint32_t istacksize;
 #endif
 
+    /* Dump the registers (if available) */
+
+    up_registerdump();
+
     /* Get the limits on the user stack memory */
 
     if (rtcb->pid == 0) {
@@ -262,12 +262,12 @@ static void up_dumpstate(void)
 
     /* Show interrupt stack info */
 
-    sinfo("sp:     %08x\n", sp);
-    sinfo("IRQ stack:\n");
-    sinfo("  base: %08x\n", istackbase);
-    sinfo("  size: %08x\n", istacksize);
+    _alert("sp:     %08x\n", sp);
+    _alert("IRQ stack:\n");
+    _alert("  base: %08x\n", istackbase);
+    _alert("  size: %08x\n", istacksize);
 #ifdef CONFIG_STACK_COLORATION
-    sinfo("  used: %08x\n", up_check_intstack());
+    _alert("  used: %08x\n", up_check_intstack());
 #endif
 
     /* Does the current stack pointer lie within the interrupt
@@ -278,6 +278,9 @@ static void up_dumpstate(void)
         /* Yes.. dump the interrupt stack */
 
         up_stackdump(sp, istackbase);
+    } else if (current_regs) {
+        _alert("ERROR: Stack pointer is not within the interrupt stack\n");
+        up_stackdump(istackbase - istacksize, istackbase);
     }
 
     /* Extract the user stack pointer if we are in an interrupt handler.
@@ -287,14 +290,14 @@ static void up_dumpstate(void)
 
     if (current_regs) {
         sp = current_regs[REG_R13];
-        sinfo("sp:     %08x\n", sp);
+        _alert("sp:     %08x\n", sp);
     }
 
-    sinfo("User stack:\n");
-    sinfo("  base: %08x\n", ustackbase);
-    sinfo("  size: %08x\n", ustacksize);
+    _alert("User stack:\n");
+    _alert("  base: %08x\n", ustackbase);
+    _alert("  size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-    sinfo("  used: %08x\n", up_check_tcbstack(rtcb));
+    _alert("  used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 
     /* Dump the user stack if the stack pointer lies within the allocated user
@@ -303,17 +306,20 @@ static void up_dumpstate(void)
 
     if (sp <= ustackbase && sp > ustackbase - ustacksize) {
         up_stackdump(sp, ustackbase);
+    } else {
+        _alert("ERROR: Stack pointer is not within the allocated stack\n");
+        up_stackdump(ustackbase - ustacksize, ustackbase);
     }
 
 #else
 
     /* Show user stack info */
 
-    sinfo("sp:         %08x\n", sp);
-    sinfo("stack base: %08x\n", ustackbase);
-    sinfo("stack size: %08x\n", ustacksize);
+    _alert("sp:         %08x\n", sp);
+    _alert("stack base: %08x\n", ustackbase);
+    _alert("stack size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-    sinfo("stack used: %08x\n", up_check_tcbstack(rtcb));
+    _alert("stack used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 
     /* Dump the user stack if the stack pointer lies within the allocated user
@@ -321,16 +327,13 @@ static void up_dumpstate(void)
      */
 
     if (sp > ustackbase || sp <= ustackbase - ustacksize) {
-        sinfo("ERROR: Stack pointer is not within the allocated stack\n");
+        _alert("ERROR: Stack pointer is not within the allocated stack\n");
+         up_stackdump(ustackbase - ustacksize, ustackbase);
     } else {
-        up_stackdump(sp, ustackbase);
+         up_stackdump(sp, ustackbase);
     }
 
 #endif
-
-    /* Then dump the registers (if available) */
-
-    up_registerdump();
 
     /* Dump the state of all tasks (if available) */
 
@@ -358,6 +361,9 @@ static void _up_assert(int errorcode)
     if (current_regs || ((struct tcb_s *)g_readytorun.head)->pid == 0) {
         (void)irqsave();
         for (; ; ) {
+#if CONFIG_BOARD_RESET_ON_ASSERT >= 1
+            board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+#endif
 #ifdef CONFIG_ARCH_LEDS
             board_autoled_on(LED_PANIC);
             up_mdelay(250);
@@ -366,11 +372,13 @@ static void _up_assert(int errorcode)
 #endif
         }
     } else {
-        while(1);
+#if CONFIG_BOARD_RESET_ON_ASSERT >= 2
+        board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
+#endif
         exit(errorcode);
     }
 }
-#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -388,23 +396,18 @@ void up_assert(const uint8_t *filename, int lineno)
     board_autoled_on(LED_ASSERTION);
 
 #ifdef CONFIG_PRINT_TASKNAME
-    sinfo("Assertion failed at file:%s line: %d task: %s\n",
+    _alert("Assertion failed at file:%s line: %d task: %s\n",
           filename, lineno, rtcb->name);
 #else
-    sinfo("Assertion failed at file:%s line: %d\n",
+    _alert("Assertion failed at file:%s line: %d\n",
           filename, lineno);
 #endif
 
-#ifndef CONFIG_DEBUG
-   // syslog(LOG_ERR, "Assertion failed at file:%s line: %d\n",   filename, lineno);
-#endif
-
-    //up_dumpstate();
+    up_dumpstate();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
     board_crashdump(up_getsp(), g_readytorun.head, filename, lineno);
 #endif
 
-    //_up_assert(EXIT_FAILURE);
-     while(1);
+    _up_assert(EXIT_FAILURE);
 }

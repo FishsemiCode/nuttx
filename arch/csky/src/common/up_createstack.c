@@ -188,7 +188,7 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
        */
 
 #ifdef CONFIG_STACK_COLORATION
-      memset(tcb->stack_alloc_ptr, 0xaa, stack_size);
+      up_stack_color(tcb->stack_alloc_ptr, stack_size);
 #endif
 
       /* MIPS uses a push-down stack:  the stack grows toward lower
@@ -219,3 +219,29 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
 
    return ERROR;
 }
+
+/****************************************************************************
+ * Name: up_stack_color
+ *
+ * Description:
+ *   Write a well know value into the stack
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_STACK_COLORATION
+void up_stack_color(FAR void *stackbase, size_t nbytes)
+{
+  /* Take extra care that we do not write outsize the stack boundaries */
+
+  uint32_t *stkptr = (uint32_t *)(((uintptr_t)stackbase + 3) & ~3);
+  uintptr_t stkend = (((uintptr_t)stackbase + nbytes) & ~3);
+  size_t    nwords = (stkend - (uintptr_t)stackbase) >> 2;
+
+  /* Set the entire stack to the coloration value */
+
+  while (nwords-- > 0)
+    {
+      *stkptr++ = STACK_COLOR;
+    }
+}
+#endif

@@ -61,12 +61,9 @@ endif
 
 CROSSDEV ?= csky-abiv2-elf-
 ARCROSSDEV ?= csky-abiv2-elf-
-ARCHCPUFLAGS = -mcpu=ck802 -Os
+ARCHCPUFLAGS = -mcpu=ck802
 
 # Individual tools may limit the optimizatin level but, by default, the
 # optimization level will be set to to -Os
 
-ifeq ($(CONFIG_DEBUG_SYMBOLS),)
 MAXOPTIMIZATION ?= -Os
-endif
-

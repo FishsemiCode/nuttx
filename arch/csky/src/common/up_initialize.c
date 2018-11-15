@@ -131,6 +131,29 @@ void up_initialize(void)
 
   up_irqinitialize();
 
+#ifdef CONFIG_PM
+  /* Initialize the power management subsystem.  This MCU-specific function
+   * must be called *very* early in the initialization sequence *before* any
+   * other device drivers are initialized (since they may attempt to register
+   * with the power management subsystem).
+   */
+
+  up_pminitialize();
+#endif
+
+#ifdef CONFIG_ARCH_DMA
+  /* Initialize the DMA subsystem if the weak function up_dmainitialize has been
+   * brought into the build
+   */
+
+#ifdef CONFIG_HAVE_WEAKFUNCTIONS
+  if (up_dmainitialize)
+#endif
+    {
+      up_dmainitialize();
+    }
+#endif
+
   /* Initialize the system timer interrupt */
 
 #if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
@@ -151,16 +174,36 @@ void up_initialize(void)
   devnull_register();   /* Standard /dev/null */
 #endif
 
+#if defined(CONFIG_DEV_RANDOM)
+  devrandom_register(); /* Standard /dev/random */
+#endif
+
+#if defined(CONFIG_DEV_URANDOM)
+  devurandom_register();   /* Standard /dev/urandom */
+#endif
+
 #if defined(CONFIG_DEV_ZERO)
   devzero_register();   /* Standard /dev/zero */
 #endif
 
+#if defined(CONFIG_DEV_LOOP)
+  loop_register();      /* Standard /dev/loop */
+#endif
 #endif /* CONFIG_NFILE_DESCRIPTORS */
+
+#if defined(CONFIG_SCHED_INSTRUMENTATION_BUFFER) && \
+    defined(CONFIG_DRIVER_NOTE)
+  note_register();      /* Non-standard /dev/note */
+#endif
 
   /* Initialize the serial device driver */
 
 #ifdef USE_SERIALDRIVER
   up_serialinit();
+#endif
+
+#ifdef CONFIG_RPMSG_UART
+  rpmsg_serialinit();
 #endif
 
   /* Initialize the console device driver (if it is other than the standard
@@ -169,7 +212,7 @@ void up_initialize(void)
 
 #if defined(CONFIG_DEV_LOWCONSOLE)
   lowconsole_init();
-#elif defined(CONFIG_SYSLOG_CONSOLE)
+#elif defined(CONFIG_CONSOLE_SYSLOG)
   syslog_console_init();
 #elif defined(CONFIG_RAMLOG_CONSOLE)
   ramlog_consoleinit();
@@ -188,9 +231,46 @@ void up_initialize(void)
 
   syslog_initialize(SYSLOG_INIT_EARLY);
 
-#ifdef CONFIG_SYSLOG_RAMLOG
-  ramlog_sysloginit();
+#if defined(CONFIG_CRYPTO)
+  /* Initialize the HW crypto and /dev/crypto */
+
+  up_cryptoinitialize();
 #endif
 
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_CRYPTO_CRYPTODEV)
+  devcrypto_register();
+#endif
+
+#ifndef CONFIG_NETDEV_LATEINIT
+  /* Initialize the network */
+
+  up_netinitialize();
+#endif
+
+#ifdef CONFIG_NETDEV_LOOPBACK
+  /* Initialize the local loopback device */
+
+  (void)localhost_initialize();
+#endif
+
+#ifdef CONFIG_NET_TUN
+  /* Initialize the TUN device */
+
+  (void)tun_initialize();
+#endif
+
+#ifdef CONFIG_NETDEV_TELNET
+  /* Initialize the Telnet session factory */
+
+  (void)telnet_initialize();
+#endif
+
+  /* Initialize USB -- device and/or host */
+
+  up_usbinitialize();
+
+  /* Initialize the L2 cache if present and selected */
+
+  up_l2ccinitialize();
   board_autoled_on(LED_IRQSENABLED);
 }

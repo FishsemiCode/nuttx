@@ -102,6 +102,13 @@
 #endif
 #define up_restorestate(regs) up_copyfullstate((uint32_t*)current_regs, regs)
 
+#define _START_TEXT  &_stext
+#define _END_TEXT    &_etext
+#define _START_BSS   &_sbss
+#define _END_BSS     &_ebss
+#define _DATA_INIT   &_eronly
+#define _START_DATA  &_sdata
+#define _END_DATA    &_edata
 
 /* This is the value used to mark the stack for subsequent stack monitoring
  * logic.
@@ -336,6 +343,12 @@ void up_earlyserialinit(void);
 #  define up_earlyserialinit()
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void);
+#else
+#  define rpmsg_serialinit()
+#endif
+
 /* Defined in drivers/lowconsole.c */
 
 #ifdef CONFIG_DEV_LOWCONSOLE
@@ -346,7 +359,7 @@ void lowconsole_init(void);
 
 /* DMA **********************************************************************/
 
-#ifdef CONFIG_SC6138_DMA
+#ifdef CONFIG_ARCH_DMA
 void weak_function up_dmainitialize(void);
 #endif
 
@@ -382,7 +395,7 @@ void up_wdtinit(void);
  * up_initialize().  Then this stub would not be needed.
  */
 
-#ifdef CONFIG_NET
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void);
 #else
 # define up_netinitialize()

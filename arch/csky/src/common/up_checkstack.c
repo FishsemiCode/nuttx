@@ -180,7 +180,7 @@ static void do_check_tasklist_stack_remain(struct tcb_s *tcb)
         if (!tcb || (tcb && tcb->pid == 0)) {
             break;
         }
-        LOG_M("pid: %d\t, entry: 0x%x, stack remain: %d bytes\n",
+        sinfo("pid: %d\t, entry: 0x%x, stack remain: %d bytes\n",
                tcb->pid, tcb->entry, up_check_tcbstack_remain(tcb));
         tcb = (struct tcb_s *)tcb->flink;
     }
@@ -250,8 +250,8 @@ size_t up_check_intstack_remain(void)
 
 void up_check_alltask_stack_remain(void)
 {
-    LOG_M("\n");
-    LOG_M("Remaining of all threads stack:\n");
+    sinfo("\n");
+    sinfo("Remaining of all threads stack:\n");
 
     do_check_tasklist_stack_remain((struct tcb_s *)g_readytorun.head);
     do_check_tasklist_stack_remain((struct tcb_s *)g_pendingtasks.head);
@@ -275,7 +275,7 @@ void up_check_alltask_stack_remain(void)
 
     do_check_tasklist_stack_remain((struct tcb_s *)g_inactivetasks.head);
 
-    LOG_M("\n");
+    sinfo("\n");
 }
 
 #endif /* CONFIG_STACK_COLORATION */

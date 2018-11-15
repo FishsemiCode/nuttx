@@ -162,9 +162,9 @@ extern void up_trap_c(uint32_t *regs);
 
 void alignment_check_addr(uint32_t addr, uint32_t *regs)
 {
-    LOG_M("Handle addr: 0x%x\n", addr);
+    sinfo("Handle addr: 0x%x\n", addr);
     if (check_addr_validity(addr)) {
-        LOG_M("Invalid addr, call up_trap_c...\n");
+        sinfo("Invalid addr, call up_trap_c...\n");
         up_trap_c(regs);
     }
 }
@@ -191,14 +191,14 @@ put_regs_value(unsigned int value, unsigned int rx, uint32_t *regs)
 {
 #ifndef __CSKYABIV2__
     if(rx == 0) {
-        LOG_D("alignment handler trying to write sp.\n");
+        sinfo("alignment handler trying to write sp.\n");
         goto fault;
     } else {
         regs[rx] = value;
     }
 #else
     if(rx == 14) {
-        LOG_D("alignment handler trying to write sp.\n");
+        sinfo("alignment handler trying to write sp.\n");
         goto fault;
     } else {
         regs[rx] = value;
@@ -917,7 +917,7 @@ void alignment_c(uint32_t *regs)
             break;
         case 0x0100:
             handler = handle_push_pop_16;
-            printk("warnning: push/pop alignment.\n");
+            sinfo("warnning: push/pop alignment.\n");
             break;
         default:
             goto bad_or_fault;
@@ -937,7 +937,7 @@ void alignment_c(uint32_t *regs)
             handler = handle_strh_strw_stm;
             break;
         case 0xE8000000:  // push/pop instruction.
-            printk("warnning: push/pop alignment.\n");
+            sinfo("warnning: push/pop alignment.\n");
             handler = handle_push_pop;
             break;
         default:
@@ -961,7 +961,7 @@ void alignment_c(uint32_t *regs)
     return;
 
 bad_or_fault:
-    LOG_D("Alignment trap: not handle this instruction\n");
+    sinfo("Alignment trap: not handle this instruction\n");
     return;
 }
 

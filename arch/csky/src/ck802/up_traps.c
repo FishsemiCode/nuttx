@@ -159,24 +159,20 @@ void show_registers(uint32_t *regs)
            regs[REG_HI], regs[REG_LO]);
 #endif
 
-    SHOWREG(LOG_EMERG, "\nCODE:");
+    SHOWREG(LOG_EMERG, "CODE:\n");
     tp = ((uint8_t *)regs[REG_PC]) - 0x20;
     tp += ((int)tp % 4) ? 2 : 0;
-    for (sp = (uint32_t *)tp, i = 0; (i < 0x40); i += 4) {
-        if ((i % 0x10) == 0)
-            SHOWREG(LOG_EMERG,"\n%08x: ", (int)(tp + i));
-        SHOWREG(LOG_EMERG,"%08x ", (int)*sp++);
+    for (sp = (uint32_t *)tp, i = 0; (i < 0x40); sp += 4, i += 16) {
+        SHOWREG(LOG_EMERG,"%08x: %08x %08x %08x %08x\n",
+                (int)(tp + i), sp[0], sp[1], sp[2], sp[3]);
     }
-    SHOWREG(LOG_EMERG,"\n");
 
-    SHOWREG(LOG_EMERG, "\nSTACK:");
+    SHOWREG(LOG_EMERG, "STACK:\n");
     tp = (uint8_t *)regs[REG_SP];
-    for (sp = (uint32_t *) tp, i = 0; (i < 0xc0); i += 4) {
-        if ((i % 0x10) == 0)
-            SHOWREG(LOG_EMERG,"\n%08x: ", (int)(tp + i));
-        SHOWREG(LOG_EMERG, "%08x ", (int) *sp++);
+    for (sp = (uint32_t *) tp, i = 0; (i < 0xc0); sp += 4, i += 16) {
+        SHOWREG(LOG_EMERG,"%08x: %08x %08x %08x %08x\n",
+                (int)(tp + i), sp[0], sp[1], sp[2], sp[3]);
     }
-    SHOWREG(LOG_EMERG,"\n");
 }
 #else
 void show_registers(uint32_t *regs) {}
