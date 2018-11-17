@@ -151,31 +151,22 @@ static void hostfs_rpmsg_open_handler(struct rpmsg_channel *channel,
 {
   struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_open_s *msg = data;
-  int i, fd, ret = -ENOENT;
+  int i, ret = -ENOENT;
 
-  fd = open(msg->pathname, msg->flags, msg->mode);
-  if (fd >= 0)
+  nxsem_wait(&priv->sem);
+  for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
-      nxsem_wait(&priv->sem);
-      for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
+      if (!priv->files[i].f_inode)
         {
-          if (!priv->files[i].f_inode)
+          ret = file_open(&priv->files[i], msg->pathname, msg->flags, msg->mode);
+          if (ret >= 0)
             {
-              ret = file_detach(fd, &priv->files[i]);
-              if (ret == 0)
-                {
-                  ret = i;
-                }
-              break;
+              ret = i;
             }
-        }
-      nxsem_post(&priv->sem);
-
-      if (ret < 0)
-        {
-          close(fd);
+          break;
         }
     }
+  nxsem_post(&priv->sem);
 
   msg->header.result = ret;
   rpmsg_send(channel, msg, sizeof(*msg));
@@ -191,7 +182,7 @@ static void hostfs_rpmsg_close_handler(struct rpmsg_channel *channel,
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
       nxsem_wait(&priv->sem);
-      ret = file_close_detached(&priv->files[msg->fd]);
+      ret = file_close(&priv->files[msg->fd]);
       nxsem_post(&priv->sem);
     }
 
@@ -542,7 +533,7 @@ static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
     {
       if (priv->files[i].f_inode)
         {
-          file_close_detached(&priv->files[i]);
+          file_close(&priv->files[i]);
         }
     }
 
