@@ -139,7 +139,7 @@ static inline void up_showtasks(void)
 #ifdef CONFIG_ARCH_STACKDUMP
 static inline void up_registerdump(void)
 {
-  uint32_t *regs = LAST_REGS;
+  volatile uint32_t *regs = CURRENT_REGS;
   int rx;
 
   /* Are user registers available from interrupt processing? */
@@ -151,7 +151,6 @@ static inline void up_registerdump(void)
       up_saveusercontext(s_last_regs);
       regs = s_last_regs;
     }
-
 
   /* Dump the interrupt registers */
 
@@ -176,10 +175,10 @@ static int usbtrace_syslog(FAR const char *fmt, ...)
   va_list ap;
   int ret;
 
-  /* Let vsyslog do the real work */
+  /* Let nx_vsyslog do the real work */
 
   va_start(ap, fmt);
-  ret = vsyslog(LOG_EMERG, fmt, ap);
+  ret = nx_vsyslog(LOG_EMERG, fmt, &ap);
   va_end(ap);
   return ret;
 }
@@ -198,6 +197,7 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 #ifdef CONFIG_ARCH_STACKDUMP
 static void up_dumpstate(void)
 {
+  struct tcb_s *rtcb = running_task();
   uint32_t sp = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -210,8 +210,8 @@ static void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  ustackbase = (uint32_t)LAST_TASK->adj_stack_ptr;
-  ustacksize = LAST_TASK->adj_stack_size;
+  ustackbase = (uint32_t)rtcb->adj_stack_ptr;
+  ustacksize = rtcb->adj_stack_size;
 
   /* Get the limits on the interrupt stack memory */
 
@@ -238,7 +238,7 @@ static void up_dumpstate(void)
 
       up_stackdump(sp, istackbase);
     }
-  else if (LAST_REGS)
+  else if (CURRENT_REGS)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);
@@ -249,9 +249,9 @@ static void up_dumpstate(void)
    * pointer (and the above range check should have failed).
    */
 
-  if (LAST_REGS)
+  if (CURRENT_REGS)
     {
-      sp = (uint32_t)LAST_REGS;
+      sp = (uint32_t)CURRENT_REGS;
     }
 
   /* Show user stack info */
@@ -261,14 +261,14 @@ static void up_dumpstate(void)
   _alert("  base: %08x\n", ustackbase);
   _alert("  size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("  used: %08x\n", up_check_tcbstack(LAST_TASK));
+  _alert("  used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 
   /* Dump the user stack if the stack pointer lies within the allocated user
    * stack memory.
    */
 
-  if (sp > ustackbase || sp < ustackbase - ustacksize)
+  if (sp > ustackbase || sp <= ustackbase - ustacksize)
     {
       _alert("ERROR: Stack pointer is not within the allocated stack\n");
       up_stackdump(ustackbase - ustacksize, ustackbase);
@@ -311,7 +311,7 @@ static void _up_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (LAST_REGS || LAST_TASK->pid == 0)
+  if (CURRENT_REGS || running_task()->pid == 0)
     {
       up_irq_save();
       for (; ; )
@@ -321,6 +321,7 @@ static void _up_assert(int errorcode)
 
           spin_trylock(&g_cpu_irqlock);
 #endif
+
 #if CONFIG_BOARD_RESET_ON_ASSERT >= 1
           board_reset(CONFIG_BOARD_ASSERT_RESET_VALUE);
 #endif
@@ -345,16 +346,30 @@ static void _up_assert(int errorcode)
 
 void up_assert(const uint8_t *filename, int lineno)
 {
+#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
+  struct tcb_s *rtcb = running_task();
+#endif
+
   /* Flush any buffered SYSLOG data (prior to the assertion) */
 
   syslog_flush();
 
+#ifdef CONFIG_SMP
+#if CONFIG_TASK_NAME_SIZE > 0
+  _alert("Assertion failed CPU%d at file:%s line: %d task: %s\n",
+        up_cpu_index(), filename, lineno, rtcb->name);
+#else
+  _alert("Assertion failed CPU%d at file:%s line: %d\n",
+        up_cpu_index(), filename, lineno);
+#endif
+#else
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
-        filename, lineno, LAST_TASK->name);
+        filename, lineno, rtcb->name);
 #else
   _alert("Assertion failed at file:%s line: %d\n",
         filename, lineno);
+#endif
 #endif
 
   up_dumpstate();
@@ -364,7 +379,7 @@ void up_assert(const uint8_t *filename, int lineno)
   syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), LAST_TASK, filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

@@ -200,9 +200,12 @@ config DEV_GPIO
 		space testing of hardware.
 
 config DEV_GPIO_NSIGNALS
-	int "Max number of signal could register to GPIO driver"
+	int "Max number of signals"
 	default 1
 	depends on DEV_GPIO
+	---help---
+		The maximum number of signals that can be registered with the GPIO
+		driver
 
 config GPIO_LOWER_HALF
 	bool "GPIO Lower Half"

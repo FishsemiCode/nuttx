@@ -67,15 +67,15 @@
 #define STM32_RCC_PLL2FRACR_OFFSET      0x003c  /* */
 #define STM32_RCC_PLL3DIVR_OFFSET       0x0040  /* */
 #define STM32_RCC_PLL3FRACR_OFFSET      0x0044  /* */
-#define STM32_RCC_D1CCIPR_OFFSET        0x004c  /* */
-#define STM32_RCC_D2CCIP1R_OFFSET       0x0050  /* */
-#define STM32_RCC_D2CCIP2R_OFFSET       0x0054  /* */
-#define STM32_RCC_D3CCIPR_OFFSET        0x0058  /* */
-#define STM32_RCC_CIER_OFFSET           0x0060  /* */
-#define STM32_RCC_CIFR_OFFSET           0x0064  /* */
-#define STM32_RCC_CICR_OFFSET           0x0068  /* */
-#define STM32_RCC_BDCR_OFFSET           0x0070  /* */
-#define STM32_RCC_CSR_OFFSET            0x0074  /* */
+#define STM32_RCC_D1CCIPR_OFFSET        0x004c  /* Domain 1 Kernel Clock configuration register */
+#define STM32_RCC_D2CCIP1R_OFFSET       0x0050  /* Domain 2 Kernel Clock configuration register 1 */
+#define STM32_RCC_D2CCIP2R_OFFSET       0x0054  /* Domain 2 Kernel Clock configuration register 2 */
+#define STM32_RCC_D3CCIPR_OFFSET        0x0058  /* Domain 3 Kernel Clock configuration register */
+#define STM32_RCC_CIER_OFFSET           0x0060  /* Clock Source Interrupt enable register */
+#define STM32_RCC_CIFR_OFFSET           0x0064  /* Clock Source Interrupt Flag register */
+#define STM32_RCC_CICR_OFFSET           0x0068  /* Clock Source Interrupt Clear register  */
+#define STM32_RCC_BDCR_OFFSET           0x0070  /* Backup Domain Control register */
+#define STM32_RCC_CSR_OFFSET            0x0074  /* Clock Control and Status register */
 #define STM32_RCC_AHB1RSTR_OFFSET       0x0080  /* AHB1 peripheral reset register */
 #define STM32_RCC_AHB2RSTR_OFFSET       0x0084  /* AHB2 peripheral reset register */
 #define STM32_RCC_AHB3RSTR_OFFSET       0x007c  /* AHB3 peripheral reset register */
@@ -316,19 +316,19 @@
                                            /* Bits 0-3: Reserved */
 #define RCC_D2CFGR_D2PPRE1_SHIFT     (4)   /* Bits 4-6: D2 domain APB1 prescaler */
 #define RCC_D2CFGR_D2PPRE1_MASK      (7 << RCC_D2CFGR_D2PPRE1_SHIFT)
-#define RCC_D2CFGR_D2PPRE1_HCLK      (0 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 0xx: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd2    (4 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 100: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd4    (5 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 101: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd8    (6 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 110: */
-#define RCC_D2CFGR_D2PPRE1_HCLKd16   (7 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 111: */
+#  define RCC_D2CFGR_D2PPRE1_HCLK      (0 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 0xx: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd2    (4 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 100: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd4    (5 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 101: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd8    (6 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 110: */
+#  define RCC_D2CFGR_D2PPRE1_HCLKd16   (7 << RCC_D2CFGR_D2PPRE1_SHIFT) /* 111: */
                                            /* Bit 7: Reserved */
 #define RCC_D2CFGR_D2PPRE2_SHIFT     (8)   /* Bits 8-10: D2 domain APB2 prescaler */
 #define RCC_D2CFGR_D2PPRE2_MASK      (7 << RCC_D2CFGR_D2PPRE2_SHIFT)
-#define RCC_D2CFGR_D2PPRE2_HCLK      (0 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 0xx: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd2    (4 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 100: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd4    (5 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 101: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd8    (6 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 110: */
-#define RCC_D2CFGR_D2PPRE2_HCLKd16   (7 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 111: */
+#  define RCC_D2CFGR_D2PPRE2_HCLK      (0 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 0xx: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd2    (4 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 100: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd4    (5 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 101: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd8    (6 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 110: */
+#  define RCC_D2CFGR_D2PPRE2_HCLKd16   (7 << RCC_D2CFGR_D2PPRE2_SHIFT) /* 111: */
                                            /* Bits 11-31: Reserved */
 
 /* Bit definitions for RCC_D3CFGR */
@@ -336,11 +336,11 @@
                                           /* Bits 0-3: Reserved */
 #define RCC_D3CFGR_D3PPRE_SHIFT     (4)   /* Bits 4-6: D3 domain APB4 prescaler */
 #define RCC_D3CFGR_D3PPRE_MASK      (7 << RCC_D3CFGR_D3PPRE_SHIFT)
-#define RCC_D3CFGR_D3PPRE_HCLK      (0 << RCC_D3CFGR_D3PPRE_SHIFT) /* 0xx: */
-#define RCC_D3CFGR_D3PPRE_HCLKd2    (4 << RCC_D3CFGR_D3PPRE_SHIFT) /* 100: */
-#define RCC_D3CFGR_D3PPRE_HCLKd4    (5 << RCC_D3CFGR_D3PPRE_SHIFT) /* 101: */
-#define RCC_D3CFGR_D3PPRE_HCLKd8    (6 << RCC_D3CFGR_D3PPRE_SHIFT) /* 110: */
-#define RCC_D3CFGR_D3PPRE_HCLKd16   (7 << RCC_D3CFGR_D3PPRE_SHIFT) /* 111: */
+#  define RCC_D3CFGR_D3PPRE_HCLK      (0 << RCC_D3CFGR_D3PPRE_SHIFT) /* 0xx: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd2    (4 << RCC_D3CFGR_D3PPRE_SHIFT) /* 100: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd4    (5 << RCC_D3CFGR_D3PPRE_SHIFT) /* 101: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd8    (6 << RCC_D3CFGR_D3PPRE_SHIFT) /* 110: */
+#  define RCC_D3CFGR_D3PPRE_HCLKd16   (7 << RCC_D3CFGR_D3PPRE_SHIFT) /* 111: */
                                           /* Bits 7-31: Reserved */
 
 /* Bit definitions for RCC_PLLCKSELR register */
@@ -494,7 +494,176 @@
 #define RCC_PLL3FRACR_FRACN3_MASK       (0x1FFFul << RCC_PLL3FRACR_FRACN3_SHIFT) /* 0x0000FFF8 */
 #define RCC_PLL3FRACR_FRACN3             RCC_PLL3FRACR_FRACN3_MASK
 
-/* CSR */
+
+/* Bit definitions for RCC_D1CCIPR reigster */
+
+#define RCC_D1CCIPR_FMCSEL_SHIFT        (0) /* Bits 0-1: */
+#define RCC_D1CCIPR_FMCSEL_MASK         (3 << RCC_D1CCIPR_FMCSEL_SHIFT)
+#  define RCC_D1CCIPR_FMCSEL_HCLK       (0 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 00: */
+#  define RCC_D1CCIPR_FMCSEL_PLL1       (1 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 01: */
+#  define RCC_D1CCIPR_FMCSEL_PLL2       (2 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 10: */
+#  define RCC_D1CCIPR_FMCSEL_PER        (3 << RCC_D1CCIPR_FMCSEL_SHIFT) /* 11: */
+                                            /* Bits 2-3: Reserved */
+#define RCC_D1CCIPR_QSPISEL_SHIFT       (0) /* Bits 4-5: */
+#define RCC_D1CCIPR_QSPISEL_MASK        (3 << RCC_D1CCIPR_QSPISEL_SHIFT)
+#  define RCC_D1CCIPR_QSPISEL_HCLK      (0 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 00: */
+#  define RCC_D1CCIPR_QSPISEL_PLL1      (1 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 01: */
+#  define RCC_D1CCIPR_QSPISEL_PLL2      (2 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 10: */
+#  define RCC_D1CCIPR_QSPISEL_PER       (3 << RCC_D1CCIPR_QSPISEL_SHIFT) /* 11: */
+                                            /* Bits 6-15: Reserved */
+#define RCC_D1CCIPR_SDMMC_SHIFT         (16) /* Bit 15: */
+#define RCC_D1CCIPR_SDMMC_MASK          (1 << RCC_D1CCIPR_SDMMC_SHIFT)
+#  define RCC_D1CCIPR_SDMMC_PLL1        (0 << RCC_D1CCIPR_SDMMC_SHIFT) /* 0: */
+#  define RCC_D1CCIPR_SDMMC_PLL2        (1 << RCC_D1CCIPR_SDMMC_SHIFT) /* 1: */
+                                            /* Bits 17-27: Reserved */
+                                            /* Bits 17-27: Reserved */
+#define RCC_D1CCIPR_CKPERSEL_SHIFT      (0) /* Bits 28-29: */
+#define RCC_D1CCIPR_CKPERSEL_MASK       (3 << RCC_D1CCIPR_CKPERSEL_SHIFT)
+#  define RCC_D1CCIPR_CKPERSEL_HSI      (0 << RCC_D1CCIPR_CKPERSEL_SHIFT) /* 00: */
+#  define RCC_D1CCIPR_CKPERSEL_CSI      (1 << RCC_D1CCIPR_CKPERSEL_SHIFT) /* 01: */
+#  define RCC_D1CCIPR_CKPERSEL_HSE      (2 << RCC_D1CCIPR_CKPERSEL_SHIFT) /* 10: */
+                                                                          /* 11: Reserved */
+                                             /* Bits 30-31: Reserved */
+
+/* Bit definitions for RCC_D2CCIP1R reigster */
+
+#define RCC_D2CCIP1R_SAI1SEL_SHIFT      (0)  /* Bits 0-2 */
+#define RCC_D2CCIP1R_SAI1SEL_MASK       (7 << RCC_D2CCIP1R_SAI1SEL_MASK)
+#  define RCC_D2CCIP1R_SAI1SEL_PLL1     (0 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SAI1SEL_PLL2     (1 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SAI1SEL_PLL3     (2 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SAI1SEL_I2SCKIN  (3 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SAI1SEL_PER      (4 << RCC_D2CCIP1R_SAI1SEL_SHIFT) /* 100 */
+                                             /* Bits 3-5: Reserved */
+#define RCC_D2CCIP1R_SAI23SEL_SHIFT     (6)  /* Bits 6-8 */
+#define RCC_D2CCIP1R_SAI23SEL_MASK      (7 << RCC_D2CCIP1R_SAI23SEL_SHIFT)
+#  define RCC_D2CCIP1R_SAI23SEL_PLL1    (0 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SAI23SEL_PLL2    (1 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SAI23SEL_PLL3    (2 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SAI23SEL_I2SCKIN (3 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SAI23SEL_PER     (4 << RCC_D2CCIP1R_SAI23SEL_SHIFT) /* 100 */
+                                             /* Bits 9-11: Reserved */
+#define RCC_D2CCIP1R_SPI123SEL_SHIFT    (12) /* Bits 12-14 */
+#define RCC_D2CCIP1R_SPI123SEL_MASK     (7 << RCC_D2CCIP1R_SPI123SEL_SHIFT)
+#  define RCC_D2CCIP1R_SPI123SEL_PLL1   (0 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SPI123SEL_PLL2   (1 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SPI123SEL_PLL3   (2 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SPI123SEL_I2SCKIN (3 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SPI123SEL_PER    (4 << RCC_D2CCIP1R_SPI123SEL_SHIFT) /* 100 */
+                                             /* Bit 15: Reserved */
+#define RCC_D2CCIP1R_SPI45SEL_SHIFT     (16) /* Bits 16-18 */
+#define RCC_D2CCIP1R_SPI45SEL_MASK      (7 << RCC_D2CCIP1R_SPI45SEL_SHIFT)
+#  define RCC_D2CCIP1R_SPI45SEL_APB     (0 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 000 */
+#  define RCC_D2CCIP1R_SPI45SEL_PLL2    (1 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 001 */
+#  define RCC_D2CCIP1R_SPI45SEL_PLL3    (2 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 010 */
+#  define RCC_D2CCIP1R_SPI45SEL_HSI     (3 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 011 */
+#  define RCC_D2CCIP1R_SPI45SEL_CSI     (4 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 100 */
+#  define RCC_D2CCIP1R_SPI45SEL_HSE     (5 << RCC_D2CCIP1R_SPI45SEL_SHIFT) /* 101 */
+                                             /* Bit 19: Reserved */
+#define RCC_D2CCIP1R_SPDIFSEL_SHIFT     (20) /* Bits 20-21 */
+#define RCC_D2CCIP1R_SPDIFSEL_MASK      (3 << RCC_D2CCIP1R_SPDIFSEL_SHIFT)
+#  define RCC_D2CCIP1R_SPDIFSEL_PLL1    (0 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 00 */
+#  define RCC_D2CCIP1R_SPDIFSEL_PLL2    (1 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 01 */
+#  define RCC_D2CCIP1R_SPDIFSEL_PLL3    (2 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 10 */
+#  define RCC_D2CCIP1R_SPDIFSEL_HSI     (3 << RCC_D2CCIP1R_SPDIFSEL_SHIFT) /* 11 */
+                                             /* Bits 22-23: Reserved */
+#define RCC_D2CCIP1R_DFSDM1SEL_SHIFT    (24) /* Bit 24 */
+#define RCC_D2CCIP1R_DFSDM1SEL_MASK     (1 << RCC_D2CCIP1R_DFSDM1SEL_SHIFT)
+#  define RCC_D2CCIP1R_DFSDM1SEL_PCLK2  (0 << RCC_D2CCIP1R_DFSDM1SEL_SHIFT) /* 0 */
+#  define RCC_D2CCIP1R_DFSDM1SEL_SYSCLK (1 << RCC_D2CCIP1R_DFSDM1SEL_SHIFT) /* 1 */
+                                             /* Bits 25-27: Reserved */
+#define RCC_D2CCIP1R_FDCANSEL_SHIFT     (28) /* Bits 28-29 */
+#define RCC_D2CCIP1R_FDCANSEL_MASK      (3 << RCC_D2CCIP1R_FDCANSEL_SHIFT)
+#  define RCC_D2CCIP1R_FDCANSEL_HSE     (0 << RCC_D2CCIP1R_FDCANSEL_SHIFT) /* 00 */
+#  define RCC_D2CCIP1R_FDCANSEL_PLL1    (1 << RCC_D2CCIP1R_FDCANSEL_SHIFT) /* 01 */
+#  define RCC_D2CCIP1R_FDCANSEL_PLL2    (2 << RCC_D2CCIP1R_FDCANSEL_SHIFT) /* 10 */
+                                             /* Bit 30: Reserved */
+#define RCC_D2CCIP1R_SWPSEL_SHIFT       (31) /* Bit 31 */
+#define RCC_D2CCIP1R_SWPSEL_MASK        (1 << RCC_D2CCIP1R_SWPSEL_SHIFT)
+#  define RCC_D2CCIP1R_SWPSEL_PCLK      (0 << RCC_D2CCIP1R_SWPSEL_SHIFT) /* 0 */
+#  define RCC_D2CCIP1R_SWPSEL_HSI       (1 << RCC_D2CCIP1R_SWPSEL_SHIFT) /* 1 */
+
+/* TODO: Bit definitions for RCC_D2CCIP2R reigster */
+
+/* ... */
+#define RCC_D2CCIP2R_I2C123SEL_SHIFT    (12) /* Bits 12-13 */
+#define RCC_D2CCIP2R_I2C123SEL_MASK     (3 << RCC_D2CCIP2R_I2C123SEL_SHIFT)
+#   define RCC_D2CCIP2R_I2C123SEL_PCLK1 (0 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 00 */
+#   define RCC_D2CCIP2R_I2C123SEL_PLL3  (1 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 01 */
+#   define RCC_D2CCIP2R_I2C123SEL_HSI   (2 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 10 */
+#   define RCC_D2CCIP2R_I2C123SEL_CSI   (3 << RCC_D2CCIP2R_I2C123SEL_SHIFT) /* 11 */
+/* ... */
+
+/* TODO: Bit definitions for RCC_D3CCIPR reigster */
+
+#define RCC_D3CCIPR_LPUART1SEL_SHIFT     (0)  /* Bits 0-2: LPUART1 kernel clock source selection */
+#define RCC_D3CCIPR_LPUART1SEL_MASK      (7 << RCC_D3CCIPR_LPUART1SEL_SHIFT)
+#  define RCC_D3CCIPR_LPUART1SEL_PCLK    (0 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 000 */
+#  define RCC_D3CCIPR_LPUART1SEL_PLL2    (1 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 001 */
+#  define RCC_D3CCIPR_LPUART1SEL_PLL3    (2 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 010 */
+#  define RCC_D3CCIPR_LPUART1SEL_HSI     (3 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 011 */
+#  define RCC_D3CCIPR_LPUART1SEL_CSI     (4 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 100 */
+#  define RCC_D3CCIPR_LPUART1SEL_LSE     (5 << RCC_D3CCIPR_LPUART1SEL_SHIFT) /* 101 */
+                                              /* Bits 3-7: Reserved */
+#define RCC_D3CCIPR_I2C4SEL_SHIFT        (8)  /* Bits 8-9: I2C4 kernel clock source selection */
+#define RCC_D3CCIPR_I2C4SEL_MASK         (3 << RCC_D3CCIPR_I2C4SEL_SHIFT)
+#   define RCC_D3CCIPR_I2C4SEL_PCLK4     (0 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 00 */
+#   define RCC_D3CCIPR_I2C4SEL_PLL3      (1 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 01 */
+#   define RCC_D3CCIPR_I2C4SEL_HSI       (2 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 10 */
+#   define RCC_D3CCIPR_I2C4SEL_CSI       (3 << RCC_D3CCIPR_I2C4SEL_SHIFT) /* 11 */
+#define RCC_D3CCIPR_LPTIM2SEL_SHIFT      (10) /* Bits 10-12: LPTIM2 kernel clock source selection */
+#define RCC_D3CCIPR_LPTIM2SEL_MASK       (7 << RCC_D3CCIPR_LPTIM2SEL_SHIFT)
+#   define RCC_D3CCIPR_LPTIM2SEL_PCLK4   (0 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_LPTIM2SEL_PLL2    (1 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_LPTIM2SEL_PLL3    (2 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_LPTIM2SEL_LSE     (3 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_LPTIM2SEL_LSI     (4 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 100 */
+#   define RCC_D3CCIPR_LPTIM2SEL_PER     (5 << RCC_D3CCIPR_LPTIM2SEL_SHIFT) /* 101 */
+#define RCC_D3CCIPR_LPTIM345SEL_SHIFT    (13) /* Bits 13-15: LPTIM3,4,5 kernel clock source selection */
+#define RCC_D3CCIPR_LPTIM345SEL_MASK     (7 << RCC_D3CCIPR_LPTIM345SEL_SHIFT)
+#   define RCC_D3CCIPR_LPTIM345SEL_PCLK4 (0 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_LPTIM345SEL_PLL2  (1 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_LPTIM345SEL_PLL3  (2 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_LPTIM345SEL_LSE   (3 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_LPTIM345SEL_LSI   (4 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 100 */
+#   define RCC_D3CCIPR_LPTIM345SEL_PER   (5 << RCC_D3CCIPR_LPTIM345SEL_SHIFT) /* 101 */
+#define RCC_D3CCIPR_ADCSEL_SHIFT         (16) /* Bits 16-17: SAR ADC kernel clock source selection */
+#define RCC_D3CCIPR_ADCSEL_MASK          (3 << RCC_D3CCIPR_ADCSEL_SHIFT)
+#   define RCC_D3CCIPR_ADCSEL_PLL2       (0 << RCC_D3CCIPR_ADCSEL_SHIFT) /* 00 */
+#   define RCC_D3CCIPR_ADCSEL_PLL3       (1 << RCC_D3CCIPR_ADCSEL_SHIFT) /* 01 */
+#   define RCC_D3CCIPR_ADCSEL_PER        (2 << RCC_D3CCIPR_ADCSEL_SHIFT) /* 10 */
+                                              /* Bits 18-20: Reserved */
+#define RCC_D3CCIPR_SAI4ASEL_SHIFT       (21) /* Bits 21-23: Sub-Block A of SAI4 kernel clock source selection */
+#define RCC_D3CCIPR_SAI4ASEL_MASK        (7 << RCC_D3CCIPR_SAI4ASEL_SHIFT)
+#   define RCC_D3CCIPR_SAI4ASEL_PLL1     (0 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_SAI4ASEL_PLL2     (1 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_SAI4ASEL_PLL3     (2 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_SAI4ASEL_I2CCKIN  (3 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_SAI4ASEL_PER      (4 << RCC_D3CCIPR_SAI4ASEL_SHIFT) /* 100 */
+#define RCC_D3CCIPR_SAI4BSEL_SHIFT       (24) /* Bits 24-26: Sub-Block B of SAI4 kernel clock source selection */
+#define RCC_D3CCIPR_SAI4BSEL_MASK        (7 << RCC_D3CCIPR_SAI4BSEL_SHIFT)
+#   define RCC_D3CCIPR_SAI4BSEL_PLL1     (0 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_SAI4BSEL_PLL2     (1 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_SAI4BSEL_PLL3     (2 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_SAI4BSEL_I2CCKIN  (3 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_SAI4BSEL_PER      (4 << RCC_D3CCIPR_SAI4BSEL_SHIFT) /* 100 */
+#define RCC_D3CCIPR_SPI6SEL_SHIFT        (28) /* Bits 28-30: SPI6 kernel clock source selection */
+#define RCC_D3CCIPR_SPI6SEL_MASK         (7 << RCC_D3CCIPR_SPI6SEL_SHIFT)
+#   define RCC_D3CCIPR_SPI6SEL_PCLK4     (0 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 000 */
+#   define RCC_D3CCIPR_SPI6SEL_PLL2      (1 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 001 */
+#   define RCC_D3CCIPR_SPI6SEL_PLL3      (2 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 010 */
+#   define RCC_D3CCIPR_SPI6SEL_HSI       (3 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 011 */
+#   define RCC_D3CCIPR_SPI6SEL_CSI       (4 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 100 */
+#   define RCC_D3CCIPR_SPI6SEL_HSE       (5 << RCC_D3CCIPR_SPI6SEL_SHIFT) /* 101 */
+                                              /* Bit 31: Reserved */
+/* ... */
+
+/* TODO: CIER */
+/* TODO: CIFR */
+/* TODO: CICR */
+/* TODO: BDCR */
+
+/* Bit definitions for RCC_CSR register */
 
 #define RCC_CSR_LSION_SHIFT             (0ul)                  /* RCC CSR: LSION (Bit 0) */
 #define RCC_CSR_LSION                   (0x1ul)                /* RCC CSR: LSION (Bitfield-Mask: 0x01) */
@@ -769,18 +938,26 @@
 
 /* APB4 Peripheral Clock enable register */
 
-#define RCC_APB4ENR_SYSCFGEN            (0x2ul)        /* RCC APB4ENR: SYSCFGEN */
-#define RCC_APB4ENR_LPUART1EN           (0x8ul)        /* RCC APB4ENR: LPUART1EN */
-#define RCC_APB4ENR_SPI6EN              (0x20ul)       /* RCC APB4ENR: SPI6EN */
-#define RCC_APB4ENR_I2C4EN              (0x80ul)       /* RCC APB4ENR: I2C4EN */
-#define RCC_APB4ENR_LPTIM2EN            (0x200ul)      /* RCC APB4ENR: LPTIM2EN */
-#define RCC_APB4ENR_LPTIM3EN            (0x400ul)      /* RCC APB4ENR: LPTIM3EN */
-#define RCC_APB4ENR_LPTIM4EN            (0x800ul)      /* RCC APB4ENR: LPTIM4EN */
-#define RCC_APB4ENR_LPTIM5EN            (0x1000ul)     /* RCC APB4ENR: LPTIM5EN */
-#define RCC_APB4ENR_COMP12EN            (0x4000ul)     /* RCC APB4ENR: COMP12EN */
-#define RCC_APB4ENR_VREFEN              (0x8000ul)     /* RCC APB4ENR: VREFEN */
-#define RCC_APB4ENR_RTCAPBEN            (0x10000ul)    /* RCC APB4ENR: RTCAPBEN */
-#define RCC_APB4ENR_SAI4EN              (0x200000ul)   /* RCC APB4ENR: SAI4EN */
+                                                    /* Bit 0: Reserved */
+#define RCC_APB4ENR_SYSCFGEN            (1 << 1)    /* Bit 1: RCC APB4ENR: SYSCFGEN */
+                                                    /* Bit 2: Reserved */
+#define RCC_APB4ENR_LPUART1EN           (1 << 3)    /* Bit 3: RCC APB4ENR: LPUART1EN */
+                                                    /* Bit 4: Reserved */
+#define RCC_APB4ENR_SPI6EN              (1 << 5)    /* Bit 5: RCC APB4ENR: SPI6EN */
+                                                    /* Bit 6: Reserved */
+#define RCC_APB4ENR_I2C4EN              (1 << 7)    /* Bit 7: RCC APB4ENR: I2C4EN */
+                                                    /* Bit 8: Reserved */
+#define RCC_APB4ENR_LPTIM2EN            (1 << 9)    /* Bit 9: RCC APB4ENR: LPTIM2EN */
+#define RCC_APB4ENR_LPTIM3EN            (1 << 10)   /* Bit 10: RCC APB4ENR: LPTIM3EN */
+#define RCC_APB4ENR_LPTIM4EN            (1 << 11)   /* Bit 11: RCC APB4ENR: LPTIM4EN */
+#define RCC_APB4ENR_LPTIM5EN            (1 << 12)   /* Bit 12: RCC APB4ENR: LPTIM5EN */
+                                                    /* Bit 13: Reserved */
+#define RCC_APB4ENR_COMP12EN            (1 << 14)   /* Bit 14: RCC APB4ENR: COMP12EN */
+#define RCC_APB4ENR_VREFEN              (1 << 15)   /* Bit 15: RCC APB4ENR: VREFEN */
+#define RCC_APB4ENR_RTCAPBEN            (1 << 16)   /* Bit 16: RCC APB4ENR: RTCAPBEN */
+                                                    /* Bits 17-20: Reserved */
+#define RCC_APB4ENR_SAI4EN              (1 << 21)   /* Bit 21: RCC APB4ENR: SAI4EN */
+                                                    /* Bit2 22-31: Reserved */
 
 /* AHB3 low power mode peripheral clock enable register */
 

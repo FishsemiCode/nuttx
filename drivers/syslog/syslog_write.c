@@ -57,7 +57,7 @@
  * Description:
  *   This provides a default write method for syslog devices that do not
  *   support multiple byte writes  This functions simply loops, outputting
- *   one cahracter at a time.
+ *   one character at a time.
  *
  * Input Parameters:
  *   buffer - The buffer containing the data to be output
@@ -73,16 +73,21 @@ static ssize_t syslog_default_write(FAR const char *buffer, size_t buflen)
 {
   size_t nwritten;
 
-  if (up_interrupt_context())
+  if (up_interrupt_context() || sched_idletask())
     {
       for (nwritten = 0; nwritten < buflen; nwritten++)
         {
 #ifdef CONFIG_SYSLOG_INTBUFFER
-          syslog_add_intbuffer(*buffer++);
-#else
-          DEBUGASSERT(g_syslog_channel->sc_force != NULL);
-          g_syslog_channel->sc_force(*buffer++);
+          if (up_interrupt_context())
+            {
+              syslog_add_intbuffer(*buffer++);
+            }
+          else
 #endif
+            {
+              DEBUGASSERT(g_syslog_channel->sc_force != NULL);
+              g_syslog_channel->sc_force(*buffer++);
+            }
         }
     }
 #ifdef CONFIG_SYSLOG_WRITE

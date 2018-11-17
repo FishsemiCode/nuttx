@@ -589,6 +589,11 @@ config SCHED_EXIT_KILL_CHILDREN
 	---help---
 		When a task exits, all of its child threads will be killed.
 
+		Caution:  This selection should not be used unless you are certain
+		of what you are doing.  Uninformed of this option can often lead to
+		memory leaks since, for example, memory allocations held by threads
+		are not automatically freed!
+
 endmenu # Tasks and Scheduling
 
 menu "Pthread Options"
@@ -1467,6 +1472,15 @@ config SCHED_HPWORKSTACKSIZE
 	---help---
 		The stack size allocated for the worker thread.  Default: 2K.
 
+config WQUEUE_NOTIFIER
+	bool "Generic work notifier"
+	default n
+	---help---
+		Enable building of work queue notifier logic that will execute a
+		worker function an event occurs.  This is is a general purpose
+		notifier, but was developed specifically to support poll() logic
+		where the poll must wait for an resources to become available.
+
 endif # SCHED_HPWORK
 
 config SCHED_LPWORK
@@ -1509,7 +1523,7 @@ config SCHED_LPNTHREADS
 
 config SCHED_LPWORKPRIORITY
 	int "Low priority worker thread priority"
-	default 50
+	default 100
 	---help---
 		The minimum execution priority of the lower priority worker thread.
 
@@ -1518,7 +1532,7 @@ config SCHED_LPWORKPRIORITY
 		priority, of course, but has the added advantage that it supports
 		"priority inheritance" (if PRIORITY_INHERITANCE is also selected):
 		The priority of the lower priority worker thread can then be
-		adjusted to match the highest priority client.  Default: 50
+		adjusted to match the highest priority client.  Default: 100
 
 		NOTE: This priority inheritance feature is not automatic.  The
 		lower priority worker thread will always a fixed priority unless

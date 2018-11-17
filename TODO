@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated August 30, 2018)
+NuttX TODO List (Last updated November 10, 2018)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
@@ -16,14 +16,14 @@ nuttx/:
   (3)  Signals (sched/signal, arch/)
   (2)  pthreads (sched/pthread)
   (0)  Message Queues (sched/mqueue)
-  (8)  Kernel/Protected Build
+  (9)  Kernel/Protected Build
   (3)  C++ Support
   (5)  Binary loaders (binfmt/)
- (16)  Network (net/, drivers/net)
+ (18)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
-  (1)  Other drivers (drivers/)
- (12)  Libraries (libc/, libm/)
- (10)  File system/Generic drivers (fs/, drivers/)
+  (2)  Other drivers (drivers/)
+ (11)  Libraries (libs/libc/, libs/libm/)
+ (11)  File system/Generic drivers (fs/, drivers/)
  (10)  Graphics Subsystem (graphics/)
   (1)  Build system / Toolchains
   (3)  Linux/Cywgin simulation (arch/sim)
@@ -44,7 +44,17 @@ o Task/Scheduler (sched/)
   Title:       CHILD PTHREAD TERMINATION
   Description: When a tasks exits, shouldn't all of its child pthreads also be
                terminated?
-  Status:      Closed.  No, this behavior will not be implemented.
+
+               This behavior was implemented as an options controlled by the
+               configuration setting CONFIG_SCHED_EXIT_KILL_CHILDREN.  This
+               option must be used with caution, however.  It  should not be
+               used unless you are certain of what you are doing.  Uninformed
+               of this option can often lead to memory leaks since, for
+               example, memory allocations held by threads are not
+               automatically freed!
+
+  Status:      Closed.  No, this behavior will not be implemented unless
+               specifically selected.
   Priority:    Medium, required for good emulation of process/pthread model.
                The current behavior allows for the main thread of a task to
                exit() and any child pthreads will persist.  That does raise
@@ -117,7 +127,7 @@ o Task/Scheduler (sched/)
                3. They do not obey any setup of PIC or address
                   environments. Do they need to?
                4. In the case of task_delete() and pthread_cancel() without
-                  defferred cancellation, these callbacks will run on the
+                  deferred cancellation, these callbacks will run on the
                   thread of execution and address context of the caller of
                   task_delete() or pthread_cancel().  That is very bad!
 
@@ -176,7 +186,7 @@ o Task/Scheduler (sched/)
   Status:      Closed.  The existing solution is better and compatible with
                thread-aware GLIBC (although its incompatibilities could show
                up in porting some code).  I will retain this issue for
-               referencei only.
+               reference only.
   Priority:    N/A
 
   Title:       SCALABILITY
@@ -228,14 +238,17 @@ o Task/Scheduler (sched/)
                and that sets the errno value on failures.
 
                On particularly difficult issue is the use of common memory
-               manager C, and NX libraries in the build.  For the FLAT
-               build, that is not such a issue because the OS internal
-               versions of the interfaces can be used.  But is a difficult
-               problem for PROTECTED and KERNEL builds where the OS links
-               with a different version of the libraries than does the
-               application:  The OS version would use the OS internal
+               manager C, and NX libraries in the build.  For the PROTECTED
+               and KERNEL builds, this issue is resolved.  In that case,
+               The OS links with a different version of the libraries than
+               does the application:  The OS version would use the OS internal
                interfaces and the application would use the standard
                interfaces.
+
+               But for the FLAT build, both the OS and the applications use
+               the same library functions.  For applications, the library
+               functions *must* support errno's and cancellation and, hence,
+               these are also used within the OS.
 
                But that raises yet another issue:  If the application
                version of the libraries use the standard interfaces
@@ -268,6 +281,10 @@ o Task/Scheduler (sched/)
                  scheduler functions used within the OS:  sched_getparam(),
                  sched_setparam(), sched_getscheduler(), sched_setschedule(),
                  and sched_setaffinity(),
+               2018-09-15:  This change has been completed for the case of
+                 open() used within the OS.  There are places under libs/ and
+                 configs/ that have not been converted.  I also note cases
+                 where fopen() is called under libs/libc/netdb/.
 
   Status:      Open
   Priority:    Low.  Things are working OK the way they are.  But the design
@@ -310,7 +327,7 @@ o Task/Scheduler (sched/)
 
                   That omits these architectures: sh1, sim, xtensa, z16, z80,
                   ez80, and z8.  All would have to support this common
-                  globlal variable.
+                  global variable.
 
                   Also, the stack itself may be 8-, 16-, or 32-bits wide,
                   depending upon the architecture and do have differing
@@ -388,10 +405,10 @@ o Task/Scheduler (sched/)
   Priority:    Low.  This is an enhancement.  And does anyone actually use
                the sporadic scheduler?
 
-  Title:       REMOVE NESTED CANCELATION POINT SUPPORT
-  Description: The current implementation support nested cancelation points.
+  Title:       REMOVE NESTED CANCELLATION POINT SUPPORT
+  Description: The current implementation support nested cancellation points.
                The TCB field cpcount keeps track of that nesting level.
-               However, cancelation points should not be calling other
+               However, cancellation points should not be calling other
                cancellation points so this design could be simplified by
                removing all support for nested cancellation points.
   Status:      Open
@@ -442,19 +459,19 @@ o SMP
                The basic behavior is still correct:  The task that has
                locked pre-emption will not be suspended.  However, there
                is no longer any protection for use as a critical section:
-               tasks running on other CPUs may still execute that that
-               unprotect code regsion.
+               tasks running on other CPUs may still execute that
+               unprotected code region.
 
                The solution is to replace the use of sched_lock() with
                stronger protection such as spin_lock_irqsave().
   Status:      Open
   Priority:    Medium for SMP system.  Not critical to single CPU systems.
-               NOTE:  There are no known bugs from this protential problem.
+               NOTE:  There are no known bugs from this potential problem.
 
   Title:       CORTEX-A GIC SGI INTERRUPT MASKING
   Description: In the ARMv7-A GICv2 architecture, the inter-processor
                interrupts (SGIs) are non maskable and will occur even if
-               interrupts are disabled.  This adde a lot of complexity
+               interrupts are disabled.  This adds a lot of complexity
                to the ARMV7-A critical section design.
 
                Masayuki Ishakawa has suggested the use of the GICv2 ICCMPR
@@ -469,7 +486,7 @@ o SMP
                set/restore the ICCMPR register, (2) register setup logic in
                arch/arm/src/armv7-a for task start-up and signal dispatch
                would have to set the ICCMPR correctly, and (3) the 'xcp'
-               structure sould have to be extended to hold the ICCMPR
+               structure would have to be extended to hold the ICCMPR
                register;  logic would have to added be save/restore the
                ICCMPR register in the 'xcp' structure on each interrupt and
                context switch.
@@ -480,7 +497,7 @@ o SMP
   Priority:    Low.  There are no know issues with the current non-maskable
                SGI implementation.  This change would, however, lead to
                simplification in the design and permit commonality with
-               other, non-GIC imoplementations.
+               other, non-GIC implementations.
 
 o Memory Management (mm/)
   ^^^^^^^^^^^^^^^^^^^^^^^
@@ -611,8 +628,8 @@ o Signals (sched/signal, arch/)
                TCB of the parent so that the pthread could be bound to the correct
                group.
 
-               There is also some user-space logic in libc/aio/lio_listio.c.  That
-               logic could use the user-space work queue for the callbacks.
+               There is also some user-space logic in libs/libc/aio/lio_listio.c.
+               That logic could use the user-space work queue for the callbacks.
   Status:      Low, there are alternative designs.  However, these features
                are required by the POSIX standard.
   Priority:    Low for now
@@ -817,8 +834,9 @@ o Kernel/Protected Build
                 by simply reading this variable.
 
                "This one would be easy: Just a change to include/nuttx/userspace.h,
-                configs/*/kernel/up_userspace.c, libc/, sched/sched_addreadytorun.c, and
-                sched/sched_removereadytorun.c. That would eliminate 59% of the syscalls."
+                configs/*/kernel/up_userspace.c, libs/libc/,
+                sched/sched_addreadytorun.c, and sched/sched_removereadytorun.c.
+                That would eliminate 59% of the syscalls."
 
                Update:
                This is probably also just a symptom of the OS test that does mostly
@@ -900,6 +918,26 @@ o Kernel/Protected Build
   Status:      Open
   Priority:    Low for most embedded systems but would be a critical need if
                NuttX were used in a secure system.
+
+  Title:       ERRNO VARIABLE in KERNEL MODE
+  Description: In the FLAT and PROTECTED mode, the errno variable is retained
+               within the TCB.  It requires a call into the OS to access the
+               errno variable.
+
+               In the KERNEL build, TLS should be used:  The errno should be
+               stored at the base of the callers stack along with other TLS
+               data.
+
+               To do this, NuttX system calls should be reorganized.  The
+               system calls should go to the internal OS functions (like
+               nxsem_wait() vs sem_wait()) which do not set the errno value.
+               The implementation available to applications (sem_wait() in
+               this example) should call the internal OS function then set the
+               errno variable in TLS.
+  Status:      Open
+  Priority:    Low, this primarily an aesthetic issue but may also have some
+               performance implications if the the errno variable is accessed
+               via a system call at high rates.
 
 o C++ Support
   ^^^^^^^^^^^
@@ -1102,18 +1140,40 @@ o Network (net/, drivers/net)
   Status:      Open
   Priority:    Low
 
-  Title:       CONCURRENT TCP SEND OPERATIONS
+  Title:       CONCURRENT, UNBUFFERED TCP SEND OPERATIONS
   Description: At present, there cannot be two concurrent active TCP send
-               operations in progress using the same socket.  This is because
-               the uIP ACK logic will support only one transfer at a time.  The
-               solution is simple: A mutex will be needed to make sure that each
-               send that is started is able to be the exclusive sender until all of
-               the data to be sent has been ACKed.
-  Status:      Open.  There is some temporary logic to apps/nshlib that does
-               this same fix and that temporary logic should be removed when
-               send() is fixed.
-  Priority:    Medium-Low.  This is an important issue for applications that
-               send on the same TCP socket from multiple threads.
+               operations in progress using the same socket *unless*
+               CONFIG_TCP_WRITE_BUFFER.  This is because the uIP ACK logic
+               will support only one transfer at a time.
+
+               Such a situation could occur if explicit TCP send operations
+               are performed using the same socket (or dup's of the same)
+               socket on two different threads.  It can also occur implicitly
+               when you execute more than one thread over and NSH Telenet
+               session.
+
+               There are two possible solutions:
+
+               1. Remove option to build the network without write buffering
+                  enabled.  This is is simplest and perhaps the best option.
+                  Certainly a system can be produced with a smaller RAM
+                  footprint without write buffering.  However, that probably
+                  does not justify permitted a crippled system.
+
+               2. Another option is to serialize the non-buffered writes for
+                  a socket with a mutex. i.e., add a mutex to make sure that
+                  each send that is started is able to be the exclusive
+                  sender until all of the data to be sent has been ACKed.
+                  That can be a very significant delay involving the send,
+                  waiting for the ACK or a timeout and possible retransmissions!
+
+                Although it uses more memory, I believe that option 1 is the
+                better solution and will avoid difficult TCP bugs in the future.
+
+  Status:      Open.
+  Priority:    Medium-Low.  This is only an important issue for people who
+               use multi-threaded, unbuffered TCP networking without a full
+               understanding of the issues.
 
   Title:       POLL/SELECT ON TCP/UDP SOCKETS NEEDS READ-AHEAD
   Description: poll()/select() only works for availability of buffered TCP/UDP
@@ -1161,7 +1221,7 @@ o Network (net/, drivers/net)
   Description: IPv6 requires that the Ethernet driver support NuttX address
                filter interfaces.  Several Ethernet drivers do support there,
                however.  Others support the address filtering interfaces but
-               have never been verifed:
+               have never been verified:
 
                C5471, LM3S, ez80, DM0x90 NIC, PIC, LPC54: Do not support
                  address filtering.
@@ -1266,7 +1326,7 @@ o Network (net/, drivers/net)
                window for that concurrency, but does not create it.
 
                The current Ethernet designs depend upon a single work queue to
-               serialize data.  In the case of muliple LP threads, some
+               serialize data.  In the case of multiple LP threads, some
                additional mechanism would have to be added to enforce that
                serialization.
 
@@ -1279,6 +1339,17 @@ o Network (net/, drivers/net)
 
   Status:      Open
   Priority:    High if you happen to be using Ethernet in this configuration.
+
+  Title:       NETWORK DRIVERS USING HIGH PRIORITY WORK QUEUE
+  Description: Many network drivers run the network on the high priority work
+               queue thread (or support an option to do so).  Networking should
+               not be done on the high priority work thread because it interferes
+               with real-time behavior.  Fix by forcing all network drivers to
+               run on the low priority work queue.
+  Status:      Open
+  Priority:    Low.  Not such big deal for demo network test and demo
+               configurations except that it provides a bad example for a product
+               OS configuration.
 
   Title:       REPARTITION DRIVER FUNCTIONALITY
   Description: Every network driver performs the first level of packet decoding.
@@ -1311,7 +1382,7 @@ o Network (net/, drivers/net)
   Title:       ICMPv6 FOR 6LoWPAN
   Description: The current ICMPv6 and neighbor-related logic only works with
                Ethernet MAC.  For 6LoWPAN, a new more conservative IPv6
-               neigbor discovery is provided by RFC 6775.  This RFC needs to
+               neighbour discovery is provided by RFC 6775.  This RFC needs to
                be supported in order to support ping6 on a 6LoWPAN network.
                If RFC 6775 were implemented, then arbitrary IPv6 addresses,
                including addresses from DHCPv6 could be used.
@@ -1350,7 +1421,6 @@ o Network (net/, drivers/net)
                MAC-based addressing in the 6LoWPAN implementation.
 
   Title:       ETHERNET LOCAL BROADCAST DOES NOT WORK
-
   Description: In case of "local broadcast" the system still send ARP
                request to the destination, but it shouldn't, it should
                broadcast.  For Example, the system has network with IP
@@ -1400,6 +1470,14 @@ o Network (net/, drivers/net)
   Priority:    Medium.  I have never heard of this problem being reported
                before, so I suspect it might not be so prevalent as one
                might expect.
+
+  Title:       TCP SOCKETS CLOSED TOO QUICKLY
+  Description: When a socket is closed, the resources are torn down
+               immediately (unless the SO_LINGER option is selected).  As a
+               result, the socket does not send the FIN and this looks like
+               an unexpected, abnormal loss of connection to the remote peer.
+  Status:      Open
+  Priority:    Medium-Low.
 
   Title:       LOCAL DATAGRAM RECVFROM RETURNS WRONG SENDER ADDRESS
   Description: The recvfrom logic for local datagram sockets returns the
@@ -1552,7 +1630,7 @@ o USB (drivers/usbdev, drivers/usbhost)
 
               - I test for incoming data by doing 'nsh> cat /dev/ttyACM0' on
                 the Olimex LPC1766STK host.  The bulk data reception still
-                works okay whether or not the interupt IN channel is enabled.
+                works okay whether or not the interrupt IN channel is enabled.
                 If the interrupt IN channel is enabled, then polling of that
                 channel appears to stop when the bulk in channel becomes
                 active.
@@ -1605,7 +1683,7 @@ o USB (drivers/usbdev, drivers/usbhost)
                still immature and you could experience issues in some
                configurations if you use it.
 
-               That all being said, I know of know no issues with the current
+               That all being said, I know of no issues with the current
                CDC/ACM driver on the Olimex LPC1766STK platform if the interrupt
                IN endpoint is not used, i.e., in "reduced" mode.  The only loss
                of functionality is output flow control.
@@ -1616,8 +1694,8 @@ o USB (drivers/usbdev, drivers/usbhost)
   Status:      Open
   Priority:    Medium-Low unless you really need host CDC/ACM support.
 
-o Libraries (libc/, libm/)
-  ^^^^^^^^^^^^^^^^^^^^^^^^
+o Libraries (libs/libc/, libs/libm/)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SIGNED time_t
   Description: The NuttX time_t is type uint32_t. I think this is consistent
@@ -1639,11 +1717,12 @@ o Libraries (libc/, libm/)
   Description: Need some minimal termios support... at a minimum, enough to
                switch between raw and "normal" modes to support behavior like
                that needed for readline().
-               UPDATE:  There is growing functionality in libc/termios/ and in the
-               ioctl methods of several MCU serial drivers (stm32, lpc43, lpc17,
-               pic32).  However, as phrased, this bug cannot yet be closed since
-               this "growing functionality" does not address all termios.h
-               functionality and not all serial drivers support termios.
+               UPDATE:  There is growing functionality in libs/libc/termios/
+               and in the ioctl methods of several MCU serial drivers (stm32,
+               lpc43, lpc17, pic32, and others).  However, as phrased, this
+               bug cannot yet be closed since this "growing functionality"
+               does not address all termios.h functionality and not all
+               serial drivers support termios.
   Status:      Open
   Priority:    Low
 
@@ -1694,7 +1773,7 @@ o Libraries (libc/, libm/)
   Priority:
 
   Title:       OLD dtoa NEEDS TO BE UPDATED
-  Description: This implementation of dtoa in libc/stdio is old and will not
+  Description: This implementation of dtoa in libs/libc/stdio is old and will not
                work with some newer compilers.  See
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
   Status:      Open
@@ -1767,63 +1846,6 @@ o Libraries (libc/, libm/)
                the process address environment where they belong.  It is
                difficult to make this compatible with the FLAT build,
                however.
-  Status:      Open
-  Priority:    Low
-
-  Title:       FORMATTING FIXED WIDTH INTEGERS
-  Description: Formats like this: lib_vsprintf(_, "%6.6u", 0) do not work.
-               There is no support for the precision/width option with
-               integer types.  The format is simply is ignored and so can
-               even cause crashes.
-
-               For example:
-
-               int hello_main(int argc, char *argv[])
-               {
-                 printf("Hello, World!!\n");
-                 printf("%3.3u %3.3u %3.3u %3.3u %3.3u\n", 9, 99, 999, 9999, 99999);
-                 return 0;
-               }
-
-               Generates this incorrect output:
-
-               NuttShell (NSH) NuttX-7.20
-               nsh> hello
-               Hello, World!!
-                 9  99 999 9999 99999
-               nsh>
-
-               That output, of course, should have been:
-
-                 9  99 999 999 999
-
-               The period and the precision value were being ignored (if
-               floating point was disabled).  In that case, parsing of the
-               variable arguments could get out of sync.  But a side
-               effect of the referenced change is that precision value is
-               now always parsed (but still incorrectly ignored for the
-               case of integer formats).
-
-               The fix would not be too difficult but would involve change
-               several functions.  It would involve clipping the size of the
-               number string.  For example:
-
-               /* Get the width of the output */
-
-               uwidth = getusize(FMT_CHAR, flags, n);
-               if (trunc > 0 && uwidth > trunc)
-                 {
-                   uwidth = trunc;
-                 }
-
-               Then limiting the length of the output string to uwidth.
-               This would probably mean passing an additional parameter to
-               the many *toascii() functions like:
-
-               /* Output the number */
-
-               utoascii(obj, FMT_CHAR, flags, (unsigned int)n, uwidth);
-
   Status:      Open
   Priority:    Low
 
@@ -1967,7 +1989,7 @@ o File system / Generic drivers (fs/, drivers/)
                  nsh> ls -l /mnt/sdcard
 
                I have determined that the problem is because, for some as-
-               of-yet-unkown reason the short file name is treated as a long
+               of-yet-unknown reason the short file name is treated as a long
                file name.  The name then fails the long filename checksum
                test and is skipped.
 
@@ -2012,6 +2034,47 @@ o File system / Generic drivers (fs/, drivers/)
                   checksum fails and the entire directory sequence is
                   ignored by readdir() logic.  This is why the file does
                   not appear in the 'ls'.
+
+  Title:       SILENT SPIFFS FILE TRUNCATION
+  Description: Under certain corner case conditions, SPIFFS will truncate
+               files.  All of the writes to the file will claim that the
+               data has been written but after the file is closed, it may
+               be a little shorter than expected.
+
+               This is due to how the caching is implemented in SPIFFS:
+
+               1. On each write, the data is not written to the FLASH but
+                  rather to an internal cache in memory.
+               2. When the a write causes the cache to become full, the
+                  content of cache is flushed to memory.  If that flush
+                  fails because the FLASH has become full, write will
+                  return the file system full error (ENOSPC).
+               3. The cache is also flushed when the file is closed (or
+                  when fsync() is called).  These will also fail if the
+                  file system becomes full.
+
+               The problem is when the file is closed, the final file
+               size could be smaller than the number of successful writes
+               to the file.
+
+               This error is probably not so significant in a real world
+               file system usage:  It requires that you write continuously
+               to SPIFFS, never deleting files or freeing FLASH resources
+               in any way.  And it requires the unlikely circumstance that
+               the final file written has its last few hundred bytes in
+               cache when the file is closed but there are even fewer bytes
+               available on the FLASH.  That would be rare with a cache
+               size of a few hundred bytes and very large serial FLASH.
+
+               This issue does cause the test at apps/examples/fstest to
+               fail.  That test fails with a "Partial Read" because the
+               file being read is smaller than number bytes written to the
+               file.  That test does write small files continuously until
+               file system is full and even the the error is rare.  The
+               configs/sim/spiffs test can used to demonstrate the error.
+  Status:      Open
+  Priority:    Medium.  It is certain a file system failure, but I think that
+               the exposure in real world uses cases is very small.
 
 o Graphics Subsystem (graphics/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -2098,8 +2161,8 @@ o Graphics Subsystem (graphics/)
   Status:      Open
   Priority:    Low for many, but I imagine higher in countries that use wide fonts
 
-  Title:       LOW-RES FRAMEBUFFER RENDERERING
-  Description: There are obvious issues in the low-res, < 8 BPP, implemenation of
+  Title:       LOW-RES FRAMEBUFFER RENDERING
+  Description: There are obvious issues in the low-res, < 8 BPP, implementation of
                the framebuffer rendering logic of graphics/nxglib/fb.  I see two
                obvious problems in reviewing nxglib_copyrectangle():
 
@@ -2139,7 +2202,7 @@ o Other drivers (drivers/)
   ^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SYSLOG OUTPUT LOST ON A CRASH
-  Desription:  Flush syslog output on crash.  I don't know how to do in the
+  Description: Flush syslog output on crash.  I don't know how to do in the
                character driver case with interrupts disabled.  It would be
                easy to flush the interrupt interrupt buffer, but not the
                data buffered within a character driver (such as the serial
@@ -2151,6 +2214,21 @@ o Other drivers (drivers/)
   Priority:    Low.  It would be a convenience and would simplify crash
                debug if you could see all of the SYSLOG output up to the
                time of the crash.  But not essential.
+
+  Title:       SERIAL DRIVER WITH DMA DOES NOT DISCARD OOB CHARACTERS
+  Description: If Ctrl-Z or Ctrl-C actions are enabled, the the OOB
+               character that generates the signal action must not be placed
+               in the serial driver Rx buffer.  This behavior is correct for
+               the non-DMA case (serial_io.c), but not for the DMA case
+               (serial_dma.c).  In the DMA case, the OOB character is left
+               in the Rx buffer and will be received as normal Rx data by
+               the application.  It should not work that way.
+
+               Perhaps in the DMA case, the OOB characters could be filtered
+               out later, just before returning the Rx data to the application?
+  Status:      Open
+  Priority:    Low, provided that the application can handle these characters
+               in the data stream.
 
 o Linux/Cywgin simulation (arch/sim)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

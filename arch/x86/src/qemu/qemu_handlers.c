@@ -57,13 +57,6 @@
 static void idt_outb(uint8_t val, uint16_t addr) noinline_function;
 
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-
-uint32_t *g_last_regs;
-struct tcb_s *g_last_task;
-
-/****************************************************************************
  * Private Data
  ****************************************************************************/
 
@@ -95,7 +88,6 @@ static void idt_outb(uint8_t val, uint16_t addr)
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
 static uint32_t *common_handler(int irq, uint32_t *regs)
 {
-  g_last_regs = regs;
   board_autoled_on(LED_INIRQ);
 
   /* Current regs non-zero indicates that we are processing an interrupt;
@@ -152,8 +144,6 @@ static uint32_t *common_handler(int irq, uint32_t *regs)
    */
 
   g_current_regs = NULL;
-  g_last_task = this_task();
-  g_last_regs = NULL;
   return regs;
 }
 #endif

@@ -49,13 +49,15 @@
 #include <debug.h>
 
 #include <net/if.h>
-#include <nuttx/net/ethernet.h>
+#include <net/ethernet.h>
 #include <nuttx/net/netconfig.h>
 #include <nuttx/net/netdev.h>
+#include <nuttx/net/ethernet.h>
 #include <nuttx/net/bluetooth.h>
 
 #include "utils/utils.h"
 #include "igmp/igmp.h"
+#include "mld/mld.h"
 #include "netdev/netdev.h"
 
 #if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
@@ -409,11 +411,18 @@ int netdev_register(FAR struct net_driver_s *dev, enum net_lltype_e lltype)
       dev->flink  = g_netdevices;
       g_netdevices = dev;
 
+#ifdef CONFIG_NET_IGMP
       /* Configure the device for IGMP support */
 
-#ifdef CONFIG_NET_IGMP
       igmp_devinit(dev);
 #endif
+
+#ifdef CONFIG_NET_MLD
+      /* Configure the device for MLD support */
+
+      mld_devinit(dev);
+#endif
+
       net_unlock();
 
 #if defined(CONFIG_NET_ETHERNET) || defined(CONFIG_DRIVERS_IEEE80211)

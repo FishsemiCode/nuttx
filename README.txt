@@ -173,6 +173,7 @@ Using MSYS
     pacman -S git
     pacman -S make
     pacman -S gcc
+    pacman -S gdb
 
   And possibly others depending upon your usage.  Then you will need to
   build and install kconfig-frontends per the instructions of the top-level
@@ -340,7 +341,7 @@ Ubuntu Bash under Windows 10
   for the needs of your project.
 
   You will also need to get the kconfig-frontends configuration as
-  described below under "NuttX Configuration tool".  In order to build the
+  described below under "NuttX Configuration Tool".  In order to build the
   kconfig-frontends configuration tool you will also need:  make, gperf,
   flex, bison, and libncurses-dev.
 
@@ -1790,6 +1791,8 @@ nuttx/
  |   |   `- README.txt
  |   |- freedom-kl26z/
  |   |   `- README.txt
+ |   |- gapuino/
+ |   |   `- README.txt
  |   |- hymini-stm32v/
  |   |   `- README.txt
  |   |- imxrt1050-evk
@@ -1894,8 +1897,6 @@ nuttx/
  |   |- open1788/
  |   |   `- README.txt
  |   |- p112/
- |   |   `- README.txt
- |   |- pcblogic-pic32mx/
  |   |   `- README.txt
  |   |- pcduino-a10/
  |   |   `- README.txt
@@ -2058,6 +2059,8 @@ nuttx/
  |   |   `- README.txt
  |   |- procfs/
  |   |   `- README.txt
+ |   |- spiffs/
+ |   |   `- README.md
  |   `- unionfs/
  |       `- README.txt
  |- graphics/

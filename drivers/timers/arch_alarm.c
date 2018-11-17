@@ -160,7 +160,8 @@ static void udelay_coarse(useconds_t microseconds)
     }
 }
 
-static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower, FAR void *arg)
+static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower,
+                             FAR void *arg)
 {
   struct timespec now;
 
@@ -180,7 +181,7 @@ static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower, FAR void *ar
       ONESHOT_CURRENT(g_oneshot_lower, &now);
       clock_timespec_subtract(&next, &now, &delta);
     }
-  while(delta.tv_sec == 0 && delta.tv_nsec == 0);
+  while (delta.tv_sec == 0 && delta.tv_nsec == 0);
 
   ONESHOT_START(g_oneshot_lower, oneshot_callback, NULL, &delta);
 #endif
@@ -247,7 +248,7 @@ int up_timer_getcounter(FAR uint64_t *cycles)
 {
   int ret = -EAGAIN;
 
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       struct timespec now;
 
@@ -265,7 +266,7 @@ void up_timer_getmask(FAR uint64_t *mask)
 {
   *mask = 0;
 
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       struct timespec maxts;
       uint64_t maxticks;
@@ -273,13 +274,14 @@ void up_timer_getmask(FAR uint64_t *mask)
       ONESHOT_MAX_DELAY(g_oneshot_lower, &maxts);
       maxticks = timespec_to_usec(&maxts) / USEC_PER_TICK;
 
-      while (1)
+      for(; ; )
         {
           uint64_t next = (*mask << 1) | 1;
           if (next > maxticks)
             {
               break;
             }
+
           *mask = next;
         }
     }
@@ -289,7 +291,7 @@ int up_timer_gettime(FAR struct timespec *ts)
 {
   int ret = -EAGAIN;
 
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       ret = ONESHOT_CURRENT(g_oneshot_lower, ts);
     }
@@ -337,7 +339,7 @@ int up_alarm_cancel(FAR struct timespec *ts)
 {
   int ret = -EAGAIN;
 
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       ret = ONESHOT_CANCEL(g_oneshot_lower, ts);
       ONESHOT_CURRENT(g_oneshot_lower, ts);
@@ -376,7 +378,7 @@ int up_alarm_start(FAR const struct timespec *ts)
 {
   int ret = -EAGAIN;
 
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       struct timespec now;
       struct timespec delta;
@@ -416,11 +418,11 @@ void up_mdelay(unsigned int milliseconds)
 
 void up_udelay(useconds_t microseconds)
 {
-  if (g_oneshot_lower)
+  if (g_oneshot_lower != NULL)
     {
       udelay_accurate(microseconds);
     }
-  else /* oneshot timer doesn't init yet */
+  else /* Oneshot timer hasn't been initialized yet */
     {
       udelay_coarse(microseconds);
     }

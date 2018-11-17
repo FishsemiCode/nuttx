@@ -70,7 +70,7 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define ARP_MAXAGE_TICK SEC2TICK(10*CONFIG_NET_ARP_MAXAGE)
+#define ARP_MAXAGE_TICK SEC2TICK(10 * CONFIG_NET_ARP_MAXAGE)
 
 /****************************************************************************
  * Private Types
@@ -196,8 +196,8 @@ arp_return_old_entry(FAR struct arp_entry_s *e1, FAR struct arp_entry_s *e2)
 
 int arp_update(in_addr_t ipaddr, FAR uint8_t *ethaddr)
 {
-  struct arp_entry_s *tabptr = &g_arptable[0];
-  int               i;
+  FAR struct arp_entry_s *tabptr = &g_arptable[0];
+  int i;
 
   /* Walk through the ARP mapping table and try to find an entry to
    * update. If none is found, the IP -> MAC address mapping is
@@ -396,3 +396,4 @@ void arp_delete(in_addr_t ipaddr)
 
 #endif /* CONFIG_NET_ARP */
 #endif /* CONFIG_NET */
+

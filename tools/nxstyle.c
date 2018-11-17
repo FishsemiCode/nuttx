@@ -112,27 +112,51 @@ int main(int argc, char **argv, char **envp)
 
       /* Check for a blank line */
 
-      if (line[0] == '\n')
+      for (n = 0; line[n] != '\n' && isspace((int)line[n]); n++)
         {
-          if (lineno == blank_lineno + 1)
+        }
+
+      if (line[n] == '\n')
+        {
+          if (n > 0)
+            {
+              fprintf(stderr, "Blank line contains whitespace at line %d\n",
+                      lineno);
+            }
+
+          if (lineno == 1)
+            {
+              fprintf(stderr,  "File begins with a blank line\n");
+            }
+          else if (lineno == blank_lineno + 1)
             {
               fprintf(stderr,  "Too many blank lines at line %d\n", lineno);
             }
 
           blank_lineno = lineno;
+          continue;
         }
-      else /* this line is non-blank */
+      else /* This line is non-blank */
         {
+          /* Check for a missing blank line after a comment */
+
           if (lineno == comment_lineno + 1)
             {
-              /* TODO:  This generates a false alarm if the current line
-               * contains a right brace or a pre-processor line.  No blank line
-               * should be present in those cases.
+              /* No blank line should be present if the current line contains
+               * a right brace, a pre-processor line, the start of another
+               * comment.
+               *
+               * REVISIT: Generates a false alarm if the current line is also
+               * a comment.  Generally it is acceptable for one comment to
+               * follow another with no space separation.
                */
 
-              fprintf(stderr,
-                      "Missing blank line after comment line. Found at line %d\n",
-                      comment_lineno);
+              if (line[n] != '}' /* && line[n] != '#' */)
+                {
+                  fprintf(stderr,
+                          "Missing blank line after comment line. Found at line %d\n",
+                          comment_lineno);
+                }
             }
         }
 
@@ -190,7 +214,10 @@ int main(int argc, char **argv, char **envp)
           if (line[indent] == '/' && line[indent +1] == '*' &&
               lptr - line == linelen - 3)
             {
-              if (comment_lineno != lineno - 1 &&
+              /* Check if there should be a blank line before the comment */
+
+              if (lineno > 1 &&
+                  comment_lineno != lineno - 1 &&
                   blank_lineno   != lineno - 1 &&
                   noblank_lineno != lineno - 1)
                 {
@@ -377,9 +404,24 @@ int main(int argc, char **argv, char **envp)
                     }
 #endif
 
+                  /* Handle nested comments */
+
                   if (ncomment > 0)
                     {
-                      ncomment--;
+                      /* Remember the line number of the line containing the
+                       * closing of the outermost comment.
+                       */
+
+                      if (--ncomment == 0)
+                        {
+#if 0
+                          /* REVISIT: causes false alarms when comment appears to
+                           * the right of a statement.
+                           */
+
+                          comment_lineno = lineno;
+#endif
+                        }
                     }
                   else
                     {
@@ -388,6 +430,9 @@ int main(int argc, char **argv, char **envp)
                               "Closing without opening comment at line %d:%d\n",
                               lineno, n);
                     }
+
+                  n++;
+                  continue;
                 }
 
               /* Check for C++ style comments
@@ -520,6 +565,10 @@ int main(int argc, char **argv, char **envp)
 
                         if (prevdeclnest <= 0 || declnest > 0)
                           {
+                            /* REVISIT:  Generates false alarms on named structures
+                             * that are fields of other structures or unions.
+                             */
+
                             fprintf(stderr,
                                     "Garbage follows right bracket at line %d:%d\n",
                                     lineno, n);
@@ -639,19 +688,6 @@ int main(int argc, char **argv, char **envp)
                           }
 
                         n = endndx + 1;
-                      }
-                  }
-                  break;
-
-                /* Check for space at the end of the line */
-
-                case '\n':
-                  {
-                    if (n > 0 && isspace((int)line[n - 1]))
-                      {
-                        fprintf(stderr,
-                                "Dangling whitespace at the end of line %d:%d\n",
-                                lineno, n);
                       }
                   }
                   break;
@@ -863,6 +899,15 @@ int main(int argc, char **argv, char **envp)
                   break;
                 }
             }
+        }
+
+      /* Loop terminates when NUL or newline character found */
+      /* Check for space at the end of the line */
+
+      if (n > 1 && line[n] == '\n' && isspace((int)line[n - 1]))
+        {
+          fprintf(stderr, "Dangling whitespace at the end of line %d:%d\n",
+                  lineno, n);
         }
 
       /* STEP 4: Check alignment */

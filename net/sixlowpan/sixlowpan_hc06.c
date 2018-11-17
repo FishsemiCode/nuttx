@@ -182,7 +182,6 @@ static const uint8_t g_ttl_values[] =
   0, 1, 64, 255
 };
 
-
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -424,7 +423,6 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
   uint8_t prefcount = UNCOMPRESS_PREFLEN(prefpost);
   uint8_t postcount = UNCOMPRESS_POSTLEN(prefpost);
   int destndx;
-  int endndx;
   int i;
 
   /* The value 16 is encoded as 0xf in the 4 bit-fields. */
@@ -495,9 +493,25 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
       /* If the postcount is even then take extra care with endian-ness */
 
       destndx = 8 - (postcount >> 1);
-      endndx  = 8 - (postcount & 1);
 
-      for (i = destndx; i < endndx; i++)
+      /* Handle any odd byte first */
+
+      if ((postcount & 1) != 0)
+        {
+#ifdef CONFIG_BIG_ENDIAN
+          /* Preserve big-endian, network order */
+
+          ipaddr[destndx - 1] = (uint16_t)(*srcptr) << 8;
+#else
+          /* Preserve big-endian, network order */
+
+          ipaddr[destndx - 1] = (uint16_t)(*srcptr);
+#endif
+
+          srcptr++;
+        }
+
+      for (i = destndx; i < 8; i++)
         {
 #ifdef CONFIG_BIG_ENDIAN
           /* Preserve big-endian, network order */
@@ -509,13 +523,6 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
           ipaddr[i] = (uint16_t)srcptr[1] << 8 | (uint16_t)srcptr[0];
 #endif
           srcptr += 2;
-        }
-
-      /* Handle any remaining odd byte */
-
-      if ((postcount & 1) != 0)
-        {
-          ipaddr[7] = (uint16_t)(*srcptr) << 8;
         }
 
       /* If the was a standard MAC based address then toggle */

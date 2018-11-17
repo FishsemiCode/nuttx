@@ -157,8 +157,11 @@ struct pollfd;       /* Forward reference */
  *   Handle incoming ICMPv6 input
  *
  * Input Parameters:
- *   dev - The device driver structure containing the received ICMPv6
- *         packet
+ *   dev   - The device driver structure containing the received ICMPv6
+ *           packet
+ *   iplen - The size of the IPv6 header.  This may be larger than
+ *           IPv6_HDRLEN the IPv6 header if IPv6 extension headers are
+ *           present.
  *
  * Returned Value:
  *   None
@@ -168,7 +171,7 @@ struct pollfd;       /* Forward reference */
  *
  ****************************************************************************/
 
-void icmpv6_input(FAR struct net_driver_s *dev);
+void icmpv6_input(FAR struct net_driver_s *dev, unsigned int iplen);
 
 /****************************************************************************
  * Name: icmpv6_neighbor
@@ -489,9 +492,6 @@ int icmpv6_rwait(FAR struct icmpv6_rnotify_s *notify,
  *   wake-up any threads that may be waiting for this particular Router
  *   Advertisement.
  *
- *   NOTE:  On success the network has the new address applied and is in
- *   the down state.
- *
  * Assumptions:
  *   This function is called from the MAC device driver indirectly through
  *   icmpv6_icmpv6in() will execute with the network locked.
@@ -729,3 +729,4 @@ void icmpv6_linkipaddr(FAR struct net_driver_s *dev, net_ipv6addr_t ipaddr);
 
 #endif /* CONFIG_NET_ICMPv6 && !CONFIG_NET_ICMPv6_NO_STACK */
 #endif /* __NET_ICMPv6_ICMPv6_H */
+

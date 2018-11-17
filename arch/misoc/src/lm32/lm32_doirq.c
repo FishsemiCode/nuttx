@@ -52,15 +52,7 @@
 #include <arch/board/board.h>
 
 #include "group/group.h"
-#include "sched/sched.h"
 #include "lm32.h"
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-uint32_t *g_last_regs;
-struct tcb_s *g_last_task;
 
 /****************************************************************************
  * Public Functions
@@ -68,7 +60,6 @@ struct tcb_s *g_last_task;
 
 uint32_t *lm32_doirq(int irq, uint32_t *regs)
 {
-  g_last_regs = regs;
   board_autoled_on(LED_INIRQ);
 
   /* Current regs non-zero indicates that we are processing an interrupt;
@@ -136,7 +127,5 @@ uint32_t *lm32_doirq(int irq, uint32_t *regs)
 
   up_enable_irq(irq);
   board_autoled_off(LED_INIRQ);
-  g_last_task = this_task();
-  g_last_regs = NULL;
   return regs;
 }

@@ -39,7 +39,6 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/wdog.h>
 #include <nuttx/irq.h>
 

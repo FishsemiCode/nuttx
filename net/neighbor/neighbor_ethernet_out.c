@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/neighbor/neighbor_ethernet_out.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,23 +54,20 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define ETHBUF  ((struct eth_hdr_s *)dev->d_buf)
-#define IPv6BUF ((struct ipv6_hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
+#define ETHBUF  ((FAR struct eth_hdr_s *)dev->d_buf)
+#define IPv6BUF ((FAR struct ipv6_hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-/* Support for IGMP multicast addresses.
+/* Support for MLD multicast addresses.
  *
  * Well-known ethernet multicast address:
  *
  * ADDRESS           TYPE   USAGE
- * 01-00-0c-cc-cc-cc 0x0802 CDP (Cisco Discovery Protocol), VTP (Virtual Trunking Protocol)
+ * 01-00-0c-cc-cc-cc 0x0802 CDP (Cisco Discovery Protocol), VTP (Virtual
+ *                          Trunking Protocol)
  * 01-00-0c-cc-cc-cd 0x0802 Cisco Shared Spanning Tree Protocol Address
  * 01-80-c2-00-00-00 0x0802 Spanning Tree Protocol (for bridges) IEEE 802.1D
  * 01-80-c2-00-00-02 0x0809 Ethernet OAM Protocol IEEE 802.3ah

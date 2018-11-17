@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libc/stdio/lib_libvsprintf.c
  *
- *   Copyright (C) 2007-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2012, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,15 +52,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-/* If you have floating point but no fieldwidth, then use a fixed (but
- * configurable) floating point precision.
- */
-
-#if defined(CONFIG_LIBC_FLOATINGPOINT) && \
-    defined(CONFIG_NOPRINTF_FIELDWIDTH) && \
-   !defined(CONFIG_LIBC_FIXEDPRECISION)
-#  define CONFIG_LIBC_FIXEDPRECISION 3
-#endif
 
 #define FLAG_SHOWPLUS            0x01
 #define FLAG_ALTFORM             0x02
@@ -148,9 +139,7 @@ enum
 #ifdef CONFIG_PTR_IS_NOT_INT
 static void ptohex(FAR struct lib_outstream_s *obj, uint8_t flags,
                    FAR void *p);
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static int  getsizesize(uint8_t fmt, uint8_t flags, FAR void *p)
-#endif /* CONFIG_NOPRINTF_FIELDWIDTH */
 #endif /* CONFIG_PTR_IS_NOT_INT */
 
 /* Unsigned int to ASCII conversion */
@@ -163,10 +152,8 @@ static void utobin(FAR struct lib_outstream_s *obj, unsigned int n);
 static void utoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
                      uint8_t flags, unsigned int lln);
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void fixup(uint8_t fmt, FAR uint8_t *flags, int *n);
 static int  getusize(uint8_t fmt, uint8_t flags, unsigned int lln);
-#endif
 
 /* Unsigned long int to ASCII conversion */
 
@@ -178,10 +165,8 @@ static void lutooct(FAR struct lib_outstream_s *obj, unsigned long ln);
 static void lutobin(FAR struct lib_outstream_s *obj, unsigned long ln);
 static void lutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
                       uint8_t flags, unsigned long ln);
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void lfixup(uint8_t fmt, FAR uint8_t *flags, long *ln);
 static int  getlusize(uint8_t fmt, FAR uint8_t flags, unsigned long ln);
-#endif
 #endif
 
 /* Unsigned long long int to ASCII conversions */
@@ -194,19 +179,17 @@ static void llutooct(FAR struct lib_outstream_s *obj, unsigned long long lln);
 static void llutobin(FAR struct lib_outstream_s *obj, unsigned long long lln);
 static void llutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
                        uint8_t flags, unsigned long long lln);
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void llfixup(uint8_t fmt, FAR uint8_t *flags, FAR long long *lln);
 static int  getllusize(uint8_t fmt, FAR uint8_t flags,
                        FAR unsigned long long lln);
 #endif
-#endif
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                       uint8_t flags, int fieldwidth, int valwidth);
-static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                        uint8_t flags, int fieldwidth, int valwidth);
-#endif
+                       uint8_t justify, uint8_t flags, int fieldwidth,
+                       int valwidth, int trunc);
+static void postjustify(FAR struct lib_outstream_s *obj, uint8_t justify,
+                        uint8_t flags, int fieldwidth, int valwidth,
+                        int trunc);
 
 /****************************************************************************
  * Private Constant Data
@@ -252,7 +235,7 @@ static void ptohex(FAR struct lib_outstream_s *obj, uint8_t flags,
   u.dw = 0;
   u.p  = p;
 
-  for (bits = CHAR_BIT*sizeof(void *); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT * sizeof(FAR void *); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((u.dw >> (bits - 4)) & 0xf);
       if (nibble < 10)
@@ -270,7 +253,6 @@ static void ptohex(FAR struct lib_outstream_s *obj, uint8_t flags,
  * Name: getpsize
  ****************************************************************************/
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static int getpsize(uint8_t flags, FAR void *p)
 {
   struct lib_outstream_s nulloutstream;
@@ -280,7 +262,6 @@ static int getpsize(uint8_t flags, FAR void *p)
   return nulloutstream.nput;
 }
 
-#endif /* CONFIG_NOPRINTF_FIELDWIDTH */
 #endif /* CONFIG_PTR_IS_NOT_INT */
 
 /****************************************************************************
@@ -315,7 +296,7 @@ static void utohex(FAR struct lib_outstream_s *obj, unsigned int n,
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned int); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT * sizeof(unsigned int); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((n >> (bits - 4)) & 0xf);
       if (nibble || nonzero)
@@ -348,7 +329,7 @@ static void utooct(FAR struct lib_outstream_s *obj, unsigned int n)
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned int); bits > 0; bits -= 3)
+  for (bits = CHAR_BIT * sizeof(unsigned int); bits > 0; bits -= 3)
     {
       uint8_t tribit = (uint8_t)((n >> (bits - 3)) & 0x7);
       if (tribit || nonzero)
@@ -373,7 +354,7 @@ static void utobin(FAR struct lib_outstream_s *obj, unsigned int n)
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned int); bits > 0; bits -= 1)
+  for (bits = CHAR_BIT * sizeof(unsigned int); bits > 0; bits -= 1)
     {
       uint8_t unibit = (uint8_t)((n >> (bits - 1)) & 0x1);
       if (unibit || nonzero)
@@ -400,60 +381,27 @@ static void utoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
 
   switch (fmt)
     {
-      case 'd':
+      case 'd':  /* Signed/unsigned base 10 */
       case 'i':
-        /* Signed base 10 */
-        {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-          if ((int)n < 0)
-            {
-              obj->put(obj, '-');
-              n = (unsigned int)(-(int)n);
-            }
-          else if (IS_SHOWPLUS(flags))
-            {
-              obj->put(obj, '+');
-            }
-#endif
-          /* Convert the unsigned value to a string. */
-
-          utodec(obj, n);
-        }
-        break;
-
       case 'u':
-        /* Unigned base 10 */
         {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-          if (IS_SHOWPLUS(flags))
-            {
-              obj->put(obj, '+');
-            }
-#endif
-          /* Convert the unsigned value to a string. */
+          /* Convert the integer value to a string. */
 
           utodec(obj, n);
         }
         break;
 
 #ifndef CONFIG_PTR_IS_NOT_INT
-      case 'p':
+      case 'p':  /* Hexadecimal */
 #endif
       case 'x':
       case 'X':
-        /* Hexadecimal */
         {
-          /* Check for alternate form */
-
-          if (IS_ALTFORM(flags))
-            {
-              /* Prefix the number with "0x" */
-
-              obj->put(obj, '0');
-              obj->put(obj, 'x');
-            }
-
-          /* Convert the unsigned value to a string. */
+          /* Convert the unsigned value to a string.
+           *
+           * NOTE that the alternate form prefix was already applied in
+           * prejustify().
+           */
 
           if (fmt == 'X')
             {
@@ -466,8 +414,7 @@ static void utoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
         }
         break;
 
-      case 'o':
-        /* Octal */
+      case 'o':  /* Octal */
          {
            /* Check for alternate form */
 
@@ -484,8 +431,7 @@ static void utoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
          }
          break;
 
-      case 'b':
-        /* Binary */
+      case 'b': /* Binary */
         {
           /* Convert the unsigned value to a string. */
 
@@ -505,37 +451,30 @@ static void utoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
  * Name: fixup
  ****************************************************************************/
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void fixup(uint8_t fmt, FAR uint8_t *flags, FAR int *n)
 {
   /* Perform the integer conversion according to the format specifier */
 
   switch (fmt)
     {
-      case 'd':
+      case 'd':  /* Signed base 10 */
       case 'i':
-        /* Signed base 10 */
-
         if (*n < 0)
           {
             SET_NEGATE(*flags);
             CLR_SHOWPLUS(*flags);
-            *n    = -*n;
+            *n = -*n;
           }
         break;
 
-      case 'u':
-        /* Unsigned base 10 */
+      case 'u':  /* Unsigned base 10 */
         break;
 
-      case 'p':
+      case 'p':  /* Hexadecimal */
       case 'x':
       case 'X':
-        /* Hexadecimal */
-      case 'o':
-        /* Octal */
-      case 'b':
-        /* Binary */
+      case 'o':  /* Octal */
+      case 'b':  /* Binary */
         CLR_SIGNED(*flags);
         break;
 
@@ -571,9 +510,9 @@ static int getdblsize(uint8_t fmt, int trunc, uint8_t flags, double n)
   return nulloutstream.nput;
 }
 #endif
-#endif /* CONFIG_NOPRINTF_FIELDWIDTH */
 
 #ifdef CONFIG_LONG_IS_NOT_INT
+
 /****************************************************************************
  * Name: lutodec
  ****************************************************************************/
@@ -606,7 +545,7 @@ static void lutohex(FAR struct lib_outstream_s *obj, unsigned long n,
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned long); bits > 0; bits -= 4)
+  for (bits = CHAR_BIT * sizeof(unsigned long); bits > 0; bits -= 4)
     {
       uint8_t nibble = (uint8_t)((n >> (bits - 4)) & 0xf);
       if (nibble || nonzero)
@@ -639,7 +578,7 @@ static void lutooct(FAR struct lib_outstream_s *obj, unsigned long n)
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned long); bits > 0; bits -= 3)
+  for (bits = CHAR_BIT * sizeof(unsigned long); bits > 0; bits -= 3)
     {
       uint8_t tribit = (uint8_t)((n >> (bits - 3)) & 0x7);
       if (tribit || nonzero)
@@ -664,7 +603,7 @@ static void lutobin(FAR struct lib_outstream_s *obj, unsigned long n)
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned long); bits > 0; bits -= 1)
+  for (bits = CHAR_BIT * sizeof(unsigned long); bits > 0; bits -= 1)
     {
       uint8_t unibit = (uint8_t)((n >> (bits - 1)) & 0x1);
       if (unibit || nonzero)
@@ -691,57 +630,24 @@ static void lutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
 
   switch (fmt)
     {
-      case 'd':
+      case 'd':  /* Signed/unsigned base 10 */
       case 'i':
-        /* Signed base 10 */
-        {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-          if ((long)ln < 0)
-            {
-              obj->put(obj, '-');
-              ln    = (unsigned long)(-(long)ln);
-            }
-          else if (IS_SHOWPLUS(flags))
-            {
-              obj->put(obj, '+');
-            }
-#endif
-          /* Convert the unsigned value to a string. */
-
-          lutodec(obj, ln);
-        }
-        break;
-
       case 'u':
-        /* Unigned base 10 */
         {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-          if (IS_SHOWPLUS(flags))
-            {
-              obj->put(obj, '+');
-            }
-#endif
-          /* Convert the unsigned value to a string. */
+          /* Convert the long integer value to a string. */
 
           lutodec(obj, ln);
         }
         break;
 
-      case 'x':
+      case 'x':  /* Hexadecimal */
       case 'X':
-        /* Hexadecimal */
         {
-          /* Check for alternate form */
-
-          if (IS_ALTFORM(flags))
-            {
-              /* Prefix the number with "0x" */
-
-              obj->put(obj, '0');
-              obj->put(obj, 'x');
-            }
-
-          /* Convert the unsigned value to a string. */
+          /* Convert the unsigned value to a string.
+           *
+           * NOTE that the alternate form prefix was already applied in
+           * prejustify().
+           */
 
           if (fmt == 'X')
             {
@@ -754,8 +660,7 @@ static void lutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
         }
         break;
 
-      case 'o':
-        /* Octal */
+      case 'o':  /* Octal */
          {
            /* Check for alternate form */
 
@@ -772,8 +677,7 @@ static void lutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
          }
          break;
 
-      case 'b':
-        /* Binary */
+      case 'b':  /* Binary */
         {
           /* Convert the unsigned value to a string. */
 
@@ -791,37 +695,30 @@ static void lutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
  * Name: lfixup
  ****************************************************************************/
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void lfixup(uint8_t fmt, FAR uint8_t *flags, FAR long *ln)
 {
   /* Perform the integer conversion according to the format specifier */
 
   switch (fmt)
     {
-      case 'd':
+      case 'd':  /* Signed base 10 */
       case 'i':
-        /* Signed base 10 */
-
         if (*ln < 0)
           {
             SET_NEGATE(*flags);
             CLR_SHOWPLUS(*flags);
-            *ln    = -*ln;
+            *ln = -*ln;
           }
         break;
 
-      case 'u':
-        /* Unsigned base 10 */
+      case 'u':  /* Unsigned base 10 */
         break;
 
-      case 'p':
+      case 'p':  /* Hexadecimal */
       case 'x':
       case 'X':
-        /* Hexadecimal */
-      case 'o':
-        /* Octal */
-      case 'b':
-        /* Binary */
+      case 'o':  /* Octal */
+      case 'b':  /* Binary */
         CLR_SIGNED(*flags);
         break;
 
@@ -843,7 +740,6 @@ static int getlusize(uint8_t fmt, uint8_t flags, unsigned long ln)
   return nulloutstream.nput;
 }
 
-#endif /* CONFIG_NOPRINTF_FIELDWIDTH */
 #endif /* CONFIG_LONG_IS_NOT_INT */
 
 #if defined(CONFIG_HAVE_LONG_LONG) && defined(CONFIG_LIBC_LONG_LONG)
@@ -912,7 +808,7 @@ static void llutooct(FAR struct lib_outstream_s *obj, unsigned long long n)
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned long long); bits > 0; bits -= 3)
+  for (bits = CHAR_BIT * sizeof(unsigned long long); bits > 0; bits -= 3)
     {
       uint8_t tribit = (uint8_t)((n >> (bits - 3)) & 0x7);
       if (tribit || nonzero)
@@ -937,7 +833,7 @@ static void llutobin(FAR struct lib_outstream_s *obj, unsigned long long n)
   bool    nonzero = false;
   uint8_t bits;
 
-  for (bits = CHAR_BIT*sizeof(unsigned long long); bits > 0; bits -= 1)
+  for (bits = CHAR_BIT * sizeof(unsigned long long); bits > 0; bits -= 1)
     {
       uint8_t unibit = (uint8_t)((n >> (bits - 1)) & 0x1);
       if (unibit || nonzero)
@@ -964,57 +860,24 @@ static void llutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
 
   switch (fmt)
     {
-      case 'd':
+      case 'd':  /* Signed/unsigned base 10 */
       case 'i':
-        /* Signed base 10 */
-        {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-          if ((long long)lln < 0)
-            {
-              obj->put(obj, '-');
-              lln    = (unsigned long long)(-(long long)lln);
-            }
-          else if (IS_SHOWPLUS(flags))
-            {
-              obj->put(obj, '+');
-            }
-#endif
-          /* Convert the unsigned value to a string. */
-
-          llutodec(obj, (unsigned long long)lln);
-        }
-        break;
-
       case 'u':
-        /* Unigned base 10 */
         {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-          if (IS_SHOWPLUS(flags))
-            {
-              obj->put(obj, '+');
-            }
-#endif
-          /* Convert the unsigned value to a string. */
+          /* Convert the long long integer value to a string. */
 
           llutodec(obj, (unsigned long long)lln);
         }
         break;
 
-      case 'x':
+      case 'x':  /* Hexadecimal */
       case 'X':
-        /* Hexadecimal */
         {
-          /* Check for alternate form */
-
-          if (IS_ALTFORM(flags))
-            {
-              /* Prefix the number with "0x" */
-
-              obj->put(obj, '0');
-              obj->put(obj, 'x');
-            }
-
-          /* Convert the unsigned value to a string. */
+          /* Convert the unsigned value to a string.
+           *
+           * NOTE that the alternate form prefix was already applied in
+           * prejustify().
+           */
 
           if (fmt == 'X')
             {
@@ -1027,8 +890,7 @@ static void llutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
         }
         break;
 
-      case 'o':
-        /* Octal */
+      case 'o':  /* Octal */
          {
            /* Check for alternate form */
 
@@ -1045,8 +907,7 @@ static void llutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
          }
          break;
 
-      case 'b':
-        /* Binary */
+      case 'b':  /* Binary */
         {
           /* Convert the unsigned value to a string. */
 
@@ -1064,37 +925,30 @@ static void llutoascii(FAR struct lib_outstream_s *obj, uint8_t fmt,
  * Name: llfixup
  ****************************************************************************/
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void llfixup(uint8_t fmt, FAR uint8_t *flags, FAR long long *lln)
 {
   /* Perform the integer conversion according to the format specifier */
 
   switch (fmt)
     {
-      case 'd':
+      case 'd':  /* Signed base 10 */
       case 'i':
-        /* Signed base 10 */
-
         if (*lln < 0)
           {
             SET_NEGATE(*flags);
             CLR_SHOWPLUS(*flags);
-            *lln    = -*lln;
+            *lln = -*lln;
           }
         break;
 
-      case 'u':
-        /* Unsigned base 10 */
+      case 'u':  /* Unsigned base 10 */
         break;
 
-      case 'p':
+      case 'p':  /* Hexadecimal */
       case 'x':
       case 'X':
-        /* Hexadecimal */
-      case 'o':
-        /* Octal */
-      case 'b':
-        /* Binary */
+      case 'o':  /* Octal */
+      case 'b':  /* Binary */
         CLR_SIGNED(*flags);
         break;
 
@@ -1112,93 +966,187 @@ static int getllusize(uint8_t fmt, uint8_t flags, unsigned long long lln)
   struct lib_outstream_s nulloutstream;
   lib_nulloutstream(&nulloutstream);
 
-
   llutoascii(&nulloutstream, fmt, flags, lln);
   return nulloutstream.nput;
 }
 
-#endif /* CONFIG_NOPRINTF_FIELDWIDTH */
 #endif /* CONFIG_HAVE_LONG_LONG */
 
 /****************************************************************************
  * Name: prejustify
  ****************************************************************************/
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
 static void prejustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                       uint8_t flags, int fieldwidth, int valwidth)
+                       uint8_t justify, uint8_t flags, int fieldwidth,
+                       int valwidth, int trunc)
 {
+  bool althex = (fmt == 'x' || fmt == 'X') && IS_ALTFORM(flags);
   int i;
 
-  switch (fmt)
+  /* If there is integer precision, then use FMT_RJUST vs FMT_RJUST0 */
+
+  if (trunc > 0 && justify == FMT_RJUST0)
+    {
+      /* Force right justification in the case.  Leading zeros application
+       * only to "precision" which is implied anyway.
+       */
+
+      justify = FMT_RJUST;
+    }
+
+  switch (justify)
     {
       default:
       case FMT_RJUST:
-        if (IS_SIGNED(flags))
-          {
-            valwidth++;
-          }
+        {
+          /* Pad with spaces up to the  size of the precision (aka 'trunc')
+           * then with zeroes to the size of the value width.
+           */
 
-        for (i = fieldwidth - valwidth; i > 0; i--)
-          {
-            obj->put(obj, ' ');
-          }
+          if (trunc > valwidth)
+            {
+              int padlen = fieldwidth - trunc;
 
-        if (IS_NEGATE(flags))
-          {
-            obj->put(obj, '-');
-          }
-        else if (IS_SHOWPLUS(flags))
-          {
-            obj->put(obj, '+');
-          }
+              if (IS_SIGNED(flags))
+                {
+                  padlen--;
+                }
+
+              if (althex)
+                {
+                  padlen -= 2;
+                }
+
+              for (i = padlen; i > 0; i--)
+                {
+                  obj->put(obj, ' ');
+                }
+
+              if (IS_NEGATE(flags))
+                {
+                  obj->put(obj, '-');
+                }
+              else if (IS_SHOWPLUS(flags))
+                {
+                  obj->put(obj, '+');
+                }
+
+              if (althex)
+                {
+                  obj->put(obj, '0');
+                  obj->put(obj, 'x');
+                }
+
+              for (i = trunc - valwidth; i > 0; i--)
+                {
+                  obj->put(obj, '0');
+                }
+            }
+          else
+            {
+              /* Add a leading minus sign */
+
+              if (IS_SIGNED(flags))
+                {
+                  valwidth++;
+                }
+
+              if (althex)
+                {
+                  valwidth += 2;
+                }
+
+              for (i = fieldwidth - valwidth; i > 0; i--)
+                {
+                  obj->put(obj, ' ');
+                }
+
+              if (IS_NEGATE(flags))
+                {
+                  obj->put(obj, '-');
+                }
+              else if (IS_SHOWPLUS(flags))
+                {
+                  obj->put(obj, '+');
+                }
+
+              if (althex)
+                {
+                  obj->put(obj, '0');
+                  obj->put(obj, 'x');
+                }
+            }
+        }
         break;
 
       case FMT_RJUST0:
-         if (IS_NEGATE(flags))
-          {
-            obj->put(obj, '-');
-            valwidth++;
-          }
-        else if (IS_SHOWPLUS(flags))
-          {
-            obj->put(obj, '+');
-            valwidth++;
-          }
+        {
+          if (IS_NEGATE(flags))
+            {
+              obj->put(obj, '-');
+              valwidth++;
+            }
+          else if (IS_SHOWPLUS(flags))
+            {
+              obj->put(obj, '+');
+              valwidth++;
+            }
 
-        for (i = fieldwidth - valwidth; i > 0; i--)
-          {
-            obj->put(obj, '0');
-          }
+          if (althex)
+            {
+              obj->put(obj, '0');
+              obj->put(obj, 'x');
+              valwidth += 2;
+            }
+
+          for (i = fieldwidth - valwidth; i > 0; i--)
+            {
+              obj->put(obj, '0');
+            }
+        }
         break;
 
       case FMT_LJUST:
-         if (IS_NEGATE(flags))
-          {
-            obj->put(obj, '-');
-          }
-        else if (IS_SHOWPLUS(flags))
-          {
-            obj->put(obj, '+');
-          }
+        {
+          if (IS_NEGATE(flags))
+           {
+             obj->put(obj, '-');
+           }
+         else if (IS_SHOWPLUS(flags))
+           {
+             obj->put(obj, '+');
+           }
+
+         if (althex)
+           {
+             obj->put(obj, '0');
+             obj->put(obj, 'x');
+           }
+
+          /* Pad with zeros up to the size of the value width. */
+
+          for (i = trunc - valwidth; i > 0; i--)
+            {
+              obj->put(obj, '0');
+            }
+        }
         break;
     }
 }
-#endif
 
 /****************************************************************************
  * Name: postjustify
  ****************************************************************************/
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
-static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
-                        uint8_t flags, int fieldwidth, int valwidth)
+static void postjustify(FAR struct lib_outstream_s *obj, uint8_t justify,
+                        uint8_t flags, int fieldwidth, int valwidth,
+                        int trunc)
 {
   int i;
 
   /* Apply field justification to the integer value. */
 
-  switch (fmt)
+  switch (justify)
     {
       default:
       case FMT_RJUST:
@@ -1206,19 +1154,24 @@ static void postjustify(FAR struct lib_outstream_s *obj, uint8_t fmt,
         break;
 
       case FMT_LJUST:
-        if (IS_SIGNED(flags))
-          {
-            valwidth++;
-          }
+        {
+          int width;
 
-        for (i = fieldwidth - valwidth; i > 0; i--)
-          {
-            obj->put(obj, ' ');
-          }
+          if (IS_SIGNED(flags))
+            {
+              valwidth++;
+            }
+
+          width = valwidth < trunc ? trunc : valwidth;
+
+          for (i = fieldwidth - width; i > 0; i--)
+            {
+              obj->put(obj, ' ');
+            }
+        }
         break;
     }
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -1232,11 +1185,9 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
                  va_list ap)
 {
   FAR char        *ptmp;
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
   int             width;
   int             trunc;
-  uint8_t         fmt;
-#endif
+  uint8_t         justify;
   uint8_t         flags;
 #ifdef CONFIG_ARCH_ROMGETC
   char            ch;
@@ -1272,12 +1223,10 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
       /* Assume defaults */
 
-      flags = 0;
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
-      fmt   = FMT_RJUST;
-      width = 0;
-      trunc = 0;
-#endif
+      flags   = 0;
+      justify = FMT_RJUST;
+      width   = 0;
+      trunc   = 0;
 
       /* Process each format qualifier. */
 
@@ -1294,33 +1243,26 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
           else if (FMT_CHAR == '-')
             {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
-              fmt = FMT_LJUST;
-#endif
+              justify = FMT_LJUST;
             }
 
           /* Check for leading zero fill right justification. */
 
           else if (FMT_CHAR == '0')
             {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
-              fmt = FMT_RJUST0;
-#endif
+              justify = FMT_RJUST0;
             }
 #if 0
           /* Center justification. */
 
           else if (FMT_CHAR == '~')
             {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
-              fmt = FMT_CENTER;
-#endif
+              justify = FMT_CENTER;
             }
 #endif
 
           else if (FMT_CHAR == '*')
             {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               int value = va_arg(ap, int);
               if (IS_HASDOT(flags))
                 {
@@ -1332,20 +1274,12 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
                   width = value;
                   SET_HASASTERISKWIDTH(flags);
                 }
-#endif
             }
 
           /* Check for field width */
 
           else if (FMT_CHAR >= '1' && FMT_CHAR <= '9')
             {
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-              do
-                {
-                  FMT_NEXT;
-                }
-              while (FMT_CHAR >= '0' && FMT_CHAR <= '9');
-#else
               /* Accumulate the field width integer. */
 
               int n = ((int)(FMT_CHAR)) - (int)'0';
@@ -1370,7 +1304,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
                 {
                   width = n;
                 }
-#endif
+
               /* Back up to the last digit. */
 
               FMT_PREV;
@@ -1380,9 +1314,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
           else if (FMT_CHAR == '.')
             {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               SET_HASDOT(flags);
-#endif
             }
 
           /* Check for leading plus sign. */
@@ -1414,10 +1346,9 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
       if (FMT_CHAR == 's')
         {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
           int swidth;
           int left;
-#endif
+
           /* Get the string to output */
 
           ptmp = va_arg(ap, FAR char *);
@@ -1430,31 +1361,27 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
            * operations.
            */
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
           swidth = (IS_HASDOT(flags) && trunc >= 0)
                       ? strnlen(ptmp, trunc) : strlen(ptmp);
-          prejustify(obj, fmt, 0, width, swidth);
+          prejustify(obj, FMT_CHAR, justify, 0, width, swidth, 0);
           left = swidth;
-#endif
+
           /* Concatenate the string into the output */
 
           while (*ptmp)
             {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               if (left-- <= 0)
                 {
                   break;
                 }
-#endif
+
               obj->put(obj, *ptmp);
               ptmp++;
             }
 
           /* Perform left-justification operations. */
 
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
-          postjustify(obj, fmt, 0, width, swidth);
-#endif
+          postjustify(obj, justify, 0, width, swidth, 0);
           continue;
         }
 
@@ -1495,18 +1422,12 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
           if (IS_LONGLONGPRECISION(flags) && FMT_CHAR != 'p')
             {
               long long lln;
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               int lluwidth;
-#endif
+
               /* Extract the long long value. */
 
               lln = va_arg(ap, long long);
 
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-              /* Output the number */
-
-              llutoascii(obj, FMT_CHAR, flags, (unsigned long long)lln);
-#else
               /* Resolve sign-ness and format issues */
 
               llfixup(FMT_CHAR, &flags, &lln);
@@ -1517,7 +1438,8 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform left field justification actions */
 
-              prejustify(obj, fmt, flags, width, lluwidth);
+              prejustify(obj, FMT_CHAR, justify, flags, width, lluwidth,
+                         trunc);
 
               /* Output the number */
 
@@ -1525,8 +1447,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform right field justification actions */
 
-              postjustify(obj, fmt, flags, width, lluwidth);
-#endif
+              postjustify(obj, justify, flags, width, lluwidth, trunc);
             }
           else
 #endif /* CONFIG_HAVE_LONG_LONG */
@@ -1534,18 +1455,12 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
           if (IS_LONGPRECISION(flags) && FMT_CHAR != 'p')
             {
               long ln;
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               int luwidth;
-#endif
+
               /* Extract the long value. */
 
               ln = va_arg(ap, long);
 
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-              /* Output the number */
-
-              lutoascii(obj, FMT_CHAR, flags, (unsigned long)ln);
-#else
               /* Resolve sign-ness and format issues */
 
               lfixup(FMT_CHAR, &flags, &ln);
@@ -1556,7 +1471,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform left field justification actions */
 
-              prejustify(obj, fmt, flags, width, luwidth);
+              prejustify(obj, FMT_CHAR, justify, flags, width, trunc);
 
               /* Output the number */
 
@@ -1564,8 +1479,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform right field justification actions */
 
-              postjustify(obj, fmt, flags, width, luwidth);
-#endif
+              postjustify(obj, justify, flags, width, luwidth, trunc);
             }
           else
 #endif /* CONFIG_LONG_IS_NOT_INT */
@@ -1573,18 +1487,12 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
           if (FMT_CHAR == 'p')
             {
               void *p;
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               int pwidth;
-#endif
+
               /* Extract the integer value. */
 
               p = va_arg(ap, void *);
 
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-              /* Output the pointer value */
-
-              ptohex(obj, flags, p);
-#else
               /* Resolve sign-ness and format issues */
 
               lfixup(FMT_CHAR, &flags, &ln);
@@ -1595,7 +1503,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform left field justification actions */
 
-              prejustify(obj, fmt, flags, width, pwidth);
+              prejustify(obj, FMT_CHAR, justify, flags, width, pwidth, 0);
 
               /* Output the pointer value */
 
@@ -1603,25 +1511,18 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform right field justification actions */
 
-              postjustify(obj, fmt, flags, width, pwidth);
-#endif
+              postjustify(obj, justify, flags, width, pwidth, 0);
             }
           else
 #endif
             {
-              int n;
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
               int uwidth;
-#endif
+              int n;
+
               /* Extract the long long value. */
 
               n = va_arg(ap, int);
 
-#ifdef CONFIG_NOPRINTF_FIELDWIDTH
-              /* Output the number */
-
-              utoascii(obj, FMT_CHAR, flags, (unsigned int)n);
-#else
               /* Resolve sign-ness and format issues */
 
               fixup(FMT_CHAR, &flags, &n);
@@ -1632,7 +1533,8 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform left field justification actions */
 
-              prejustify(obj, fmt, flags, width, uwidth);
+              prejustify(obj, FMT_CHAR, justify, flags, width, uwidth,
+                         trunc);
 
               /* Output the number */
 
@@ -1640,8 +1542,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
               /* Perform right field justification actions */
 
-              postjustify(obj, fmt, flags, width, uwidth);
-#endif
+              postjustify(obj, justify, flags, width, uwidth, trunc);
             }
         }
 
@@ -1650,7 +1551,6 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 #ifdef CONFIG_LIBC_FLOATINGPOINT
       else if (strchr("eEfgG", FMT_CHAR))
         {
-#ifndef CONFIG_NOPRINTF_FIELDWIDTH
           double dblval = va_arg(ap, double);
           int dblsize;
 
@@ -1660,7 +1560,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
           /* Perform left field justification actions */
 
-          prejustify(obj, fmt, 0, width, dblsize);
+          prejustify(obj, FMT_CHAR, justify, 0, width, dblsize, 0);
 
           /* Output the number */
 
@@ -1668,13 +1568,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *obj, FAR const IPTR char *src,
 
           /* Perform right field justification actions */
 
-          postjustify(obj, fmt, 0, width, dblsize);
-#else
-          /* Output the number with a fixed precision */
-
-          double dblval = va_arg(ap, double);
-          lib_dtoa(obj, FMT_CHAR, CONFIG_LIBC_FIXEDPRECISION, flags, dblval);
-#endif
+          postjustify(obj, justify, 0, width, dblsize, 0);
         }
 #endif /* CONFIG_LIBC_FLOATINGPOINT */
     }

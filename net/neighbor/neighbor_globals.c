@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/neighbor/neighbor_globals.c
  *
- *   Copyright (C) 2007-2009, 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * A leverage of logic from uIP which also has a BSD style license
@@ -55,3 +55,4 @@
  */
 
 struct neighbor_entry g_neighbors[CONFIG_NET_IPv6_NCONF_ENTRIES];
+

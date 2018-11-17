@@ -41,8 +41,6 @@
 
 #include <queue.h>
 
-#include <nuttx/clock.h>
-
 #include "wdog/wdog.h"
 
 /****************************************************************************

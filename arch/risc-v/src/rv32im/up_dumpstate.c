@@ -103,33 +103,33 @@ static inline void up_registerdump(void)
 {
   /* Are user registers available from interrupt processing? */
 
-  if (g_last_regs)
+  if (g_current_regs)
     {
       _alert("EPC:%08x \n",
-            g_last_regs[REG_EPC]);
+            g_current_regs[REG_EPC]);
       _alert("A0:%08x A1:%08x A2:%08x A3:%08x A4:%08x A5:%08x A6:%08x A7:%08x\n",
-            g_last_regs[REG_A0], g_last_regs[REG_A1], g_last_regs[REG_A2],
-            g_last_regs[REG_A3], g_last_regs[REG_A4], g_last_regs[REG_A5],
-            g_last_regs[REG_A6], g_last_regs[REG_A7]);
+            g_current_regs[REG_A0], g_current_regs[REG_A1], g_current_regs[REG_A2],
+            g_current_regs[REG_A3], g_current_regs[REG_A4], g_current_regs[REG_A5],
+            g_current_regs[REG_A6], g_current_regs[REG_A7]);
       _alert("T0:%08x T1:%08x T2:%08x T3:%08x T4:%08x T5:%08x T6:%08x\n",
-            g_last_regs[REG_T0], g_last_regs[REG_T1], g_last_regs[REG_T2],
-            g_last_regs[REG_T3], g_last_regs[REG_T4], g_last_regs[REG_T5],
-            g_last_regs[REG_T6]);
+            g_current_regs[REG_T0], g_current_regs[REG_T1], g_current_regs[REG_T2],
+            g_current_regs[REG_T3], g_current_regs[REG_T4], g_current_regs[REG_T5],
+            g_current_regs[REG_T6]);
       _alert("S0:%08x S1:%08x S2:%08x S3:%08x S4:%08x S5:%08x S6:%08x S7:%08x\n",
-            g_last_regs[REG_S0], g_last_regs[REG_S1], g_last_regs[REG_S2],
-            g_last_regs[REG_S3], g_last_regs[REG_S4], g_last_regs[REG_S5],
-            g_last_regs[REG_S6], g_last_regs[REG_S7]);
+            g_current_regs[REG_S0], g_current_regs[REG_S1], g_current_regs[REG_S2],
+            g_current_regs[REG_S3], g_current_regs[REG_S4], g_current_regs[REG_S5],
+            g_current_regs[REG_S6], g_current_regs[REG_S7]);
       _alert("S8:%08x S9:%08x S10:%08x S11:%08x\n",
-            g_last_regs[REG_S8], g_last_regs[REG_S9], g_last_regs[REG_S10],
-            g_last_regs[REG_S11]);
+            g_current_regs[REG_S8], g_current_regs[REG_S9], g_current_regs[REG_S10],
+            g_current_regs[REG_S11]);
 #ifdef RISCV_SAVE_GP
       _alert("GP:%08x SP:%08x FP:%08x TP:%08x RA:%08x\n",
-            g_last_regs[REG_GP], g_last_regs[REG_SP], g_last_regs[REG_FP],
-            g_last_regs[REG_TP], g_last_regs[REG_RA]);
+            g_current_regs[REG_GP], g_current_regs[REG_SP], g_current_regs[REG_FP],
+            g_current_regs[REG_TP], g_current_regs[REG_RA]);
 #else
       _alert("SP:%08x FP:%08x TP:%08x RA:%08x\n",
-            g_last_regs[REG_SP], g_last_regs[REG_FP], g_last_regs[REG_TP],
-            g_last_regs[REG_RA]);
+            g_current_regs[REG_SP], g_current_regs[REG_FP], g_current_regs[REG_TP],
+            g_current_regs[REG_RA]);
 #endif
     }
 }
@@ -144,6 +144,7 @@ static inline void up_registerdump(void)
 
 void up_dumpstate(void)
 {
+  struct tcb_s *rtcb = running_task();
   uint32_t sp = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -158,15 +159,15 @@ void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (g_last_task->pid == 0)
+  if (rtcb->pid == 0)
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)g_last_task->adj_stack_ptr;
-      ustacksize = (uint32_t)g_last_task->adj_stack_size;
+      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
+      ustacksize = (uint32_t)rtcb->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -199,7 +200,7 @@ void up_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
-  else if (g_last_regs)
+  else if (g_current_regs)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);

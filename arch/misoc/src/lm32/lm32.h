@@ -104,9 +104,6 @@
 #ifndef __ASSEMBLY__
 
 extern volatile uint32_t *g_current_regs;
-extern uint32_t *g_last_regs;
-struct tcb_s;
-extern struct tcb_s *g_last_task;
 extern uint32_t g_idle_topstack;
 
 /****************************************************************************

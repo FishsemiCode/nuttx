@@ -299,7 +299,7 @@ int inode_stat(FAR struct inode *inode, FAR struct stat *buf)
 #if defined(CONFIG_MTD)
        if (INODE_IS_MTD(inode))
         {
-          buf->st_mode  = S_IFBLK;
+          buf->st_mode  = S_IFMTD;
           buf->st_mode |= S_IROTH | S_IRGRP | S_IRUSR;
           buf->st_mode |= S_IWOTH | S_IWGRP | S_IWUSR;
         }

@@ -133,7 +133,7 @@ static int gpio_handler(FAR struct gpio_dev_s *dev, uint8_t pin)
           changed->gp_time  = time;
         }
 
-      DEBUGVERIFY(nxsig_notification(signal->gp_pid, &signal->gp_event, SI_QUEUE));
+      nxsig_notification(signal->gp_pid, &signal->gp_event, SI_QUEUE);
     }
 
   return OK;
@@ -279,20 +279,22 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         if (arg && dev->gp_pintype == GPIO_INTERRUPT_PIN)
           {
             pid = getpid();
-            flags = enter_critical_section();
+            flags = spin_lock_irqsave();
             for (i = 0; i < CONFIG_DEV_GPIO_NSIGNALS; i++)
               {
                 FAR struct gpio_signal_s *signal = &dev->gp_signals[i];
 
                 if (signal->gp_pid == 0 || signal->gp_pid == pid)
                   {
-                    memcpy(&signal->gp_event, (FAR void *)arg, sizeof(signal->gp_event));
+                    memcpy(&signal->gp_event, (FAR void *)arg,
+                           sizeof(signal->gp_event));
                     signal->gp_pid = pid;
                     ret = OK;
                     break;
                   }
               }
-            leave_critical_section(flags);
+
+            spin_unlock_irqrestore(flags);
 
             if (i == 0)
               {
@@ -327,7 +329,7 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         if (dev->gp_pintype == GPIO_INTERRUPT_PIN)
           {
             pid = getpid();
-            flags = enter_critical_section();
+            flags = spin_lock_irqsave();
             for (i = 0; i < CONFIG_DEV_GPIO_NSIGNALS; i++)
               {
                 if (pid == dev->gp_signals[i].gp_pid)
@@ -339,16 +341,20 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                             break;
                           }
                       }
+
                     if (i != --j)
                       {
-                        memcpy(&dev->gp_signals[i], &dev->gp_signals[j], sizeof(dev->gp_signals[i]));
+                        memcpy(&dev->gp_signals[i], &dev->gp_signals[j],
+                               sizeof(dev->gp_signals[i]));
                       }
+
                     dev->gp_signals[j].gp_pid = 0;
                     ret = OK;
                     break;
                   }
                 }
-            leave_critical_section(flags);
+
+            spin_unlock_irqrestore(flags);
 
             if (i == 0 && j == 0)
               {

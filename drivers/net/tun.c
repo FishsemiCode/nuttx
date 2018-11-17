@@ -74,6 +74,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* If processing is not done at the interrupt level, then high priority
  * work queue support is required.
  */
@@ -193,7 +194,7 @@ static void tun_poll_expiry(int argc, wdparm_t arg, ...);
 static int tun_ifup(FAR struct net_driver_s *dev);
 static int tun_ifdown(FAR struct net_driver_s *dev);
 static int tun_txavail(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int tun_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int tun_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -461,6 +462,7 @@ static int tun_txpoll_tap(struct net_driver_s *dev)
           arp_out(&priv->dev);
         }
 #endif /* CONFIG_NET_IPv4 */
+
 #ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv6(priv->dev.d_flags))
         {
@@ -649,7 +651,6 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
 
   if (priv->dev.d_len > 0)
     {
-
       /* Update the Ethernet header with the correct MAC address */
 
 #ifdef CONFIG_NET_IPv4
@@ -1032,7 +1033,7 @@ static int tun_txavail(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int tun_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   /* Add the MAC address to the hardware multicast routing table */
@@ -1059,7 +1060,7 @@ static int tun_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int tun_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   /* Add the MAC address to the hardware multicast routing table */
@@ -1116,7 +1117,7 @@ static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
   priv->dev.d_ifup    = tun_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = tun_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = tun_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = tun_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = tun_rmmac;    /* Remove multicast MAC address */
 #endif
@@ -1202,7 +1203,7 @@ static int tun_close(FAR struct file *filep)
   FAR struct tun_device_s *priv = filep->f_priv;
   int intf;
 
-  if (!priv)
+  if (priv == NULL)
     {
       return OK;
     }
@@ -1228,7 +1229,7 @@ static ssize_t tun_write(FAR struct file *filep, FAR const char *buffer,
   FAR struct tun_device_s *priv = filep->f_priv;
   ssize_t ret;
 
-  if (!priv)
+  if (priv == NULL)
     {
       return -EINVAL;
     }
@@ -1277,7 +1278,7 @@ static ssize_t tun_read(FAR struct file *filep, FAR char *buffer,
   size_t write_d_len;
   size_t read_d_len;
 
-  if (!priv)
+  if (priv == NULL)
     {
       return -EINVAL;
     }
@@ -1356,7 +1357,7 @@ int tun_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 
   /* Some sanity checking */
 
-  if (!priv || !fds)
+  if (priv == NULL || fds == NULL)
     {
       return -EINVAL;
     }
@@ -1425,8 +1426,9 @@ static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       int intf;
       FAR struct ifreq *ifr = (FAR struct ifreq *)arg;
 
-      if (!ifr || ((ifr->ifr_flags & IFF_MASK) != IFF_TUN &&
-                   (ifr->ifr_flags & IFF_MASK) != IFF_TAP))
+      if (ifr  == NULL ||
+         ((ifr->ifr_flags & IFF_MASK) != IFF_TUN &&
+          (ifr->ifr_flags & IFF_MASK) != IFF_TAP))
         {
           return -EINVAL;
         }
@@ -1496,3 +1498,4 @@ int tun_initialize(void)
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_TUN */
+

@@ -233,7 +233,7 @@ int arp_send(in_addr_t ipaddr)
 
   /* Get the device that can route this request */
 
-  dev = netdev_findby_ipv4addr(INADDR_ANY, ipaddr);
+  dev = netdev_findby_ripv4addr(INADDR_ANY, ipaddr);
   if (!dev)
     {
       nerr("ERROR: Unreachable: %08lx\n", (unsigned long)ipaddr);
@@ -241,9 +241,9 @@ int arp_send(in_addr_t ipaddr)
       goto errout;
     }
 
-  /* ARP support is only built if the Ethernet data link is supported.
+  /* ARP support is only built if the Ethernet link layer is supported.
    * Continue and send the ARP request only if this device uses the
-   * Ethernet data link protocol.
+   * Ethernet link layer protocol.
    */
 
   if (dev->d_lltype != NET_LL_ETHERNET)
@@ -321,7 +321,7 @@ int arp_send(in_addr_t ipaddr)
    * sending the ARP request if it is not.
    */
 
-  /* The optimal delay would be the work case round trip time. */
+  /* The optimal delay would be the worst case round trip time. */
 
   delay.tv_sec  = CONFIG_ARP_SEND_DELAYSEC;
   delay.tv_nsec = CONFIG_ARP_SEND_DELAYNSEC;

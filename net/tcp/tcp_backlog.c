@@ -89,11 +89,11 @@ int tcp_backlogcreate(FAR struct tcp_conn_s *conn, int nblg)
 
   if (nblg > 0)
     {
-      /* nblog value must less than SO_MAXCONN */
+      /* nblog value must less than SOMAXCONN */
 
-      if (nblg > SO_MAXCONN)
+      if (nblg > SOMAXCONN)
         {
-          nblg = SO_MAXCONN;
+          nblg = SOMAXCONN;
         }
 
       /* Align the list of backlog structures to 32-bit boundaries.  This

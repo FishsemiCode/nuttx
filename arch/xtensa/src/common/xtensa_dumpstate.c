@@ -143,7 +143,7 @@ static void xtensa_stackdump(uint32_t sp, uint32_t stack_base)
 
 static inline void xtensa_registerdump(void)
 {
-  uint32_t *regs = LAST_REGS;
+  uint32_t *regs = (uint32_t *)CURRENT_REGS; /* Don't need volatile here */
 
   /* Are user registers available from interrupt processing? */
 
@@ -193,6 +193,7 @@ static inline void xtensa_registerdump(void)
 
 void xtensa_dumpstate(void)
 {
+  struct tcb_s *rtcb = running_task();
   uint32_t sp = xtensa_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -213,15 +214,15 @@ void xtensa_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (LAST_TASK->pid == 0)
+  if (rtcb->pid == 0)
     {
       ustackbase = (uint32_t)&g_idlestack[IDLETHREAD_STACKWORDS-1];
       ustacksize = IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)LAST_TASK->adj_stack_ptr;
-      ustacksize = (uint32_t)LAST_TASK->adj_stack_size;
+      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
+      ustacksize = (uint32_t)rtcb->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -258,7 +259,7 @@ void xtensa_dumpstate(void)
       sp = &g_instack[INTERRUPTSTACK_SIZE - sizeof(uint32_t)];
       _alert("sp:     %08x\n", sp);
     }
-  else if (LAST_REGS)
+  else if (CURRENT_REGS)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       xtensa_stackdump(istackbase - istacksize, istackbase);
@@ -270,14 +271,14 @@ void xtensa_dumpstate(void)
   _alert("  base: %08x\n", ustackbase);
   _alert("  size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("  used: %08x\n", up_check_tcbstack(LAST_TASK));
+  _alert("  used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 #else
   _alert("sp:         %08x\n", sp);
   _alert("stack base: %08x\n", ustackbase);
   _alert("stack size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("stack used: %08x\n", up_check_tcbstack(LAST_TASK));
+  _alert("stack used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 #endif
 

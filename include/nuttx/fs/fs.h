@@ -73,22 +73,37 @@
  * (libuc.a and libunx.a).  The that case, the correct interface must be
  * used for the build context.
  *
- * The interfaces open(), close(), creat(), read(), pread(), write(),
- * pwrite(), poll(), select(), fcntl(), and aio_suspend() are all
- * cancellation points.
+ * REVISIT:  In the flat build, the same functions must be used both by
+ * the OS and by applications.  We have to use the normal user functions
+ * in this case or we will fail to set the errno or fail to create the
+ * cancellation point.
+ *
+ * The interfaces close(), creat(), read(), pread(), write(), pwrite(),
+ * poll(), select(), fcntl(), and aio_suspend() are all cancellation
+ * points.
  *
  * REVISIT:  These cancellation points are an issue and may cause
  * violations:  It use of these internally will cause the calling function
  * to become a cancellation points!
  */
 
-#if defined(CONFIG_BUILD_FLAT) || defined(__KERNEL__)
+#if !defined(CONFIG_BUILD_FLAT) && defined(__KERNEL__)
+#  ifdef CONFIG_CPP_HAVE_VARARGS
+#    define _NX_OPEN(p,f,...)  nx_open(p,f,##__VA_ARGS__)
+#  else
+#    define _NX_OPEN           nx_open
+#  endif
 #  define _NX_READ(f,b,s)      nx_read(f,b,s)
 #  define _NX_WRITE(f,b,s)     nx_write(f,b,s)
 #  define _NX_GETERRNO(r)      (-(r))
 #  define _NX_SETERRNO(r)      set_errno(-(r))
 #  define _NX_GETERRVAL(r)     (r)
 #else
+#  ifdef CONFIG_CPP_HAVE_VARARGS
+#    define _NX_OPEN(p,f,...)  open(p,f,##__VA_ARGS__)
+#  else
+#    define _NX_OPEN           open
+#  endif
 #  define _NX_READ(f,b,s)      read(f,b,s)
 #  define _NX_WRITE(f,b,s)     write(f,b,s)
 #  define _NX_GETERRNO(r)      errno
@@ -795,6 +810,29 @@ int fs_dupfd2(int fd1, int fd2);
 #endif
 
 /****************************************************************************
+ * Name: file_open
+ *
+ * Description:
+ *   file_open() is similar to the standard 'open' interface except that it
+ *   returns an instance of 'struct file' rather than a file descriptor.  It
+ *   also is not a cancellation point and does not modify the errno variable.
+ *
+ * Input Parameters:
+ *   filep  - The caller provided location in which to return the 'struct
+ *            file' instance.
+ *   path   - The full path to the file to be open.
+ *   oflags - open flags
+ *   ...    - Variable number of arguments, may include 'mode_t mode'
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success.  On failure, a negated errno value is
+ *   returned.
+ *
+ ****************************************************************************/
+
+int file_open(FAR struct file *filep, FAR const char *path, int oflags, ...);
+
+/****************************************************************************
  * Name: file_detach
  *
  * Description:
@@ -823,10 +861,11 @@ int file_detach(int fd, FAR struct file *filep);
 #endif
 
 /****************************************************************************
- * Name: file_close_detached
+ * Name: file_close
  *
  * Description:
- *   Close a file that was previously detached with file_detach().
+ *   Close a file that was previously opened with file_open() (or detached
+ *   with file_detach()).
  *
  * Input Parameters:
  *   filep - A pointer to a user provided memory location containing the
@@ -838,7 +877,7 @@ int file_detach(int fd, FAR struct file *filep);
  *
  ****************************************************************************/
 
-int file_close_detached(FAR struct file *filep);
+int file_close(FAR struct file *filep);
 
 /****************************************************************************
  * Name: open_blockdriver
@@ -982,6 +1021,28 @@ ssize_t lib_sendfile(int outfd, int infd, off_t *offset, size_t count);
 #if CONFIG_NFILE_DESCRIPTORS > 0
 int fs_getfilep(int fd, FAR struct file **filep);
 #endif
+
+/****************************************************************************
+ * Name: nx_open and nx_vopen
+ *
+ * Description:
+ *   nx_open() is similar to the standard 'open' interface except that is is
+ *   not a cancellation point and it does not modify the errno variable.
+ *
+ *   nx_vopen() is identical except that it accepts a va_list as an argument
+ *   versus taking a variable length list of arguments.
+ *
+ *   nx_open() and nx_vopen are internal NuttX interface and should not be
+ *   called from applications.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+int nx_vopen(FAR const char *path, int oflags, va_list ap);
+int nx_open(FAR const char *path, int oflags, ...);
 
 /****************************************************************************
  * Name: file_read

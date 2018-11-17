@@ -826,7 +826,6 @@ ssize_t psock_tcp_send(FAR struct socket *psock,
     }
 #endif /* CONFIG_NET_ARP_SEND */
 
-
 #ifdef CONFIG_NET_ICMPv6_NEIGHBOR
 #ifdef CONFIG_NET_ARP_SEND
   else
@@ -964,7 +963,7 @@ errout:
  *   psock    An instance of the internal socket structure.
  *
  * Returned Value:
- *   OK (Function not implemented).
+ *   -ENOSYS (Function not implemented, always have to wait to send).
  *
  * Assumptions:
  *   None
@@ -973,9 +972,7 @@ errout:
 
 int psock_tcp_cansend(FAR struct socket *psock)
 {
-  /* TODO: return OK unless someone is waiting for a packet to send */
-
-  return OK;
+  return -ENOSYS;
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_TCP && !CONFIG_NET_TCP_WRITE_BUFFERS */

@@ -66,7 +66,7 @@ static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
 static void up_registerdump(void)
 {
 #ifdef CONFIG_DEBUG_INFO
-  FAR uint32_t *regs32 = (FAR uint32_t *)g_last_regs;
+  FAR uint32_t *regs32 = (FAR uint32_t*)g_current_regs;
 
   if (regs32 == NULL)
     {

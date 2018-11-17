@@ -129,11 +129,6 @@
  */
 
 extern volatile chipreg_t *g_current_regs;
-
-extern chipreg_t *g_last_regs;
-
-struct tcb_s;
-extern struct tcb_s *g_last_task;
 #endif
 
 /************************************************************************************

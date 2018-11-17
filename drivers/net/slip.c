@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/net/slip.c
  *
- *   Copyright (C) 2011-2012, 2015-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012, 2015-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Reference: RFC 1055
@@ -188,7 +188,7 @@ static int slip_rxtask(int argc, FAR char *argv[]);
 static int slip_ifup(FAR struct net_driver_s *dev);
 static int slip_ifdown(FAR struct net_driver_s *dev);
 static int slip_txavail(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int slip_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int slip_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
@@ -897,7 +897,7 @@ static int slip_txavail(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int slip_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
@@ -926,7 +926,7 @@ static int slip_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
 static int slip_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
@@ -978,7 +978,7 @@ int slip_initialize(int intf, FAR const char *devname)
   priv->dev.d_ifup    = slip_ifup;     /* I/F up (new IP address) callback */
   priv->dev.d_ifdown  = slip_ifdown;   /* I/F down callback */
   priv->dev.d_txavail = slip_txavail;  /* New TX data callback */
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   priv->dev.d_addmac  = slip_addmac;   /* Add multicast MAC address */
   priv->dev.d_rmmac   = slip_rmmac;    /* Remove multicast MAC address */
 #endif
@@ -986,11 +986,11 @@ int slip_initialize(int intf, FAR const char *devname)
 
   /* Open the device */
 
-  priv->fd            = open(devname, O_RDWR, 0666);
+  priv->fd            = nx_open(devname, O_RDWR, 0666);
   if (priv->fd < 0)
     {
-      nerr("ERROR: Failed to open %s: %d\n", devname, errno);
-      return -errno;
+      nerr("ERROR: Failed to open %s: %d\n", devname, priv->fd);
+      return priv->fd;
     }
 
   /* Initialize the wait semaphore */

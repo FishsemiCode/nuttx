@@ -93,7 +93,7 @@ void z8_registerdump(void)
       case Z8_IRQSTATE_ENTRY:
         /* Calculate the source address based on the saved RP value */
 
-        rp   = g_last_regs[Z8_IRQSAVE_RPFLAGS] >> 8;
+        rp   = g_z8irqstate.regs[Z8_IRQSAVE_RPFLAGS] >> 8;
         regs = (FAR uint16_t*)(rp & 0xf0);
 
         /* Then dump the register values */
@@ -106,13 +106,13 @@ void z8_registerdump(void)
          * the correct value for the stack pointer on return from interrupt:
          */
 
-        sp = ((chipreg_t)g_last_regs) + Z8_IRQSAVE_SIZE;
-        z8_dumpstate(sp, g_last_regs[Z8_IRQSAVE_PC], 0x80,
-                     g_last_regs[Z8_IRQSAVE_RPFLAGS]);
+        sp = ((chipreg_t)g_z8irqstate.regs) + Z8_IRQSAVE_SIZE;
+        z8_dumpstate(sp, g_z8irqstate.regs[Z8_IRQSAVE_PC], 0x80,
+                     g_z8irqstate.regs[Z8_IRQSAVE_RPFLAGS]);
         break;
 
       case Z8_IRQSTATE_SAVED:
-        regs = g_last_regs;
+        regs = g_z8irqstate.regs;
         z8_dumpregs(regs);
         z8_dumpstate(regs[XCPT_SP], regs[XCPT_PC],
                      regs[XCPT_IRQCTL], regs[XCPT_RPFLAGS]);
@@ -120,13 +120,11 @@ void z8_registerdump(void)
 
       case Z8_IRQSTATE_NONE:
       default:
-        {
-          z8_saveusercontext(s_last_regs);
-          regs = s_last_regs;
-          z8_dumpregs(regs);
-          z8_dumpstate(regs[XCPT_SP], regs[XCPT_PC],
-                       regs[XCPT_IRQCTL], regs[XCPT_RPFLAGS]);
-        }
+        z8_saveusercontext(s_last_regs);
+        regs = s_last_regs;
+        z8_dumpregs(regs);
+        z8_dumpstate(regs[XCPT_SP], regs[XCPT_PC],
+                     regs[XCPT_IRQCTL], regs[XCPT_RPFLAGS]);
         break;
     }
 }

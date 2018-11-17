@@ -49,6 +49,10 @@
 #include <nuttx/mm/iob.h>
 #include <nuttx/net/ip.h>
 
+#ifdef CONFIG_TCP_NOTIFIER
+#  include <nuttx/wqueue.h>
+#endif
+
 #if defined(CONFIG_NET_TCP) && !defined(CONFIG_NET_TCP_NO_STACK)
 
 /****************************************************************************
@@ -1027,7 +1031,10 @@ void tcp_ipv4_input(FAR struct net_driver_s *dev);
  *   Handle incoming TCP input with IPv4 header
  *
  * Input Parameters:
- *   dev - The device driver structure containing the received TCP packet.
+ *   dev   - The device driver structure containing the received TCP packet.
+ *   iplen - The size of the IPv6 header.  This may be larger than
+ *           IPv6_HDRLEN the IPv6 header if IPv6 extension headers are
+ *           present.
  *
  * Returned Value:
  *   None
@@ -1038,7 +1045,7 @@ void tcp_ipv4_input(FAR struct net_driver_s *dev);
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IPv6
-void tcp_ipv6_input(FAR struct net_driver_s *dev);
+void tcp_ipv6_input(FAR struct net_driver_s *dev, unsigned int iplen);
 #endif
 
 /****************************************************************************
@@ -1541,6 +1548,138 @@ int tcp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds);
 
 #ifdef HAVE_TCP_POLL
 int tcp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds);
+#endif
+
+/****************************************************************************
+ * Name: tcp_readahead_notifier_setup
+ *
+ * Description:
+ *   Set up to perform a callback to the worker function when an TCP data
+ *   is added to the read-ahead buffer.  The worker function will execute
+ *   on the high priority worker thread.
+ *
+ * Input Parameters:
+ *   worker - The worker function to execute on the high priority work
+ *            queue when data is available in the TCP read-ahead buffer.
+ *   conn  - The TCP connection where read-ahead data is needed.
+ *   arg    - A user-defined argument that will be available to the worker
+ *            function when it runs.
+ *
+ * Returned Value:
+ *   > 0   - The signal notification is in place.  The returned value is a
+ *           key that may be used later in a call to
+ *           tcp_notifier_teardown().
+ *   == 0  - There is already buffered read-ahead data.  No signal
+ *           notification will be provided.
+ *   < 0   - An unexpected error occurred and no signal will be sent.  The
+ *           returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_TCP_NOTIFIER
+int tcp_readahead_notifier_setup(worker_t worker,
+                                 FAR struct tcp_conn_s *conn,
+                                 FAR void *arg);
+#endif
+
+/****************************************************************************
+ * Name: tcp_readahead_disconnect_setup
+ *
+ * Description:
+ *   Set up to perform a callback to the worker function if the TCP
+ *   connection is lost.
+ *
+ * Input Parameters:
+ *   worker - The worker function to execute on the high priority work
+ *            queue when data is available in the TCP read-ahead buffer.
+ *   conn  - The TCP connection where read-ahead data is needed.
+ *   arg    - A user-defined argument that will be available to the worker
+ *            function when it runs.
+ *
+ * Returned Value:
+ *   > 0   - The signal notification is in place.  The returned value is a
+ *           key that may be used later in a call to
+ *           tcp_notifier_teardown().
+ *   == 0  - There is already buffered read-ahead data.  No signal
+ *           notification will be provided.
+ *   < 0   - An unexpected error occurred and no signal will be sent.  The
+ *           returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_TCP_NOTIFIER
+int tcp_readahead_disconnect_setup(worker_t worker,
+                                   FAR struct tcp_conn_s *conn,
+                                   FAR void *arg);
+#endif
+
+/****************************************************************************
+ * Name: tcp_notifier_teardown
+ *
+ * Description:
+ *   Eliminate a TCP read-ahead notification previously setup by
+ *   tcp_readahead_notifier_setup().  This function should only be called
+ *   if the notification should be aborted prior to the notification.  The
+ *   notification will automatically be torn down after the signal is sent.
+ *
+ * Input Parameters:
+ *   key - The key value returned from a previous call to
+ *         tcp_readahead_notifier_setup().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_TCP_NOTIFIER
+int tcp_notifier_teardown(int key);
+#endif
+
+/****************************************************************************
+ * Name: tcp_readahead_signal
+ *
+ * Description:
+ *   Read-ahead data has been buffered.  Signal all threads waiting for
+ *   read-ahead data to become available.
+ *
+ *   When read-ahead data becomes available, *all* of the workers waiting
+ *   for read-ahead data will be executed.  If there are multiple workers
+ *   waiting for read-ahead data then only the first to execute will get the
+ *   data.  Others will need to call tcp_readahead_notifier_setup() once
+ *   again.
+ *
+ * Input Parameters:
+ *   conn  - The TCP connection where read-ahead data was just buffered.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_TCP_NOTIFIER
+void tcp_readahead_signal(FAR struct tcp_conn_s *conn);
+#endif
+
+/****************************************************************************
+ * Name: tcp_disconnect_signal
+ *
+ * Description:
+ *   The TCP connection has been lost.  Signal all threads monitoring TCP
+ *   state events.
+ *
+ * Input Parameters:
+ *   conn  - The TCP connection where read-ahead data was just buffered.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_TCP_NOTIFIER
+void tcp_disconnect_signal(FAR struct tcp_conn_s *conn);
 #endif
 
 #undef EXTERN

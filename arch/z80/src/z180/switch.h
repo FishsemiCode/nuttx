@@ -190,11 +190,6 @@
 
 extern volatile chipreg_t *g_current_regs;
 
-extern chipreg_t *g_last_regs;
-
-struct tcb_s;
-extern struct tcb_s *g_last_task;
-
 /* This holds the value of the MMU's CBR register.  This value is set to the
  * interrupted tasks's CBR on interrupt entry, changed to the new task's CBR if
  * an interrupt level context switch occurs, and restored on interrupt exit.  In

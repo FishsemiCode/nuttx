@@ -1,5 +1,5 @@
 /****************************************************************************
- * net/neighbor/neighbor.c
+ * net/neighbor/neighbor_lookup.c
  *
  *   Copyright (C) 2007-2009, 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -59,7 +59,8 @@
 struct neighbor_table_info_s
 {
   net_ipv6addr_t              ni_ipaddr; /* IPv6 address for lookup */
-  FAR struct neighbor_addr_s *ni_laddr;  /* Location to return the link layer address */
+  FAR struct neighbor_addr_s *ni_laddr;  /* Location to return the link
+                                          * layer address */
 };
 
 /****************************************************************************
@@ -126,7 +127,8 @@ static int neighbor_match(FAR struct net_driver_s *dev, FAR void *arg)
  *
  ****************************************************************************/
 
-int neighbor_lookup(const net_ipv6addr_t ipaddr, FAR struct neighbor_addr_s *laddr)
+int neighbor_lookup(FAR const net_ipv6addr_t ipaddr,
+                    FAR struct neighbor_addr_s *laddr)
 {
   FAR struct neighbor_entry *neighbor;
   struct neighbor_table_info_s info;

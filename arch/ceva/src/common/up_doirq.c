@@ -57,13 +57,9 @@
 #ifdef CONFIG_SMP
 uint32_t  volatile g_current_irqs[CONFIG_SMP_NCPUS];
 uint32_t *volatile g_current_regs[CONFIG_SMP_NCPUS];
-uint32_t *g_last_regs[CONFIG_SMP_NCPUS];
-struct tcb_s *g_last_task[CONFIG_SMP_NCPUS];
 #else
 uint32_t  volatile g_current_irqs[1];
 uint32_t *volatile g_current_regs[1];
-uint32_t *g_last_regs[1];
-struct tcb_s *g_last_task[1];
 #endif
 
 /****************************************************************************
@@ -84,8 +80,6 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
     }
   else
     {
-      LAST_REGS = regs;
-
       /* Hardware automatically clear IE bit at the interrupt entry,
        * update the software state(CURRENT_IRQS) to reflect the truth.
        */
@@ -122,9 +116,6 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
        */
 
       CURRENT_IRQS |= REG_IRQS_IE;
-
-      LAST_TASK = this_task();
-      LAST_REGS = NULL;
     }
 
   return regs;

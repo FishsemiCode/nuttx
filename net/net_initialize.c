@@ -52,6 +52,7 @@
 #include "sixlowpan/sixlowpan.h"
 #include "icmp/icmp.h"
 #include "icmpv6/icmpv6.h"
+#include "mld/mld.h"
 #include "tcp/tcp.h"
 #include "udp/udp.h"
 #include "pkt/pkt.h"
@@ -98,6 +99,12 @@ void net_initialize(void)
   net_lockinitialize();
 
 #ifdef CONFIG_NET_IPv6
+#ifdef CONFIG_NET_MLD
+  /* Initialize ICMPv6 Multicast Listener Discovery (MLD) logic */
+
+  mld_initialize();
+#endif
+
 #ifdef CONFIG_NET_6LOWPAN
   /* Initialize 6LoWPAN data structures */
 

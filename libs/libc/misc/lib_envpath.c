@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libc/misc/lib_envpath.c
  *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,7 @@ struct envpath_s
   FAR char *next; /* Pointer to the next (unterminated) value in the PATH variable */
   char path[1];
 };
+
 #define SIZEOF_ENVPATH_S(n) (sizeof(struct envpath_s) + (n) - 1)
 
 /****************************************************************************
@@ -113,7 +114,9 @@ ENVPATH_HANDLE envpath_init(FAR const char *name)
 
   /* Allocate a container for the PATH variable contents */
 
-  envpath = (FAR struct envpath_s *)lib_malloc(SIZEOF_ENVPATH_S(strlen(path) + 1));
+  envpath = (FAR struct envpath_s *)
+    lib_malloc(SIZEOF_ENVPATH_S(strlen(path) + 1));
+
   if (!envpath)
     {
       /* Ooops.. we are out of memory */
@@ -200,7 +203,7 @@ FAR char *envpath_next(ENVPATH_HANDLE handle, FAR const char *relpath)
        */
 
       endptr = strchr(path, ':');
-      if (!endptr)
+      if (endptr == NULL)
         {
           /* If strchr returns NUL it means that ':' does not appear in the
            * string.  Therefore, this must be the final path in the PATH
@@ -220,7 +223,7 @@ FAR char *envpath_next(ENVPATH_HANDLE handle, FAR const char *relpath)
 
       pathlen  = strlen(path) + strlen(relpath) + 2;
       fullpath = (FAR char *)lib_malloc(pathlen);
-      if (!fullpath)
+      if (fullpath == NULL)
         {
           /* Failed to allocate memory */
 

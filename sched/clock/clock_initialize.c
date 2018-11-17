@@ -91,7 +91,7 @@ struct timespec   g_basetime;
 #if defined(CONFIG_RTC_DATETIME)
 /* Initialize the system time using a broken out date/time structure */
 
-static inline int clock_basetime(FAR struct timespec *tp)
+int clock_basetime(FAR struct timespec *tp)
 {
   struct tm rtctime;
   long nsecs = 0;
@@ -119,7 +119,7 @@ static inline int clock_basetime(FAR struct timespec *tp)
 
 /* Initialize the system time using a high-resolution structure */
 
-static inline int clock_basetime(FAR struct timespec *tp)
+int clock_basetime(FAR struct timespec *tp)
 {
   /* Get the complete time from the hi-res RTC. */
 
@@ -130,7 +130,7 @@ static inline int clock_basetime(FAR struct timespec *tp)
 
 /* Initialize the system time using seconds only */
 
-static inline int clock_basetime(FAR struct timespec *tp)
+int clock_basetime(FAR struct timespec *tp)
 {
   /* Get the seconds (only) from the lo-resolution RTC */
 
@@ -142,7 +142,7 @@ static inline int clock_basetime(FAR struct timespec *tp)
 #endif /* CONFIG_RTC_HIRES */
 #else /* CONFIG_RTC */
 
-static inline int clock_basetime(FAR struct timespec *tp)
+int clock_basetime(FAR struct timespec *tp)
 {
   time_t jdn = 0;
 
@@ -175,9 +175,7 @@ static void clock_inittime(void)
 {
   /* (Re-)initialize the time value to match the RTC */
 
-#ifdef CONFIG_CLOCK_TIMEKEEPING
-  clock_inittimekeeping();
-#elif !defined(CONFIG_RTC_HIRES)
+#ifndef CONFIG_CLOCK_TIMEKEEPING
   struct timespec ts;
 
   clock_basetime(&g_basetime);
@@ -192,6 +190,8 @@ static void clock_inittime(void)
       g_basetime.tv_nsec += NSEC_PER_SEC;
       g_basetime.tv_sec--;
     }
+#else
+  clock_inittimekeeping();
 #endif
 }
 #endif
@@ -290,8 +290,7 @@ void clock_synchronize(void)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS) && \
-    !defined(CONFIG_CLOCK_TIMEKEEPING)
+#if defined(CONFIG_RTC) && !defined(CONFIG_SCHED_TICKLESS)
 void clock_resynchronize(FAR struct timespec *rtc_diff)
 {
   struct timespec rtc_time, bias, curr_ts;
@@ -362,35 +361,10 @@ void clock_resynchronize(FAR struct timespec *rtc_diff)
     }
   else
     {
-      /* Save RTC time as the new base time. */
-
-      g_basetime.tv_sec  = rtc_time.tv_sec;
-      g_basetime.tv_nsec = rtc_time.tv_nsec;
-
-      /* Subtract that bias from the basetime so that when the system
-       * timer is again added to the base time, the result is the current
-       * time relative to basetime.
-       */
-
-      if (g_basetime.tv_nsec < bias.tv_nsec)
-        {
-          g_basetime.tv_nsec += NSEC_PER_SEC;
-          g_basetime.tv_sec--;
-        }
-
-      /* Result could be negative seconds */
-
-      g_basetime.tv_nsec -= bias.tv_nsec;
-      g_basetime.tv_sec  -= bias.tv_sec;
-
-      sinfo("basetime=(%ld,%lu) bias=(%ld,%lu)\n",
-            (long)g_basetime.tv_sec, (unsigned long)g_basetime.tv_nsec,
-            (long)bias.tv_sec, (unsigned long)bias.tv_nsec);
-
       /* Output difference between time at entry and new current time. */
 
-      rtc_diff->tv_sec = (bias.tv_sec + g_basetime.tv_sec) - curr_ts.tv_sec;
-      rtc_diff->tv_nsec = (bias.tv_nsec + g_basetime.tv_nsec) - curr_ts.tv_nsec;
+      rtc_diff->tv_sec  = rtc_time.tv_sec  - curr_ts.tv_sec;
+      rtc_diff->tv_nsec = rtc_time.tv_nsec - curr_ts.tv_nsec;
 
       /* Handle carry to seconds. */
 
@@ -407,11 +381,16 @@ void clock_resynchronize(FAR struct timespec *rtc_diff)
           carry = 0;
         }
 
-      if (carry)
+      if (carry != 0)
         {
           rtc_diff->tv_sec  += carry;
           rtc_diff->tv_nsec -= (carry * NSEC_PER_SEC);
         }
+
+      /* Add the sleep time to correct system timer */
+
+      g_system_timer += SEC2TICK(rtc_diff->tv_sec);
+      g_system_timer += NSEC2TICK(rtc_diff->tv_nsec);
     }
 
 skip:

@@ -114,9 +114,6 @@ extern "C"
 #endif
 
 EXTERN volatile uint32_t *g_current_regs;
-EXTERN uint32_t *g_last_regs;
-struct tcb_s;
-EXTERN struct tcb_s *g_last_task;
 EXTERN uint32_t g_idle_topstack;
 
 /****************************************************************************
@@ -149,6 +146,7 @@ void riscv_timer_initialize(void);
 
 /* Low level serial output **************************************************/
 
+void up_serialinit(void);
 void up_lowputc(char ch);
 void up_puts(const char *str);
 void up_lowputs(const char *str);

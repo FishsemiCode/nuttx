@@ -4,6 +4,11 @@
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
+ * Derives from code originally written by:
+ *
+ *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -104,9 +109,10 @@ int nxsig_notification(pid_t pid, FAR struct sigevent *event, int code)
 
   else if (event->sigev_notify == SIGEV_THREAD)
     {
-      return nxsig_thread(pid, event);
+      return nxsig_evthread(pid, event);
     }
 #endif
 
   return event->sigev_notify == SIGEV_NONE ? OK : -ENOSYS;
 }
+

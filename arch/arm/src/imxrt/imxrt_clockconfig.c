@@ -2,7 +2,9 @@
  * arch/arm/src/imxrt/imxrt_clockconfig.c
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author:  Janne Rosberg <janne@offcode.fi>
+ *   Authors:  Janne Rosberg <janne@offcode.fi>
+ *             Ivan Ucherdzhiev <ivanucherdjiev@gmail.com>
+ *             David Sidrane <david_s5@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,7 +46,7 @@
 #include "chip/imxrt_ccm.h"
 #include "chip/imxrt_dcdc.h"
 #include "imxrt_clockconfig.h"
-#include "chip/imxrt105x_memorymap.h"
+#include "chip/imxrt_memorymap.h"
 
 /****************************************************************************
  * Public Functions
@@ -75,15 +77,16 @@ void imxrt_clockconfig(void)
 
   /* Set PERIPH_CLK2 MUX to OSC */
 
-  reg = getreg32(IMXRT_CCM_CBCMR);
+  reg  = getreg32(IMXRT_CCM_CBCMR);
   reg &= ~CCM_CBCMR_PERIPH_CLK2_SEL_MASK;
   reg |= CCM_CBCMR_PERIPH_CLK2_SEL_OSC_CLK;
   putreg32(reg, IMXRT_CCM_CBCMR);
 
   /* Set PERIPH_CLK MUX to PERIPH_CLK2 */
 
-  reg = getreg32(IMXRT_CCM_CBCDR);
-  reg |= CCM_CBCDR_SEMC_PERIPH_CLK_SEL;
+  reg  = getreg32(IMXRT_CCM_CBCDR);
+  reg &= ~CCM_CBCDR_PERIPH_CLK_SEL_MASK;
+  reg |= CCM_CBCDR_PERIPH_CLK_SEL(CCM_CBCDR_PERIPH_CLK_SEL_PERIPH_CLK2);
   putreg32(reg, IMXRT_CCM_CBCDR);
 
   /* Wait handshake */
@@ -94,14 +97,14 @@ void imxrt_clockconfig(void)
 
   /* Set Soc VDD */
 
-  reg = getreg32(IMXRT_DCDC_REG3);
+  reg  = getreg32(IMXRT_DCDC_REG3);
   reg &= ~(DCDC_REG3_TRG_MASK);
   reg |= DCDC_REG3_TRG(IMXRT_VDD_SOC);
   putreg32(reg, IMXRT_DCDC_REG3);
 
   /* Init Arm PLL1 */
 
-  reg = CCM_ANALOG_PLL_ARM_DIV_SELECT(IMXRT_ARM_PLL_SELECT) | CCM_ANALOG_PLL_ARM_ENABLE;
+  reg = CCM_ANALOG_PLL_ARM_DIV_SELECT(IMXRT_ARM_PLL_DIV_SELECT) | CCM_ANALOG_PLL_ARM_ENABLE;
   putreg32(reg, IMXRT_CCM_ANALOG_PLL_ARM);
   while ((getreg32(IMXRT_CCM_ANALOG_PLL_ARM) & CCM_ANALOG_PLL_ARM_LOCK) == 0)
     {
@@ -119,52 +122,137 @@ void imxrt_clockconfig(void)
 
   /* Set Dividers */
 
-  reg = getreg32(IMXRT_CCM_CACRR);
+  reg  = getreg32(IMXRT_CCM_CACRR);
   reg &= ~CCM_CACRR_ARM_PODF_MASK;
-  reg |= CCM_CACRR_ARM_PODF(IMXRT_ARM_CLOCK_DIVIDER);
+  reg |= CCM_CACRR_ARM_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_ARM_PODF_DIVIDER));
   putreg32(reg, IMXRT_CCM_CACRR);
 
-  reg = getreg32(IMXRT_CCM_CBCDR);
+  reg  = getreg32(IMXRT_CCM_CBCDR);
   reg &= ~CCM_CBCDR_AHB_PODF_MASK;
-  reg |= CCM_CBCDR_AHB_PODF(IMXRT_AHB_CLOCK_DIVIDER);
+  reg |= CCM_CBCDR_AHB_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_AHB_PODF_DIVIDER));
   putreg32(reg, IMXRT_CCM_CBCDR);
 
-  reg = getreg32(IMXRT_CCM_CBCDR);
+  reg  = getreg32(IMXRT_CCM_CBCDR);
   reg &= ~CCM_CBCDR_IPG_PODF_MASK;
-  reg |= CCM_CBCDR_IPG_PODF(IMXRT_IPG_CLOCK_DIVIDER);
+  reg |= CCM_CBCDR_IPG_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_IPG_PODF_DIVIDER));
   putreg32(reg, IMXRT_CCM_CBCDR);
 
-  /* Set PRE_PERIPH_CLK to PLL1 */
+  reg  = getreg32(IMXRT_CCM_CSCMR1);
+  reg &= ~CCM_CSCMR1_PERCLK_PODF_MASK;
+  reg |= CCM_CSCMR1_PERCLK_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_PERCLK_PODF_DIVIDER));
+  putreg32(reg, IMXRT_CCM_CSCMR1);
 
-  reg = getreg32(IMXRT_CCM_CBCMR);
+  reg  = getreg32(IMXRT_CCM_CBCDR);
+  reg &= ~CCM_CBCDR_SEMC_PODF_MASK;
+  reg |= CCM_CBCDR_SEMC_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_SEMC_PODF_DIVIDER));
+  putreg32(reg, IMXRT_CCM_CBCDR);
+
+  /* Set PRE_PERIPH_CLK to Board Selection */
+
+  reg  = getreg32(IMXRT_CCM_CBCMR);
   reg &= ~CCM_CBCMR_PRE_PERIPH_CLK_SEL_MASK;
-  reg |= CCM_CBCMR_PRE_PERIPH_CLK_SEL_PLL1;
+  reg |= CCM_CBCMR_PRE_PERIPH_CLK_SEL(IMXRT_PRE_PERIPH_CLK_SEL);
   putreg32(reg, IMXRT_CCM_CBCMR);
 
-  /* Set PERIPH_CLK MUX to PRE_PERIPH_CLK2 */
+  /* Set PERIPH_CLK MUX to Board Selection */
 
-  reg = getreg32(IMXRT_CCM_CBCDR);
-  reg &= ~CCM_CBCDR_SEMC_PERIPH_CLK_SEL;
+  reg  = getreg32(IMXRT_CCM_CBCDR);
+  reg &= ~CCM_CBCDR_PERIPH_CLK_SEL_MASK;
+  reg |= CCM_CBCDR_PERIPH_CLK_SEL(IMXRT_PERIPH_CLK_SEL);
   putreg32(reg, IMXRT_CCM_CBCDR);
 
   /* Wait handshake */
 
   while ((getreg32(IMXRT_CCM_CDHIPR) & CCM_CDHIPR_PERIPH2_CLK_SEL_BUSY) == 1)
-  {
-  }
+    {
+    }
+
+  /* Set PERCLK_CLK_SEL to Board Selection */
+
+  reg  = getreg32(IMXRT_CCM_CSCMR1);
+  reg &= ~CCM_CSCMR1_PERCLK_CLK_SEL_MASK;
+  reg |= CCM_CSCMR1_PERCLK_CLK_SEL(IMXRT_PERCLK_CLK_SEL);
+  putreg32(reg, IMXRT_CCM_CSCMR1);
 
   /* Set UART source to PLL3 80M */
 
-  reg = getreg32(IMXRT_CCM_CSCDR1);
-  reg &= CCM_CSCDR1_UART_CLK_SEL;
+  reg  = getreg32(IMXRT_CCM_CSCDR1);
+  reg &= ~CCM_CSCDR1_UART_CLK_SEL;
   reg |= CCM_CSCDR1_UART_CLK_SEL_PLL3_80;
   putreg32(reg, IMXRT_CCM_CSCDR1);
 
   /* Set UART divider to 1 */
 
-  reg = getreg32(IMXRT_CCM_CSCDR1);
-  reg &= CCM_CSCDR1_UART_CLK_PODF_MASK;
+  reg  = getreg32(IMXRT_CCM_CSCDR1);
+  reg &= ~CCM_CSCDR1_UART_CLK_PODF_MASK;
   reg |= CCM_CSCDR1_UART_CLK_PODF(0);
   putreg32(reg, IMXRT_CCM_CSCDR1);
+
+#ifdef CONFIG_IMXRT_LPI2C
+  /* Set LPI2C source to PLL3 60M */
+
+  reg  = getreg32(IMXRT_CCM_CSCDR2);
+  reg &= ~CCM_CSCDR2_LPI2C_CLK_SEL;
+  reg |= CCM_CSCDR2_LPI2C_CLK_SEL_PLL3_60M;
+  putreg32(reg, IMXRT_CCM_CSCDR2);
+
+  while ((getreg32(IMXRT_CCM_CDHIPR) & CCM_CDHIPR_PERIPH_CLK_SEL_BUSY) == 1)
+    {
+    }
+
+  /* Set LPI2C divider to 5  for 12 Mhz */
+
+  reg  = getreg32(IMXRT_CCM_CSCDR2);
+  reg &= ~CCM_CSCDR2_LPI2C_CLK_PODF_MASK;
+  reg |= CCM_CSCDR2_LPI2C_CLK_PODF(5);
+  putreg32(reg, IMXRT_CCM_CSCDR2);
+
+  while ((getreg32(IMXRT_CCM_CDHIPR) & CCM_CDHIPR_PERIPH_CLK_SEL_BUSY) == 1)
+    {
+    }
+#endif
+
+#ifdef CONFIG_IMXRT_LPSPI
+  /* Set LPSPI clock source to PLL3 PFD0 */
+
+  reg  = getreg32(IMXRT_CCM_CBCMR);
+  reg &= ~CCM_CBCMR_LPSPI_CLK_SEL_MASK;
+  reg |= CCM_CBCMR_LPSPI_CLK_SEL_PLL3_PFD0;
+  putreg32(reg, IMXRT_CCM_CBCMR);
+
+  /* Set LPSPI divider to IMXRT_LSPI_PODF_DIVIDER */
+
+  reg  = getreg32(IMXRT_CCM_CBCMR);
+  reg &= ~CCM_CBCMR_LPSPI_PODF_MASK;
+  reg |= CCM_CBCMR_LPSPI_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_LSPI_PODF_DIVIDER));
+  putreg32(reg, IMXRT_CCM_CBCMR);
+#endif
+
+#ifdef CONFIG_IMXRT_USDHC
+  /* Optionally set USDHC1 & 2 to generate clocks from IMXRT_USDHC1_CLK_SELECT */
+
+  reg  = getreg32(IMXRT_CCM_CSCMR1);
+  reg &= ~(CCM_CSCMR1_USDHC1_CLK_SEL | CCM_CSCMR1_USDHC2_CLK_SEL);
+#if defined(IMXRT_USDHC1_CLK_SELECT)
+  reg |= IMXRT_USDHC1_CLK_SELECT;
+#endif
+#if defined(IMXRT_USDHC2_CLK_SELECT)
+  reg |= IMXRT_USDHC2_CLK_SELECT;
+#endif
+  putreg32(reg, IMXRT_CCM_CSCMR1);
+
+  /* Now divide down clocks by IMXRT_USDHC[1|2]_PODF_DIVIDER */
+
+  reg  = getreg32(IMXRT_CCM_CSCDR1);
+  reg &= ~(CCM_CSCDR1_USDHC1_PODF_MASK | CCM_CSCDR1_USDHC2_PODF_MASK);
+#if defined(IMXRT_USDHC1_PODF_DIVIDER)
+  reg |= CCM_CSCDR1_USDHC1_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_USDHC1_PODF_DIVIDER));
+#endif
+#if defined(IMXRT_USDHC2_PODF_DIVIDER)
+  reg |= CCM_CSCDR1_USDHC2_PODF(CCM_PODF_FROM_DIVISOR(IMXRT_USDHC2_PODF_DIVIDER));
+#endif
+  putreg32(reg, IMXRT_CCM_CSCDR1);
+#endif
+
 #endif
 }

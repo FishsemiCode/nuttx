@@ -51,8 +51,12 @@
 
 #include <sys/ioctl.h>
 #include <stdint.h>
-#include <net/if.h>
 
+#ifdef CONFIG_NET_MCASTGROUP
+#  include <queue.h>
+#endif
+
+#include <net/if.h>
 #include <net/ethernet.h>
 #include <arpa/inet.h>
 
@@ -61,6 +65,10 @@
 
 #ifdef CONFIG_NET_IGMP
 #  include <nuttx/net/igmp.h>
+#endif
+
+#ifdef CONFIG_NET_MLD
+#  include <nuttx/net/mld.h>
 #endif
 
 /****************************************************************************
@@ -237,7 +245,7 @@ struct net_driver_s
 
   uint8_t d_flags;
 
-  /* Multi network devices using multiple data links protocols are selected */
+  /* Multi network devices using multiple link layer protocols are supported */
 
   uint8_t d_lltype;             /* See enum net_lltype_e */
   uint8_t d_llhdrlen;           /* Link layer header size */
@@ -332,10 +340,13 @@ struct net_driver_s
 
   uint16_t d_sndlen;
 
-#ifdef CONFIG_NET_IGMP
-  /* IGMP group list */
+  /* Multicast group support */
 
-  sq_queue_t grplist;
+#ifdef CONFIG_NET_IGMP
+  sq_queue_t d_igmp_grplist;    /* IGMP group list */
+#endif
+#ifdef CONFIG_NET_MLD
+  struct mld_netdev_s d_mld;    /* MLD state information */
 #endif
 
 #ifdef CONFIG_NETDEV_STATISTICS
@@ -376,7 +387,7 @@ struct net_driver_s
   int (*d_ifup)(FAR struct net_driver_s *dev);
   int (*d_ifdown)(FAR struct net_driver_s *dev);
   int (*d_txavail)(FAR struct net_driver_s *dev);
-#ifdef CONFIG_NET_IGMP
+#ifdef CONFIG_NET_MCASTGROUP
   int (*d_addmac)(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
   int (*d_rmmac)(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif

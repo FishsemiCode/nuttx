@@ -65,7 +65,7 @@ static chipreg_t s_last_regs[XCPTCONTEXT_REGS];
 
 static void z180_registerdump(void)
 {
-  chipreg_t *regs = g_last_regs;
+  volatile chipreg_t *regs = g_current_regs;
 
   if (regs == NULL)
     {

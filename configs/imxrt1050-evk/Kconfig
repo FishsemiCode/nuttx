@@ -12,8 +12,8 @@ choice
 config IMXRT1050_EVK_HYPER_FLASH
 	bool "HYPER Flash"
 
-config IMXRT1050_EVK_NOR_FLASH
-	bool "Serial NOR Flash"
+config IMXRT1050_EVK_QSPI_FLASH
+	bool "QSPI Flash"
 
 endchoice # Boot Flash
 

@@ -145,6 +145,10 @@ tcp_data_event(FAR struct net_driver_s *dev, FAR struct tcp_conn_s *conn,
 uint16_t tcp_callback(FAR struct net_driver_s *dev,
                       FAR struct tcp_conn_s *conn, uint16_t flags)
 {
+#ifdef CONFIG_TCP_NOTIFIER
+  uint16_t orig = flags;
+#endif
+
   /* Preserve the TCP_ACKDATA, TCP_CLOSE, and TCP_ABORT in the response.
    * These is needed by the network to handle responses and buffer state.  The
    * TCP_NEWDATA indication will trigger the ACK response, but must be
@@ -198,6 +202,15 @@ uint16_t tcp_callback(FAR struct net_driver_s *dev,
 
       flags = devif_conn_event(dev, conn, flags, conn->connevents);
     }
+
+#ifdef CONFIG_TCP_NOTIFIER
+  /* Provide notification(s) if the TCP connection has been lost. */
+
+  if ((orig & TCP_DISCONN_EVENTS) != 0)
+    {
+      tcp_disconnect_signal(conn);
+    }
+#endif
 
   return flags;
 }
@@ -272,6 +285,14 @@ uint16_t tcp_datahandler(FAR struct tcp_conn_s *conn, FAR uint8_t *buffer,
       (void)iob_free_chain(iob);
       return 0;
     }
+
+#ifdef CONFIG_TCP_NOTIFIER
+  /* Provide notification(s) that additional TCP read-ahead data is
+   * available.
+   */
+
+  tcp_readahead_signal(conn);
+#endif
 
   ninfo("Buffered %d bytes\n", buflen);
   return buflen;

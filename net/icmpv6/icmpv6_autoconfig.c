@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_autoconfig.c
  *
- *   Copyright (C) 2015-2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -148,8 +148,10 @@ static uint16_t icmpv6_router_eventhandler(FAR struct net_driver_s *dev,
           return flags;
         }
 
-      /* It looks like we are good to send the data */
-      /* Copy the packet data into the device packet buffer and send it */
+      /* It looks like we are good to send the data.
+       *
+       * Copy the packet data into the device packet buffer and send it.
+       */
 
       if (state->snd_advertise)
         {
@@ -271,8 +273,8 @@ errout_with_semaphore:
  *   Stateless auto-configuration exploits several other features in IPv6,
  *   including link-local addresses, multi-casting, the Neighbor Discovery
  *   protocol, and the ability to generate the interface identifier of an
- *   address from the underlying data link layer address. The general idea
- *   is to have a device generate a temporary address until it can determine
+ *   address from the underlying link layer address. The general idea is
+ *   to have a device generate a temporary address until it can determine
  *   the characteristics of the network it is on, and then create a permanent
  *   address it can use based on that information.
  *
@@ -298,6 +300,22 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
   DEBUGASSERT(dev);
   ninfo("Auto-configuring %s\n", dev->d_ifname);
 
+  /* Lock the network.
+   *
+   * NOTE:  Normally it is required that the network be in the "down" state
+   * when re-configuring the network interface.  This is thought not to be
+   * a problem here because.
+   *
+   *   1. The ICMPv6 logic here runs with the network locked so there can be
+   *      no outgoing packets with bad source IP addresses from any
+   *      asynchronous network activity using the device being reconfigured.
+   *   2. Incoming packets depend only upon the MAC filtering.  Network
+   *      drivers do not use the IP address; they filter incoming packets
+   *      using only the MAC address which is not being changed here.
+   */
+
+  net_lock();
+
   /* IPv6 Stateless Autoconfiguration
    * Reference: http://www.tcpipguide.com/free/t_IPv6AutoconfigurationandRenumbering.htm
    *
@@ -309,7 +327,7 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
    *    addresses. Link-local addresses have "1111 1110 10" for the first
    *    ten bits. The generated address uses those ten bits followed by 54
    *    zeroes and then the 64 bit interface identifier. Typically this
-   *    will be derived from the data link layer (MAC) address.
+   *    will be derived from the link layer (MAC) address.
    */
 
   icmpv6_linkipaddr(dev, lladdr);
@@ -319,7 +337,7 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
         lladdr[4], lladdr[6], lladdr[6], lladdr[7]);
 
 #ifdef CONFIG_NET_ICMPv6_NEIGHBOR
-  /* 2. Link-Local Address Uniqueness Test: The node tests to ensure that
+  /* 2. Link-Local Address Uniqueness Test:  The node tests to ensure that
    *    the address it generated isn't for some reason already in use on the
    *    local network. (This is very unlikely to be an issue if the link-local
    *    address came from a MAC address but more likely if it was based on a
@@ -332,13 +350,15 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
    */
 
   ret = icmpv6_neighbor(lladdr);
-  if (ret == OK)
+  if (ret >= 0)
     {
       /* Hmmm... someone else responded to our Neighbor Solicitation.  We
-       * have not back-up plan in place.  Just bail.
+       * have no back-up plan in place.  Just bail.
        */
 
       nerr("ERROR: IP conflict\n");
+
+      net_unlock();
       return -EEXIST;
     }
 #endif
@@ -349,10 +369,9 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
    *    on the wider Internet (since link-local addresses are not routed).
    */
 
-  net_lock();
   net_ipv6addr_copy(dev->d_ipv6addr, lladdr);
 
-  /* The optimal delay would be the work case round trip time. */
+  /* The optimal delay would be the worst case round trip time. */
 
   delay.tv_sec  = CONFIG_ICMPv6_AUTOCONF_DELAYSEC;
   delay.tv_nsec = CONFIG_ICMPv6_AUTOCONF_DELAYNSEC;
@@ -399,9 +418,7 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
       ninfo("Timed out... retrying %d\n", retries + 1);
     }
 
-  /* Check for failures.  Note:  On successful return, the network will be
-   * in the down state, but not in the event of failures.
-   */
+  /* Check for failures. */
 
   if (ret < 0)
     {

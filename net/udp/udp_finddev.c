@@ -152,8 +152,8 @@ FAR struct net_driver_s *udp_find_laddr_device(FAR struct udp_conn_s *conn)
             }
           else
             {
-              return netdev_findby_ipv4addr(conn->u.ipv4.laddr,
-                                            conn->u.ipv4.laddr);
+              return netdev_findby_ripv4addr(conn->u.ipv4.laddr,
+                                             conn->u.ipv4.laddr);
             }
         }
 #endif
@@ -175,8 +175,8 @@ FAR struct net_driver_s *udp_find_laddr_device(FAR struct udp_conn_s *conn)
             }
           else
             {
-              return netdev_findby_ipv6addr(conn->u.ipv6.laddr,
-                                            conn->u.ipv6.laddr);
+              return netdev_findby_ripv6addr(conn->u.ipv6.laddr,
+                                             conn->u.ipv6.laddr);
             }
         }
 #endif
@@ -232,8 +232,8 @@ FAR struct net_driver_s *udp_find_raddr_device(FAR struct udp_conn_s *conn)
                 }
               else
                 {
-                  return netdev_findby_ipv4addr(conn->u.ipv4.laddr,
-                                                conn->u.ipv4.laddr);
+                  return netdev_findby_ripv4addr(conn->u.ipv4.laddr,
+                                                 conn->u.ipv4.laddr);
                 }
             }
 
@@ -245,8 +245,8 @@ FAR struct net_driver_s *udp_find_raddr_device(FAR struct udp_conn_s *conn)
             {
               /* Normal lookup using the verified remote address */
 
-              return netdev_findby_ipv4addr(conn->u.ipv4.laddr,
-                                            conn->u.ipv4.raddr);
+              return netdev_findby_ripv4addr(conn->u.ipv4.laddr,
+                                             conn->u.ipv4.raddr);
             }
           else
             {
@@ -284,8 +284,8 @@ FAR struct net_driver_s *udp_find_raddr_device(FAR struct udp_conn_s *conn)
                 }
               else
                 {
-                  return netdev_findby_ipv6addr(conn->u.ipv6.laddr,
-                                                conn->u.ipv6.laddr);
+                  return netdev_findby_ripv6addr(conn->u.ipv6.laddr,
+                                                 conn->u.ipv6.laddr);
                 }
             }
 
@@ -297,8 +297,8 @@ FAR struct net_driver_s *udp_find_raddr_device(FAR struct udp_conn_s *conn)
             {
               /* Normal lookup using the verified remote address */
 
-              return netdev_findby_ipv6addr(conn->u.ipv6.laddr,
-                                            conn->u.ipv6.raddr);
+              return netdev_findby_ripv6addr(conn->u.ipv6.laddr,
+                                             conn->u.ipv6.raddr);
             }
           else
             {

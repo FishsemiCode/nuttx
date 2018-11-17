@@ -1,7 +1,8 @@
 /****************************************************************************
  *  sched/group/group_setupidlefiles.c
  *
- *   Copyright (C) 2007-2010, 2012-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2012-2013, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -104,7 +105,7 @@ int group_setupidlefiles(FAR struct task_tcb_s *tcb)
    */
 
 #if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_DEV_CONSOLE)
-  fd = open("/dev/console", O_RDWR);
+  fd = nx_open("/dev/console", O_RDWR);
   if (fd == 0)
     {
       /* Successfully opened /dev/console as stdin (fd == 0) */
@@ -125,7 +126,7 @@ int group_setupidlefiles(FAR struct task_tcb_s *tcb)
         }
       else
         {
-          serr("ERROR: Failed to open /dev/console: %d\n", errno);
+          serr("ERROR: Failed to open /dev/console: %d\n", fd);
         }
 
       return -ENFILE;

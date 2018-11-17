@@ -135,6 +135,7 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 #ifdef CONFIG_ARCH_STACKDUMP
 static void up_dumpstate(void)
 {
+  struct tcb_s *rtcb = running_task();
   uint32_t sp = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -145,9 +146,9 @@ static void up_dumpstate(void)
 
   /* Dump the registers (if available) */
 
-  if (g_last_regs != NULL)
+  if (g_current_regs != NULL)
     {
-      up_registerdump(g_last_regs);
+      up_registerdump((uint32_t*)g_current_regs);
     }
   else
     {
@@ -159,15 +160,15 @@ static void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (g_last_task->pid == 0)
+  if (rtcb->pid == 0)
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)g_last_task->adj_stack_ptr;
-      ustacksize = (uint32_t)g_last_task->adj_stack_size;
+      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
+      ustacksize = (uint32_t)rtcb->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -200,7 +201,7 @@ static void up_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
-  else if (g_last_regs)
+  else if (g_current_regs)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);
@@ -254,7 +255,7 @@ static void _up_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (g_last_regs || g_last_task->pid == 0)
+  if (g_current_regs || (running_task())->pid == 0)
     {
        (void)up_irq_save();
         for (;;)
@@ -289,6 +290,10 @@ static void _up_assert(int errorcode)
 
 void up_assert(const uint8_t *filename, int lineno)
 {
+#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
+  struct tcb_s *rtcb = running_task();
+#endif
+
   board_autoled_on(LED_ASSERTION);
 
   /* Flush any buffered SYSLOG data (from prior to the assertion) */
@@ -297,7 +302,7 @@ void up_assert(const uint8_t *filename, int lineno)
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
-        filename, lineno, g_last_task->name);
+        filename, lineno, rtcb->name);
 #else
   _alert("Assertion failed at file:%s line: %d\n",
         filename, lineno);
@@ -310,7 +315,7 @@ void up_assert(const uint8_t *filename, int lineno)
   (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), g_last_task, filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

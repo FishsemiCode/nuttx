@@ -90,8 +90,12 @@
 
 clock_t clock_systimer(void)
 {
-#if defined(CONFIG_RTC_HIRES) || defined(CONFIG_SCHED_TICKLESS)
+#ifdef CONFIG_SCHED_TICKLESS
+# ifdef CONFIG_SYSTEM_TIME64
+
   struct timespec ts;
+
+  /* Get the time from the platform specific hardware */
 
   (void)clock_systimespec(&ts);
 
@@ -99,7 +103,22 @@ clock_t clock_systimer(void)
 
   return USEC2TICK(1000000 * (uint64_t)ts.tv_sec + (uint64_t)ts.tv_nsec / 1000);
 
-#else /* CONFIG_RTC_HIRES || CONFIG_SCHED_TICKLESS */
+# else /* CONFIG_SYSTEM_TIME64 */
+
+  struct timespec ts;
+  uint64_t tmp;
+
+  /* Get the time from the platform specific hardware */
+
+  (void)clock_systimespec(&ts);
+
+  /* Convert to a 64- then a 32-bit value */
+
+  tmp = USEC2TICK(1000000 * (uint64_t)ts.tv_sec + (uint64_t)ts.tv_nsec / 1000);
+  return (clock_t)(tmp & TIMER_MASK32);
+
+# endif /* CONFIG_SYSTEM_TIME64 */
+#else /* CONFIG_SCHED_TICKLESS */
 # ifdef CONFIG_SYSTEM_TIME64
 
   clock_t sample;

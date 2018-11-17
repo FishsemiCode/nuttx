@@ -169,7 +169,8 @@ void neighbor_add(FAR struct net_driver_s *dev, FAR net_ipv6addr_t ipaddr,
  *
  ****************************************************************************/
 
-int neighbor_lookup(const net_ipv6addr_t ipaddr, FAR struct neighbor_addr_s *laddr);
+int neighbor_lookup(FAR const net_ipv6addr_t ipaddr,
+                    FAR struct neighbor_addr_s *laddr);
 
 /****************************************************************************
  * Name: neighbor_update

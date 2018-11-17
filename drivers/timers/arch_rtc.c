@@ -67,8 +67,9 @@ volatile bool g_rtc_enabled = false;
 
 void up_rtc_set_lowerhalf(FAR struct rtc_lowerhalf_s *lower)
 {
-  g_rtc_lower = lower;
+  g_rtc_lower   = lower;
   g_rtc_enabled = true;
+
 #ifdef CONFIG_RTC_EXTERNAL
   clock_synchronize();
 #endif
@@ -97,7 +98,7 @@ time_t up_rtc_time(void)
 {
   time_t time = 0;
 
-  if (g_rtc_lower)
+  if (g_rtc_lower != NULL)
     {
       struct rtc_time rtctime;
 
@@ -132,7 +133,7 @@ int up_rtc_gettime(FAR struct timespec *tp)
 {
   int ret = -EAGAIN;
 
-  if (g_rtc_lower)
+  if (g_rtc_lower != NULL)
     {
       struct rtc_time rtctime;
 
@@ -176,7 +177,7 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 {
   int ret = -EAGAIN;
 
-  if (g_rtc_lower)
+  if (g_rtc_lower != NULL)
     {
       struct rtc_time rtctime;
 
@@ -207,8 +208,8 @@ int up_rtc_getdatetime(FAR struct tm *tp)
  *   stop system timer.
  *
  * Input Parameters:
- *   tp - The location to return the high resolution time value.
- *   nsec - The location to return the subsecond time value.
+ *   tp   - The location to return the high resolution time value.
+ *   nsec - The location to return the sub-second time value.
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno on failure
@@ -220,7 +221,7 @@ int up_rtc_getdatetime_with_subseconds(FAR struct tm *tp, FAR long *nsec)
 {
   int ret = -EAGAIN;
 
-  if (g_rtc_lower)
+  if (g_rtc_lower != NULL)
     {
       struct rtc_time rtctime;
 
@@ -255,7 +256,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
 {
   int ret = -EAGAIN;
 
-  if (g_rtc_lower)
+  if (g_rtc_lower != NULL)
     {
       struct rtc_time rtctime;
 

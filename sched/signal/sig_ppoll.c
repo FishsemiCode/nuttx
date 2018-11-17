@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/signal/sig_ppoll.c
  *
- *   Copyright (C) 20018 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -105,6 +105,7 @@ int ppoll(FAR struct pollfd *fds, nfds_t nfds,
     {
       rtcb->sigprocmask = *sigmask;
     }
+
   rtcb->sigwaitmask = NULL_SIGNAL_SET;
 
   /* Check if there is a pending signal corresponding to one of the
@@ -149,3 +150,4 @@ int ppoll(FAR struct pollfd *fds, nfds_t nfds,
 
   return ret;
 }
+

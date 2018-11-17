@@ -83,5 +83,8 @@ void neighbor_out(FAR struct net_driver_s *dev)
         neighbor_ethernet_out(dev);
         break;
 #endif
+
+      default:
+        break;
     }
 }

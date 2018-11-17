@@ -197,7 +197,7 @@ static void sendto_request(FAR struct net_driver_s *dev,
   /* Calculate the ICMPv6 checksum over the ICMPv6 header and payload. */
 
   icmpv6->chksum = 0;
-  icmpv6->chksum = ~icmpv6_chksum(dev);
+  icmpv6->chksum = ~icmpv6_chksum(dev, IPv6_HDRLEN);
   if (icmpv6->chksum == 0)
     {
       icmpv6->chksum = 0xffff;
@@ -388,7 +388,7 @@ ssize_t icmpv6_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
 
   /* Get the device that will be used to route this ICMPv6 ECHO request */
 
-  dev = netdev_findby_ipv6addr(g_ipv6_unspecaddr,
+  dev = netdev_findby_ripv6addr(g_ipv6_unspecaddr,
                                inaddr->sin6_addr.s6_addr16);
   if (dev == NULL)
     {

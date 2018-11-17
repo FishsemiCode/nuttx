@@ -389,16 +389,16 @@ static int sendto_next_transfer(FAR struct socket *psock,
       return ret;
     }
 
- /* Get the device that will handle the remote packet transfers.  This
-  * should never be NULL.
-  */
+  /* Get the device that will handle the remote packet transfers.  This
+   * should never be NULL.
+   */
 
- dev = udp_find_raddr_device(conn);
- if (dev == NULL)
-   {
-     nerr("ERROR: udp_find_raddr_device failed\n");
-     return -ENETUNREACH;
-   }
+  dev = udp_find_raddr_device(conn);
+  if (dev == NULL)
+    {
+      nerr("ERROR: udp_find_raddr_device failed\n");
+      return -ENETUNREACH;
+    }
 
   /* Make sure that the device is in the UP state */
 
@@ -508,9 +508,10 @@ static uint16_t sendto_eventhandler(FAR struct net_driver_s *dev,
   if (dev->d_sndlen <= 0 && (flags & UDP_NEWDATA) == 0 &&
       (flags & UDP_POLL) != 0 && !sq_empty(&conn->write_q))
     {
-      /* Check if the destination IP address is in the ARP  or Neighbor
-       * table.  If not, then the send won't actually make it out... it
-       * will be replaced with an ARP request or Neighbor Solicitation.
+      /* Check if the destination IP address is in the ARP, Neighbor
+       * table, or routing table.  If not, then the send won't actually
+       * make it out... it will be replaced with an ARP request or
+       * Neighbor Solicitation.
        */
 
       if (sendto_addrcheck(conn, dev))
@@ -881,4 +882,51 @@ errout_with_lock:
   return ret;
 }
 
+/****************************************************************************
+ * Name: psock_udp_cansend
+ *
+ * Description:
+ *   psock_udp_cansend() returns a value indicating if a write to the socket
+ *   would block.  No space in the buffer is actually reserved, so it is
+ *   possible that the write may still block if the buffer is filled by
+ *   another means.
+ *
+ * Input Parameters:
+ *   psock    An instance of the internal socket structure.
+ *
+ * Returned Value:
+ *   OK
+ *     At least one byte of data could be successfully written.
+ *   -EWOULDBLOCK
+ *     There is no room in the output buffer.
+ *   -EBADF
+ *     An invalid descriptor was specified.
+ *
+ ****************************************************************************/
+
+int psock_udp_cansend(FAR struct socket *psock)
+{
+  /* Verify that we received a valid socket */
+
+  if (!psock || psock->s_crefs <= 0)
+    {
+      nerr("ERROR: Invalid socket\n");
+      return -EBADF;
+    }
+
+  /* In order to setup the send, we need to have at least one free write
+   * buffer head and at least one free IOB to initialize the write buffer head.
+   *
+   * REVISIT:  The send will still block if we are unable to buffer the entire
+   * user-provided buffer which may be quite large.  We will almost certainly
+   * need to have more than one free IOB, but we don't know how many more.
+   */
+
+  if (udp_wrbuffer_test() < 0 || iob_navail(false) <= 0)
+    {
+      return -EWOULDBLOCK;
+    }
+
+  return OK;
+}
 #endif /* CONFIG_NET && CONFIG_NET_UDP && CONFIG_NET_UDP_WRITE_BUFFERS */

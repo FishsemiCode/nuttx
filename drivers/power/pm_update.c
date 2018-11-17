@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/power/pm_update.c
  *
- *   Copyright (C) 2011-2012, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,8 +52,9 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
 /* CONFIG_PM_MEMORY is the total number of time slices (including the current
- * time slice.  The histor or previous values is then CONFIG_PM_MEMORY-1.
+ * time slice).  The history of previous values is then CONFIG_PM_MEMORY-1.
  */
 
 #if CONFIG_PM_MEMORY > 1
@@ -124,8 +125,8 @@ static const uint16_t g_pmcount[3] =
  *
  * Input Parameters:
  *   domain - The PM domain associated with the accumulator
- *   accum - The value of the activity accumulator at the end of the time
- *     slice.
+ *   accum  - The value of the activity accumulator at the end of the time
+ *            slice.
  *
  * Returned Value:
  *   None.
@@ -160,7 +161,7 @@ void pm_update(int domain, int16_t accum)
 
   if (pdom->mcnt < CONFIG_PM_MEMORY-1)
     {
-      index = pdom->mcnt++;
+      index               = pdom->mcnt++;
       pdom->memory[index] = accum;
       return;
     }
@@ -172,7 +173,7 @@ void pm_update(int domain, int16_t accum)
    * CONFIG_PM_MEMORY provides the memory for the algorithm.  Default: 2
    * CONFIG_PM_COEFn provides weight for each sample.  Default: 1
    *
-   * First, calclate Y = An*X
+   * First, calculate Y = An*X
    */
 
   Y     = CONFIG_PM_COEFN * accum;
@@ -206,13 +207,11 @@ void pm_update(int domain, int16_t accum)
     {
       pdom->mndx = 0;
     }
-
 #else
 
   /* No smoothing */
 
   Y = accum;
-
 #endif
 
   /* First check if increased activity should cause us to return to the

@@ -129,7 +129,7 @@ static void up_stackdump(uint32_t sp, uint32_t stack_base)
 #ifdef CONFIG_ARCH_STACKDUMP
 static inline void up_registerdump(void)
 {
-  uint32_t *regs = LAST_REGS;
+  volatile uint32_t *regs = CURRENT_REGS;
   int reg;
 
   /* Are user registers available from interrupt processing? */
@@ -190,6 +190,7 @@ static int assert_tracecallback(FAR struct usbtrace_s *trace, FAR void *arg)
 #ifdef CONFIG_ARCH_STACKDUMP
 static void up_dumpstate(void)
 {
+  struct tcb_s *rtcb = running_task();
   uint32_t sp   = up_getsp();
   uint32_t ustackbase;
   uint32_t ustacksize;
@@ -204,15 +205,15 @@ static void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (LAST_TASK->pid == 0)
+  if (rtcb->pid == 0)
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
     }
   else
     {
-      ustackbase = (uint32_t)LAST_TASK->adj_stack_ptr;
-      ustacksize = (uint32_t)LAST_TASK->adj_stack_size;
+      ustackbase = (uint32_t)rtcb->adj_stack_ptr;
+      ustacksize = (uint32_t)rtcb->adj_stack_size;
     }
 
   /* Get the limits on the interrupt stack memory */
@@ -248,7 +249,7 @@ static void up_dumpstate(void)
       sp = g_intstackbase;
       _alert("sp:     %08x\n", sp);
     }
-  else if (LAST_REGS)
+  else if (CURRENT_REGS)
     {
       _alert("ERROR: Stack pointer is not within the interrupt stack\n");
       up_stackdump(istackbase - istacksize, istackbase);
@@ -260,7 +261,7 @@ static void up_dumpstate(void)
   _alert("  base: %08x\n", ustackbase);
   _alert("  size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("  used: %08x\n", up_check_tcbstack(LAST_TASK));
+  _alert("  used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 
 #else
@@ -268,7 +269,7 @@ static void up_dumpstate(void)
   _alert("stack base: %08x\n", ustackbase);
   _alert("stack size: %08x\n", ustacksize);
 #ifdef CONFIG_STACK_COLORATION
-  _alert("stack used: %08x\n", up_check_tcbstack(LAST_TASK));
+  _alert("stack used: %08x\n", up_check_tcbstack(rtcb));
 #endif
 #endif
 
@@ -309,7 +310,7 @@ static void _up_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (LAST_REGS || LAST_TASK->pid == 0)
+  if (CURRENT_REGS || running_task()->pid == 0)
     {
       (void)up_irq_save();
       for (; ; )
@@ -344,6 +345,10 @@ static void _up_assert(int errorcode)
 
 void up_assert(const uint8_t *filename, int lineno)
 {
+#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
+  struct tcb_s *rtcb = running_task();
+#endif
+
   board_autoled_on(LED_ASSERTION);
 
   /* Flush any buffered SYSLOG data (prior to the assertion) */
@@ -352,7 +357,7 @@ void up_assert(const uint8_t *filename, int lineno)
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
-        filename, lineno, LAST_TASK->name);
+        filename, lineno, rtcb->name);
 #else
   _alert("Assertion failed at file:%s line: %d\n",
         filename, lineno);
@@ -365,7 +370,7 @@ void up_assert(const uint8_t *filename, int lineno)
   (void)syslog_flush();
 
 #ifdef CONFIG_BOARD_CRASHDUMP
-  board_crashdump(up_getsp(), LAST_TASK, filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   _up_assert(EXIT_FAILURE);

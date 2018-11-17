@@ -812,6 +812,7 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
     {
       mcr &= ~UART_MCR_AFCE;
     }
+
   mcr |= UART_MCR_RTS;
 
   u16550_serialout(priv, UART_MCR_OFFSET, mcr);

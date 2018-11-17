@@ -1,7 +1,7 @@
 /****************************************************************************
  * sched/signal/sig_pselect.c
  *
- *   Copyright (C) 20018 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -102,6 +102,7 @@ int pselect(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
     {
       rtcb->sigprocmask = *sigmask;
     }
+
   rtcb->sigwaitmask = NULL_SIGNAL_SET;
 
   /* Check if there is a pending signal corresponding to one of the
@@ -149,3 +150,4 @@ int pselect(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
 
   return ret;
 }
+

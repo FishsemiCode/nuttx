@@ -45,6 +45,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#ifdef CONFIG_IOB_NOTIFIER
+#  include <nuttx/wqueue.h>
+#endif
+
 #ifdef CONFIG_MM_IOB
 
 /****************************************************************************
@@ -191,7 +195,17 @@ FAR struct iob_s *iob_tryalloc(bool throttled);
  *
  ****************************************************************************/
 
-int iob_navail(void);
+int iob_navail(bool throttled);
+
+/****************************************************************************
+ * Name: iob_qentry_navail
+ *
+ * Description:
+ *   Return the number of available IOB chains.
+ *
+ ****************************************************************************/
+
+int iob_qentry_navail(void);
 
 /****************************************************************************
  * Name: iob_free
@@ -203,6 +217,84 @@ int iob_navail(void);
  ****************************************************************************/
 
 FAR struct iob_s *iob_free(FAR struct iob_s *iob);
+
+/****************************************************************************
+ * Name: iob_notifier_setup
+ *
+ * Description:
+ *   Set up to perform a callback to the worker function when an IOB is
+ *   available.  The worker function will execute on the selected priority
+ *   worker thread.
+ *
+ * Input Parameters:
+ *   qid    - Selects work queue.  Must be HPWORK or LPWORK.
+ *   worker - The worker function to execute on the high priority work queue
+ *            when the event occurs.
+ *   arg    - A user-defined argument that will be available to the worker
+ *            function when it runs.
+ *
+ * Returned Value:
+ *   > 0   - The signal notification is in place.  The returned value is a
+ *           key that may be used later in a call to
+ *           iob_notifier_teardown().
+ *   == 0  - There are already free IOBs.  No signal notification will be
+ *           provided.
+ *   < 0   - An unexpected error occurred and no signal will be sent.  The
+ *           returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_IOB_NOTIFIER
+int iob_notifier_setup(int qid, worker_t worker, FAR void *arg);
+#endif
+
+/****************************************************************************
+ * Name: iob_notifier_teardown
+ *
+ * Description:
+ *   Eliminate an IOB notification previously setup by iob_notifier_setup().
+ *   This function should only be called if the notification should be
+ *   aborted prior to the notification.  The notification will automatically
+ *   be torn down after the signal is sent.
+ *
+ * Input Parameters:
+ *   key - The key value returned from a previous call to
+ *         iob_notifier_setup().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_IOB_NOTIFIER
+int iob_notifier_teardown(int key);
+#endif
+
+/****************************************************************************
+ * Name: iob_notifier_signal
+ *
+ * Description:
+ *   An IOB has become available.  Signal all threads waiting for an IOB
+ *   that an IOB is available.
+ *
+ *   When an IOB becomes available, *all* of the workers waiting for an
+ *   IOB will be executed.  If there are multiple workers for waiting an IOB
+ *   then only the first to execute will get the IOB.  Others will
+ *   need to call iob_notify_setup() once again.
+ *
+ * Input Parameters:
+ *   None.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_IOB_NOTIFIER
+void iob_notifier_signal(void);
+#endif
 
 /****************************************************************************
  * Name: iob_free_chain

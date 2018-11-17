@@ -104,7 +104,7 @@ config LIB_SLCDCODEC
 		interface must be accessible by end user programs.
 
 config LIB_ENVPATH
-	bool "Support Get Environment Variable"
+	bool "Support PATH Environment Variable"
 	default n
 	depends on !DISABLE_ENVIRON
 	---help---

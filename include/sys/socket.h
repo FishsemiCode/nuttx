@@ -84,6 +84,7 @@
  * the communication semantics.
  */
 
+#define SOCK_UNSPEC    0 /* Unspecified socket type */
 #define SOCK_STREAM    1 /* Provides sequenced, reliable, two-way,
                           * connection-based byte streams. An out-of-band data
                           * transmission mechanism may be supported.
@@ -223,10 +224,29 @@
 /* The maximum backlog queue length */
 
 #ifdef CONFIG_NET_TCPBACKLOG_CONNS
-#  define SO_MAXCONN CONFIG_NET_TCPBACKLOG_CONNS
+#  define SOMAXCONN CONFIG_NET_TCPBACKLOG_CONNS
 #else
-#  define SO_MAXCONN 0
+#  define SOMAXCONN 0
 #endif
+
+/* Definitions associated with sendmsg/recvmsg */
+
+#define CMSG_NXTHDR(mhdr, cmsg) cmsg_nxthdr((mhdr), (cmsg))
+
+#define CMSG_ALIGN(len) \
+  (((len)+sizeof(long)-1) & ~(sizeof(long)-1))
+#define CMSG_DATA(cmsg) \
+  ((void *)((char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
+#define CMSG_SPACE(len) \
+  (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
+#define CMSG_LEN(len)   \
+  (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
+
+#define __CMSG_FIRSTHDR(ctl, len) \
+  ((len) >= sizeof(struct cmsghdr) ? (FAR struct cmsghdr *)(ctl) : \
+   (FAR struct cmsghdr *)NULL)
+#define CMSG_FIRSTHDR(msg) \
+  __CMSG_FIRSTHDR((msg)->msg_control, (msg)->msg_controllen)
 
 /****************************************************************************
  * Type Definitions
@@ -236,14 +256,14 @@
   * accommodate all supported protocol-specific address structures, and (2)
   * aligned at an appropriate boundary so that pointers to it can be cast
   * as pointers to protocol-specific address structures and used to access
-  * the fields of those structures without alignment problems
+  * the fields of those structures without alignment problems.
   */
 
 #ifdef CONFIG_NET_IPv6
 struct sockaddr_storage
 {
   sa_family_t ss_family;       /* Address family */
-  char        ss_data[30];     /* 30-bytes of address data */
+  char        ss_data[26];     /* 26-bytes of address data */
 };
 #else
 struct sockaddr_storage
@@ -261,7 +281,7 @@ struct sockaddr_storage
 struct sockaddr
 {
   sa_family_t sa_family;       /* Address family: See AF_* definitions */
-  char        sa_data[14];     /* 14-bytes of address data */
+  char        sa_data[14];     /* 14-bytes data (actually variable length) */
 };
 
 /* Used with the SO_LINGER socket option */
@@ -274,10 +294,10 @@ struct linger
 
 struct msghdr
 {
-  void *msg_name;               /* Socket name      */
-  int msg_namelen;              /* Length of name   */
-  struct iovec *msg_iov;        /* Data blocks      */
-  unsigned long msg_iovlen;     /* Number of blocks   */
+  void *msg_name;               /* Socket name */
+  int msg_namelen;              /* Length of name */
+  struct iovec *msg_iov;        /* Data blocks */
+  unsigned long msg_iovlen;     /* Number of blocks */
   void *msg_control;            /* Per protocol magic (eg BSD file descriptor passing) */
   unsigned long msg_controllen; /* Length of cmsg list */
   unsigned int msg_flags;
@@ -285,26 +305,20 @@ struct msghdr
 
 struct cmsghdr
 {
-  unsigned long cmsg_len;       /* data byte count, including hdr */
-  int cmsg_level;               /* originating protocol */
-  int cmsg_type;                /* protocol-specific type */
+  unsigned long cmsg_len;       /* Data byte count, including hdr */
+  int cmsg_level;               /* Originating protocol */
+  int cmsg_type;                /* Protocol-specific type */
 };
 
-#define CMSG_NXTHDR(mhdr, cmsg) cmsg_nxthdr((mhdr), (cmsg))
+/****************************************************************************
+ * Inline Functions
+ ****************************************************************************/
 
-#define CMSG_ALIGN(len) (((len)+sizeof(long)-1) & ~(sizeof(long)-1))
-#define CMSG_DATA(cmsg) ((void *)((char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
-#define CMSG_SPACE(len) (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
-#define CMSG_LEN(len)   (CMSG_ALIGN(sizeof(struct cmsghdr)) + (len))
-
-#define __CMSG_FIRSTHDR(ctl, len) ((len) >= sizeof(struct cmsghdr) ? \
-                                  (struct cmsghdr *)(ctl) : \
-                                  (struct cmsghdr *)NULL)
-#define CMSG_FIRSTHDR(msg) __CMSG_FIRSTHDR((msg)->msg_control, (msg)->msg_controllen)
-
-static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, unsigned int __size, struct cmsghdr *__cmsg)
+static inline struct cmsghdr *__cmsg_nxthdr(FAR void *__ctl,
+                                            unsigned int __size,
+                                            FAR struct cmsghdr *__cmsg)
 {
-  struct cmsghdr *__ptr;
+  FAR struct cmsghdr *__ptr;
 
   __ptr = (struct cmsghdr *)(((unsigned char *)__cmsg) + CMSG_ALIGN(__cmsg->cmsg_len));
   if ((unsigned long)((char *)(__ptr + 1) - (char *)__ctl) > __size)
@@ -315,7 +329,8 @@ static inline struct cmsghdr *__cmsg_nxthdr(void *__ctl, unsigned int __size, st
   return __ptr;
 }
 
-static inline struct cmsghdr *cmsg_nxthdr(struct msghdr *__msg, struct cmsghdr *__cmsg)
+static inline struct cmsghdr *cmsg_nxthdr(FAR struct msghdr *__msg,
+                                          FAR struct cmsghdr *__cmsg)
 {
   return __cmsg_nxthdr(__msg->msg_control, __msg->msg_controllen, __cmsg);
 }

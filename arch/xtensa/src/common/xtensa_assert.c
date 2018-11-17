@@ -117,7 +117,7 @@ static void xtensa_assert(int errorcode)
 #ifdef CONFIG_BOARD_CRASHDUMP
   /* Perform board-specific crash dump */
 
-  board_crashdump(up_getsp(), LAST_TASK, filename, lineno);
+  board_crashdump(up_getsp(), running_task(), filename, lineno);
 #endif
 
   /* Flush any buffered SYSLOG data (from the above) */
@@ -126,7 +126,7 @@ static void xtensa_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (LAST_REGS || LAST_TASK->pid == 0)
+  if (CURRENT_REGS || running_task()->pid == 0)
     {
        /* Blink the LEDs forever */
 
@@ -165,6 +165,10 @@ static void xtensa_assert(int errorcode)
 
 void up_assert(const uint8_t *filename, int lineno)
 {
+#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
+  struct tcb_s *rtcb = running_task();
+#endif
+
   board_autoled_on(LED_ASSERTION);
 
   /* Flush any buffered SYSLOG data (from prior to the assertion) */
@@ -173,7 +177,7 @@ void up_assert(const uint8_t *filename, int lineno)
 
 #if CONFIG_TASK_NAME_SIZE > 0
   _alert("Assertion failed at file:%s line: %d task: %s\n",
-        filename, lineno, LAST_TASK->name);
+        filename, lineno, rtcb->name);
 #else
   _alert("Assertion failed at file:%s line: %d\n",
         filename, lineno);
@@ -206,7 +210,9 @@ void up_assert(const uint8_t *filename, int lineno)
 
 void xtensa_panic(int xptcode, uint32_t *regs)
 {
-  LAST_REGS = regs;
+#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
+  struct tcb_s *rtcb = running_task();
+#endif
 
   /* We get here when a un-dispatch-able, irrecoverable exception occurs */
 
@@ -217,7 +223,7 @@ void xtensa_panic(int xptcode, uint32_t *regs)
   (void)syslog_flush();
 
 #if CONFIG_TASK_NAME_SIZE > 0
-  _alert("Unhandled Exception %d task: %s\n", xptcode, LAST_TASK->name);
+  _alert("Unhandled Exception %d task: %s\n", xptcode, rtcb->name);
 #else
   _alert("Unhandled Exception %d\n", xptcode);
 #endif
@@ -308,7 +314,9 @@ void xtensa_panic(int xptcode, uint32_t *regs)
 
 void xtensa_user(int exccause, uint32_t *regs)
 {
-  LAST_REGS = regs;
+#if CONFIG_TASK_NAME_SIZE > 0 && defined(CONFIG_DEBUG_ALERT)
+  struct tcb_s *rtcb = running_task();
+#endif
 
   /* We get here when a un-dispatch-able, irrecoverable exception occurs */
 
@@ -319,7 +327,7 @@ void xtensa_user(int exccause, uint32_t *regs)
   (void)syslog_flush();
 
 #if CONFIG_TASK_NAME_SIZE > 0
-  _alert("User Exception: EXCCAUSE=%04x task: %s\n", exccause, LAST_TASK->name);
+  _alert("User Exception: EXCCAUSE=%04x task: %s\n", exccause, rtcb->name);
 #else
   _alert("User Exception: EXCCAUSE=%04x\n", exccause);
 #endif

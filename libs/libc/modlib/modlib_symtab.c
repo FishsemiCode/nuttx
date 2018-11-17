@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libc/modlib/modlib_symtab.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017-2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -91,7 +91,8 @@ static FAR int g_modlib_nsymbols;
  *
  * Input Parameters:
  *   symtab - The location to store the symbol table.
- *   nsymbols - The location to store the number of symbols in the symbol table.
+ *   nsymbols - The location to store the number of symbols in the symbol
+ *   table.
  *
  * Returned Value:
  *   None
@@ -112,6 +113,7 @@ void modlib_getsymtab(FAR const struct symtab_s **symtab, FAR int *nsymbols)
       g_modlib_nsymbols = CONFIG_MODLIB_NSYMBOLS_VAR;
     }
 #endif
+
   *symtab   = g_modlib_symtab;
   *nsymbols = g_modlib_nsymbols;
   modlib_registry_unlock();

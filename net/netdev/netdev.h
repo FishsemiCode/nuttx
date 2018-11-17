@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/netdev/netdev.h
  *
- *   Copyright (C) 2014-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,10 @@
 #include <stdbool.h>
 
 #include <nuttx/net/ip.h>
+
+#ifdef CONFIG_NETDOWN_NOTIFIER
+#  include <nuttx/wqueue.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -174,49 +178,94 @@ FAR struct net_driver_s *netdev_findbyname(FAR const char *ifname);
 
 int netdev_foreach(netdev_callback_t callback, FAR void *arg);
 
+#if CONFIG_NSOCKET_DESCRIPTORS > 0
+
 /****************************************************************************
- * Name: netdev_findby_ipv4addr
+ * Name: netdev_findby_lipv4addr
  *
  * Description:
- *   Find a previously registered network device by matching an arbitrary
- *   IPv4 address.
+ *   Find a previously registered network device by matching a local address
+ *   with the subnet served by the device.  Only "up" devices are considered
+ *   (since a "down" device has no meaningful address).
  *
  * Input Parameters:
- *   lipaddr - Local, bound address of a connection.
- *   ripaddr - Remote address of a connection to use in the lookup
+ *   lipaddr - Local, IPv4 address assigned to the network device.  Or any
+ *             IPv4 address on the sub-net served by the network device.
  *
  * Returned Value:
- *  Pointer to driver on success; null on failure
+ *   Pointer to driver on success; null on failure
  *
  ****************************************************************************/
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
 #ifdef CONFIG_NET_IPv4
-FAR struct net_driver_s *netdev_findby_ipv4addr(in_addr_t lipaddr,
-                                                in_addr_t ripaddr);
+FAR struct net_driver_s *netdev_findby_lipv4addr(in_addr_t lipaddr);
 #endif
 
 /****************************************************************************
- * Name: netdev_findby_ipv6addr
+ * Name: netdev_findby_lipv6addr
  *
  * Description:
- *   Find a previously registered network device by matching an arbitrary
- *   IPv6 address.
+ *   Find a previously registered network device by matching a local address
+ *   with the subnet served by the device.  Only "up" devices are considered
+ *   (since a "down" device has no meaningful address).
  *
  * Input Parameters:
- *   lipaddr - Local, bound address of a connection.
- *   ripaddr - Remote address of a connection to use in the lookup
+ *   lipaddr - Local, IPv6 address assigned to the network device.  Or any
+ *             IPv6 address on the sub-net served by the network device.
  *
  * Returned Value:
- *  Pointer to driver on success; null on failure
+ *   Pointer to driver on success; null on failure
  *
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IPv6
-FAR struct net_driver_s *netdev_findby_ipv6addr(const net_ipv6addr_t lipaddr,
-                                                const net_ipv6addr_t ripaddr);
+FAR struct net_driver_s *netdev_findby_lipv6addr(const net_ipv6addr_t lipaddr);
 #endif
+
+/****************************************************************************
+ * Name: netdev_findby_ripv4addr
+ *
+ * Description:
+ *   Find a previously registered network device by matching the remote
+ *   IPv4 address that can be reached by the device.
+ *
+ * Input Parameters:
+ *   lipaddr - Local, bound address of a connection (used only if ripaddr is
+ *             the broadcast address).
+ *   ripaddr - Remote address of a connection to use in the lookup
+ *
+ * Returned Value:
+ *   Pointer to driver on success; null on failure
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_IPv4
+FAR struct net_driver_s *netdev_findby_ripv4addr(in_addr_t lipaddr,
+                                                 in_addr_t ripaddr);
 #endif
+
+/****************************************************************************
+ * Name: netdev_findby_ripv6addr
+ *
+ * Description:
+ *   Find a previously registered network device by matching the remote
+ *   IPv6 address that can be reached by the device.
+ *
+ * Input Parameters:
+ *   lipaddr - Local, bound address of a connection (used only if ripaddr is
+ *             a multicast address).
+ *   ripaddr - Remote address of a connection to use in the lookup
+ *
+ * Returned Value:
+ *   Pointer to driver on success; null on failure
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_IPv6
+FAR struct net_driver_s *netdev_findby_ripv6addr(const net_ipv6addr_t lipaddr,
+                                                 const net_ipv6addr_t ripaddr);
+#endif
+#endif /* CONFIG_NSOCKET_DESCRIPTORS > 0 */
 
 /****************************************************************************
  * Name: netdev_findbyindex
@@ -406,7 +455,7 @@ int netdev_count(void);
  * Name: netdev_ipv4_ifconf
  *
  * Description:
- *   Return the IPv4 configuration of each network adaptor
+ *   Return the IPv4 configuration of each network adapter
  *
  * Input Parameters:
  *   ifc - A reference to the instance of struct ifconf in which to return
@@ -430,7 +479,7 @@ int netdev_ipv4_ifconf(FAR struct ifconf *ifc);
  * Name: netdev_ipv6_ifconf
  *
  * Description:
- *   Return the IPv6 configuration of each network adaptor
+ *   Return the IPv6 configuration of each network adapter
  *
  * Input Parameters:
  *   lifc - A reference to the instance of struct lifconf in which to return
@@ -448,6 +497,79 @@ int netdev_ipv4_ifconf(FAR struct ifconf *ifc);
 #ifdef CONFIG_NET_IPv6
 struct lifconf;  /* Forward reference */
 int netdev_ipv6_ifconf(FAR struct lifconf *lifc);
+#endif
+
+/****************************************************************************
+ * Name: netdown_notifier_setup
+ *
+ * Description:
+ *   Set up to perform a callback to the worker function the network goes
+ *   down.  The worker function will execute on the high priority worker
+ *   thread.
+ *
+ * Input Parameters:
+ *   worker - The worker function to execute on the high priority work
+ *            queue when data is available in the UDP readahead buffer.
+ *   dev   - The network driver to be monitored
+ *   arg    - A user-defined argument that will be available to the worker
+ *            function when it runs.
+ * Returned Value:
+ *   > 0   - The signal notification is in place.  The returned value is a
+ *           key that may be used later in a call to
+ *           netdown_notifier_teardown().
+ *   == 0  - The the device is already down.  No signal notification will
+ *           be provided.
+ *   < 0   - An unexpected error occurred and no signal will be sent.  The
+ *           returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NETDOWN_NOTIFIER
+int netdown_notifier_setup(worker_t worker, FAR struct net_driver_s *dev,
+                           FAR void *arg);
+#endif
+
+/****************************************************************************
+ * Name: netdown_notifier_teardown
+ *
+ * Description:
+ *   Eliminate a network down notification previously setup by
+ *   netdown_notifier_setup().  This function should only be called if the
+ *   notification should be aborted prior to the notification.  The
+ *   notification will automatically be torn down after the signal is sent.
+ *
+ * Input Parameters:
+ *   key - The key value returned from a previous call to
+ *         netdown_notifier_setup().
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NETDOWN_NOTIFIER
+int netdown_notifier_teardown(int key);
+#endif
+
+/****************************************************************************
+ * Name: netdown_notifier_signal
+ *
+ * Description:
+ *   A network has gone down has been buffered.  Execute worker thread
+ *   functions for all threads monitoring the state of the device.
+ *
+ * Input Parameters:
+ *   dev  - The TCP connection where read-ahead data was just buffered.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NETDOWN_NOTIFIER
+void netdown_notifier_signal(FAR struct net_driver_s *dev);
 #endif
 
 #undef EXTERN

@@ -136,8 +136,10 @@ static uint16_t icmpv6_neighbor_eventhandler(FAR struct net_driver_s *dev,
           return flags;
         }
 
-      /* It looks like we are good to send the data */
-      /* Copy the packet data into the device packet buffer and send it */
+      /* It looks like we are good to send the data.
+       *
+       * Copy the packet data into the device packet buffer and send it.
+       */
 
       icmpv6_solicit(dev, state->snd_ipaddr);
 
@@ -211,14 +213,16 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
   if (net_ipv6addr_cmp(ipaddr, g_ipv6_unspecaddr) ||
       net_is_addr_mcast(ipaddr))
     {
-      /* We don't need to send the Neighbor Solicitation */
+      /* We don't need to send the Neighbor Solicitation.  But for the case
+       * of the Multicast address, a routing able entry will be required.
+       */
 
       return OK;
     }
 
   /* Get the device that can route this request */
 
-  dev = netdev_findby_ipv6addr(g_ipv6_unspecaddr, ipaddr);
+  dev = netdev_findby_ripv6addr(g_ipv6_unspecaddr, ipaddr);
   if (!dev)
     {
       nerr("ERROR: Unreachable: %08lx\n", (unsigned long)ipaddr);
@@ -291,7 +295,7 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
    * re-sending the Neighbor Solicitation if it is not.
    */
 
-  /* The optimal delay would be the work case round trip time. */
+  /* The optimal delay would be the worst case round trip time. */
 
   delay.tv_sec  = CONFIG_ICMPv6_NEIGHBOR_DELAYSEC;
   delay.tv_nsec = CONFIG_ICMPv6_NEIGHBOR_DELAYNSEC;
@@ -363,8 +367,10 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr)
 
   nxsem_destroy(&state.snd_sem);
   icmpv6_callback_free(dev, state.snd_cb);
+
 errout_with_lock:
   net_unlock();
+
 errout:
   return ret;
 }

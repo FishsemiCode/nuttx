@@ -172,18 +172,18 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
           goto end_wait;
         }
 
-       /* Is this a response on the same device that we sent the request out
-        * on?
-        */
+      /* Is this a response on the same device that we sent the request out
+       * on?
+       */
 
-       psock = pstate->recv_sock;
-       DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
-       conn  = psock->s_conn;
-       if (dev != conn->dev)
-         {
-           ninfo("Wrong device\n");
-           return flags;
-         }
+      psock = pstate->recv_sock;
+      DEBUGASSERT(psock != NULL && psock->s_conn != NULL);
+      conn  = psock->s_conn;
+      if (dev != conn->dev)
+        {
+          ninfo("Wrong device\n");
+          return flags;
+        }
 
       /* Check if we have just received a ICMPv6 ECHO reply. */
 
@@ -191,7 +191,9 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
         {
           unsigned int recvsize;
 
-          /* Check if it is for us */
+          /* Check if it is for us.
+           * REVISIT:  What if there are IPv6 extension headers present?
+           */
 
           icmpv6 = ICMPv6_BUF;
           if (conn->id != icmpv6->id)
@@ -213,7 +215,9 @@ static uint16_t recvfrom_eventhandler(FAR struct net_driver_s *dev,
               recvsize = pstate->recv_buflen;
             }
 
-          /* Copy the ICMPv6 ECHO reply to the user provided buffer */
+          /* Copy the ICMPv6 ECHO reply to the user provided buffer
+           * REVISIT:  What if there are IPv6 extension headers present?
+           */
 
           memcpy(pstate->recv_buf, ICMPv6_BUF, recvsize);
 

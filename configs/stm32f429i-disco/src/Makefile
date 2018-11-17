@@ -87,4 +87,12 @@ ifeq ($(CONFIG_ARCH_FPU),y)
 CSRCS += stm32_ostest.c
 endif
 
+ifeq ($(CONFIG_PWM),y)
+CSRCS += stm32_pwm.c
+endif
+
+ifeq ($(CONFIG_ADC),y)
+CSRCS += stm32_adc.c
+endif
+
 include $(TOPDIR)/configs/Board.mk

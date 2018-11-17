@@ -119,7 +119,7 @@ depend: .depend
 $(DUMMY_KCONFIG): $(BOARD_KCONFIG)
 	$(call DELFILE, $(DUMMY_KCONFIG))
 	$(call MKDIR, $(dir $(DUMMY_KCONFIG)))
-	$(Q) cp -f $(BOARD_KCONFIG) $(DUMMY_KCONFIG)
+	$(call COPYFILE, $(BOARD_KCONFIG), $(DUMMY_KCONFIG))
 
 dirlinks: $(DUMMY_KCONFIG)
 

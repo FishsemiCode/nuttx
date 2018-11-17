@@ -467,8 +467,8 @@ void up_irqinitialize(void)
 
   /* Disable all interrupts */
 
-  putreg32(0, NVIC_IRQ0_31_ENABLE);
-  putreg32(0, NVIC_IRQ32_63_ENABLE);
+  putreg32(0xffffffff, NVIC_IRQ0_31_CLEAR);
+  putreg32(0xffffffff, NVIC_IRQ32_63_CLEAR);
 
   /* Colorize the interrupt stack for debug purposes */
 
@@ -547,7 +547,7 @@ void up_irqinitialize(void)
    * Fault handler.
    */
 
-#ifdef CONFIG_ARMV7M_MPU
+#ifdef CONFIG_ARM_MPU
   irq_attach(LC823450_IRQ_MEMFAULT, up_memfault, NULL);
   up_enable_irq(LC823450_IRQ_MEMFAULT);
 #endif
@@ -556,9 +556,6 @@ void up_irqinitialize(void)
 
 #ifdef CONFIG_DEBUG
   irq_attach(LC823450_IRQ_NMI, lc823450_nmi, NULL);
-#ifndef CONFIG_ARMV7M_MPU
-  irq_attach(LC823450_IRQ_MEMFAULT, up_memfault, NULL);
-#endif
   irq_attach(LC823450_IRQ_BUSFAULT, lc823450_busfault, NULL);
   irq_attach(LC823450_IRQ_USAGEFAULT, lc823450_usagefault, NULL);
   irq_attach(LC823450_IRQ_PENDSV, lc823450_pendsv, NULL);

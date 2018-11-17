@@ -1,7 +1,8 @@
 /****************************************************************************
  * fs/mount/fs_mount.c
  *
- *   Copyright (C) 2007-2009, 2011-2013, 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2013, 2015, 2017, 2018 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,7 +78,7 @@
 
 /* These file systems require MTD drivers */
 
-#if defined(CONFIG_FS_LITTLEFS)
+#if defined(CONFIG_FS_SPIFFS) || defined(CONFIG_FS_LITTLEFS)
 #  define MDFS_SUPPORT 1
 #endif
 
@@ -141,16 +142,22 @@ static const struct fsmap_t g_bdfsmap[] =
 #ifdef MDFS_SUPPORT
 /* File systems that require MTD drivers */
 
+#ifdef CONFIG_FS_SPIFFS
+extern const struct mountpt_operations spiffs_operations;
+#endif
 #ifdef CONFIG_FS_LITTLEFS
 extern const struct mountpt_operations littlefs_operations;
 #endif
 
 static const struct fsmap_t g_mdfsmap[] =
 {
-#ifdef CONFIG_FS_LITTLEFS
-  { "littlefs", &littlefs_operations },
+#ifdef CONFIG_FS_SPIFFS
+    { "spiffs", &spiffs_operations },
 #endif
-  { NULL,   NULL },
+#ifdef CONFIG_FS_LITTLEFS
+    { "littlefs", &littlefs_operations },
+#endif
+    { NULL,   NULL },
 };
 #endif /* MDFS_SUPPORT */
 
@@ -294,14 +301,17 @@ int mount(FAR const char *source, FAR const char *target,
   /* Find the specified filesystem.  Try the block driver file systems first */
 
 #ifdef BDFS_SUPPORT
-  if (source != NULL && (ret = find_blockdriver(source, mountflags, &drvr_inode)) >= 0)
+  if (source != NULL &&
+      (ret = find_blockdriver(source, mountflags, &drvr_inode)) >= 0)
     {
       /* Find the block based file system */
 
       mops = mount_findfs(g_bdfsmap, filesystemtype);
       if (mops == NULL)
         {
-          ferr("ERROR: Failed to find block based file system %s\n", filesystemtype);
+          ferr("ERROR: Failed to find block based file system %s\n",
+               filesystemtype);
+
           errcode = ENODEV;
           goto errout_with_inode;
         }
@@ -316,7 +326,9 @@ int mount(FAR const char *source, FAR const char *target,
       mops = mount_findfs(g_mdfsmap, filesystemtype);
       if (mops == NULL)
         {
-          ferr("ERROR: Failed to find MTD based file system %s\n", filesystemtype);
+          ferr("ERROR: Failed to find MTD based file system %s\n",
+               filesystemtype);
+
           errcode = ENODEV;
           goto errout_with_inode;
         }
@@ -331,6 +343,7 @@ int mount(FAR const char *source, FAR const char *target,
 #endif /* NODFS_SUPPORT */
     {
       ferr("ERROR: Failed to find block driver %s\n", source);
+
       errcode = ENOTBLK;
       goto errout;
     }
@@ -488,8 +501,9 @@ errout_with_semaphore:
   RELEASE_SEARCH(&desc);
 #endif
 
-errout_with_inode:
 #if defined(BDFS_SUPPORT) || defined(MDFS_SUPPORT)
+errout_with_inode:
+
 #ifdef NODFS_SUPPORT
   if (drvr_inode != NULL)
 #endif

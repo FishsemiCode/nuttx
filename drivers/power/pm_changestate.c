@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/power/pm_changestate.c
  *
- *   Copyright (C) 2011-2012, 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2012, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -85,7 +85,7 @@ static void pm_timer_cb(int argc, wdparm_t arg1, ...)
 static void pm_timer(int domain)
 {
   FAR struct pm_domain_s *pdom = &g_pmglobals.domain[domain];
-  const int pmtick[3] =
+  static const int pmtick[3] =
   {
     TIME_SLICE_TICKS * CONFIG_PM_IDLEENTER_COUNT,
     TIME_SLICE_TICKS * CONFIG_PM_STANDBYENTER_COUNT,
@@ -97,12 +97,13 @@ static void pm_timer(int domain)
       pdom->wdog = wd_create();
     }
 
-  if (pdom->state < PM_SLEEP && !pdom->stay[pdom->state] && pmtick[pdom->state])
+  if (pdom->state < PM_SLEEP && !pdom->stay[pdom->state] &&
+      pmtick[pdom->state])
     {
       int delay = pmtick[pdom->state] + pdom->btime - clock_systimer();
       int left  = wd_gettime(pdom->wdog);
 
-      if (left == 0 || abs(delay - left) > PM_TIMER_GAP)
+      if (!WDOG_ISACTIVE(pdom->wdog) || abs(delay - left) > PM_TIMER_GAP)
         {
           wd_start(pdom->wdog, delay, pm_timer_cb, 0);
         }

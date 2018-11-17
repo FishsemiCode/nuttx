@@ -1,25 +1,7 @@
 /****************************************************************************
- *
- * Copyright 2018 Samsung Electronics All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
- * either express or implied. See the License for the specific
- * language governing permissions and limitations under the License.
- *
- ****************************************************************************/
-
-/****************************************************************************
  * libc/net/lib_sendmsg.c
  *
- *   Copyright (C) 2007, 2008, 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2008, 2012, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -61,7 +43,6 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/uio.h>
 #include <errno.h>
 
 /****************************************************************************
@@ -87,15 +68,22 @@
  *
  ****************************************************************************/
 
-ssize_t sendmsg(int sockfd, struct msghdr *msg, int flags)
+ssize_t sendmsg(int sockfd, FAR struct msghdr *msg, int flags)
 {
-  void *buf = msg->msg_iov->iov_base;
-  size_t len = msg->msg_iov->iov_len;
-  struct sockaddr *to = msg->msg_name;
-  socklen_t tolen = msg->msg_namelen;
+  FAR void *buf           = msg->msg_iov->iov_base;
+  FAR struct sockaddr *to = msg->msg_name;
+  socklen_t tolen         = msg->msg_namelen;
+  size_t len              = msg->msg_iov->iov_len;
 
-  return msg->msg_iovlen > 1 ? -ENOTSUP :
-      sendto(sockfd, buf, len, flags, to, tolen);
+  if (msg->msg_iovlen == 1)
+    {
+      return sendto(sockfd, buf, len, flags, to, tolen);
+    }
+  else
+    {
+      set_errno(ENOTSUP);
+      return ERROR;
+    }
 }
 
 #endif /* CONFIG_NET */

@@ -68,7 +68,6 @@
 
 #define TIME_SLICE_TICKS ((CONFIG_PM_SLICEMS * CLOCKS_PER_SEC) /  1000)
 
-/* Function-like macros *****************************************************/
 /****************************************************************************
  * Name: pm_lock
  *
@@ -93,6 +92,7 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* This describes the activity and state for one domain */
 
 struct pm_domain_s
@@ -116,6 +116,7 @@ struct pm_domain_s
 
   int16_t accum;
 
+#if CONFIG_PM_MEMORY > 1
   /* This is the averaging "memory."  The averaging algorithm is simply:
    * Y = (An*X + SUM(Ai*Yi))/SUM(Aj), where i = 1..n-1 and j= 1..n, n is the
    * length of the "memory", Ai is the weight applied to each value, and X is
@@ -125,7 +126,6 @@ struct pm_domain_s
    * CONFIG_PM_COEFn provides weight for each sample.  Default: 1
    */
 
-#if CONFIG_PM_MEMORY > 1
   int16_t memory[CONFIG_PM_MEMORY-1];
 #endif
 

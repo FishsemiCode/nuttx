@@ -1,7 +1,8 @@
 /****************************************************************************
  * sched/exit.c
  *
- *   Copyright (C) 2007-2008, 2011-2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2008, 2011-2012, 2018 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -77,6 +78,11 @@ void exit(int status)
   status &= 0xff;
 
 #ifdef CONFIG_SCHED_EXIT_KILL_CHILDREN
+  /* Kill all of the children of the group, preserving only this thread.
+   * exit() is normally called from the main thread of the task.  pthreads
+   * exit through a different mechanism.
+   */
+
   group_killchildren((FAR struct task_tcb_s *)tcb);
 #endif
 

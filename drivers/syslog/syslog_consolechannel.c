@@ -53,6 +53,11 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#undef HAVE_LOWPUTC
+#if defined(CONFIG_ARCH_LOWPUTC)
+#  define HAVE_LOWPUTC 1
+#endif
+
 #define OPEN_FLAGS (O_WRONLY)
 #define OPEN_MODE  (S_IROTH | S_IRGRP | S_IRUSR | S_IWUSR)
 
@@ -60,22 +65,14 @@
  * Private Functions
  ****************************************************************************/
 
-/* The syslog console file structure */
-
-static struct file g_syslog_console_file;
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
 /* SYSLOG channel methods */
 
-static int syslog_console_channel_putc(int ch);
-static int syslog_console_channel_force(int ch);
-static int syslog_console_channel_flush(void);
-#ifdef CONFIG_SYSLOG_WRITE
-static ssize_t syslog_console_channel_write(FAR const char *buffer,
-                                            size_t buflen);
+#ifndef HAVE_LOWPUTC
+static int syslog_console_force(int ch);
 #endif
 
 /****************************************************************************
@@ -86,11 +83,15 @@ static ssize_t syslog_console_channel_write(FAR const char *buffer,
 
 static const struct syslog_channel_s g_syslog_console_channel =
 {
-  syslog_console_channel_putc,
-  syslog_console_channel_force,
-  syslog_console_channel_flush,
+  syslog_dev_putc,
+#ifdef HAVE_LOWPUTC
+  up_putc,
+#else
+  syslog_console_force,
+#endif
+  syslog_dev_flush,
 #ifdef CONFIG_SYSLOG_WRITE
-  syslog_console_channel_write,
+  syslog_dev_write,
 #endif
 };
 
@@ -99,61 +100,17 @@ static const struct syslog_channel_s g_syslog_console_channel =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: syslog_console_channel_putc
+ * Name: syslog_console_force
  *
  * Description:
- *   put char to syslog console
+ *   A dummy FORCE method
  *
  ****************************************************************************/
 
-static int syslog_console_channel_putc(int ch)
+#ifndef HAVE_LOWPUTC
+static int syslog_console_force(int ch)
 {
-  int ret;
-
-  ret = file_write(&g_syslog_console_file, &ch, 1);
-
-  return ret < 0 ? ret : ch;
-}
-
-/****************************************************************************
- * Name: syslog_console_channel_force
- *
- * Description:
- *   force put char to syslog console
- *
- ****************************************************************************/
-
-static int syslog_console_channel_force(int ch)
-{
-  return syslog_console_channel_putc(ch);
-}
-
-/****************************************************************************
- * Name: syslog_console_channel_flush
- *
- * Description:
- *   flush chars to syslog console
- *
- ****************************************************************************/
-
-static int syslog_console_channel_flush(void)
-{
-  return 0;
-}
-
-/****************************************************************************
- * Name: syslog_console_channel_write
- *
- * Description:
- *   write chars to syslog console
- *
- ****************************************************************************/
-
-#ifdef CONFIG_SYSLOG_WRITE
-static ssize_t syslog_console_channel_write(FAR const char *buffer,
-                                            size_t buflen)
-{
-  return file_write(&g_syslog_console_file, buffer, buflen);
+  return ch;
 }
 #endif
 
@@ -190,21 +147,13 @@ static ssize_t syslog_console_channel_write(FAR const char *buffer,
 
 int syslog_console_channel(void)
 {
-  int fd;
   int ret;
 
   /* Initialize the character driver interface */
 
-  fd = open("/dev/console", OPEN_FLAGS, OPEN_MODE);
-  if (fd < 0)
-    {
-      return fd;
-    }
-
-  ret = file_detach(fd, &g_syslog_console_file);
+  ret = syslog_dev_initialize("/dev/console", OPEN_FLAGS, OPEN_MODE);
   if (ret < 0)
     {
-      close(fd);
       return ret;
     }
 

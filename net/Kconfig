@@ -19,6 +19,10 @@ config NET_READAHEAD
 	bool
 	default n
 
+config NET_MCASTGROUP
+	bool
+	default n
+
 config NET
 	bool "Networking support"
 	default n
@@ -124,9 +128,9 @@ menuconfig NET_SLIP
 		at least one IP protocol selected.
 
 		SLIP supports point-to-point IP communications over a serial port.
-		The default data link layer for network layer is Ethernet. If
-		NET_SLIP is defined in the NuttX configuration file, then SLIP will
-		be supported.  The basic differences between the SLIP and Ethernet
+		The default link layer for network layer is Ethernet. If NET_SLIP
+		is defined in the NuttX configuration file, then SLIP will be
+		supported.  The basic differences between the SLIP and Ethernet
 		configurations is that when SLIP is selected:
 
 			* The link level header (that comes before the IP header) is omitted.
@@ -256,7 +260,7 @@ config NETDEV_LATEINIT
 		interfaces that may not be ready when up_netiniailize() is normally
 		called.
 
-endmenu # Data link support
+endmenu # Link layer support
 
 source "net/netdev/Kconfig"
 
@@ -335,6 +339,7 @@ source "net/bluetooth/Kconfig"
 source "net/ieee802154/Kconfig"
 source "net/icmp/Kconfig"
 source "net/icmpv6/Kconfig"
+source "net/mld/Kconfig"
 source "net/igmp/Kconfig"
 source "net/arp/Kconfig"
 source "net/loopback/Kconfig"

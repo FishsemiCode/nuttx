@@ -50,8 +50,6 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "sched/sched.h"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -59,9 +57,6 @@
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
-uint8_t *g_last_regs;
-struct tcb_s *g_last_task;
 
 /****************************************************************************
  * Private Data
@@ -77,10 +72,6 @@ struct tcb_s *g_last_task;
 
 uint8_t *up_doirq(uint8_t irq, uint8_t *regs)
 {
-  if (g_current_regs == NULL)
-    {
-      g_last_regs = regs;
-    }
   board_autoled_on(LED_INIRQ);
 #ifdef CONFIG_SUPPRESS_INTERRUPTS
   PANIC();
@@ -122,11 +113,6 @@ uint8_t *up_doirq(uint8_t irq, uint8_t *regs)
   g_current_regs = savestate;
 #endif
   board_autoled_off(LED_INIRQ);
-  if (g_current_regs == NULL)
-    {
-      g_last_task = this_task();
-      g_last_regs = NULL;
-    }
   return regs;
 }
 

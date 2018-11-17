@@ -307,8 +307,6 @@ int wd_start(WDOG_ID wdog, int32_t delay, wdentry_t wdentry,  int argc, ...)
 
   else
     {
-      /* Correct/compensate delay */
-
       now = 0;
       prev = curr = (FAR struct wdog_s *)g_wdactivelist.head;
 
@@ -467,7 +465,7 @@ unsigned int wd_timer(int ticks)
 
       decr = MIN(wdog->lag, ticks);
 
-      /* There are.  De/encrement the lag counter */
+      /* There are.  Decrement the lag counter */
 
       wdog->lag    -= decr;
       ticks        -= decr;

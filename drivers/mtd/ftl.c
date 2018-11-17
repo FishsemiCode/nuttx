@@ -67,6 +67,12 @@
 #  define FTL_HAVE_RWBUFFER 1
 #endif
 
+/* The maximum length of the device name paths is the maximum length of a
+ * name plus 5 for the the length of "/dev/" and a NUL terminator.
+ */
+
+#define DEV_NAME_MAX    (NAME_MAX + 5)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -245,14 +251,14 @@ static ssize_t ftl_read(FAR struct inode *inode, unsigned char *buffer,
 #ifdef CONFIG_FS_WRITABLE
 static int ftl_alloc_eblock(FAR struct ftl_struct_s *dev)
 {
-  if (!dev->eblock)
+  if (dev->eblock == NULL)
     {
        /* Allocate one, in-memory erase block buffer */
 
        dev->eblock = (FAR uint8_t *)kmm_malloc(dev->geo.erasesize);
     }
 
-   return dev->eblock ? OK : -ENOMEM;
+   return dev->eblock != NULL ? OK : -ENOMEM;
 }
 
 static ssize_t ftl_flush(FAR void *priv, FAR const uint8_t *buffer,
@@ -709,7 +715,7 @@ int ftl_initialize_by_path(FAR const char *path, FAR struct mtd_dev_s *mtd)
 
 int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
 {
-  char path[16];
+  char path[DEV_NAME_MAX];
 
 #ifdef CONFIG_DEBUG_FEATURES
   /* Sanity check */
@@ -722,6 +728,6 @@ int ftl_initialize(int minor, FAR struct mtd_dev_s *mtd)
 
   /* Do the real work by ftl_initialize_by_path */
 
-  snprintf(path, 16, "/dev/mtdblock%d", minor);
+  snprintf(path, DEV_NAME_MAX, "/dev/mtdblock%d", minor);
   return ftl_initialize_by_path(path, mtd);
 }

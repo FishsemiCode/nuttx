@@ -283,7 +283,7 @@ size_t up_progmem_getaddress(size_t page)
   return base_address;
 }
 
-size_t up_progmem_npages(void)
+size_t up_progmem_neraseblocks(void)
 {
   return STM32_FLASH_NPAGES;
 }
@@ -322,21 +322,21 @@ ssize_t up_progmem_ispageerased(size_t page)
   return bwritten;
 }
 
-ssize_t up_progmem_erasepage(size_t page)
+ssize_t up_progmem_eraseblock(size_t block)
 {
-  if (page >= STM32_FLASH_NPAGES)
+  if (block >= STM32_FLASH_NPAGES)
     {
       return -EFAULT;
     }
 
   sem_lock();
 
-  /* Get flash ready and begin erasing single page */
+  /* Get flash ready and begin erasing single block */
 
   flash_unlock();
 
   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_SER);
-  modifyreg32(STM32_FLASH_CR, FLASH_CR_SNB_MASK, FLASH_CR_SNB(page));
+  modifyreg32(STM32_FLASH_CR, FLASH_CR_SNB_MASK, FLASH_CR_SNB(block));
   modifyreg32(STM32_FLASH_CR, 0, FLASH_CR_STRT);
 
   while (getreg32(STM32_FLASH_SR) & FLASH_SR_BSY) up_waste();
@@ -346,9 +346,9 @@ ssize_t up_progmem_erasepage(size_t page)
 
   /* Verify */
 
-  if (up_progmem_ispageerased(page) == 0)
+  if (up_progmem_ispageerased(block) == 0)
     {
-      return up_progmem_pagesize(page); /* success */
+      return up_progmem_pagesize(block); /* success */
     }
   else
     {
@@ -360,18 +360,26 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
 {
   uint8_t *byte = (uint8_t *)buf;
   size_t written = count;
+  uintptr_t flash_base;
 
   /* Check for valid address range */
 
-  if (addr >= STM32_FLASH_BASE)
+  if (addr >= STM32_FLASH_BASE &&
+      addr + count <= STM32_FLASH_BASE + STM32_FLASH_SIZE)
     {
-      addr -= STM32_FLASH_BASE;
+      flash_base = STM32_FLASH_BASE;
     }
-
-  if ((addr+count) > STM32_FLASH_SIZE)
+  else if (addr >= STM32_OPT_BASE &&
+           addr + count <= STM32_OPT_BASE + STM32_OPT_SIZE)
+    {
+      flash_base = STM32_OPT_BASE;
+    }
+  else
     {
       return -EFAULT;
     }
+
+  addr -= flash_base;
 
   sem_lock();
 
@@ -385,7 +393,7 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
 
   modifyreg32(STM32_FLASH_CR, FLASH_CR_PSIZE_MASK, FLASH_CR_PSIZE_X8);
 
-  for (addr += STM32_FLASH_BASE; count; count -= 1, byte++, addr += 1)
+  for (addr += flash_base; count; count -= 1, byte++, addr += 1)
     {
       /* Write half-word and wait to complete */
 

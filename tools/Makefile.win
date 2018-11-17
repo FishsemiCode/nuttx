@@ -33,6 +33,8 @@
 #
 ############################################################################
 
+export SHELL=cmd
+
 TOPDIR := ${shell echo %CD%}
 -include $(TOPDIR)\.config
 -include $(TOPDIR)\tools\Config.mk
@@ -561,8 +563,7 @@ clean: subdir_clean
 	$(call DELFILE, nuttx-export*)
 	$(call DELFILE, nuttx_user*)
 	$(call DELFILE, .gdbinit)
-	$(call DELFILE, .cproject)
-	$(call DELFILE, .project)
+	$(call DELDIR, staging)
 	$(call CLEAN)
 
 subdir_distclean:
@@ -575,7 +576,6 @@ endif
 	$(call DELFILE, Make.defs)
 	$(call DELFILE, .config)
 	$(call DELFILE, .config.old)
-	$(call DELDIR, staging)
 
 # Application housekeeping targets.  The APPDIR variable refers to the user
 # application directory.  A sample apps\ directory is included with NuttX,

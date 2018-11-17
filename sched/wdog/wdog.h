@@ -46,6 +46,7 @@
 #include <stdbool.h>
 
 #include <nuttx/compiler.h>
+#include <nuttx/clock.h>
 #include <nuttx/wdog.h>
 
 /****************************************************************************
@@ -64,9 +65,9 @@
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_TICKLESS
-#define wd_elapse() (clock_systimer() - g_wdtickbase)
+#  define wd_elapse() (clock_systimer() - g_wdtickbase)
 #else
-#define wd_elapse() (0)
+#  define wd_elapse() (0)
 #endif
 
 /****************************************************************************
