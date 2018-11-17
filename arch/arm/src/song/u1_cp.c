@@ -452,7 +452,7 @@ static void up_rptun_init(void)
     .ch_vring_rx = 3,
     .rsc         =
     {
-      .rsc_tab   = (void *)0xb0003000,
+      .rsc_tab   = (void *)0xb0003400,
       .size      = sizeof(struct rptun_rsc_s),
     },
   };
