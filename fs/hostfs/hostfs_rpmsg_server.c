@@ -290,33 +290,24 @@ static void hostfs_rpmsg_dup_handler(struct rpmsg_channel *channel,
 {
   struct hostfs_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
   struct hostfs_rpmsg_dup_s *msg = data;
-  int i, newfd, ret = -ENOENT;
+  int i, ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
-      newfd = file_dup(&priv->files[msg->fd], 0);
-      if (newfd >= 0)
+      nxsem_wait(&priv->sem);
+      for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
         {
-          nxsem_wait(&priv->sem);
-          for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
+          if (!priv->files[i].f_inode)
             {
-              if (!priv->files[i].f_inode)
+              ret = file_dup2(&priv->files[msg->fd], &priv->files[i]);
+              if (ret >= 0)
                 {
-                  ret = file_detach(newfd, &priv->files[i]);
-                  if (ret == 0)
-                    {
-                      ret = i;
-                    }
-                  break;
+                  ret = i;
                 }
-            }
-          nxsem_post(&priv->sem);
-
-          if (ret < 0)
-            {
-              close(newfd);
+              break;
             }
         }
+      nxsem_post(&priv->sem);
     }
 
   msg->header.result = ret;
