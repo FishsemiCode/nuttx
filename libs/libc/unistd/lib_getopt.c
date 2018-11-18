@@ -84,6 +84,9 @@ static int optwhere = 1;
 static int permute_from = 0;
 static int num_nonopts = 0;
 
+static int g_argc;
+static FAR char *const *g_argv;
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -128,10 +131,20 @@ is_option(FAR char *argv_element, int only)
  */
 
 static void
-read_globals(FAR struct getopt_data *data)
+read_globals(int argc, FAR char *const argv[],
+             FAR struct getopt_data *data)
 {
+  bool reinit = false;
+
+  if (g_argc != argc || g_argv != argv)
+    {
+      g_argc = argc;
+      g_argv = argv;
+      reinit = true;
+    }
+
   data->optarg = optarg;
-  data->optind = optind;
+  data->optind = reinit ? 1 : optind;
   data->opterr = opterr;
   data->optopt = optopt;
   data->optwhere = optwhere;
@@ -144,8 +157,13 @@ read_globals(FAR struct getopt_data *data)
  */
 
 static void
-write_globals(FAR struct getopt_data *data)
+write_globals(int r, FAR struct getopt_data *data)
 {
+  if (r == EOF)
+    {
+      g_argc = 0;
+      g_argv = NULL;
+    }
   optarg = data->optarg;
   optind = data->optind;
   opterr = data->opterr;
@@ -568,9 +586,9 @@ getopt(int argc, FAR char *const argv[], FAR const char *optstring)
   struct getopt_data data;
   int r;
 
-  read_globals(&data);
+  read_globals(argc, argv, &data);
   r = getopt_internal(argc, argv, optstring, 0, 0, 0, &data);
-  write_globals(&data);
+  write_globals(r, &data);
   return r;
 }
 
@@ -581,9 +599,9 @@ getopt_long(int argc, FAR char *const argv[], FAR const char *shortopts,
   struct getopt_data data;
   int r;
 
-  read_globals(&data);
+  read_globals(argc, argv, &data);
   r = getopt_internal(argc, argv, shortopts, longopts, longind, 0, &data);
-  write_globals(&data);
+  write_globals(r, &data);
   return r;
 }
 
@@ -594,9 +612,9 @@ getopt_long_only(int argc, FAR char *const argv[], FAR const char *shortopts,
   struct getopt_data data;
   int r;
 
-  read_globals(&data);
+  read_globals(argc, argv, &data);
   r = getopt_internal(argc, argv, shortopts, longopts, longind, 1, &data);
-  write_globals(&data);
+  write_globals(r, &data);
   return r;
 }
 
