@@ -45,6 +45,8 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 /************************************************************************************
@@ -95,10 +97,21 @@
 struct song_onchip_flash_dev_s
 {
   struct mtd_dev_s mtd;
-  uint32_t         type;
-  uint32_t         neraseblocks;
+  uint16_t         type;
+  uint16_t         neraseblocks;
   FAR const struct song_onchip_flash_config_s *cfg;
 };
+
+#ifndef CONFIG_DISABLE_ENVIRON
+struct song_onchip_info_s
+{
+  uint16_t        offset;
+  uint8_t         nbytes;
+  uint8_t         mask;
+  FAR const char  *format;
+  FAR const char  *name;
+};
+#endif
 
 /************************************************************************************
  * Private Function Prototypes
@@ -122,6 +135,21 @@ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, off_t startbl
 static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
                           FAR uint8_t *buffer);
 static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
+
+/************************************************************************************
+ * Private Data
+ ************************************************************************************/
+
+#ifndef CONFIG_DISABLE_ENVIRON
+static const struct song_onchip_info_s g_info_map[] =
+{
+  {0x20, 0x0e, 0xff, "%02x", "chip-id"},
+  {0x25, 0x01, 0x1f, "%02x", "soc-id"},
+  {0xa0, 0x06, 0xff, "%c",   "lot-id"},
+  {0xb0, 0x01, 0xff, "%03d", "wafer-id"},
+  {},
+};
+#endif
 
 /************************************************************************************
  * Private Functions
@@ -174,6 +202,31 @@ __ramfunc__ static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *pr
   while (!(flash_regread(priv, INT_RAW) & opt_cmd));
   flash_regwrite(priv, INT_STATUS, opt_cmd);
 }
+
+#ifndef CONFIG_DISABLE_ENVIRON
+static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
+{
+  const struct song_onchip_info_s *info = g_info_map;
+
+  while(info->name)
+    {
+      char value[4 * BLOCK_SIZE];
+      uint8_t buf[BLOCK_SIZE];
+      int i, len = 0;
+
+      song_onchip_flash_read(dev, info->offset, info->nbytes, buf);
+
+      for (i = info->nbytes - 1; i >= 0; i--)
+        {
+          buf[i] &= info->mask;
+          len    += sprintf(&value[len], info->format, buf[i]);
+        }
+
+      setenv(info->name, value, 1);
+      info++;
+    }
+}
+#endif
 
 __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
                           off_t startblock, size_t nblocks)
@@ -395,6 +448,13 @@ int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cf
       priv->neraseblocks = cfg->neraseblocks[i];
       priv->cfg          = cfg;
       mtd[i] = (FAR struct mtd_dev_s *)priv;
+
+#ifndef CONFIG_DISABLE_ENVIRON
+    if (i == 1)
+      {
+        song_onchip_initalize_env(mtd[i]);
+      }
+#endif
     }
 
   flash_timing_configure(priv, cfg->timing);
