@@ -335,10 +335,8 @@ int     execv(FAR const char *path, FAR char *const argv[]);
 
 void    swab(FAR const void *src, FAR void *dest, ssize_t nbytes);
 
-#ifdef CONFIG_NET
 int     gethostname(FAR char *name, size_t size);
 int     sethostname(FAR const char *name, size_t size);
-#endif
 
 /* Get configurable system variables */
 

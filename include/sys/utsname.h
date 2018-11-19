@@ -56,7 +56,7 @@
  *
  * FIELD       Default
  * sysname     NuttX
- * nodename    CONFIG_NET_HOSTNAME
+ * nodename    CONFIG_HOSTNAME
  * release     From version.h
  * version     From version.h
  * machine     CONFIG_ARCH
