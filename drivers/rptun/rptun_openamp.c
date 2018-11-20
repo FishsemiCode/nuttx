@@ -116,7 +116,7 @@ static int rptun_openamp_thread(int argc, FAR char *argv[])
   sigemptyset(&set);
   sigaddset(&set, SIGUSR1);
   sigaddset(&set, SIGUSR2);
-  nxsig_procmask(SIG_SETMASK, &set, NULL);
+  nxsig_procmask(SIG_BLOCK, &set, NULL);
 
   /* call notified immediately, cause thread start-up
    * at late time, and missied the IRQ killing singals.
@@ -150,11 +150,11 @@ static int rptun_openamp_callback(void *arg, uint32_t vqid)
 
   if (vqid == RPTUN_NOTIFY_START)
     {
-      kill(priv->pid, SIGUSR1);
+      nxsig_kill(priv->pid, SIGUSR1);
     }
   else
    {
-      kill(priv->pid, SIGUSR2);
+      nxsig_kill(priv->pid, SIGUSR2);
    }
 
   return 0;
