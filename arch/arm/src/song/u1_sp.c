@@ -638,7 +638,7 @@ static void up_rptun_init(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x170,
+    .buf_size        = 0x150,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_SP]);
