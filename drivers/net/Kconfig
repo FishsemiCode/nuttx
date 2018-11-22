@@ -25,26 +25,6 @@ config NET_RPMSG_DRV
 
 if NET_RPMSG_DRV
 
-choice
-	prompt "RPMSG net driver work queue"
-	default NET_RPMSG_DRV_LPWORK if SCHED_LPWORK
-	default NET_RPMSG_DRV_HPWORK if !SCHED_LPWORK && SCHED_HPWORK
-	depends on SCHED_WORKQUEUE
-	---help---
-		Work queue support is required to use the rpmsg net driver. If the
-		low priority work queue is available, then it should be used by the
-		driver.
-
-config NET_RPMSG_DRV_HPWORK
-	bool "High priority"
-	depends on SCHED_HPWORK
-
-config NET_RPMSG_DRV_LPWORK
-	bool "Low priority"
-	depends on SCHED_LPWORK
-
-endchoice # Work queue
-
 config NET_RPMSG_PRIORITY
 	int "net prmsg priority"
 	default 100

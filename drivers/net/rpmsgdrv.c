@@ -133,17 +133,6 @@
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Work queue support is required in this configuration (CONFIG_SCHED_WORKQUEUE)
-#else
-
-/* Use the selected work queue */
-
-#  if defined(CONFIG_NET_RPMSG_DRV_HPWORK)
-#    define NET_RPMSG_DRV_WORK     HPWORK
-#  elif defined(CONFIG_NET_RPMSG_DRV_LPWORK)
-#    define NET_RPMSG_DRV_WORK     LPWORK
-#  else
-#    error Neither CONFIG_NET_RPMSG_DRV_HPWORK nor CONFIG_NET_RPMSG_DRV_LPWORK defined
-#  endif
 #endif
 
 #ifdef CONFIG_NET_DUMPPACKET
@@ -918,7 +907,7 @@ static void net_rpmsg_drv_poll_expiry(int argc, wdparm_t arg, ...)
 
   /* Schedule to perform the interrupt processing on the worker thread. */
 
-  work_queue(NET_RPMSG_DRV_WORK, &priv->pollwork, net_rpmsg_drv_poll_work, dev, 0);
+  work_queue(LPWORK, &priv->pollwork, net_rpmsg_drv_poll_work, dev, 0);
 }
 
 /****************************************************************************
@@ -1072,7 +1061,7 @@ static int net_rpmsg_drv_ifdown(FAR struct net_driver_s *dev)
   /* Cancel the TX poll timer and work */
 
   wd_cancel(priv->txpoll);
-  work_cancel(NET_RPMSG_DRV_WORK, &priv->pollwork);
+  work_cancel(LPWORK, &priv->pollwork);
 
   leave_critical_section(flags);
 
@@ -1176,7 +1165,7 @@ static int net_rpmsg_drv_txavail(FAR struct net_driver_s *dev)
     {
       /* Schedule to serialize the poll on the worker thread. */
 
-      work_queue(NET_RPMSG_DRV_WORK, &priv->pollwork, net_rpmsg_drv_txavail_work, dev, 0);
+      work_queue(LPWORK, &priv->pollwork, net_rpmsg_drv_txavail_work, dev, 0);
     }
 
   return OK;
