@@ -48,6 +48,11 @@
 
 #define IER                             0xa0400000
 #define ICP                             0xa040000c
+/* BTDM_IRQ, BLE_IRQ, BT_IRQ, RFPHY: 17, 18, 19, 20 */
+#define BT_IRQS_MK                      0x1e0000
+
+uint32_t curr_irqs;
+int irq_disabled;
 
 /****************************************************************************
  * Public Data
@@ -64,12 +69,53 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+/****************************************************************************
+ * Name: song_irq_save
+ *
+ * Description:
+ *   Return the current interrupt state and disable interrupts
+ *
+ ****************************************************************************/
+
+static irqstate_t song_irq_save(void)
+{
+  irqstate_t flags;
+
+  __asm__ volatile("csrrci %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
+  return flags & 0x8;
+}
+
+/****************************************************************************
+ * Name: song_irq_restore
+ *
+ * Description:
+ *   Restore previous IRQ mask state
+ *
+ ****************************************************************************/
+
+static void song_irq_restore(irqstate_t flags)
+{
+  __asm__ volatile("csrs %0, %1" :: "i"(0x300), "r"(flags));
+}
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 extern uint32_t _vectors;
+
+/****************************************************************************
+ * Name: song_restore_irqs
+ *
+ * Description:
+ * restore the enabled irqs
+ *
+ ****************************************************************************/
+
+void song_restore_irqs()
+{
+  putreg32(curr_irqs, IER);
+}
 
 /****************************************************************************
  * Name: up_irqinitialize
@@ -79,32 +125,6 @@ void up_irqinitialize(void)
 {
   __asm__ volatile("csrw %0, %1" : : "i"(0x305), "r"(&_vectors));
   up_irq_enable();
-}
-
-/****************************************************************************
- * Name: up_disable_irq
- *
- * Description:
- *   Disable the IRQ specified by 'irq'
- *
- ****************************************************************************/
-
-void up_disable_irq(int irq)
-{
-  modifyreg32(IER, 1 << irq, 0);
-}
-
-/****************************************************************************
- * Name: up_enable_irq
- *
- * Description:
- *   Enable the IRQ specified by 'irq'
- *
- ****************************************************************************/
-
-void up_enable_irq(int irq)
-{
-  modifyreg32(IER, 0, 1 << irq);
 }
 
 /****************************************************************************
@@ -134,35 +154,6 @@ uint32_t up_get_newintctx(void)
 }
 
 /****************************************************************************
- * Name: up_irq_save
- *
- * Description:
- *   Return the current interrupt state and disable interrupts
- *
- ****************************************************************************/
-
-irqstate_t up_irq_save(void)
-{
-  irqstate_t flags;
-
-  __asm__ volatile("csrrci %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
-  return flags & 0x8;
-}
-
-/****************************************************************************
- * Name: up_irq_restore
- *
- * Description:
- *   Restore previous IRQ mask state
- *
- ****************************************************************************/
-
-void up_irq_restore(irqstate_t flags)
-{
-  __asm__ volatile("csrs %0, %1" :: "i"(0x300), "r"(flags));
-}
-
-/****************************************************************************
  * Name: up_irq_enable
  *
  * Description:
@@ -176,4 +167,91 @@ irqstate_t up_irq_enable(void)
 
   __asm__ volatile("csrrsi %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
   return flags & 0x8;
+}
+
+/****************************************************************************
+ * Name: up_irq_save
+ *
+ * Description:
+ *   Return the current enabled irqs and disabled all except bt
+ *
+ ***************************************************************************/
+
+irqstate_t up_irq_save(void)
+{
+  irqstate_t flags;
+
+  flags = song_irq_save();
+
+  putreg32(curr_irqs & BT_IRQS_MK, IER);
+
+  if(irq_disabled) {
+    song_irq_restore(flags);
+    return 0;
+  } else {
+    irq_disabled = 1;
+    song_irq_restore(flags);
+    return 1;
+  }
+}
+
+/****************************************************************************
+ * Name: up_irq_restore
+ *
+ * Description:
+ *   Restore previous IRQ enable state
+ *
+ ****************************************************************************/
+
+void up_irq_restore(irqstate_t flags)
+{
+  irqstate_t flags1;
+  flags1 = song_irq_save();
+
+  if(flags) {
+    putreg32(curr_irqs, IER);
+    irq_disabled = 0;
+  }
+
+  song_irq_restore(flags1);
+}
+
+/****************************************************************************
+ * Name: up_disable_irq
+ *
+ * Description:
+ *   Disable the IRQ specified by 'irq'
+ *
+ ****************************************************************************/
+
+void up_disable_irq(int irq)
+{
+  irqstate_t flags;
+
+  flags = up_irq_save();
+
+  curr_irqs &= ~(1 << irq);
+ // putreg32(curr_irqs, IER);
+
+  up_irq_restore(flags);
+}
+
+/****************************************************************************
+ * Name: up_enable_irq
+ *
+ * Description:
+ *   Enable the IRQ specified by 'irq'
+ *
+ ****************************************************************************/
+
+void up_enable_irq(int irq)
+{
+  irqstate_t flags;
+
+  flags = up_irq_save();
+
+  curr_irqs |= 1 << irq;
+ // putreg32(curr_irqs, IER);
+
+  up_irq_restore(flags);
 }
