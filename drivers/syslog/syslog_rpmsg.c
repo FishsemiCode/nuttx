@@ -59,12 +59,6 @@
  * Pre-processor definitions
  ****************************************************************************/
 
-#ifdef CONFIG_SCHED_HPWORK
-#  define SYSLOG_RPMSG_WORK             HPWORK
-#else
-#  define SYSLOG_RPMSG_WORK             LPWORK
-#endif
-
 #define SYSLOG_RPMSG_WORK_DELAY         MSEC2TICK(CONFIG_SYSLOG_RPMSG_WORK_DELAY)
 
 #define SYSLOG_RPMSG_COUNT(h, t, size)  ((B2C_OFF(h)>=(t)) ? \
@@ -136,7 +130,7 @@ static void syslog_rpmsg_work(void *priv_)
     {
       if (SYSLOG_RPMSG_WORK_DELAY)
         {
-          work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv,
+          work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv,
                      SYSLOG_RPMSG_WORK_DELAY);
         }
       return;
@@ -227,7 +221,7 @@ static void syslog_rpmsg_putc(struct syslog_rpmsg_s *priv, int ch, bool last)
           delay = 0;
         }
 
-      work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv, delay);
+      work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv, delay);
     }
 }
 
@@ -235,7 +229,7 @@ static int syslog_rpmsg_flush(void)
 {
   struct syslog_rpmsg_s *priv = &g_syslog_rpmsg;
 
-  work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv, 0);
+  work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv, 0);
   return OK;
 }
 
@@ -277,7 +271,7 @@ static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel)
   if (priv != NULL)
     {
       priv->channel = channel;
-      work_queue(SYSLOG_RPMSG_WORK, &priv->work,
+      work_queue(HPWORK, &priv->work,
         syslog_rpmsg_work, priv, SYSLOG_RPMSG_WORK_DELAY);
     }
 }
@@ -288,7 +282,7 @@ static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
 
   if (priv != NULL)
     {
-      work_cancel(SYSLOG_RPMSG_WORK, &priv->work);
+      work_cancel(HPWORK, &priv->work);
       priv->channel = NULL;
     }
 }
@@ -306,13 +300,13 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
 
   if (header->command == SYSLOG_RPMSG_SUSPEND)
     {
-      work_cancel(SYSLOG_RPMSG_WORK, &priv->work);
+      work_cancel(HPWORK, &priv->work);
       priv->suspend = true;
     }
   else if (header->command == SYSLOG_RPMSG_RESUME)
     {
       priv->suspend = false;
-      work_queue(SYSLOG_RPMSG_WORK, &priv->work,
+      work_queue(HPWORK, &priv->work,
         syslog_rpmsg_work, priv, SYSLOG_RPMSG_WORK_DELAY);
     }
   else if (header->command == SYSLOG_RPMSG_TRANSFER)
@@ -359,7 +353,7 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
 
       if (SYSLOG_RPMSG_COUNT(priv->head, priv->tail, priv->size))
         {
-          work_queue(SYSLOG_RPMSG_WORK, &priv->work, syslog_rpmsg_work, priv, 0);
+          work_queue(HPWORK, &priv->work, syslog_rpmsg_work, priv, 0);
         }
 
       leave_critical_section(flags);
