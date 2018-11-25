@@ -356,16 +356,9 @@ static void btn_sample(FAR struct btn_upperhalf_s *priv)
         {
           /* Yes.. Signal the waiter */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-          union sigval value;
-          value.sival_int = (int)sample;
-          (void)nxsig_queue(opriv->bo_pid, opriv->bo_notify.bn_signo,
-                            value);
-#else
-          (void)nxsig_queue(opriv->bo_pid, opriv->bo_notify.dn.signo,
-                            (FAR void *)sample);
-#endif
-        }
+          opriv->bo_notify.bn_event.sigev_value.sival_int = sample;
+          nxsig_notification(opriv->bo_pid, &opriv->bo_notify.bn_event, SI_QUEUE);
+       }
 #endif
     }
 
@@ -696,7 +689,7 @@ static int btn_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             opriv->bo_notify.bn_press   = notify->bn_press;
             opriv->bo_notify.bn_release = notify->bn_release;
-            opriv->bo_notify.bn_signo   = notify->bn_signo;
+            opriv->bo_notify.bn_event   = notify->bn_event;
             opriv->bo_pid               = getpid();
 
             /* Enable/disable interrupt handling */
