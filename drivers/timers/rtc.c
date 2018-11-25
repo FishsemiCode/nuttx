@@ -58,9 +58,8 @@
 struct rtc_alarminfo_s
 {
   bool active;            /* True: alarm is active */
-  uint8_t signo;          /* Signal number for alarm notification */
   pid_t pid;              /* Identifies task to be notified */
-  union sigval sigvalue;  /* Data passed with notification */
+  struct sigevent event;  /* Describe the way a task is to be notified */
 };
 #endif
 
@@ -198,13 +197,7 @@ static void rtc_alarm_callback(FAR void *priv, int alarmid)
     {
       /* Yes.. signal the alarm expiration */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue);
-#else
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue->sival_ptr);
-#endif
+      nxsig_notification(alarminfo->pid, &alarminfo->event, SI_QUEUE);
     }
 
   /* The alarm is no longer active */
@@ -235,13 +228,7 @@ static void rtc_periodic_callback(FAR void *priv, int alarmid)
     {
       /* Yes.. signal the alarm expiration */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue);
-#else
-      (void)nxsig_queue(alarminfo->pid, alarminfo->signo,
-                        alarminfo->sigvalue->sival_ptr);
-#endif
+      nxsig_notification(alarminfo->pid, &alarminfo->event, SI_QUEUE);
     }
 
   /* The alarm is no longer active */
@@ -465,9 +452,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
              */
 
             upperinfo->active   = true;
-            upperinfo->signo    = alarminfo->signo;
             upperinfo->pid      = pid;
-            upperinfo->sigvalue = alarminfo->sigvalue;
+            upperinfo->event    = alarminfo->event;
 
             /* Format the alarm info needed by the lower half driver */
 
@@ -537,9 +523,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
              */
 
             upperinfo->active   = true;
-            upperinfo->signo    = alarminfo->signo;
             upperinfo->pid      = pid;
-            upperinfo->sigvalue = alarminfo->sigvalue;
+            upperinfo->event    = alarminfo->event;
 
             /* Format the alarm info needed by the lower half driver */
 
@@ -671,9 +656,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
              */
 
             upperinfo->active   = true;
-            upperinfo->signo    = alarminfo->signo;
             upperinfo->pid      = pid;
-            upperinfo->sigvalue = alarminfo->sigvalue;
+            upperinfo->event    = alarminfo->event;
 
             /* Format the alarm info needed by the lower half driver. */
 
