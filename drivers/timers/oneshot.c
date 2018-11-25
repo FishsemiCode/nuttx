@@ -44,7 +44,6 @@
 #include <stdbool.h>
 #include <fcntl.h>
 #include <semaphore.h>
-#include <signal.h>
 #include <assert.h>
 #include <debug.h>
 
@@ -76,9 +75,8 @@ struct oneshot_dev_s
 
   /* Oneshot timer expiration notification information */
 
-  uint8_t od_signo;                            /* Signal number for notification */
+  struct sigevent od_event;                    /* Signal info */
   pid_t od_pid;                                /* PID to be notified */
-  FAR void *od_arg;                            /* Signal value argument */
 };
 
 /****************************************************************************
@@ -129,20 +127,12 @@ static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower,
                              FAR void *arg)
 {
   FAR struct oneshot_dev_s *priv = (FAR struct oneshot_dev_s *)arg;
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  union sigval value;
-#endif
 
   DEBUGASSERT(priv != NULL);
 
   /* Signal the waiter.. if there is one */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  value.sival_ptr = priv->od_arg;
-  (void)nxsig_queue(priv->od_pid, priv->od_signo, value);
-#else
-  (void)nxsig_queue(priv->od_pid, priv->od_signo, priv->od_arg);
-#endif
+  nxsig_notification(priv->od_pid, &priv->od_event, SI_QUEUE);
 }
 
 /************************************************************************************
@@ -270,10 +260,9 @@ static int oneshot_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           start = (FAR struct oneshot_start_s *)((uintptr_t)arg);
           DEBUGASSERT(start != NULL);
 
-          /* Save signalling information */
+          /* Save signaling information */
 
-          priv->od_signo = start->signo;
-          priv->od_arg   = start->arg;
+          priv->od_event = start->event;
 
           pid = start->pid;
           if (pid == 0)
