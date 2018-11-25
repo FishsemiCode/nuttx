@@ -46,7 +46,6 @@
 #include <string.h>
 #include <semaphore.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -68,10 +67,11 @@
 struct timer_upperhalf_s
 {
   uint8_t   crefs;         /* The number of times the device has been opened */
-  uint8_t   signo;         /* The signal number to use in the notification */
-  pid_t     pid;           /* The ID of the task/thread to receive the signal */
-  FAR void *arg;           /* An argument to pass with the signal */
   FAR char *path;          /* Registration path */
+
+  /* The contained signal info */
+
+  struct timer_notify_s notify;
 
   /* The contained lower-half driver */
 
@@ -129,20 +129,13 @@ static const struct file_operations g_timerops =
 static bool timer_notifier(FAR uint32_t *next_interval_us, FAR void *arg)
 {
   FAR struct timer_upperhalf_s *upper = (FAR struct timer_upperhalf_s *)arg;
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  union sigval value;
-#endif
+  FAR struct timer_notify_s *notify = &upper->notify;
 
   DEBUGASSERT(upper != NULL);
 
   /* Signal the waiter.. if there is one */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
-  value.sival_ptr = upper->arg;
-  (void)nxsig_queue(upper->pid, upper->signo, value);
-#else
-  (void)nxsig_queue(upper->pid, upper->signo, upper->arg);
-#endif
+  nxsig_notification(notify->pid, &notify->event, SI_QUEUE);
 
   return true;
 }
@@ -364,10 +357,7 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     /* cmd:         TCIOC_NOTIFICATION
      * Description: Notify application via a signal when the timer expires.
-     * Argument:    signal number
-     *
-     * NOTE: This ioctl cannot be support in the kernel build mode. In that
-     * case direct callbacks from kernel space into user space is forbidden.
+     * Argument:    signal information
      */
 
     case TCIOC_NOTIFICATION:
@@ -377,10 +367,7 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
         if (notify != NULL)
           {
-            upper->signo = notify->signo;
-            upper->pid   = notify->pid;
-            upper->arg   = notify->arg;
-
+            memcpy(&upper->notify, notify, sizeof(*notify));
             ret = timer_setcallback((FAR void *)upper, timer_notifier, upper);
           }
         else
