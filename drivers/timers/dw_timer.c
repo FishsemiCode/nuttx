@@ -144,10 +144,7 @@ static int dw_timer_start(FAR struct timer_lowerhalf_s *lower_)
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
   lower->tim->CONTROL |= DW_TIMER_ENABLE;
-  leave_critical_section(flags);
-
   return 0;
 }
 
@@ -155,11 +152,8 @@ static int dw_timer_stop(struct timer_lowerhalf_s *lower_)
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
   lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
   lower->tim->EOI; /* Read to clear interrupt */
-  leave_critical_section(flags);
-
   return 0;
 }
 
@@ -168,7 +162,6 @@ static int dw_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
   status->flags  = lower->callback != NULL ? TCFLAGS_HANDLER : 0;
   status->flags |= lower->tim->CONTROL & DW_TIMER_ENABLE ? TCFLAGS_ACTIVE : 0;
   status->timeout = usec_from_count(lower->tim->LOAD_COUNT, lower->freq);
@@ -187,7 +180,6 @@ static int dw_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
     {
       status->timeleft = status->timeout;
     }
-  leave_critical_section(flags);
 
   return 0;
 }
@@ -198,7 +190,6 @@ static int dw_timer_settimeout(FAR struct timer_lowerhalf_s *lower_,
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
   uint32_t load_count = usec_to_count(timeout, lower->freq);
 
-  irqstate_t flags = enter_critical_section();
   if (lower->next_interval)
     {
       /* If the timer callback is in the process,
@@ -220,7 +211,6 @@ static int dw_timer_settimeout(FAR struct timer_lowerhalf_s *lower_,
     {
       lower->tim->LOAD_COUNT = load_count;
     }
-  leave_critical_section(flags);
 
   return 0;
 }
@@ -230,10 +220,8 @@ static void dw_timer_setcallback(FAR struct timer_lowerhalf_s *lower_,
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
-  lower->callback = callback;
   lower->arg      = arg;
-  leave_critical_section(flags);
+  lower->callback = callback;
 }
 
 static int dw_timer_maxtimeout(FAR struct timer_lowerhalf_s *lower_,

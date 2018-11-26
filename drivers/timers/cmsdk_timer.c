@@ -142,9 +142,7 @@ static int cmsdk_timer_start(FAR struct timer_lowerhalf_s *lower_)
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
   lower->tim->CTRL |= CMSDK_TIMER_CTRL_ENABLE;
-  leave_critical_section(flags);
   return 0;
 }
 
@@ -152,10 +150,8 @@ static int cmsdk_timer_stop(FAR struct timer_lowerhalf_s *lower_)
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
   lower->tim->CTRL &= ~CMSDK_TIMER_CTRL_ENABLE;
   lower->tim->INT_STATUS = CMSDK_TIMER_INT_STATUS_CLEAR;
-  leave_critical_section(flags);
   return 0;
 }
 
@@ -164,7 +160,6 @@ static int cmsdk_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
   status->flags  = lower->callback != NULL ? TCFLAGS_HANDLER : 0;
   status->flags |= lower->tim->CTRL & CMSDK_TIMER_CTRL_ENABLE ? TCFLAGS_ACTIVE : 0;
   status->timeout = usec_from_count(lower->tim->RELOAD, lower->freq);
@@ -183,7 +178,6 @@ static int cmsdk_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
     {
       status->timeleft = status->timeout;
     }
-  leave_critical_section(flags);
 
   return 0;
 }
@@ -194,7 +188,6 @@ static int cmsdk_timer_settimeout(FAR struct timer_lowerhalf_s *lower_,
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
   uint32_t count = usec_to_count(timeout, lower->freq);
 
-  irqstate_t flags = enter_critical_section();
   if (lower->next_interval)
     {
       /* If the timer callback is in the process,
@@ -208,7 +201,6 @@ static int cmsdk_timer_settimeout(FAR struct timer_lowerhalf_s *lower_,
       lower->tim->VALUE  = count;
       lower->tim->RELOAD = count;
     }
-  leave_critical_section(flags);
 
   return 0;
 }
@@ -219,10 +211,8 @@ static void cmsdk_timer_setcallback(FAR struct timer_lowerhalf_s *lower_,
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
 
-  irqstate_t flags = enter_critical_section();
-  lower->callback = callback;
   lower->arg      = arg;
-  leave_critical_section(flags);
+  lower->callback = callback;
 }
 
 static int cmsdk_timer_maxtimeout(FAR struct timer_lowerhalf_s *lower_,

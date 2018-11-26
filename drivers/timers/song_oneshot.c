@@ -368,15 +368,13 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   FAR struct song_oneshot_lowerhalf_s *lower
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
   struct timespec now, spec, ts;
-  irqstate_t flags;
 #ifdef CONFIG_PM
   uint32_t new_state;
   uint64_t ms;
 #endif
 
-  flags = enter_critical_section();
-  lower->callback = callback;
   lower->arg = arg;
+  lower->callback = callback;
 
   /* add jitter to ts when ts is very small */
 
@@ -412,8 +410,6 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   song_oneshot_pm(lower, new_state);
 #endif
 
-  leave_critical_section(flags);
-
   return 0;
 }
 
@@ -423,9 +419,7 @@ static int song_oneshot_cancel(FAR struct oneshot_lowerhalf_s *lower_,
   FAR struct song_oneshot_lowerhalf_s *lower
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
   struct timespec now, spec;
-  irqstate_t flags;
 
-  flags = enter_critical_section();
   song_oneshot_disableintr(lower);
   song_oneshot_getspec(lower, &spec);
   song_oneshot_gettime(lower, &now);
@@ -433,7 +427,6 @@ static int song_oneshot_cancel(FAR struct oneshot_lowerhalf_s *lower_,
 #ifdef CONFIG_PM
   song_oneshot_pm(lower, PM_SLEEP);
 #endif
-  leave_critical_section(flags);
 
   return 0;
 }
