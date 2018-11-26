@@ -76,8 +76,9 @@
 #define PRIO_WR_LOW           (1 << 1)
 
 /* Identifies flash info memory access ctrl */
-#define ACC_MAIN              0x10
-#define ACC_INFO              0x11
+#define ACC_MAIN              0x0
+#define ACC_INFO              0x1
+#define ACC_MASK              0x1
 
 /* Identifies the flash operation commands */
 #define CMD_WRITE_PREPARE     (1 << 0)
@@ -120,6 +121,8 @@ struct song_onchip_info_s
 static inline uint32_t flash_regread(FAR struct song_onchip_flash_dev_s *priv, uint32_t offset);
 static inline void flash_regwrite(FAR struct song_onchip_flash_dev_s *priv,
                           uint32_t offset, uint32_t val);
+static inline void flash_regupdate(FAR struct song_onchip_flash_dev_s *priv,
+                          uint32_t offset, uint32_t mask, uint32_t val);
 static void flash_timing_configure(FAR struct song_onchip_flash_dev_s *priv,
                           FAR const struct song_onchip_flash_timing_s *timing);
 static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv);
@@ -165,6 +168,13 @@ static inline void flash_regwrite(FAR struct song_onchip_flash_dev_s *priv,
                           uint32_t offset, uint32_t val)
 {
   *(volatile uint32_t *)(priv->cfg->base + B2C(offset)) = val;
+}
+
+static inline void flash_regupdate(FAR struct song_onchip_flash_dev_s *priv,
+                          uint32_t offset, uint32_t mask, uint32_t val)
+{
+  flash_regwrite(priv, offset, (val & mask) |
+            (flash_regread(priv, offset) & ~mask));
 }
 
 static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv)
@@ -240,7 +250,7 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
   for (i = 0; i < nblocks; i++)
     {
       flags = enter_critical_section();
-      flash_regwrite(priv, ACCESS_CTRL, priv->type);
+      flash_regupdate(priv, ACCESS_CTRL, ACC_MASK, priv->type);
       flash_regwrite(priv, XADDR, (startblock + i) << cfg->xaddr_shift);
       flash_sendop_wait(priv, CMD_ERASE);
       leave_critical_section(flags);
@@ -274,7 +284,7 @@ __ramfunc__ static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev,
       /* Read from AHB interface */
 
       irqstate_t flags = enter_critical_section();
-      flash_regwrite(priv, ACCESS_CTRL, priv->type);
+      flash_regupdate(priv, ACCESS_CTRL, ACC_MASK, priv->type);
 
       while (remain > 0)
         {
@@ -322,7 +332,7 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
       yaddr = startblock & yaddr_mask;
 
       flags = enter_critical_section();
-      flash_regwrite(priv, ACCESS_CTRL, priv->type);
+      flash_regupdate(priv, ACCESS_CTRL, ACC_MASK, priv->type);
 
       flash_regwrite(priv, DIN0, 0xffffffff);
       flash_regwrite(priv, DIN1, 0xffffffff);
@@ -444,13 +454,13 @@ int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cf
       priv->mtd.read     = song_onchip_flash_read;
       priv->mtd.ioctl    = song_onchip_flash_ioctl;
       priv->mtd.name     = i == 0 ? "onchip": "onchip-info";;
-      priv->type         = i == 0 ? ACC_MAIN: ACC_INFO;
+      priv->type         = i;
       priv->neraseblocks = cfg->neraseblocks[i];
       priv->cfg          = cfg;
       mtd[i] = (FAR struct mtd_dev_s *)priv;
 
 #ifndef CONFIG_DISABLE_ENVIRON
-    if (i == 1)
+    if (i == ACC_INFO)
       {
         song_onchip_initalize_env(mtd[i]);
       }
