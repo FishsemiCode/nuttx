@@ -88,8 +88,6 @@ struct song_oneshot_lowerhalf_s
   /* Private lower half data may follow */
 
   FAR const struct song_oneshot_config_s *config;
-  uint64_t c2_base;
-  uint32_t c2_prev;
   uint32_t c1_max;
 
   oneshot_callback_t callback;
@@ -249,8 +247,6 @@ static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
                                   FAR uint32_t *c2, FAR uint32_t *c1)
 {
   FAR const struct song_oneshot_config_s *config = lower->config;
-  uint32_t c2_prev = lower->c2_prev;
-  irqstate_t flags;
 
   song_oneshot_startcount(lower);
   do
@@ -260,16 +256,6 @@ static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
       *c1 = song_oneshot_getreg(config->base, config->c1_off);
     }
   while (*c2 != song_oneshot_getreg(config->base, config->c2_off));
-
-  flags = enter_critical_section();
-  if (*c2 < c2_prev)
-    {
-      /* C2 overflow, increment base */
-
-      lower->c2_base += UINT32_MAX + 1ull;
-    }
-  lower->c2_prev = *c2;
-  leave_critical_section(flags);
 }
 
 static void song_oneshot_gettime(FAR struct song_oneshot_lowerhalf_s *lower,
@@ -280,7 +266,7 @@ static void song_oneshot_gettime(FAR struct song_oneshot_lowerhalf_s *lower,
   uint64_t count;
 
   song_oneshot_getcount(lower, &c2, &c1);
-  count = (lower->c2_base + c2) * lower->c1_max + c1;
+  count = (uint64_t)c2 * lower->c1_max + c1;
   timespec_from_count(ts, count, config->c1_freq);
 }
 
@@ -292,7 +278,7 @@ static void song_oneshot_getspec(FAR struct song_oneshot_lowerhalf_s *lower,
   uint32_t spec;
 
   spec = song_oneshot_getreg(config->base, config->spec_off);
-  count = (lower->c2_base + spec) * lower->c1_max;
+  count = (uint64_t)spec * lower->c1_max;
   timespec_from_count(ts, count, config->c1_freq);
 }
 
@@ -306,7 +292,7 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
   count = (uint64_t)ts->tv_sec * config->c1_freq;
   count += (uint64_t)ts->tv_nsec * config->c1_freq / NSEC_PER_SEC;
 
-  spec = count / lower->c1_max - lower->c2_base;
+  spec = count / lower->c1_max;
   song_oneshot_putreg(config->base, config->spec_off, spec);
 }
 
