@@ -159,11 +159,19 @@ static int cmsdk_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
                                  FAR struct timer_status_s *status)
 {
   FAR struct cmsdk_timer_lowerhalf_s *lower = (FAR struct cmsdk_timer_lowerhalf_s *)lower_;
+  uint32_t reload, value;
+
+  do
+    {
+      reload = lower->tim->RELOAD;
+      value = lower->tim->VALUE;
+    }
+  while (reload != lower->tim->RELOAD);
 
   status->flags  = lower->callback != NULL ? TCFLAGS_HANDLER : 0;
   status->flags |= lower->tim->CTRL & CMSDK_TIMER_CTRL_ENABLE ? TCFLAGS_ACTIVE : 0;
-  status->timeout = usec_from_count(lower->tim->RELOAD, lower->freq);
-  status->timeleft = usec_from_count(lower->tim->VALUE, lower->freq);
+  status->timeout = usec_from_count(reload, lower->freq);
+  status->timeleft = usec_from_count(value, lower->freq);
   if (cmsdk_timer_irq_pending(lower))
     {
       /* Interrupt is pending and the timer wrap happen? */

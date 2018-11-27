@@ -161,11 +161,20 @@ static int dw_timer_getstatus(FAR struct timer_lowerhalf_s *lower_,
                               FAR struct timer_status_s *status)
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
+  uint32_t load, current;
+
+  do
+    {
+      load = lower->tim->LOAD_COUNT;
+      current = lower->tim->CURRENT_VALUE;
+    }
+  while (load != lower->tim->LOAD_COUNT);
 
   status->flags  = lower->callback != NULL ? TCFLAGS_HANDLER : 0;
   status->flags |= lower->tim->CONTROL & DW_TIMER_ENABLE ? TCFLAGS_ACTIVE : 0;
-  status->timeout = usec_from_count(lower->tim->LOAD_COUNT, lower->freq);
-  status->timeleft = usec_from_count(lower->tim->CURRENT_VALUE, lower->freq);
+  status->timeout = usec_from_count(load, lower->freq);
+  status->timeleft = usec_from_count(current, lower->freq);
+
   if (dw_timer_irq_pending(lower))
     {
       /* Interrupt is pending and the timer wrap happen? */
