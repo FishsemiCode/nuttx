@@ -150,6 +150,9 @@ static const struct rtc_ops_s g_song_rtc_ops =
 static void song_rtc_pm(FAR struct song_rtc_lowerhalf_s *lower,
                             uint32_t new_state)
 {
+  irqstate_t flags;
+
+  flags = enter_critical_section();
   if (lower->last_state != new_state)
     {
       if (lower->last_state != PM_SLEEP)
@@ -164,6 +167,7 @@ static void song_rtc_pm(FAR struct song_rtc_lowerhalf_s *lower,
 
       lower->last_state = new_state;
     }
+  leave_critical_section(flags);
 }
 #endif
 

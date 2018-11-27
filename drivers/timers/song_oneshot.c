@@ -314,6 +314,9 @@ static void song_oneshot_putspec(FAR struct song_oneshot_lowerhalf_s *lower,
 static void song_oneshot_pm(FAR struct song_oneshot_lowerhalf_s *lower,
                             uint32_t new_state)
 {
+  irqstate_t flags;
+
+  flags = enter_critical_section();
   if (lower->last_state != new_state)
     {
       if (lower->last_state != PM_SLEEP)
@@ -328,6 +331,7 @@ static void song_oneshot_pm(FAR struct song_oneshot_lowerhalf_s *lower,
 
       lower->last_state = new_state;
     }
+  leave_critical_section(flags);
 }
 #endif
 
