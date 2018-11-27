@@ -305,10 +305,6 @@ void up_earlyinitialize(void)
   /* Unmask SLEEPING for reset */
   putreg32(TOP_PWR_CP_M4_IDLE_MK << 16, TOP_PWR_CP_M4_RSTCTL);
 
-  /* Always allow enter FLASH_S */
-  putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16 |
-           TOP_PWR_CP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
-
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
    * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
@@ -589,74 +585,73 @@ void up_reset(int status)
     }
 }
 
+static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
+{
+  /* Allow ARM to enter deep sleep in WFI? */
+
+  if (deep_sleep)
+    putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+  else
+    putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  /* Allow PWR_SLEEP (VDDMAIN ON)?
+   * CP auto power down is enabled in PWR_SLEEP.
+   */
+
+  if (pwr_sleep)
+    {
+      putreg32(TOP_PWR_CP_M4_SLP_EN << 16 |
+               TOP_PWR_CP_M4_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
+               TOP_PWR_CP_M4_AU_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
+    }
+
+  /* Allow DS_SLEEP (VDDMAIN OFF)? */
+
+  if (ds_sleep)
+    {
+      putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16 |
+               TOP_PWR_CP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+               TOP_PWR_RF_TP_TM2_SLP_MK |
+               TOP_PWR_RF_TP_CALIB_SLP_MK << 16 |
+               TOP_PWR_RF_TP_CALIB_SLP_MK, TOP_PWR_SLPCTL1);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+               TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
+    }
+}
+
 void up_cpu_doze(void)
 {
-  /* Forbid the full chip power down */
-  putreg32(TOP_PWR_CP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
-  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
-           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
-
-  /* Forbid the subsystem power down */
-  putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
-           TOP_PWR_CP_M4_AU_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* Forbid the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(false, false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
-  /* Forbid the full chip power down */
-  putreg32(TOP_PWR_CP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
-  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
-           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
-
-  /* Forbid the subsystem power down */
-  putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
-           TOP_PWR_CP_M4_AU_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* Allow the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(true, false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_standby(void)
 {
-  /* Forbid the full chip power down */
-  putreg32(TOP_PWR_CP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
-  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
-           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
-
-  /* Allow the subsystem power down */
-  putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* Allow the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(true, true, false);
   up_cpu_save();
 }
 
 void up_cpu_sleep(void)
 {
   up_rsvdmem_sleep();
-
-  /* Allow the full chip power down */
-  putreg32(TOP_PWR_CP_M4_SLP_EN << 16 |
-           TOP_PWR_CP_M4_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
-  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
-           TOP_PWR_RF_TP_TM2_SLP_MK |
-           TOP_PWR_RF_TP_CALIB_SLP_MK << 16 |
-           TOP_PWR_RF_TP_CALIB_SLP_MK, TOP_PWR_SLPCTL1);
-
-  /* Allow the subsystem power down */
-  putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* Allow the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(true, true, true);
   up_cpu_save();
 }
 

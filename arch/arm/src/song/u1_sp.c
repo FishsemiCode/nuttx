@@ -201,13 +201,6 @@ void up_earlyinitialize(void)
 
   up_addrenv_initialize(addrenv);
 
-  /* Always enable the full chip deep sleep */
-  modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
-
-  /* Always allow enter FLASH_S */
-  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
-           TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
-
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
    * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
@@ -835,42 +828,53 @@ void up_reset(int status)
     }
 }
 
+static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
+{
+  /* Allow ARM to enter deep sleep in WFI? */
+
+  if (deep_sleep)
+    putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+  else
+    putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  /* Allow PWR_SLEEP (VDDMAIN ON)? */
+
+  if (pwr_sleep)
+    putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
+             TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+  else
+    putreg32(TOP_PWR_SEC_M4_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Allow DS_SLEEP (VDDMAIN OFF)? */
+
+  if (ds_sleep)
+    putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
+             TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+  else
+    putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
+}
+
 void up_cpu_doze(void)
 {
-  /* Forbid the full chip power down */
-  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
-
-  /* Forbid the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(false, false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
-  /* Forbid the full chip power down */
-  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16, TOP_PWR_SLPCTL_SEC_M4);
-
-  /* Allow the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(true, false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_standby(void)
 {
-  up_cpu_idle();
+  up_cpu_lp(true, true, false);
+  up_cpu_wfi();
 }
 
 void up_cpu_sleep(void)
 {
-  /* Allow the full chip power down */
-  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
-           TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
-
-  /* Allow the deep sleep */
-  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
+  up_cpu_lp(true, true, true);
   up_cpu_wfi();
 }
 
