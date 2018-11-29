@@ -1254,7 +1254,6 @@ static int proc_open(FAR struct file *filep, FAR const char *relpath,
   FAR const struct proc_node_s *node;
   FAR struct tcb_s *tcb;
   FAR char *ptr;
-  irqstate_t flags;
   unsigned long tmp;
   pid_t pid;
 
@@ -1312,10 +1311,7 @@ static int proc_open(FAR struct file *filep, FAR const char *relpath,
 
   pid = (pid_t)tmp;
 
-  flags = enter_critical_section();
   tcb = sched_gettcb(pid);
-  leave_critical_section(flags);
-
   if (tcb == NULL)
     {
       ferr("ERROR: PID %d is no longer valid\n", (int)pid);
@@ -1390,7 +1386,6 @@ static ssize_t proc_read(FAR struct file *filep, FAR char *buffer,
 {
   FAR struct proc_file_s *procfile;
   FAR struct tcb_s *tcb;
-  irqstate_t flags;
   ssize_t ret;
 
   finfo("buffer=%p buflen=%d\n", buffer, (int)buflen);
@@ -1402,13 +1397,10 @@ static ssize_t proc_read(FAR struct file *filep, FAR char *buffer,
 
   /* Verify that the thread is still valid */
 
-  flags = enter_critical_section();
   tcb = sched_gettcb(procfile->pid);
-
   if (tcb == NULL)
     {
       ferr("ERROR: PID %d is not valid\n", (int)procfile->pid);
-      leave_critical_section(flags);
       return -ENODEV;
     }
 
@@ -1456,8 +1448,6 @@ static ssize_t proc_read(FAR struct file *filep, FAR char *buffer,
       ret = -EINVAL;
       break;
     }
-
-  leave_critical_section(flags);
 
   /* Update the file offset */
 
@@ -1521,7 +1511,6 @@ static int proc_opendir(FAR const char *relpath, FAR struct fs_dirent_s *dir)
   FAR struct proc_dir_s *procdir;
   FAR const struct proc_node_s *node;
   FAR struct tcb_s *tcb;
-  irqstate_t flags;
   unsigned long tmp;
   FAR char *ptr;
   pid_t pid;
@@ -1572,10 +1561,7 @@ static int proc_opendir(FAR const char *relpath, FAR struct fs_dirent_s *dir)
 
   pid = (pid_t)tmp;
 
-  flags = enter_critical_section();
   tcb = sched_gettcb(pid);
-  leave_critical_section(flags);
-
   if (tcb == NULL)
     {
       ferr("ERROR: PID %d is not valid\n", (int)pid);
@@ -1676,7 +1662,6 @@ static int proc_readdir(struct fs_dirent_s *dir)
   FAR const struct proc_node_s *node = NULL;
   FAR struct tcb_s *tcb;
   unsigned int index;
-  irqstate_t flags;
   pid_t pid;
   int ret;
 
@@ -1704,10 +1689,7 @@ static int proc_readdir(struct fs_dirent_s *dir)
 
       pid = procdir->pid;
 
-      flags = enter_critical_section();
       tcb = sched_gettcb(pid);
-      leave_critical_section(flags);
-
       if (tcb == NULL)
         {
           ferr("ERROR: PID %d is no longer valid\n", (int)pid);
@@ -1780,7 +1762,6 @@ static int proc_stat(const char *relpath, struct stat *buf)
   FAR struct tcb_s *tcb;
   unsigned long tmp;
   FAR char *ptr;
-  irqstate_t flags;
   pid_t pid;
 
   /* Two path forms are accepted:
@@ -1823,10 +1804,7 @@ static int proc_stat(const char *relpath, struct stat *buf)
 
   pid = (pid_t)tmp;
 
-  flags = enter_critical_section();
   tcb = sched_gettcb(pid);
-  leave_critical_section(flags);
-
   if (tcb == NULL)
     {
       ferr("ERROR: PID %d is no longer valid\n", (int)pid);
