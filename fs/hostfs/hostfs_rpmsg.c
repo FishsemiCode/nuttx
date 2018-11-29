@@ -239,11 +239,18 @@ static void hostfs_rpmsg_device_created(struct remote_device *rdev, void *priv_)
 
 static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
 {
-  struct hostfs_rpmsg_s *priv = rpmsg_get_privdata(channel);
+  struct hostfs_rpmsg_s *priv;
 
-  if (priv != NULL)
+  while (1)
     {
-      priv->channel = channel;
+      priv = rpmsg_get_privdata(channel);
+      if (priv != NULL)
+        {
+          priv->channel = channel;
+          break;
+        }
+
+      usleep(10);
     }
 }
 
