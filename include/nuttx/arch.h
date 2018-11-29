@@ -2464,7 +2464,7 @@ void arch_sporadic_resume(FAR struct tcb_s *tcb);
  *   units.
  ********************************************************************************/
 
-#if defined(CONFIG_SCHED_CRITMONITOR) || defined(CONFIG_SCHED_IRQMONITOR_GETTIME)
+#ifdef CONFIG_SCHED_CRITMONITOR
 uint32_t up_critmon_gettime(void);
 void up_critmon_convert(uint32_t elapsed, FAR struct timespec *ts);
 #endif

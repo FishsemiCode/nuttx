@@ -81,16 +81,7 @@
  * request
  */
 
-#undef HAVE_PLATFORM_GETTIME
-#if defined(CONFIG_SCHED_IRQMONITOR) && \
-  (!defined(CONFIG_SCHED_TICKLESS) || \
-    defined(CONFIG_SCHED_CRITMONITOR) || \
-    defined(CONFIG_SCHED_IRQMONITOR_GETTIME))
-#  define HAVE_PLATFORM_GETTIME 1
-#endif
-
-#ifdef CONFIG_SCHED_IRQMONITOR
-#ifdef HAVE_PLATFORM_GETTIME
+#ifdef CONFIG_SCHED_CRITMONITOR
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      do \
        { \
@@ -107,7 +98,7 @@
            } \
        } \
      while (0)
-#else
+#elif defined(CONFIG_SCHED_TICKLESS)
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      do \
        { \
@@ -124,7 +115,6 @@
            } \
        } \
      while (0)
-#endif /* HAVE_PLATFORM_GETTIME */
 #else
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      vector(irq, context, arg)

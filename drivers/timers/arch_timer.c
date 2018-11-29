@@ -448,7 +448,7 @@ int up_timer_start(FAR const struct timespec *ts)
  *   units.
  ********************************************************************************/
 
-#if defined(CONFIG_SCHED_CRITMONITOR) || defined(CONFIG_SCHED_IRQMONITOR_GETTIME)
+#ifdef CONFIG_SCHED_CRITMONITOR
 uint32_t up_critmon_gettime(void)
 {
   uint32_t ret = 0;
