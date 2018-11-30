@@ -42,7 +42,6 @@
 #include <crc32.h>
 
 #include <nuttx/clk/clk.h>
-#include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -375,9 +374,7 @@ void arm_timer_initialize(void)
     .intrst_off = 0x138,
     .intr_bit   = 0,
   };
-#endif
 
-#ifdef CONFIG_ONESHOT_SONG
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 

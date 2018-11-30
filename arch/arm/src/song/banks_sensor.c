@@ -44,7 +44,7 @@
 #include <nuttx/audio/audio_i2s.h>
 #include <nuttx/audio/song_i2s.h>
 #include <nuttx/audio/song_pdm.h>
-#include <nuttx/clk/clk-provider.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
@@ -210,9 +210,7 @@ void arm_timer_initialize(void)
     .intrst_off = 0x13c,
     .intr_bit   = 0,
   };
-#endif
 
-#ifdef CONFIG_ONESHOT_SONG
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
