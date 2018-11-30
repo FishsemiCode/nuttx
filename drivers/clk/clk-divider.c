@@ -61,6 +61,8 @@ static uint32_t _get_maxdiv(uint8_t width, uint16_t flags)
     return MASK(width - 1) + 1;
   if (flags & CLK_DIVIDER_ONE_BASED)
     return MASK(width);
+  if (flags & CLK_DIVIDER_DIV_NEED_EVEN)
+    return MASK(width) - 1;
   return MASK(width) + 1;
 }
 
@@ -141,7 +143,7 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
                                     uint32_t *best_parent_rate,
                                     uint8_t width, uint16_t flags)
 {
-  uint32_t i, bestdiv = 0, maxdiv, mindiv;
+  uint32_t i, bestdiv = 0, maxdiv, mindiv, step;
   uint32_t parent_rate, best = 0, now;
   uint32_t parent_rate_saved = *best_parent_rate;
   struct clk_divider *divider = to_clk_divider(clk);
@@ -159,22 +161,22 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
 
   maxdiv = _get_maxdiv(width, flags);
 
+  step = clk->flags & CLK_DIVIDER_DIV_NEED_EVEN ? 2 : 1;
+  mindiv = (flags >> CLK_DIVIDER_MINDIV_OFF) & CLK_DIVIDER_MINDIV_MSK;
+  if (mindiv == 0)
+    mindiv = step;
+
   if (!(clk->flags & CLK_SET_RATE_PARENT))
     {
       parent_rate = *best_parent_rate;
       bestdiv = _div_round(parent_rate, rate, flags);
-      bestdiv = bestdiv == 0 ? 1 : bestdiv;
+      bestdiv = bestdiv == 0 ? mindiv : bestdiv;
       bestdiv = bestdiv > maxdiv ? maxdiv : bestdiv;
       return bestdiv;
     }
 
   maxdiv = MIN(UINT32_MAX / rate, maxdiv);
-
-  mindiv = (flags >> CLK_DIVIDER_MINDIV_OFF) & CLK_DIVIDER_MINDIV_MSK;
-  if (mindiv == 0)
-    mindiv = 1;
-
-  for (i = mindiv; i <= maxdiv; i++)
+  for (i = mindiv; i <= maxdiv; i += step)
     {
       if (rate * i == parent_rate_saved)
         {

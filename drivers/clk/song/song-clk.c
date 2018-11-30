@@ -196,7 +196,7 @@ static struct clk *song_clk_register_mux(const char *name,
 
   return clk_register_mux(name, parent_names, num_parents,
     CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC, reg_base + mux_offset,
-    mux_shift, mux_width, CLK_MUX_ROUND_CLOSEST | CLK_MUX_HIWORD_MASK);
+    mux_shift, mux_width, CLK_MUX_ROUND_CLOSEST);
 }
 
 static struct clk *song_clk_register_gr(

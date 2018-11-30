@@ -71,6 +71,7 @@
 #define CLK_DIVIDER_ROUND_CLOSEST       0x04
 #define CLK_DIVIDER_READ_ONLY           0x08
 #define CLK_DIVIDER_MAX_HALF            0x10 /* the max div is only half of the maximum one */
+#define CLK_DIVIDER_DIV_NEED_EVEN       0x20
 #define CLK_DIVIDER_MINDIV_OFF          8
 #define CLK_DIVIDER_MINDIV_MSK          0xff
 
