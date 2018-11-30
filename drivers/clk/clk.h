@@ -73,6 +73,27 @@ static inline uint32_t clk_read(uint32_t reg)
   return *((volatile uint32_t *) (reg));
 }
 
+static inline uint32_t gcd(uint32_t a, uint32_t b)
+{
+  uint32_t r;
+  uint32_t tmp;
+
+  if (a < b)
+    {
+      tmp = a;
+      a = b;
+      b = tmp;
+    }
+
+  if (!b)
+    return a;
+  while ((r = a % b) != 0)
+    {
+      a = b;
+      b = r;
+    }
+  return b;
+}
 
 #endif /* CONFIG_CLK */
 #endif /* __DRIVER_CLK_CLK_H */

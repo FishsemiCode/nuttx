@@ -103,35 +103,33 @@ clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
   return rate;
 }
 
+/*****************************************************
+ * fixed postdiv2 = 1 refdiv = 2, solve postdiv1, fbdiv
+ *
+ *           parent_rate * fbdiv
+ * rate  = -----------------------
+ *            postdiv1 * 1 * 2
+ *****************************************************/
+
 static uint32_t
 clk_pll_round_rate(struct clk *clk, uint32_t rate, uint32_t *best_parent_rate)
 {
-  uint32_t val, dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
-  struct clk_pll *pll = to_clk_pll(clk);
+  uint32_t refdiv, fbdiv, postdiv1, postdiv2, prate, tmprate;
 
-  val = clk_read(pll->cfg0_reg);
-  dsmpd = (val >> PLL_DSMPD_SHIFT) & PLL_DSMPD_MASK;
-  refdiv = (val >> PLL_REFDIV_SHIFT) & PLL_REFDIV_MASK;
-  fbdiv = (val >> PLL_FBDIV_SHIFT) & PLL_FBDIV_MASK;
-  postdiv1 = (val >> PLL_POSTDIV1_SHIFT) & PLL_POSTDIV1_MASK;
-  postdiv2 = (val >> PLL_POSTDIV2_SHIFT) & PLL_POSTDIV2_MASK;
+  prate = *best_parent_rate;
 
-  div = refdiv * postdiv1 * postdiv2;
+  postdiv2 = 1, refdiv = 2;
+  rate = rate * refdiv * postdiv2;
 
-  if (dsmpd)
-    {
-      fbdiv = ((uint64_t)rate * div) / (*best_parent_rate);
-      rate = ((uint64_t)*best_parent_rate * fbdiv) / div;
-    }
-  else
-    {
-      uint32_t frac;
+  tmprate = gcd(rate, prate);
+  rate = rate / tmprate;
+  prate = prate / tmprate;
 
-      val = clk_read(pll->cfg1_reg);
-      frac = (val >> PLL_FRAC_SHIFT) & PLL_FRAC_MASK;
-      rate = (*best_parent_rate * (fbdiv * (1ull << 24) + frac)) / (div * (1ull << 24));
-    }
+  tmprate = (prate * rate) / (gcd(rate, prate));
+  fbdiv = tmprate / prate;
+  postdiv1 = tmprate / rate;
 
+  rate = ((uint64_t)*best_parent_rate * fbdiv) / (postdiv1 * postdiv2 * refdiv);
   return rate;
 }
 
@@ -183,30 +181,32 @@ static int clk_pll_is_enable(struct clk *clk)
 
 static int clk_pll_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
-  uint32_t val, dsmpd, refdiv, fbdiv, postdiv1, postdiv2, div;
+  uint32_t val, refdiv, fbdiv, postdiv1, postdiv2, prate, tmprate;
   struct clk_pll *pll = to_clk_pll(clk);
 
-  val = clk_read(pll->cfg0_reg);
-  dsmpd = (val >> PLL_DSMPD_SHIFT) & PLL_DSMPD_MASK;
-  refdiv = (val >> PLL_REFDIV_SHIFT) & PLL_REFDIV_MASK;
-  fbdiv = (val >> PLL_FBDIV_SHIFT) & PLL_FBDIV_MASK;
-  postdiv1 = (val >> PLL_POSTDIV1_SHIFT) & PLL_POSTDIV1_MASK;
-  postdiv2 = (val >> PLL_POSTDIV2_SHIFT) & PLL_POSTDIV2_MASK;
+  prate = parent_rate;
 
-  div = refdiv * postdiv1 * postdiv2;
+  postdiv2 = 1, refdiv = 2;
+  rate = rate * refdiv * postdiv2;
 
-  if (dsmpd)
-    {
-      clkerr("Start to adjust pll freq to %llu\n", rate);
-      fbdiv = ((uint64_t)rate * div) / parent_rate;
-      val &= ~(PLL_FBDIV_MASK << PLL_FBDIV_SHIFT);
-      val |= (fbdiv << PLL_FBDIV_SHIFT);
-      clk_write(pll->cfg0_reg, val);
-      val = (1 << (pll->ctl_shift + 16)) | (1 << pll->ctl_shift);
-      clk_write(pll->ctl_reg, val);
-      while (clk_read(pll->ctl_reg) & (1 << pll->ctl_shift));
-      clkerr("Adjust pll freq done.\n");
-    }
+  tmprate = gcd(rate, prate);
+  rate = rate / tmprate;
+  prate = prate / tmprate;
+
+  tmprate = (prate * rate) / (gcd(rate, prate));
+  fbdiv = tmprate / prate;
+  postdiv1 = tmprate / rate;
+
+  val = (1 << PLL_DSMPD_SHIFT) | (postdiv2 << PLL_POSTDIV2_SHIFT)
+        | (postdiv1 << PLL_POSTDIV1_SHIFT) | (fbdiv << PLL_FBDIV_SHIFT)
+        | (refdiv << PLL_REFDIV_SHIFT);
+
+  clkerr("Start to adjust pll freq\n");
+  clk_write(pll->cfg0_reg, val);
+  val = (1 << (pll->ctl_shift + 16)) | (1 << pll->ctl_shift);
+  clk_write(pll->ctl_reg, val);
+  while (clk_read(pll->ctl_reg) & (1 << pll->ctl_shift));
+  clkerr("Adjust pll freq done.\n");
 
   return 0;
 }

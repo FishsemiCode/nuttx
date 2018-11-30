@@ -51,28 +51,6 @@
  * Private Functions
  ****************************************************************************/
 
-static uint32_t gcd(uint32_t a, uint32_t b)
-{
-  uint32_t r;
-  uint32_t tmp;
-
-  if (a < b)
-    {
-      tmp = a;
-      a = b;
-      b = tmp;
-    }
-
-  if (!b)
-    return a;
-  while ((r = a % b) != 0)
-    {
-      a = b;
-      b = r;
-    }
-  return b;
-}
-
 static uint32_t clk_fd_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
   struct clk_fractional_divider *fd = to_clk_fd(clk);
