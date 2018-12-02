@@ -238,12 +238,12 @@ void up_wic_disable_irq(int irq)
     }
 }
 
-#ifdef CONFIG_SONG_DMAS
 void up_dmainitialize(void)
 {
+#ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(2, 0xb0020000, 28, "dmas_hclk");
-}
 #endif
+}
 
 #if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)

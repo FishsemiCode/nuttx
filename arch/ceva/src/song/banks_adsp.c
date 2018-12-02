@@ -57,6 +57,8 @@
 #include <nuttx/timers/rpmsg_rtc.h>
 #include <nuttx/timers/song_oneshot.h>
 
+#include <string.h>
+
 #include "chip.h"
 #include "song_addrenv.h"
 #include "up_arch.h"
@@ -121,12 +123,12 @@ void up_earlyinitialize(void)
 #endif
 }
 
-#ifdef CONFIG_SONG_DMAS
 void up_dmainitialize(void)
 {
+#ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(2, B2C(0xf8109000), IRQ_INT2, "ap/audio_dmas_clk");
-}
 #endif
+}
 
 #if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
