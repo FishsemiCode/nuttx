@@ -44,7 +44,8 @@ CMN_CSRCS  += up_releasepending.c up_releasestack.c up_reprioritizertr.c
 CMN_CSRCS  += up_saveusercontext.c up_schedulesigaction.c up_sigdeliver.c
 CMN_CSRCS  += up_signal_dispatch.c up_stackframe.c up_start.c up_svcall.c
 CMN_CSRCS  += up_switchcontext.c up_task_start.c up_unblocktask.c up_usestack.c
-CMN_UCSRCS += up_vfork.c up_userspace.c
+CMN_CSRCS  += up_vfork.c
+CMN_UCSRCS += up_userspace.c
 
 ifeq ($(CONFIG_ARCH_TL420)$(CONFIG_ARCH_TL421),y)
 # arch/ceva/src/tl4
