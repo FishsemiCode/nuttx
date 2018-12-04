@@ -172,7 +172,6 @@ void up_disable_irq(int irq)
       if (irq >= IRQ_INT0 && irq <= IRQ_VINT)
         {
           CURRENT_IRQS &= ~(1 << INTX_MASK_BIT(irq));
-          setmod1(CURRENT_IRQS);
         }
 #if 0 /* All TRAPx is enabled by default(REG_MOD2_DEFAULT) */
       else if (irq >= IRQ_TRAP0 && irq <= IRQ_TRAP3)
@@ -222,7 +221,6 @@ void up_enable_irq(int irq)
       if (irq >= IRQ_INT0 && irq <= IRQ_VINT)
         {
           CURRENT_IRQS |= 1 << INTX_MASK_BIT(irq);
-          setmod1(CURRENT_IRQS);
         }
 #if 0 /* All TRAPx is enabled by default(REG_MOD2_DEFAULT) */
       else if (irq >= IRQ_TRAP0 && irq <= IRQ_TRAP3)

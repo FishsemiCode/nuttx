@@ -170,7 +170,6 @@ void up_disable_irq(int irq)
       if (irq >= IRQ_INT0)
         {
           CURRENT_IRQS &= ~(1 << INTX_MASK_BIT(irq));
-          setmoda(CURRENT_IRQS);
         }
       up_irq_restore(flags);
     }
@@ -228,7 +227,6 @@ void up_enable_irq(int irq)
       if (irq >= IRQ_INT0)
         {
           CURRENT_IRQS |= 1 << INTX_MASK_BIT(irq);
-          setmoda(CURRENT_IRQS);
         }
       up_irq_restore(flags);
     }
