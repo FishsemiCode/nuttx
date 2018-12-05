@@ -104,6 +104,7 @@
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL0             (TOP_PWR_BASE + 0x350)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
+#define TOP_PWR_FLASH_PD_CTL        (TOP_PWR_BASE + 0x3f0)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 #define TOP_PWR_SEC_M4_TCM_PD_CTL   (TOP_PWR_BASE + 0x3e8)
 
@@ -130,6 +131,8 @@
 #define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
 #define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
 #define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
+
+#define TOP_PWR_CTRL_MODE           (1 << 0)
 
 #define TOP_PWR_CP_AU_PD_MK         (1 << 7)
 
@@ -211,6 +214,9 @@ void up_earlyinitialize(void)
   /* Set the DMAS no effort to power down */
   putreg32(TOP_PWR_SLP_DMA_MK << 16 |
            TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
+
+  /* Set flash no effort to PWR_SLEEP */
+  putreg32(TOP_PWR_CTRL_MODE << 16, TOP_PWR_FLASH_PD_CTL);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
