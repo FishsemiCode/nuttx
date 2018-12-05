@@ -122,6 +122,7 @@ struct mac802154_chardevice_s
   bool    md_notify_registered;
   pid_t   md_notify_pid;
   struct sigevent md_notify_event;
+  struct sigwork_s md_notify_work;
 
 #endif
 };
@@ -767,7 +768,8 @@ static int mac802154dev_notify(FAR struct mac802154_maccb_s *maccb,
       if (dev->md_notify_registered)
         {
           dev->md_notify_event.sigev_value.sival_int = primitive->type;
-          nxsig_notification(dev->md_notify_pid, &dev->md_notify_event, SI_QUEUE);
+          nxsig_notification(dev->md_notify_pid, &dev->md_notify_event,
+                             SI_QUEUE, &dev->md_notify_work);
         }
 #endif
 

@@ -73,6 +73,7 @@ struct timer_upperhalf_s
   /* The contained signal info */
 
   struct timer_notify_s notify;
+  struct sigwork_s work;
 
   /* The contained lower-half driver */
 
@@ -136,7 +137,8 @@ static bool timer_notifier(FAR uint32_t *next_interval_us, FAR void *arg)
 
   /* Signal the waiter.. if there is one */
 
-  nxsig_notification(notify->pid, &notify->event, SI_QUEUE);
+  nxsig_notification(notify->pid, &notify->event,
+                     SI_QUEUE, &upper->work);
 
   return true;
 }
@@ -321,14 +323,9 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       {
         /* Stop the timer */
 
-        if (lower->ops->stop)
-          {
-            ret = lower->ops->stop(lower);
-          }
-        else
-          {
-            ret = -ENOSYS;
-          }
+        DEBUGASSERT(lower->ops->stop); /* Required */
+        ret = lower->ops->stop(lower);
+        nxsig_cancel_notification(&upper->work);
       }
       break;
 
@@ -573,6 +570,7 @@ void timer_unregister(FAR void *handle)
 
   DEBUGASSERT(lower->ops->stop); /* Required */
   (void)lower->ops->stop(lower);
+  nxsig_cancel_notification(&upper->work);
 
   /* Unregister the timer device */
 

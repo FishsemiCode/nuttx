@@ -105,6 +105,7 @@ struct djoy_open_s
 
   pid_t do_pid;
   struct djoy_notify_s do_notify;
+  struct sigwork_s do_work;
 #endif
 
 #ifndef CONFIG_DISABLE_POLL
@@ -375,7 +376,8 @@ static void djoy_sample(FAR struct djoy_upperhalf_s *priv)
           /* Yes.. Signal the waiter */
 
           opriv->do_notify.dn_event.sigev_value.sival_int = sample;
-          nxsig_notification(opriv->do_pid, &opriv->do_notify.dn_event, SI_QUEUE);
+          nxsig_notification(opriv->do_pid, &opriv->do_notify.dn_event,
+                             SI_QUEUE, &opriv->do_work);
         }
 #endif
     }
@@ -530,6 +532,10 @@ static int djoy_close(FAR struct file *filep)
     {
       priv->du_open = opriv->do_flink;
     }
+
+  /* Cancel any pending notification */
+
+  nxsig_cancel_notification(&opriv->do_work);
 
   /* And free the open structure */
 
