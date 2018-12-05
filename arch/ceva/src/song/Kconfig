@@ -29,6 +29,10 @@ config ARCH_CHIP_BANKS_VDSP
 	bool "Banks VDSP"
 	select SONG_XM6
 
+config ARCH_CHIP_V1_VDSP
+	bool "V1 VDSP"
+	select SONG_XM6
+
 endchoice
 
 config SONG_TL420
