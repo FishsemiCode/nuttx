@@ -157,7 +157,7 @@ static const struct song_div_clk div[] =
 
 static const struct song_gate_clk gate[] =
 {
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
   {
     .name = "pwm_pclk",
     .parent_name = "sp/top_pclk0",
@@ -199,6 +199,13 @@ static const struct song_gate_clk gate[] =
     .parent_name = "sp/top_pclk0",
     .en_offset = 0x0c4,
     .en_shift = 3,
+  },
+  {
+    .name = "ap_m4_icache_clk",
+    .parent_name = "ap_m4_clk",
+    .en_offset = 0x0c4,
+    .en_shift = 6,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
 #endif
   {
@@ -252,13 +259,6 @@ static const struct song_gate_clk gate[] =
     .parent_name = "ap_m4_clk",
     .en_offset = 0x0c4,
     .en_shift = 5,
-    .clk_flags = CLK_IGNORE_UNUSED,
-  },
-  {
-    .name = "ap_m4_icache_clk",
-    .parent_name = "ap_m4_clk",
-    .en_offset = 0x0c4,
-    .en_shift = 6,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {},

@@ -230,16 +230,16 @@ struct song_timer_clk
   uint8_t            num_parents;
 };
 
+struct song_lp_reg_clk
+{
+  uint16_t           offset;
+  uint32_t           value;
+};
+
 struct song_default_rate_clk
 {
   const char         *name;
   uint32_t           rate;
-};
-
-struct song_clk_patch
-{
-  uint16_t           offset;
-  uint32_t           value;
 };
 
 struct song_clk_table
@@ -262,8 +262,8 @@ struct song_clk_table
   const struct song_pll_lf_clk *pll_lf_clks;
   const struct song_out_clk *out_clks;
   const struct song_timer_clk *timer_clks;
+  const struct song_lp_reg_clk *lp_reg;
   const struct song_default_rate_clk *def_rate;
-  const struct song_clk_patch *patch_table;
   bool rpmsg_server;
 };
 

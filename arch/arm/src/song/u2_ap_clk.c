@@ -439,7 +439,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x090,
     .en_shift = 6,
   },
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
   {
     .name = "tl421_wdt_pclk",
     .parent_name = "top_pclk0",
@@ -492,12 +492,6 @@ static const struct song_gate_clk gate[] =
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
-    .name = "topbus_rfphyclk",
-    .parent_name = "btrf_pclk",
-    .en_offset = 0x094,
-    .en_shift = 2,
-  },
-  {
     .name = "m4_clk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x098,
@@ -529,7 +523,13 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x098,
     .en_shift = 6,
   },
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
+  {
+    .name = "topbus_rfphyclk",
+    .parent_name = "btrf_pclk",
+    .en_offset = 0x094,
+    .en_shift = 2,
+  },
   {
     .name = "m4_wdt_pclk",
     .parent_name = "top_pclk0",
@@ -625,6 +625,16 @@ static const struct song_gate_clk gate[] =
   {},
 };
 
+static const struct song_lp_reg_clk lp_reg[] =
+{
+  /* LP_EN0 */
+  {
+    .offset = 0x314,
+    .value = 0xffffffff,
+  },
+  {}
+};
+
 static const struct song_default_rate_clk def_rate[] =
 {
   /* support 1Mhz i2c speed */
@@ -660,6 +670,7 @@ static const struct song_clk_table clk_tbl =
   .pll_clks          = pll,
   .pll_lf_clks       = pll_lf,
   .out_clks          = out,
+  .lp_reg            = lp_reg,
   .def_rate          = def_rate,
   .rpmsg_server      = true,
 };

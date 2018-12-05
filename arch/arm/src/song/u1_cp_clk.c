@@ -335,7 +335,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x090,
     .en_shift = 11,
   },
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
   {
     .name = "rfphy_pclk",
     .parent_name = "sp/top_pclk2",
@@ -420,19 +420,12 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x094,
     .en_shift = 8,
   },
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
   {
     .name = "sim_pclk",
     .parent_name = "cp_pclk",
     .en_offset = 0x094,
     .en_shift = 9,
-  },
-#endif
-  {
-    .name = "cp_rfif_adc_clk",
-    .parent_name = "rfphy_agc_adcclk",
-    .en_offset = 0x094,
-    .en_shift = 10,
   },
   {
     .name = "cp_m4_icache_clk",
@@ -440,6 +433,13 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x094,
     .en_shift = 11,
     .clk_flags = CLK_IGNORE_UNUSED,
+  },
+#endif
+  {
+    .name = "cp_rfif_adc_clk",
+    .parent_name = "rfphy_agc_adcclk",
+    .en_offset = 0x094,
+    .en_shift = 10,
   },
   {
     .name = "rfphy_lte_clk_gated1",
@@ -538,19 +538,6 @@ static const struct song_default_rate_clk def_rate[] =
   {}
 };
 
-static const struct song_clk_patch patch_tbl[] =
-{
-  {
-    .offset = 0x1c4,
-    .value = 0xfffcc60c,
-  },
-  {
-    .offset = 0x1c8,
-    .value = 0x3,
-  },
-  {}
-};
-
 static const struct song_clk_table u1_cp_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -560,7 +547,6 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .gate_clks         = gate,
   .mux_clks          = mux,
   .timer_clks        = timer,
-  .patch_table       = patch_tbl,
   .def_rate          = def_rate,
   .rpmsg_server      = false,
 };

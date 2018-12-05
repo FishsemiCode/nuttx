@@ -296,12 +296,6 @@ static const struct song_gate_clk gate[] =
     .en_shift = 12,
   },
   {
-    .name = "sensorbus_gpsclk",
-    .parent_name = "gnss_clk",
-    .en_offset = 0x090,
-    .en_shift = 13,
-  },
-  {
     .name = "sen_m4_clk",
     .parent_name = "sen_bus_mclk",
     .en_offset = 0x094,
@@ -337,7 +331,13 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x094,
     .en_shift = 7,
   },
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
+  {
+    .name = "sensorbus_gpsclk",
+    .parent_name = "gnss_clk",
+    .en_offset = 0x090,
+    .en_shift = 13,
+  },
   {
     .name = "sen_wdt_pclk",
     .parent_name = "sen_pclk",
@@ -430,6 +430,16 @@ static const struct song_pll_clk pll[] =
   {},
 };
 
+static const struct song_lp_reg_clk lp_reg[] =
+{
+  /* LP_EN0 */
+  {
+    .offset = 0x1c4,
+    .value = 0xffffffff,
+  },
+  {}
+};
+
 static const struct song_default_rate_clk def_rate[] =
 {
   {
@@ -455,6 +465,7 @@ static const struct song_clk_table banks_sen_clk_tbl =
   .gate_clks         = gate,
   .mux_clks          = mux,
   .pll_clks          = pll,
+  .lp_reg            = lp_reg,
   .def_rate          = def_rate,
   .rpmsg_server      = false,
 };

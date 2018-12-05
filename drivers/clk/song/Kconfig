@@ -1,10 +1,11 @@
 if SONG_CLK
 
-config DEBUG_SONG_PCLK
+config DEBUG_SONG_CLK
 	bool "enable pclks"
 	default n
 	depends on DEBUG_CLK
 	---help---
-		Showing song platform pclks to enable and debug clk issues.
+		Showing song platform clks to enable and debug clk issues.
+		Include pclks and lower power clks
 
 endif

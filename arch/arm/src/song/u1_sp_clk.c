@@ -242,6 +242,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x0cc,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "flash_ctrl_clk",
@@ -321,7 +322,7 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x098,
     .en_shift = 8,
   },
-#ifdef CONFIG_DEBUG_SONG_PCLK
+#ifdef CONFIG_DEBUG_SONG_CLK
   {
     .name = "swdt_pclk",
     .parent_name = "top_pclk0",
@@ -403,17 +404,18 @@ static const struct song_gate_clk gate[] =
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
+    .name = "security_clk32k",
+    .parent_name = "clk32k",
+    .en_offset = 0x09c,
+    .en_shift = 8,
+  },
+#ifdef CONFIG_DEBUG_SONG_CLK
+  {
     .name = "security_clk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x09c,
     .en_shift = 7,
     .clk_flags = CLK_IGNORE_UNUSED,
-  },
-  {
-    .name = "security_clk32k",
-    .parent_name = "clk32k",
-    .en_offset = 0x09c,
-    .en_shift = 8,
   },
   {
     .name = "topbus_shram0clk",
@@ -436,6 +438,14 @@ static const struct song_gate_clk gate[] =
     .en_shift = 2,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
+  {
+    .name = "sec_m4_icache_clk",
+    .parent_name = "sec_m4_clk",
+    .en_offset = 0x0b8,
+    .en_shift = 14,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  }
+#endif
   {
     .name = "topbus_debugclk",
     .parent_name = "top_pclk0",
@@ -461,14 +471,22 @@ static const struct song_gate_clk gate[] =
     .en_shift = 10,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
-  {
-    .name = "sec_m4_icache_clk",
-    .parent_name = "sec_m4_clk",
-    .en_offset = 0x0b8,
-    .en_shift = 14,
-    .clk_flags = CLK_IGNORE_UNUSED,
-  },
   {},
+};
+
+static const struct song_lp_reg_clk lp_reg[] =
+{
+  /* LP_EN0 */
+  {
+    .offset = 0x1c4,
+    .value = 0xffffffff,
+  },
+  /* LP_EN1 */
+  {
+    .offset = 0x1c8,
+    .value = 0xffff,
+  },
+  {}
 };
 
 static const struct song_default_rate_clk def_rate[] =
@@ -491,6 +509,7 @@ static const struct song_clk_table u1_sp_clk_tbl =
   .gate_clks         = gate,
   .pll_clks          = pll,
   .pll_lf_clks       = pll_lf,
+  .lp_reg            = lp_reg,
   .def_rate          = def_rate,
   .rpmsg_server      = true,
 };

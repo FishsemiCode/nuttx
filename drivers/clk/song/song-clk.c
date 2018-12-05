@@ -130,8 +130,8 @@ static int song_register_timer_clks(uint32_t reg_base,
             const struct song_timer_clk *timer_clks);
 static int song_set_default_rate(
             const struct song_default_rate_clk *def_rate);
-static int song_apply_patch(uint32_t reg_base,
-            const struct song_clk_patch *patch);
+static int song_enable_lp(uint32_t reg_base,
+            const struct song_lp_reg_clk *lp_reg);
 
 /****************************************************************************
  * Private Functions
@@ -959,13 +959,13 @@ static int song_set_default_rate(
   return 0;
 }
 
-static int song_apply_patch(uint32_t reg_base,
-            const struct song_clk_patch *patch)
+static int song_enable_lp(uint32_t reg_base,
+            const struct song_lp_reg_clk *lp_reg)
 {
-  while (patch->offset)
+  while (lp_reg->offset)
     {
-      clk_write(reg_base + patch->offset, patch->value);
-      patch++;
+      clk_write(reg_base + lp_reg->offset, lp_reg->value);
+      lp_reg++;
     }
 
   return 0;
@@ -995,9 +995,9 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
 {
   int ret = 0;
 
-  if (table->patch_table)
+  if (table->lp_reg)
     {
-      ret = song_apply_patch(base, table->patch_table);
+      ret = song_enable_lp(base, table->lp_reg);
       if (ret)
         return ret;
     }
