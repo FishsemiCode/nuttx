@@ -56,5 +56,6 @@ CHIP_ASRCS += song_head.S
 CHIP_CSRCS += song_heap.c
 CHIP_CSRCS += song_irq.c song_irq_dispatch.c song_start.c
 CHIP_CSRCS += up_schedulesigaction.c
+CHIP_CSRCS += u2_ri5cy.c
 CHIP_UCSRCS += song_userspace.c
 HEAD_ASRC = song_vectors.S
