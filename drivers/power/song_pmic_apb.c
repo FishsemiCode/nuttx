@@ -92,6 +92,7 @@ static int spmu_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV, 
 static int spmu_get_voltage(struct regulator_dev *rdev);
 static int spmu_enable(struct regulator_dev *rdev);
 static int spmu_disable(struct regulator_dev *rdev);
+static int spmu_is_enabled(struct regulator_dev *rdev);
 
 /****************************************************************************
  * Private Data
@@ -102,6 +103,7 @@ static const struct regulator_ops  spmu_regulator_ops =
   .get_voltage = spmu_get_voltage,
   .enable = spmu_enable,
   .disable = spmu_disable,
+  .is_enabled = spmu_is_enabled,
 };
 
 static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
@@ -118,6 +120,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 0,
       .min_uV = 0,
       .max_uV = UINT_MAX,
+      .boot_on = true,
   },
   [SPMU_REG_BUCK1] = {
       .name = "buck1",
@@ -132,6 +135,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 12500,
       .min_uV = 650000,
       .max_uV = 1437500,
+      .boot_on = true,
   },
   [SPMU_REG_LDO0] = {
       .name = "ldo0",
@@ -146,6 +150,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 25000,
       .min_uV = 600000,
       .max_uV = 1375000,
+      .boot_on = true,
   },
   [SPMU_REG_LDO1] = {
       .name = "ldo1",
@@ -160,6 +165,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 50000,
       .min_uV = 1750000,
       .max_uV = 3300000,
+      .boot_on = true,
   },
   [SPMU_REG_LDO2] = {
       .name = "ldo2",
@@ -188,6 +194,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 50000,
       .min_uV = 1750000,
       .max_uV = 3300000,
+      .boot_on = true,
   },
   [SPMU_REG_LDO4] = {
       .name = "ldo4",
@@ -230,6 +237,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 50000,
       .min_uV = 1800000,
       .max_uV = 3000000,
+      .boot_on = true,
   },
 };
 /****************************************************************************
@@ -329,6 +337,18 @@ static int spmu_disable(struct regulator_dev *rdev)
 
   val <<= ffs(rdev->desc->enable_mask) - 1;
   return spmu_update_bits(rdev->priv, rdev->desc->enable_reg, rdev->desc->enable_mask, val);
+}
+
+static int spmu_is_enabled(struct regulator_dev *rdev)
+{
+  unsigned int val;
+  int ret;
+
+  ret = spmu_read(rdev->priv, rdev->desc->enable_reg, &val);
+  if (ret < 0)
+      return 0;
+
+  return !!(val & rdev->desc->enable_mask);
 }
 
 /****************************************************************************

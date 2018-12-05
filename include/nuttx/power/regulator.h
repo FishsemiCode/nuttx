@@ -90,6 +90,9 @@ struct regulator_ops
   /* enable regulator */
   int (*enable)(struct regulator_dev *rdev);
 
+  /* is enabled */
+  int (*is_enabled)(struct regulator_dev *rdev);
+
   /* disable regulator */
   int (*disable)(struct regulator_dev *rdev);
 };
@@ -113,6 +116,8 @@ struct regulator_desc
   unsigned int uV_step; /* us */
   unsigned int min_uV;
   unsigned int max_uV;
+  unsigned int apply_uV;
+  bool boot_on;
 };
 
 struct regulator_dev

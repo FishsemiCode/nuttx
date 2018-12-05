@@ -73,15 +73,59 @@ static sem_t regulator_list_sem = SEM_INITIALIZER(1);
  * Private Function Prototypes
  ****************************************************************************/
 
+static int _regulator_is_enabled(struct regulator_dev *rdev);
+static int _regulator_do_enable(struct regulator_dev *rdev);
+static int _regulator_do_disable(struct regulator_dev *rdev);
 static int regulator_check_consumers(struct regulator_dev *rdev, int *min_uV, int *max_uV);
 static struct regulator_dev *regulator_dev_lookup(void *dev, const char *supply);
 static int regulator_map_voltage_iterate(struct regulator_dev *rdev, int min_uV, int max_uV);
 static int _regulator_get_voltage(struct regulator_dev *rdev);
+static int _regulator_do_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV);
 static int _regulator_set_voltage_unlocked(struct regulator *regulator, int min_uV, int max_uV);
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+static int _regulator_is_enabled(struct regulator_dev *rdev)
+{
+  if (!rdev->desc->ops->is_enabled)
+      return 1;
+
+  return rdev->desc->ops->is_enabled(rdev);
+}
+
+static int _regulator_do_enable(struct regulator_dev *rdev)
+{
+  int ret = 0;
+
+  if (rdev->desc->ops->enable) {
+      ret = rdev->desc->ops->enable(rdev);
+      if (ret < 0) {
+          pwrerr("failed to enable %d\n", ret);
+          return ret;
+      }
+  }
+
+  if (rdev->desc->enable_time > 0)
+      up_udelay(rdev->desc->enable_time);
+
+  return ret;
+}
+
+static int _regulator_do_disable(struct regulator_dev *rdev)
+{
+  int ret = 0;
+
+  if (rdev->desc->ops->disable) {
+      ret = rdev->desc->ops->disable(rdev);
+      if (ret < 0) {
+          pwrerr("failed to disable %d\n", ret);
+      }
+  }
+
+  return ret;
+}
+
 static int regulator_check_consumers(struct regulator_dev *rdev, int *min_uV, int *max_uV)
 {
   struct regulator *regulator;
@@ -168,14 +212,53 @@ static int _regulator_get_voltage(struct regulator_dev *rdev)
   return ret;
 }
 
+static int _regulator_do_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV)
+{
+  const struct regulator_ops *ops = rdev->desc->ops;
+  unsigned int selector;
+  int new_uV = 0, old_uV = _regulator_get_voltage(rdev);
+  int ret = 0, delay = 0, best_val;
+
+  if (ops->set_voltage) {
+      ret = ops->set_voltage(rdev, min_uV, max_uV, &selector);
+      if (ret >= 0) {
+          if (ops->list_voltage)
+              new_uV = ops->list_voltage(rdev, selector);
+          else
+              new_uV = _regulator_get_voltage(rdev);
+      }
+  } else if (ops->set_voltage_sel) {
+      ret = regulator_map_voltage_iterate(rdev, min_uV, max_uV);
+      if (ret >= 0) {
+          best_val = ops->list_voltage(rdev, ret);
+          if (min_uV <= best_val && max_uV >= best_val) {
+              selector = ret;
+              ret = ops->set_voltage_sel(rdev, selector);
+          }
+      } else {
+          ret = -EINVAL;
+      }
+  } else {
+      ret = -EINVAL;
+  }
+
+  if (ret < 0)
+      return ret;
+
+  if (rdev->desc->ramp_delay)
+      delay = abs(new_uV - old_uV) / rdev->desc->ramp_delay + 1;
+
+  up_udelay(delay);
+
+  return ret;
+}
+
 static int _regulator_set_voltage_unlocked(struct regulator *regulator, int min_uV, int max_uV)
 {
   struct regulator_dev *rdev = regulator->rdev;
   const struct regulator_ops *ops = rdev->desc->ops;
-  int old_min_uV, old_max_uV, best_val;
-  unsigned int selector;
-  int ret = 0, delay = 0;
-  int new_uV = 0, old_uV = _regulator_get_voltage(rdev);
+  int old_min_uV, old_max_uV;
+  int ret = 0;
 
   if (min_uV > max_uV) {
       pwrerr("invalid min %d max %d\n", min_uV, max_uV);
@@ -212,36 +295,9 @@ static int _regulator_set_voltage_unlocked(struct regulator *regulator, int min_
   if (ret < 0)
       goto out2;
 
-  if (ops->set_voltage) {
-      ret = ops->set_voltage(rdev, min_uV, max_uV, &selector);
-      if (ret >= 0) {
-          if (ops->list_voltage)
-              new_uV = ops->list_voltage(rdev, selector);
-          else
-              new_uV = _regulator_get_voltage(rdev);
-      }
-  } else if (ops->set_voltage_sel) {
-      ret = regulator_map_voltage_iterate(rdev, min_uV, max_uV);
-      if (ret >= 0) {
-          best_val = ops->list_voltage(rdev, ret);
-          if (min_uV <= best_val && max_uV >= best_val) {
-              selector = ret;
-              ret = ops->set_voltage_sel(rdev, selector);
-          }
-      } else {
-          ret = -EINVAL;
-      }
-  } else {
-      ret = -EINVAL;
-  }
-
-  if (ret)
+  ret = _regulator_do_set_voltage(rdev, min_uV, max_uV);
+  if (ret < 0)
       goto out2;
-
-  if (rdev->desc->ramp_delay)
-      delay = abs(new_uV - old_uV) / rdev->desc->ramp_delay + 1;
-
-  up_udelay(delay);
 
 out:
   return ret;
@@ -339,6 +395,39 @@ void regulator_put(struct regulator *regulator)
 }
 
 /****************************************************************************
+ * Name: regulator_is_enabled
+ *
+ * Description:
+ *   Is the regulator output enabled.
+ *
+ * Input parameters:
+ *   regulator - The regulator consumer representative
+ *
+ * Returned value:
+ *   1 is enabled and zero for disabled.
+ *
+ ****************************************************************************/
+
+int regulator_is_enabled(struct regulator *regulator)
+{
+  struct regulator_dev *rdev;
+  int ret = 0;
+
+  if (regulator == NULL) {
+      pwrerr("regulator is null\n");
+      return -EINVAL;
+  }
+
+  rdev = regulator->rdev;
+
+  nxsem_wait_uninterruptible(&rdev->regulator_sem);
+  ret = _regulator_is_enabled(rdev);
+  nxsem_post(&rdev->regulator_sem);
+
+  return ret;
+}
+
+/****************************************************************************
  * Name: regulator_enable
  *
  * Description:
@@ -366,16 +455,9 @@ int regulator_enable(struct regulator *regulator)
 
   nxsem_wait_uninterruptible(&rdev->regulator_sem);
   if (rdev->use_count == 0) {
-      if (rdev->desc->ops->enable) {
-          ret = rdev->desc->ops->enable(rdev);
-          if (ret < 0) {
-              pwrerr("failed to enable %d\n", ret);
-              return ret;
-          }
-      }
-
-      if (rdev->desc->enable_time > 0)
-          up_udelay(rdev->desc->enable_time);
+      ret = _regulator_do_enable(rdev);
+      if (ret < 0)
+          return ret;
   }
 
   rdev->use_count++;
@@ -417,13 +499,9 @@ int regulator_disable(struct regulator *regulator)
   }
 
   if (rdev->use_count == 1) {
-      if (rdev->desc->ops->disable) {
-          ret = rdev->desc->ops->disable(rdev);
-          if (ret < 0) {
-              pwrerr("failed to disable %d\n", ret);
-              return ret;
-          }
-      }
+      ret = _regulator_do_disable(rdev);
+      if (ret < 0)
+          return ret;
   }
 
   rdev->use_count--;
@@ -554,6 +632,15 @@ struct regulator_dev *regulator_register(const struct regulator_desc *regulator_
   nxsem_init(&rdev->regulator_sem, 0, 1);
   list_initialize(&rdev->consumer_list);
   list_initialize(&rdev->list);
+
+  if (rdev->desc->boot_on && !_regulator_is_enabled(rdev)) {
+      _regulator_do_enable(rdev);
+  } else if (!rdev->desc->boot_on && _regulator_is_enabled(rdev)) {
+      _regulator_do_disable(rdev);
+  }
+
+  if (rdev->desc->apply_uV)
+      _regulator_do_set_voltage(rdev, rdev->desc->apply_uV, rdev->desc->apply_uV);
 
   nxsem_wait_uninterruptible(&regulator_list_sem);
   list_add_tail(&regulator_list, &rdev->list);

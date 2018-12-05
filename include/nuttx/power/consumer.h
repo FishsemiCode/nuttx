@@ -83,6 +83,7 @@ extern "C"
  ****************************************************************************/
 struct regulator *regulator_get(void *device, const char *id);
 void regulator_put(struct regulator *regulator);
+int regulator_is_enabled(struct regulator *regulator);
 int regulator_enable(struct regulator *regulator);
 int regulator_disable(struct regulator *regulator);
 int regulator_set_voltage(struct regulator *regulator, int min_uV, int max_uV);
