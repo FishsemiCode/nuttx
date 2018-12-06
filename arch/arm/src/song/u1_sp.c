@@ -700,7 +700,15 @@ void up_wdtinit(void)
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
-  g_ioe[0] = song_ioe_initialize(2, 0xb0060000, 19);
+  static const struct song_ioe_config_s cfg =
+  {
+    .cpu  = 2,
+    .base = 0xb0060000,
+    .irq  = 19,
+    .mclk = "gpio_clk32k",
+  };
+
+  g_ioe[0] = song_ioe_initialize(&cfg);
 }
 #endif
 

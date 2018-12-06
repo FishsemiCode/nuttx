@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <nuttx/clk/clk.h>
 #include <nuttx/ioexpander/ioexpander.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/irq.h>
@@ -379,18 +380,17 @@ static int song_ioe_detach(FAR struct ioexpander_dev_s *dev, FAR void *handle)
  *   Create ioe device driver instances for song platform.
  *
  * Input Parameters:
- *   cpu   - The cpu core number of the caller.
- *   base  - The base address of song ioe driver.
- *   irq   - The irq number of song ioe driver.
+ *   cfg - Pointer to struct song_ioe_config_s
  *
  * Returned Value:
  *   an ioexpander_dev_s instance on success; NULL on failure.
  *
  ****************************************************************************/
 
-FAR struct ioexpander_dev_s *song_ioe_initialize(uint32_t cpu, uint32_t base, uint32_t irq)
+FAR struct ioexpander_dev_s *song_ioe_initialize(FAR const struct song_ioe_config_s *cfg)
 {
   FAR struct song_ioe_dev_s *priv;
+  struct clk *mclk;
   int ret = 0;
 
   priv = kmm_zalloc(sizeof(struct song_ioe_dev_s));
@@ -399,16 +399,24 @@ FAR struct ioexpander_dev_s *song_ioe_initialize(uint32_t cpu, uint32_t base, ui
       return NULL;
     }
 
-  priv->cpu  = cpu;
-  priv->base = base;
+  mclk = clk_get(cfg->mclk);
+  if (!mclk)
+    return NULL;
 
-  ret = irq_attach(irq, song_ioe_handler, priv);
+  ret = clk_enable(mclk);
+  if (ret < 0)
+    return NULL;
+
+  priv->cpu  = cfg->cpu;
+  priv->base = cfg->base;
+
+  ret = irq_attach(cfg->irq, song_ioe_handler, priv);
   if (ret < 0)
     {
       kmm_free(priv);
       return NULL;
     }
-  up_enable_irq(irq);
+  up_enable_irq(cfg->irq);
 
   priv->ioe.ops = &g_song_ioe_ops;
   nxmutex_init(&priv->lock);

@@ -45,21 +45,35 @@
 #include <nuttx/ioexpander/ioexpander.h>
 
 /****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+struct song_ioe_config_s
+{
+  uint32_t        cpu;
+  uint32_t        base;
+  uint32_t        irq;
+  FAR const char *mclk;
+};
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+/****************************************************************************
  * Name:song_ioe_initialize
  *
  * Description:
  *   Create ioe device driver instances for song platform.
  *
  * Input Parameters:
- *   cpu   - The cpu core number of the caller.
- *   base  - The base address of song ioe driver.
- *   irq   - The irq number of song ioe driver.
+ *   cfg - Pointer to struct song_ioe_config_s
  *
  * Returned Value:
  *   an ioexpander_dev_s instance on success; NULL on failure.
  *
  ****************************************************************************/
 
-FAR struct ioexpander_dev_s *song_ioe_initialize(uint32_t cpu, uint32_t base, uint32_t irq);
+FAR struct ioexpander_dev_s *song_ioe_initialize(FAR const struct song_ioe_config_s *cfg);
 
 #endif /* __INCLUDE_NUTTX_IOEXPANDER_IOE_H */

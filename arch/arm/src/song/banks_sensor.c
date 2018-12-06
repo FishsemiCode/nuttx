@@ -354,11 +354,27 @@ void up_wdtinit(void)
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
+  static const struct song_ioe_config_s cfg[] =
+  {
+    {
+      .cpu  = 0,
+      .base = 0xf8b13000,
+      .irq  = 22,
+      .mclk = "sen_gpio_clk32k",
+    },
+    {
+      .cpu  = 4,
+      .base = 0xf900c000,
+      .irq  = 28,
+      .mclk = "sen_gpio_clk32k",
+    },
+  };
+
   /* sensor gpio initialization */
-  g_ioe[0] = song_ioe_initialize(0, 0xf8b13000, 22);
+  g_ioe[0] = song_ioe_initialize(&cfg[0]);
 
   /* general gpio initialization */
-  g_ioe[1] = song_ioe_initialize(4, 0xf900c000, 28);
+  g_ioe[1] = song_ioe_initialize(&cfg[1]);
 }
 #endif
 
