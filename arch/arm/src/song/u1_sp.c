@@ -208,15 +208,22 @@ void up_earlyinitialize(void)
   /* Allow TCM to LP, careful with it. At this time,
    * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
    */
+
   putreg32(TOP_PWR_SEC_AU_PD_MK << 16, TOP_PWR_SEC_M4_TCM_PD_CTL);
 #endif
 
   /* Set the DMAS no effort to power down */
+
   putreg32(TOP_PWR_SLP_DMA_MK << 16 |
            TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
 
   /* Set flash no effort to PWR_SLEEP */
+
   putreg32(TOP_PWR_CTRL_MODE << 16, TOP_PWR_FLASH_PD_CTL);
+
+  /* Set PMICFSM disable full chip to DS */
+
+  modifyreg32(PMIC_FSM_CONFIG1, PMIC_FSM_DS_SLP_VALID, 0);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
@@ -410,6 +417,10 @@ static void cp_flash_save_work(FAR void *arg)
   cp_flash_save_prepare();
   cp_flash_save_data();
   cp_flash_save_finish();
+
+  /* Set PMICFSM enable full chip to DS */
+
+  modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
 }
 
 static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
@@ -445,6 +456,7 @@ static int cp_boot(const struct song_rptun_config_s *config)
   cp_flash_restore();
 
   /* Attach and enable flash_s intr. */
+
   irq_attach(18, cp_flash_save_isr, NULL);
   up_enable_irq(18);
   modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
