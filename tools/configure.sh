@@ -366,4 +366,4 @@ if [ ! -z `which gmake 2>/dev/null` ]; then
   MAKE_BIN=gmake
 fi
 
-${MAKE_BIN} O=${outdir} olddefconfig 1>/dev/null
+${MAKE_BIN} O=${outdir} olddefconfig
