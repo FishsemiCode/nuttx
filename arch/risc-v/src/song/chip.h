@@ -62,5 +62,14 @@
 
 void up_clk_initialize(void);
 #endif /* __ASSEMBLY__ */
-void song_restore_irqs(void);
+
+#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
+#define NVIC_SYSH_HIGH_PRIORITY	CONFIG_SONG_HIPRI_INTERRUPT
+void up_restore_irqs(void);
+#else
+static inline void up_restore_irqs(void)
+{
+}
+#endif
+
 #endif /* __ARCH_RISCV_SRC_SONG_CHIP_H */

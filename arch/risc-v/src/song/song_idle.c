@@ -41,6 +41,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 
+#include "chip.h"
 #include "up_internal.h"
 /****************************************************************************
  * Public Functions
@@ -61,7 +62,7 @@
 
 void up_idle(void)
 {
-  song_restore_irqs();
+  up_restore_irqs();
 #if defined(CONFIG_SUPPRESS_INTERRUPTS) || defined(CONFIG_SUPPRESS_TIMER_INTS)
   /* If the system is idle and there are no timer interrupts, then process
    * "fake" timer interrupts. Hopefully, something will wake up.

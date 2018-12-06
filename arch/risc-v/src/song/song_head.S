@@ -56,8 +56,11 @@
 	.type		__start, function
 
 __start:
+	/* Set mtvec */
+	lui		t0, %hi(_vectors)
+	addi		t0, t0, %lo(_vectors)
+	csrw		mtvec, t0
 	/* Set stack pointer */
-
 	la		sp, _ebss
 	addi		sp, sp, CONFIG_IDLETHREAD_STACKSIZE
 
@@ -113,7 +116,7 @@ irq_handler:
 	csrr		x10, 0x300
 	sw		x10, 32*4(x2)
 	mv		x10, x2
-	call 		irq_dispatch_all
+	call		irq_dispatch_all
 	mv		x1, x10
 	lw		x10, 32*4(x1)
 	csrw		0x300, x10

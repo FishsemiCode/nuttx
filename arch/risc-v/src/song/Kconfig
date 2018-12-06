@@ -23,5 +23,34 @@ config ARCH_CHIP_V1_ISP
 
 endchoice
 
+choice
+	prompt "Song Interrupt Controller Selection"
+	default VINTC_DW
+
+config EVENT_UNIT_PULP
+	bool "Pulp Event Unit"
+	select ARCH_HAVE_HIPRI_INTERRUPT
+	select ARCH_HAVE_IRQPRIO
+
+config VINTC_DW
+	bool "DesignWare Interrupt Controller"
+	select ARCH_HAVE_HIPRI_INTERRUPT
+	select ARCH_HAVE_IRQPRIO
+	select ARCH_HAVE_IRQTRIGGER
+
+endchoice
+
+config EVENT_UNIT_PULP_BASE
+	hex "Pulp Event Unit base address"
+	depends on EVENT_UNIT_PULP
+
+config VINTC_DW_BASE
+	hex "DW VINTC base address"
+	depends on VINTC_DW
+
 config SONG_NR_IRQS
 	int "Interrupt Number"
+
+config SONG_HIPRI_INTERRUPT
+	hex "Song High Priority Interrupt"
+	depends on ARCH_HIPRI_INTERRUPT

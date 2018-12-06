@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/risc-v/src/song/song_irq.c
+ * arch/risc-v/src/song/pulp_eu.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -37,157 +37,165 @@
  * Included Files
  ****************************************************************************/
 
-#include <arch/board/board.h>
 #include <nuttx/arch.h>
-#include <nuttx/board.h>
 #include <nuttx/config.h>
 #include <nuttx/irq.h>
 
-#include <assert.h>
-#include <stdint.h>
-
-#include "group/group.h"
+#include "chip.h"
 #include "up_arch.h"
-#include "up_internal.h"
 
+#ifdef CONFIG_EVENT_UNIT_PULP
 /****************************************************************************
- * Public Data
- ****************************************************************************/
-volatile uint32_t *g_current_regs;
-
-/****************************************************************************
- * Public Functions
+ * Pre-processor Definitions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: up_irqinitialize
- ****************************************************************************/
-
-void weak_function up_irqinitialize(void)
-{
-  up_irq_enable();
-}
+#define IER                             CONFIG_EVENT_UNIT_PULP_BASE
+#define ICP                             (CONFIG_EVENT_UNIT_PULP_BASE + 0xc)
 
 /****************************************************************************
- * Name: up_irq_save
- *
- * Description:
- *   Return the current interrupt state and disable interrupts
- *
- ****************************************************************************/
-
-irqstate_t weak_function up_irq_save(void)
-{
-  irqstate_t flags;
-
-  __asm__ volatile("csrrci %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
-  return flags & 0x8;
-}
-
-/****************************************************************************
- * Name: up_irq_restore
- *
- * Description:
- *   Restore previous IRQ mask state
- *
- ****************************************************************************/
-
-void weak_function up_irq_restore(irqstate_t flags)
-{
-  __asm__ volatile("csrs %0, %1" :: "i"(0x300), "r"(flags));
-}
-
-/****************************************************************************
- * Name: up_get_newintctx
+ * Name: up_ack_irq
  *
  * Description:
  *   Acknowledge the IRQ
  *
  ****************************************************************************/
 
-uint32_t up_get_newintctx(void)
+void up_ack_irq(int irq)
 {
-  return 0x1880;
+  putreg32(1 << irq, ICP);
 }
 
 /****************************************************************************
- * Name: up_irq_enable
- *
- * Description:
- *   Return the current interrupt state and enable interrupts
- *
- ****************************************************************************/
-
-irqstate_t up_irq_enable(void)
-{
-  irqstate_t flags;
-
-  __asm__ volatile("csrrsi %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
-  return flags & 0x8;
-}
-
-/****************************************************************************
- * Name: song_dispatch_irqs
+ * Name: song_irq_dispatch
  *
  * Description:
  * Call interrupt controller to dispatch irqs
  *
  ****************************************************************************/
 
-void weak_function song_dispatch_irqs(int irq, FAR void *context)
+void song_irq_dispatch(int irq, FAR void *context)
 {
   irq_dispatch(irq, context);
+  up_ack_irq(irq);
+}
+
+#ifndef CONFIG_ARCH_HIPRI_INTERRUPT
+/****************************************************************************
+ * Name: up_disable_irq
+ *
+ * Description:
+ *   Disable the IRQ specified by 'irq'
+ *
+ ****************************************************************************/
+
+void up_disable_irq(int irq)
+{
+  modifyreg32(IER, 1 << irq, 0);
 }
 
 /****************************************************************************
- * irq_dispatch_all
+ * Name: up_enable_irq
+ *
+ * Description:
+ *   Enable the IRQ specified by 'irq'
+ *
  ****************************************************************************/
 
-uint32_t * irq_dispatch_all(uint32_t *regs)
+void up_enable_irq(int irq)
 {
-  uint32_t cause;
-
-  __asm__ volatile("csrr %0, %1" : "=r"(cause) : "i"(0x342));
-
-  /* Current regs non-zero indicates that we are processing an interrupt;
-   * g_current_regs is also used to manage interrupt level context switches.
-   *
-   * Nested interrupts are not supported
-   */
-
-  DEBUGASSERT(g_current_regs == NULL);
-  g_current_regs = regs;
-
-  if (cause & 0x80000000)
-    {
-      cause &= 0x7fffffff;
-
-      /* Deliver the IRQ */
-
-      song_dispatch_irqs(cause, regs);
-    }
-  else if (cause == 11)
-    {
-      up_swint(11, regs, NULL);
-    }
-
-#if defined(CONFIG_ARCH_FPU)
-  if (regs != g_current_regs)
-    {
-      up_restorefpu((uint32_t *)g_current_regs);
-    }
-#endif
-
-  /* If a context switch occurred while processing the interrupt then
-   * g_current_regs may have change value.  If we return any value different
-   * from the input regs, then the lower level will know that a context
-   * switch occurred during interrupt processing.
-   */
-
-  regs = (uint32_t *) g_current_regs;
-  g_current_regs = NULL;
-
-  /* Return the stack pointer */
-
-  return regs;
+  modifyreg32(IER, 0, 1 << irq);
 }
+
+#else
+
+uint32_t curr_irqs;
+int irq_disabled;
+
+/****************************************************************************
+ * Name: up_restore_irqs
+ *
+ * Description:
+ * restore the enabled irqs
+ *
+ ****************************************************************************/
+
+void up_restore_irqs()
+{
+  putreg32(curr_irqs, IER);
+}
+
+/****************************************************************************
+ * Name: up_irq_save
+ *
+ * Description:
+ *   Return the current enabled irqs and disabled all except bt
+ *
+ ***************************************************************************/
+
+irqstate_t up_irq_save(void)
+{
+  putreg32(curr_irqs & NVIC_SYSH_HIGH_PRIORITY, IER);
+
+  if(irq_disabled) {
+    return 0;
+  } else {
+    irq_disabled = 1;
+    return 1;
+  }
+}
+
+/****************************************************************************
+ * Name: up_irq_restore
+ *
+ * Description:
+ *   Restore previous IRQ enable state
+ *
+ ****************************************************************************/
+
+void up_irq_restore(irqstate_t flags)
+{
+  if(flags) {
+    irq_disabled = 0;
+    putreg32(curr_irqs, IER);
+  }
+}
+
+/****************************************************************************
+ * Name: up_disable_irq
+ *
+ * Description:
+ *   Disable the IRQ specified by 'irq'
+ *
+ ****************************************************************************/
+
+void up_disable_irq(int irq)
+{
+  irqstate_t flags;
+
+  flags = up_irq_save();
+
+  curr_irqs &= ~(1 << irq);
+
+  up_irq_restore(flags);
+}
+
+/****************************************************************************
+ * Name: up_enable_irq
+ *
+ * Description:
+ *   Enable the IRQ specified by 'irq'
+ *
+ ****************************************************************************/
+
+void up_enable_irq(int irq)
+{
+  irqstate_t flags;
+
+  flags = up_irq_save();
+
+  curr_irqs |= 1 << irq;
+
+  up_irq_restore(flags);
+}
+#endif/* CONFIG_ARCH_HIPRI_INTERRUPT */
+#endif/* CONFIG_EVENT_UNIT_PULP */
