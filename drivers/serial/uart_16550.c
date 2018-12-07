@@ -729,11 +729,6 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
   uint32_t mcr;
 #endif
 
-  /* Clear fifos */
-
-  u16550_serialout(priv, UART_FCR_OFFSET,
-                   (UART_FCR_RXRST | UART_FCR_TXRST));
-
   /* Set trigger */
 
   u16550_serialout(priv, UART_FCR_OFFSET,
@@ -793,12 +788,6 @@ static int u16550_setup(FAR struct uart_dev_s *dev)
   /* Clear DLAB */
 
   u16550_serialout(priv, UART_LCR_OFFSET, lcr);
-
-  /* Configure the FIFOs */
-
-  u16550_serialout(priv, UART_FCR_OFFSET,
-                   (UART_FCR_RXTRIGGER_8 | UART_FCR_TXRST | UART_FCR_RXRST |
-                    UART_FCR_FIFOEN));
 
   /* Set up the auto flow control */
 
