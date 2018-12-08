@@ -17,6 +17,10 @@ config ARCH_CHIP_U2_RI5CY
 	bool "U2 RI5CY"
 	select ARCH_RV32IM
 
+config ARCH_CHIP_V1_ISP
+	bool "V1 ISP"
+	select ARCH_RV32IM
+
 endchoice
 
 config SONG_NR_IRQS
