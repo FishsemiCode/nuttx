@@ -268,6 +268,25 @@ int up_prioritize_irq(int irq, int priority)
 #endif
 
 /****************************************************************************
+ * Name: up_trigger_irq
+ *
+ * Description:
+ *   Trigger an IRQ by software. May not be supported by all architectures.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_IRQTRIGGER
+void up_trigger_irq(int irq)
+{
+  if (irq >= IRQ_VINT_FIRST)
+    {
+      /* Forward to the secondary interrupt controller */
+      up_vintc_trigger_irq(irq);
+    }
+}
+#endif /* CONFIG_ARCH_HAVE_IRQTRIGGER */
+
+/****************************************************************************
  * Name: up_irqinitialize
  ****************************************************************************/
 

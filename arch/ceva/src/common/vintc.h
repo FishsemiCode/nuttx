@@ -131,6 +131,22 @@ static inline int up_vintc_prioritize_irq(int irq, int priority)
 #endif
 
 /****************************************************************************
+ * Name: up_vintc_trigger_irq
+ *
+ * Description:
+ *   Trigger an IRQ by software.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_ARCH_HAVE_VINTC) && defined(CONFIG_ARCH_HAVE_IRQTRIGGER)
+void up_vintc_trigger_irq(int irq);
+#else
+static inline void up_vintc_trigger_irq(int irq)
+{
+}
+#endif
+
+/****************************************************************************
  * Name: up_vintc_handler
  *
  * Description:

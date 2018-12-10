@@ -66,6 +66,7 @@ config LOGBUF_SIZE
 config VINTC_DW
 	bool "DesignWare Interrupt Controller"
 	select ARCH_HAVE_IRQPRIO
+	select ARCH_HAVE_IRQTRIGGER
 	select ARCH_HAVE_VINTC
 
 config VINTC_DW_BASE
