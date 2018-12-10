@@ -309,18 +309,6 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
       work_queue(HPWORK, &priv->work,
         syslog_rpmsg_work, priv, SYSLOG_RPMSG_WORK_DELAY);
     }
-  else if (header->command == SYSLOG_RPMSG_TRANSFER)
-    {
-      struct syslog_rpmsg_transfer_s *msg = data;
-      struct syslog_rpmsg_header_s done;
-
-      syslog_write(msg->data, msg->count);
-
-      memset(&done, 0, sizeof(done));
-      done.command = SYSLOG_RPMSG_TRANSFER_DONE;
-      done.result  = msg->count;
-      rpmsg_send(channel, &done, sizeof(done));
-    }
   else if (header->command == SYSLOG_RPMSG_TRANSFER_DONE)
     {
       irqstate_t flags;
