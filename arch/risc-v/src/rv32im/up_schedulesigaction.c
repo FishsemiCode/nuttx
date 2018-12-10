@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/risc-v/src/song/up_schedulesigaction.c
+ * arch/risc-v/src/rv32im/up_schedulesigaction.c
  *
  *   Copyright (C) 2011, 2015-2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
