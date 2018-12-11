@@ -230,11 +230,6 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
     .parent_name = "pll1_mclk",
     .div_offset = 0x74,
   },
-  {
-    .name = "btdm_bb_sys_clk",
-    .parent_name = "rfphy_pll0_clk",
-    .div_offset = 0x5c,
-  },
   {},
 };
 
@@ -358,6 +353,15 @@ static const struct song_div_clk div[] =
     .en_offset = 0x058,
     .en_shift = 0,
     .div_offset = 0x058,
+    .div_shift = 4,
+    .div_width = 4,
+  },
+  {
+    .name = "btdm_bb_sys_clk",
+    .parent_name = "rfphy_pll0_clk",
+    .en_offset = 0x5c,
+    .en_shift = 0,
+    .div_offset = 0x5c,
     .div_shift = 4,
     .div_width = 4,
   },
