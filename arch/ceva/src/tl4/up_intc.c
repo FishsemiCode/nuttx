@@ -42,6 +42,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
+#include "sched/sched.h"
 #include "up_internal.h"
 #include "vintc.h"
 
@@ -49,8 +50,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define INTX_MASK_BIT(x)          ((x) - IRQ_INT0  +  1)
-#define TRAPX_MASK_BIT(x)         ((x) - IRQ_TRAP0 + 28)
+#define INTX_MASK_ALL             0x3e
+#define INTX_MASK_BIT(x)          ((x) - IRQ_INT0 + 1)
 
 /****************************************************************************
  * Private Functions
@@ -91,13 +92,6 @@
  * Both behavior don't match the nuttx requirement.
  */
 
-static inline uint32_t getmod1(void)
-{
-  uint32_t mod1;
-  __asm__ __volatile__("mov mod1, %0\nnop" : "=r"(mod1));
-  return mod1;
-}
-
 static inline void setmod1(uint32_t mod1)
 {
   __asm__ __volatile__("nop\nmov %0, mod1" : : "r"(mod1));
@@ -111,20 +105,24 @@ static inline void setmod1(uint32_t mod1)
 
 void up_irq_disable(void)
 {
-  /* Enable IE, but disable INT0~3 and INTV */
-
-  setmod1(REG_IRQS_IE);
-  CURRENT_IRQS &= ~REG_IRQS_IE;
+  up_irq_save();
 }
 
 /* Save the current state & disable IRQs */
 
 irqstate_t up_irq_save(void)
 {
-  irqstate_t flags;
+  struct tcb_s *rtcb = this_task();
+  irqstate_t flags = 1;
 
-  flags = CURRENT_IRQS;
-  up_irq_disable();
+  if (rtcb && !up_interrupt_context())
+    {
+      flags = rtcb->xcp.irqflags;
+      /* Disable INT0~3 and INTV */
+      setmod1(CURRENT_IRQS & ~INTX_MASK_ALL);
+      rtcb->xcp.irqflags = 1;
+    }
+
   return flags;
 }
 
@@ -132,17 +130,25 @@ irqstate_t up_irq_save(void)
 
 void up_irq_enable(void)
 {
-  /* Restore INT0~3 and INTV */
+  struct tcb_s *rtcb = this_task();
 
-  CURRENT_IRQS |= REG_IRQS_IE;
-  setmod1(CURRENT_IRQS);
+  if (rtcb && !up_interrupt_context())
+    {
+      /* Restore INT0~3 and INTV */
+      rtcb->xcp.irqflags = 0;
+      setmod1(CURRENT_IRQS);
+    }
 }
 
 /* Restore saved IRQ state */
 
 void up_irq_restore(irqstate_t flags)
 {
-  if (flags & REG_IRQS_IE)
+  if (flags)
+    {
+      up_irq_disable();
+    }
+  else
     {
       up_irq_enable();
     }
@@ -173,16 +179,6 @@ void up_disable_irq(int irq)
         {
           CURRENT_IRQS &= ~(1 << INTX_MASK_BIT(irq));
         }
-#if 0 /* All TRAPx is enabled by default(REG_MOD2_DEFAULT) */
-      else if (irq >= IRQ_TRAP0 && irq <= IRQ_TRAP3)
-        {
-          uint32_t mod2;
-
-          __asm__ __volatile__("mov mod2, %0\nnop" : "=r"(mod2));
-          mod2 &= ~(1 << TRAPX_MASK_BIT(irq));
-          __asm__ __volatile__("nop\nmov %0, mod2" : : "r"(mod2));
-        }
-#endif
       up_irq_restore(flags);
     }
   else
@@ -222,16 +218,6 @@ void up_enable_irq(int irq)
         {
           CURRENT_IRQS |= 1 << INTX_MASK_BIT(irq);
         }
-#if 0 /* All TRAPx is enabled by default(REG_MOD2_DEFAULT) */
-      else if (irq >= IRQ_TRAP0 && irq <= IRQ_TRAP3)
-        {
-          uint32_t mod2;
-
-          __asm__ __volatile__("mov mod2, %0\nnop" : "=r"(mod2));
-          mod2 |= 1 << TRAPX_MASK_BIT(irq);
-          __asm__ __volatile__("nop\nmov %0, mod2" : : "r"(mod2));
-        }
-#endif
       up_irq_restore(flags);
     }
   else
@@ -306,5 +292,5 @@ void up_irqinitialize(void)
 #endif
 
   /* And finally, enable interrupts */
-  up_irq_enable();
+  __asm__ __volatile__("eint");
 }

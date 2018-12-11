@@ -56,7 +56,7 @@
     "nop #0x04\nnop #0x04\nnop\n" /* Clear the pipe of instruction */ \
     /* Core auto restore to DPS here after wakeup */                  \
     "movp %1.ui, moda.ui"         /* restore the interrupt */         \
-     : : "r"(CURRENT_IRQS | REG_IRQS_IE)                              \
+     : : "r"(CURRENT_IRQS)                                            \
      , "r"(REG_IRQS_IE)                                               \
   )
 
