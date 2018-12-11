@@ -53,7 +53,7 @@ CMN_CSRCS += up_swint.c up_unblocktask.c
 # arch/risc-v/src/song
 #
 CHIP_ASRCS += song_head.S
-CHIP_CSRCS += dw_vintc.c pulp_eu.c
+CHIP_CSRCS += intc_dw.c intc_pulp.c
 CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
 CHIP_CSRCS += song_idle.c song_irq.c song_start.c
 CHIP_CSRCS += u2_ri5cy.c u2_ri5cy_clk.c v1_isp.c

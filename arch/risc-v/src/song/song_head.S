@@ -130,7 +130,7 @@ irq_handler:
 	csrr		x10, 0x300
 	sw		x10, 32*4(x2)
 	mv		x10, x2
-	call		irq_dispatch_all
+	call		up_dispatch_all
 	mv		x1, x10
 	lw		x10, 32*4(x1)
 	csrw		0x300, x10

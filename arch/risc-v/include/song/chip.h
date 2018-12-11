@@ -83,7 +83,7 @@ extern FAR struct i2c_master_s *g_i2c[];
 #endif
 
 #ifdef CONFIG_ARCH_HIPRI_INTERRUPT
-#define NVIC_SYSH_HIGH_PRIORITY     CONFIG_SONG_HIPRI_INTERRUPT
+#define NVIC_SYSH_HIGH_PRIORITY     CONFIG_HIPRI_INTERRUPT_PRIORITY
 #endif
 #define NVIC_IRQ_PENDSV                 (24)
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/risc-v/src/song/pulp_eu.c
+ * arch/risc-v/src/song/intc_pulp.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -37,20 +37,34 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/arch.h>
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
 #include "chip.h"
 #include "up_arch.h"
 
-#ifdef CONFIG_EVENT_UNIT_PULP
+#ifdef CONFIG_INTC_PULP
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define IER                             CONFIG_EVENT_UNIT_PULP_BASE
-#define ICP                             (CONFIG_EVENT_UNIT_PULP_BASE + 0xc)
+#define IER                             (CONFIG_INTC_PULP_BASE + 0x00)
+#define ICP                             (CONFIG_INTC_PULP_BASE + 0x0c)
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
+static uint32_t g_curr_irqs;
+static bool g_irq_disabled;
+#endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Name: up_ack_irq
@@ -60,20 +74,24 @@
  *
  ****************************************************************************/
 
-void up_ack_irq(int irq)
+static void up_ack_irq(int irq)
 {
   putreg32(1 << irq, ICP);
 }
 
 /****************************************************************************
- * Name: song_irq_dispatch
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_dispatch_irq
  *
  * Description:
  * Call interrupt controller to dispatch irqs
  *
  ****************************************************************************/
 
-void song_irq_dispatch(int irq, FAR void *context)
+void up_dispatch_irq(int irq, FAR void *context)
 {
   irq_dispatch(irq, context);
   up_ack_irq(irq);
@@ -108,9 +126,6 @@ void up_enable_irq(int irq)
 
 #else
 
-uint32_t curr_irqs;
-int irq_disabled;
-
 /****************************************************************************
  * Name: up_restore_irqs
  *
@@ -121,27 +136,30 @@ int irq_disabled;
 
 void up_restore_irqs()
 {
-  putreg32(curr_irqs, IER);
+  putreg32(g_curr_irqs, IER);
 }
 
 /****************************************************************************
  * Name: up_irq_save
  *
  * Description:
- *   Return the current enabled irqs and disabled all except bt
+ *   Return the current enabled irqs and disabled all except mask
  *
  ***************************************************************************/
 
 irqstate_t up_irq_save(void)
 {
-  putreg32(curr_irqs & NVIC_SYSH_HIGH_PRIORITY, IER);
+  putreg32(g_curr_irqs & CONFIG_HIPRI_INTERRUPT_PRIORITY, IER);
 
-  if(irq_disabled) {
-    return 0;
-  } else {
-    irq_disabled = 1;
-    return 1;
-  }
+  if(g_irq_disabled)
+    {
+      return 0;
+    }
+  else
+    {
+      g_irq_disabled = true;
+      return 1;
+    }
 }
 
 /****************************************************************************
@@ -154,10 +172,11 @@ irqstate_t up_irq_save(void)
 
 void up_irq_restore(irqstate_t flags)
 {
-  if(flags) {
-    irq_disabled = 0;
-    putreg32(curr_irqs, IER);
-  }
+  if(flags)
+    {
+      g_irq_disabled = false;
+      putreg32(g_curr_irqs, IER);
+    }
 }
 
 /****************************************************************************
@@ -173,9 +192,7 @@ void up_disable_irq(int irq)
   irqstate_t flags;
 
   flags = up_irq_save();
-
-  curr_irqs &= ~(1 << irq);
-
+  g_curr_irqs &= ~(1 << irq);
   up_irq_restore(flags);
 }
 
@@ -192,10 +209,8 @@ void up_enable_irq(int irq)
   irqstate_t flags;
 
   flags = up_irq_save();
-
-  curr_irqs |= 1 << irq;
-
+  g_curr_irqs |= 1 << irq;
   up_irq_restore(flags);
 }
-#endif/* CONFIG_ARCH_HIPRI_INTERRUPT */
-#endif/* CONFIG_EVENT_UNIT_PULP */
+#endif /* CONFIG_ARCH_HIPRI_INTERRUPT */
+#endif /* CONFIG_INTC_PULP */

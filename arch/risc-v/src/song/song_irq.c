@@ -37,22 +37,16 @@
  * Included Files
  ****************************************************************************/
 
-#include <arch/board/board.h>
-#include <nuttx/arch.h>
-#include <nuttx/board.h>
 #include <nuttx/config.h>
+#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
-#include <assert.h>
-#include <stdint.h>
-
-#include "group/group.h"
-#include "up_arch.h"
 #include "up_internal.h"
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
 volatile uint32_t *g_current_regs;
 
 /****************************************************************************
@@ -127,51 +121,45 @@ irqstate_t up_irq_enable(void)
 }
 
 /****************************************************************************
- * Name: song_dispatch_irqs
+ * Name: up_dispatch_irq
  *
  * Description:
  * Call interrupt controller to dispatch irqs
  *
  ****************************************************************************/
 
-void weak_function song_dispatch_irqs(int irq, FAR void *context)
+void weak_function up_dispatch_irq(int irq, FAR void *context)
 {
   irq_dispatch(irq, context);
 }
 
 /****************************************************************************
- * irq_dispatch_all
+ * up_dispatch_all
  ****************************************************************************/
 
-uint32_t * irq_dispatch_all(uint32_t *regs)
+uint32_t *up_dispatch_all(uint32_t *regs)
 {
+  uint32_t *savestate;
   uint32_t cause;
 
-  __asm__ volatile("csrr %0, %1" : "=r"(cause) : "i"(0x342));
-
-  /* Current regs non-zero indicates that we are processing an interrupt;
-   * g_current_regs is also used to manage interrupt level context switches.
-   *
-   * Nested interrupts are not supported
-   */
-
-  DEBUGASSERT(g_current_regs == NULL);
+  savestate = (uint32_t *)g_current_regs;
   g_current_regs = regs;
 
+  __asm__ volatile("csrr %0, %1" : "=r"(cause) : "i"(0x342));
   if (cause & 0x80000000)
     {
       cause &= 0x7fffffff;
 
       /* Deliver the IRQ */
 
-      song_dispatch_irqs(cause, regs);
+      up_dispatch_irq(cause, regs);
     }
   else if (cause == 11)
     {
       up_swint(11, regs, NULL);
     }
 
-#if defined(CONFIG_ARCH_FPU)
+#ifdef CONFIG_ARCH_FPU
   if (regs != g_current_regs)
     {
       up_restorefpu((uint32_t *)g_current_regs);
@@ -184,8 +172,8 @@ uint32_t * irq_dispatch_all(uint32_t *regs)
    * switch occurred during interrupt processing.
    */
 
-  regs = (uint32_t *) g_current_regs;
-  g_current_regs = NULL;
+  regs = (uint32_t *)g_current_regs;
+  g_current_regs = savestate;
 
   /* Return the stack pointer */
 
