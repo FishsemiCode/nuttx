@@ -60,9 +60,9 @@
 
 begin_packed_struct struct copytable_s
 {
-  uint32_t *src;
-  uint32_t *dest;
-  uint32_t *end;
+  void *src;
+  void *dest;
+  void *end;
 } end_packed_struct;
 #endif
 
@@ -75,8 +75,8 @@ begin_packed_struct struct copytable_s
 
 begin_packed_struct struct zerotable_s
 {
-  uint32_t *dest;
-  uint32_t *end;
+  void *dest;
+  void *end;
 } end_packed_struct;
 #endif
 
@@ -105,8 +105,6 @@ extern struct zerotable_s _ezerotable;
  ****************************************************************************/
 static void init_kernelspace(void)
 {
-  const uint32_t *src;
-  uint32_t *dest;
 #ifdef CONFIG_SONG_COPY_TABLE
   struct copytable_s *copytable;
 #endif
@@ -121,10 +119,7 @@ static void init_kernelspace(void)
    */
 
 #ifdef CONFIG_ARCH_RAMFUNCS
-  for (src = &_framfuncs, dest = &_sramfuncs; dest < &_eramfuncs; )
-    {
-      *dest++ = *src++;
-    }
+  memcpy(&_sramfuncs, &_framfuncs, (uintptr_t)&_eramfuncs - (uintptr_t)&_sramfuncs);
 #endif
 
   /* Move the initialized data section from his temporary holding spot in
@@ -133,44 +128,28 @@ static void init_kernelspace(void)
    * end of all of the other read-only data (.text, .rodata) at _eronly.
    */
 
-  src = &_eronly;
-  dest = &_sdata;
-  if (src != dest)
+  if (&_eronly != &_sdata)
     {
-      while (dest < &_edata)
-        {
-          *dest++ = *src++;
-        }
+      memcpy(&_sdata, &_eronly, (uintptr_t)&_edata - (uintptr_t)&_sdata);
     }
 
   /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
    * certain that there are no issues with the state of global variables.
    */
 
-  for (dest = &_sbss; dest < &_ebss; )
-    {
-      *dest++ = 0;
-    }
+  memset(&_sbss, 0, (uintptr_t)&_ebss - (uintptr_t)&_sbss);
 
 #ifdef CONFIG_SONG_COPY_TABLE
   for (copytable = &_scopytable; copytable < &_ecopytable; copytable++)
     {
-      src = copytable->src;
-      dest =  copytable->dest;
-      while (dest < copytable->end)
-        {
-          *dest++ = *src++;
-        }
+      memcpy(copytable->dest, copytable->src, copytable->end - copytable->dest);
     }
 #endif
 
 #ifdef CONFIG_SONG_ZERO_TABLE
   for (zerotable = &_szerotable; zerotable < &_ezerotable; zerotable++)
     {
-      for (dest = zerotable->dest; dest < zerotable->end;)
-        {
-          *dest++ = 0;
-        }
+      memset(zerotable->dest, 0, zerotable->end - zerotable->dest);
     }
 #endif
 }
@@ -178,9 +157,9 @@ static void init_kernelspace(void)
 #ifdef CONFIG_BUILD_PROTECTED
 static void init_userspace(void)
 {
-  const uint32_t *src;
-  uint32_t *dest;
-  uint32_t *end;
+  const void *src;
+  void *dest;
+  void *end;
 
   /* Initialize all of user-space .data */
 
@@ -188,16 +167,13 @@ static void init_userspace(void)
               USERSPACE->us_datastart != 0 && USERSPACE->us_dataend != 0 &&
               USERSPACE->us_datastart <= USERSPACE->us_dataend);
 
-  src  = (uint32_t *)USERSPACE->us_datasource;
-  dest = (uint32_t *)USERSPACE->us_datastart;
-  end  = (uint32_t *)USERSPACE->us_dataend;
+  src  = (void *)USERSPACE->us_datasource;
+  dest = (void *)USERSPACE->us_datastart;
+  end  = (void *)USERSPACE->us_dataend;
 
   if (src != dest)
     {
-      while (dest < end)
-        {
-          *dest++ = *src++;
-        }
+      memcpy(dest, src, end - dest);
     }
 
   /* Clear all of user-space .bss */
@@ -205,13 +181,10 @@ static void init_userspace(void)
   DEBUGASSERT(USERSPACE->us_bssstart != 0 && USERSPACE->us_bssend != 0 &&
               USERSPACE->us_bssstart <= USERSPACE->us_bssend);
 
-  dest = (uint32_t *)USERSPACE->us_bssstart;
-  end  = (uint32_t *)USERSPACE->us_bssend;
+  dest = (void *)USERSPACE->us_bssstart;
+  end  = (void *)USERSPACE->us_bssend;
 
-  while (dest < end)
-    {
-      *dest++ = 0;
-    }
+  memset(dest, 0, end - dest);
 }
 #else
 #  define init_userspace()

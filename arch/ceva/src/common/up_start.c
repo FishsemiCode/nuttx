@@ -142,9 +142,6 @@ static void init_bss_section(bool priv,
 
   for (i = 0; bssstart[i] != _END_MEM || bssend[i] != _END_MEM; i++)
     {
-      uint32_t *dest = bssstart[i];
-      uint32_t *end = bssend[i];
-
       if (priv)
         {
           mpu_priv_data(bssstart[i], bssend[i] - bssstart[i]);
@@ -154,10 +151,7 @@ static void init_bss_section(bool priv,
           mpu_user_data(bssstart[i], bssend[i] - bssstart[i]);
         }
 
-      while (dest < end)
-        {
-          *dest++ = 0;
-        }
+      memset(bssstart[i], 0, bssend[i] - bssstart[i]);
     }
 }
 
@@ -172,10 +166,6 @@ static void init_data_section(bool priv,
               || datastart[i] != _END_MEM
               || dataend[i] != _END_MEM; i++)
     {
-      const uint32_t *src = datasource[i];
-      uint32_t *dest = datastart[i];
-      uint32_t *end = dataend[i];
-
       if (priv)
         {
           mpu_priv_data(datastart[i], dataend[i] - datastart[i]);
@@ -185,12 +175,9 @@ static void init_data_section(bool priv,
           mpu_user_data(datastart[i], dataend[i] - datastart[i]);
         }
 
-      if (src != dest)
+      if (datasource[i] != datastart[i])
         {
-          while (dest < end)
-            {
-              *dest++ = *src++;
-            }
+          memcpy(datastart[i], datasource[i], dataend[i] - datastart[i]);
         }
     }
 }
