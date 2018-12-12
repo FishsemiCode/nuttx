@@ -142,6 +142,9 @@ static const struct fsmap_t g_bdfsmap[] =
 #ifdef MDFS_SUPPORT
 /* File systems that require MTD drivers */
 
+#ifdef CONFIG_FS_ROMFS
+extern const struct mountpt_operations romfs_operations;
+#endif
 #ifdef CONFIG_FS_SPIFFS
 extern const struct mountpt_operations spiffs_operations;
 #endif
@@ -151,6 +154,9 @@ extern const struct mountpt_operations littlefs_operations;
 
 static const struct fsmap_t g_mdfsmap[] =
 {
+#ifdef CONFIG_FS_ROMFS
+    { "romfs", &romfs_operations },
+#endif
 #ifdef CONFIG_FS_SPIFFS
     { "spiffs", &spiffs_operations },
 #endif
