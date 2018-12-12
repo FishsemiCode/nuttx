@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/risc-v/include/song/chip.h
+ * arch/risc-v/src/song/song_addrenv.c
  *
- *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+ *   Author: Guiding Li<liguiding@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,68 +33,58 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_RISCV_INCLUDE_SONG_CHIP_H
-#define __ARCH_RISCV_INCLUDE_SONG_CHIP_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <arch/chip/cache.h>
+
+#include "song_addrenv.h"
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Private Data
  ****************************************************************************/
 
-#define PM_IDLE_DOMAIN                0
-#define DEV_END                       (void *)0xffffffff
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-
-/* Global driver instances */
-
-/* Song mailbox instances */
-extern FAR struct mbox_dev_s *g_mbox[];
-
-/* Song general gpio instance */
-extern FAR struct ioexpander_dev_s *g_ioe[];
-
-/* Designware SPI controller instances */
-extern FAR struct spi_dev_s *g_spi[];
-
-/* Designware I2C controller instances */
-extern FAR struct i2c_master_s *g_i2c[];
-
-#endif
-
-#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
-#define NVIC_SYSH_HIGH_PRIORITY     CONFIG_SONG_HIPRI_INTERRUPT
-#endif
-#define NVIC_IRQ_PENDSV                 (24)
+static const struct song_addrenv_s g_addrenv_dummy;
+static const struct song_addrenv_s *g_addrenv = &g_addrenv_dummy;
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#undef EXTERN
-#ifdef __cplusplus
+void up_addrenv_initialize(const struct song_addrenv_s *addrenv)
+{
+  g_addrenv = addrenv;
 }
-#endif
-#endif
 
-#endif /* __ARCH_RISCV_INCLUDE_SONG_CHIP_H */
+void *up_addrenv_pa_to_va(uintptr_t pa)
+{
+  uint32_t i;
+
+  for (i = 0; g_addrenv[i].size; i++)
+    {
+      if (pa - g_addrenv[i].pa < g_addrenv[i].size)
+        {
+          pa = g_addrenv[i].va + (pa - g_addrenv[i].pa);
+          break;
+        }
+    }
+
+  return (void *)pa;
+}
+
+uintptr_t up_addrenv_va_to_pa(void *va)
+{
+  uint32_t i;
+
+  for (i = 0; g_addrenv[i].size; i++)
+    {
+      if (va - (void *)g_addrenv[i].va < g_addrenv[i].size)
+        {
+          va = g_addrenv[i].pa + (va - g_addrenv[i].va);
+          break;
+        }
+    }
+
+  return (uintptr_t)va;
+}

@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/risc-v/include/song/chip.h
+ * arch/risc-v/src/song/song_idle.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Author: xuanlin<xuanlin@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,68 +33,39 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_RISCV_INCLUDE_SONG_CHIP_H
-#define __ARCH_RISCV_INCLUDE_SONG_CHIP_H
+#ifndef __ARCH_RISCV_SRC_SONG_SONG_IDLE_H
+#define __ARCH_RISCV_SRC_SONG_SONG_IDLE_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <arch/chip/cache.h>
 
 /****************************************************************************
- * Pre-processor Definitions
+ * Public Function Prototypes
  ****************************************************************************/
 
-#define PM_IDLE_DOMAIN                0
-#define DEV_END                       (void *)0xffffffff
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
 #ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
 {
 #else
 #define EXTERN extern
-
-/* Global driver instances */
-
-/* Song mailbox instances */
-extern FAR struct mbox_dev_s *g_mbox[];
-
-/* Song general gpio instance */
-extern FAR struct ioexpander_dev_s *g_ioe[];
-
-/* Designware SPI controller instances */
-extern FAR struct spi_dev_s *g_spi[];
-
-/* Designware I2C controller instances */
-extern FAR struct i2c_master_s *g_i2c[];
-
 #endif
 
-#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
-#define NVIC_SYSH_HIGH_PRIORITY     CONFIG_SONG_HIPRI_INTERRUPT
-#endif
-#define NVIC_IRQ_PENDSV                 (24)
+void up_cpu_doze(void);
+void up_cpu_idle(void);
+void up_cpu_standby(void);
+void up_cpu_sleep(void);
+void up_cpu_normal(void);
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+void up_cpu_wfi(void);
+void up_cpu_save(void);
+void up_cpu_restore(void);
 
-#undef EXTERN
 #ifdef __cplusplus
 }
 #endif
-#endif
 
-#endif /* __ARCH_RISCV_INCLUDE_SONG_CHIP_H */
+#endif /* __ARCH_RISCV_SRC_SONG_SONG_IDLE_H */
