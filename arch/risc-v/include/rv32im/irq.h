@@ -49,6 +49,12 @@
 #include <nuttx/config.h>
 #include <arch/types.h>
 
+#ifndef __ASSEMBLY__
+#  include <nuttx/compiler.h>
+#  include <arch/chip/chip.h>
+#  include <stdint.h>
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
