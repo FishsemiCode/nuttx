@@ -79,12 +79,16 @@
 
 /* SYS call 0:
  *
- * void up_saveusercontext(uint32_t *saveregs);
+ * int up_saveusercontext(uint32_t *saveregs);
+ *
+ * Return:
+ * 0: Normal Return
+ * 1: Context Switch Return
  */
 
 #define SYS_save_context (0)
 #define up_saveusercontext(saveregs) \
-  (void)sys_call1(SYS_save_context, (uintptr_t)saveregs)
+  (int)sys_call1(SYS_save_context, (uintptr_t)saveregs)
 
 /* SYS call 1:
  *

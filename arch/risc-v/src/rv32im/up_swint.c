@@ -154,12 +154,16 @@ int up_swint(int irq, FAR void *context, FAR void *arg)
     {
       /* A0=SYS_save_context:  This is a save context command:
        *
-       *  void up_saveusercontext(uint32_t *saveregs);
+       *  int up_saveusercontext(uint32_t *saveregs);
        *
        * At this point, the following values are saved in context:
        *
        * A0 = SYS_save_context
        * A1 = saveregs
+       *
+       * Return:
+       * 0: Normal return
+       * 1: Context switch return
        *
        * In this case, we simply need to copy the current registers to the
        * save register space references in the saved A1 and return.
@@ -168,6 +172,7 @@ int up_swint(int irq, FAR void *context, FAR void *arg)
       case SYS_save_context:
         {
           DEBUGASSERT(regs[REG_A1] != 0);
+          *(uint32_t *)regs[REG_A0] = 1;
           up_copystate((uint32_t *)regs[REG_A1], regs);
         }
       break;
