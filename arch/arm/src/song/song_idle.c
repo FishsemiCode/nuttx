@@ -212,18 +212,16 @@ void up_cpu_wfi(void)
 
 void up_cpu_save(void)
 {
-  /* Save core context. */
+  /* Save core context. if up_saveusercontext returns
+   * a non-zero value, then this is really the warm boot!
+   */
 
-  up_saveusercontext(g_up_cpu_regs);
+  if (up_saveusercontext(g_up_cpu_regs) == 0)
+    {
+      /* And then WFI */
 
-  /* Point context PC to where we should wake up. */
-
-  g_up_cpu_regs[REG_PC] = (uint32_t)&&wakeup;
-
-  up_cpu_wfi();
-
-wakeup:
-  /* Wake up, or power up from standby mode. */;
+      up_cpu_wfi();
+    }
 }
 
 void up_cpu_restore(void)
