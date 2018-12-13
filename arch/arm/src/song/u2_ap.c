@@ -41,6 +41,7 @@
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/i2c/i2c_dw.h>
@@ -52,11 +53,13 @@
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
-#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/spi/spi_dw.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
+
+#include <stdio.h>
 
 #include "chip.h"
 #include "song_addrenv.h"

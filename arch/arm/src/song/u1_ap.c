@@ -118,9 +118,6 @@ static FAR struct dma_dev_s *g_dma[2] =
  * Public Data
  ****************************************************************************/
 
-extern uint32_t _slog;
-extern uint32_t _logsize;
-
 #ifdef CONFIG_SONG_MBOX
 FAR struct mbox_dev_s *g_mbox[4] =
 {

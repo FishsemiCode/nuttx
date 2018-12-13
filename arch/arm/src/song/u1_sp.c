@@ -39,11 +39,10 @@
 
 #include <nuttx/config.h>
 
-#include <fcntl.h>
-
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -63,6 +62,8 @@
 #include <nuttx/timers/song_rtc.h>
 #include <nuttx/wqueue.h>
 
+#include <fcntl.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include "chip.h"
@@ -151,6 +152,7 @@
 #define MUX_PIN24                   (0xb0050050)
 #define MUX_PIN25                   (0xb0050054)
 #define MUX_PIN26                   (0xb0050058)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/

@@ -39,8 +39,6 @@
 
 #include <nuttx/config.h>
 
-#include <crc32.h>
-
 #include <nuttx/clk/clk.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -56,6 +54,8 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
+
+#include <crc32.h>
 
 #include "chip.h"
 #include "song_addrenv.h"

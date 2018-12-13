@@ -43,6 +43,8 @@
 #include <nuttx/userspace.h>
 #include <arch/board/board.h>
 
+#include <string.h>
+
 #include "chip.h"
 #include "up_internal.h"
 
