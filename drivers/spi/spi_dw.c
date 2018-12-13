@@ -492,7 +492,6 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
                                 struct dw_spi_s, spi_dev);
   const struct dw_spi_config_s *config = spi->config;
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
-  struct timespec abstime;
   int ret;
 
   if (!nwords)
@@ -509,22 +508,13 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   dw_spi_enable(hw, false);
   dw_spi_set_tfifo_thresh(hw, MIN(spi->fifo_len / 2, nwords));
 
-  /* wait for transfer complete with in a predefined timeout */
-  clock_gettime(CLOCK_REALTIME, &abstime);
-  abstime.tv_nsec += SPI_TIMEOUT;
-  if (abstime.tv_nsec >= NSEC_PER_SEC)
-    {
-      abstime.tv_sec++;
-      abstime.tv_nsec -= NSEC_PER_SEC;
-    }
-
   /* enable the interrupt to tigger the transfer procedure */
   dw_spi_unmask_intr(hw, SPI_INT_TXEI);
   dw_spi_enable(hw, true);
 
   do
     {
-      ret = nxsem_timedwait(&spi->sem, &abstime);
+      ret = nxsem_wait(&spi->sem);
     }
   while (ret == -EINTR);
 
