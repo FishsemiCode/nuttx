@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clk/clk.h>
-#include <nuttx/clk/clk-provider.h>
 #include <nuttx/clk/song/song-clk.h>
 #include <stdio.h>
 
@@ -128,8 +127,6 @@ static int song_register_out_clks(uint32_t reg_base,
             const struct song_out_clk *out_clks);
 static int song_register_timer_clks(uint32_t reg_base,
             const struct song_timer_clk *timer_clks);
-static int song_set_default_rate(
-            const struct song_default_rate_clk *def_rate);
 static int song_enable_lp(uint32_t reg_base,
             const struct song_lp_reg_clk *lp_reg);
 
@@ -938,27 +935,6 @@ static int song_register_timer_clks(uint32_t reg_base,
   return 0;
 }
 
-static int song_set_default_rate(
-            const struct song_default_rate_clk *def_rate)
-{
-  struct clk *clk;
-  int ret;
-
-  while (def_rate->name)
-    {
-      clk = clk_get(def_rate->name);
-      if (!clk)
-        return -EINVAL;
-      ret = clk_set_rate(clk, def_rate->rate);
-      if (ret)
-        return ret;
-
-      def_rate++;
-    }
-
-  return 0;
-}
-
 static int song_enable_lp(uint32_t reg_base,
             const struct song_lp_reg_clk *lp_reg)
 {
@@ -1124,19 +1100,6 @@ int song_clk_initialize(uint32_t base, const struct song_clk_table *table)
   if (table->gr_sdiv_clks)
     {
       ret = song_register_gr_sdiv_clks(base, table->gr_sdiv_clks);
-      if (ret)
-        return ret;
-    }
-
-#ifdef CONFIG_CLK_RPMSG
-  ret = clk_rpmsg_initialize(table->rpmsg_server);
-  if (ret)
-    return ret;
-#endif
-
-  if (table->def_rate)
-    {
-      ret = song_set_default_rate(table->def_rate);
       if (ret)
         return ret;
     }

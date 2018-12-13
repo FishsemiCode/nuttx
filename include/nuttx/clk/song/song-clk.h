@@ -41,6 +41,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/clk/clk-provider.h>
 
 #include <stdint.h>
 
@@ -236,12 +237,6 @@ struct song_lp_reg_clk
   uint32_t           value;
 };
 
-struct song_default_rate_clk
-{
-  const char         *name;
-  uint32_t           rate;
-};
-
 struct song_clk_table
 {
   const struct song_fixed_rate_clk *fixed_rate_clks;
@@ -263,8 +258,6 @@ struct song_clk_table
   const struct song_out_clk *out_clks;
   const struct song_timer_clk *timer_clks;
   const struct song_lp_reg_clk *lp_reg;
-  const struct song_default_rate_clk *def_rate;
-  bool rpmsg_server;
 };
 
 /****************************************************************************

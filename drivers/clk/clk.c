@@ -798,6 +798,32 @@ out:
   return ret;
 }
 
+int clk_set_rates(const struct clk_rate *rates)
+{
+  struct clk *clk;
+  int ret;
+
+  if (!rates)
+    {
+      return 0;
+    }
+
+  while (rates->name)
+    {
+      clk = clk_get(rates->name);
+      if (!clk)
+        return -EINVAL;
+
+      ret = clk_set_rate(clk, rates->rate);
+      if (ret)
+        return ret;
+
+      rates++;
+    }
+
+  return 0;
+}
+
 int clk_set_phase(struct clk *clk, int degrees)
 {
   int ret = -EINVAL;

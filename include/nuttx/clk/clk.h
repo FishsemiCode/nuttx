@@ -60,6 +60,12 @@ extern "C"
 struct clk;
 struct clk_ops;
 
+struct clk_rate
+{
+  const char *name;
+  uint32_t   rate;
+};
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -78,6 +84,7 @@ int      clk_is_enabled(struct clk *clk);
 
 uint32_t clk_round_rate(struct clk *clk, uint32_t rate);
 int      clk_set_rate(struct clk *clk, uint32_t rate);
+int      clk_set_rates(const struct clk_rate *rates);
 uint32_t clk_get_rate(struct clk *clk);
 
 int      clk_set_phase(struct clk *clk, int degrees);
@@ -121,6 +128,10 @@ static inline uint32_t clk_round_rate(struct clk *clk, uint32_t rate)
     return 0;
   }
 static inline int clk_set_rate(struct clk *clk, uint32_t rate)
+  {
+    return 0;
+  }
+static inline int clk_set_rates(const struct clk_rate *rates)
   {
     return 0;
   }
