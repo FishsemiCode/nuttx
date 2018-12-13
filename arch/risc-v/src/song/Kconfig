@@ -23,6 +23,10 @@ config ARCH_CHIP_V1_ISP
 
 endchoice
 
+config EARLY_STACKSIZE
+	int "Early stack size"
+	default 0
+
 choice
 	prompt "Song Interrupt Controller Selection"
 	default VINTC_DW

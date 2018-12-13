@@ -57,10 +57,25 @@
 
 __start:
 	/* Set mtvec */
+
 	lui		t0, %hi(_vectors)
 	addi		t0, t0, %lo(_vectors)
 	csrw		mtvec, t0
+
+	/* Set stack pointer to earlystack if support warmreset */
+
+#if CONFIG_EARLY_STACKSIZE > 0
+	/* Use a dedicated stack for early process to avoid
+	 * corrupt the idle stack during restoring from the
+	 * partial powerdown state.
+	 */
+
+	la		sp, g_early_stack
+	call		up_earlystart
+#endif
+
 	/* Set stack pointer */
+
 	la		sp, _ebss + CONFIG_IDLETHREAD_STACKSIZE
 
 	/* Now jump to the up_start for future initialization */
@@ -153,3 +168,19 @@ irq_handler:
 	lw		x2, 2*4(x1)
 	lw		x1, 1*4(x1)
 	mret
+
+#if CONFIG_EARLY_STACKSIZE > 0
+/***************************************************************************
+ * Name: g_early_stack
+ ***************************************************************************/
+
+	.bss
+	.local		g_early_stack
+	.type		g_early_stack, object
+
+	.align		8
+	.space		CONFIG_EARLY_STACKSIZE
+g_early_stack:
+	.size		g_early_stack, CONFIG_EARLY_STACKSIZE
+	.end
+#endif
