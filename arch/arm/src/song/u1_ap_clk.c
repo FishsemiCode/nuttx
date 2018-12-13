@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk-provider.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
 
 #include "chip.h"
@@ -264,19 +264,6 @@ static const struct song_gate_clk gate[] =
   {},
 };
 
-static const struct song_default_rate_clk def_rate[] =
-{
-  {
-    .name = "i2c0_mclk",
-    .rate = 80000000,
-  },
-  {
-    .name = "i2c1_mclk",
-    .rate = 80000000,
-  },
-  {}
-};
-
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -285,8 +272,6 @@ static const struct song_clk_table clk_tbl =
   .sdiv_sdiv_clks    = sdiv_sdiv,
   .gate_clks         = gate,
   .out_clks          = out,
-  .def_rate          = def_rate,
-  .rpmsg_server      = false,
 };
 
 /****************************************************************************
@@ -297,4 +282,9 @@ void up_clk_initialize(void)
 {
   song_clk_initialize(0xb0040000, &clk_tbl);
 }
-#endif /* CONFIG_ARCH_CHIP_U1_AP */
+
+void up_clk_finalinitialize(void)
+{
+  clk_disable_unused();
+}
+#endif /* (CONFIG_ARCH_CHIP_U1_AP) && (CONFIG_SONG_CLK) */

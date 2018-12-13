@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk.h>
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -268,6 +268,10 @@ static void up_rptun_init(void)
 
   song_rptun_initialize(&rptun_cfg_adsp, g_mbox[CPU_INDEX_ADSP], g_mbox[CPU_INDEX_AP]);
 
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(true);
+#  endif
+
 #  ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
 #  endif
@@ -342,49 +346,25 @@ static void up_i2c_init(void)
   static const struct dw_i2c_config_s config[] =
   {
     {
-      .bus        = 0,
-      .base       = 0xa0110000,
-      .mclk       = "i2c0_mclk",
-      .irq        = 11,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 120,
-      .ss_lcnt    = 121,
-      .fs_hcnt    = 26,
-      .fs_lcnt    = 27,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .bus  = 0,
+      .base = 0xa0110000,
+      .rate = 25600000,
+      .mclk = "i2c0_mclk",
+      .irq  = 11,
     },
     {
-      .bus        = 1,
-      .base       = 0xa0120000,
-      .mclk       = "i2c1_mclk",
-      .irq        = 12,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 120,
-      .ss_lcnt    = 121,
-      .fs_hcnt    = 26,
-      .fs_lcnt    = 27,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .bus  = 1,
+      .base = 0xa0120000,
+      .rate = 25600000,
+      .mclk = "i2c1_mclk",
+      .irq  = 12,
     },
     {
-      .bus        = 2,
-      .base       = 0xa0190000,
-      .mclk       = "i2c2_mclk",
-      .irq        = 3,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 120,
-      .ss_lcnt    = 121,
-      .fs_hcnt    = 26,
-      .fs_lcnt    = 27,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .bus  = 2,
+      .base = 0xa0190000,
+      .rate = 25600000,
+      .mclk = "i2c2_mclk",
+      .irq  = 3,
     }
   };
   int config_num = sizeof(config) / sizeof(config[0]);
@@ -416,16 +396,16 @@ static void up_flash_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
+
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
   up_rptun_init();
-#endif
-
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
@@ -455,9 +435,12 @@ void up_lateinitialize(void)
 #ifdef CONFIG_MTD_GD25
   up_flash_init();
 #endif
+}
 
+void up_finalinitialize(void)
+{
 #ifdef CONFIG_SONG_CLK
-  clk_disable_unused();
+  up_clk_finalinitialize();
 #endif
 }
 

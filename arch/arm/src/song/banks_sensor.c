@@ -44,7 +44,7 @@
 #include <nuttx/audio/audio_i2s.h>
 #include <nuttx/audio/song_i2s.h>
 #include <nuttx/audio/song_pdm.h>
-#include <nuttx/clk/clk.h>
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
@@ -322,6 +322,10 @@ static void up_rptun_init(void)
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_SENSOR]);
 
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(false);
+#  endif
+
 #  ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
 #  endif
@@ -410,34 +414,18 @@ static void up_i2c_init(void)
   static const struct dw_i2c_config_s config[] =
   {
     {
-      .bus        = 0,
-      .base       = 0xf8b11000,
-      .mclk       = "i2c0_mclk",
-      .irq        = 23,
-      .sda_hold   = 8,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 100,
-      .ss_lcnt    = 124,
-      .fs_hcnt    = 16,
-      .fs_lcnt    = 35,
-      .hs_hcnt    = 13,
-      .hs_lcnt    = 10,
+      .bus  = 0,
+      .base = 0xf8b11000,
+      .mclk = "i2c0_mclk",
+      .rate = 26000000,
+      .irq  = 23,
     },
     {
-      .bus        = 1,
-      .base       = 0xf8b12000,
-      .mclk       = "i2c1_mclk",
-      .irq        = 24,
-      .sda_hold   = 8,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 100,
-      .ss_lcnt    = 124,
-      .fs_hcnt    = 16,
-      .fs_lcnt    = 35,
-      .hs_hcnt    = 4,
-      .hs_lcnt    = 8,
+      .bus  = 1,
+      .base = 0xf8b12000,
+      .mclk = "i2c1_mclk",
+      .rate = 26000000,
+      .irq  = 24,
     }
   };
   int config_num = sizeof(config) / sizeof(config[0]);
@@ -479,16 +467,16 @@ static void up_audio_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
+
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
   up_rptun_init();
-#endif
-
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
@@ -508,6 +496,13 @@ void up_lateinitialize(void)
 #endif
 
   up_audio_init();
+}
+
+void up_finalinitialize(void)
+{
+#ifdef CONFIG_SONG_CLK
+  up_clk_finalinitialize();
+#endif
 }
 
 void up_cpu_doze(void)

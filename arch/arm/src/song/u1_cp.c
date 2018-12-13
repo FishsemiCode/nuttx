@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk.h>
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -468,6 +468,10 @@ static void up_rptun_init(void)
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
   song_rptun_initialize(&rptun_cfg_sp, g_mbox[CPU_INDEX_SP], g_mbox[CPU_INDEX_CP]);
 
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(false);
+#  endif
+
 #  ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, false);
 #  endif
@@ -532,16 +536,16 @@ void up_lateinitialize(void)
 {
   up_init_startreason();
 
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
+
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
   up_rptun_init();
-#endif
-
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_RTC_SONG
@@ -555,9 +559,12 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_IOE
   up_ioe_init();
 #endif
+}
 
+void up_finalinitialize(void)
+{
 #ifdef CONFIG_SONG_CLK
-  clk_disable_unused();
+  up_clk_finalinitialize();
 #endif
 }
 

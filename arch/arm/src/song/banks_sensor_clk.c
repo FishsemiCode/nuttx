@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk-provider.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
 
 #include "chip.h"
@@ -440,19 +440,6 @@ static const struct song_lp_reg_clk lp_reg[] =
   {}
 };
 
-static const struct song_default_rate_clk def_rate[] =
-{
-  {
-    .name = "sen_ssi0_mclk",
-    .rate = 19500000,
-  },
-  {
-    .name = "sen_ssi1_mclk",
-    .rate = 19500000,
-  },
-  {},
-};
-
 static const struct song_clk_table banks_sen_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -466,8 +453,6 @@ static const struct song_clk_table banks_sen_clk_tbl =
   .mux_clks          = mux,
   .pll_clks          = pll,
   .lp_reg            = lp_reg,
-  .def_rate          = def_rate,
-  .rpmsg_server      = false,
 };
 
 /****************************************************************************
@@ -478,4 +463,8 @@ void up_clk_initialize(void)
 {
   song_clk_initialize(0xf8b14000, &banks_sen_clk_tbl);
 }
-#endif  /* CONFIG_ARCH_CHIP_BANKS_SENSOR */
+
+void up_clk_finalinitialize(void)
+{
+}
+#endif /* (CONFIG_ARCH_CHIP_BANKS_SENSOR) && (CONFIG_SONG_CLK) */

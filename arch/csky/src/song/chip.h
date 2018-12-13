@@ -61,6 +61,7 @@
 /* Clock management *********************************************************/
 
 void up_clk_initialize(void);
+void up_clk_finalinitialize(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SONG_CHIP_H */

@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk.h>
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
@@ -327,6 +327,10 @@ static void up_rptun_init(void)
   song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_AP]);
   song_rptun_initialize(&rptun_cfg_sp, g_mbox[CPU_INDEX_SP], g_mbox[CPU_INDEX_AP]);
 
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(false);
+#  endif
+
 #  ifdef CONFIG_RPMSG_REGULATOR
   rpmsg_regulator_init(CPU_NAME_SP, false);
 #  endif
@@ -410,34 +414,18 @@ static void up_i2c_init(void)
   static const struct dw_i2c_config_s config[] =
   {
     {
-      .bus        = 0,
-      .base       = 0xb00e0000,
-      .mclk       = "i2c0_mclk",
-      .irq        = 25,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 62,
-      .ss_lcnt    = 92,
-      .fs_hcnt    = 14,
-      .fs_lcnt    = 17,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .bus  = 0,
+      .base = 0xb00e0000,
+      .mclk = "i2c0_mclk",
+      .rate = 16000000,
+      .irq  = 25,
     },
     {
-      .bus        = 1,
-      .base       = 0xb00f0000,
-      .mclk       = "i2c1_mclk",
-      .irq        = 26,
-      .sda_hold   = 7,
-      .fs_spklen  = 1,
-      .hs_spklen  = 1,
-      .ss_hcnt    = 56,
-      .ss_lcnt    = 88,
-      .fs_hcnt    = 11,
-      .fs_lcnt    = 12,
-      .hs_hcnt    = 6,
-      .hs_lcnt    = 8,
+      .bus  = 1,
+      .base = 0xb00f0000,
+      .mclk = "i2c1_mclk",
+      .rate = 16000000,
+      .irq  = 26,
     }
   };
   int config_num = sizeof(config) / sizeof(config[0]);
@@ -448,16 +436,16 @@ static void up_i2c_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
+
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
   up_rptun_init();
-#endif
-
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
 #endif
 
 #ifdef CONFIG_RTC_SONG
@@ -483,9 +471,12 @@ void up_lateinitialize(void)
 #ifdef CONFIG_I2C_DW
   up_i2c_init();
 #endif
+}
 
+void up_finalinitialize(void)
+{
 #ifdef CONFIG_SONG_CLK
-  clk_disable_unused();
+  up_clk_finalinitialize();
 #endif
 }
 

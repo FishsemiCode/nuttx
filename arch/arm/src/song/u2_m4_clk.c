@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk-provider.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
 
 #include "chip.h"
@@ -639,28 +639,6 @@ static const struct song_lp_reg_clk lp_reg[] =
   {}
 };
 
-static const struct song_default_rate_clk def_rate[] =
-{
-  /* support 1Mhz i2c speed */
-  {
-    .name = "i2c0_mclk",
-    .rate = 25600000,
-  },
-  {
-    .name = "i2c1_mclk",
-    .rate = 25600000,
-  },
-  {
-    .name = "i2c2_mclk",
-    .rate = 25600000,
-  },
-  {
-    .name = "spi0_mclk",
-    .rate = 76800000,
-  },
-  {},
-};
-
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -675,8 +653,6 @@ static const struct song_clk_table clk_tbl =
   .pll_lf_clks       = pll_lf,
   .out_clks          = out,
   .lp_reg            = lp_reg,
-  .def_rate          = def_rate,
-  .rpmsg_server      = true,
 };
 
 /****************************************************************************
@@ -688,4 +664,8 @@ void up_clk_initialize(void)
   song_clk_initialize(0xa00e0000, &clk_tbl);
 }
 
-#endif /* CONFIG_ARCH_CHIP_U2_M4 */
+void up_clk_finalinitialize(void)
+{
+  clk_disable_unused();
+}
+#endif /* (CONFIG_ARCH_CHIP_U2_M4) && (CONFIG_SONG_CLK) */

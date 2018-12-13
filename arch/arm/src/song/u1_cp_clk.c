@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/clk/clk-provider.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
 
 #include "chip.h"
@@ -521,7 +521,7 @@ static const struct song_mux_clk mux[] =
   {},
 };
 
-static const struct song_default_rate_clk def_rate[] =
+static const struct clk_rate def_rates[] =
 {
   {
     .name = "cp_bus_mclk0",
@@ -547,8 +547,6 @@ static const struct song_clk_table u1_cp_clk_tbl =
   .gate_clks         = gate,
   .mux_clks          = mux,
   .timer_clks        = timer,
-  .def_rate          = def_rate,
-  .rpmsg_server      = false,
 };
 
 /****************************************************************************
@@ -559,4 +557,10 @@ void up_clk_initialize(void)
 {
   song_clk_initialize(0xb0040000, &u1_cp_clk_tbl);
 }
-#endif /* CONFIG_ARCH_CHIP_U1_CP */
+
+void up_clk_finalinitialize(void)
+{
+  clk_set_rates(def_rates);
+  clk_disable_unused();
+}
+#endif /* (CONFIG_ARCH_CHIP_U1_CP) && (CONFIG_SONG_CLK) */
