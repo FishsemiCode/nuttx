@@ -134,6 +134,12 @@ void up_initialize(void)
 
   up_irqinitialize();
 
+  /* Initialize the system timer interrupt */
+
+#ifndef CONFIG_SYSTEMTICK_EXTCLK
+  ceva_timer_initialize();
+#endif
+
 #ifdef CONFIG_PM
   /* Initialize the power management subsystem.  This MCU-specific function
    * must be called *very* early in the initialization sequence *before* any
@@ -150,12 +156,6 @@ void up_initialize(void)
    */
 
   up_dmainitialize();
-#endif
-
-  /* Initialize the system timer interrupt */
-
-#ifndef CONFIG_SYSTEMTICK_EXTCLK
-  ceva_timer_initialize();
 #endif
 
 #ifdef CONFIG_MM_IOB
