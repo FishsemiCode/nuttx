@@ -61,8 +61,7 @@ __start:
 	addi		t0, t0, %lo(_vectors)
 	csrw		mtvec, t0
 	/* Set stack pointer */
-	la		sp, _ebss
-	addi		sp, sp, CONFIG_IDLETHREAD_STACKSIZE
+	la		sp, _ebss + CONFIG_IDLETHREAD_STACKSIZE
 
 	/* Now jump to the up_start for future initialization */
 
