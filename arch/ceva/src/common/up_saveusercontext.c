@@ -63,15 +63,20 @@
 
 int up_saveusercontext(uint32_t *saveregs)
 {
+  int ret;
+
   /* Let sys_call1() do all of the work */
 
-  sys_call1(SYS_save_context, (uintptr_t)saveregs);
+  ret = sys_call1(SYS_save_context, (uintptr_t)saveregs);
+  if (ret == 0)
+    {
+      /* There are two return conditions.  On the first return, A0 (the
+       * return value will be zero.  On the second return we need to
+       * force A0 to be 1.
+       */
 
-  /* There are two return conditions.  On the first return, A0 (the
-   * return value will be zero.  On the second return we need to
-   * force A0 to be 1.
-   */
+      saveregs[REG_A0] = 1;
+    }
 
-  saveregs[REG_A0] = 1;
-  return 0;
+  return ret;
 }
