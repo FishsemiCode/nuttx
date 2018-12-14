@@ -38,7 +38,9 @@
  ****************************************************************************/
 
 #include <errno.h>
+#include <stdio.h>
 #include <nuttx/clk/clk.h>
+#include <nuttx/clk/clk-provider.h>
 #include <nuttx/mutex.h>
 #include <nuttx/nuttx.h>
 #include <nuttx/semaphore.h>
@@ -74,8 +76,6 @@
 #ifndef MIN
 #  define MIN(a,b)              ((a) < (b) ? (a) : (b))
 #endif
-
-#define SPI_TIMEOUT             (500 * NSEC_PER_MSEC)
 
 enum dw_spi_version
 {
@@ -115,7 +115,7 @@ struct dw_spi_hw_s
 struct dw_spi_s
 {
   struct spi_dev_s spi_dev;
-  struct clk *mclk;
+  struct clk *clk;
   const struct dw_spi_config_s *config;
   struct ioexpander_dev_s *ioe;
   enum dw_spi_version ver;
@@ -221,11 +221,6 @@ static uint32_t dw_spi_read_fifo(struct dw_spi_s *spi)
 static inline void dw_spi_enable(struct dw_spi_hw_s *hw, bool enable)
 {
   hw->EN = enable ? SPI_EN_ENABLE : 0;
-}
-
-static inline void dw_spi_set_div(struct dw_spi_hw_s *hw, uint16_t div)
-{
-  hw->BAUD = div;
 }
 
 static inline void dw_spi_set_tfifo_thresh(struct dw_spi_hw_s *hw, uint8_t thresh)
@@ -361,17 +356,13 @@ static uint32_t dw_spi_setfrequency(FAR struct spi_dev_s *dev,
 {
   struct dw_spi_s *spi = container_of(dev,
                                 struct dw_spi_s, spi_dev);
-  const struct dw_spi_config_s *config = spi->config;
-  struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
-  uint16_t clk_div;
-  uint32_t actual_freq;
-  uint32_t clk_rate = clk_get_rate(spi->mclk);
+  int ret;
 
-  clk_div = ((clk_rate / frequency) + 1) & SPI_BAUD_MASK;
-  actual_freq = clk_rate / clk_div;
-  dw_spi_set_div(hw, clk_div);
+  ret = clk_set_rate(spi->clk, frequency);
+  if (ret < 0)
+    spierr("DW_SPI-%p set freq to %d failed:%d\n", spi->config->base, frequency, ret);
 
-  return actual_freq;
+  return clk_get_rate(spi->clk);
 }
 /****************************************************************************
  * Name: SPI_SETMODE
@@ -453,11 +444,18 @@ static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
                                 struct dw_spi_s, spi_dev);
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)spi->config->base;
 
+  if (clk_enable(spi->clk) < 0)
+    {
+      spierr("DW_SPI-%p enable clock failed:%d\n", spi->config->base, ret);
+      return 0;
+    }
+
   dw_spi_enable(hw, true);
   hw->DATA = wd;
   while (!hw->RXFL || (hw->STS & SPI_STS_BUSY));
   wd = hw->DATA;
   dw_spi_enable(hw, false);
+  clk_disable(spi->clk);
 
   return wd;
 }
@@ -505,6 +503,13 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   spi->rx = rxbuffer;
   spi->rx_end = rxbuffer + spi->len;
 
+  ret = clk_enable(spi->clk);
+  if (ret < 0)
+    {
+      spierr("DW_SPI-%p enable clock failed:%d\n", spi->config->base, ret);
+      return;
+    }
+
   dw_spi_enable(hw, false);
   dw_spi_set_tfifo_thresh(hw, MIN(spi->fifo_len / 2, nwords));
 
@@ -523,6 +528,7 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
 
   dw_spi_enable(hw, false);
   dw_spi_mask_intr(hw, 0xff);
+  clk_disable(spi->clk);
 }
 #endif
 
@@ -655,6 +661,7 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
                                         FAR struct ioexpander_dev_s *ioe)
 {
   struct dw_spi_s *spi;
+  char name[32];
   int ret;
 
   DEBUGASSERT(config && config->cs_num &&
@@ -668,10 +675,13 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
       return NULL;
     }
 
-  spi->mclk = clk_get(config->mclk);
-  if (!spi->mclk)
+  sprintf(name, "spi%d_clk", config->bus);
+  spi->clk = clk_register_divider(name, config->mclk, CLK_SET_RATE_PARENT,
+          config->base + offsetof(struct dw_spi_hw_s, BAUD),
+          0, 16, CLK_DIVIDER_ONE_BASED | CLK_DIVIDER_DIV_NEED_EVEN);
+  if (!spi->clk)
     {
-      spierr("mclk invalid for spi %p\n", config->base);
+      spierr("DW_SPI-%p create clock failed\n", config->base);
       kmm_free(spi);
       return NULL;
     }
@@ -692,17 +702,6 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   if (ret)
     goto sem_prio_err;
 
-  ret = clk_enable(spi->mclk);
-  if (ret)
-    goto clk_en_err;
-
-  /* XXX: temporarily set MCLK to ~15M to be able to driver for high
-   * speed slave devices; later we will introduce a more flexible
-   * method under clock framework */
-  ret = clk_set_rate(spi->mclk, 15000000);
-  if (ret)
-    spiwarn("DW_SPI-%p clk set failed:%d\n", ret);
-
   dw_spi_hw_init(spi);
 
   ret = irq_attach(config->irq, dw_spi_isr, spi);
@@ -720,14 +719,12 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   return &spi->spi_dev;
 
 irq_err:
-clk_en_err:
 sem_prio_err:
   nxsem_destroy(&spi->sem);
 sem_err:
   nxmutex_destroy(&spi->mutex);
 mutex_err:
   kmm_free(spi);
-  spierr("spi%x initialize failed %d\n", config->base, ret);
   return NULL;
 }
 
