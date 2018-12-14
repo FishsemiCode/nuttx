@@ -312,7 +312,15 @@ static void up_rptun_init(void)
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
-  g_ioe[0] = song_ioe_initialize(4, B2C(0xf900c000), IRQ_VINT5);
+  static const struct song_ioe_config_s cfg =
+  {
+    .cpu  = 4,
+    .base = B2C(0xf900c000),
+    .irq  = IRQ_VINT5,
+    .mclk = "ap/gpio_clk",
+  };
+
+  g_ioe[0] = song_ioe_initialize(&cfg);
 }
 #endif
 

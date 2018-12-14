@@ -276,7 +276,15 @@ void up_wdtinit(void)
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
-  g_ioe[0] = song_ioe_initialize(1, B2C(0xa00f0000), IRQ_VINT6);
+  static const struct song_ioe_config_s cfg =
+  {
+    .cpu  = 1,
+    .base = B2C(0xa00f0000),
+    .irq  = IRQ_VINT6,
+    .mclk = "ap/gpio_clk",
+  };
+
+  g_ioe[0] = song_ioe_initialize(&cfg);
 }
 #endif
 
