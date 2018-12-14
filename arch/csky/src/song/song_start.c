@@ -42,6 +42,8 @@
 #include <nuttx/init.h>
 #include <arch/board/board.h>
 
+#include <string.h>
+
 #include "chip.h"
 #include "up_internal.h"
 
@@ -59,9 +61,9 @@
 
 begin_packed_struct struct copytable_s
 {
-  uint32_t *src;
-  uint32_t *dest;
-  uint32_t *end;
+  void *src;
+  void *dest;
+  void *end;
 } end_packed_struct;
 #endif
 
@@ -74,8 +76,8 @@ begin_packed_struct struct copytable_s
 
 begin_packed_struct struct zerotable_s
 {
-  uint32_t *dest;
-  uint32_t *end;
+  void *dest;
+  void *end;
 } end_packed_struct;
 #endif
 
@@ -84,10 +86,6 @@ begin_packed_struct struct zerotable_s
  ****************************************************************************/
 
 static void init_kernelspace(void);
-
-#ifdef CONFIG_BUILD_PROTECTED
-static void init_userspace(void);
-#endif
 
 #ifdef CONFIG_PM
 static void cache_pm_notify(struct pm_callback_s *cb, int domain,
@@ -109,8 +107,6 @@ extern struct zerotable_s _ezerotable;
  ****************************************************************************/
 static void init_kernelspace(void)
 {
-  const uint32_t *src;
-  uint32_t *dest;
 #ifdef CONFIG_SONG_COPY_TABLE
   struct copytable_s *copytable;
 #endif
@@ -125,10 +121,7 @@ static void init_kernelspace(void)
    */
 
 #ifdef CONFIG_ARCH_RAMFUNCS
-  for (src = &_framfuncs, dest = &_sramfuncs; dest < &_eramfuncs; )
-    {
-      *dest++ = *src++;
-    }
+  memcpy(&_sramfuncs, &_framfuncs, (uintptr_t)&_eramfuncs - (uintptr_t)&_sramfuncs);
 #endif
 
   /* Move the initialized data section from his temporary holding spot in
@@ -137,44 +130,28 @@ static void init_kernelspace(void)
    * end of all of the other read-only data (.text, .rodata) at _eronly.
    */
 
-  src = &_eronly;
-  dest = &_sdata;
-  if (src != dest)
+  if (&_eronly != &_sdata)
     {
-      while (dest < &_edata)
-        {
-          *dest++ = *src++;
-        }
+      memcpy(&_sdata, &_eronly, (uintptr_t)&_edata - (uintptr_t)&_sdata);
     }
 
   /* Clear .bss.  We'll do this inline (vs. calling memset) just to be
    * certain that there are no issues with the state of global variables.
    */
 
-  for (dest = &_sbss; dest < &_ebss; )
-    {
-      *dest++ = 0;
-    }
+  memset(&_sbss, 0, (uintptr_t)&_ebss - (uintptr_t)&_sbss);
 
 #ifdef CONFIG_SONG_COPY_TABLE
   for (copytable = &_scopytable; copytable < &_ecopytable; copytable++)
     {
-      src = copytable->src;
-      dest =  copytable->dest;
-      while (dest < copytable->end)
-        {
-          *dest++ = *src++;
-        }
+      memcpy(copytable->dest, copytable->src, copytable->end - copytable->dest);
     }
 #endif
 
 #ifdef CONFIG_SONG_ZERO_TABLE
   for (zerotable = &_szerotable; zerotable < &_ezerotable; zerotable++)
     {
-      for (dest = zerotable->dest; dest < zerotable->end;)
-        {
-          *dest++ = 0;
-        }
+      memset(zerotable->dest, 0, zerotable->end - zerotable->dest);
     }
 #endif
 }
