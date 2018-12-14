@@ -96,7 +96,7 @@
 
 
 #if defined(CONFIG_ARCH_FPU)
-#    define up_savestate(regs)  up_copyarmstate(regs, (uint32_t*)current_regs)
+#    define up_savestate(regs)  up_copyfullstate(regs, (uint32_t*)current_regs)
 #  else
 #    define up_savestate(regs)  up_copyfullstate(regs, (uint32_t*)current_regs)
 #endif
@@ -236,7 +236,7 @@ void csky_boot(void);
 
 void up_copyfullstate(uint32_t *dest, uint32_t *src);
 #ifdef CONFIG_ARCH_FPU
-void up_copyarmstate(uint32_t *dest, uint32_t *src);
+//void up_copyarmstate(uint32_t *dest, uint32_t *src);
 #endif
 uint32_t *up_decodeirq(uint32_t *regs);
 int  up_saveusercontext(uint32_t *saveregs);

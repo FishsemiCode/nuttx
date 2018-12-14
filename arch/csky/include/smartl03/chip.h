@@ -1,6 +1,5 @@
 /****************************************************************************
- * arch/csky/include/ch2201/irq.h
- * include/arch/ch2201/irq.h
+ * arch/csky/include/smartl/chip.h
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,26 +27,20 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-#define __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
+/* This file should never be included directed but, rather, only indirectly
+ * through nuttx/irq.h
+ */
+
+#ifndef __ARCH_CSKY_INCLUDE_SMARTL_CHIP_H
+#define __ARCH_CSKY_INCLUDE_SMARTL_CHIP_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CHIP_CH2201)
-#  include <arch/chip/ch2201_irq.h>
-#  include <arch/chip/pin.h>
-#  include <arch/chip/pinmux.h>
-#  include <arch/chip/pin_name.h>
-#  include <arch/chip/soc.h>
-#  include <arch/chip/sys_freq.h>
-#endif
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
 
 /****************************************************************************
  * Public Types
@@ -56,24 +49,10 @@
 /****************************************************************************
  * Public Variables
  ****************************************************************************/
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
-#endif
-
-#endif /* __ARCH_CSKY_INCLUDE_CH2201_IRQ_H */
+#endif /* __ARCH_CSKY_INCLUDE_SMARTL_CHIP_H */
 

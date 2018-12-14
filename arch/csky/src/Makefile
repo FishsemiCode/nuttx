@@ -37,6 +37,10 @@ ifeq ($(CONFIG_ARCH_CK802),y)           # Base Integer support
 ARCH_SUBDIR = ck802
 endif
 
+ifeq ($(CONFIG_ARCH_CK803F),y)           # Base Integer support
+ARCH_SUBDIR = ck803f
+endif
+
 CPPFLAGS += $(EXTRADEFINES)
 CFLAGS += $(EXTRADEFINES)
 CXXFLAGS += $(EXTRADEFINES)

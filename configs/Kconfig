@@ -806,6 +806,13 @@ config ARCH_BOARD_CB2201
 	---help---
 		This is the port NuttX to the CSKY CK802 processor runnining on a CSKY CB2201 board.
 
+config ARCH_BOARD_SMARTL03_EVB
+	bool "CSKY CK803f on SMARTL03 board"
+	depends on ARCH_CHIP_SMARTL
+	select UART_SERIALDRIVER
+	---help---
+		This is the port NuttX to the CSKY CK802 processor runnining on a CSKY SMARTL03 board.
+
 config ARCH_BOARD_NUCLEO_144
 	bool "STMicro NUCLEO-144"
 	depends on ARCH_CHIP_STM32F722ZE || ARCH_CHIP_STM32F746ZG || ARCH_CHIP_STM32F767ZI

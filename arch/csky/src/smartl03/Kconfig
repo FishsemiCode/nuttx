@@ -3,55 +3,55 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
-comment "CSKY CH2201 Configuration Options"
+comment "CSKY SMARTL Configuration Options"
 
 choice
 	prompt "CSKY Chip Selection"
-	default ARCH_CHIP_CH2201
-	depends on ARCH_CHIP_CH2XXX
+	default ARCH_CHIP_SMARTL03
+	depends on ARCH_CHIP_SMARTL
 
-config ARCH_CHIP_CH2201
-	bool "CH2201"
-	select CH2201_HAVE_UART0
+config ARCH_CHIP_SMARTL03
+	bool "SMARTL"
+	select SMARTL_HAVE_UART0
 	---help---
-		CH2201, 8K ROM, 80K SRAM, 254KB FLASH
+		SMARTL, 512K I-ROM, 512K D-SRAM, 8M OFFCHIP-SRAM, 128K ONCHIP-SRAM
 
 endchoice
 
-menu "CH2201 Peripheral Support"
+menu "SMARTL Peripheral Support"
 
 # These "hidden" settings determine is a peripheral option is available for the
 # selection MCU
 
-config CH2201_HAVE_UART0
+config SMARTL_HAVE_UART0
 	bool
 	default n
 	select UART0_SERIALDRIVER
 	select ARCH_HAVE_SERIAL_TERMIOS
 
-config CH2201_UART0
+config SMARTL_UART0
 	bool "UART0"
 	default n
 	select ARCH_HAVE_UART0
 	select ARCH_HAVE_SERIAL_TERMIOS
-	select CH2201_UART
+	select SMARTL_UART
 
 endmenu
 
-config CH2201_UART
+config SMARTL_UART
 	bool
 
-config CH2201_UART_RX_BUF_SIZE
+config SMARTL_UART_RX_BUF_SIZE
 	int "UART RX Bufer size"
 	default 64
-	depends on CH2201_UART
+	depends on SMARTL_UART
 	---help---
-		Size of RX buffers for CH2201 UARTs
+		Size of RX buffers for SMARTL UARTs
 
-config CH2201_UART_TX_BUF_SIZE
+config SMARTL_UART_TX_BUF_SIZE
 	int "UART TX Bufer size"
 	default 64
-	depends on CH2201_UART
+	depends on SMARTL_UART
 	---help---
-		Size of TX buffers for CH2201 UARTs
+		Size of TX buffers for SMARTL UARTs
 

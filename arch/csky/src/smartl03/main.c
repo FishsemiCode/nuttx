@@ -1,6 +1,7 @@
 /****************************************************************************
- * arch/csky/include/ch2201/irq.h
- * include/arch/ch2201/irq.h
+ *
+ *   Copyright (C) 2012-2013, 2016 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,6 +13,9 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,52 +32,47 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-#define __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CHIP_CH2201)
-#  include <arch/chip/ch2201_irq.h>
-#  include <arch/chip/pin.h>
-#  include <arch/chip/pinmux.h>
-#  include <arch/chip/pin_name.h>
-#  include <arch/chip/soc.h>
-#  include <arch/chip/sys_freq.h>
-#endif
+#include <nuttx/config.h>
+#include <nuttx/init.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-
 /****************************************************************************
- * Public Types
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Name: board_app_initialize
+ *
+ * Description:
+ *   Perform architecture specific initialization
+ *
+ * Input Parameters:
+ *   arg - The boardctl() argument is passed to the board_app_initialize()
+ *         implementation without modification.  The argument has no
+ *         meaning to NuttX; the meaning of the argument is a contract
+ *         between the board-specific initalization logic and the
+ *         matching application logic.  The value cold be such things as a
+ *         mode enumeration value, a set of DIP switch switch settings, a
+ *         pointer to configuration data read from a file or serial FLASH,
+ *         or whatever you would like to do with it.  Every implementation
+ *         should accept zero/NULL as a default configuration.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure to indicate the nature of the failure.
+ *
  ****************************************************************************/
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+
+int main(void)
 {
-#else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#undef EXTERN
-#ifdef __cplusplus
+    asm volatile("psrset ie,ee");
+    os_start();
+    return 0;
 }
-#endif
-#endif
-
-#endif /* __ARCH_CSKY_INCLUDE_CH2201_IRQ_H */
-

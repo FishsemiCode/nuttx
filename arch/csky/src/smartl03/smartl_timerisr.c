@@ -1,6 +1,8 @@
 /****************************************************************************
- * arch/csky/include/ch2201/irq.h
- * include/arch/ch2201/irq.h
+ * arch/csky/src/smartl/smartl_timerisr.c
+ *
+ *   Copyright (C) 2009, 2017 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,6 +14,9 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -28,52 +33,47 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-#define __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CHIP_CH2201)
-#  include <arch/chip/ch2201_irq.h>
-#  include <arch/chip/pin.h>
-#  include <arch/chip/pinmux.h>
-#  include <arch/chip/pin_name.h>
-#  include <arch/chip/soc.h>
-#  include <arch/chip/sys_freq.h>
-#endif
+#include <nuttx/config.h>
 
+#include <stdint.h>
+#include <time.h>
+#include <debug.h>
+#include <nuttx/arch.h>
+#include <arch/board/board.h>
+#include <nuttx/irq.h>
+
+#include "clock/clock.h"
+#include "up_internal.h"
+#include "up_arch.h"
+
+extern void CORET_IRQHandler(int irq, uint32_t *regs, void *arg);
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-
 /****************************************************************************
- * Public Types
+ * Private Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Functions
  ****************************************************************************/
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+
+/****************************************************************************
+ * Function:  csky_timer_initialize
+ *
+ * Description:
+ *   This function is called during start-up to initialize
+ *   the timer interrupt.
+ *
+ ****************************************************************************/
+
+void csky_timer_initialize(void)
 {
-#else
-#define EXTERN extern
-#endif
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-#undef EXTERN
-#ifdef __cplusplus
+    irq_attach(CORET_IRQn, (xcpt_t)CORET_IRQHandler, NULL);
+    up_enable_irq(CORET_IRQn);
 }
-#endif
-#endif
-
-#endif /* __ARCH_CSKY_INCLUDE_CH2201_IRQ_H */
-

@@ -44,7 +44,7 @@
 
 #ifndef CONFIG_STACK_ALIGNMENT
 
-/* The symbol  __ARM_EABI__ is defined by GCC if EABI is being used.  If you
+/* The symbol  __CSKY_EABI__ is defined by GCC if EABI is being used.  If you
  * are not using GCC, make sure that CONFIG_STACK_ALIGNMENT is set correctly!
  */
 

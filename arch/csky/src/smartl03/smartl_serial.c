@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/csky/src/ch2201/ch2201_serial.c
+ * arch/csky/src/smartl/smartl_serial.c
  *
  *   Copyright (C) 2007-2009, 2012-2013, 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -54,10 +54,9 @@
 #include "up_arch.h"
 #include "up_internal.h"
 #include <drv_usart.h>
-#include "chip/dw_usart.h"
+#include "chip/ck_usart.h"
 
 extern usart_handle_t console_handle;
-extern void USART0_IRQHandler(int irq, uint32_t *regs, void *arg);
 
 #ifdef USE_SERIALDRIVER
 
@@ -120,6 +119,9 @@ static const struct uart_ops_s g_uart_ops =
   .txready        = up_txready,
   .txempty        = up_txempty,
 };
+
+/* FIXME: for simulator bug, IIR cannot host after reading */
+static int g_int_status;
 
 /* I/O buffers */
 
@@ -334,7 +336,7 @@ static int up_interrupt(int irq, void *context, void *arg)
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
   priv = (struct up_dev_s *)dev->priv;
 
-  dw_usart_reg_t *addr = (dw_usart_reg_t *)(priv->uartbase);
+  ck_usart_reg_t *addr = (ck_usart_reg_t *)(priv->uartbase);
 
   /* Loop until there are no characters to be transferred or,
    * until we have been looping for a long time.
@@ -347,6 +349,7 @@ static int up_interrupt(int irq, void *context, void *arg)
        */
 
        status = addr->IIR & 0xf;
+       g_int_status = status;
 
       /* The NO INTERRUPT should be zero if there are pending
        * interrupts
@@ -431,6 +434,8 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
   uint8_t ch;
 
   csi_usart_getchar(console_handle, &ch);
+  g_int_status = 1;
+
   return ch;
 }
 
@@ -472,9 +477,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
 
 static bool up_rxavailable(struct uart_dev_s *dev)
 {
-  struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
-  dw_usart_reg_t *addr = (dw_usart_reg_t *)(priv->uartbase);
-  uint8_t status = addr->IIR & 0xf;
+  uint8_t status = g_int_status & 0xf;
 
   if (status == DW_IIR_RECV_DATA) {
       return true;
@@ -493,13 +496,11 @@ static bool up_rxavailable(struct uart_dev_s *dev)
 
 static void up_send(struct uart_dev_s *dev, int ch)
 {
-  /* FIXME: \r */
-  if (ch == '\n')
-    {
-      /* Add CR */
+  csi_usart_putchar(console_handle, ch);
 
-      csi_usart_putchar(console_handle, '\r');
-    }
+  if (ch == '\n') {
+    csi_usart_putchar(console_handle, '\r');
+  }
 }
 
 /****************************************************************************
@@ -560,7 +561,7 @@ static bool up_txready(struct uart_dev_s *dev)
 static bool up_txempty(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
-  dw_usart_reg_t *addr = (dw_usart_reg_t *)(priv->uartbase);
+  ck_usart_reg_t *addr = (ck_usart_reg_t *)(priv->uartbase);
   uint8_t status = addr->IIR & 0xf;
 
   if (status == DW_IIR_THR_EMPTY) {
@@ -625,6 +626,7 @@ int up_putc(int ch)
 
     if (ch == '\n') {
         csi_usart_putchar(console_handle, '\r');
+
     }
 
     csi_usart_putchar(console_handle, ch);

@@ -8,10 +8,17 @@ comment "CSKY Options"
 
 choice
 	prompt "CSKY chip selection"
-	default ARCH_CHIP_CSKY
+	default ARCH_CHIP_SMARTL
+	default ARCH_CHIP_CH2XXX
 
-config ARCH_CHIP_CSKY
-	bool "CSKY"
+config ARCH_CHIP_SMARTL
+	bool "SMARTL"
+	select ARCH_CK803F
+	---help---
+		CSKY architectures (CK803F cores).
+
+config ARCH_CHIP_CH2XXX
+	bool "CH2XXX"
 	select ARCH_CK802
 	---help---
 		CSKY architectures (CK802 cores).
@@ -27,23 +34,49 @@ config ARCH_CSKY_SONG
 
 endchoice
 
+config ARCH_CK803F
+	bool
+	select ARCH_HAVE_FPU
+	default n
+
 config ARCH_CK802
 	bool
 	default n
 
 config ARCH_FAMILY
 	string
+	default "ck803f"		if ARCH_CK803F
 	default "ck802"		if ARCH_CK802
 
 config ARCH_CHIP
 	string
-	default "ch2201"	if ARCH_CHIP_CSKY
+	default "smartl03"	if ARCH_CHIP_SMARTL
+	default "ch2201"	if ARCH_CHIP_CH2XXX
 	default "song"		if ARCH_CSKY_SONG
+
+config ARCH_HAVE_FPU
+	bool
+	default n
+
+config ARCH_FPU
+	bool "FPU support"
+	default y
+	depends on ARCH_HAVE_FPU
+	---help---
+		Build in support for the CSKY CK803F Floating Point Unit (FPU).
+		Check your chip specifications first;
+
+if ARCH_CK803F
+source arch/csky/src/ck803f/Kconfig
+endif
+if ARCH_CHIP_SMARTL
+source arch/csky/src/smartl03/Kconfig
+endif
 
 if ARCH_CK802
 source arch/csky/src/ck802/Kconfig
 endif
-if ARCH_CHIP_CSKY
+if ARCH_CHIP_CH2XXX
 source arch/csky/src/ch2201/Kconfig
 endif
 if ARCH_CSKY_SONG

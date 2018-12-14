@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/riscv/src/common/up_createstack.c
+ * arch/csky/src/common/up_createstack.c
  *
  *   Copyright (C) 2011, 2013, 2015 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -191,7 +191,7 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
       up_stack_color(tcb->stack_alloc_ptr, stack_size);
 #endif
 
-      /* MIPS uses a push-down stack:  the stack grows toward lower
+      /* CSKY uses a push-down stack:  the stack grows toward lower
        * addresses in memory.  The stack pointer register points to the
        * lowest, valid working address (the "top" of the stack).  Items on
        * the stack are referenced as positive word offsets from sp.
@@ -199,7 +199,7 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
 
       top_of_stack = (uint32_t)tcb->stack_alloc_ptr + stack_size - 4;
 
-      /* The MIPS stack must be aligned at word (4 byte) boundaries; for
+      /* The CSKY stack must be aligned at word (4 byte) boundaries; for
        * floating point use, the stack must be aligned to 8-byte addresses.
        * If necessary top_of_stack must be rounded down to the next
        * boundary to meet these alignment requirements.

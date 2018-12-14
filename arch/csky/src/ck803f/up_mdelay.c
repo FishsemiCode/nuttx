@@ -1,5 +1,5 @@
 /************************************************************************************
- *arch/csky/include/irq.h
+ * arch/csky/src/ck803f/up_mdelay.c
  *
  * Copyright (C) 2015 The YunOS Open Source Project
  *
@@ -18,68 +18,56 @@
  ************************************************************************************/
 
 
-/* This file should never be included directed but, rather, only indirectly
- * through nuttx/irq.h
- */
-
-#ifndef __ARCH_CSKY_INCLUDE_IRQ_H
-#define __ARCH_CSKY_INCLUDE_IRQ_H
-
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-/* Include NuttX-specific IRQ definitions */
-
-#include <nuttx/irq.h>
-
-/* Include chip-specific IRQ definitions (including IRQ numbers) */
-
-#include <arch/chip/irq.h>
-
-/* Include CSKY architecture-specific IRQ definitions (including register
- * save structure and irqsave()/irqrestore() macros)
- */
-#if defined(CONFIG_ARCH_CK802)
-#  include <arch/ck802/irq.h>
-#else
-#  include <arch/ck803f/irq.h>
-#endif
+#include <nuttx/config.h>
+#include <nuttx/arch.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /****************************************************************************
- * Inline functions
+ * Private Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Private Variables
  ****************************************************************************/
 
 /****************************************************************************
- * Public Function Prototypes
+ * Private Functions
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: up_mdelay
+ *
+ * Description:
+ *   Delay inline for the requested number of milliseconds.
+ *   *** NOT multi-tasking friendly ***
+ *
+ * ASSUMPTIONS:
+ *   The setting CONFIG_BOARD_LOOPSPERMSEC has been calibrated
+ *
+ ****************************************************************************/
+
+void up_mdelay(unsigned int milliseconds)
 {
-#else
-#define EXTERN extern
-#endif
+    volatile unsigned int i;
+    volatile unsigned int j;
 
-#undef EXTERN
-#ifdef __cplusplus
+    for (i = 0; i < milliseconds; i++) {
+        for (j = 0; j < CONFIG_BOARD_LOOPSPERMSEC; j++) {
+        }
+    }
 }
-#endif
-#endif
-
-#endif /* __ARCH_CSKY_INCLUDE_IRQ_H */
-

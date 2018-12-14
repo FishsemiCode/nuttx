@@ -1,6 +1,6 @@
 /****************************************************************************
- * arch/csky/include/ch2201/irq.h
- * include/arch/ch2201/irq.h
+ * arch/csky/include/smartl03/irq.h
+ * include/arch/smartl03/irq.h
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -28,15 +28,15 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-#define __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
+#ifndef __ARCH_CSKY_INCLUDE_SMARTL_IRQ_H
+#define __ARCH_CSKY_INCLUDE_SMARTL_IRQ_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_CHIP_CH2201)
-#  include <arch/chip/ch2201_irq.h>
+#if defined(CONFIG_ARCH_CHIP_SMARTL03)
+#  include <arch/chip/smartl_irq.h>
 #  include <arch/chip/pin.h>
 #  include <arch/chip/pinmux.h>
 #  include <arch/chip/pin_name.h>
@@ -75,5 +75,5 @@ extern "C"
 #endif
 #endif
 
-#endif /* __ARCH_CSKY_INCLUDE_CH2201_IRQ_H */
+#endif /* __ARCH_CSKY_INCLUDE_SMARTL_IRQ_H */
 

@@ -22,8 +22,8 @@
  * through nuttx/irq.h
  */
 
-#ifndef __ARCH_CSKY_INCLUDE_CK802_IRQ_H
-#define __ARCH_CSKY_INCLUDE_CK802_IRQ_H
+#ifndef __ARCH_CSKY_INCLUDE_CK803_IRQ_H
+#define __ARCH_CSKY_INCLUDE_CK803_IRQ_H
 
 /****************************************************************************
  * Included Files
@@ -34,10 +34,9 @@
 #include <nuttx/irq.h>
 #ifndef __ASSEMBLY__
 #  include <nuttx/compiler.h>
-#  include <arch/chip/chip.h>
 #  include <stdint.h>
-#  include <arch/ck802/csi_core.h>
-#  include <arch/ck802/csi_gcc.h>
+#  include <arch/ck803f/csi_core.h>
+#  include <arch/ck803f/csi_gcc.h>
 #endif
 
 /****************************************************************************
@@ -78,9 +77,26 @@
 #define REG_R13             (13)
 #define REG_R14             (14)
 #define REG_R15             (15)
-#define REG_PSR             (16)
-#define REG_EPC             (17)
-#define XCPTCONTEXT_REGS    (18)
+#define REG_VR0             (16)
+#define REG_VR1             (17)
+#define REG_VR2             (18)
+#define REG_VR3             (19)
+#define REG_VR4             (20)
+#define REG_VR5             (21)
+#define REG_VR6             (22)
+#define REG_VR7             (23)
+#define REG_VR8             (24)
+#define REG_VR9             (25)
+#define REG_VR10            (26)
+#define REG_VR11            (27)
+#define REG_VR12            (28)
+#define REG_VR13            (29)
+#define REG_VR14            (30)
+#define REG_VR15            (31)
+#define REG_PSR             (32)
+#define REG_EPC             (33)
+
+#define XCPTCONTEXT_REGS    (34)
 
 #define XCPTCONTEXT_SIZE    (4 * XCPTCONTEXT_REGS)
 
@@ -191,11 +207,26 @@ static inline void irqrestore(irqstate_t flags)
         : :"r" (flags) :"memory" );
 }
 
+/* Disable IRQs */
+static inline void up_disable_irq(int irq) inline_function;
+static inline void up_disable_irq(int irq)
+{
+    csi_vic_disable_irq(irq);
+}
+
 /* Save the current primask state & disable IRQs */
 static inline irqstate_t up_irq_save(void) inline_function;
 static inline irqstate_t up_irq_save(void)
 {
     return csi_irq_save();
+}
+
+/* Enable IRQs */
+
+static inline void up_enable_irq(int irq) inline_function;
+static inline void up_enable_irq(int irq)
+{
+    csi_vic_enable_irq(irq);
 }
 
 /* Restore saved primask state */
@@ -231,5 +262,5 @@ extern "C"
 #endif
 #endif
 
-#endif /* __ARCH_CSKY_INCLUDE_CK802_IRQ_H */
+#endif /* __ARCH_CSKY_INCLUDE_CK803_IRQ_H */
 

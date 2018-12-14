@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/csky/src/ck802/up_vfork.c
+ * arch/csky/src/ck803f/up_vfork.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -121,8 +121,6 @@ pid_t up_vfork(const struct vfork_s *context)
   size_t stacksize;
   uint32_t newsp;
   uint32_t stackutil;
-  size_t argsize;
-  void *argv;
   int ret;
 
   sinfo("vfork context [%p]:\n", context);
@@ -132,10 +130,18 @@ pid_t up_vfork(const struct vfork_s *context)
         context->r8, context->r9, context->r10);
   sinfo("  r11:%08x sp:%08x lr:%08x\n",
         context->r11, context->sp, context->lr);
+  sinfo("  vr0:%08x vr1:%08x vr2:%08x vr3:%08x\n",
+        context->vr0, context->vr1, context->vr2,  context->vr3);
+  sinfo("  vr4:%08x vr5:%08x vr6:%08x vr7:%08x\n",
+        context->vr0, context->vr1, context->vr2,  context->vr7);
+  sinfo("  vr8:%08x vr9:%08x vr10:%08x vr11:%08x\n",
+        context->vr8, context->vr9, context->vr10,  context->vr11);
+  sinfo("  vr12:%08x vr13:%08x vr14:%08x vr15:%08x\n",
+        context->vr12, context->vr13, context->vr14,  context->vr15);
 
   /* Allocate and initialize a TCB for the child task. */
 
-  child = task_vforksetup((start_t)(context->lr & ~1), &argsize);
+  child = task_vforksetup((start_t)(context->lr & ~1));
   if (!child)
     {
       sinfo("ERROR: task_vforksetup failed\n");
@@ -153,7 +159,7 @@ pid_t up_vfork(const struct vfork_s *context)
 
   /* Allocate the stack for the TCB */
 
-  ret = up_create_stack((FAR struct tcb_s *)child, stacksize + argsize,
+  ret = up_create_stack((FAR struct tcb_s *)child, stacksize,
                         parent->flags & TCB_FLAG_TTYPE_MASK);
   if (ret != OK)
     {
@@ -161,11 +167,6 @@ pid_t up_vfork(const struct vfork_s *context)
       task_vforkabort(child, -ret);
       return (pid_t)ERROR;
     }
-
-  /* Allocate the memory and copy argument from parent task */
-
-  argv = up_stack_frame((FAR struct tcb_s *)child, argsize);
-  memcpy(argv, parent->adj_stack_ptr, argsize);
 
   /* How much of the parent's stack was utilized?  The CSKY uses
    * a push-down stack so that the current stack pointer should
@@ -204,6 +205,22 @@ pid_t up_vfork(const struct vfork_s *context)
   child->cmn.xcp.regs[REG_R10] = context->r10; /* Volatile register r10 */
   child->cmn.xcp.regs[REG_R11] = context->r11; /* Volatile register r11 */
   child->cmn.xcp.regs[REG_SP]  = newsp;        /* Stack pointer */
+  child->cmn.xcp.regs[REG_VR0]  = context->vr0;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR1]  = context->vr1;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR2]  = context->vr2;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR3]  = context->vr3;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR4]  = context->vr4;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR5]  = context->vr5;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR6]  = context->vr6;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR7]  = context->vr7;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR8]  = context->vr8;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR9]  = context->vr9;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR10]  = context->vr10;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR11]  = context->vr11;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR12]  = context->vr12;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR13]  = context->vr13;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR14]  = context->vr14;  /* Floating point register */
+  child->cmn.xcp.regs[REG_VR15]  = context->vr15;  /* Floating point register */
 
   /* And, finally, start the child task.  On a failure, task_vforkstart()
    * will discard the TCB by calling task_vforkabort().

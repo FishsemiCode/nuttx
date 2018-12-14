@@ -1,6 +1,8 @@
-/****************************************************************************
- * arch/csky/include/ch2201/irq.h
- * include/arch/ch2201/irq.h
+/************************************************************************************
+ * arch/csky/src/ck803f/csky.h
+ *
+ *   Copyright (C) 2007-2010 Gregory Nutt. All rights reserved.
+ *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -12,6 +14,9 @@
  *    notice, this list of conditions and the following disclaimer in
  *    the documentation and/or other materials provided with the
  *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
  * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
@@ -26,36 +31,34 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ ************************************************************************************/
 
-#ifndef __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
-#define __ARCH_CSKY_INCLUDE_CH2201_IRQ_H
+#ifndef __ARCH_CSKY_SRC_CK803F_H
+#define __ARCH_CSKY_SRC_CK803F_H
 
-/****************************************************************************
+/************************************************************************************
  * Included Files
- ****************************************************************************/
+ ************************************************************************************/
 
-#if defined(CONFIG_ARCH_CHIP_CH2201)
-#  include <arch/chip/ch2201_irq.h>
-#  include <arch/chip/pin.h>
-#  include <arch/chip/pinmux.h>
-#  include <arch/chip/pin_name.h>
-#  include <arch/chip/soc.h>
-#  include <arch/chip/sys_freq.h>
-#endif
-
-/****************************************************************************
+/************************************************************************************
  * Pre-processor Definitions
- ****************************************************************************/
+ ************************************************************************************/
 
+/* PSR bits */
+
+#define USR_MODE      0x00000140 /* 32-bit User mode */
+#define SVC_MODE      0x80000140 /* 32-bit Supervisor mode */
+#define PSR_F_BIT     0xffffffef /* Bit 4: FIQ disable */
+#define PSR_I_BIT     0xffffffbf /* Bit 6: IRQ disable */
 
 /****************************************************************************
- * Public Types
+ * Public Data
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Function Prototypes
  ****************************************************************************/
+
 #ifndef __ASSEMBLY__
 #ifdef __cplusplus
 #define EXTERN extern "C"
@@ -65,15 +68,10 @@ extern "C"
 #define EXTERN extern
 #endif
 
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
-#endif
+#endif /* __ASSEMBLY__ */
 
-#endif /* __ARCH_CSKY_INCLUDE_CH2201_IRQ_H */
-
+#endif  /* __ARCH_CSKY_SRC_CK803F_H */
