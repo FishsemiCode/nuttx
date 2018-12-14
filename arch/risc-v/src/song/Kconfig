@@ -21,6 +21,10 @@ config ARCH_CHIP_V1_ISP
 	bool "V1 ISP"
 	select ARCH_RV32IM
 
+config ARCH_CHIP_V1_RPM
+	bool "V1 RPM"
+	select ARCH_RV32IM
+
 endchoice
 
 config EARLY_STACKSIZE
