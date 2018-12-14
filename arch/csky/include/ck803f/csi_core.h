@@ -42,7 +42,7 @@
 #elif defined(__CK810__)
 #include "core_ck810.h"
 #elif defined(__CK807__)
-#include "core_ck807.h>"
+#include "core_ck807.h"
 #endif
 
 #include "csi_gcc.h"

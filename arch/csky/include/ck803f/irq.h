@@ -34,6 +34,7 @@
 #include <nuttx/irq.h>
 #ifndef __ASSEMBLY__
 #  include <nuttx/compiler.h>
+#  include <arch/chip/chip.h>
 #  include <stdint.h>
 #  include <arch/ck803f/csi_core.h>
 #  include <arch/ck803f/csi_gcc.h>
@@ -207,26 +208,11 @@ static inline void irqrestore(irqstate_t flags)
         : :"r" (flags) :"memory" );
 }
 
-/* Disable IRQs */
-static inline void up_disable_irq(int irq) inline_function;
-static inline void up_disable_irq(int irq)
-{
-    csi_vic_disable_irq(irq);
-}
-
 /* Save the current primask state & disable IRQs */
 static inline irqstate_t up_irq_save(void) inline_function;
 static inline irqstate_t up_irq_save(void)
 {
     return csi_irq_save();
-}
-
-/* Enable IRQs */
-
-static inline void up_enable_irq(int irq) inline_function;
-static inline void up_enable_irq(int irq)
-{
-    csi_vic_enable_irq(irq);
 }
 
 /* Restore saved primask state */
