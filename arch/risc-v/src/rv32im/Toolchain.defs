@@ -80,6 +80,7 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGL)
   CROSSDEV ?= riscv64-unknown-elf-
   ARCROSSDEV ?= riscv64-unknown-elf-
   ARCHCPUFLAGS = -mabi=ilp32
+  MAXOPTIMIZATION ?= -Os -msave-restore
 ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
   ARCHCPUFLAGS += -march=rv32imc
 else
@@ -94,6 +95,7 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGW)
     WINTOOL = y
   endif
   ARCHCPUFLAGS = -mabi=ilp32
+  MAXOPTIMIZATION ?= -Os -msave-restore
 ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
   ARCHCPUFLAGS += -march=rv32imc
 else
@@ -105,11 +107,5 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RISCY)
   CROSSDEV ?= riscv32-unknown-elf-
   ARCROSSDEV ?= riscv32-unknown-elf-
   ARCHCPUFLAGS = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__ -D__pulp__ -D__GAP8__
-endif
-
-# Individual tools may limit the optimizatin level but, by default, the
-# optimization level will be set to to -Os
-
-ifeq ($(CONFIG_DEBUG_SYMBOLS),)
-MAXOPTIMIZATION ?= -Os
+  MAXOPTIMIZATION ?= -Os -msave-restore
 endif
