@@ -108,6 +108,10 @@
 
 #define DW_I2C_FORCE_UINT8(x)               ((x) & DW_I2C_DATA_CMD_DAT)
 
+#ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x)                     (sizeof(x) / sizeof((x)[0]))
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -162,6 +166,20 @@ struct dw_i2c_hw_s
   volatile uint32_t COMP_TYPE;          /* 0xfc */
 };
 
+struct dw_i2c_timing_s
+{
+  uint32_t rate;
+  uint32_t sda_hold;
+  uint32_t fs_spklen;
+  uint32_t hs_spklen;
+  uint32_t ss_hcnt;
+  uint32_t ss_lcnt;
+  uint32_t fs_hcnt;
+  uint32_t fs_lcnt;
+  uint32_t hs_hcnt;
+  uint32_t hs_lcnt;
+};
+
 struct dw_i2c_dev_s
 {
   struct i2c_master_s dev;              /* I2c private data */
@@ -189,6 +207,17 @@ struct dw_i2c_dev_s
 };
 
 /****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static const struct dw_i2c_timing_s g_i2c_timings[] =
+{
+  {16000000, 7, 1, 1, 62 , 92 , 14, 17, 6, 8},
+  {25600000, 7, 1, 1, 120, 121, 26, 27, 6, 8},
+  {26000000, 8, 1, 1, 100, 124, 16, 35, 4, 8},
+};
+
+/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -206,6 +235,33 @@ static const struct i2c_ops_s dw_i2c_ops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: dw_i2c_get_timing
+ *
+ * Description:
+ *   get timing config from static g_i2c_timings array
+ *
+ * Input Parameters:
+ *   rate    - I2c contolller mclk
+ *
+ * Returned Value:
+ *  NULL(don't find timing config according to rate)
+ *  timing config pointer
+ ****************************************************************************/
+
+const struct dw_i2c_timing_s *dw_i2c_get_timing(uint32_t rate)
+{
+  int i;
+
+  for (i = 0; i < ARRAY_SIZE(g_i2c_timings); i++)
+    {
+      if (g_i2c_timings[i].rate == rate)
+        return &g_i2c_timings[i];
+    }
+
+  return NULL;
+}
 
 /****************************************************************************
  * Name: dw_i2c_enable_disable
@@ -781,8 +837,9 @@ transfer_done:
  *
  ****************************************************************************/
 
-void dw_i2c_hw_init(FAR struct dw_i2c_dev_s *i2c, FAR const struct dw_i2c_config_s *config)
+static void dw_i2c_hw_init(FAR struct dw_i2c_dev_s *i2c, FAR const struct dw_i2c_config_s *config)
 {
+  const struct dw_i2c_timing_s *timing = dw_i2c_get_timing(config->rate);
   uint32_t param;
 
   dw_i2c_disable(i2c);
@@ -792,32 +849,60 @@ void dw_i2c_hw_init(FAR struct dw_i2c_dev_s *i2c, FAR const struct dw_i2c_config
   i2c->rx_fifo_depth = ((param >> 8)  & 0xff) + 1;
 
   /* Configure Tx/Rx FIFO threshold levels */
+
   i2c->hw->TX_TL = i2c->tx_fifo_depth / 2;
   i2c->hw->RX_TL = 0;
 
   /* set i2c scl high/low count reg */
+
   if (config->ss_hcnt)
     i2c->hw->SS_SCL_HCNT = config->ss_hcnt;
+  else if (timing)
+    i2c->hw->SS_SCL_HCNT = timing->ss_hcnt;
+
   if (config->ss_lcnt)
     i2c->hw->SS_SCL_LCNT = config->ss_lcnt;
+  else if (timing)
+    i2c->hw->SS_SCL_LCNT = timing->ss_lcnt;
+
   if (config->fs_hcnt)
     i2c->hw->FS_SCL_HCNT = config->fs_hcnt;
+  else if (timing)
+    i2c->hw->FS_SCL_HCNT = timing->fs_hcnt;
+
   if (config->fs_lcnt)
     i2c->hw->FS_SCL_LCNT = config->fs_lcnt;
+  else if (timing)
+    i2c->hw->FS_SCL_LCNT = timing->fs_lcnt;
+
   if (config->hs_hcnt)
     i2c->hw->HS_SCL_HCNT = config->hs_hcnt;
+  else if (timing)
+    i2c->hw->HS_SCL_HCNT = timing->hs_hcnt;
+
   if (config->hs_lcnt)
     i2c->hw->HS_SCL_LCNT = config->hs_lcnt;
+  else if (timing)
+    i2c->hw->HS_SCL_LCNT = timing->hs_lcnt;
 
   /* set i2c sda hold time */
+
   if (config->sda_hold)
     i2c->hw->SDA_HOLD = config->sda_hold;
+  else if (timing)
+    i2c->hw->SDA_HOLD = timing->sda_hold;
 
   /* set fs/hs spklen */
+
   if (config->fs_spklen)
     i2c->hw->FS_SPKLEN = config->fs_spklen;
+  else if (timing)
+    i2c->hw->FS_SPKLEN = timing->fs_spklen;
+
   if (config->hs_spklen)
     i2c->hw->HS_SPKLEN = config->hs_spklen;
+  else if (timing)
+    i2c->hw->HS_SPKLEN = timing->hs_spklen;
 }
 
 /****************************************************************************
@@ -858,6 +943,16 @@ FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *con
     {
       i2cerr("i2c:%p mclk invalid\n", config->base);
       goto sem_prio_err;
+    }
+
+  if (config->rate)
+    {
+      ret = clk_set_rate(i2c->mclk, config->rate);
+      if (ret)
+        {
+          i2cerr("i2c:%p mclk set rate failed\n", config->base);
+          goto sem_prio_err;
+        }
     }
 
   ret = clk_enable(i2c->mclk);
