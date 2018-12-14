@@ -44,6 +44,7 @@
 #include <errno.h>
 
 #include "chip.h"
+#include "sched/sched.h"
 
 #ifdef CONFIG_INTC_DW
 
@@ -248,19 +249,6 @@ void up_trigger_irq(int irq)
 #ifdef CONFIG_ARCH_HIPRI_INTERRUPT
 
 /****************************************************************************
- * Name: up_restore_irqs
- *
- * Description:
- * restore the enabled irqs
- *
- ****************************************************************************/
-
-void up_restore_irqs()
-{
-  g_intc_dw->IRQ_PLEVEL = 0;
-}
-
-/****************************************************************************
  * Name: up_irq_save
  *
  * Description:
@@ -270,15 +258,20 @@ void up_restore_irqs()
 
 irqstate_t up_irq_save(void)
 {
-  if (g_intc_dw->IRQ_PLEVEL)
+  struct tcb_s *rtcb = this_task();
+  irqstate_t flags = 1;
+
+  if (!rtcb || up_interrupt_context())
     {
-      return 0;
+      return flags;
     }
-  else
-    {
-      g_intc_dw->IRQ_PLEVEL = CONFIG_HIPRI_INTERRUPT_PRIORITY;
-      return 1;
-    }
+
+  flags = rtcb->xcp.irqflags;
+
+  g_intc_dw->IRQ_PLEVEL = CONFIG_HIPRI_INTERRUPT_PRIORITY;
+  rtcb->xcp.irqflags = 1;
+
+  return flags;
 }
 
 /****************************************************************************
@@ -291,8 +284,21 @@ irqstate_t up_irq_save(void)
 
 void up_irq_restore(irqstate_t flags)
 {
+  struct tcb_s *rtcb = this_task();
+
+  if (!rtcb || up_interrupt_context())
+    {
+      return;
+    }
+
   if(flags)
     {
+      g_intc_dw->IRQ_PLEVEL = CONFIG_HIPRI_INTERRUPT_PRIORITY;
+      rtcb->xcp.irqflags = 1;
+    }
+  else
+    {
+      rtcb->xcp.irqflags = 0;
       g_intc_dw->IRQ_PLEVEL = 0;
     }
 }

@@ -343,6 +343,10 @@ struct xcptcontext
 
 #endif
 
+#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
+  irqstate_t irqflags;
+#endif
+
   /* Register save area */
 
   uint32_t regs[XCPTCONTEXT_REGS];

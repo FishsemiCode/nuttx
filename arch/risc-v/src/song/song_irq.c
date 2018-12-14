@@ -41,6 +41,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
+#include "sched/sched.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -174,6 +175,14 @@ uint32_t *up_dispatch_all(uint32_t *regs)
 
   regs = (uint32_t *)g_current_regs;
   g_current_regs = savestate;
+
+#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
+
+  /* Restore the irqflags for the new task */
+
+  struct tcb_s *rtcb = this_task();
+  up_irq_restore(rtcb->xcp.irqflags);
+#endif
 
   /* Return the stack pointer */
 
