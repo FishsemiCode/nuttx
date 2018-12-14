@@ -26,7 +26,9 @@ config ARCH_CHIP_GAP8
 config ARCH_RISCV_SONG
 	bool "Pinecone Song"
 	select ARCH_CHIP_SONG
+	select ARCH_HAVE_HEAPCHECK
 	select ARCH_HAVE_RESET
+	select ARCH_HAVE_STACKCHECK
 	---help---
 		Pinecone Song(RISC-V series) architectures
 

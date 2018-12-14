@@ -35,7 +35,7 @@
 
 # arch/risc-v/src/common
 #
-CMN_CSRCS += up_createstack.c up_exit.c
+CMN_CSRCS += up_checkstack.c up_createstack.c up_exit.c
 CMN_CSRCS += up_initialize.c up_interruptcontext.c up_modifyreg8.c
 CMN_CSRCS += up_modifyreg16.c up_modifyreg32.c
 CMN_CSRCS += up_releasestack.c

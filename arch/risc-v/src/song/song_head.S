@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#include "up_internal.h"
+
 /****************************************************************************
  * Public Symbols
  ****************************************************************************/
@@ -77,6 +79,20 @@ __start:
 	/* Set stack pointer */
 
 	la		sp, _ebss + CONFIG_IDLETHREAD_STACKSIZE
+
+#ifdef CONFIG_STACK_COLORATION
+	/* Set the IDLE stack to the stack coloration value then jump to
+	 * up_start().  We take extreme care here because were currently
+	 * executing on this stack.
+	 */
+	la		t0, _ebss
+	la		t1, _ebss + CONFIG_IDLETHREAD_STACKSIZE - 4
+	la		t3, STACK_COLOR
+1:
+	sw		t3, 0(t0)
+	addi		t0, t0, 4
+	bltu		t0, t1, 1b
+#endif
 
 	/* Now jump to the up_start for future initialization */
 

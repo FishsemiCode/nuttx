@@ -53,6 +53,8 @@
 
 #include <arch/board/board.h>
 
+#include "sched/sched.h"
+
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -109,6 +111,8 @@ static inline void up_color_intstack(void)
 
 void up_initialize(void)
 {
+  struct tcb_s *idle;
+
   /* Colorize the interrupt stack */
 
   up_color_intstack();
@@ -116,6 +120,13 @@ void up_initialize(void)
   /* Add any extra memory fragments to the memory manager */
 
   up_addregion();
+
+  /* Initialize the idle task stack info */
+
+  idle = this_task(); /* It should be idle task */
+  idle->stack_alloc_ptr = _END_BSS;
+  idle->adj_stack_ptr   = (FAR void *)g_idle_topstack;
+  idle->adj_stack_size  = CONFIG_IDLETHREAD_STACKSIZE;
 
   /* Initialize the interrupt subsystem */
 
