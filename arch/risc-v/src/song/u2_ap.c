@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arm/src/song/u2_ap.c
+ * arch/risc-v/src/song/u2_ap.c
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Wang Yanjiong <wangyanjiong@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -64,7 +64,6 @@
 #include "chip.h"
 #include "song_addrenv.h"
 #include "song_idle.h"
-#include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -82,13 +81,9 @@
 
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
-#define TOP_PWR_M4_INTR2SLP_MK0     (TOP_PWR_BASE + 0x224)
-#define TOP_PWR_SLPCTL_M4           (TOP_PWR_BASE + 0x404)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
-
-#define TOP_PWR_SLPCTL_M4_SLP_EN    (1 << 0)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
@@ -140,32 +135,11 @@ FAR struct i2c_master_s *g_i2c[4] =
  * Public Functions
  ****************************************************************************/
 
-void up_wic_initialize(void)
-{
-  putreg32(0xffffffff, TOP_PWR_M4_INTR2SLP_MK0);
-}
-
-void up_wic_enable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
-}
-
-void up_wic_disable_irq(int irq)
-{
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PWR_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
-}
-
 void up_dmainitialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(0, 0xa0040000, 17, "top_dmas_hclk");
-  g_dma[1] = song_dmas_initialize(0, 0xa0080000, 16, "audio_dmas_hclk");
+  g_dma[0] = song_dmas_initialize(0, 0xa0040000, 1, "top_dmas_hclk");
+  g_dma[1] = song_dmas_initialize(0, 0xa0080000, 0, "audio_dmas_hclk");
 #endif
 }
 
@@ -176,14 +150,14 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 }
 #endif
 
-void arm_timer_initialize(void)
+void riscv_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
     .minor      = -1,
     .base       = TOP_PWR_BASE,
-    .irq        = 25,
+    .irq        = 9,
     .c1_max     = 600,
     .c1_freq    = 6000000,
     .ctl_off    = 0x290,
@@ -197,10 +171,6 @@ void arm_timer_initialize(void)
   };
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
-#endif
-
-#ifdef CONFIG_CPULOAD_PERIOD
-  sched_period_extclk(systick_initialize(false, 32768, -1));
 #endif
 }
 
@@ -225,7 +195,7 @@ static void up_mbox_init(void)
       .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
       .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
       .chnl_count = 16,
-      .irq        = 32,
+      .irq        = 16,
     },
     {
       .index      = CPU_INDEX_ADSP,
@@ -315,7 +285,7 @@ void up_wdtinit(void)
   {
     .path = CONFIG_WATCHDOG_DEVPATH,
     .base = 0xa0170000,
-    .irq  = 37,
+    .irq  = 21,
     .tclk = "m4_wdt_tclk",
   };
 
@@ -330,7 +300,7 @@ void up_ioe_init(void)
   {
     .cpu  = 0,
     .base = 0xa00f0000,
-    .irq  = 26,
+    .irq  = 10,
     .mclk = "gpio_clk32k",
   };
 
@@ -346,7 +316,7 @@ static void up_spi_init(void)
     {
       .bus = 0,
       .base = 0xa0130000,
-      .irq = 29,
+      .irq = 13,
       .cs_num = 1,
       .cs_gpio[0] = 28,
       .mclk = "spi0_mclk",
@@ -354,7 +324,7 @@ static void up_spi_init(void)
     {
       .bus = 1,
       .base = 0xa0140000,
-      .irq = 30,
+      .irq = 14,
       .cs_num = 1,
       .cs_gpio[0] = 32,
       .mclk = "spi1_mclk",
@@ -375,7 +345,7 @@ static void up_i2c_init(void)
       .bus        = 0,
       .base       = 0xa0110000,
       .mclk       = "i2c0_mclk",
-      .irq        = 27,
+      .irq        = 11,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -390,7 +360,7 @@ static void up_i2c_init(void)
       .bus        = 1,
       .base       = 0xa0120000,
       .mclk       = "i2c1_mclk",
-      .irq        = 28,
+      .irq        = 12,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -405,7 +375,7 @@ static void up_i2c_init(void)
       .bus        = 2,
       .base       = 0xa0190000,
       .mclk       = "i2c2_mclk",
-      .irq        = 19,
+      .irq        = 3,
       .sda_hold   = 7,
       .fs_spklen  = 1,
       .hs_spklen  = 1,
@@ -508,31 +478,6 @@ void up_reset(int status)
 
   putreg32(TOP_PWR_SFRST_RESET << 16 |
            TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
-}
-
-void up_cpu_doze(void)
-{
-  putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-  putreg32(TOP_PWR_SLPCTL_M4_SLP_EN << 16, TOP_PWR_SLPCTL_M4);
-  up_cpu_wfi();
-}
-
-void up_cpu_idle(void)
-{
-  putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-  putreg32(TOP_PWR_SLPCTL_M4_SLP_EN << 16 |
-           TOP_PWR_SLPCTL_M4_SLP_EN, TOP_PWR_SLPCTL_M4);
-  up_cpu_wfi();
-}
-
-void up_cpu_standby(void)
-{
-  up_cpu_idle();
-}
-
-void up_cpu_sleep(void)
-{
-  up_cpu_standby();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */

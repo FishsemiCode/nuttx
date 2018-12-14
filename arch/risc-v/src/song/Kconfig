@@ -10,11 +10,11 @@ config ARCH_CHIP_SONG
 
 choice
 	prompt "Song Chip Selection"
-	default ARCH_CHIP_U2_RI5CY
+	default ARCH_CHIP_U2_AP
 	depends on ARCH_CHIP_SONG
 
-config ARCH_CHIP_U2_RI5CY
-	bool "U2 RI5CY"
+config ARCH_CHIP_U2_AP
+	bool "U2 AP"
 	select ARCH_RV32IM
 
 config ARCH_CHIP_V1_ISP

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/u2_ap_clk.c
+ * arch/arm/src/song/u2_m4_clk.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: zhuyanlin <zhuyanlin@pinecone.net>
@@ -44,7 +44,7 @@
 
 #include "chip.h"
 
-#if defined(CONFIG_ARCH_CHIP_U2_AP) && defined(CONFIG_SONG_CLK)
+#if defined(CONFIG_ARCH_CHIP_U2_M4) && defined(CONFIG_SONG_CLK)
 
 /****************************************************************************
  * Private Data
@@ -688,4 +688,4 @@ void up_clk_initialize(void)
   song_clk_initialize(0xa00e0000, &clk_tbl);
 }
 
-#endif /* CONFIG_ARCH_CHIP_U2_AP */
+#endif /* CONFIG_ARCH_CHIP_U2_M4 */
