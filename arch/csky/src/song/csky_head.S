@@ -117,7 +117,7 @@ __Vectors:
 	.type		__start, %function
 __start:
 Reset_Handler:
-	lrw		r0, 0xe0000000
+	lrw		r0, 0x80000200
 	mtcr		r0, psr
 
 	/* Initialize the normal stack pointer from the linker definition. */

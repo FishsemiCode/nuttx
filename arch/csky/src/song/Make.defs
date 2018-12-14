@@ -42,7 +42,7 @@ CMN_CSRCS += up_modifyreg32.c up_releasepending.c up_releasestack.c
 CMN_CSRCS += up_reprioritizertr.c up_schedulesigaction.c up_sigdeliver.c
 CMN_CSRCS += up_stackframe.c up_unblocktask.c up_usestack.c
 
-# arch/csky/src/ck802
+# arch/csky/src/ck80x
 #
 CMN_ASRCS += up_fullcontextrestore.S up_saveusercontext.S up_vectors.S vfork.S
 CMN_CSRCS += up_assert.c up_decodeirq.c up_traps.c up_vfork.c
@@ -53,4 +53,4 @@ CHIP_ASRCS = csky_head.S
 CHIP_CSRCS += csky_vic.c
 CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
-CHIP_CSRCS += u1_ck.c
+CHIP_CSRCS += u1_ck.c u2_ck.c

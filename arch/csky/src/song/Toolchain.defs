@@ -69,7 +69,11 @@ endif
 
 CROSSDEV   ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/csky/bin/csky-abiv2-elf-
 ARCROSSDEV ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/csky/bin/csky-abiv2-elf-
-include ${TOPDIR}/arch/csky/src/ck802/Toolchain.defs
+ifeq ($(CONFIG_ARCH_CK802),y)
+  include ${TOPDIR}/arch/csky/src/ck802/Toolchain.defs
+else ifeq ($(CONFIG_ARCH_CK803F),y)
+  include ${TOPDIR}/arch/csky/src/ck803f/Toolchain.defs
+endif
 
 CC = $(CROSSDEV)gcc
 CXX = $(CROSSDEV)g++
