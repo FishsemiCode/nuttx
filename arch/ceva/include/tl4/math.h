@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/src/tl4/cpm.h
+ * arch/ceva/include/tl4/math.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,18 +33,17 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CEVA_SRC_TL4_CPM_H
-#define __ARCH_CEVA_SRC_TL4_CPM_H
+#ifndef __ARCH_CEVA_INCLUDE_TL4_MATH_H
+#define __ARCH_CEVA_INCLUDE_TL4_MATH_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <asm-tl4.h>
-#include <stdint.h>
+#include_next <math.h>
 
 /****************************************************************************
- * Inline functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 #ifdef __cplusplus
@@ -55,27 +54,86 @@ extern "C"
 #define EXTERN extern
 #endif
 
-static inline uint32_t getcpm(uintptr_t addr)
-{
-  uint32_t value;
+float       ceilf (float x);
+long double ceill (long double x);
 
-  tl4_in_cpm_rN_ind(*(const volatile uint32_t *)addr, value);
-  return value;
-}
+float       floorf(float x);
+long double floorl(long double x);
 
-static inline void putcpm(uintptr_t addr, uint32_t value)
-{
-  tl4_out_cpm_rN_ind(value, *(volatile uint32_t *)addr);
-}
+float       roundf(float x);
+double      round (double x);
+long double roundl(long double x);
 
-static inline void modifycpm(uintptr_t addr, uint32_t clearbits, uint32_t setbits)
-{
-  putcpm(addr, (getcpm(addr) & ~clearbits) | setbits);
-}
+float       fabsf (float x);
+long double fabsl (long double x);
+
+float       modff (float x, float *iptr);
+long double modfl (long double x, long double *iptr);
+
+float       fmodf (float x, float div);
+long double fmodl (long double x, long double div);
+
+float       powf  (float b, float e);
+long double powl  (long double b, long double e);
+
+float       expf  (float x);
+long double expl  (long double x);
+
+double      gamma(double x);
+double      lgamma(double x);
+
+float       logf  (float x);
+long double logl  (long double x);
+
+float       log10f(float x);
+long double log10l(long double x);
+
+float       log2f (float x);
+double      log2  (double x);
+long double log2l (long double x);
+
+float       sqrtf (float x);
+long double sqrtl (long double x);
+
+float       ldexpf(float x, int n);
+long double ldexpl(long double x, int n);
+
+float       frexpf(float x, int *exp);
+long double frexpl(long double x, int *exp);
+
+float       sinf  (float x);
+long double sinl  (long double x);
+
+float       cosf  (float x);
+long double cosl  (long double x);
+
+float       tanf  (float x);
+long double tanl  (long double x);
+
+float       asinf (float x);
+long double asinl (long double x);
+
+float       acosf (float x);
+long double acosl (long double x);
+
+float       atanf (float x);
+long double atanl (long double x);
+
+float       atan2f(float y, float x);
+long double atan2l(long double y, long double x);
+
+float       sinhf (float x);
+long double sinhl (long double x);
+
+float       coshf (float x);
+long double coshl (long double x);
+
+float       tanhf (float x);
+long double tanhl (long double x);
 
 #undef EXTERN
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ARCH_CEVA_SRC_TL4_CPM_H */
+#endif /* __ARCH_CEVA_INCLUDE_TL4_MATH_H */

@@ -57,12 +57,12 @@ extern "C"
 
 static inline uint32_t getcpm(uintptr_t addr)
 {
-  return in(cpm, (const volatile uintptr_t *)addr);
+  return in(cpm, (const volatile uint32_t *)addr);
 }
 
 static inline void putcpm(uintptr_t addr, uint32_t value)
 {
-  out(cpm, value, (volatile uintptr_t *)addr);
+  out(cpm, value, (volatile uint32_t *)addr);
 }
 
 static inline void modifycpm(uintptr_t addr, uint32_t clearbits, uint32_t setbits)

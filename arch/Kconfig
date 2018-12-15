@@ -35,6 +35,7 @@ config ARCH_CEVA
 	select ARCH_HAVE_TLS
 	select ARCH_HAVE_VFORK
 	select ARCH_GNU_NO_WEAKFUNCTIONS
+	select ARCH_MATH_H
 	select ARCH_STDARG_H
 	select ARCH_TOOLCHAIN_GNU
 	---help---

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/include/types.h
+ * arch/ceva/include/xm6/math.h
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
@@ -33,64 +33,41 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
- * through sys/types.h
- */
-
-#ifndef __ARCH_CEVA_INCLUDE_TYPES_H
-#define __ARCH_CEVA_INCLUDE_TYPES_H
+#ifndef __ARCH_CEVA_INCLUDE_XM6_MATH_H
+#define __ARCH_CEVA_INCLUDE_XM6_MATH_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Type Declarations
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-/* These are the sizes of the standard integer types.  NOTE that these type
- * names have a leading underscore character.  This file will be included
- * (indirectly) by include/stdint.h and typedef'ed to the final name without
- * the underscore character.  This roundabout way of doings things allows
- * the stdint.h to be removed from the include/ directory in the event that
- * the user prefers to use the definitions provided by their toolchain header
- * files
- */
-
-typedef signed char        _int8_t;
-typedef unsigned char      _uint8_t;
-
-typedef signed short       _int16_t;
-typedef unsigned short     _uint16_t;
-
-typedef signed int         _int32_t;
-typedef unsigned int       _uint32_t;
-
-typedef signed long long   _int64_t;
-typedef unsigned long long _uint64_t;
-#define __INT64_DEFINED
-
-/* A pointer is 4 bytes */
-
-typedef signed long        _intptr_t;
-typedef unsigned long      _uintptr_t;
-
-/* This is the size of the interrupt state save returned by up_irq_save(). */
-
-typedef unsigned int       irqstate_t;
-
-#endif /* __ASSEMBLY__ */
+#include_next <math.h>
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-#endif /* __ARCH_CEVA_INCLUDE_TYPES_H */
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
+#endif
+
+float       roundf(float x);
+double      round (double x);
+long double roundl(long double x);
+
+double      gamma(double x);
+double      lgamma(double x);
+
+float       log2f (float x);
+double      log2  (double x);
+long double log2l (long double x);
+
+#undef EXTERN
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* __ARCH_CEVA_INCLUDE_XM6_MATH_H */

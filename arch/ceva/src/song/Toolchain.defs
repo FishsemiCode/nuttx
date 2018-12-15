@@ -42,6 +42,14 @@ ifeq ($(CONFIG_WINDOWS_CYGWIN),y)
   ARCHINCLUDES = -I. -I"${shell cygpath -w $(TOPDIR)/include}"
   ARCHXXINCLUDES = -I. -I"${shell cygpath -w $(TOPDIR)/include}" -I"${shell cygpath -w $(TOPDIR)/include/cxx}"
   ARCHSCRIPT = "${shell cygpath -w $(LDSCRIPT)}"
+
+  ifeq ($(CONFIG_UCLIBCXX),y)
+    ARCHXXINCLUDES += -I"${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)uClibc++}"
+  endif
+  ifeq ($(CONFIG_LIBCXX),y)
+    ARCHXXINCLUDES += -I"${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)libcxx}"
+    ARCHXXINCLUDES += -I"${shell cygpath -m $(OUTDIR)$(DELIM)include$(DELIM)machine}"
+  endif
 else
   # Linux/Cygwin-native toolchain
   HOST = linux
@@ -49,6 +57,14 @@ else
   ARCHINCLUDES = -I. -I$(TOPDIR)/include
   ARCHXXINCLUDES = -I. -I$(TOPDIR)/include -I$(TOPDIR)/include/cxx
   ARCHSCRIPT = $(LDSCRIPT)
+
+  ifeq ($(CONFIG_UCLIBCXX),y)
+    ARCHXXINCLUDES += -I$(OUTDIR)$(DELIM)include$(DELIM)uClibc++
+  endif
+  ifeq ($(CONFIG_LIBCXX),y)
+    ARCHXXINCLUDES += -I$(OUTDIR)$(DELIM)include$(DELIM)libcxx
+    ARCHXXINCLUDES += -I$(OUTDIR)$(DELIM)include$(DELIM)machine
+  endif
 endif
 
 ifeq ($(CONFIG_ARCH_TL420)$(CONFIG_ARCH_TL421),y)
@@ -111,8 +127,8 @@ ifneq ($(CONFIG_DEBUG_NOOPT),y)
   ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
 endif
 
-ARCHCFLAGS = -fno-builtin
-ARCHCXXFLAGS = -fno-builtin -fno-exceptions -fcheck-new -fno-rtti
+ARCHCFLAGS = -D__NuttX__ -fno-builtin
+ARCHCXXFLAGS = -DCONFIG_WCHAR_BUILTIN -D__NuttX__ -fno-builtin
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wundef
 ARCHWARNINGSXX = -Wall -Wundef
 ARCHDEFINES =
