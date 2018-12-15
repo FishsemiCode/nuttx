@@ -99,11 +99,8 @@ ifneq ($(CONFIG_ARMV7M_STACKCHECK),y)
 endif
 endif
 
-ARCHCFLAGS = -fno-builtin
-ARCHCXXFLAGS = -fno-builtin -fexceptions -fcheck-new -fno-rtti -fpermissive
-ifeq ($(CONFIG_LIBCXX),y)
-  ARCHCXXFLAGS += -std=c++11 -D__NuttX__
-endif
+ARCHCFLAGS = -D__NuttX__ -fno-builtin
+ARCHCXXFLAGS = -D__NuttX__ -fno-builtin -nostdinc++ -std=c++11
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHWARNINGSXX = -Wall -Wshadow -Wundef
 ARCHDEFINES =
