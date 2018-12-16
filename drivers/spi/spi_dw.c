@@ -39,8 +39,10 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/dma/dma.h>
 #include <nuttx/mutex.h>
 #include <nuttx/nuttx.h>
 #include <nuttx/semaphore.h>
@@ -72,6 +74,9 @@
 #define SPI_INT_MASK            (0x1f << 0)
 #define SPI_INT_RXFI            (1 << 4)
 #define SPI_INT_TXEI            (1 << 0)
+
+#define SPI_DMAC_RDMAE          (1 << 0)
+#define SPI_DMAC_TDMAE          (1 << 1)
 
 #ifndef MIN
 #  define MIN(a,b)              ((a) < (b) ? (a) : (b))
@@ -118,6 +123,8 @@ struct dw_spi_s
   struct clk *clk;
   const struct dw_spi_config_s *config;
   struct ioexpander_dev_s *ioe;
+  struct dma_chan_s *tx_chan;
+  struct dma_chan_s *rx_chan;
   enum dw_spi_version ver;
   mutex_t mutex;
   sem_t sem;
@@ -221,6 +228,22 @@ static uint32_t dw_spi_read_fifo(struct dw_spi_s *spi)
 static inline void dw_spi_enable(struct dw_spi_hw_s *hw, bool enable)
 {
   hw->EN = enable ? SPI_EN_ENABLE : 0;
+}
+
+static void dw_spi_set_duplex(struct dw_spi_hw_s *hw, uint32_t duplex, uint32_t nwords)
+{
+  uint32_t ndf;
+
+  if (duplex == SPI_CTRL0_TMOD_RX)
+    {
+      ndf = nwords - 1;
+      if (ndf > UINT16_MAX)
+        spierr("spi cannot transfer %d at RCV-only mode\n", nwords);
+
+      hw->CTRL1 = ndf;
+    }
+
+  dw_spi_update_reg(&hw->CTRL0, SPI_CTRL0_TMOD_MASK, duplex);
 }
 
 static inline void dw_spi_set_tfifo_thresh(struct dw_spi_hw_s *hw, uint8_t thresh)
@@ -450,6 +473,7 @@ static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
       return 0;
     }
 
+  dw_spi_set_duplex(hw, SPI_CTRL0_TMOD_RXTX, 1);
   dw_spi_enable(hw, true);
   hw->DATA = wd;
   while (!hw->RXFL || (hw->STS & SPI_STS_BUSY));
@@ -458,6 +482,125 @@ static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
   clk_disable(spi->clk);
 
   return wd;
+}
+
+#ifdef CONFIG_SPI_EXCHANGE
+static void dw_spi_dma_cb(FAR struct dma_chan_s *chan, FAR void *arg, ssize_t len)
+{
+  struct dw_spi_s *spi = arg;
+
+  nxsem_post(&spi->sem);
+}
+
+static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
+                  FAR const void *txbuffer, FAR void *rxbuffer,
+                  size_t nwords)
+{
+  const struct dw_spi_config_s *config = spi->config;
+  struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
+  struct dma_config_s cfg;
+  uint32_t duplex;
+  int ret;
+
+  if (rxbuffer && txbuffer)
+    duplex = SPI_CTRL0_TMOD_RXTX;
+  else if (txbuffer)
+    duplex = SPI_CTRL0_TMOD_TX;
+  else
+    duplex = SPI_CTRL0_TMOD_RX;
+
+  dw_spi_set_duplex(hw, duplex, nwords);
+  dw_spi_enable(hw, true);
+
+  if (rxbuffer)
+    {
+      hw->DMAC |= SPI_DMAC_RDMAE;
+      /* XXX: what the threshold exactly */
+      hw->DMARDL = 4;
+
+      memset(&cfg, 0, sizeof(cfg));
+      cfg.direction = DMA_DEV_TO_MEM;
+      cfg.src_width = spi->n_bytes;
+      DMA_CONFIG(spi->rx_chan, &cfg);
+      DMA_START(spi->rx_chan, dw_spi_dma_cb, spi,
+              up_addrenv_va_to_pa(rxbuffer), (uintptr_t)(&hw->DATA),
+              nwords);
+    }
+
+  if (txbuffer)
+    {
+      hw->DMAC |= SPI_DMAC_TDMAE;
+      /* XXX: what the threshold exactly */
+      hw->DMATDL = 4;
+
+      memset(&cfg, 0, sizeof(cfg));
+      cfg.direction = DMA_MEM_TO_DEV;
+      cfg.dst_width = spi->n_bytes;
+      DMA_CONFIG(spi->tx_chan, &cfg);
+
+      up_clean_dcache((uintptr_t)txbuffer, (uintptr_t)txbuffer + nwords * spi->n_bytes);
+      DMA_START(spi->tx_chan, rxbuffer ? NULL : dw_spi_dma_cb, spi,
+              (uintptr_t)(&hw->DATA), up_addrenv_va_to_pa((void *)txbuffer),
+              nwords);
+    }
+  else /* RECEIVE-only mode, we need to trigger the transfer */
+    {
+      hw->DATA = 0;
+    }
+
+  do
+    {
+      ret = nxsem_wait(&spi->sem);
+    }
+  while (ret == -EINTR);
+
+  if (ret)
+    spierr("DW_SPI-%p transfer ret=%d\n", config->base, ret);
+
+  if (rxbuffer)
+    up_invalidate_dcache((uintptr_t)rxbuffer, (uintptr_t)rxbuffer + nwords * spi->n_bytes);
+  else
+    /* we still have some data in the fifo for TX-only mode,
+     * let's poll for the transfer finish */
+     while (hw->STS & SPI_STS_BUSY);
+
+  hw->DMAC = 0;
+  dw_spi_enable(hw, false);
+}
+
+static void dw_spi_cpu_transfer(FAR struct dw_spi_s *spi,
+                  FAR const void *txbuffer, FAR void *rxbuffer,
+                  size_t nwords)
+{
+  const struct dw_spi_config_s *config = spi->config;
+  struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
+  int ret;
+
+  spi->len = nwords * spi->n_bytes;
+  spi->tx = txbuffer;
+  spi->tx_end = txbuffer + spi->len;
+  spi->rx = rxbuffer;
+  spi->rx_end = rxbuffer + spi->len;
+
+  /* set to tx/rx mode */
+  dw_spi_set_duplex(hw, SPI_CTRL0_TMOD_RXTX, nwords);
+  dw_spi_set_tfifo_thresh(hw, MIN(spi->fifo_len / 2, nwords));
+
+  /* enable the interrupt to tigger the transfer procedure */
+  dw_spi_unmask_intr(hw, SPI_INT_TXEI);
+  dw_spi_enable(hw, true);
+
+  do
+    {
+      ret = nxsem_wait(&spi->sem);
+    }
+  while (ret == -EINTR);
+
+  if (ret)
+    spierr("DW_SPI-%p transfer ret=%d\n", config->base, ret);
+
+  dw_spi_enable(hw, false);
+  dw_spi_mask_intr(hw, 0xff);
 }
 
 /****************************************************************************
@@ -481,27 +624,19 @@ static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SPI_EXCHANGE
 static void dw_spi_exchange(FAR struct spi_dev_s *dev,
                   FAR const void *txbuffer, FAR void *rxbuffer,
                   size_t nwords)
 {
   struct dw_spi_s *spi = container_of(dev,
                                 struct dw_spi_s, spi_dev);
-  const struct dw_spi_config_s *config = spi->config;
-  struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
   int ret;
+  bool using_dma;
 
-  if (!nwords)
+  if (!nwords || (!txbuffer && !rxbuffer))
     {
       return;
     }
-
-  spi->len = nwords * spi->n_bytes;
-  spi->tx = txbuffer;
-  spi->tx_end = txbuffer + spi->len;
-  spi->rx = rxbuffer;
-  spi->rx_end = rxbuffer + spi->len;
 
   ret = clk_enable(spi->clk);
   if (ret < 0)
@@ -510,24 +645,17 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
       return;
     }
 
-  dw_spi_enable(hw, false);
-  dw_spi_set_tfifo_thresh(hw, MIN(spi->fifo_len / 2, nwords));
+  /* using dma only when: the data is longer than the fifo length and
+   * the dma channel is valid. additionally, the rx buffer should be 4-aligned */
+  using_dma = (nwords > spi->fifo_len) &&
+      (txbuffer ? !!spi->tx_chan : true) &&
+      (rxbuffer ? (spi->rx_chan && !((uintptr_t)rxbuffer & 0x03)) : true);
 
-  /* enable the interrupt to tigger the transfer procedure */
-  dw_spi_unmask_intr(hw, SPI_INT_TXEI);
-  dw_spi_enable(hw, true);
+  if (using_dma)
+    dw_spi_dma_transfer(spi, txbuffer, rxbuffer, nwords);
+  else
+    dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, nwords);
 
-  do
-    {
-      ret = nxsem_wait(&spi->sem);
-    }
-  while (ret == -EINTR);
-
-  if (ret)
-    spierr("DW_SPI-%p transfer ret=%d\n", config->base, ret);
-
-  dw_spi_enable(hw, false);
-  dw_spi_mask_intr(hw, 0xff);
   clk_disable(spi->clk);
 }
 #endif
@@ -626,9 +754,6 @@ static void dw_spi_hw_init(struct dw_spi_s *spi)
   /* initially disable all the interrupt */
   dw_spi_mask_intr(hw, 0xff);
 
-  /* set to tx/rx mode */
-  dw_spi_update_reg(&hw->CTRL0, SPI_CTRL0_TMOD_MASK, SPI_CTRL0_TMOD_RXTX);
-
   /* set to MOTO spi mode */
   dw_spi_update_reg(&hw->CTRL0, SPI_CTRL0_FRF_MASK, SPI_CTRL0_FRF_MOTO);
   if (spi->config->mode_ctrl)
@@ -658,7 +783,8 @@ static void dw_spi_hw_init(struct dw_spi_s *spi)
 }
 
 FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config,
-                                        FAR struct ioexpander_dev_s *ioe)
+                                        FAR struct ioexpander_dev_s *ioe,
+                                        FAR struct dma_dev_s *dma)
 {
   struct dw_spi_s *spi;
   char name[32];
@@ -689,6 +815,11 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   spi->spi_dev.ops = &dw_spi_ops;
   spi->config = config;
   spi->ioe = ioe;
+  if (dma)
+    {
+      spi->tx_chan = DMA_GET_CHAN(dma, config->tx_dma);
+      spi->rx_chan = DMA_GET_CHAN(dma, config->rx_dma);
+    }
 
   ret = nxmutex_init(&spi->mutex);
   if (ret)
@@ -715,7 +846,6 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
     spi_register(&spi->spi_dev, config->bus);
 #endif
 
-  spiinfo("DW_SPI-%p initialized success\n", config->base);
   return &spi->spi_dev;
 
 irq_err:
@@ -729,14 +859,16 @@ mutex_err:
 }
 
 void dw_spi_allinitialize(FAR const struct dw_spi_config_s *config, int config_num,
-                          FAR struct ioexpander_dev_s *ioe, FAR struct spi_dev_s **spi)
+                          FAR struct ioexpander_dev_s *ioe,
+                          FAR struct dma_dev_s *dma,
+                          FAR struct spi_dev_s **spi)
 {
   struct spi_dev_s *spi_dev;
   int i;
 
   for (i = 0; i < config_num; i++)
     {
-      spi_dev = dw_spi_initialize(&config[i], ioe);
+      spi_dev = dw_spi_initialize(&config[i], ioe, dma);
       if (spi_dev && config[i].bus >= 0)
         {
           spi[config[i].bus] = spi_dev;
