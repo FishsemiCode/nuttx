@@ -72,6 +72,7 @@
 	.globl		__aeabi_ldivmod
 	.globl		__aeabi_ui2d
 	.globl		__aeabi_uldivmod
+	.globl		__gcc_personality_v0
 	.globl		__popcountsi2
 
 /****************************************************************************
