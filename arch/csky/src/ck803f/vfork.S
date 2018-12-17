@@ -125,7 +125,8 @@ vfork:
 
     /* Floating point registers */
 
-    fstms   vr0-vr15, (sp, VFORK_VR0_OFFSET)
+    addi    r0, sp, VFORK_VR0_OFFSET
+    fstms   vr0-vr15, (r0)
 
     /* Then, call up_vfork(), passing it a pointer to the stack structure */
 
