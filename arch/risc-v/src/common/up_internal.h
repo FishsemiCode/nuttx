@@ -57,6 +57,14 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define _START_TEXT  &_stext
+#define _END_TEXT    &_etext
+#define _START_BSS   &_sbss
+#define _END_BSS     &_ebss
+#define _DATA_INIT   &_eronly
+#define _START_DATA  &_sdata
+#define _END_DATA    &_edata
+
 /* This is the value used to mark the stack for subsequent stack monitoring
  * logic.
  */
@@ -114,6 +122,7 @@
  * Public Variables
  ****************************************************************************/
 
+#ifndef __ASSEMBLY__
 #undef EXTERN
 #if defined(__cplusplus)
 #define EXTERN extern "C"
@@ -153,6 +162,7 @@ EXTERN uint32_t _sdata;           /* Start of .data */
 EXTERN uint32_t _edata;           /* End+1 of .data */
 EXTERN uint32_t _sbss;            /* Start of .bss */
 EXTERN uint32_t _ebss;            /* End+1 of .bss */
+#endif /* __ASSEMBLY__ */
 
 /****************************************************************************
  * Public Functions
@@ -204,6 +214,9 @@ void up_earlyserialinit(void);
 #endif
 
 /* Debug */
+#ifdef CONFIG_STACK_COLORATION
+void up_stack_color(FAR void *stackbase, size_t nbytes);
+#endif
 
 #ifdef CONFIG_ARCH_STACKDUMP
 void up_dumpstate(void);
