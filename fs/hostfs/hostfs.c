@@ -920,11 +920,9 @@ static int hostfs_bind(FAR struct inode *blkdriver, FAR const void *data,
                        FAR void **handle)
 {
   FAR struct hostfs_mountpt_s  *fs;
-  struct stat buf;
   FAR char *options;
   char *ptr, *saveptr;
   int len;
-  int ret;
 
   /* Validate the block driver is NULL */
 
