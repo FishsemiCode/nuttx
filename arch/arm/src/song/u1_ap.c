@@ -399,12 +399,14 @@ static void up_spi_init(void)
     .bus = 0,
     .base = 0xb0110000,
     .irq = 27,
+    .tx_dma = 4,
+    .rx_dma = 12,
     .cs_num = 1,
     .cs_gpio[0] = 22,
     .mclk = "spi0_mclk",
   };
 
-  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0]);
+  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
 }
 #endif
 

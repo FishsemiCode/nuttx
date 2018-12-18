@@ -726,6 +726,8 @@ static void up_spi_init(void)
     .bus = 1,
     .base = 0xb0120000,
     .irq = 31,
+    .tx_dma = 5,
+    .rx_dma = 13,
     .cs_num = 1,
     .cs_gpio[0] = 26,
     .mclk = "spi1_mclk",
@@ -737,7 +739,7 @@ static void up_spi_init(void)
   putreg32(0x10, MUX_PIN24);
   putreg32(0x10, MUX_PIN25);
   putreg32(0x12, MUX_PIN26);
-  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0]);
+  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
 }
 #endif
 

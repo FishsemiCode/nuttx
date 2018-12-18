@@ -340,6 +340,8 @@ static void up_spi_init(void)
       .bus = 0,
       .base = 0xa0130000,
       .irq = 13,
+      .tx_dma = 0,
+      .rx_dma = 8,
       .cs_num = 1,
       .cs_gpio[0] = 28,
       .mclk = "spi0_mclk",
@@ -348,6 +350,8 @@ static void up_spi_init(void)
       .bus = 1,
       .base = 0xa0140000,
       .irq = 14,
+      .tx_dma = 1,
+      .rx_dma = 9,
       .cs_num = 1,
       .cs_gpio[0] = 32,
       .mclk = "spi1_mclk",
@@ -355,7 +359,7 @@ static void up_spi_init(void)
   };
   int config_num = sizeof(config) / sizeof(config[0]);
 
-  dw_spi_allinitialize(config, config_num, g_ioe[0], g_spi);
+  dw_spi_allinitialize(config, config_num, g_ioe[0], g_dma[0], g_spi);
 }
 #endif
 
