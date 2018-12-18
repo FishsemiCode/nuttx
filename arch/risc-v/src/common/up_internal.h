@@ -57,35 +57,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define _START_TEXT  &_stext
-#define _END_TEXT    &_etext
-#define _START_BSS   &_sbss
-#define _END_BSS     &_ebss
-#define _DATA_INIT   &_eronly
-#define _START_DATA  &_sdata
-#define _END_DATA    &_edata
-
-/* This is the value used to mark the stack for subsequent stack monitoring
- * logic.
- */
-
-#define STACK_COLOR    0xdeadbeef
-#define INTSTACK_COLOR 0xdeadbeef
-#define HEAP_COLOR     'h'
-
-/* In the RISC_V model, the state is copied from the stack to the TCB, but
- * only a referenced is passed to get the state from the TCB.
- */
-
-#define up_savestate(regs)    up_copystate(regs, (uint32_t*)g_current_regs)
-#define up_restorestate(regs) (g_current_regs = regs)
-
 /* Determine which (if any) console driver to use.  If a console is enabled
  * and no other console device is specified, then a serial console is
  * assumed.
  */
 
-#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS <= 0
+#if !defined(CONFIG_DEV_CONSOLE) || CONFIG_NFILE_DESCRIPTORS == 0
 #  undef  USE_SERIALDRIVER
 #  undef  USE_EARLYSERIALINIT
 #  undef  CONFIG_DEV_LOWCONSOLE
@@ -114,17 +91,39 @@
 #  define USE_SERIALDRIVER 1
 #endif
 
+/* In the RISC_V model, the state is copied from the stack to the TCB, but
+ * only a referenced is passed to get the state from the TCB.
+ */
+
+#define up_savestate(regs)    up_copystate(regs, (uint32_t*)g_current_regs)
+#define up_restorestate(regs) (g_current_regs = regs)
+
+#define _START_TEXT  &_stext
+#define _END_TEXT    &_etext
+#define _START_BSS   &_sbss
+#define _END_BSS     &_ebss
+#define _DATA_INIT   &_eronly
+#define _START_DATA  &_sdata
+#define _END_DATA    &_edata
+
+/* This is the value used to mark the stack for subsequent stack monitoring
+ * logic.
+ */
+
+#define STACK_COLOR    0xdeadbeef
+#define INTSTACK_COLOR 0xdeadbeef
+#define HEAP_COLOR     'h'
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public Variables
+ * Public Data
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
-#undef EXTERN
-#if defined(__cplusplus)
+#ifdef __cplusplus
 #define EXTERN extern "C"
 extern "C"
 {
@@ -141,7 +140,6 @@ EXTERN volatile uint32_t *g_current_regs;
  */
 
 EXTERN const uint32_t g_idle_topstack;
-
 
 /* These 'addresses' of these values are setup by the linker script.  They are
  * not actual uint32_t storage locations! They are only used meaningfully in the
@@ -162,7 +160,12 @@ EXTERN uint32_t _sdata;           /* Start of .data */
 EXTERN uint32_t _edata;           /* End+1 of .data */
 EXTERN uint32_t _sbss;            /* Start of .bss */
 EXTERN uint32_t _ebss;            /* End+1 of .bss */
+
 #endif /* __ASSEMBLY__ */
+
+/****************************************************************************
+ * Inline Functions
+ ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
@@ -174,19 +177,28 @@ EXTERN uint32_t _ebss;            /* End+1 of .bss */
 
 void up_boot(void);
 
-/* Memory allocation ********************************************************/
+/* Context switching */
 
-#if CONFIG_MM_REGIONS > 1
-void up_addregion(void);
+void up_copystate(uint32_t *dest, uint32_t *src);
+
+/* Signal handling **********************************************************/
+
+void up_sigdeliver(void);
+
+/* Power management *********************************************************/
+
+#ifdef CONFIG_PM
+void up_pminitialize(void);
 #else
-# define up_addregion()
+#  define up_pminitialize()
 #endif
 
-/* IRQ initialization *******************************************************/
+/* Interrupt handling *******************************************************/
 
 void up_irqinitialize(void);
-void up_copystate(uint32_t *dest, uint32_t *src);
-void up_sigdeliver(void);
+
+/* Exception Handlers */
+
 int up_swint(int irq, FAR void *context, FAR void *arg);
 uint32_t up_get_newintctx(void);
 
@@ -196,7 +208,6 @@ void riscv_timer_initialize(void);
 
 /* Low level serial output **************************************************/
 
-void up_serialinit(void);
 void up_lowputc(char ch);
 void up_puts(const char *str);
 void up_lowputs(const char *str);
@@ -213,7 +224,69 @@ void up_earlyserialinit(void);
 #  define up_earlyserialinit()
 #endif
 
-/* Debug */
+/* Defined in drivers/lowconsole.c */
+
+#ifdef CONFIG_DEV_LOWCONSOLE
+void lowconsole_init(void);
+#else
+# define lowconsole_init()
+#endif
+
+/* DMA **********************************************************************/
+
+#ifdef CONFIG_ARCH_DMA
+void weak_function up_dmainitialize(void);
+#endif
+
+/* Cache control ************************************************************/
+
+#ifdef CONFIG_ARCH_L2CACHE
+void up_l2ccinitialize(void);
+#else
+#  define up_l2ccinitialize()
+#endif
+
+/* Memory management ********************************************************/
+
+#if CONFIG_MM_REGIONS > 1
+void up_addregion(void);
+#else
+# define up_addregion()
+#endif
+
+/* Watchdog timer ***********************************************************/
+
+void up_wdtinit(void);
+
+/* Networking ***************************************************************/
+
+/* Defined in board/xyz_network.c for board-specific Ethernet implementations,
+ * or chip/xyx_ethernet.c for chip-specific Ethernet implementations, or
+ * common/up_etherstub.c for a corner case where the network is enabled yet
+ * there is no Ethernet driver to be initialized.
+ *
+ * Use of common/up_etherstub.c is deprecated.  The preferred mechanism is to
+ * use CONFIG_NETDEV_LATEINIT=y to suppress the call to up_netinitialize() in
+ * up_initialize().  Then this stub would not be needed.
+ */
+
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
+void up_netinitialize(void);
+#else
+# define up_netinitialize()
+#endif
+
+/* USB **********************************************************************/
+
+#ifdef CONFIG_USBDEV
+void up_usbinitialize(void);
+void up_usbuninitialize(void);
+#else
+# define up_usbinitialize()
+# define up_usbuninitialize()
+#endif
+
+/* Debug ********************************************************************/
 #ifdef CONFIG_STACK_COLORATION
 void up_stack_color(FAR void *stackbase, size_t nbytes);
 #endif
