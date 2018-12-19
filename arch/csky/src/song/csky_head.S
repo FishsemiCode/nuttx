@@ -135,7 +135,7 @@ Reset_Handler:
 1:
 	stw		r2, (r0)
 	addi		r0, 4
-	cmpnei		r0, sp
+	cmpne		r0, sp
 	bt		1b
 #endif
 
