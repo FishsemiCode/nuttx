@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/timers/arch_timer.h>
+#include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/dw_timer.h>
 #include <nuttx/timers/song_oneshot.h>
 
@@ -65,7 +65,7 @@ void ceva_timer_initialize(void)
   static const struct song_oneshot_config_s config0 =
   {
       .minor      = -1,
-      .base       = B2C(DDR_PWR_BASE),
+      .base       = DDR_PWR_BASE,
       .irq        = IRQ_VINT5,
       .c1_max     = 2600,
       .c1_freq    = 26000000,
@@ -82,7 +82,7 @@ void ceva_timer_initialize(void)
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config0));
 #endif
 
-#ifdef CONFIG_TIMER_DW
+#if defined(CONFIG_CPULOAD_PERIOD) && defined(CONFIG_TIMER_DW)
   static const struct dw_timer_config_s config =
   {
     .minor      = -1,
