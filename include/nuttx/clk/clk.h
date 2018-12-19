@@ -97,15 +97,15 @@ const char *clk_get_name(const struct clk *clk);
 #else
 static inline struct clk *clk_get(const char *name)
   {
-    return (uintptr_t)(-ENOENT);
+    return (struct clk *)(-ENOENT);
   }
 static inline struct clk *clk_get_parent(struct clk *clk)
   {
-    return (uintptr_t)(-ENOENT);
+    return (struct clk *)(-ENOENT);
   }
 static inline struct clk *clk_get_parent_by_index(struct clk *clk, uint8_t index)
   {
-    return (uintptr_t)(-ENOENT);
+    return (struct clk *)(-ENOENT);
   }
 static inline int clk_set_parent(struct clk *clk, struct clk *parent)
   {
@@ -153,7 +153,7 @@ static inline void clk_disable_unused(void)
   }
 static inline const char *clk_get_name(const struct clk *clk)
   {
-    return (uintptr_t)(-ENOENT);
+    return (struct clk *)(-ENOENT);
   }
 #endif
 
