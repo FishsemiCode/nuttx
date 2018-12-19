@@ -11,6 +11,20 @@ config DEV_LOWCONSOLE
 	---help---
 		Use the simple, low-level, write-only serial console driver (minimal support)
 
+config SERIAL_PM_ACTIVITY_DOMAIN
+	int "PM activity domain"
+	default 0
+	depends on PM
+	---help---
+		When revie character, will called pm_activity(), this is the domain
+
+config SERIAL_PM_ACTIVITY_PRIORITY
+	int "PM activity priority when reive character"
+	default 6
+	depends on PM
+	---help---
+		When revie character, will called pm_activity(), this is the priority
+
 config SERIAL_REMOVABLE
 	bool
 	default n

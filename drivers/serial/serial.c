@@ -58,6 +58,7 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/power/pm.h>
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -1687,6 +1688,13 @@ void uart_datareceived(FAR uart_dev_t *dev)
   /* Notify all poll/select waiters that they can read from the recv buffer */
 
   uart_pollnotify(dev, POLLIN);
+
+  /* Call pm_activity when receive character  */
+
+  if (dev->isconsole)
+    {
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN, CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+    }
 }
 
 /************************************************************************************
