@@ -25,10 +25,6 @@ config ARCH_CHIP_U2_ADSP
 	bool "U2 ADSP"
 	select SONG_TL421
 
-config ARCH_CHIP_BANKS_VDSP
-	bool "Banks VDSP"
-	select SONG_XM6
-
 config ARCH_CHIP_V1_VDSP
 	bool "V1 VDSP"
 	select SONG_XM6
