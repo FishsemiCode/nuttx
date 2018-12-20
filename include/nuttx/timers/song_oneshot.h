@@ -56,6 +56,7 @@ struct song_oneshot_config_s
   uint32_t  c1_freq;
   uint32_t  ctl_off;
   uint32_t  calib_off;
+  uint32_t  calib_inc;
   uint32_t  c1_off;
   uint32_t  c2_off;
   uint32_t  spec_off;
