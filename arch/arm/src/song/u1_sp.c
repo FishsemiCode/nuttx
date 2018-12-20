@@ -325,6 +325,7 @@ void arm_timer_initialize(void)
     .c1_freq    = 8192000,
     .ctl_off    = 0x170,
     .calib_off  = 0x194,
+    .calib_inc  = 0x198,
     .c1_off     = 0x174,
     .c2_off     = 0x178,
     .spec_off   = 0x1ac,
