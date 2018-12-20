@@ -45,6 +45,7 @@
 #include <nuttx/audio/song_pcm.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -60,7 +61,6 @@
 #include <string.h>
 
 #include "chip.h"
-#include "song_addrenv.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -117,13 +117,13 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 
 void up_earlyinitialize(void)
 {
-  static const struct song_addrenv_s addrenv[] =
+  static const struct simple_addrenv_s addrenv[] =
   {
-    {.va = 0x00000000, .pa = 0xf8400000, .size = 0x00020000},
+    {.va = 0x00000000, .pa = 0xf8400000, .size = 0x00200000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 
-  up_addrenv_initialize(addrenv);
+  simple_addrenv_initialize(addrenv);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, CONFIG_LOGBUF_SIZE);

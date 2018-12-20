@@ -41,6 +41,7 @@
 
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -59,7 +60,6 @@
 #include <nuttx/timers/song_rtc.h>
 
 #include "chip.h"
-#include "song_addrenv.h"
 #include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"
@@ -152,20 +152,20 @@ FAR struct i2c_master_s *g_i2c[3] =
 
 void up_earlyinitialize(void)
 {
-  static const struct song_addrenv_s addrenv[] =
+  static const struct simple_addrenv_s addrenv[] =
   {
     {.va = 0x21000000, .pa = 0xb1000000, .size = 0x00100000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 
-  up_addrenv_initialize(addrenv);
+  simple_addrenv_initialize(addrenv);
 
   /* Unmask SLEEPING for reset */
   putreg32(TOP_PWR_AP_M4_IDLE_MK << 16, TOP_PWR_AP_M4_RSTCTL);
 
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
-   * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
+   * if use systick as wakeup reason form DEEPSLEEP, CPU will hang.
    */
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16, TOP_PWR_AP_M4_TCM_PD_CTL);
 #endif

@@ -51,6 +51,6 @@ CMN_CSRCS += up_assert.c up_decodeirq.c up_traps.c up_vfork.c
 #
 CHIP_ASRCS = csky_head.S
 CHIP_CSRCS += csky_vic.c
-CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
+CHIP_CSRCS += song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
 CHIP_CSRCS += u1_ck.c u1_ck_clk.c u2_ck.c

@@ -58,7 +58,6 @@
 #include <stdio.h>
 
 #include "chip.h"
-#include "song_addrenv.h"
 #include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"

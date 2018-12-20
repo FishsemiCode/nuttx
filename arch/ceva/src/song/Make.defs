@@ -71,4 +71,4 @@ endif
 #
 CHIP_CSRCS += abies_adsp.c banks_adsp.c v1_vdsp.c
 CHIP_CSRCS += dw_vintc.c
-CHIP_CSRCS += song_addrenv.c
+

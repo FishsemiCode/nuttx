@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/ceva/src/song/song_addrenv.c
+ * drivers/addrenv.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Guiding Li<liguiding@pinecone.net>
@@ -41,20 +41,20 @@
 
 #include <string.h>
 
-#include "song_addrenv.h"
+#include <nuttx/drivers/addrenv.h>
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-static const struct song_addrenv_s g_addrenv_dummy;
-static const struct song_addrenv_s *g_addrenv = &g_addrenv_dummy;
+static const struct simple_addrenv_s g_addrenv_dummy;
+static const struct simple_addrenv_s *g_addrenv = &g_addrenv_dummy;
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-void up_addrenv_initialize(const struct song_addrenv_s *addrenv)
+void simple_addrenv_initialize(const struct simple_addrenv_s *addrenv)
 {
   g_addrenv = addrenv;
 }

@@ -54,7 +54,7 @@ CMN_CSRCS += up_swint.c up_unblocktask.c
 #
 CHIP_ASRCS += song_head.S
 CHIP_CSRCS += intc_dw.c intc_pulp.c
-CHIP_CSRCS += song_addrenv.c song_board.c song_heap.c
+CHIP_CSRCS += song_board.c song_heap.c
 CHIP_CSRCS += song_idle.c song_irq.c song_start.c
 CHIP_CSRCS += u2_ap.c u2_ap_clk.c u2_audio.c v1_isp.c v1_rpm.c
 CHIP_UCSRCS += song_userspace.c

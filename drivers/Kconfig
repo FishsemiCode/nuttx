@@ -14,6 +14,10 @@ config DISABLE_POLL
 		This selection disables the poll() interface as well as interfaces
 		the derive from poll() such as select().
 
+config SIMPLE_ADDRENV
+	bool "Simple AddrEnv"
+	default n
+
 config DEV_NULL
 	bool "Enable /dev/null"
 	default y

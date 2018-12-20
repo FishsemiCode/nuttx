@@ -62,7 +62,6 @@
 #include <stdio.h>
 
 #include "chip.h"
-#include "song_addrenv.h"
 #include "song_idle.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -154,10 +153,6 @@ static void audio_boot(void)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-void up_earlyinitialize(void)
-{
-}
 
 void up_dmainitialize(void)
 {

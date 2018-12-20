@@ -41,6 +41,7 @@
 
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -55,7 +56,6 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
-#include "song_addrenv.h"
 #include "song_idle.h"
 #include "systick.h"
 #include "up_arch.h"
@@ -120,13 +120,13 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 
 void up_earlyinitialize(void)
 {
-  static const struct song_addrenv_s addrenv[] =
+  static const struct simple_addrenv_s addrenv[] =
   {
     {.va = 0x00000000, .pa = 0xf9240000, .size = 0x00040000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 
-  up_addrenv_initialize(addrenv);
+  simple_addrenv_initialize(addrenv);
 
   /* Always enable SLEEPDEEP and control the sleep through PWR */
   modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);

@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arm/src/song/song_addrenv.h
+ * include/nuttx/drivers/addrenv.h
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Guiding Li<liguiding@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -37,8 +37,8 @@
  * Included Files
  ****************************************************************************/
 
-#ifndef __ARCH_ARM_SRC_SONG_SONG_ADDRENV_H
-#define __ARCH_ARM_SRC_SONG_SONG_ADDRENV_H
+#ifndef __INCLUDE_NUTTX_DRIVERS_ADDRENV_H
+#define __INCLUDE_NUTTX_DRIVERS_ADDRENV_H
 
 /****************************************************************************
  * Included Files
@@ -53,7 +53,7 @@
  * Public Types
  ****************************************************************************/
 
-struct song_addrenv_s
+struct simple_addrenv_s
 {
   uintptr_t va;
   uintptr_t pa;
@@ -72,10 +72,10 @@ extern "C"
 #define EXTERN extern
 #endif
 
-void up_addrenv_initialize(const struct song_addrenv_s *addrenv);
+void simple_addrenv_initialize(const struct simple_addrenv_s *addrenv);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* __ARCH_ARM_SRC_SONG_SONG_ADDRENV_H */
+#endif /* __INCLUDE_NUTTX_DRIVERS_ADDRENV_H */
