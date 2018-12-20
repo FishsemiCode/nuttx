@@ -525,7 +525,7 @@ static const struct clk_rate def_rates[] =
 {
   {
     .name = "cp_bus_mclk0",
-    .rate = 163840000,
+    .rate = 204800000,
   },
   {
     .name = "cp_bus_mclk1",
