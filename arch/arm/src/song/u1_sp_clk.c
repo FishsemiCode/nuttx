@@ -521,11 +521,11 @@ static const struct song_clk_table u1_sp_clk_tbl =
 void up_clk_initialize(void)
 {
   song_clk_initialize(0xb0040000, &u1_sp_clk_tbl);
+  clk_set_rates(def_rates);
 }
 
 void up_clk_finalinitialize(void)
 {
-  clk_set_rates(def_rates);
   clk_disable_unused();
 }
 #endif /* (CONFIG_ARCH_CHIP_U1_SP) && (CONFIG_SONG_CLK) */
