@@ -54,34 +54,35 @@
 
 /* INCR_COUNT - Increment the count of interrupts taken on this IRQ number */
 
-#ifdef CONFIG_SCHED_IRQMONITOR
-#  ifdef CONFIG_HAVE_LONG_LONG
-#    define INCR_COUNT(ndx) \
-       do \
-         { \
-           g_irqvector[ndx].count++; \
-         } \
-       while (0)
-#  else
-#    define INCR_COUNT(ndx) \
-       do \
-         { \
-           if (++g_irqvector[ndx].lscount == 0) \
-             { \
-               g_irqvector[ndx].mscount++; \
-             } \
-         } \
-       while (0)
-#  endif
-#else
+#ifndef CONFIG_SCHED_IRQMONITOR
 #  define INCR_COUNT(ndx)
+#elif defined(CONFIG_HAVE_LONG_LONG)
+#  define INCR_COUNT(ndx) \
+     do \
+       { \
+         g_irqvector[ndx].count++; \
+       } \
+     while (0)
+#else
+#  define INCR_COUNT(ndx) \
+     do \
+       { \
+         if (++g_irqvector[ndx].lscount == 0) \
+           { \
+             g_irqvector[ndx].mscount++; \
+           } \
+       } \
+     while (0)
 #endif
 
 /* CALL_VECTOR - Call the interrupt service routine attached to this interrupt
  * request
  */
 
-#ifdef CONFIG_SCHED_CRITMONITOR
+#ifndef CONFIG_SCHED_IRQMONITOR
+#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
+     vector(irq, context, arg)
+#elif defined(CONFIG_SCHED_CRITMONITOR)
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      do \
        { \
@@ -98,7 +99,7 @@
            } \
        } \
      while (0)
-#elif defined(CONFIG_SCHED_TICKLESS)
+#else
 #  define CALL_VECTOR(ndx, vector, irq, context, arg) \
      do \
        { \
@@ -115,9 +116,6 @@
            } \
        } \
      while (0)
-#else
-#  define CALL_VECTOR(ndx, vector, irq, context, arg) \
-     vector(irq, context, arg)
 #endif /* CONFIG_SCHED_IRQMONITOR */
 
 /****************************************************************************
