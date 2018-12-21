@@ -118,6 +118,8 @@ struct song_sdiv_sdiv_clk
   const char         *name;
   const char         *parent_name;
   uint16_t           div_offset;
+  uint16_t           div1_flags;
+  uint16_t           div2_flags;
 };
 
 struct song_sdiv_fdiv_clk

@@ -81,7 +81,8 @@ static struct clk *song_clk_register_sdiv_gr(
             uint16_t div_flags);
 static struct clk *song_clk_register_sdiv_sdiv(
             const char *name, const char *parent_name,
-            uint32_t reg_base, uint16_t div_offset);
+            uint32_t reg_base, uint16_t div_offset,
+            uint16_t div1_flags, uint16_t div2_flags);
 static struct clk *song_clk_register_gr_sdiv(
             const char *name, const char *parent_name,
             uint32_t reg_base, uint16_t div_offset, uint8_t div_width,
@@ -359,7 +360,8 @@ static struct clk *song_clk_register_sdiv_gr(
 
 static struct clk *song_clk_register_sdiv_sdiv(
             const char *name, const char *parent_name,
-            uint32_t reg_base, uint16_t div_offset)
+            uint32_t reg_base, uint16_t div_offset,
+            uint16_t div1_flags, uint16_t div2_flags)
 {
   struct clk *clk;
   char gate_name[SONG_CLK_NAME_MAX];
@@ -375,14 +377,14 @@ static struct clk *song_clk_register_sdiv_sdiv(
   clk = clk_register_divider(div_name, clk->name,
     CLK_PARENT_NAME_IS_STATIC, reg_base + div_offset,
     SONG_CLK_SDIV_SDIV_DIV0_SHIFT, SONG_CLK_SDIV_SDIV_DIV0_WIDTH,
-    CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_HIWORD_MASK);
+    CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_HIWORD_MASK | div1_flags);
   if (!clk)
     return clk;
 
   return clk_register_divider(name, clk->name, CLK_SET_RATE_PARENT |
     CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC, reg_base + div_offset,
     SONG_CLK_SDIV_SDIV_DIV1_SHIFT, SONG_CLK_SDIV_SDIV_DIV1_WIDTH,
-    CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_HIWORD_MASK);
+    CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_HIWORD_MASK | div2_flags);
 }
 
 static struct clk *song_clk_register_gr_sdiv(
@@ -607,7 +609,9 @@ static int song_register_sdiv_sdiv_clks(uint32_t reg_base,
               sdiv_sdiv_clks->name,
               sdiv_sdiv_clks->parent_name,
               reg_base,
-              sdiv_sdiv_clks->div_offset);
+              sdiv_sdiv_clks->div_offset,
+              sdiv_sdiv_clks->div1_flags,
+              sdiv_sdiv_clks->div2_flags);
       if (!clk)
         {
           return -EINVAL;

@@ -224,11 +224,15 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
     .name = "spi0_mclk",
     .parent_name = "pll1_mclk",
     .div_offset = 0x70,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,
   },
   {
     .name = "spi1_mclk",
     .parent_name = "pll1_mclk",
     .div_offset = 0x74,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 3 << CLK_DIVIDER_MINDIV_OFF,
   },
   {},
 };
