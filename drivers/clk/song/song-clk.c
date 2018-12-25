@@ -194,7 +194,7 @@ static struct clk *song_clk_register_mux(const char *name,
 
   return clk_register_mux(name, parent_names, num_parents,
     CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC, reg_base + mux_offset,
-    mux_shift, mux_width, CLK_MUX_ROUND_CLOSEST);
+    mux_shift, mux_width, CLK_MUX_ROUND_CLOSEST | CLK_MUX_HIWORD_MASK);
 }
 
 static struct clk *song_clk_register_gr(
@@ -263,32 +263,41 @@ static struct clk *song_clk_register_gr_fdiv(
             uint16_t gr_offset, uint16_t div_offset, uint8_t clk_flags)
 {
   struct clk *clk;
-  char gate_name[SONG_CLK_NAME_MAX];
   char fixed_name[SONG_CLK_NAME_MAX];
+  const char *pname = parent_name;
   uint8_t fixed_div = 2;
 
-  snprintf(gate_name, SONG_CLK_NAME_MAX, "%s_gate", name);
-  clk = clk_register_gate(gate_name, parent_name, clk_flags | CLK_PARENT_NAME_IS_STATIC,
-    reg_base + en_offset, en_shift, CLK_GATE_HIWORD_MASK);
-  if (!clk)
-    return clk;
+  if (en_offset)
+    {
+      char gate_name[SONG_CLK_NAME_MAX];
+
+      snprintf(gate_name, SONG_CLK_NAME_MAX, "%s_gate", name);
+      clk = clk_register_gate(gate_name, pname, clk_flags | CLK_PARENT_NAME_IS_STATIC,
+        reg_base + en_offset, en_shift, CLK_GATE_HIWORD_MASK);
+      if (!clk)
+        return clk;
+
+      pname = gate_name;
+    }
 
   if (gr_offset)
     {
       char mult_name[SONG_CLK_NAME_MAX];
 
       snprintf(mult_name, SONG_CLK_NAME_MAX, "%s_mult", name);
-      clk = clk_register_multiplier(mult_name, clk->name,
+      clk = clk_register_multiplier(mult_name, pname,
         clk_flags | CLK_PARENT_NAME_IS_STATIC, reg_base + gr_offset,
         SONG_CLK_GR_FDIV_GR_SHIFT, SONG_CLK_GR_FDIV_GR_WIDTH,
         CLK_MULT_ROUND_CLOSEST | CLK_MULT_HIWORD_MASK);
       if (!clk)
         return clk;
       fixed_div *= 8;
+
+      pname = mult_name;
     }
 
   snprintf(fixed_name, SONG_CLK_NAME_MAX, "%s_fixed", name);
-  clk = clk_register_fixed_factor(fixed_name, clk->name,
+  clk = clk_register_fixed_factor(fixed_name, pname,
     clk_flags | CLK_SET_RATE_PARENT | CLK_PARENT_NAME_IS_STATIC, 1, fixed_div);
   if (!clk)
     return clk;

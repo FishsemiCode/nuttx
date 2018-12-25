@@ -52,10 +52,10 @@
 
 static const char *out_clk_src[] =
 {
-  "pll0",         /* TODO:it is a fake clk as ic bug */
   "top_bus_mclk",
+  "rfphy_sys_clk",
   "pll1_mclk",
-  "rfphy_pll0_clk",
+  "pll0",
   "clk32k",
   "codec_ref_clk",
 };
@@ -70,6 +70,12 @@ static const char *pll1_pll0_src[] =
 {
   "pll0",
   "pll1_occ",
+};
+
+static const char *audio_mclk_mx_src[] =
+{
+  "pll0",
+  "audio_mclk",
 };
 
 static const struct song_fixed_rate_clk fixed_rate[] =
@@ -150,6 +156,16 @@ static const struct song_mux_clk mux[] =
     .num_parents = ARRAY_SIZE(rfphy_pll0_clk_src),
     .mux_offset = 0xdc,
     .mux_shift = 0,
+    .mux_width = 1,
+  },
+  {
+    .name = "audio_mclk_mx",
+    .parent_names = audio_mclk_mx_src,
+    .num_parents = ARRAY_SIZE(audio_mclk_mx_src),
+    .en_offset = 0x68,
+    .en_shift  = 0,
+    .mux_offset = 0x68,
+    .mux_shift = 4,
     .mux_width = 1,
   },
   {},
@@ -362,7 +378,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "btdm_bb_sys_clk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "btdm_bb_hclk",
     .en_offset = 0x5c,
     .en_shift = 0,
     .div_offset = 0x5c,
@@ -462,7 +478,7 @@ static const struct song_gate_clk gate[] =
   },
   {
     .name = "thinkers_pclk",
-    .parent_name = "audio_mclk",
+    .parent_name = "audio_mclk_mx",
     .en_offset = 0x090,
     .en_shift = 8,
   },
@@ -475,14 +491,14 @@ static const struct song_gate_clk gate[] =
 #endif
   {
     .name = "audio_sys_hclk",
-    .parent_name = "audio_mclk",
+    .parent_name = "audio_mclk_mx",
     .en_offset = 0x090,
     .en_shift = 12,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "audio_sys_clk_30720k",
-    .parent_name = "audio_mclk",
+    .parent_name = "audio_mclk_mx",
     .en_offset = 0x090,
     .en_shift = 13,
   },

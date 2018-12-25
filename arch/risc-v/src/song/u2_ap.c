@@ -324,7 +324,7 @@ void up_wdtinit(void)
     .path = CONFIG_WATCHDOG_DEVPATH,
     .base = 0xa0170000,
     .irq  = 21,
-    .tclk = "m4_wdt_tclk",
+    .tclk = "rcpu0_wdt_tclk",
   };
 
   dw_wdt_initialize(&config);
