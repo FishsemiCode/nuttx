@@ -134,7 +134,7 @@ void up_idle(void)
 
   /* Disable irqs before wfi */
 
-  __asm__ volatile("csrrci %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
+  __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
 
   /* Perform IDLE mode power management */
 
@@ -147,7 +147,7 @@ void up_idle(void)
 
   /* Restore irqs */
 
-  __asm__ volatile("csrs %0, %1" :: "i"(0x300), "r"(flags & 0x8));
+  __asm__ volatile("csrs mstatus, %0" :: "r"(flags & 0x8));
 }
 
 /****************************************************************************

@@ -75,7 +75,7 @@ irqstate_t weak_function up_irq_save(void)
 {
   irqstate_t flags;
 
-  __asm__ volatile("csrrci %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
+  __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
   return flags & 0x8;
 }
 
@@ -89,7 +89,7 @@ irqstate_t weak_function up_irq_save(void)
 
 void weak_function up_irq_restore(irqstate_t flags)
 {
-  __asm__ volatile("csrs %0, %1" :: "i"(0x300), "r"(flags));
+  __asm__ volatile("csrs mstatus, %0" :: "r"(flags));
 }
 
 /****************************************************************************
@@ -117,7 +117,7 @@ irqstate_t up_irq_enable(void)
 {
   irqstate_t flags;
 
-  __asm__ volatile("csrrsi %0, %1, %2" : "=r"(flags) : "i"(0x300), "i"(0x8));
+  __asm__ volatile("csrrsi %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
   return flags & 0x8;
 }
 
@@ -146,7 +146,7 @@ uint32_t *up_dispatch_all(uint32_t *regs)
   savestate = (uint32_t *)g_current_regs;
   g_current_regs = regs;
 
-  __asm__ volatile("csrr %0, %1" : "=r"(cause) : "i"(0x342));
+  __asm__ volatile("csrr %0, mcause" : "=r"(cause));
   if (cause & 0x80000000)
     {
       cause &= 0x7fffffff;

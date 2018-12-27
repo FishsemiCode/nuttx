@@ -141,17 +141,17 @@ irq_handler:
 	sw		x29, 29*4(x2)
 	sw		x30, 30*4(x2)
 	sw		x31, 31*4(x2)
-	csrr		x10, 0x341
+	csrr		x10, mepc
 	sw		x10, 0*4(x2)
-	csrr		x10, 0x300
+	csrr		x10, mstatus
 	sw		x10, 32*4(x2)
 	mv		x10, x2
 	call		up_dispatch_all
 	mv		x1, x10
 	lw		x10, 32*4(x1)
-	csrw		0x300, x10
+	csrw		mstatus, x10
 	lw		x10, 0*4(x1)
-	csrw		0x341, x10
+	csrw		mepc, x10
 	lw		x31, 31*4(x1)
 	lw		x30, 30*4(x1)
 	lw		x29, 29*4(x1)
