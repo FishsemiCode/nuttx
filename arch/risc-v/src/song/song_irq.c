@@ -102,7 +102,7 @@ void weak_function up_irq_restore(irqstate_t flags)
 
 uint32_t up_get_newintctx(void)
 {
-  return 0x1880;
+  return 0x3880;
 }
 
 /****************************************************************************

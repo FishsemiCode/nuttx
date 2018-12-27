@@ -43,7 +43,7 @@ CMN_CSRCS += up_stackframe.c up_usestack.c
 
 # arch/arm/risc-v/rv32im
 #
-CMN_ASRCS += up_syscall.S
+CMN_ASRCS += up_fpu.S up_syscall.S
 CMN_CSRCS += up_assert.c up_blocktask.c up_copystate.c
 CMN_CSRCS += up_dumpstate.c up_initialstate.c
 CMN_CSRCS += up_releasepending.c up_reprioritizertr.c

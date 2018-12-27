@@ -79,12 +79,19 @@ endif
 ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGL)
   CROSSDEV ?= riscv64-unknown-elf-
   ARCROSSDEV ?= riscv64-unknown-elf-
-  ARCHCPUFLAGS = -mabi=ilp32
   MAXOPTIMIZATION ?= -Os -msave-restore
 ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
-  ARCHCPUFLAGS += -march=rv32imc
+  ifeq ($(CONFIG_ARCH_FPU),y)
+    ARCHCPUFLAGS = -march=rv32imfc -mabi=ilp32f
+  else
+    ARCHCPUFLAGS = -march=rv32imc -mabi=ilp32
+  endif
 else
-  ARCHCPUFLAGS += -march=rv32ic
+  ifeq ($(CONFIG_ARCH_FPU),y)
+    ARCHCPUFLAGS += -march=rv32ifc -mabi=ilp32f
+  else
+    ARCHCPUFLAGS += -march=rv32ic -mabi=ilp32
+  endif
 endif
 endif
 
@@ -94,12 +101,19 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGW)
   ifneq ($(CONFIG_WINDOWS_NATIVE),y)
     WINTOOL = y
   endif
-  ARCHCPUFLAGS = -mabi=ilp32
   MAXOPTIMIZATION ?= -Os -msave-restore
 ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
-  ARCHCPUFLAGS += -march=rv32imc
+  ifeq ($(CONFIG_ARCH_FPU),y)
+    ARCHCPUFLAGS = -march=rv32imfc -mabi=ilp32f
+  else
+    ARCHCPUFLAGS = -march=rv32imc -mabi=ilp32
+  endif
 else
-  ARCHCPUFLAGS += -march=rv32ic
+  ifeq ($(CONFIG_ARCH_FPU),y)
+    ARCHCPUFLAGS = -march=rv32ifc -mabi=ilp32f
+  else
+    ARCHCPUFLAGS = -march=rv32ic -mabi=ilp32
+  endif
 endif
 endif
 
@@ -107,5 +121,8 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RISCY)
   CROSSDEV ?= riscv32-unknown-elf-
   ARCROSSDEV ?= riscv32-unknown-elf-
   ARCHCPUFLAGS = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__ -D__pulp__ -D__GAP8__
+  ifeq ($(CONFIG_ARCH_FPU),y)
+    ARCHCPUFLAGS += -mhard-float
+  endif
   MAXOPTIMIZATION ?= -Os -msave-restore
 endif

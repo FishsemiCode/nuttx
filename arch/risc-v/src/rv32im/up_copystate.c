@@ -77,10 +77,14 @@ void up_copystate(uint32_t *dest, uint32_t *src)
 
   if (src != dest)
     {
-      for (i = 0; i < XCPTCONTEXT_REGS; i++)
+      for (i = 0; i < INT_XCPT_REGS; i++)
         {
-          *dest++ = *src++;
+          dest[i] = src[i];
         }
+
+#ifdef CONFIG_ARCH_FPU
+      up_savefpu(dest);
+#endif
     }
 }
 
