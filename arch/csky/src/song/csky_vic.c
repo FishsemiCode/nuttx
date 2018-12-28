@@ -92,6 +92,7 @@ void weak_function up_wic_disable_irq(int irq)
 void up_disable_irq(int irq)
 {
   csi_vic_disable_irq(irq);
+  csi_vic_clear_wakeup_irq(irq);
   up_wic_disable_irq(irq);
 }
 
@@ -117,6 +118,7 @@ void up_disable_irq(int irq)
 void up_enable_irq(int irq)
 {
   csi_vic_enable_irq(irq);
+  csi_vic_set_wakeup_irq(irq);
   up_wic_enable_irq(irq);
 }
 
