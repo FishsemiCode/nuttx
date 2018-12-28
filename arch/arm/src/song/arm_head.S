@@ -91,10 +91,8 @@ __start:
 	 * partial powerdown state.
 	 */
 
-	mov		r4, sp
 	ldr		sp, =g_early_stack
 	bl		up_earlystart
-	mov		sp, r4
 #endif
 
 #ifdef CONFIG_STACK_COLORATION
@@ -116,10 +114,12 @@ __start:
 #ifdef CONFIG_ARMV7M_STACKCHECK
 	/* Set the stack limit before we attempt to call any functions */
 
-	sub 		r10, sp, #(CONFIG_IDLETHREAD_STACKSIZE - 64)
+	ldr 		r10, =#(_ebss + 64)
 #endif
 
+	ldr		sp, =#(_ebss + CONFIG_IDLETHREAD_STACKSIZE)
 	bl		up_start
+
 	.size		__start, .-__start
 
 #if CONFIG_EARLY_STACKSIZE > 0
