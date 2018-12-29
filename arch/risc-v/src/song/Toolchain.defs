@@ -88,7 +88,7 @@ endif
 
 ifneq ($(CONFIG_DEBUG_NOOPT),y)
   ARCHOPTIMIZATION += $(MAXOPTIMIZATION) -fno-strict-aliasing -fno-strength-reduce -fomit-frame-pointer
-  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections -flto -fuse-linker-plugin
+  ARCHOPTIMIZATION += -ffunction-sections -fdata-sections
 endif
 
 ARCHCFLAGS = -D__NuttX__ -fno-builtin
