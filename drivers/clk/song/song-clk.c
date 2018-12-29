@@ -234,7 +234,7 @@ static struct clk *song_clk_register_sdiv_fdiv(
 {
   struct clk *clk;
   char gate_name[SONG_CLK_NAME_MAX];
-  char div_name[SONG_CLK_NAME_MAX];
+  char fdiv_name[SONG_CLK_NAME_MAX];
 
   snprintf(gate_name, SONG_CLK_NAME_MAX, "%s_gate", name);
   clk = clk_register_gate(gate_name, parent_name, CLK_PARENT_NAME_IS_STATIC,
@@ -242,18 +242,19 @@ static struct clk *song_clk_register_sdiv_fdiv(
   if (!clk)
     return clk;
 
-  snprintf(div_name, SONG_CLK_NAME_MAX, "%s_div", name);
-  clk = clk_register_divider(div_name, clk->name, CLK_PARENT_NAME_IS_STATIC,
-    reg_base + sdiv_offset, SONG_CLK_SDIV_FDIV_SDIV_SHIFT, SONG_CLK_SDIV_FDIV_SDIV_WIDTH,
-    CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_HIWORD_MASK);
-  if (!clk)
-    return clk;
-
-  return clk_register_fractional_divider(name, clk->name,
-    CLK_SET_RATE_PARENT | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC,
+  snprintf(fdiv_name, SONG_CLK_NAME_MAX, "%s_fdiv", name);
+  clk = clk_register_fractional_divider(fdiv_name, clk->name,
+    CLK_PARENT_NAME_IS_STATIC,
     reg_base + fdiv_offset, SONG_CLK_SDIV_FDIV_MULT_SHIFT, SONG_CLK_SDIV_FDIV_MULT_WIDTH,
     SONG_CLK_SDIV_FDIV_FDIV_SHIFT, SONG_CLK_SDIV_FDIV_FDIV_WIDTH,
     CLK_FRAC_DIV_DOUBLE | CLK_FRAC_MUL_NEED_EVEN);
+  if (!clk)
+    return clk;
+
+  return clk_register_divider(name, clk->name,
+    CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC | CLK_SET_RATE_PARENT,
+    reg_base + sdiv_offset, SONG_CLK_SDIV_FDIV_SDIV_SHIFT, SONG_CLK_SDIV_FDIV_SDIV_WIDTH,
+    CLK_DIVIDER_ROUND_CLOSEST | CLK_DIVIDER_HIWORD_MASK);
 }
 
 static struct clk *song_clk_register_gr_fdiv(
