@@ -172,8 +172,8 @@ int up_swint(int irq, FAR void *context, FAR void *arg)
       case SYS_save_context:
         {
           DEBUGASSERT(regs[REG_A1] != 0);
-          *(uint32_t *)regs[REG_A0] = 1;
           up_copystate((uint32_t *)regs[REG_A1], regs);
+          ((uint32_t *)regs[REG_A1])[REG_A0] = 1;
         }
       break;
 
