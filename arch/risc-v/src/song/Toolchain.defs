@@ -67,8 +67,8 @@ else
   endif
 endif
 
-CROSSDEV   ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/riscv/bin/riscv32-unknown-elf-
-ARCROSSDEV ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/riscv/bin/riscv32-unknown-elf-
+CROSSDEV   ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/riscv/bin/riscv64-unknown-elf-
+ARCROSSDEV ?= ${TOPDIR}/../prebuilts/gcc/${HOST}/riscv/bin/riscv64-unknown-elf-
 include ${TOPDIR}/arch/risc-v/src/rv32im/Toolchain.defs
 
 CC = $(CROSSDEV)gcc
