@@ -84,6 +84,7 @@
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
 #define TOP_PWR_AP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
 #define TOP_PWR_AP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x204)
+#define TOP_PWR_CK802_CTL0          (TOP_PWR_BASE + 0x22c)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL_AP_M4        (TOP_PWR_BASE + 0x360)
 #define TOP_PWR_AP_M4_TCM_PD_CTL    (TOP_PWR_BASE + 0x3ec)
@@ -96,11 +97,16 @@
 #define TOP_PWR_AP_M4_PD_MK         (1 << 3)
 #define TOP_PWR_AP_M4_AU_PU_MK      (1 << 6)
 #define TOP_PWR_AP_M4_AU_PD_MK      (1 << 7)
+#define TOP_PWR_AP_M4_PD_CPU_SEL    (1 << 8)
+
+#define TOP_PWR_SLP_LPMD_B_MK       (1 << 12)
+#define TOP_PWR_CK802_SLP_EN        (1 << 14)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
 
 #define TOP_PWR_AP_M4_SLP_EN        (1 << 0)
+#define TOP_PWR_AP_M4_SLP_MK        (1 << 1)
 #define TOP_PWR_AP_M4_DS_SLP_EN     (1 << 2)
 
 /****************************************************************************
@@ -160,17 +166,22 @@ void up_earlyinitialize(void)
 
   up_addrenv_initialize(addrenv);
 
-  /* Unmask SLEEPING for reset */
-  putreg32(TOP_PWR_AP_M4_IDLE_MK << 16, TOP_PWR_AP_M4_RSTCTL);
+  /* Mask AP M4 effect to DS */
 
-#ifndef CONFIG_CPULOAD_PERIOD
-  /* Allow TCM to LP, careful with it. At this time,
-   * if use systick as weakup reason form DEEPSLEEP, CPU will hang.
-   */
-  putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16, TOP_PWR_AP_M4_TCM_PD_CTL);
-#endif
+  putreg32(TOP_PWR_AP_M4_SLP_MK << 16 |
+           TOP_PWR_AP_M4_SLP_MK, TOP_PWR_SLPCTL_AP_M4);
+
+  /* Unmask CK802 LPMD_B effect to DS */
+
+  modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_SLP_LPMD_B_MK, 0);
+
+  /* Which CPU should watch when set core power down, 1 = CK802 */
+
+  putreg32(TOP_PWR_AP_M4_PD_CPU_SEL << 16 |
+           TOP_PWR_AP_M4_PD_CPU_SEL, TOP_PWR_AP_UNIT_PD_CTL);
 
   /* Forbid the AP power down, AP will power down following SP */
+
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
            TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
 }
@@ -499,24 +510,14 @@ void up_reset(int status)
     }
 }
 
-static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
+static void up_cpu_lp(bool pwr_sleep, bool ds_sleep)
 {
-  /* Allow CPU to enter deep sleep in WFI? */
-
-#if 0
-  if (deep_sleep)
-    putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-  else
-    putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-#endif
-
   /* Allow PWR_SLEEP (VDDMAIN ON)? */
 
   if (pwr_sleep)
-    putreg32(TOP_PWR_AP_M4_SLP_EN << 16 |
-             TOP_PWR_AP_M4_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
+    modifyreg32(TOP_PWR_CK802_CTL0, 0, TOP_PWR_CK802_SLP_EN);
   else
-    putreg32(TOP_PWR_AP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+    modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_CK802_SLP_EN, 0);
 
   /* Allow DS_SLEEP (VDDMAIN OFF)? */
 
@@ -529,30 +530,26 @@ static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
 
 void up_cpu_doze(void)
 {
-  return;
-  up_cpu_lp(false, false, false);
-  __WAIT();
+  up_cpu_lp(false, false);
+  __DOZE();
 }
 
 void up_cpu_idle(void)
 {
-  return;
-  up_cpu_lp(true, false, false);
-  __DOZE();
+  up_cpu_lp(false, false);
+  __STOP();
 }
 
 void up_cpu_standby(void)
 {
-  return;
-  up_cpu_lp(true, true, false);
+  up_cpu_lp(true, false);
   __STOP();
 }
 
 void up_cpu_sleep(void)
 {
-  return;
-  up_cpu_lp(true, true, true);
+  up_cpu_lp(true, true);
   __STOP();
 }
 
-#endif /* CONFIG_ARCH_CHIP_U1_AP */
+#endif /* CONFIG_ARCH_CHIP_U1_CK */

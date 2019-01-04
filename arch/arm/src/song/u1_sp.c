@@ -102,6 +102,8 @@
 #define TOP_PWR_INTR_ST_SEC_M4_1    (TOP_PWR_BASE + 0x144)
 #define TOP_PWR_SEC_M4_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
+#define TOP_PWR_AP_M4_CTL0          (TOP_PWR_BASE + 0x218)
+#define TOP_PWR_CK802_CTL0          (TOP_PWR_BASE + 0x22c)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL0             (TOP_PWR_BASE + 0x350)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
@@ -123,6 +125,11 @@
 #define TOP_PWR_CP_PD_EN            (1 << 0)
 #define TOP_PWR_CP_WK_UP            (1 << 1)
 #define TOP_PWR_CP_HW_IDLE_MK       (1 << 8)
+
+#define TOP_PWR_AP_CPU_SEL          (1 << 22)
+
+#define TOP_PWR_CPU_RSTCTL          (1 << 1)
+#define TOP_PWR_CPUCLK_EN           (1 << 0)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
@@ -315,7 +322,20 @@ static int ap_boot(const struct song_rptun_config_s *config)
    * shram0 default enabled
    */
 
-  putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
+  if (getreg32(TOP_PWR_AP_M4_CTL0) & TOP_PWR_AP_CPU_SEL)
+    {
+      /* Boot AP CK802 */
+
+      modifyreg32(TOP_PWR_CK802_CTL0, 0, TOP_PWR_CPUCLK_EN);
+      modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_CPU_RSTCTL, 0);
+    }
+  else
+    {
+      /* Boot AP M4 */
+
+      putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
+    }
+
   return 0;
 }
 
@@ -648,7 +668,7 @@ static void up_rptun_init(void)
       .align         = 0x8,
       .num           = 4,
     },
-    .buf_size        = 0x150,
+    .buf_size        = 0x100,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_SP]);

@@ -87,11 +87,6 @@ begin_packed_struct struct zerotable_s
 
 static void init_kernelspace(void);
 
-#ifdef CONFIG_PM
-static void cache_pm_notify(struct pm_callback_s *cb, int domain,
-                           enum pm_state_e pmstate);
-#endif
-
 #ifdef CONFIG_SONG_COPY_TABLE
 extern struct copytable_s _scopytable;
 extern struct copytable_s _ecopytable;
