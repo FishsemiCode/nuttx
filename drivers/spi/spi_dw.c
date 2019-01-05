@@ -232,15 +232,9 @@ static inline void dw_spi_enable(struct dw_spi_hw_s *hw, bool enable)
 
 static void dw_spi_set_duplex(struct dw_spi_hw_s *hw, uint32_t duplex, uint32_t nwords)
 {
-  uint32_t ndf;
-
   if (duplex == SPI_CTRL0_TMOD_RX)
     {
-      ndf = nwords - 1;
-      if (ndf > UINT16_MAX)
-        spierr("spi cannot transfer %d at RCV-only mode\n", nwords);
-
-      hw->CTRL1 = ndf;
+      hw->CTRL1 = nwords - 1;
     }
 
   dw_spi_update_reg(&hw->CTRL0, SPI_CTRL0_TMOD_MASK, duplex);
@@ -631,6 +625,7 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   struct dw_spi_s *spi = container_of(dev,
                                 struct dw_spi_s, spi_dev);
   int ret;
+  size_t nsize;
   bool using_dma;
 
   if (!nwords || (!txbuffer && !rxbuffer))
@@ -652,7 +647,24 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
       (rxbuffer ? (spi->rx_chan && !((uintptr_t)rxbuffer & 0x03)) : true);
 
   if (using_dma)
-    dw_spi_dma_transfer(spi, txbuffer, rxbuffer, nwords);
+    {
+      while (nwords > 0)
+        {
+          if (!txbuffer && nwords > UINT16_MAX)
+            nsize = UINT16_MAX;
+          else
+            nsize = nwords;
+
+          dw_spi_dma_transfer(spi, txbuffer, rxbuffer, nsize);
+
+          if (txbuffer)
+            txbuffer += nsize * spi->n_bytes;
+          if (rxbuffer)
+            rxbuffer += nsize * spi->n_bytes;
+
+          nwords -= nsize;
+        }
+    }
   else
     dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, nwords);
 
