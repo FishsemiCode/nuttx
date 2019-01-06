@@ -54,6 +54,8 @@
 #define _END_HEAP                       ((uintptr_t)&_eheap)
 #define _START_HEAP2                    ((uintptr_t)&_sheap2)
 #define _END_HEAP2                      ((uintptr_t)&_eheap2)
+#define _START_HEAP3                    ((uintptr_t)&_sheap3)
+#define _END_HEAP3                      ((uintptr_t)&_eheap3)
 
 #ifdef CONFIG_HEAP_COLORATION
 #  define song_heap_color(start, size)  memset(start, HEAP_COLOR, size)
@@ -68,6 +70,8 @@
 extern uint32_t _eheap;           /* End+1 of heap */
 extern uint32_t _sheap2;          /* Start of heap2 */
 extern uint32_t _eheap2;          /* End+1 of heap2 */
+extern uint32_t _sheap3;          /* Start of heap3 */
+extern uint32_t _eheap3;          /* End+1 of heap3 */
 
 /* g_idle_topstack: _sbss is the start of the BSS region as defined by the
  * linker script. _ebss lies at the end of the BSS region. The idle task
@@ -141,8 +145,6 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
 #if CONFIG_MM_REGIONS > 1
 void up_addregion(void)
 {
-#ifdef CONFIG_ARCH_HAVE_HEAP2
-
   /* Colorize the heap2 for debug */
 
   song_heap_color((FAR void *)_START_HEAP2, _END_HEAP2 - _START_HEAP2);
@@ -150,6 +152,17 @@ void up_addregion(void)
   /* Add the heap2 region. */
 
   kmm_addregion((FAR void *)_START_HEAP2, _END_HEAP2 - _START_HEAP2);
+
+#if CONFIG_MM_REGIONS > 2
+
+  /* Colorize the heap3 for debug */
+
+  song_heap_color((FAR void *)_START_HEAP3, _END_HEAP3 - _START_HEAP3);
+
+  /* Add the heap3 region. */
+
+  kmm_addregion((FAR void *)_START_HEAP3, _END_HEAP3 - _START_HEAP3);
+
 #endif
 }
 #endif

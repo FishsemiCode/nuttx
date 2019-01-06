@@ -19,7 +19,6 @@ config ARCH_CHIP_BANKS_RPM
 config ARCH_CHIP_BANKS_SENSOR
 	bool "Banks Sensor"
 	select ARCH_HAVE_FPU
-	select ARCH_HAVE_HEAP2
 	select SONG_CORTEXM4
 
 config ARCH_CHIP_FVP_MPS2_M4
@@ -37,7 +36,6 @@ config ARCH_CHIP_U1_AP
 config ARCH_CHIP_U1_CP
 	bool "U1 CP"
 	select ARCH_HAVE_FPU
-	select ARCH_HAVE_HEAP2
 	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4
 	select SONG_ICACHE
@@ -56,7 +54,6 @@ config ARCH_CHIP_U1_SP
 config ARCH_CHIP_U2_M4
 	bool "U2 M4"
 	select ARCH_HAVE_FPU
-	select ARCH_HAVE_HEAP2
 	select SONG_CORTEXM4
 	select SONG_COPY_TABLE
 
