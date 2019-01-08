@@ -236,6 +236,16 @@ if MBOX
 source drivers/mbox/Kconfig
 endif # MBOX
 
+menuconfig HWSPINLOCK
+	bool "HWSPINLOCK Driver Support"
+	default n
+	---help---
+		HWSPINLOCK driver is used for multi-cores' resource access.
+
+if HWSPINLOCK
+source drivers/hwspinlock/Kconfig
+endif # HWSPINLOCK
+
 # MMC/SD-related platform capabilities
 
 config ARCH_HAVE_SDIO

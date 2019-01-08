@@ -56,6 +56,7 @@ include can$(DELIM)Make.defs
 include clk$(DELIM)Make.defs
 include crypto$(DELIM)Make.defs
 include dma$(DELIM)Make.defs
+include hwspinlock$(DELIM)Make.defs
 include i2c$(DELIM)Make.defs
 include i2s$(DELIM)Make.defs
 include input$(DELIM)Make.defs
