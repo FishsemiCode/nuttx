@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/audio/ak4332.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/kmalloc.h>
 
 /****************************************************************************
@@ -50,13 +51,26 @@
 #define AK4332_PWR2                       0x01
 #define AK4332_PWR3                       0x02
 #define AK4332_PWR4                       0x03
+#define AK4332_OUT_MODE                   0x04
 #define AK4332_CLK_MODE                   0x05
+#define AK4332_DIG_FILTER                 0x06
+#define AK4332_DAC_MONO_MIX               0x07
 #define AK4332_PDM_CTL                    0x08
+#define AK4332_DAC_OUT_VOL                0x0b
+#define AK4332_HP_VOL                     0x0d
+#define AK4332_PLL_SRC                    0x0e
+#define AK4332_PLL_REF_DIV1               0x0f
+#define AK4332_PLL_REF_DIV2               0x10
+#define AK4332_PLL_FB_DIV1                0x11
+#define AK4332_PLL_FB_DIV2                0x12
 #define AK4332_DAC_CLK_SRC                0x13
+#define AK4332_DAC_CLK_DIV                0x14
 #define AK4332_CODEC_FMT                  0x15
+#define AK4332_PDM_ERR                    0x17
 #define AK4332_DAC_ADJ1                   0x26
 #define AK4332_DAC_ADJ2                   0x27
 
+#define AK4332_PWR_PMPLL                  0x01
 #define AK4332_PWR_PMTIM                  0x02
 
 #define AK4332_PWR_PMCP1                  0x01
@@ -67,6 +81,9 @@
 #define AK4332_PWR_PMDA                   0x01
 
 #define AK4332_PWR_PMHP                   0x01
+#define AK4332_PWR_CPMODE_G               0x00
+#define AK4332_PWR_CPMODE_VDD             0x04
+#define AK4332_PWR_CPMODE_HVDD            0x08
 #define AK4332_PWR_LVDTM_MASK             0x70
 #define AK4332_PWR_LVDTM_64               0x00
 #define AK4332_PWR_LVDTM_128              0x10
@@ -77,22 +94,95 @@
 #define AK4332_PWR_LVDTM_4096             0x60
 #define AK4332_PWR_LVDTM_8192             0x70
 
+#define AK4332_OUT_HPOHZ                  0x01
+#define AK4332_OUT_VDDTM_1024             0x00
+#define AK4332_OUT_VDDTM_2048             0x04
+#define AK4332_OUT_VDDTM_4096             0x08
+#define AK4332_OUT_VDDTM_8192             0x0c
+#define AK4332_OUT_VDDTM_16384            0x10
+#define AK4332_OUT_VDDTM_32768            0x14
+#define AK4332_OUT_VDDTM_65536            0x18
+#define AK4332_OUT_VDDTM_131072           0x1c
+#define AK4332_OUT_VDDTM_262114           0x20
+#define AK4332_OUT_LVSEL_16               0x00
+#define AK4332_OUT_LVSEL_32               0x40
+#define AK4332_OUT_LVSEL_11               0x80
+#define AK4332_OUT_LVSEL_8                0xc0
+
+#define AK4332_CLK_FS_8K                  0x00
+#define AK4332_CLK_FS_11K                 0x01
+#define AK4332_CLK_FS_12K                 0x02
+#define AK4332_CLK_FS_16K                 0x04
+#define AK4332_CLK_FS_22K                 0x05
+#define AK4332_CLK_FS_24K                 0x06
+#define AK4332_CLK_FS_32K                 0x08
+#define AK4332_CLK_FS_44K                 0x09
 #define AK4332_CLK_FS_48K                 0x0a
+#define AK4332_CLK_FS_64K                 0x0c
+#define AK4332_CLK_FS_88K                 0x0d
+#define AK4332_CLK_FS_96K                 0x0e
+#define AK4332_CLK_FS_128K                0x10
+#define AK4332_CLK_FS_176K                0x11
+#define AK4332_CLK_FS_192K                0x12
 #define AK4332_CLK_FS_MASK                0x1f
 #define AK4332_CLK_CM_256FS               0x00
+#define AK4332_CLK_CM_512FS               0x20
+#define AK4332_CLK_CM_1024FS              0x40
+#define AK4332_CLK_CM_128FS               0x60
 #define AK4332_CLK_CM_MASK                0x60
 
+#define AK4332_DIG_DASL                   0x40
+#define AK4332_DIG_DASD                   0x80
+
+#define AK4332_MIX_LDAC                   0x01
+#define AK4332_MIX_RDAC                   0x02
+#define AK4332_MIX_MDAC                   0x04
+#define AK4332_MIX_INV                    0x08
+
+#define AK4332_PDM_CTL_PCM                0x00
 #define AK4332_PDM_CTL_PDM                0x01
 #define AK4332_PDM_CTL_FMT_MASK           0x01
 #define AK4332_PDM_CTL_PDMMODE1           0x00
+#define AK4332_PDM_CTL_PDMMODE2           0x02
+#define AK4332_PDM_CTL_DSDMODE            0x04
 #define AK4332_PDM_CTL_PDMMODE_MASK       0x06
+#define AK4332_PDM_CTL_PDMMUTE_DISABLE    0x10
+#define AK4332_PDM_CTL_DCKB               0x20
 #define AK4332_PDM_CTL_PDMCKR             0x40
 
+#define AK4332_OUT_VOL_OVC_MASK           0x1f
+
+#define AK4332_HP_VOL_HPG_MASK            0x07
+#define AK4332_HP_VOL_HPTM_128            0x00
+#define AK4332_HP_VOL_HPTM_256            0x20
+#define AK4332_HP_VOL_HPTM_512            0x40
+#define AK4332_HP_VOL_HPTM_1024           0x60
+#define AK4332_HP_VOL_HPTM_2048           0x80
+
+#define AK4332_PLL_SRC_MCLK               0x00
+#define AK4332_PLL_SRC_BCLK               0x01
+#define AK4332_PLL_SRC_MASK               0x01
+#define AK4332_PLL_SRC_PLLMD              0x10
+#define AK4332_PLL_SRC_PLLMD_SHIFT        4
+
 #define AK4332_DAC_MCLK_SRC_MCLK          0x00
+#define AK4332_DAC_MCLK_SRC_PLL           0x01
 #define AK4332_DAC_MCLK_SRC_MASK          0x01
 
+#define AK4332_DAC_MCLK_DIV_MASK          0x07
+
+#define AK4332_CODEC_FMT_DL24             0x00
+#define AK4332_CODEC_FMT_DL16             0x01
+#define AK4332_CODEC_FMT_DL32             0x02
+#define AK4332_CODEC_FMT_DL_MASK          0x03
+#define AK4332_CODEC_FMT_DIF              0x04
+#define AK4332_CODEC_FMT_BCKO_MASK        0x08
+#define AK4332_CODEC_FMT_BCKO64           0x00
+#define AK4332_CODEC_FMT_BCKO32           0x08
 #define AK4332_CODEC_FMT_MS               0x10
 #define AK4332_CODEC_DEVICEID_MASK        0xe0
+
+#define AK4332_PDMERR_FSDET               0x10
 
 #define AK4332_I2C_FREQ                   400000
 #define AK4332_I2C_ADDR                   0x10
@@ -105,7 +195,8 @@ struct ak4332_s
 {
   struct audio_lowerhalf_s dev;
   struct i2c_master_s *i2c;
-  int enable_cnt;
+  struct clk *mclk;
+  bool pdm;
 };
 
 /****************************************************************************
@@ -141,7 +232,8 @@ static int ak4332_resume(struct audio_lowerhalf_s *dev_);
 #endif
 #endif
 
-static uint32_t ak4332_samplerate(struct ak4332_s *dev, uint32_t rate);
+static int ak4332_setdatawidth(struct ak4332_s *dev, uint32_t bpsamp);
+static int ak4332_samplerate(struct ak4332_s *dev, uint32_t rate);
 static int ak4332_set_fmt(struct ak4332_s *dev, uint16_t fmt);
 
 /****************************************************************************
@@ -210,7 +302,8 @@ static int ak4332_configure(struct audio_lowerhalf_s *dev_,
 #endif
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
-  int samprate, nchannels;
+  uint32_t samprate, nchannels, bpsamp;
+  int ret = OK;
 
   DEBUGASSERT(ak4332 && caps);
   audinfo("ac_type: %d\n", caps->ac_type);
@@ -219,6 +312,33 @@ static int ak4332_configure(struct audio_lowerhalf_s *dev_,
 
   switch (caps->ac_type)
     {
+      case AUDIO_TYPE_FEATURE:
+        switch (caps->ac_format.hw)
+          {
+#ifndef CONFIG_AUDIO_EXCLUDE_VOLUME
+            case AUDIO_FU_VOLUME:
+              {
+                /* Set the volume */
+
+                uint16_t volume = caps->ac_controls.hw[0];
+                audinfo("    Volume: %d\n", volume);
+                /* Digital Volume:
+                     0 for mute, 3100 for 3db, step 100 for 0.5db. just affects I2S and PCM */
+
+                if (volume > 3100)
+                  return -EDOM;
+                ak4332_updatereg(dev, AK4332_DAC_OUT_VOL,
+                                 AK4332_OUT_VOL_OVC_MASK,
+                                 volume / 100);
+              }
+              break;
+#endif
+            default:
+              auderr("    ERROR: Unrecognized feature unit\n");
+              ret = -ENOTTY;
+              break;
+          }
+        break;
       case AUDIO_TYPE_OUTPUT:
 
         /* Save the current stream configuration */
@@ -226,10 +346,14 @@ static int ak4332_configure(struct audio_lowerhalf_s *dev_,
         samprate  = caps->ac_controls.hw[0] |
                     (caps->ac_controls.b[3] << 16);
         nchannels = caps->ac_channels;
+        bpsamp    = caps->ac_controls.b[2];
 
-        if (nchannels > 2 || !samprate)
+        if (nchannels > 2)
           return -EINVAL;
 
+        ret = ak4332_setdatawidth(dev, bpsamp);
+        if (ret < 0)
+          return ret;
         return ak4332_samplerate(dev, samprate);
       case AUDIO_TYPE_EXTENSION:
         switch(caps->ac_format.hw)
@@ -242,6 +366,7 @@ static int ak4332_configure(struct audio_lowerhalf_s *dev_,
       default:
         return -ENOTTY;
     }
+  return ret;
 }
 
 #ifdef CONFIG_AUDIO_MULTI_SESSION
@@ -252,29 +377,29 @@ static int ak4332_start(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (dev->enable_cnt++)
-    return OK;
-
-  ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM,
-                   AK4332_PWR_PMTIM);
-  ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP1,
-                   AK4332_PWR_PMCP1);
-  usleep(6500);
-  ak4332_updatereg(dev, AK4332_PWR2,
-                   AK4332_PWR_PMLDO1P,
-                   AK4332_PWR_PMLDO1P);
-  usleep(500);
-  ak4332_updatereg(dev, AK4332_PWR2,
-                   AK4332_PWR_PMLDO1N,
-                   AK4332_PWR_PMLDO1N);
-  usleep(500);
-  ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA,
-                   AK4332_PWR_PMDA);
-  ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2,
-                   AK4332_PWR_PMCP2);
-  usleep(4500);
-  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
-                   AK4332_PWR_PMHP);
+  if (clk_enable(dev->mclk) == 1)
+    {
+      ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM,
+                       AK4332_PWR_PMTIM);
+      ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP1,
+                       AK4332_PWR_PMCP1);
+      usleep(6500);
+      ak4332_updatereg(dev, AK4332_PWR2,
+                       AK4332_PWR_PMLDO1P,
+                       AK4332_PWR_PMLDO1P);
+      usleep(500);
+      ak4332_updatereg(dev, AK4332_PWR2,
+                       AK4332_PWR_PMLDO1N,
+                       AK4332_PWR_PMLDO1N);
+      usleep(500);
+      ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA,
+                       AK4332_PWR_PMDA);
+      ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2,
+                       AK4332_PWR_PMCP2);
+      usleep(4500);
+      ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
+                       AK4332_PWR_PMHP);
+    }
   return OK;
 }
 
@@ -287,16 +412,16 @@ static int ak4332_stop(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (!dev->enable_cnt || --dev->enable_cnt)
-    return OK;
-
-  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
-  ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2, 0);
-  ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA, 0);
-  ak4332_updatereg(dev, AK4332_PWR2,
-                   AK4332_PWR_PMLDO1P | AK4332_PWR_PMLDO1N |
-                   AK4332_PWR_PMCP1, 0);
-  ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM, 0);
+  if (clk_disable(dev->mclk) == 1)
+    {
+      ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
+      ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2, 0);
+      ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA, 0);
+      ak4332_updatereg(dev, AK4332_PWR2,
+                       AK4332_PWR_PMLDO1P | AK4332_PWR_PMLDO1N |
+                       AK4332_PWR_PMCP1, 0);
+      ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM, 0);
+    }
 
   return OK;
 }
@@ -311,11 +436,9 @@ static int ak4332_pause(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (!dev->enable_cnt || --dev->enable_cnt)
-    return OK;
+  if (clk_disable(dev->mclk) == 1)
+    ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
 
-  ak4332_updatereg(dev, AK4332_PWR4,
-                   AK4332_PWR_PMHP, 0);
   return OK;
 }
 
@@ -327,21 +450,77 @@ static int ak4332_resume(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (dev->enable_cnt++)
-    return OK;
-
-  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
-                   AK4332_PWR_PMHP);
+  if (clk_enable(dev->mclk) == 1)
+    ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
+                     AK4332_PWR_PMHP);
   return OK;
 }
 #endif
 
-static uint32_t ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
+static int ak4332_setdatawidth(struct ak4332_s *dev, uint32_t bpsamp)
 {
+  switch (bpsamp)
+    {
+      case 16:
+        ak4332_updatereg(dev, AK4332_CODEC_FMT,
+                         AK4332_CODEC_FMT_DL_MASK,
+                         AK4332_CODEC_FMT_DL16);
+        ak4332_updatereg(dev, AK4332_CODEC_FMT,
+                         AK4332_CODEC_FMT_BCKO_MASK,
+                         AK4332_CODEC_FMT_BCKO32);
+        break;
+      case 24:
+        ak4332_updatereg(dev, AK4332_CODEC_FMT,
+                         AK4332_CODEC_FMT_DL_MASK,
+                         AK4332_CODEC_FMT_DL24);
+        ak4332_updatereg(dev, AK4332_CODEC_FMT,
+                         AK4332_CODEC_FMT_BCKO_MASK,
+                         AK4332_CODEC_FMT_BCKO64);
+        break;
+      case 32:
+        ak4332_updatereg(dev, AK4332_CODEC_FMT,
+                         AK4332_CODEC_FMT_DL_MASK,
+                         AK4332_CODEC_FMT_DL32);
+        ak4332_updatereg(dev, AK4332_CODEC_FMT,
+                         AK4332_CODEC_FMT_BCKO_MASK,
+                         AK4332_CODEC_FMT_BCKO64);
+        break;
+      default:
+        return -EINVAL;
+    }
+    return OK;
+}
+
+static int ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
+{
+  if (dev->pdm)
+    rate = 48000;
+
+  switch (rate)
+    {
+      case 8000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_8K);
+        break;
+      case 16000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_16K);
+        break;
+      case 48000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_48K);
+        break;
+      case 96000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_96K);
+        break;
+      default:
+        return -EINVAL;
+    }
   ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_CM_MASK,
                    AK4332_CLK_CM_256FS);
-  ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                   AK4332_CLK_FS_48K);
+  clk_set_rate(dev->mclk, rate * 256);
+
   return OK;
 }
 
@@ -349,10 +528,24 @@ static int ak4332_set_fmt(struct ak4332_s *dev, uint16_t fmt)
 {
   switch (fmt & AUDIO_HWFMT_FORMAT_MASK)
     {
+      case AUDIO_HWFMT_I2S:
+        ak4332_updatereg(dev, AK4332_PDM_CTL, AK4332_PDM_CTL_FMT_MASK,
+                         AK4332_PDM_CTL_PCM);
+        ak4332_updatereg(dev, AK4332_CODEC_FMT, AK4332_CODEC_FMT_DIF, 0);
+        dev->pdm = false;
+        break;
+      case AUDIO_HWFMT_LEFT_J:
+        ak4332_updatereg(dev, AK4332_PDM_CTL, AK4332_PDM_CTL_FMT_MASK,
+                         AK4332_PDM_CTL_PCM);
+        ak4332_updatereg(dev, AK4332_CODEC_FMT, AK4332_CODEC_FMT_DIF,
+                         AK4332_CODEC_FMT_DIF);
+        dev->pdm = false;
+        break;
       case AUDIO_HWFMT_PDM:
         ak4332_updatereg(dev, AK4332_PDM_CTL, AK4332_PDM_CTL_FMT_MASK |
                          AK4332_PDM_CTL_PDMMODE_MASK,
                          AK4332_PDM_CTL_PDM | AK4332_PDM_CTL_PDMMODE1);
+        dev->pdm = true;
         break;
       default:
         return -EINVAL;
@@ -371,14 +564,17 @@ static int ak4332_set_fmt(struct ak4332_s *dev, uint16_t fmt)
     }
   switch (fmt & AUDIO_HWFMT_MASTER_MASK)
     {
+      case AUDIO_HWFMT_CBM_CFM:
+        ak4332_updatereg(dev, AK4332_CODEC_FMT, AK4332_CODEC_FMT_MS,
+                         AK4332_CODEC_FMT_MS);
+        break;
       case AUDIO_HWFMT_CBS_CFS:
         ak4332_updatereg(dev, AK4332_CODEC_FMT, AK4332_CODEC_FMT_MS, 0);
-        ak4332_updatereg(dev, AK4332_DAC_CLK_SRC, AK4332_DAC_MCLK_SRC_MASK,
-                         AK4332_DAC_MCLK_SRC_MCLK);
         break;
       default:
         return -EINVAL;
     }
+
   return OK;
 }
 
@@ -386,7 +582,8 @@ static int ak4332_set_fmt(struct ak4332_s *dev, uint16_t fmt)
  * Public Functions
  ****************************************************************************/
 
-struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c)
+struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c,
+                                            const char *mclk, int mix)
 {
   struct ak4332_s *dev;
 
@@ -396,16 +593,29 @@ struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c)
 
   dev->dev.ops = &g_ak4332_ops;
   dev->i2c = i2c;
-
-  if (ak4332_getreg(dev, AK4332_CODEC_FMT) & AK4332_CODEC_DEVICEID_MASK)
-    {
-       kmm_free(dev);
-       return NULL;
-    }
+  dev->mclk = clk_get(mclk);
 
   ak4332_putreg(dev, AK4332_DAC_ADJ1, 0x02);
   ak4332_putreg(dev, AK4332_DAC_ADJ2, 0xc0);
-  ak4332_set_fmt(dev, AUDIO_HWFMT_CBS_CFS | AUDIO_HWFMT_NB_NF | AUDIO_HWFMT_PDM);
-  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_LVDTM_MASK, AK4332_PWR_LVDTM_128);
+
+  switch (mix)
+  {
+    case 0:
+      ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
+                       AK4332_MIX_LDAC, AK4332_MIX_LDAC);
+      break;
+    case 1:
+      ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
+                       AK4332_MIX_RDAC, AK4332_MIX_RDAC);
+      break;
+    default:
+      ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
+                       AK4332_MIX_MDAC | AK4332_MIX_LDAC |
+                       AK4332_MIX_RDAC,
+                       AK4332_MIX_MDAC | AK4332_MIX_LDAC |
+                       AK4332_MIX_RDAC);
+      break;
+  }
+
   return &dev->dev;
 }

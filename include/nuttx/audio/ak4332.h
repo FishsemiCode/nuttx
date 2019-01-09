@@ -48,6 +48,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 
-struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c);
+struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c,
+                                            const char *mclk, int mix);
 
 #endif
