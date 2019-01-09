@@ -105,10 +105,14 @@
 #define uart_receive(dev,s)      dev->ops->receive(dev,s)
 
 #ifdef CONFIG_SERIAL_DMA
-#  define uart_dmasend(dev)      dev->ops->dmasend(dev)
-#  define uart_dmareceive(dev)   dev->ops->dmareceive(dev)
-#  define uart_dmarxfree(dev)    dev->ops->dmarxfree(dev)
-#  define uart_dmatxavail(dev)   dev->ops->dmatxavail(dev)
+#  define uart_dmasend(dev) \
+            do { if (dev->ops->dmasend) dev->ops->dmasend(dev); } while (0)
+#  define uart_dmareceive(dev) \
+            do { if (dev->ops->dmareceive) dev->ops->dmareceive(dev); } while (0)
+#  define uart_dmarxfree(dev) \
+            do { if (dev->ops->dmarxfree) dev->ops->dmarxfree(dev); } while (0)
+#  define uart_dmatxavail(dev) \
+            do { if (dev->ops->dmatxavail) dev->ops->dmatxavail(dev); } while (0)
 #endif
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
