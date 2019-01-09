@@ -84,6 +84,8 @@ struct intc_dw_s
   volatile uint32_t IRQ_INTERNAL_PLEVEL;
   volatile uint32_t RESERVED1[2];
   volatile uint32_t IRQ_PRX[64];
+  volatile uint32_t RESERVED2[390];
+  volatile uint32_t ACK_CLR; /* 0x800 */
 };
 
 /****************************************************************************
@@ -134,25 +136,24 @@ void up_irqinitialize(void)
 void up_dispatch_irq(int irq, FAR void *context)
 {
   uint32_t status;
-  uint32_t intforce;
   int i, j;
 
   /* Dispatch request one by one */
   for (i = 0; i < NR_IRQS; i += 32)
   {
-    status = g_intc_dw->IRQ_MASKSTATUS[i/32];
-    intforce = g_intc_dw->IRQ_INTFORCE[i/32];
+    status = g_intc_dw->IRQ_FINALSTATUS[i/32];
     for (j = 0; status; j++)
     {
       if (status & (1 << j))
       {
+        g_intc_dw->IRQ_INTFORCE[i/32] &= ~(1 << j);
         irq_dispatch(i + j, context);
         status &= ~(1 << j);
-        intforce &= ~(1 << j);
       }
     }
-    g_intc_dw->IRQ_INTFORCE[i/32] = intforce;
   }
+
+  g_intc_dw->ACK_CLR = 1;
 
   /* Reset the priority level */
   g_intc_dw->IRQ_INTERNAL_PLEVEL = g_intc_dw->IRQ_PLEVEL;
@@ -235,13 +236,9 @@ int up_prioritize_irq(int irq, int priority)
 #ifdef CONFIG_ARCH_HAVE_IRQTRIGGER
 void up_trigger_irq(int irq)
 {
-  irqstate_t flags;
-
   if (irq < NR_IRQS)
     {
-      flags = enter_critical_section();
       g_intc_dw->IRQ_INTFORCE[irq/32] |= 1 << irq%32;
-      leave_critical_section(flags);
     }
 }
 #endif /* CONFIG_ARCH_HAVE_IRQTRIGGER */
