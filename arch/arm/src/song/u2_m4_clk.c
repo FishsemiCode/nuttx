@@ -531,6 +531,12 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x098,
     .en_shift = 6,
   },
+  {
+    .name = "spi0_pclk",
+    .parent_name = "top_pclk1",
+    .en_offset = 0x098,
+    .en_shift = 11,
+  },
 #ifdef CONFIG_DEBUG_SONG_CLK
   {
     .name = "topbus_rfphyclk",
@@ -573,12 +579,6 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_pclk1",
     .en_offset = 0x098,
     .en_shift = 10,
-  },
-  {
-    .name = "spi0_pclk",
-    .parent_name = "top_pclk1",
-    .en_offset = 0x098,
-    .en_shift = 11,
   },
   {
     .name = "spi1_pclk",
@@ -643,6 +643,15 @@ static const struct song_lp_reg_clk lp_reg[] =
   {}
 };
 
+static const struct clk_rate def_rates[] =
+{
+  {
+    .name = "spi0_pclk",
+    .rate = 51200000,
+  },
+  {},
+};
+
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -666,6 +675,7 @@ static const struct song_clk_table clk_tbl =
 void up_clk_initialize(void)
 {
   song_clk_initialize(0xa00e0000, &clk_tbl);
+  clk_set_rates(def_rates);
 }
 
 void up_clk_finalinitialize(void)
