@@ -143,7 +143,6 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
 {
   uint32_t i, bestdiv = 0, maxdiv, mindiv, step;
   uint32_t parent_rate, best = 0, now;
-  uint32_t parent_rate_saved = *best_parent_rate;
   struct clk_divider *divider = to_clk_divider(clk);
 
   if (!rate)
