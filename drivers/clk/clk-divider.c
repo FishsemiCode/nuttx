@@ -176,11 +176,6 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
   maxdiv = MIN(UINT32_MAX / rate, maxdiv);
   for (i = mindiv; i <= maxdiv; i += step)
     {
-      if (rate * i == parent_rate_saved)
-        {
-          *best_parent_rate = parent_rate_saved;
-          return i;
-        }
       parent_rate = clk_round_rate(clk_get_parent(clk),
           MULT_ROUND_UP(rate, i));
       now = DIV_ROUND_UP(parent_rate, i);
