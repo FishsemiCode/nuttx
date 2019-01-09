@@ -66,6 +66,7 @@
 	.globl		__aeabi_d2iz
 	.globl		__aeabi_d2lz
 	.globl		__aeabi_d2uiz
+	.globl		__aeabi_dcmpun
 	.globl		__aeabi_ddiv
 	.globl		__aeabi_dmul
 	.globl		__aeabi_l2f
