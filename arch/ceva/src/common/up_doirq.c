@@ -80,6 +80,13 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
     }
   else
     {
+
+      /* Hardware automatically clear IE bit at the interrupt entry,
+       * update the software state(CURRENT_IRQS) to reflect the truth.
+       */
+
+      CURRENT_IRQS &= ~REG_IRQS_IE;
+
       struct tcb_s *rtcb;
 
       /* Current regs non-zero indicates that we are processing an interrupt;
@@ -123,6 +130,8 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
 
       rtcb = this_task();
       up_irq_restore(rtcb->xcp.irqflags);
+
+      CURRENT_IRQS |= REG_IRQS_IE;
     }
 
   return regs;
