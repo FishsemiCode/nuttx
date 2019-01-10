@@ -60,7 +60,7 @@
 #include <arch/board/board.h>
 
 #if defined(CONFIG_16550_UART0_DMA) || defined(CONFIG_16550_UART1_DMA) \
-      || defined(CONFIG_16552_UART2_DMA) || defined(CONFIG_16550_UART3_DMA)
+      || defined(CONFIG_16550_UART2_DMA) || defined(CONFIG_16550_UART3_DMA)
 #  define HAVE_16550_UART_DMA 1
 #endif
 
