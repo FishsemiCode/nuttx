@@ -189,9 +189,9 @@ void up_enable_irq(int irq)
 
   if (irq < NR_IRQS)
     {
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       g_intc_dw->IRQ_INTEN[irq/32] |= 1 << irq%32;
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
 
       up_wic_enable_irq(irq);
     }
@@ -213,9 +213,9 @@ void up_disable_irq(int irq)
 
   if (irq < NR_IRQS)
     {
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       g_intc_dw->IRQ_INTEN[irq/32] &= ~(1 << irq%32);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
 
       up_wic_disable_irq(irq);
     }

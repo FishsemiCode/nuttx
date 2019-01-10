@@ -157,7 +157,7 @@ __ramfunc__ void up_invalidate_icache_all(void)
 {
   irqstate_t flags;
 
-  flags = enter_critical_section();
+  flags = spin_lock_irqsave();
 
   modifyreg32(SONG_ICACHE_CTL, 0, SONG_ICACHE_FLUSH);
   while (getreg32(SONG_ICACHE_CTL) & SONG_ICACHE_FLUSH)
@@ -165,7 +165,7 @@ __ramfunc__ void up_invalidate_icache_all(void)
       /* Wait until FLUSH bit get clear */;
     }
 
-  leave_critical_section(flags);
+  spin_unlock_irqrestore(flags);
 }
 
 /****************************************************************************

@@ -181,9 +181,9 @@ void up_vintc_enable_irq(int irq)
   if (irq < NR_IRQS)
     {
       irq  -= IRQ_VINT_FIRST;
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       g_dw_vintc->IRQ_INTEN[irq/32] |= 1 << irq%32;
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
     }
 }
 
@@ -204,9 +204,9 @@ void up_vintc_disable_irq(int irq)
   if (irq < NR_IRQS)
     {
       irq  -= IRQ_VINT_FIRST;
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       g_dw_vintc->IRQ_INTEN[irq/32] &= ~(1 << irq%32);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
     }
 }
 
@@ -248,9 +248,9 @@ void up_vintc_trigger_irq(int irq)
 
   if (irq < NR_IRQS)
     {
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       g_dw_vintc->IRQ_INTFORCE[irq/32] |= 1 << irq%32;
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
     }
 }
 #endif /* CONFIG_ARCH_HAVE_IRQTRIGGER */

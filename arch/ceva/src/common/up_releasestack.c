@@ -102,9 +102,9 @@ void up_sched_garbage_collection(void)
        * we must disable interrupts around the queue operation.
        */
 
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       address = sq_remfirst(&g_delayed_kfree);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
 
       /* Return the memory to the kernel heap
        * which may come from the default heap due to up_use_stack.
@@ -130,9 +130,9 @@ void up_sched_garbage_collection(void)
        * we must disable interrupts around the queue operation.
        */
 
-      flags = enter_critical_section();
+      flags = spin_lock_irqsave();
       address = sq_remfirst(&g_delayed_ufree);
-      leave_critical_section(flags);
+      spin_unlock_irqrestore(flags);
 
       /* Return the memory to the user heap
        * which may come from the default heap due to up_use_stack.
@@ -157,7 +157,7 @@ void up_sched_garbage_collection(void)
  *   A task has been stopped. Free all stack related resources retained in
  *   the defunct TCB.
  *
- * Input Parmeters
+ * Input Parameters:
  *   - dtcb:  The TCB containing information about the stack to be released
  *   - ttype:  The thread type.  This may be one of following (defined in
  *     include/nuttx/sched.h):
@@ -196,14 +196,15 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
               mm_heapmember(KMM_HEAP(CONFIG_ARCH_KERNEL_STACK_HEAP),
                             dtcb->stack_alloc_ptr))
           {
-            irqstate_t flags = enter_critical_section();
+            irqstate_t flags;
 
             /* Delay the deallocation until a more appropriate time. */
 
+            flags = spin_lock_irqsave();
             sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_kfree);
+            spin_unlock_irqrestore(flags);
 
             sched_signal_free();
-            leave_critical_section(flags);
           }
         }
       else
@@ -235,14 +236,15 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
               mm_heapmember(UMM_HEAP(CONFIG_ARCH_STACK_HEAP),
                             dtcb->stack_alloc_ptr))
           {
-            irqstate_t flags = enter_critical_section();
+            irqstate_t flags;
 
             /* Delay the deallocation until a more appropriate time. */
 
+            flags = spin_lock_irqsave();
             sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_ufree);
+            spin_unlock_irqrestore(flags);
 
             sched_signal_free();
-            leave_critical_section(flags);
           }
 #endif
         }
