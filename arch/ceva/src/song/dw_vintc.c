@@ -99,24 +99,21 @@ static FAR struct dw_vintc_s * const g_dw_vintc
 static int dw_vintc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
   uint32_t status;
-  uint32_t intforce;
   int i, j;
 
   /* Dispatch request one by one */
   for (i = 0; i < NR_IRQS; i += 32)
     {
       status = g_dw_vintc->IRQ_MASKSTATUS[i/32];
-      intforce = g_dw_vintc->IRQ_INTFORCE[i/32];
       for (j = 0; status; j++)
         {
           if (status & (1 << j))
             {
+              g_dw_vintc->IRQ_INTFORCE[i/32] &= ~(1 << j);
               irq_dispatch(IRQ_VINT_FIRST + i + j, context);
               status &= ~(1 << j);
-              intforce &= ~(1 << j);
-            }
+           }
         }
-      g_dw_vintc->IRQ_INTFORCE[i/32] = intforce;
     }
 
   /* Reset the priority level */
