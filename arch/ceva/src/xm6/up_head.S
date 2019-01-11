@@ -132,8 +132,16 @@ _up_vintc_handler:
 	IRQ_HANDLER	IRQ_TRAP3, reti
 
 reset_handler:
-	/* Initialize the C language environment */
+	/* Tricky for compiler bug: when codes are placed onto ddr memory, label
+	* address will be place at the back of its first code line, so when branch
+	* to this label, its first code line will be skipped.
+	*/
+	nop
+	nop
+	nop
+	nop
 
+	/* Initialize the C language environment */
 	ld		(#_g_idle_topstack).ui, r0.ui
 	ld		(#_g_idle_basestack).ui, r1.ui
 	nop		#0x01
@@ -159,6 +167,14 @@ reset_handler:
 	.func_start	3 exception_common
 
 exception_common:
+	/* Tricky for compiler bug: when codes are placed onto ddr memory, label address
+	* will be placed at the back of its first code line, so when branch to
+	* to this label, its first code line will be skipped.
+	*/
+	nop
+	nop
+	nop
+	nop
 
 	/* Note: r0 contain exception number
 	 * Complete the context save
