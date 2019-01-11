@@ -43,10 +43,12 @@
 
 #include "up_internal.h"
 
+//disable psu function temporily
+#define CEVAXM6_PSU_ENABLE 0
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
+#if CEVAXM6_PSU_ENABLE
 #define up_cpu_pmod(pmod_inst)                                        \
   __asm__ __volatile__                                                \
   (                                                                   \
@@ -59,7 +61,9 @@
      : : "r"(CURRENT_IRQS)                                            \
      , "r"(REG_IRQS_IE)                                               \
   )
-
+#else
+#define up_cpu_pmod(pmod_inst)
+#endif
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
