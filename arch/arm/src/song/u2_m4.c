@@ -42,7 +42,6 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/fs.h>
-#include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -50,11 +49,8 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
-#include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
-#include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/spi/spi_dw.h>
-#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
@@ -204,13 +200,6 @@ void arm_timer_initialize(void)
 #endif
 }
 
-#ifdef CONFIG_RPMSG_UART
-void rpmsg_serialinit(void)
-{
-  uart_rpmsg_server_init("ADSP", 1024);
-}
-#endif
-
 #ifdef CONFIG_SONG_MBOX
 static void up_mbox_init(void)
 {
@@ -241,74 +230,6 @@ static void up_mbox_init(void)
   };
 
   song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
-}
-#endif
-
-#ifdef CONFIG_SONG_RPTUN
-static void up_rptun_init(void)
-{
-  static struct rptun_rsc_s rptun_rsc_adsp
-    __attribute__ ((section(".resource_table.adsp"))) =
-  {
-    .rsc_tbl_hdr     =
-    {
-      .ver           = 1,
-      .num           = 1,
-    },
-    .offset          =
-    {
-      offsetof(struct rptun_rsc_s, rpmsg_vdev),
-    },
-    .rpmsg_vdev      =
-    {
-      .type          = RSC_VDEV,
-      .id            = VIRTIO_ID_RPMSG,
-      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
-                     | 1 << VIRTIO_RPMSG_F_BIND
-                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
-      .num_of_vrings = 2,
-    },
-    .rpmsg_vring0    =
-    {
-      .align         = 0x8,
-      .num           = 8,
-    },
-    .rpmsg_vring1    =
-    {
-      .align         = 0x8,
-      .num           = 8,
-    },
-    .buf_size        = 0xe0,
-  };
-
-  static const struct song_rptun_config_s rptun_cfg_adsp =
-  {
-    .cpu_name    = CPU_NAME_ADSP,
-    .role        = RPMSG_MASTER,
-    .ch_start_tx = 0,
-    .ch_vring_tx = 1,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
-    .rsc         =
-    {
-      .rsc_tab   = &rptun_rsc_adsp.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_adsp),
-    },
-  };
-
-  song_rptun_initialize(&rptun_cfg_adsp, g_mbox[CPU_INDEX_ADSP], g_mbox[CPU_INDEX_AP]);
-
-#  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(true);
-#  endif
-
-#  ifdef CONFIG_SYSLOG_RPMSG_SERVER
-  syslog_rpmsg_server_init();
-#  endif
-
-#  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
-  hostfs_rpmsg_server_init();
-#  endif
 }
 #endif
 
@@ -436,10 +357,6 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
-#endif
-
-#ifdef CONFIG_SONG_RPTUN
-  up_rptun_init();
 #endif
 
 #ifdef CONFIG_WATCHDOG_DW
