@@ -140,6 +140,11 @@ static bool dw_timer_irq_pending(struct dw_timer_lowerhalf_s *lower)
     }
 }
 
+static void dw_timer_clear_irq(struct dw_timer_lowerhalf_s* lower_)
+{
+  volatile uint32_t eoi = lower_->tim->EOI;
+}
+
 static int dw_timer_start(FAR struct timer_lowerhalf_s *lower_)
 {
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
@@ -153,7 +158,7 @@ static int dw_timer_stop(struct timer_lowerhalf_s *lower_)
   FAR struct dw_timer_lowerhalf_s *lower = (FAR struct dw_timer_lowerhalf_s *)lower_;
 
   lower->tim->CONTROL &= ~DW_TIMER_ENABLE;
-  lower->tim->EOI; /* Read to clear interrupt */
+  dw_timer_clear_irq(lower); /* Read to clear interrupt */
   return 0;
 }
 
@@ -283,7 +288,7 @@ static int dw_timer_interrupt(int irq, FAR void *context, FAR void *arg)
     }
 
   /* Clear interrupt by reading EOI */
-  lower->tim->EOI;
+  dw_timer_clear_irq(lower);
 
   return 0;
 }
@@ -306,7 +311,7 @@ dw_timer_initialize(FAR const struct dw_timer_config_s *config)
 
       /* Disable timer, Enable interrupt and periodic mode */
       lower->tim->CONTROL = DW_TIMER_PERIODIC;
-      lower->tim->EOI; /* Read to clear interrupt */
+      dw_timer_clear_irq(lower); /* Read to clear interrupt */
 
       irq_attach(config->irq, dw_timer_interrupt, lower);
       up_enable_irq(config->irq);
