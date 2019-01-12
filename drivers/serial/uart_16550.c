@@ -1355,7 +1355,8 @@ static void u16550_dmasend(FAR struct uart_dev_s *dev)
 
   up_clean_dcache((uintptr_t)buffer, (uintptr_t)buffer + length);
   DMA_START(priv->chantx, u16550_dmasend_done, dev,
-    priv->uartbase + UART_THR_OFFSET, up_addrenv_va_to_pa(buffer), length);
+            up_addrenv_va_to_pa((void *)priv->uartbase),
+            up_addrenv_va_to_pa(buffer), length);
 }
 
 static void u16550_dmareceive_done(FAR struct dma_chan_s *chan,
@@ -1467,9 +1468,10 @@ static void u16550_dmarxfree(FAR struct uart_dev_s *dev)
       u16550_dmarxconfig(dev);
 
       /* Start a never stop DMA cyclic transfer in the background */
-      DMA_START_CYCLIC(priv->chanrx,
-        u16550_dmareceive_done, dev, up_addrenv_va_to_pa(priv->dmarxbuf),
-        priv->uartbase + UART_RBR_OFFSET, priv->dmarxsize, priv->dmarxsize / 4);
+      DMA_START_CYCLIC(priv->chanrx, u16550_dmareceive_done, dev,
+                       up_addrenv_va_to_pa(priv->dmarxbuf),
+                       up_addrenv_va_to_pa((void *)priv->uartbase),
+                       priv->dmarxsize, priv->dmarxsize / 4);
     }
 
   /* The receive isn't in the process? */
