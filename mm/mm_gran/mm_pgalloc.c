@@ -122,7 +122,7 @@ static GRAN_HANDLE g_pgalloc;
 void mm_pginitialize(FAR void *heap_start, size_t heap_size)
 {
   g_pgalloc = gran_initialize(heap_start, heap_size, MM_PGSHIFT, MM_PGSHIFT);
-  DEBUGASSERT(pg_alloc != NULL);
+  DEBUGASSERT(g_pgalloc != NULL);
 }
 
 /****************************************************************************
@@ -135,7 +135,7 @@ void mm_pginitialize(FAR void *heap_start, size_t heap_size)
  *   before any other allocations are made.
  *
  *   Reserved memory can never be allocated (it can be freed however which
- *   essentially unreserves the memory).
+ *   essentially unreserved the memory).
  *
  * Input Parameters:
  *   start  - The address of the beginning of the region to be reserved.
@@ -169,7 +169,7 @@ void mm_pgreserve(uintptr_t start, size_t size)
 
 uintptr_t mm_pgalloc(unsigned int npages)
 {
-  return (uintptr_t)gran_alloc(g_pgalloc, (size_t)1 << MM_PGSHIFT);
+  return (uintptr_t)gran_alloc(g_pgalloc, (size_t)npages << MM_PGSHIFT);
 }
 
 /****************************************************************************
