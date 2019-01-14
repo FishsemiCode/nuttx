@@ -518,7 +518,7 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
       DMA_CONFIG(spi->rx_chan, &cfg);
       DMA_START(spi->rx_chan, dw_spi_dma_cb,
                 spi, up_addrenv_va_to_pa(rxbuffer),
-                up_addrenv_va_to_pa(&hw->DATA), nwords);
+                up_addrenv_va_to_pa((void *)&hw->DATA), nwords);
     }
 
   if (txbuffer)
@@ -534,7 +534,7 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
 
       up_clean_dcache((uintptr_t)txbuffer, (uintptr_t)txbuffer + nwords * spi->n_bytes);
       DMA_START(spi->tx_chan, rxbuffer ? NULL : dw_spi_dma_cb,
-                spi, up_addrenv_va_to_pa(&hw->DATA),
+                spi, up_addrenv_va_to_pa((void *)&hw->DATA),
                 up_addrenv_va_to_pa((void *)txbuffer), nwords);
     }
   else /* RECEIVE-only mode, we need to trigger the transfer */
