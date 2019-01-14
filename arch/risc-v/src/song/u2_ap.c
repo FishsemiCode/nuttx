@@ -73,9 +73,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define CPU_NAME_ADSP               "adsp"
+#define CPU_NAME_AUDIO              "audio"
 #define CPU_INDEX_AP                0
-#define CPU_INDEX_ADSP              1
+#define CPU_INDEX_AUDIO             1
 
 #define TOP_MAILBOX_BASE            (0xa0050000)
 
@@ -133,8 +133,22 @@ FAR struct i2c_master_s *g_i2c[4] =
 #endif
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static void audio_boot(void)
+{
+  putreg32(0x60100000, TOP_PWR_RCPU1_BOOTADDR);
+  modifyreg32(TOP_PWR_RCPU1_CTL, TOP_PWR_RSTCTL, 0);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void up_earlyinitialize(void)
+{
+}
 
 void up_dmainitialize(void)
 {
@@ -193,7 +207,7 @@ void riscv_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_server_init("ADSP", 1024);
+  uart_rpmsg_server_init("AUDIO", 1024);
 }
 #endif
 
@@ -205,22 +219,22 @@ static void up_mbox_init(void)
     {
       .index      = CPU_INDEX_AP,
       .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x0, /* MAILBOX_M4_INTR_SET */
-      .en_off     = 0x4, /* MAILBOX_M4_INTR_EN */
+      .set_off    = 0x0,
+      .en_off     = 0x4,
       .en_bit     = 16,
-      .src_en_off = 0x4, /* MAILBOX_M4_INTR_EN */
-      .sta_off    = 0x8, /* MAILBOX_M4_INTR_STA */
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
       .chnl_count = 16,
       .irq        = 16,
     },
     {
-      .index      = CPU_INDEX_ADSP,
+      .index      = CPU_INDEX_AUDIO,
       .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x10, /* MAILBOX_TL421_INTR_SET */
-      .en_off     = 0x14, /* MAILBOX_TL421_INTR_EN */
+      .set_off    = 0x10,
+      .en_off     = 0x14,
       .en_bit     = 16,
-      .src_en_off = 0x14, /* MAILBOX_TL421_INTR_EN */
-      .sta_off    = 0x18, /* MAILBOX_TL421_INTR_STA */
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
       .chnl_count = 16,
       .irq        = -1,
     }
@@ -233,8 +247,8 @@ static void up_mbox_init(void)
 #ifdef CONFIG_SONG_RPTUN
 static void up_rptun_init(void)
 {
-  static struct rptun_rsc_s rptun_rsc_adsp
-    __attribute__ ((section(".resource_table.adsp"))) =
+  static struct rptun_rsc_s rptun_rsc_audio
+    __attribute__ ((section(".resource_table.audio"))) =
   {
     .rsc_tbl_hdr     =
     {
@@ -257,19 +271,19 @@ static void up_rptun_init(void)
     .rpmsg_vring0    =
     {
       .align         = 0x8,
-      .num           = 8,
+      .num           = 4,
     },
     .rpmsg_vring1    =
     {
       .align         = 0x8,
-      .num           = 8,
+      .num           = 4,
     },
-    .buf_size        = 0xe0,
+    .buf_size        = 0x100,
   };
 
-  static const struct song_rptun_config_s rptun_cfg_adsp =
+  static const struct song_rptun_config_s rptun_cfg_audio =
   {
-    .cpu_name    = CPU_NAME_ADSP,
+    .cpu_name    = CPU_NAME_AUDIO,
     .role        = RPMSG_MASTER,
     .ch_start_tx = 0,
     .ch_vring_tx = 1,
@@ -277,12 +291,12 @@ static void up_rptun_init(void)
     .ch_vring_rx = 1,
     .rsc         =
     {
-      .rsc_tab   = &rptun_rsc_adsp.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_adsp),
+      .rsc_tab   = &rptun_rsc_audio.rsc_tbl_hdr,
+      .size      = sizeof(rptun_rsc_audio),
     },
   };
 
-  song_rptun_initialize(&rptun_cfg_adsp, g_mbox[CPU_INDEX_ADSP], g_mbox[CPU_INDEX_AP]);
+  song_rptun_initialize(&rptun_cfg_audio, g_mbox[CPU_INDEX_AUDIO], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(true);
@@ -368,22 +382,22 @@ static void up_i2c_init(void)
     {
       .bus  = 0,
       .base = 0xa0110000,
-      .rate = 25600000,
       .mclk = "i2c0_mclk",
+      .rate = 25600000,
       .irq  = 11,
     },
     {
       .bus  = 1,
       .base = 0xa0120000,
-      .rate = 25600000,
       .mclk = "i2c1_mclk",
+      .rate = 25600000,
       .irq  = 12,
     },
     {
       .bus  = 2,
       .base = 0xa0190000,
-      .rate = 25600000,
       .mclk = "i2c2_mclk",
+      .rate = 25600000,
       .irq  = 3,
     }
   };
@@ -459,6 +473,10 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
+  /* Boot audio */
+
+  audio_boot();
+
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif

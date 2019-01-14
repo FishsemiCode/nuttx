@@ -17,6 +17,7 @@ config ARCH_CHIP_U2_AP
 	bool "U2 AP"
 	select ARCH_RV32IM
 	select ARCH_HAVE_FPU
+	select SONG_COPY_TABLE
 
 config ARCH_CHIP_U2_AUDIO
 	bool "U2 AUDIO"
@@ -65,6 +66,9 @@ config INTC_DW_BASE
 config INTC_PULP_BASE
 	hex "Pulp Event Unit base address"
 	depends on INTC_PULP
+
+config SONG_COPY_TABLE
+	bool
 
 config SONG_NR_IRQS
 	int "Interrupt Number"

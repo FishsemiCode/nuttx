@@ -73,24 +73,29 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define CPU_NAME_ADSP               "adsp"
+#define CPU_NAME_AUDIO              "audio"
 #define CPU_INDEX_AP                0
-#define CPU_INDEX_ADSP              1
+#define CPU_INDEX_AUDIO             1
 
 #define TOP_MAILBOX_BASE            (0xa0050000)
 
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
-#define TOP_PWR_M4_INTR2SLP_MK0     (TOP_PWR_BASE + 0x224)
-#define TOP_PWR_SLPCTL_M4           (TOP_PWR_BASE + 0x404)
+#define TOP_PWR_RCPU0_INTR2SLP_MK0  (TOP_PWR_BASE + 0x224)
+#define TOP_PWR_CK803S_CTL          (TOP_PWR_BASE + 0x4d0)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
+#define TOP_PWR_RCPU1_CTL           (TOP_PWR_BASE + 0x50c)
+#define TOP_PWR_RCPU1_BOOTADDR      (TOP_PWR_BASE + 0x510)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
 
-#define TOP_PWR_SLPCTL_M4_SLP_EN    (1 << 0)
+#define TOP_PWR_SLP_LPMD_B_MK       (1 << 12)
+#define TOP_PWR_CK803_SLP_EN        (1 << 14)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+
+#define TOP_PWR_RSTCTL              (1 << 0)
 
 /****************************************************************************
  * Private Data
@@ -136,22 +141,39 @@ FAR struct i2c_master_s *g_i2c[4] =
 #endif
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static void audio_boot(void)
+{
+  putreg32(0x60100000, TOP_PWR_RCPU1_BOOTADDR);
+  modifyreg32(TOP_PWR_RCPU1_CTL, TOP_PWR_RSTCTL, 0);
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
+void up_earlyinitialize(void)
+{
+  /* Unmask CK803 LPMD_B effect to DS */
+
+  modifyreg32(TOP_PWR_CK803S_CTL, TOP_PWR_SLP_LPMD_B_MK, 0);
+}
+
 void up_wic_initialize(void)
 {
-  putreg32(0xffffffff, TOP_PWR_M4_INTR2SLP_MK0);
+  putreg32(0xffffffff, TOP_PWR_RCPU0_INTR2SLP_MK0);
 }
 
 void up_wic_enable_irq(int irq)
 {
-  modifyreg32(TOP_PWR_M4_INTR2SLP_MK0, 1 << irq, 0);
+  modifyreg32(TOP_PWR_RCPU0_INTR2SLP_MK0, 1 << irq, 0);
 }
 
 void up_wic_disable_irq(int irq)
 {
-  modifyreg32(TOP_PWR_M4_INTR2SLP_MK0, 0, 1 << irq);
+  modifyreg32(TOP_PWR_RCPU0_INTR2SLP_MK0, 0, 1 << irq);
 }
 
 void up_dmainitialize(void)
@@ -196,7 +218,7 @@ void csky_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_server_init("ADSP", 1024);
+  uart_rpmsg_server_init("AUDIO", 1024);
 }
 #endif
 
@@ -217,7 +239,7 @@ static void up_mbox_init(void)
       .irq        = 16,
     },
     {
-      .index      = CPU_INDEX_ADSP,
+      .index      = CPU_INDEX_AUDIO,
       .base       = TOP_MAILBOX_BASE,
       .set_off    = 0x10,
       .en_off     = 0x14,
@@ -236,8 +258,8 @@ static void up_mbox_init(void)
 #ifdef CONFIG_SONG_RPTUN
 static void up_rptun_init(void)
 {
-  static struct rptun_rsc_s rptun_rsc_adsp
-    __attribute__ ((section(".resource_table.adsp"))) =
+  static struct rptun_rsc_s rptun_rsc_audio
+    __attribute__ ((section(".resource_table.audio"))) =
   {
     .rsc_tbl_hdr     =
     {
@@ -260,19 +282,19 @@ static void up_rptun_init(void)
     .rpmsg_vring0    =
     {
       .align         = 0x8,
-      .num           = 8,
+      .num           = 4,
     },
     .rpmsg_vring1    =
     {
       .align         = 0x8,
-      .num           = 8,
+      .num           = 4,
     },
-    .buf_size        = 0xe0,
+    .buf_size        = 0x100,
   };
 
-  static const struct song_rptun_config_s rptun_cfg_adsp =
+  static const struct song_rptun_config_s rptun_cfg_audio =
   {
-    .cpu_name    = CPU_NAME_ADSP,
+    .cpu_name    = CPU_NAME_AUDIO,
     .role        = RPMSG_MASTER,
     .ch_start_tx = 0,
     .ch_vring_tx = 1,
@@ -280,12 +302,12 @@ static void up_rptun_init(void)
     .ch_vring_rx = 1,
     .rsc         =
     {
-      .rsc_tab   = &rptun_rsc_adsp.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_adsp),
+      .rsc_tab   = &rptun_rsc_audio.rsc_tbl_hdr,
+      .size      = sizeof(rptun_rsc_audio),
     },
   };
 
-  song_rptun_initialize(&rptun_cfg_adsp, g_mbox[CPU_INDEX_ADSP], g_mbox[CPU_INDEX_AP]);
+  song_rptun_initialize(&rptun_cfg_audio, g_mbox[CPU_INDEX_AUDIO], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(true);
@@ -462,6 +484,10 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
+  /* Boot audio */
+
+  audio_boot();
+
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
