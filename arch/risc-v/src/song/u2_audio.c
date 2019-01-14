@@ -43,6 +43,7 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_ARCH_CHIP_U2_AUDIO
@@ -52,6 +53,7 @@
  ****************************************************************************/
 
 #define TOP_PWR_BASE                (0xa00e0000)
+#define TOP_PWR_RCPU1_INTR2SLP_MK0  (TOP_PWR_BASE + 0x228)
 
 /****************************************************************************
  * Private Data
@@ -64,6 +66,21 @@
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_RCPU1_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  modifyreg32(TOP_PWR_RCPU1_INTR2SLP_MK0, 1 << irq, 0);
+}
+
+void up_wic_disable_irq(int irq)
+{
+  modifyreg32(TOP_PWR_RCPU1_INTR2SLP_MK0, 0, 1 << irq);
+}
 
 void riscv_timer_initialize(void)
 {

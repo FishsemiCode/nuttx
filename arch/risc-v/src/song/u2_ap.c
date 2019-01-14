@@ -81,6 +81,7 @@
 
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
+#define TOP_PWR_RCPU0_INTR2SLP_MK0  (TOP_PWR_BASE + 0x224)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
@@ -141,6 +142,21 @@ void up_dmainitialize(void)
   g_dma[0] = song_dmas_initialize(0, 0xa0040000, 1, "top_dmas_hclk");
   g_dma[1] = song_dmas_initialize(0, 0xa0080000, 0, "audio_dmas_hclk");
 #endif
+}
+
+void up_wic_initialize(void)
+{
+  putreg32(0xffffffff, TOP_PWR_RCPU0_INTR2SLP_MK0);
+}
+
+void up_wic_enable_irq(int irq)
+{
+  modifyreg32(TOP_PWR_RCPU0_INTR2SLP_MK0, 1 << irq, 0);
+}
+
+void up_wic_disable_irq(int irq)
+{
+  modifyreg32(TOP_PWR_RCPU0_INTR2SLP_MK0, 0, 1 << irq);
 }
 
 #if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)

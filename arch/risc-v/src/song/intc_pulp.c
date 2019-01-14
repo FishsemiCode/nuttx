@@ -83,6 +83,32 @@ static void up_ack_irq(int irq)
  * Public Functions
  ****************************************************************************/
 
+void weak_function up_wic_initialize(void)
+{
+}
+
+void weak_function up_wic_enable_irq(int irq)
+{
+}
+
+void weak_function up_wic_disable_irq(int irq)
+{
+}
+
+/****************************************************************************
+ * Name: up_irqinitialize
+ *
+ * Description:
+ *   Initialize the INTC.
+ *
+ ****************************************************************************/
+
+void up_irqinitialize(void)
+{
+  up_wic_initialize();
+  up_irq_enable();
+}
+
 /****************************************************************************
  * Name: up_dispatch_irq
  *
@@ -109,6 +135,7 @@ void up_dispatch_irq(int irq, FAR void *context)
 void up_disable_irq(int irq)
 {
   modifyreg32(IER, 1 << irq, 0);
+  up_wic_disable_irq(irq);
 }
 
 /****************************************************************************
@@ -122,6 +149,7 @@ void up_disable_irq(int irq)
 void up_enable_irq(int irq)
 {
   modifyreg32(IER, 0, 1 << irq);
+  up_wic_enable_irq(irq);
 }
 
 #else
@@ -195,6 +223,8 @@ void up_disable_irq(int irq)
   flags = up_irq_save();
   g_curr_irqs &= ~(1 << irq);
   up_irq_restore(flags);
+
+  up_wic_disable_irq(irq);
 }
 
 /****************************************************************************
@@ -212,6 +242,8 @@ void up_enable_irq(int irq)
   flags = up_irq_save();
   g_curr_irqs |= 1 << irq;
   up_irq_restore(flags);
+
+  up_wic_enable_irq(irq);
 }
 #endif /* CONFIG_ARCH_HIPRI_INTERRUPT */
 #endif /* CONFIG_INTC_PULP */

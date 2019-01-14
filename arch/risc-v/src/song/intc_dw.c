@@ -99,6 +99,18 @@ static struct intc_dw_s * const g_intc_dw
  * Public Functions
  ****************************************************************************/
 
+void weak_function up_wic_initialize(void)
+{
+}
+
+void weak_function up_wic_enable_irq(int irq)
+{
+}
+
+void weak_function up_wic_disable_irq(int irq)
+{
+}
+
 /****************************************************************************
  * Name: up_irqinitialize
  *
@@ -125,6 +137,8 @@ void up_irqinitialize(void)
 
   /* And reset the priority level */
   g_intc_dw->IRQ_INTERNAL_PLEVEL = 0;
+
+  up_wic_initialize();
 
   up_irq_enable();
 }
@@ -178,6 +192,8 @@ void up_enable_irq(int irq)
       flags = enter_critical_section();
       g_intc_dw->IRQ_INTEN[irq/32] |= 1 << irq%32;
       leave_critical_section(flags);
+
+      up_wic_enable_irq(irq);
     }
 }
 
@@ -200,6 +216,8 @@ void up_disable_irq(int irq)
       flags = enter_critical_section();
       g_intc_dw->IRQ_INTEN[irq/32] &= ~(1 << irq%32);
       leave_critical_section(flags);
+
+      up_wic_disable_irq(irq);
     }
 }
 

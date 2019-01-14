@@ -62,6 +62,11 @@
 
 void up_clk_initialize(void);
 void up_clk_finalinitialize(void);
+
+void up_wic_initialize(void);
+void up_wic_enable_irq(int irq);
+void up_wic_disable_irq(int irq);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_RISCV_SRC_SONG_CHIP_H */
