@@ -46,40 +46,24 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* I2S/PCM MCTRL            ( 0x4000 ~  0x400b) */
-/* IRQ CTRL                 ( 0x400c ~  0x402b) */
-/* EXTRA REG                ( 0x4404 ~  0x4417) */
-/* EXTRA COEF               ( 0x4500 ~  0x4503) SRAM */
-/* FFT REG                  ( 0x4800 ~  0x480F) */
-/* FFT COEF                 ( 0x4900 ~  0x4903) SRAM */
-/* MELFILTER REG            ( 0x4C00 ~  0x4C13) */
-/* MELFILTER COEF           ( 0x4D00 ~  0x4D03) SRAM */
-/* CNN LAYER/WEIGHT         ( 0x5424 ~  0x542B) SRAM */
-/* DNN REG                  ( 0x5800 ~  0x5807) */
-/* SMART REG                ( 0x6000 ~  0x603F) */
-/* SMART COEF               ( 0x6200 ~  0x6203) SRAM */
-/* SMOOTH REG               ( 0x6800 ~  0x68BB) */
-/* CNN WAKEUP WEIGHT        ( 0x8000 ~  0x8003) SRAM */
-/* CNN WAKEUP COEF          ( 0x8004 ~  0x8007) SRAM */
-/* CNN/DNN WAKEUP PARAM     (0x14400 ~ 0x15527) */
-/* CNN CMD LAYER/WEIGHT     (0x25424 ~ 0x2542B) SRAM */
-/* CNN CMD WEIGHT           (0x28000 ~ 0x28003) SRAM */
-/* CNN CMD COEF             (0x28004 ~ 0x28007) SRAM */
-/* DNN COEF/WEIGHT          (0x2A000 ~ 0x2A003) SRAM */
-/* CMD NET STRUCT           (0x34400 ~ 0x35527) */
+#define THINKER_IR              (0x002c)
+#define THINKER_SMOOTH_CONFIG2  (0x0094)
+#define THINKER_MCTRL_CR        (0x01fc)
 
-#define THINKER_CFG_IR      (0x4014)
-#define THINKER_CTRL_REG    (0x401c)
-#define THINKER_IR_REG      (0x4020)
-#define THINKER_CMD_INDEX   (0x4028)
+#define THINKER_VAD_T_INTR      (0)
+#define THINKER_VAD_F_INTR      (1)
+#define THINKER_VAD_P_INTR      (2)
+#define THINKER_FBANK_INTR      (3)
+#define THINKER_DNN_INTR        (4)
+#define THINKER_SMOOTH_INTR     (5)
+#define THINKER_FIFO_ERROR_INTR (6)
+#define THINKER_IR_COUNT        (7)
 
-#define THINKER_IR_FBANK    (0)
-#define THINKER_IR_SMOOTH1  (1)
-#define THINKER_IR_SMOOTH2  (2)
-#define THINKER_IR_SMART    (3)
-#define THINKER_IR_COUNT    (4)
+#define THINKER_MCTRL_WAKEUP    (0)
+#define THINKER_MCTRL_COMMAND   (1)
+#define THINKER_MCTRL_PRE       (2)
 
-#define THINKER_CTRL_ENABLE (1 << 0)
+#define THINKER_MCTRL_STRAT     (1 << 0)
 
 /****************************************************************************
  * Private Types
@@ -158,41 +142,41 @@ static inline void thinker_update_bits(struct thinker_dev_s *thinker,
 static int song_thinker_irq_handler(int irq, void *context, void *args)
 {
   struct thinker_dev_s *thinker = args;
-  uint32_t status, id, index;
+  uint32_t status, id, index, cmode;
   struct audio_msg_s msg;
   int i;
 
-  status = thinker_read(thinker, THINKER_IR_REG);
+  status = thinker_read(thinker, THINKER_IR);
+  cmode = (thinker_read(thinker, THINKER_MCTRL_CR) >> 1) & 0x3;
+  index = thinker_read(thinker, THINKER_SMOOTH_CONFIG2) & 0xf;
+  thinker_write(thinker, THINKER_IR, status);
 
-  thinker_write(thinker, THINKER_CFG_IR, status);
+  switch (cmode)
+    {
+      case THINKER_MCTRL_WAKEUP:
+          id = AUDIO_MSG_WAKEUP;
+          break;
+      case THINKER_MCTRL_COMMAND:
+          id = AUDIO_MSG_COMMAND;
+          break;
+      default :
+          syslog(LOG_ERR, "Invalid mode ctrl: %x\n", cmode);
+          return OK;
+    }
 
   for (i = 0; i < THINKER_IR_COUNT; i++)
     {
       if (!(status & (1 << i)))
         continue;
 
-      if (i == THINKER_IR_FBANK)
-        {
-          id = AUDIO_MSG_SLIENCE;
-          index = 0;
-        }
-      else if (i == THINKER_IR_SMOOTH1)
-        {
-          id = AUDIO_MSG_WAKEUP;
-          index = 0;
-        }
-      else if (i == THINKER_IR_SMOOTH2)
-        {
-          id = AUDIO_MSG_WAKEUP;
-          index = 1;
-        }
-      else if (i == THINKER_IR_SMART)
-        {
-          id = AUDIO_MSG_COMMAND;
-          index = thinker_read(thinker, THINKER_CMD_INDEX);
-        }
+      if (i != THINKER_FBANK_INTR
+              && i != THINKER_SMOOTH_INTR)
+      {
+          syslog(LOG_ERR, "Uncaught INTR: %d\n", i);
+          continue;
+      }
 
-      msg.msgId = id;
+      msg.msgId = (i == THINKER_FBANK_INTR) ? AUDIO_MSG_SLIENCE : id;
       msg.u.data = index;
 
       thinker->dev.upper(thinker->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK);
@@ -241,7 +225,7 @@ static int thinker_start(struct audio_lowerhalf_s *dev)
 {
   struct thinker_dev_s *thinker = (struct thinker_dev_s *)dev;
 
-  thinker_update_bits(thinker, THINKER_CTRL_REG, THINKER_CTRL_ENABLE, 1);
+  thinker_update_bits(thinker, THINKER_MCTRL_CR, THINKER_MCTRL_STRAT, 1);
 
   return OK;
 }
@@ -254,7 +238,7 @@ static int thinker_stop(struct audio_lowerhalf_s *dev)
 {
   struct thinker_dev_s *thinker = (struct thinker_dev_s *)dev;
 
-  thinker_update_bits(thinker, THINKER_CTRL_REG, THINKER_CTRL_ENABLE, 0);
+  thinker_update_bits(thinker, THINKER_MCTRL_CR, THINKER_MCTRL_STRAT, 0);
 
   return OK;
 }
