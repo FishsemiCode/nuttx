@@ -492,9 +492,14 @@ static int net_rpmsg_drv_sockioctl_task(int argc, FAR char *argv[])
       psock_close(&sock); /* Close the temporary sock */
     }
 
-  rpmsg_send(channel, msg, sizeof(*msg) + msg->length);
-  rpmsg_release_rx_buffer(channel, msg);
+  /* Send the response only when cookie doesn't equal NULL */
 
+  if (msg->header.cookie)
+    {
+      rpmsg_send(channel, msg, sizeof(*msg) + msg->length);
+    }
+
+  rpmsg_release_rx_buffer(channel, msg);
   return 0;
 }
 
@@ -504,7 +509,6 @@ static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
   char *argv[3];
   char arg1[16];
   char arg2[16];
-  int pid;
 
   /* Save pointers into argv */
 
@@ -518,14 +522,8 @@ static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
   /* Move the action into a temp thread to avoid the deadlock */
 
   rpmsg_hold_rx_buffer(channel, data);
-
-  pid = kthread_create("rpmsg-net", CONFIG_NET_RPMSG_PRIORITY,
+  kthread_create("rpmsg-net", CONFIG_NET_RPMSG_PRIORITY,
           CONFIG_NET_RPMSG_STACKSIZE, net_rpmsg_drv_sockioctl_task, argv);
-  if (pid < 0)
-    {
-      rpmsg_send(channel, data, len);
-      rpmsg_release_rx_buffer(channel, data);
-    }
 }
 
 /****************************************************************************
