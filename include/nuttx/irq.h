@@ -119,10 +119,6 @@ typedef uint32_t irq_mapped_t;
 typedef CODE int (*xcpt_t)(int irq, FAR void *context, FAR void *arg);
 #endif /* __ASSEMBLY__ */
 
-/* Now include architecture-specific types */
-
-#include <arch/irq.h>
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -203,7 +199,7 @@ int irqchain_detach(int irq, xcpt_t isr, FAR void *arg);
 #ifdef CONFIG_IRQCOUNT
 irqstate_t enter_critical_section(void);
 #else
-#  define enter_critical_section(f) up_irq_save(f)
+#  define enter_critical_section() up_irq_save()
 #endif
 
 /****************************************************************************
@@ -265,7 +261,7 @@ void leave_critical_section(irqstate_t flags);
     defined(CONFIG_ARCH_GLOBAL_IRQDISABLE)
 irqstate_t spin_lock_irqsave(void);
 #else
-#  define spin_lock_irqsave(f) enter_critical_section(f)
+#  define spin_lock_irqsave() enter_critical_section()
 #endif
 
 /****************************************************************************
