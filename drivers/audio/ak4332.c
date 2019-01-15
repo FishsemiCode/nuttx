@@ -342,7 +342,7 @@ static uint32_t ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
                    AK4332_CLK_CM_256FS);
   ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
                    AK4332_CLK_FS_48K);
-  return rate;
+  return OK;
 }
 
 static int ak4332_set_fmt(struct ak4332_s *dev, uint16_t fmt)
