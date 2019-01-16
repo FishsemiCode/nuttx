@@ -48,6 +48,7 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
+#include "song_idle.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -70,6 +71,9 @@
 
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_RCPU1_INTR2SLP_MK0  (TOP_PWR_BASE + 0x228)
+#define TOP_PWR_SLPCTL_RCPU1        (TOP_PWR_BASE + 0x408)
+
+#define TOP_PWR_RCPU1_SLP_EN        (1 << 0)
 
 /****************************************************************************
  * Private Data
@@ -222,6 +226,29 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
+}
+
+void up_cpu_doze(void)
+{
+  putreg32(TOP_PWR_RCPU1_SLP_EN << 16, TOP_PWR_SLPCTL_RCPU1);
+  up_cpu_wfi();
+}
+
+void up_cpu_idle(void)
+{
+  up_cpu_doze();
+}
+
+void up_cpu_standby(void)
+{
+  putreg32(TOP_PWR_RCPU1_SLP_EN << 16 |
+           TOP_PWR_RCPU1_SLP_EN, TOP_PWR_SLPCTL_RCPU1);
+  up_cpu_wfi();
+}
+
+void up_cpu_sleep(void)
+{
+  up_cpu_standby();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AUDIO */

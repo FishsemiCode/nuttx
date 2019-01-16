@@ -82,11 +82,14 @@
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
 #define TOP_PWR_RCPU0_INTR2SLP_MK0  (TOP_PWR_BASE + 0x224)
+#define TOP_PWR_SLPCTL_RCPU0        (TOP_PWR_BASE + 0x404)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
 #define TOP_PWR_RCPU1_CTL           (TOP_PWR_BASE + 0x50c)
 #define TOP_PWR_RCPU1_BOOTADDR      (TOP_PWR_BASE + 0x510)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
+
+#define TOP_PWR_RCPU0_SLP_EN        (1 << 0)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
@@ -507,6 +510,29 @@ void up_reset(int status)
 
   putreg32(TOP_PWR_SFRST_RESET << 16 |
            TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
+}
+
+void up_cpu_doze(void)
+{
+  putreg32(TOP_PWR_RCPU0_SLP_EN << 16, TOP_PWR_SLPCTL_RCPU0);
+  up_cpu_wfi();
+}
+
+void up_cpu_idle(void)
+{
+  up_cpu_doze();
+}
+
+void up_cpu_standby(void)
+{
+  putreg32(TOP_PWR_RCPU0_SLP_EN << 16 |
+           TOP_PWR_RCPU0_SLP_EN, TOP_PWR_SLPCTL_RCPU0);
+  up_cpu_wfi();
+}
+
+void up_cpu_sleep(void)
+{
+  up_cpu_standby();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */
