@@ -46,7 +46,6 @@
 #include <elf32.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/module.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -131,6 +130,7 @@ typedef CODE int (*mod_uninitializer_t)(FAR void *arg);
  *   nexports      - The number of symbols in the exported symbol table.
  */
 
+struct symtab_s;
 struct mod_info_s
 {
   mod_uninitializer_t uninitializer;   /* Module uninitializer */
@@ -161,7 +161,6 @@ typedef CODE int (*mod_callback_t)(FAR struct module_s *modp, FAR void *arg);
 
 /* This describes the file to be loaded. */
 
-struct symtab_s;
 struct module_s
 {
   FAR struct module_s *flink;          /* Supports a singly linked list */
@@ -220,8 +219,6 @@ struct mod_loadinfo_s
 /****************************************************************************
  * Public Data
  ****************************************************************************/
-
-struct symtab_s;
 
 /****************************************************************************
  * Public Function Prototypes

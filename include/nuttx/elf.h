@@ -1,8 +1,8 @@
 /****************************************************************************
- * libs/libc/modlib/modlib_verify.c
+ * include/nuttx/elf.h
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2019 Pinecone Inc. All rights reserved.
+ *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,84 +33,66 @@
  *
  ****************************************************************************/
 
+#ifndef __INCLUDE_NUTTX_ELF_H
+#define __INCLUDE_NUTTX_ELF_H
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <string.h>
-#include <debug.h>
-#include <errno.h>
-
-#include <nuttx/arch.h>
-#include <nuttx/elf.h>
-#include <nuttx/lib/modlib.h>
+#include <elf32.h>
 
 /****************************************************************************
- * Private Constant Data
- ****************************************************************************/
-
-static const char g_modmagic[EI_MAGIC_SIZE] =
-{
-    0x7f, 'E', 'L', 'F'
-};
-
-/****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
- * Name: modlib_verifyheader
+ * Name: up_checkarch
  *
  * Description:
- *   Given the header from a possible ELF executable, verify that it
- *   is an ELF executable.
+ *   Given the ELF header in 'hdr', verify that the module is appropriate
+ *   for the current, configured architecture.  Every architecture that uses
+ *   the module loader must provide this function.
+ *
+ * Input Parameters:
+ *   hdr - The ELF header read from the module file.
  *
  * Returned Value:
- *   0 (OK) is returned on success and a negated errno is returned on
- *   failure.
- *
- *   -ENOEXEC  : Not an ELF file
- *   -EINVAL : Not a relocatable ELF file or not supported by the current,
- *               configured architecture.
+ *   True if the architecture supports this module file.
  *
  ****************************************************************************/
 
-int modlib_verifyheader(FAR const Elf32_Ehdr *ehdr)
-{
-  if (!ehdr)
-    {
-      berr("ERROR: NULL ELF header!");
-      return -ENOEXEC;
-    }
+#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
+bool up_checkarch(FAR const Elf32_Ehdr *hdr);
+#endif
 
-  /* Verify that the magic number indicates an ELF file */
+/****************************************************************************
+ * Name: up_relocate and up_relocateadd
+ *
+ * Description:
+ *   Perform on architecture-specific ELF relocation.  Every architecture
+ *   that uses the module loader must provide this function.
+ *
+ * Input Parameters:
+ *   rel - The relocation type
+ *   sym - The ELF symbol structure containing the fully resolved value.
+ *         There are a few relocation types for a few architectures that do
+ *         not require symbol information.  For those, this value will be
+ *         NULL.  Implementations of these functions must be able to handle
+ *         that case.
+ *   addr - The address that requires the relocation.
+ *
+ * Returned Value:
+ *   Zero (OK) if the relocation was successful.  Otherwise, a negated errno
+ *   value indicating the cause of the relocation failure.
+ *
+ ****************************************************************************/
 
-  if (memcmp(ehdr->e_ident, g_modmagic, EI_MAGIC_SIZE) != 0)
-    {
-      binfo("Not ELF magic {%02x, %02x, %02x, %02x}\n",
-            ehdr->e_ident[0], ehdr->e_ident[1], ehdr->e_ident[2], ehdr->e_ident[3]);
-      return -ENOEXEC;
-    }
+#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
+int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
+                uintptr_t addr);
+int up_relocateadd(FAR const Elf32_Rela *rel,
+                   FAR const Elf32_Sym *sym, uintptr_t addr);
+#endif
 
-  /* Verify that this is a relocatable file */
-
-  if (ehdr->e_type != ET_REL)
-    {
-      berr("ERROR: Not a relocatable file: e_type=%d\n", ehdr->e_type);
-      return -EINVAL;
-    }
-
-  /* Verify that this file works with the currently configured architecture */
-
-  if (!up_checkarch(ehdr))
-    {
-      berr("ERROR: Not a supported architecture\n");
-      return -ENOEXEC;
-    }
-
-  /* Looks good so far... we still might find some problems later. */
-
-  return OK;
-}
+#endif /* __INCLUDE_NUTTX_ELF_H */
