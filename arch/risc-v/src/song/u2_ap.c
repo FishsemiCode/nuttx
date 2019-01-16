@@ -83,11 +83,15 @@
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
 #define TOP_PWR_RCPU0_INTR2SLP_MK0  (TOP_PWR_BASE + 0x224)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x4fc)
+#define TOP_PWR_RCPU1_CTL           (TOP_PWR_BASE + 0x50c)
+#define TOP_PWR_RCPU1_BOOTADDR      (TOP_PWR_BASE + 0x510)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+
+#define TOP_PWR_RSTCTL              (1 << 0)
 
 /****************************************************************************
  * Private Data
