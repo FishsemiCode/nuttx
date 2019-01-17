@@ -93,6 +93,9 @@ endif
 
 ARCHCFLAGS = -D__NuttX__ -fno-builtin
 ARCHCXXFLAGS = -D__NuttX__ -fno-builtin -nostdinc++ -std=c++11
+ifneq ($(CONFIG_CXX_EXCEPTION),y)
+  ARCHCPUFLAGSXX += -fno-exceptions -fcheck-new -fno-rtti
+endif
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wshadow -Wundef
 ARCHWARNINGSXX = -Wall -Wshadow -Wundef
 ARCHDEFINES =
@@ -145,9 +148,11 @@ ifeq ($(filter $(LIBM), $(EXTRA_LIBS)),)
   EXTRA_LIBS += $(LIBM)
 endif
 
-LIBSUPPORT = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libsupc++.a}"
-ifeq ($(filter $(LIBSUPPORT), $(EXTRA_LIBS)),)
-  EXTRA_LIBS += $(LIBSUPPORT)
+ifeq ($(CONFIG_CXX_LIBSUPCXX),y)
+  LIBSUPPORT = "${shell "$(CC)" $(ARCHCPUFLAGS) -print-file-name=libsupc++.a}"
+  ifeq ($(filter $(LIBSUPPORT), $(EXTRA_LIBS)),)
+    EXTRA_LIBS += $(LIBSUPPORT)
+  endif
 endif
 
 HOSTCC = gcc
