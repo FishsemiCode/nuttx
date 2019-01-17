@@ -375,7 +375,7 @@ static int dp_adc_pause(struct audio_lowerhalf_s *dev_)
 
   clk_disable(dev->mclk);
   if (!clk_is_enabled(dev->mclk))
-    dp_adc_putreg(dev, DP_ADC_CR_VIC, ANALOG_SLEEP);
+    dp_adc_putreg(dev, DP_ADC_CR_VIC, ANALOG_SLEEP | DIG_SB);
 
   return OK;
 }
@@ -558,7 +558,7 @@ static int dp_adc_set_fmt(struct dp_adc_s *dev, uint16_t fmt)
                              ADC_AUDIOIF_MASK, ADC_AUDIOIF_DSP);
             break;
           }
-      default :
+      default:
         return -EINVAL;
     }
   switch (fmt & AUDIO_HWFMT_INV_MASK)
