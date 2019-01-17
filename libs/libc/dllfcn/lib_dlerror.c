@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <dllfcn.h>
+#include <string.h>
 
 /****************************************************************************
  * Public Functions
@@ -68,6 +69,5 @@
 
 FAR char *dlerror(void)
 {
-#warning Missing logic
-  return NULL;
+  return strerror();
 }
