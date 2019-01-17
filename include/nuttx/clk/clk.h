@@ -153,7 +153,7 @@ static inline void clk_disable_unused(void)
   }
 static inline const char *clk_get_name(const struct clk *clk)
   {
-    return (struct char *)(-ENOENT);
+    return (const char *)(-ENOENT);
   }
 #endif
 
