@@ -140,11 +140,13 @@ FAR struct i2c_master_s *g_i2c[4] =
  * Private Functions
  ****************************************************************************/
 
+#ifdef FORCE_BOOT_RISCV_CORE1
 static void audio_boot(void)
 {
   putreg32(0x60100000, TOP_PWR_RCPU1_BOOTADDR);
   modifyreg32(TOP_PWR_RCPU1_CTL, TOP_PWR_RSTCTL, 0);
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -477,9 +479,11 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
+#ifdef FORCE_BOOT_RISCV_CORE1
   /* Boot audio */
 
   audio_boot();
+#endif
 
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
