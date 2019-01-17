@@ -531,13 +531,12 @@ static void up_cpu_lp(bool pwr_sleep, bool ds_sleep)
 void up_cpu_doze(void)
 {
   up_cpu_lp(false, false);
-  __DOZE();
+  __STOP();
 }
 
 void up_cpu_idle(void)
 {
-  up_cpu_lp(false, false);
-  __STOP();
+  up_cpu_doze();
 }
 
 void up_cpu_standby(void)
