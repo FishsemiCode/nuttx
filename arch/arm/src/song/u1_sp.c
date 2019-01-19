@@ -148,8 +148,13 @@
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
+#define PMIC_FSM_LDO0               (PMIC_FSM_BASE + 0x28)
 
 #define PMIC_FSM_DS_SLP_VALID       (1 << 0)
+
+#define PMIC_FSM_LDO0_ACTIVE_ON     (0x1 << 0)
+#define PMIC_FSM_LDO0_SLEEP_ON      (0x1 << 1)
+#define PMIC_FSM_LDO0_VOLT_900mV    (0x0 << 8)
 
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
@@ -202,6 +207,16 @@ FAR struct spi_dev_s *g_spi[3] =
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+void up_earlystart(void)
+{
+  /* VDDAON(LDO0) runs at low voltage in deep sleep. Recover the voltage
+   * as early as possible.
+   */
+
+  putreg32(PMIC_FSM_LDO0_ACTIVE_ON | PMIC_FSM_LDO0_SLEEP_ON |
+           PMIC_FSM_LDO0_VOLT_900mV, PMIC_FSM_LDO0);
+}
 
 void up_earlyinitialize(void)
 {
@@ -404,6 +419,9 @@ static void cp_flash_save_data(void)
 
 static void cp_flash_save_finish(void)
 {
+  struct regulator *reg;
+  struct clk *clk;
+
   /* HW_IDLE_MK = 1 */
 
   putreg32(TOP_PWR_CP_HW_IDLE_MK << 16 |
@@ -430,6 +448,33 @@ static void cp_flash_save_finish(void)
 
   putreg32(TOP_PWR_FLASH_S_2PD_JMP << 16 |
            TOP_PWR_FLASH_S_2PD_JMP, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Decrease LDO0/VDDAON voltage to 0.625V. Before setting
+   * voltage, decrease clock rate first.
+   */
+
+  clk = clk_get("top_bus_mclk");
+  if (clk != NULL)
+    {
+      clk_set_rate(clk, 51200000);
+    }
+
+  clk = clk_get("top_pclk1");
+  if (clk != NULL)
+    {
+      clk_set_rate(clk, 3200000);
+    }
+
+  reg = regulator_get(NULL, "ldo0");
+  if (reg != NULL)
+    {
+      const int voltage = 625000;
+      regulator_set_voltage(reg, voltage, voltage);
+    }
+
+  /* Set PMICFSM enable full chip to DS */
+
+  modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
 }
 
 static void cp_flash_save_work(FAR void *arg)
@@ -439,10 +484,6 @@ static void cp_flash_save_work(FAR void *arg)
   cp_flash_save_prepare();
   cp_flash_save_data();
   cp_flash_save_finish();
-
-  /* Set PMICFSM enable full chip to DS */
-
-  modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
 }
 
 static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
