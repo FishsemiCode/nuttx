@@ -46,7 +46,6 @@
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 # include <assert.h>
-# include <arch/irq.h>
 #endif
 
 /****************************************************************************
@@ -118,6 +117,10 @@ typedef uint32_t irq_mapped_t;
 
 typedef CODE int (*xcpt_t)(int irq, FAR void *context, FAR void *arg);
 #endif /* __ASSEMBLY__ */
+
+/* Now include architecture-specific types */
+
+#include <arch/irq.h>
 
 /****************************************************************************
  * Public Data
