@@ -40,34 +40,15 @@
 #include <nuttx/config.h>
 
 #include <nuttx/clk/clk.h>
-#include <nuttx/clk/clk-provider.h>
 #include <nuttx/clk/song/song-clk.h>
-#include <nuttx/power/pm.h>
 
 #include "chip.h"
 
 #if defined(CONFIG_ARCH_CHIP_U1_SP) && defined(CONFIG_SONG_CLK)
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifdef CONFIG_PM
-struct pm_clk_s
-{
-  struct pm_callback_s cb;
-  struct clk *clk;
-  uint32_t rate[2];
-};
-#endif
-
-/****************************************************************************
  * Private Data
  ****************************************************************************/
-
-#ifdef CONFIG_PM
-static struct pm_clk_s g_pm_clk;
-#endif
 
 /* This describes unicorn 32k osc clk */
 static const struct song_fixed_rate_clk fixed_rate[] =
@@ -534,38 +515,6 @@ static const struct song_clk_table u1_sp_clk_tbl =
 };
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-#ifdef CONFIG_PM
-static void clk_pm_notify(struct pm_callback_s *cb, int domain,
-                           enum pm_state_e pmstate)
-{
-  FAR struct pm_clk_s *pm = (FAR struct pm_clk_s *)cb;
-
-  switch (pmstate)
-    {
-      case PM_RESTORE:
-        if (pm->clk)
-          {
-            clk_set_rate(pm->clk, pm->rate[1]);
-          }
-        break;
-
-      case PM_SLEEP:
-        if (pm->clk)
-          {
-            clk_set_rate(pm->clk, pm->rate[0]);
-          }
-        break;
-
-      default:
-        break;
-    }
-}
-#endif
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -573,17 +522,6 @@ void up_clk_initialize(void)
 {
   song_clk_initialize(0xb0040000, &u1_sp_clk_tbl);
   clk_set_rates(def_rates);
-
-#ifdef CONFIG_PM
-  g_pm_clk.clk = clk_get("top_pclk1");
-  if (g_pm_clk.clk)
-    {
-      g_pm_clk.rate[0] = 5120000;
-      g_pm_clk.rate[1] = 8192000;
-      g_pm_clk.cb.notify = clk_pm_notify;
-      pm_register(&g_pm_clk.cb);
-    }
-#endif
 }
 
 void up_clk_finalinitialize(void)

@@ -49,6 +49,7 @@
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
+#include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -803,10 +804,6 @@ static void up_flash_init(void)
 
 void up_lateinitialize(void)
 {
-#ifdef CONFIG_SONG_PMIC_APB
-  up_regulator_initialize();
-#endif
-
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
 #endif
@@ -833,6 +830,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SPI_DW
   up_spi_init();
+#endif
+
+#ifdef CONFIG_SONG_PMIC_APB
+  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
 #endif
 
 #ifdef CONFIG_SONG_ONCHIP_FLASH
