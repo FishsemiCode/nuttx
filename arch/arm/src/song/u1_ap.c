@@ -243,6 +243,7 @@ void rpmsg_serialinit(void)
   uart_rpmsg_server_init("SP", 1024);
   uart_rpmsg_server_init("CP", 1024);
   uart_rpmsg_server_init("AT", 1024);
+  uart_rpmsg_server_init("AT1", 1024);
   uart_rpmsg_server_init("GPS", 1024);
 }
 #endif
