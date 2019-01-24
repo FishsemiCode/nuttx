@@ -486,7 +486,7 @@ static void cp_flash_save_finish(void)
   reg = regulator_get(NULL, "ldo0");
   if (reg != NULL)
     {
-      const int voltage = 625000;
+      const int voltage = 700000;
       regulator_set_voltage(reg, voltage, voltage);
     }
 
