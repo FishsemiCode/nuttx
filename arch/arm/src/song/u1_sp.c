@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
@@ -47,9 +48,11 @@
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/ioexpander/song_ioe.h>
+#include <nuttx/kmalloc.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
+#include <nuttx/power/consumer.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
@@ -390,31 +393,46 @@ static void cp_flash_save_data(void)
   int fd;
   size_t save_bytes;
   size_t bytes;
+  char *temp;
 
   fd = open("/data/cpram1.rsvd", O_WRONLY | O_CREAT | O_TRUNC);
   if (fd < 0)
     {
       return;
     }
-    /*
-     * struct cpram1.rsvd
-     * {
-     *   uint32_t magic;
-     *   uint32_t size;
-     *   uint32_t checksum;
-     *   uint8_t  data[];
-     * }
-     */
+
+  /*
+   * struct cpram1.rsvd
+   * {
+   *   uint32_t magic;
+   *   uint32_t size;
+   *   uint32_t checksum;
+   *   uint8_t  data[];
+   * }
+   */
 
   save_bytes = getreg32(CPRAM1_RSVD_SIZE) + 12;
-  bytes = write(fd, (FAR const void *)CPRAM1_RSVD_BASE, save_bytes);
-  close(fd);
+  temp = kmm_malloc(save_bytes);
+  if (!temp)
+    {
+      goto fail;
+    }
+
+  memcpy(temp, (void *)CPRAM1_RSVD_BASE, save_bytes);
+  bytes = write(fd, temp, save_bytes);
   if (bytes != save_bytes)
     {
       /* Write not completely successfully, delelte file */
-
-      unlink("/data/cpram1.rsvd");
+      goto fail;
     }
+
+  goto done;
+
+fail:
+  unlink("/data/cpram1.rsvd");
+done:
+  kmm_free(temp);
+  close(fd);
 }
 
 static void cp_flash_save_finish(void)
