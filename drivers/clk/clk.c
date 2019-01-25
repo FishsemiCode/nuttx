@@ -87,7 +87,7 @@ static void clk_change_rate(struct clk *clk, uint32_t best_parent_rate);
 static uint32_t __clk_get_rate(struct clk *clk);
 static uint32_t __clk_round_rate(struct clk *clk, uint32_t rate);
 static int __clk_enable(struct clk *clk);
-static void __clk_disable(struct clk *clk);
+static int __clk_disable(struct clk *clk);
 
 static struct clk *__clk_lookup(const char *name, struct clk *clk);
 static int __clk_register(struct clk *clk);
@@ -565,13 +565,13 @@ static int __clk_enable(struct clk *clk)
   if (clk->enable_count == 0)
     {
       ret = __clk_enable(clk->parent);
-      if (ret)
+      if (ret < 0)
         return ret;
 
       if (clk->ops->enable)
         {
           ret = clk->ops->enable(clk);
-          if (ret)
+          if (ret < 0)
             {
               __clk_disable(clk->parent);
               return ret;
@@ -579,24 +579,24 @@ static int __clk_enable(struct clk *clk)
         }
     }
 
-  clk->enable_count++;
-  return ret;
+  return ++clk->enable_count;
 }
 
-static void __clk_disable(struct clk *clk)
+static int __clk_disable(struct clk *clk)
 {
+  if (!clk || clk->enable_count == 0)
+    return 0;
 
-  if (!clk)
-    return;
-  if (clk->enable_count == 0)
-    return;
-  if (--clk->enable_count > 0)
-    return;
-  if (clk->ops->disable)
-    clk->ops->disable(clk);
+  if (--clk->enable_count == 0)
+    {
+      if (clk->ops->disable)
+        clk->ops->disable(clk);
 
-  if (clk->parent)
-    __clk_disable(clk->parent);
+      if (clk->parent)
+        __clk_disable(clk->parent);
+    }
+
+  return clk->enable_count + 1;
 }
 
 static void clk_init_parent(struct clk *clk)
@@ -744,9 +744,9 @@ void clk_disable_unused(void)
   clk_list_unlock();
 }
 
-void clk_disable(struct clk *clk)
+int clk_disable(struct clk *clk)
 {
-  __clk_disable(clk);
+  return __clk_disable(clk);
 }
 
 int clk_enable(struct clk *clk)
@@ -815,7 +815,7 @@ int clk_set_rates(const struct clk_rate *rates)
         return -EINVAL;
 
       ret = clk_set_rate(clk, rates->rate);
-      if (ret)
+      if (ret < 0)
         return ret;
 
       rates++;
@@ -948,7 +948,7 @@ int clk_set_parent(struct clk *clk, struct clk *parent)
   if (parent && clk->ops->set_parent)
     ret = clk->ops->set_parent(clk, index);
 
-  if (ret)
+  if (ret < 0)
     {
       clk_reparent(clk, old_parent);
 

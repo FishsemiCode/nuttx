@@ -79,7 +79,7 @@ struct   clk *clk_get_parent_by_index(struct clk *clk, uint8_t index);
 int      clk_set_parent(struct clk *clk, struct clk *parent);
 
 int      clk_enable(struct clk *clk);
-void     clk_disable(struct clk *clk);
+int      clk_disable(struct clk *clk);
 int      clk_is_enabled(struct clk *clk);
 
 uint32_t clk_round_rate(struct clk *clk, uint32_t rate);
