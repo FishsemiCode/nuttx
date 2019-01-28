@@ -58,7 +58,8 @@ static struct clk *song_clk_register_mux_div(const char *name,
 static struct clk *song_clk_register_mux(const char *name,
             const char * const *parent_names, uint8_t num_parents,
             uint32_t reg_base, uint16_t en_offset, uint8_t en_shift,
-            uint16_t mux_offset, uint8_t mux_shift, uint8_t mux_width);
+            uint16_t mux_offset, uint8_t mux_shift, uint8_t mux_width,
+            uint8_t mux_flags);
 static struct clk *song_clk_register_gr(
             const char *name, const char *parent_name,
             uint32_t reg_base, uint16_t en_offset, uint8_t en_shift,
@@ -173,7 +174,8 @@ static struct clk *song_clk_register_mux_div(const char *name,
 static struct clk *song_clk_register_mux(const char *name,
             const char * const *parent_names, uint8_t num_parents,
             uint32_t reg_base, uint16_t en_offset, uint8_t en_shift,
-            uint16_t mux_offset, uint8_t mux_shift, uint8_t mux_width)
+            uint16_t mux_offset, uint8_t mux_shift, uint8_t mux_width,
+            uint8_t mux_flags)
 {
   if (en_offset)
     {
@@ -194,7 +196,7 @@ static struct clk *song_clk_register_mux(const char *name,
 
   return clk_register_mux(name, parent_names, num_parents,
     CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC, reg_base + mux_offset,
-    mux_shift, mux_width, CLK_MUX_ROUND_CLOSEST | CLK_MUX_HIWORD_MASK);
+    mux_shift, mux_width, CLK_MUX_ROUND_CLOSEST | mux_flags);
 }
 
 static struct clk *song_clk_register_gr(
@@ -782,7 +784,8 @@ static int song_register_mux_clks(uint32_t reg_base,
               mux_clks->en_shift,
               mux_clks->mux_offset,
               mux_clks->mux_shift,
-              mux_clks->mux_width);
+              mux_clks->mux_width,
+              mux_clks->mux_flags);
       if (!clk)
         {
           return -EINVAL;

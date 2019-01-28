@@ -413,6 +413,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0x06c,
     .mux_shift = 4,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {},
 };

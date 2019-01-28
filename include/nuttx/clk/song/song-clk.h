@@ -176,6 +176,7 @@ struct song_mux_clk
   uint8_t            mux_shift;
   uint8_t            mux_width;
   uint8_t            num_parents;
+  uint8_t            mux_flags;
 };
 
 struct song_phase_clk

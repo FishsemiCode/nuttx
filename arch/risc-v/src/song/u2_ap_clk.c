@@ -147,6 +147,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0xdc,
     .mux_shift = 2,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {
     .name = "pll1",
@@ -155,6 +156,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0xdc,
     .mux_shift = 1,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {
     .name = "pll1_ref_clk",
@@ -163,6 +165,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0xdc,
     .mux_shift = 0,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {
     .name = "audio_mclk_mx",
@@ -173,6 +176,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0x68,
     .mux_shift = 4,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {
     .name = "vad_mclk",
@@ -183,6 +187,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0xf0,
     .mux_shift = 4,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
 };
 

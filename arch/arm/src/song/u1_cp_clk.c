@@ -497,6 +497,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0x2f4,
     .mux_shift = 8,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {
     .name = "at_calib_clk",
@@ -507,6 +508,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0x2fc,
     .mux_shift = 4,
     .mux_width = 2,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {
     .name = "gnss_i_rf0_clk",
@@ -517,6 +519,7 @@ static const struct song_mux_clk mux[] =
     .mux_offset = 0x248,
     .mux_shift = 0,
     .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
   },
   {},
 };
