@@ -263,9 +263,6 @@ static xcpt_t dw_wdt_capture(FAR struct watchdog_lowerhalf_s *lower,
   FAR struct dw_wdt_lowerhalf_s *wdt = (FAR struct dw_wdt_lowerhalf_s *)lower;
   xcpt_t oldhandler = wdt->handler;
 
-  dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET, DW_WDT_CONTROL_IRQ_MASK,
-                   handler ? DW_WDT_CONTROL_IRQ_MASK : 0);
-
   wdt->handler = handler;
   return oldhandler;
 }
@@ -310,7 +307,7 @@ static int dw_wdt_interrupt(int irq, FAR void *context, FAR void *arg)
     }
   else
     {
-      return 0;
+      PANIC();
     }
 }
 
@@ -359,6 +356,8 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
 
   if (config->irq >= 0)
     {
+      dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
+        DW_WDT_CONTROL_IRQ_MASK, DW_WDT_CONTROL_IRQ_MASK);
       irq_attach(config->irq, dw_wdt_interrupt, wdt);
       up_enable_irq(config->irq);
     }
