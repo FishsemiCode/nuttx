@@ -97,7 +97,7 @@ if [ -z ${GITDIR} ] ; then
 fi
 
 if [ -z ${VERSION} ] ; then
-	GITINFO=`git -C ${GITDIR} log --tags --pretty="format:%D" -1 | cut -d'-' -f2`
+	GITINFO=`git -C ${GITDIR} tag --sort=taggerdate | tail -1 | cut -d'-' -f2`
 	if [ -z "${GITINFO}" ]; then
 		echo "GIT tag is not available"
 		exit 5
