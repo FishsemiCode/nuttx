@@ -2873,7 +2873,7 @@ static int stm32_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
       case SIOCMIINOTIFY: /* Set up for PHY event notifications */
         {
-          struct mii_iotcl_notify_s *req = (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+          struct mii_ioctl_notify_s *req = (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
           ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
           if (ret == OK)
@@ -4022,10 +4022,9 @@ static int stm32_ethconfig(FAR struct stm32_ethmac_s *priv)
  *
  ****************************************************************************/
 
-#if STM32_NETHERNET == 1
+#if STM32_NETHERNET == 1 || defined(CONFIG_NETDEV_LATEINIT)
 static inline
 #endif
-
 int stm32_ethinitialize(int intf)
 {
   struct stm32_ethmac_s *priv;
@@ -4106,7 +4105,7 @@ int stm32_ethinitialize(int intf)
  *
  ****************************************************************************/
 
-#if STM32_NETHERNET == 1
+#if STM32_NETHERNET == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   (void)stm32_ethinitialize(0);

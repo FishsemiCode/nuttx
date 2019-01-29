@@ -574,6 +574,7 @@
 #  define ADC12_JSQR_JEXTSEL_T4TRGO   (5 << ADC_JSQR_JEXTSEL_SHIFT)
 #  define ADC12_JSQR_JEXTSEL_T20TRGO  (6 << ADC_JSQR_JEXTSEL_SHIFT)
 #  define ADC12_JSQR_JEXTSEL_T8CC4    (7 << ADC_JSQR_JEXTSEL_SHIFT)
+#  define ADC12_JSQR_JEXTSEL_T1TRGO2  (8 << ADC_JSQR_JEXTSEL_SHIFT)
 #  define ADC12_JSQR_JEXTSEL_T8TRGO   (9 << ADC_JSQR_JEXTSEL_SHIFT)
 #  define ADC12_JSQR_JEXTSEL_T3CC3    (11 << ADC_JSQR_JEXTSEL_SHIFT)
 #  define ADC12_JSQR_JEXTSEL_T3TRGO   (12 << ADC_JSQR_JEXTSEL_SHIFT)
@@ -615,6 +616,7 @@
 #define ADC_JSQR_JSQ4_SHIFT          (26)       /* Bits 26-30: 4th conversion in injected sequence */
 #define ADC_JSQR_JSQ4_MASK           (0x1f << ADC_JSQR_JSQ4_SHIFT)
 #  define ADC_JSQR_JSQ4(ch)          ((ch) << ADC_JSQR_JSQ4_SHIFT) /* Channel number 1..18 */
+#define ADC_JSQR_JSQ_SHIFT           (6)        /* Shift between JSQx bits */
 
 /* ADC offset register 1 and 2 */
 

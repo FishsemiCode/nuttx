@@ -199,7 +199,7 @@ static int iob_copyin_internal(FAR struct iob_s *iob, FAR const uint8_t *src,
           if (next == NULL)
             {
               ioberr("ERROR: Failed to allocate I/O buffer\n");
-              return len < total ? len : -ENOMEM;
+              return -ENOMEM;
             }
 
           /* Add the new, empty I/O buffer to the end of the buffer chain. */
@@ -212,7 +212,7 @@ static int iob_copyin_internal(FAR struct iob_s *iob, FAR const uint8_t *src,
       offset = 0;
     }
 
-  return 0;
+  return total;
 }
 
 /****************************************************************************
@@ -231,14 +231,7 @@ static int iob_copyin_internal(FAR struct iob_s *iob, FAR const uint8_t *src,
 int iob_copyin(FAR struct iob_s *iob, FAR const uint8_t *src,
                unsigned int len, unsigned int offset, bool throttled)
 {
-  int ret;
-
-  ret = iob_copyin_internal(iob, src, len, offset, throttled, true);
-  if (ret >= 0)
-    {
-      ret = len - ret;
-    }
-  return ret;
+  return iob_copyin_internal(iob, src, len, offset, throttled, true);
 }
 
 /****************************************************************************
@@ -254,12 +247,5 @@ int iob_copyin(FAR struct iob_s *iob, FAR const uint8_t *src,
 int iob_trycopyin(FAR struct iob_s *iob, FAR const uint8_t *src,
                   unsigned int len, unsigned int offset, bool throttled)
 {
-  int ret;
-
-  ret = iob_copyin_internal(iob, src, len, offset, throttled, false);
-  if (ret >= 0)
-    {
-      ret = len - ret;
-    }
-  return ret;
+  return iob_copyin_internal(iob, src, len, offset, throttled, false);
 }

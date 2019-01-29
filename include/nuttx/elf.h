@@ -62,7 +62,7 @@
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
+#ifdef CONFIG_LIBC_ARCH_ELF
 bool up_checkarch(FAR const Elf32_Ehdr *hdr);
 #endif
 
@@ -88,7 +88,7 @@ bool up_checkarch(FAR const Elf32_Ehdr *hdr);
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ELF) || defined(CONFIG_MODULE)
+#ifdef CONFIG_LIBC_ARCH_ELF
 int up_relocate(FAR const Elf32_Rel *rel, FAR const Elf32_Sym *sym,
                 uintptr_t addr);
 int up_relocateadd(FAR const Elf32_Rela *rel,

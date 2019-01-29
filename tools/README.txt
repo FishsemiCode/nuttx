@@ -69,6 +69,22 @@ configure.c, cfgparser.c, and cfgparser.h
   2) That path to bin bin/ directory containing mingw-gcc.exe must be
      included in the PATH variable.
 
+convert-comments.c
+------------------
+
+  Convert C++-style comments to C89 C-style comments.  Usage:
+
+    convert-comments <source-file> <out-file>
+
+detab.c
+-------
+
+  Convert tabs to spaces in a file.  Usage:
+
+    detab [-4] <source-file> <out-file>
+
+  Default <source-file> tab size is 8 spaces;  -4 selects 4 space tab size.
+
 discover.py
 -----------
 
@@ -91,6 +107,13 @@ gencromfs.c
       be compiled in order to generate the binary CROMFS file system
       image.
 
+lowhex.c
+
+  Convert hexadecimal representation in a file from upper- to lower-case.
+  Usage:
+
+    lowhex <source-file> <out-file>
+
 mkconfig.c, cfgdefine.c, and cfgdefine.h
 ----------------------------------------
 
@@ -106,7 +129,7 @@ mkconfig.c, cfgdefine.c, and cfgdefine.h
   into include/nuttx/config.h.  config.h is a another version of the
   NuttX configuration that can be included by C files.
 
-cmdconfig.c
+cmpconfig.c
 -----------
 
   This C file can be used to build a utility for comparing two NuttX

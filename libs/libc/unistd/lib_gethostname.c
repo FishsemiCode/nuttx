@@ -55,8 +55,8 @@
  * changed via sethostname(), however.
  */
 
-#ifndef CONFIG_HOSTNAME
-#  define CONFIG_HOSTNAME ""
+#ifndef CONFIG_LIB_HOSTNAME
+#  define CONFIG_LIB_HOSTNAME ""
 #endif
 
 /****************************************************************************
@@ -65,7 +65,7 @@
 
 /* This is the system hostname */
 
-char g_hostname[HOST_NAME_MAX + 1] = CONFIG_HOSTNAME;
+char g_hostname[HOST_NAME_MAX + 1] = CONFIG_LIB_HOSTNAME;
 
 /****************************************************************************
  * Public Functions

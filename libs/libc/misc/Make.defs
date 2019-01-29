@@ -109,12 +109,15 @@ ifeq ($(CONFIG_LIB_ENVPATH),y)
 CSRCS += lib_envpath.c
 endif
 
+<<<<<<< HEAD
 # Compensation for newlib
 
 ifeq ($(CONFIG_LIB_NEWLIB),y)
 CSRCS += lib_newlib.c
 endif
 
+=======
+>>>>>>> 88353226c96f774092fb9a2269a7d23e49b80b50
 # To ensure uname information is newest,
 # add lib_utsname.o to phony target for force rebuild
 

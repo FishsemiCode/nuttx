@@ -619,15 +619,16 @@ static int btn_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
     /* Command:     BTNIOC_SUPPORTED
      * Description: Report the set of button events supported by the hardware;
-     * Argument:    A pointer to writeable integer value in which to return the
-     *              set of supported buttons.
-     * Return:      Zero (OK) on success.  Minus one will be returned on failure
-     *              with the errno value set appropriately.
+     * Argument:    A pointer to writeable integer value in which to return
+     *              the set of supported buttons.
+     * Return:      Zero (OK) on success.  Minus one will be returned on
+     *              failure with the errno value set appropriately.
      */
 
     case BTNIOC_SUPPORTED:
       {
-        FAR btn_buttonset_t *supported = (FAR btn_buttonset_t *)((uintptr_t)arg);
+        FAR btn_buttonset_t *supported =
+          (FAR btn_buttonset_t *)((uintptr_t)arg);
 
         if (supported)
           {

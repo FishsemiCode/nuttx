@@ -100,7 +100,7 @@ config TASK_SPAWN_DEFAULT_STACKSIZE
 
 endmenu # Program Execution Options
 
-config HOSTNAME
+config LIB_HOSTNAME
 	string "Host name for this device"
 	default ""
 	---help---

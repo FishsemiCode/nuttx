@@ -1750,7 +1750,7 @@ static int imxrt_ioctl(struct net_driver_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_ARCH_PHY_INTERRUPT
   case SIOCMIINOTIFY: /* Set up for PHY event notifications */
     {
-          struct mii_iotcl_notify_s *req = (struct mii_iotcl_notify_s *)((uintptr_t)arg);
+          struct mii_ioctl_notify_s *req = (struct mii_ioctl_notify_s *)((uintptr_t)arg);
 
           ret = phy_notify_subscribe(dev->d_ifname, req->pid, &req->event);
           if (ret == OK)
@@ -2478,12 +2478,6 @@ int imxrt_netinitialize(int intf)
   putreg32(1, IMXRT_IOMUXC_BASE+IMXRT_INPUT_ENET_RXEN_OFFSET);
   putreg32(1, IMXRT_IOMUXC_BASE+IMXRT_INPUT_ENET_RXERR_OFFSET);
 
-#ifdef CONFIG_ARCH_IRQPRIO
-  /* Set interrupt priority levels */
-
-  up_prioritize_irq(IMXRT_IRQ_ENET, CONFIG_IMXRT_ENET_PRIO);
-#endif
-
   /* Attach the Ethernet MAC IEEE 1588 timer interrupt handler */
 
 #if 0
@@ -2586,7 +2580,7 @@ int imxrt_netinitialize(int intf)
  *
  ****************************************************************************/
 
-#if CONFIG_IMXRT_ENET_NETHIFS == 1
+#if CONFIG_IMXRT_ENET_NETHIFS == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   (void)imxrt_netinitialize(0);

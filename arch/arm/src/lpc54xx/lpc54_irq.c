@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/lpc54/lpc54_irq.c
+ * arch/arm/src/lpc54xx/lpc54_irq.c
  *
  *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -45,6 +45,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <arch/irq.h>
+#include <arch/armv7-m/nvicpri.h>
 
 #include "chip.h"
 #include "nvic.h"

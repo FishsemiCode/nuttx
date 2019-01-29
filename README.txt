@@ -378,7 +378,7 @@ INSTALLATION
 ^^^^^^^^^^^^
 
   There are two ways to get NuttX:  You may download released, stable
-  tarballs from wither the Bitbucket or Sourceforge download locations.
+  tarballs from either the Bitbucket or Sourceforge download locations.
   Or you may get NuttX by cloning the Bitbucket GIT repositories.  Let's
   consider the released tarballs first:
 
@@ -560,7 +560,7 @@ Notes about Header Files
     When a GCC toolchain is built, it incorporates the C library header
     files into the compiler internal directories and, in this way, the C
     library really becomes a part of the toolchain.  If you use the NuttX
-    buildroot toolchain as described below under under "NuttX Buildroot
+    buildroot toolchain as described below under "NuttX Buildroot
     Toolchain", your GCC toolchain will build against the NuttX C library
     and will incorporate the NuttX C library header files as part of the
     toolchain.
@@ -761,7 +761,7 @@ Refreshing Configurations
   be?  Enter ? in response to the 'make oldconfig' prompt and it will show
   you the help text that goes with the option.
 
-  If you don't want to make any decisions are are willing to just accept the
+  If you don't want to make any decisions are willing to just accept the
   recommended default value for each new configuration item, an even easier
   way is:
 
@@ -1799,6 +1799,10 @@ nuttx/
  |   |   `- README.txt
  |   |- kwikstik-k40/
  |   |   `- README.txt
+ |   |- launchxl-cc1310/
+ |   |   `- README.txt
+ |   |- launchxl-cc1312r1/
+ |   |   `- README.txt
  |   |- launchxl-tms57004/
  |   |   `- README.txt
  |   |- lincoln60/
@@ -1825,6 +1829,8 @@ nuttx/
  |   |   `- README.txt
  |   |- maple/
  |   |   `- README.txt
+ |   |- max32660-evsys/
+ |   |   `- README.txt
  |   |- mbed/
  |   |   `- README.txt
  |   |- mcb1700/
@@ -1845,7 +1851,7 @@ nuttx/
  |   |   `- README.txt
  |   |- ne63badge/
  |   |   `- README.txt
- |   |- nrf52-pca10040/
+ |   |- nrf52-generic/
  |   |   `- README.txt
  |   |- ntosd-dm320/
  |   |   |- doc/README.txt
@@ -1907,8 +1913,6 @@ nuttx/
  |   |- pic32mx7mmb/
  |   |   `- README.txt
  |   |- pic32mz-starterkit/
- |   |   `- README.txt
- |   |- pizero/
  |   |   `- README.txt
  |   |- qemu-i486/
  |   |   `- README.txt
@@ -2144,6 +2148,8 @@ apps/
  |   |- nxplayer/
  |   |  `- README.txt
  |   |- symtab/
+ |   |   `- README.txt
+ |   |- termcurses/
  |   |   `- README.txt
  |   |- usbmsc/
  |   |  `- README.txt

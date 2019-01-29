@@ -256,7 +256,7 @@ config RTC_PCF85263
 	select RTC_DATETIME
 	depends on RTC_EXTERNAL
 	---help---
-		Enables support for the Maxim Integrated DS3231 I2C RTC timer.
+		Enables support for the NXP PCF85263 I2C RTC timer.
 
 if RTC_PCF85263
 
@@ -266,6 +266,24 @@ config PCF85263_I2C_FREQUENCY
 	range 1 400000
 
 endif # RTC_PCF85263
+
+config RTC_MCP794XX
+	bool "MCP794XX RTC Driver"
+	default n
+	select I2C
+	select RTC_DATETIME
+	depends on RTC_EXTERNAL
+	---help---
+		Enables support for the Microchip MCP794XX I2C RTC timer.
+
+if RTC_MCP794XX
+
+config MCP794XX_I2C_FREQUENCY
+	int "MCP794XX I2C frequency"
+	default 400000
+	range 1 400000
+
+endif # RTC_MCP794XX
 
 config RTC_RPMSG
 	bool "Rpmsg RTC Driver"

@@ -46,6 +46,7 @@
 #include <elf32.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/symtab.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -130,13 +131,12 @@ typedef CODE int (*mod_uninitializer_t)(FAR void *arg);
  *   nexports      - The number of symbols in the exported symbol table.
  */
 
-struct symtab_s;
 struct mod_info_s
 {
   mod_uninitializer_t uninitializer;   /* Module uninitializer */
   FAR void *arg;                       /* Uninitializer argument */
   FAR const struct symtab_s *exports;  /* Symbols exported by module */
-  unsigned int nexports;               /* Number of symobols in exports list */
+  unsigned int nexports;               /* Number of symbols in exports list */
 };
 
 /* A NuttX module is expected to export a function called module_initialize()

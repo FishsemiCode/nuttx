@@ -144,7 +144,7 @@
 #  define RCC_CFGR_HPRE_SYSCLKd128  (13 << RCC_CFGR_HPRE_SHIFT) /* 1101: SYSCLK divided by 128 */
 #  define RCC_CFGR_HPRE_SYSCLKd256  (14 << RCC_CFGR_HPRE_SHIFT) /* 1110: SYSCLK divided by 256 */
 #  define RCC_CFGR_HPRE_SYSCLKd512  (15 << RCC_CFGR_HPRE_SHIFT) /* 1111: SYSCLK divided by 512 */
-#define RCC_CFGR_PPRE1_SHIFT        (8)       /* Bits 18-10: APB Low speed prescaler (APB1) */
+#define RCC_CFGR_PPRE1_SHIFT        (8)       /* Bits 8-10: APB Low speed prescaler (APB1) */
 #define RCC_CFGR_PPRE1_MASK         (7 << RCC_CFGR_PPRE1_SHIFT)
 #  define RCC_CFGR_PPRE1_HCLK       (0 << RCC_CFGR_PPRE1_SHIFT) /* 0xx: HCLK not divided */
 #  define RCC_CFGR_PPRE1_HCLKd2     (4 << RCC_CFGR_PPRE1_SHIFT) /* 100: HCLK divided by 2 */
@@ -291,7 +291,7 @@
 #define RCC_APB1RSTR_USBRST         (1 << 23) /* Bit 23: USB reset */
                                               /* Bits 24-27: Reserved */
 #define RCC_APB1RSTR_PWRRST         (1 << 28) /* Bit 28: Power interface reset */
-#define RCC_APB1RSTR_DACRST         (1 << 29) /* Bit 29: DAC interface reset */
+#define RCC_APB1RSTR_DAC1RST        (1 << 29) /* Bit 29: DAC1 interface reset */
                                               /* Bit 30: Reserved */
 #define RCC_APB1RSTR_COMPRST        (1 << 31) /* Bit 31: COMP interface reset */
 
@@ -360,7 +360,7 @@
 #define RCC_APB1ENR_USBEN           (1 << 23) /* Bit 23: USB clock enable */
                                               /* Bits 24-27: Reserved */
 #define RCC_APB1ENR_PWREN           (1 << 28) /* Bit 28: Power interface clock enable */
-#define RCC_APB1ENR_DACEN           (1 << 29) /* Bit 29: DAC interface clock enable */
+#define RCC_APB1ENR_DAC1EN          (1 << 29) /* Bit 29: DAC1 interface clock enable */
                                               /* Bit 30: Reserved */
 #define RCC_APB1ENR_COMPEN          (1 << 31) /* Bit 31: COMP interface clock enable */
 

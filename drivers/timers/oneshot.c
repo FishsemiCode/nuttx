@@ -137,13 +137,13 @@ static void oneshot_callback(FAR struct oneshot_lowerhalf_s *lower,
                      SI_QUEUE, &priv->od_work);
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: oneshot_open
  *
  * Description:
  *   This function is called whenever the PWM device is opened.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int oneshot_open(FAR struct file *filep)
 {
@@ -152,13 +152,13 @@ static int oneshot_open(FAR struct file *filep)
   return OK;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: oneshot_close
  *
  * Description:
  *   This function is called when the PWM device is closed.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int oneshot_close(FAR struct file *filep)
 {
@@ -167,15 +167,16 @@ static int oneshot_close(FAR struct file *filep)
   return OK;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: oneshot_read
  *
  * Description:
  *   A dummy read method.  This is provided only to satsify the VFS layer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-static ssize_t oneshot_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+static ssize_t oneshot_read(FAR struct file *filep, FAR char *buffer,
+                            size_t buflen)
 {
   /* Return zero -- usually meaning end-of-file */
 
@@ -184,13 +185,13 @@ static ssize_t oneshot_read(FAR struct file *filep, FAR char *buffer, size_t buf
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: oneshot_write
  *
  * Description:
  *   A dummy write method.  This is provided only to satsify the VFS layer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static ssize_t oneshot_write(FAR struct file *filep, FAR const char *buffer,
                              size_t buflen)
@@ -202,13 +203,13 @@ static ssize_t oneshot_write(FAR struct file *filep, FAR const char *buffer,
   return -EPERM;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: oneshot_ioctl
  *
  * Description:
  *   The standard ioctl method.  This is where ALL of the PWM work is done.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int oneshot_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {

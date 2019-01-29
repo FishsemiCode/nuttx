@@ -276,7 +276,7 @@ static int phy_handler(int irq, FAR void *context, FAR void *arg)
  *           terminator).  Configurable with CONFIG_PHY_NOTIFICATION_MAXINTFLEN.
  *   pid   - Identifies the task to receive the signal.  The special value
  *           of zero means to use the pid of the current task.
- *   event - Describe the way a task is to be notified
+ *   event - Describes the way a task is to be notified
  *
  * Returned Value:
  *   OK on success; Negated errno on failure.

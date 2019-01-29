@@ -968,14 +968,14 @@ static int romfs_bind(FAR struct inode *blkdriver, FAR const void *data,
 
   /* Open the block driver */
 
-  if (!blkdriver)
+  if (blkdriver == NULL)
     {
       ferr("ERROR: No block driver/ops\n");
       return -ENODEV;
     }
 
   if (INODE_IS_BLOCK(blkdriver) &&
-      blkdriver->u.i_bops->open &&
+      blkdriver->u.i_bops->open != NULL &&
       blkdriver->u.i_bops->open(blkdriver) != OK)
     {
       ferr("ERROR: No open method\n");
@@ -1084,7 +1084,7 @@ static int romfs_unbind(FAR void *handle, FAR struct inode **blkdriver,
           struct inode *inode = rm->rm_blkdriver;
           if (inode)
             {
-              if (INODE_IS_BLOCK(inode) && inode->u.i_bops->close)
+              if (INODE_IS_BLOCK(inode) && inode->u.i_bops->close != NULL)
                 {
                   (void)inode->u.i_bops->close(inode);
                 }

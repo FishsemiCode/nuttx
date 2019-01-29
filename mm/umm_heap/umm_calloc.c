@@ -59,7 +59,7 @@
 
 FAR void *calloc(size_t n, size_t elem_size)
 {
-#ifdef CONFIG_BUILD_KERNEL
+#ifdef CONFIG_ARCH_ADDRENV
   /* Use zalloc() because it implements the sbrk() logic */
 
   FAR void *ret = NULL;

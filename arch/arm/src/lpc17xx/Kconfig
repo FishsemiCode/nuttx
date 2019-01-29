@@ -201,12 +201,13 @@ config LPC17_UART4
 
 config LPC17_CAN1
 	bool "CAN1"
-	select UART4_SERIALDRIVER
 	default n
+	select CAN
 
 config LPC17_CAN2
 	bool "CAN2"
 	default n
+	select CAN
 
 config LPC17_SPI
 	bool "SPI"
@@ -689,13 +690,6 @@ config LPC17_ETH_NRXDESC
 	default 13
 	---help---
 		Configured number of Rx descriptors. Default: 13
-
-config LPC17_ETH_PRIORITY
-	int "Ethernet interrupt priority"
-	default 128
-	depends on ARCH_IRQPRIO && EXPERIMENTAL
-	---help---
-		Ethernet interrupt priority.  The default is the default priority (128).
 
 config LPC17_NET_WOL
 	bool "Wake-up on LAN"

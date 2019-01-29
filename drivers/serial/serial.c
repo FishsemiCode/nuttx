@@ -1682,12 +1682,15 @@ void uart_datareceived(FAR uart_dev_t *dev)
 
   uart_pollnotify(dev, POLLIN);
 
-  /* Call pm_activity when receive character  */
+#ifdef CONFIG_PM
+  /* Call pm_activity when characters are received on the console device */
 
   if (dev->isconsole)
     {
-      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN, CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
+                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
     }
+#endif
 }
 
 /************************************************************************************

@@ -87,7 +87,7 @@
 /* AHB clock (HCLK) is SYSCLK (72MHz) */
 
 #define STM32_RCC_CFGR_HPRE     RCC_CFGR_HPRE_SYSCLK
-#define STM32_HCLK_FREQUENCY    STM32_PLL_FREQUENCY
+#define STM32_HCLK_FREQUENCY    STM32_SYSCLK_FREQUENCY
 #define STM32_BOARD_HCLK        STM32_HCLK_FREQUENCY      /* same as above, to satisfy compiler */
 
 /* APB2 clock (PCLK2) is HCLK (72MHz) */
@@ -210,14 +210,11 @@
 
 /* By default the USART2 is connected to STLINK Virtual COM Port:
  * USART2_RX - PA3
- * USART2_TX - PA4
+ * USART2_TX - PA2
  */
 
 #define GPIO_USART2_RX GPIO_USART2_RX_2 /* PA3 */
 #define GPIO_USART2_TX GPIO_USART2_TX_2 /* PA2 */
-
-/* DMA channels *************************************************************/
-
 
 /* PWM configuration ********************************************************/
 
@@ -237,5 +234,26 @@
 #define GPIO_TIM2_CH1OUT  GPIO_TIM2_CH1_ETR_1 /* PA0 */
 #define GPIO_TIM2_CH2OUT  GPIO_TIM2_CH2OUT_1  /* PA1 */
 #define GPIO_TIM2_CH3OUT  GPIO_TIM2_CH3OUT_1  /* PA9 */
+
+/* Configuration specific to high priority interrupts example:
+ *   - TIM1 CC1 trigger for ADC if DMA transfer and TIM1 PWM
+ *   - ADC DMA transfer on DMA1_CH1
+ */
+
+#ifdef CONFIG_NUCLEOF302R8_HIGHPRI
+
+#if defined(CONFIG_STM32_TIM1_PWM) && defined(CONFIG_STM32_ADC1_DMA)
+
+/* TIM1 - ADC trigger */
+
+#define ADC1_EXTSEL_VALUE ADC1_EXTSEL_T1CC1
+
+#endif  /* CONFIG_STM32_TIM1_PWM */
+#endif  /* CONFIG_NUCLEOF302R8_HIGHPRI */
+
+/* DMA channels *************************************************************/
+/* ADC */
+
+#define ADC1_DMA_CHAN DMACHAN_ADC1     /* DMA1_CH1 */
 
 #endif /* __CONFIG_NUCLEO_F302R8_INCLUDE_BOARD_H */

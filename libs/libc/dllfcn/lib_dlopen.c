@@ -169,6 +169,7 @@ static void dldump_initializer(mod_initializer_t initializer,
  *
  * dlinsert() is essentially a clone of insmod().
  */
+
 static inline FAR void *dlinsert(FAR const char *filename)
 {
   struct mod_loadinfo_s loadinfo;
@@ -274,6 +275,7 @@ errout_with_lock:
  * - No dependencies
  * - mode is ignored.
  */
+
 static inline FAR void *dlinsert(FAR const char *filename)
 {
   FAR void *handle;
@@ -302,6 +304,7 @@ static inline FAR void *dlinsert(FAR const char *filename)
  * so that it can be referenced from the one copy of the text in the shared
  * memory region.
  */
+
 static inline FAR void *dlinsert(FAR const char *filename)
 {
 #warning Missing logic

@@ -66,7 +66,7 @@
 
 FAR void *zalloc(size_t size)
 {
-#ifdef CONFIG_BUILD_KERNEL
+#ifdef CONFIG_ARCH_ADDRENV
   /* Use malloc() because it implements the sbrk() logic */
 
   FAR void *alloc = malloc(size);

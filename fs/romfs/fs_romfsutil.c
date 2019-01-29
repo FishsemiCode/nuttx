@@ -487,7 +487,7 @@ int romfs_hwconfigure(struct romfs_mountpt_s *rm)
   /* Get the underlying device geometry */
 
 #ifdef CONFIG_DEBUG_FEATURES
-  if (!inode)
+  if (inode == NULL)
     {
       return -ENODEV;
     }
@@ -497,7 +497,8 @@ int romfs_hwconfigure(struct romfs_mountpt_s *rm)
     {
       struct mtd_geometry_s mgeo;
 
-      ret = MTD_IOCTL(inode->u.i_mtd, MTDIOC_GEOMETRY, (unsigned long)&mgeo);
+      ret = MTD_IOCTL(inode->u.i_mtd, MTDIOC_GEOMETRY,
+                      (unsigned long)&mgeo);
       if (ret != OK)
         {
           return ret;
@@ -506,7 +507,8 @@ int romfs_hwconfigure(struct romfs_mountpt_s *rm)
       /* Save that information in the mount structure */
 
       rm->rm_hwsectorsize = mgeo.blocksize;
-      rm->rm_hwnsectors   = mgeo.neraseblocks * (mgeo.erasesize / mgeo.blocksize);
+      rm->rm_hwnsectors   = mgeo.neraseblocks *
+                            (mgeo.erasesize / mgeo.blocksize);
     }
   else
     {
@@ -538,7 +540,7 @@ int romfs_hwconfigure(struct romfs_mountpt_s *rm)
       ret = MTD_IOCTL(inode->u.i_mtd, MTDIOC_XIPBASE,
                       (unsigned long)&rm->rm_xipbase);
     }
-  else if (inode->u.i_bops->ioctl)
+  else if (inode->u.i_bops->ioctl != NULL)
     {
       ret = inode->u.i_bops->ioctl(inode, BIOC_XIPBASE,
                                    (unsigned long)&rm->rm_xipbase);

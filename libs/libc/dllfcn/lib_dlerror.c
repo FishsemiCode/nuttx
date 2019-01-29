@@ -39,6 +39,7 @@
 
 #include <nuttx/config.h>
 
+#include <errno.h>
 #include <dllfcn.h>
 #include <string.h>
 
@@ -69,5 +70,5 @@
 
 FAR char *dlerror(void)
 {
-  return strerror();
+  return (FAR char *)strerror(errno);
 }

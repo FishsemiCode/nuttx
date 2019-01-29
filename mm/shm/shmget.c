@@ -264,7 +264,7 @@ static int shm_create(key_t key, size_t size, int shmflg)
   ret = shm_extend(shmid, size);
   if (ret < 0)
     {
-      /* Free any partial allocations and unreserved the region */
+      /* Free any partial allocations and unreserve the region */
 
       shm_destroy(shmid);
       return ret;

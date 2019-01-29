@@ -57,7 +57,7 @@
 #define SYS_syscall 0x900001
 
 #if defined(__thumb__) || defined(__thumb2__)
-# define SYS_smhcall 0xab
+#  define SYS_smhcall 0xab
 #else
 #  define SYS_smhcall 0x123456
 #endif

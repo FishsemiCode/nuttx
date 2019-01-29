@@ -162,8 +162,7 @@ static const struct file_operations rtc_fops =
 static void rtc_destroy(FAR struct rtc_upperhalf_s *upper)
 {
   /* If the lower half driver provided a destroy method, then call that
-   * method now in order order to clean up resources used by the lower-half
-   * driver.
+   * method now in order to clean up resources used by the lower-half driver.
    */
 
   DEBUGASSERT(upper->lower && upper->lower->ops);
@@ -340,7 +339,8 @@ static ssize_t rtc_read(FAR struct file *filep, FAR char *buffer, size_t len)
  * Name: rtc_write
  ****************************************************************************/
 
-static ssize_t rtc_write(FAR struct file *filep, FAR const char *buffer, size_t len)
+static ssize_t rtc_write(FAR struct file *filep, FAR const char *buffer,
+                         size_t len)
 {
   return len; /* Say that everything was written */
 }
@@ -390,7 +390,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     case RTC_RD_TIME:
       {
-        FAR struct rtc_time *rtctime = (FAR struct rtc_time *)((uintptr_t)arg);
+        FAR struct rtc_time *rtctime =
+          (FAR struct rtc_time *)((uintptr_t)arg);
 
         if (ops->rdtime)
           {
@@ -509,8 +510,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     /* RTC_SET_RELATIVE sets the alarm time relative to the current time.
      *
-     * Argument: A read-only reference to a struct rtc_setrelative_s containing the
-     *           new relative alarm time to be set.
+     * Argument: A read-only reference to a struct rtc_setrelative_s
+     *           containing the new relative alarm time to be set.
      */
 
     case RTC_SET_RELATIVE:
@@ -643,8 +644,8 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #ifdef CONFIG_RTC_PERIODIC
     /* RTC_SET_PERIODIC set a periodic wakeup.
      *
-     * Argument: A read-only reference to a struct rtc_setperiodic_s containing the
-     *           new wakeup period to be set.
+     * Argument: A read-only reference to a struct rtc_setperiodic_s
+     *           containing the new wakeup period to be set.
      */
 
     case RTC_SET_PERIODIC:
@@ -834,7 +835,9 @@ int rtc_initialize(int minor, FAR struct rtc_lowerhalf_s *lower)
 
   /* Allocate an upper half container structure */
 
-  upper = (FAR struct rtc_upperhalf_s *)kmm_zalloc(sizeof(struct rtc_upperhalf_s));
+  upper = (FAR struct rtc_upperhalf_s *)
+    kmm_zalloc(sizeof(struct rtc_upperhalf_s));
+
   if (!upper)
     {
       return -ENOMEM;

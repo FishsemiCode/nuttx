@@ -16,14 +16,16 @@ config SERIAL_PM_ACTIVITY_DOMAIN
 	default 0
 	depends on PM
 	---help---
-		When revie character, will called pm_activity(), this is the domain
+		When characters are received on a console device, pm_activity()
+		will be called with this PM domain
 
 config SERIAL_PM_ACTIVITY_PRIORITY
 	int "PM activity priority when reive character"
 	default 6
 	depends on PM
 	---help---
-		When revie character, will called pm_activity(), this is the priority
+		When characters are received on a console device, pm_activity()
+		will be called with this PM priority
 
 config SERIAL_REMOVABLE
 	bool

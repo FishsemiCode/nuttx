@@ -289,6 +289,9 @@ struct fs_dirent_s
 #ifdef CONFIG_FS_SPIFFS
       struct fs_spiffsdir_s  spiffs;
 #endif
+#ifdef CONFIG_FS_LITTLEFS
+      FAR void              *littlefs;
+#endif
 #ifdef CONFIG_FS_UNIONFS
       struct fs_unionfsdir_s unionfs;
 #endif
@@ -297,9 +300,6 @@ struct fs_dirent_s
 #endif
 #ifdef CONFIG_FS_HOSTFS
       struct fs_hostfsdir_s  hostfs;
-#endif
-#ifdef CONFIG_FS_LITTLEFS
-      FAR void              *littlefs;
 #endif
 #endif /* !CONFIG_DISABLE_MOUNTPOINT */
    } u;

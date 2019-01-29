@@ -633,10 +633,10 @@ static int djoy_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
     /* Command:     DJOYIOC_SUPPORTED
      * Description: Report the set of button events supported by the hardware;
-     * Argument:    A pointer to writeable integer value in which to return the
-     *              set of supported buttons.
-     * Return:      Zero (OK) on success.  Minus one will be returned on failure
-     *              with the errno value set appropriately.
+     * Argument:    A pointer to writeable integer value in which to return
+     *              the set of supported buttons.
+     * Return:      Zero (OK) on success.  Minus one will be returned on
+     *              failure with the errno value set appropriately.
      */
 
     case DJOYIOC_SUPPORTED:

@@ -135,7 +135,7 @@ void mm_pginitialize(FAR void *heap_start, size_t heap_size)
  *   before any other allocations are made.
  *
  *   Reserved memory can never be allocated (it can be freed however which
- *   essentially unreserved the memory).
+ *   essentially unreserves the memory).
  *
  * Input Parameters:
  *   start  - The address of the beginning of the region to be reserved.

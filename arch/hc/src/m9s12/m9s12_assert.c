@@ -199,7 +199,7 @@ static void up_dumpstate(void)
 
   /* Get the limits on the user stack memory */
 
-  if (rtcb->pid == 0)
+  if (rtcb->pid == 0) /* Check for CPU0 IDLE thread */
     {
       ustackbase = g_idle_topstack - 4;
       ustacksize = CONFIG_IDLETHREAD_STACKSIZE;
@@ -294,7 +294,7 @@ static void _up_assert(int errorcode)
 
   /* Are we in an interrupt handler or the idle task? */
 
-  if (g_current_regs || (running_task())->pid == 0)
+  if (g_current_regs || (running_task())->flink == NULL)
     {
        (void)up_irq_save();
         for (;;)

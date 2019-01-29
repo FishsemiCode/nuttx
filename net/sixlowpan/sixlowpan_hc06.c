@@ -131,7 +131,7 @@ static FAR uint8_t *g_hc06ptr;
  *   2 -> 2 bytes from prefix - 0000::00ff:fe00:XXXX and 2 bytes from packet
  *   3 -> 2 bytes from prefix - Infer 2 or 8 bytes from MAC address
  *
- *   NOTE: ipaddr=the uncompress function does change 0xf to 0x10
+ *   NOTE: ipaddr=the uncompress function does change 0xf to 0x100
  *   NOTE: 0x00 ipaddr=no-autoconfig ipaddr=unspecified
  */
 
@@ -238,6 +238,11 @@ static FAR struct sixlowpan_addrcontext_s *
       if ((g_hc06_addrcontexts[i].used == 1) &&
           net_ipv6addr_prefixcmp(&g_hc06_addrcontexts[i].prefix, ipaddr, 64))
         {
+          ninfo("Context found for ipaddr=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x Context: %d\n",
+                ntohs(ipaddr[0]), ntohs(ipaddr[1]), ntohs(ipaddr[2]), ntohs(ipaddr[3]),
+                ntohs(ipaddr[4]), ntohs(ipaddr[5]), ntohs(ipaddr[6]), ntohs(ipaddr[7]),
+                g_hc06_addrcontexts[i].number);
+
           return &g_hc06_addrcontexts[i];
         }
     }
@@ -270,7 +275,7 @@ static uint8_t compress_ipaddr(FAR const net_ipv6addr_t ipaddr, uint8_t bitpos)
     {
       /* Compress IID to 16 bits: xxxx:xxxx:xxxx:xxxx:0000:00ff:fe00:XXXX */
 
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
       *g_hc06ptr++ = ipaddr[7] >> 8;        /* Preserve big-endian, network order */
       *g_hc06ptr++ = ipaddr[7] & 0xff;
 #else
@@ -288,7 +293,7 @@ static uint8_t compress_ipaddr(FAR const net_ipv6addr_t ipaddr, uint8_t bitpos)
 
       for (i = 4; i < 8; i++)
         {
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
           *g_hc06ptr++ = ipaddr[i] >> 8;    /* Preserve big-endian, network order */
           *g_hc06ptr++ = ipaddr[i] & 0xff;
 #else
@@ -418,7 +423,6 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
                             FAR net_ipv6addr_t ipaddr)
 {
   FAR const uint8_t *srcptr;
-  bool fullmac      = false;
   bool usemac       = (prefpost & UNCOMPRESS_MACBASED) != 0;
   uint8_t prefcount = UNCOMPRESS_PREFLEN(prefpost);
   uint8_t postcount = UNCOMPRESS_POSTLEN(prefpost);
@@ -447,12 +451,6 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
         {
           postcount = addr->nv_addrlen;
         }
-
-      /* If we are converting the entire MAC address, then we need to some some
-       * special bit operations.
-       */
-
-      fullmac = (postcount == addr->nv_addrlen);
     }
 
   /* Copy any prefix */
@@ -498,7 +496,7 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
 
       if ((postcount & 1) != 0)
         {
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
           /* Preserve big-endian, network order */
 
           ipaddr[destndx - 1] = (uint16_t)(*srcptr) << 8;
@@ -513,7 +511,7 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
 
       for (i = destndx; i < 8; i++)
         {
-#ifdef CONFIG_BIG_ENDIAN
+#ifdef CONFIG_ENDIAN_BIG
           /* Preserve big-endian, network order */
 
           ipaddr[i] = (uint16_t)srcptr[0] << 8 | (uint16_t)srcptr[1];
@@ -525,11 +523,13 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
           srcptr += 2;
         }
 
-      /* If the was a standard MAC based address then toggle */
+      /* If the IP is dervied from a MAC address big enough to include the U/L bit,
+       * invert it.
+       */
 
-      if (fullmac)
+      if (usemac && postcount == 8)
         {
-          ipaddr[7] ^= 0x0200;
+          ipaddr[4] ^= HTONS(0x0200);
         }
 
       /* If we took the data from packet, then update the packet pointer */
@@ -704,7 +704,8 @@ int sixlowpan_compresshdr_hc06(FAR struct radio_driver_s *radio,
                                FAR uint8_t *fptr)
 {
   FAR uint8_t *iphc = fptr + g_frame_hdrlen;
-  FAR struct sixlowpan_addrcontext_s *addrcontext;
+  FAR struct sixlowpan_addrcontext_s *saddrcontext;
+  FAR struct sixlowpan_addrcontext_s *daddrcontext;
   uint8_t iphc0;
   uint8_t iphc1;
   uint8_t tmp;
@@ -730,18 +731,16 @@ int sixlowpan_compresshdr_hc06(FAR struct radio_driver_s *radio,
    * byte with [ SCI | DCI ]
    */
 
-  /* Check if dest address context exists (for allocating third byte)
-   *
-   * TODO: fix this so that it remembers the looked up values for avoiding two
-   * lookups - or set the lookup values immediately
-   */
+  /* Check if dest address context exists (for allocating third byte) */
 
-  if (find_addrcontext_byprefix(ipv6->destipaddr) != NULL ||
-      find_addrcontext_byprefix(ipv6->srcipaddr) != NULL)
+  daddrcontext = find_addrcontext_byprefix(ipv6->destipaddr);
+  saddrcontext = find_addrcontext_byprefix(ipv6->srcipaddr);
+
+  if (daddrcontext != NULL || saddrcontext != NULL)
     {
       /* set address context flag and increase g_hc06ptr */
 
-      ninfo("Decompressing dest or src ipaddr. Setting CID\n");
+      ninfo("Compressing dest or src ipaddr. Setting CID\n");
       iphc1 |= SIXLOWPAN_IPHC_CID;
       g_hc06ptr++;
     }
@@ -856,15 +855,15 @@ int sixlowpan_compresshdr_hc06(FAR struct radio_driver_s *radio,
       iphc1 |= SIXLOWPAN_IPHC_SAC;
       iphc1 |= SIXLOWPAN_IPHC_SAM_128;
     }
-  else if ((addrcontext = find_addrcontext_byprefix(ipv6->srcipaddr)) != NULL)
+  else if (saddrcontext != NULL)
     {
       /* Elide the prefix - indicate by CID and set address context + SAC */
 
-      ninfo("Compressing src with address context. Setting CID and SAC context: %d\n",
-            addrcontext->number);
+      ninfo("Compressing src with address context. Setting SAC. Context: %d\n",
+            saddrcontext->number);
 
-      iphc1   |= SIXLOWPAN_IPHC_CID | SIXLOWPAN_IPHC_SAC;
-      iphc[2] |= addrcontext->number << 4;
+      iphc1   |= SIXLOWPAN_IPHC_SAC;
+      iphc[2] |= saddrcontext->number << 4;
 
       /* Compression compare with this nodes address (source) */
 
@@ -958,12 +957,15 @@ int sixlowpan_compresshdr_hc06(FAR struct radio_driver_s *radio,
     {
       /* Address is unicast, try to compress */
 
-      if ((addrcontext =  find_addrcontext_byprefix(ipv6->destipaddr)) != NULL)
+      if (daddrcontext != NULL)
         {
           /* Elide the prefix */
 
+          ninfo("Compressing dest with address context. Setting DAC. Context: %d\n",
+                daddrcontext->number);
+
           iphc1   |= SIXLOWPAN_IPHC_DAC;
-          iphc[2] |= addrcontext->number;
+          iphc[2] |= daddrcontext->number;
 
           /* Compession compare with link adress (destination) */
 

@@ -63,8 +63,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define WATCHDOG_AUTOMONITOR_TIMEOUT_MSEC (1000 * CONFIG_WATCHDOG_AUTOMONITOR_TIMEOUT)
-#define WATCHDOG_AUTOMONITOR_TIMEOUT_TICK SEC2TICK(CONFIG_WATCHDOG_AUTOMONITOR_TIMEOUT)
+#define WATCHDOG_AUTOMONITOR_TIMEOUT_MSEC \
+  (1000 * CONFIG_WATCHDOG_AUTOMONITOR_TIMEOUT)
+#define WATCHDOG_AUTOMONITOR_TIMEOUT_TICK \
+  SEC2TICK(CONFIG_WATCHDOG_AUTOMONITOR_TIMEOUT)
 
 /****************************************************************************
  * Private Type Definitions
@@ -75,13 +77,13 @@
 struct watchdog_upperhalf_s
 {
 #ifdef CONFIG_WATCHDOG_AUTOMONITOR
-#  if defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_TIMER)
+#if defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_TIMER)
   WDOG_ID              wdog;
-#  elif defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_WORKER)
+#elif defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_WORKER)
   struct work_s        work;
-#  elif defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_IDLE)
+#elif defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_IDLE)
   struct pm_callback_s idle;
-#  endif
+#endif
   bool                 monitor;
 #endif
 
@@ -129,7 +131,8 @@ static const struct file_operations g_wdogops =
  ****************************************************************************/
 
 #if defined(CONFIG_WATCHDOG_AUTOMONITOR_BY_CAPTURE)
-static int watchdog_automonitor_capture(int irq, FAR void *context, FAR void *arg)
+static int watchdog_automonitor_capture(int irq, FAR void *context,
+                                        FAR void *arg)
 {
   FAR struct watchdog_upperhalf_s *upper = arg;
   FAR struct watchdog_lowerhalf_s *lower = upper->lower;
@@ -206,6 +209,7 @@ static void watchdog_automonitor_start(FAR struct watchdog_upperhalf_s *upper)
         {
           lower->ops->settimeout(lower, WATCHDOG_AUTOMONITOR_TIMEOUT_MSEC);
         }
+
       lower->ops->start(lower);
     }
 }
@@ -231,13 +235,13 @@ static void watchdog_automonitor_stop(FAR struct watchdog_upperhalf_s *upper)
 }
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: wdog_open
  *
  * Description:
  *   This function is called whenever the watchdog timer device is opened.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int wdog_open(FAR struct file *filep)
 {
@@ -282,13 +286,13 @@ errout:
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: wdog_close
  *
  * Description:
  *   This function is called when the watchdog timer device is closed.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int wdog_close(FAR struct file *filep)
 {
@@ -322,42 +326,44 @@ errout:
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: wdog_read
  *
  * Description:
  *   A dummy read method.  This is provided only to satisfy the VFS layer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-static ssize_t wdog_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+static ssize_t wdog_read(FAR struct file *filep, FAR char *buffer,
+                         size_t buflen)
 {
   /* Return zero -- usually meaning end-of-file */
 
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: wdog_write
  *
  * Description:
  *   A dummy write method.  This is provided only to satisfy the VFS layer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-static ssize_t wdog_write(FAR struct file *filep, FAR const char *buffer, size_t buflen)
+static ssize_t wdog_write(FAR struct file *filep, FAR const char *buffer,
+                          size_t buflen)
 {
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: wdog_ioctl
  *
  * Description:
- *   The standard ioctl method.  This is where ALL of the watchdog timer work is
- *   done.
+ *   The standard ioctl method.  This is where ALL of the watchdog timer
+ *   work is done.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
@@ -395,7 +401,9 @@ static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         watchdog_automonitor_stop(upper);
 #endif
 
-        /* Start the watchdog timer, resetting the time to the current timeout */
+        /* Start the watchdog timer, resetting the time to the current
+         * timeout
+         */
 
         DEBUGASSERT(lower->ops->start); /* Required */
         ret = lower->ops->start(lower);
@@ -508,8 +516,8 @@ static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     case WDIOC_KEEPALIVE:
       {
-        /* Reset the watchdog timer to the current timeout value, prevent any
-         * imminent watchdog timeouts.  This is sometimes referred as
+        /* Reset the watchdog timer to the current timeout value, prevent
+         * any imminent watchdog timeouts.  This is sometimes referred as
          * "pinging" the watchdog timer or "petting the dog".
          */
 
@@ -524,8 +532,9 @@ static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       }
       break;
 
-
-    /* Any unrecognized IOCTL commands might be platform-specific ioctl commands */
+    /* Any unrecognized IOCTL commands might be platform-specific ioctl
+     * commands
+     */
 
     default:
       {
@@ -560,18 +569,19 @@ static int wdog_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Name: watchdog_register
  *
  * Description:
- *   This function binds an instance of a "lower half" watchdog driver with the
- *   "upper half" watchdog device and registers that device so that can be used
- *   by application code.
+ *   This function binds an instance of a "lower half" watchdog driver with
+ *   the "upper half" watchdog device and registers that device so that can
+ *   be usedby application code.
  *
  *   When this function is called, the "lower half" driver should be in the
  *   disabled state (as if the stop() method had already been called).
  *
  * Input Parameters:
  *   dev path - The full path to the driver to be registers in the NuttX
- *     pseudo-filesystem.  The recommended convention is to name all watchdog
- *     drivers as "/dev/watchdog0", "/dev/watchdog1", etc.  where the driver
- *     path differs only in the "minor" number at the end of the device name.
+ *     pseudo-filesystem.  The recommended convention is to name all
+ *     watchdogdrivers as "/dev/watchdog0", "/dev/watchdog1", etc.  where
+ *     the driverpath differs only in the "minor" number at the end of the
+ *     device name.
  *   lower - A pointer to an instance of lower half watchdog driver.  This
  *     instance is bound to the watchdog driver and must persists as long as
  *     the driver persists.

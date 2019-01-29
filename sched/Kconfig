@@ -346,6 +346,12 @@ config USER_ENTRYPOINT
 		applications this is of the form 'app_main' where 'app' is the application
 		name. If not defined, USER_ENTRYPOINT defaults to "main".
 
+config USERMAIN_PRIORITY
+	int "init thread priority"
+	default 100
+	---help---
+		The priority of the user initialization thread.
+
 endif # INIT_ENTRYPOINT
 
 if INIT_FILEPATH
@@ -610,8 +616,10 @@ config NPTHREAD_KEYS
 	int "Maximum number of pthread keys"
 	default 4 if !DISABLE_PTHREAD
 	default 0 if DISABLE_PTHREAD
+	range 0 32
 	---help---
-		The number of items of thread-specific data that can be retained
+		The number of items of thread-specific data that can be retained.
+		The value zero disables support for pthread-specific data.
 
 if !DISABLE_PTHREAD
 
@@ -1461,6 +1469,16 @@ config SCHED_WORKQUEUE
 		Create dedicated "worker" threads to handle delayed or asynchronous
 		processing.
 
+config WQUEUE_NOTIFIER
+	bool "Generic work notifier"
+	default n
+	depends on SCHED_WORKQUEUE
+	---help---
+		Enable building of work queue notifier logic that will execute a
+		worker function an event occurs.  This is is a general purpose
+		notifier, but was developed specifically to support poll() logic
+		where the poll must wait for an resources to become available.
+
 config SCHED_HPWORK
 	bool "High priority (kernel) worker thread"
 	default n
@@ -1627,17 +1645,6 @@ config SCHED_LPWORKSTACKSIZE
 		The stack size allocated for the lower priority worker thread.  Default: 2K.
 
 endif # SCHED_LPWORK
-
-config WQUEUE_NOTIFIER
-	bool "Generic work notifier"
-	default n
-	depends on SCHED_WORKQUEUE
-	---help---
-		Enable building of work queue notifier logic that will execute a
-		worker function an event occurs.  This is is a general purpose
-		notifier, but was developed specifically to support poll() logic
-		where the poll must wait for an resources to become available.
-
 endmenu # Work Queue Support
 
 menu "Stack and heap information"

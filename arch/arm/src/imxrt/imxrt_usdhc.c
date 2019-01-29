@@ -59,6 +59,7 @@
 #include <nuttx/irq.h>
 #include <arch/board/board.h>
 
+#include "cache.h"
 #include "chip.h"
 #include "up_arch.h"
 
@@ -980,10 +981,6 @@ static void imxrt_endwait(struct imxrt_dev_s *priv,
 static void imxrt_endtransfer(struct imxrt_dev_s *priv,
                               sdio_eventset_t wkupevent)
 {
-#ifdef CONFIG_IMXRT_USDHC_DMA
-  uint32_t regval;
-  uint32_t proctl;
-#endif
 
   /* Disable all transfer related interrupts */
 
@@ -999,7 +996,8 @@ static void imxrt_endtransfer(struct imxrt_dev_s *priv,
 
   /* DMA modified the buffer, so we need to flush its cache lines. */
 
-  arch_invalidate_dcache(priv->buffer, priv->bufferend);
+  arch_invalidate_dcache((uintptr_t)priv->buffer,
+                         (uintptr_t)priv->bufferend);
 
   /* Debug instrumentation */
 
@@ -2757,37 +2755,33 @@ FAR struct sdio_dev_s *imxrt_usdhc_initialize(int slotno)
 #ifndef CONFIG_SDIO_MUXBUS
   /* Data width 1, 4 or 8 */
 
-  (void)imxrt_config_gpio(PIN_USDHC1_D0 | PINSET_USDHC1_DATAX);
+  (void)imxrt_config_gpio(PIN_USDHC1_D0);
 
   /* Data width 4 or 8 */
 
 #ifndef CONFIG_IMXRT_USDHC_WIDTH_D1_ONLY
-  (void)imxrt_config_gpio(PIN_USDHC1_D1 | PINSET_USDHC1_DATAX);
-  (void)imxrt_config_gpio(PIN_USDHC1_D2 | PINSET_USDHC1_DATAX);
-  (void)imxrt_config_gpio(PIN_USDHC1_D3 | PINSET_USDHC1_DATAX);
+  (void)imxrt_config_gpio(PIN_USDHC1_D1);
+  (void)imxrt_config_gpio(PIN_USDHC1_D2);
+  (void)imxrt_config_gpio(PIN_USDHC1_D3);
 
   /* Data width 8 (not supported) */
 
 #if 0
-  (void)imxrt_config_gpio(PIN_USDHC1_D4 | PINSET_USDHC1_DATAX);
-  (void)imxrt_config_gpio(PIN_USDHC1_D5 | PINSET_USDHC1_DATAX);
-  (void)imxrt_config_gpio(PIN_USDHC1_D6 | PINSET_USDHC1_DATAX);
-  (void)imxrt_config_gpio(PIN_USDHC1_D7 | PINSET_USDHC1_DATAX);
+  (void)imxrt_config_gpio(PIN_USDHC1_D4);
+  (void)imxrt_config_gpio(PIN_USDHC1_D5);
+  (void)imxrt_config_gpio(PIN_USDHC1_D6);
+  (void)imxrt_config_gpio(PIN_USDHC1_D7);
 #endif
 #endif
 
   /* Clocking and CMD pins (all data widths) */
 
-  (void)imxrt_config_gpio(PIN_USDHC1_DCLK | PINSET_USDHC1_CLK);
-  (void)imxrt_config_gpio(PIN_USDHC1_CMD | PINSET_USDHC1_CMD);
+  (void)imxrt_config_gpio(PIN_USDHC1_DCLK);
+  (void)imxrt_config_gpio(PIN_USDHC1_CMD);
 #endif
 
 #if defined(CONFIG_MMCSD_HAVE_CARDDETECT) && defined(PIN_USDHC1_CD)
-  (void)imxrt_config_gpio(PIN_USDHC1_CD | PINSET_USDHC1_CD);
-
-  /* Daisy chain select the CD pin */
-
-  putreg32(2, 0x401f85d4);
+  (void)imxrt_config_gpio(PIN_USDHC1_CD);
 #endif
 
   /* Reset the card and assure that it is in the initial, unconfigured

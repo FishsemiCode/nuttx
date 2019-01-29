@@ -67,7 +67,7 @@
 
 FAR void *realloc(FAR void *oldmem, size_t size)
 {
-#ifdef CONFIG_BUILD_KERNEL
+#ifdef CONFIG_ARCH_ADDRENV
   FAR void *brkaddr;
   FAR void *mem;
 

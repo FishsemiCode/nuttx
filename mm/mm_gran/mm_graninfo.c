@@ -139,7 +139,7 @@ static const struct nibble_info_s *g_info_table[5] =
  * Name: gran_nibble_info
  *
  * Description:
- *   Return information a 4-bit value from the GAT.
+ *   Return information for a 4-bit value from the GAT.
  *
  * Input Parameters:
  *   value - The 4-bit value
@@ -188,8 +188,10 @@ static void gran_nibble_info(uint8_t value, FAR struct valinfo_s *info,
  *
  ****************************************************************************/
 
-static void gran_info_combine(FAR const struct valinfo_s *msinfo, unsigned int msbits,
-                              FAR struct valinfo_s *lsinfo, unsigned int lsbits)
+static void gran_info_combine(FAR const struct valinfo_s *msinfo,
+                              unsigned int msbits,
+                              FAR struct valinfo_s *lsinfo,
+                              unsigned int lsbits)
 {
   unsigned int midfree;
 

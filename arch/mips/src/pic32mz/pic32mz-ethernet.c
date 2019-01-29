@@ -1048,7 +1048,7 @@ static int pic32mz_transmit(struct pic32mz_driver_s *priv)
    */
 
   DEBUGASSERT(priv->pd_dev.d_buf != NULL &&
-              priv->pd_dev.d_len < CONFIG_NET_ETH_PKTSIZE);
+              priv->pd_dev.d_len <= CONFIG_NET_ETH_PKTSIZE);
 
   /* Increment statistics and dump the packet (if so configured) */
 
@@ -3356,7 +3356,7 @@ static void pic32mz_ethreset(struct pic32mz_driver_s *priv)
  *
  ****************************************************************************/
 
-#if CONFIG_PIC32MZ_NINTERFACES > 1
+#if CONFIG_PIC32MZ_NINTERFACES > 1 || defined(CONFIG_NETDEV_LATEINIT)
 int pic32mz_ethinitialize(int intf)
 #else
 static inline int pic32mz_ethinitialize(int intf)
@@ -3433,7 +3433,7 @@ static inline int pic32mz_ethinitialize(int intf)
  *
  ****************************************************************************/
 
-#if CONFIG_PIC32MZ_NINTERFACES == 1
+#if CONFIG_PIC32MZ_NINTERFACES == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
   (void)pic32mz_ethinitialize(0);

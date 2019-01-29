@@ -66,8 +66,8 @@
 
 struct timer_upperhalf_s
 {
-  sem_t     exclsem;       /* Supports mutual exclusion */
-  uint8_t   crefs;         /* The number of times the device has been opened */
+  sem_t exclsem;           /* Supports mutual exclusion */
+  uint8_t crefs;           /* The number of times the device has been opened */
   FAR char *path;          /* Registration path */
 
   /* The contained signal info */
@@ -323,7 +323,7 @@ static int timer_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       {
         /* Stop the timer */
 
-        DEBUGASSERT(lower->ops->stop); /* Required */
+        DEBUGASSERT(lower->ops->stop != NULL); /* Required */
         ret = lower->ops->stop(lower);
         nxsig_cancel_notification(&upper->work);
       }

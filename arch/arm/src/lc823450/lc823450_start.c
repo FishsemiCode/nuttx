@@ -125,7 +125,7 @@ extern uint32_t _stext_sram, _etext_sram, _ftext, _svect;
  * Private Function prototypes
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_STACK
+#ifdef CONFIG_STACK_COLORATION
 static void go_os_start(void *pv, unsigned int nbytes)
   __attribute__ ((naked, no_instrument_function, noreturn));
 #endif
@@ -152,11 +152,11 @@ static void go_os_start(void *pv, unsigned int nbytes)
  * Name: go_os_start
  *
  * Description:
- *   Set the IDLE stack to the
+ *   Set the IDLE stack to the coloration value and jump into os_start()
  *
  ****************************************************************************/
 
-#ifdef CONFIG_DEBUG_STACK
+#ifdef CONFIG_STACK_COLORATION
 static void go_os_start(void *pv, unsigned int nbytes)
 {
   /* Set the IDLE stack to the stack coloration value then jump to
@@ -169,6 +169,7 @@ static void go_os_start(void *pv, unsigned int nbytes)
   __asm__ __volatile__
   (
     "\tmov  r1, r1, lsr #2\n"   /* R1 = nwords = nbytes >> 2 */
+    "\tcmp  r1, #0\n"           /* Check (nwords == 0) */
     "\tbeq  2f\n"               /* (should not happen) */
 
     "\tbic  r0, r0, #3\n"       /* R0 = Aligned stackptr */
@@ -200,11 +201,7 @@ static void go_os_start(void *pv, unsigned int nbytes)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_SPIFLASH_BOOT
-__attribute__((section (".start_text"))) void __start_main(void)
-#else /* CONFIG_SPIFLASH_BOOT */
 void __start(void)
-#endif /* CONFIG_SPIFLASH_BOOT */
 {
   const uint32_t *src;
   uint32_t *dest;
@@ -260,26 +257,23 @@ void __start(void)
   g_lastksg_buf.sig = LASTKMSG_SIG;
 #endif /* CONFIG_LASTKMSG */
 
-#ifdef CONFIG_SPIFLASH_BOOT
+#ifdef CONFIG_LC823450_SPIFI_BOOT
 
   /* Copy any necessary code sections from FLASH to RAM.  The correct
-   * destination in SRAM is given by _sramfuncs and _eramfuncs.  The
-   * temporary location is in flash after the data initalization code
-   * at _framfuncs.
+   * destination in SRAM is geive by _sramfuncs and _eramfuncs.  The
+   * temporary location is in flash after the data initialization code
+   * at _framfuncs.  This should be done before lc823450_clockconfig() is
+   * called (in case it has some dependency on initialized C variables).
    */
 
-  /* copt text & vectors */
-
-  for (src = &_ftext, dest = &_stext_sram; dest < &_etext_sram; )
+#ifdef CONFIG_ARCH_RAMFUNCS
+  for (src = &_framfuncs, dest = &_sramfuncs; dest < &_eramfuncs; )
     {
       *dest++ = *src++;
     }
+#endif
 
-  /* vector offset */
-
-  putreg32((uint32_t)&_svect, NVIC_VECTAB);
-
-#else /* CONFIG_SPIFLASH_BOOT */
+#else /* CONFIG_LC823450_SPIFI_BOOT */
   /* vector offset */
 
 #ifdef CONFIG_LC823450_IPL2
@@ -288,7 +282,8 @@ void __start(void)
 #else /* CONFIG_LC823450_IPL2 */
   putreg32(0x02040000, 0xe000ed08);
 #endif /* CONFIG_LC823450_IPL2 */
-#endif /* CONFIG_LC823450_SPIFLASH_BOOT */
+
+#endif /* CONFIG_LC823450_SPIFI_BOOT */
 
   /* Enable Mutex */
   /* NOTE: modyfyreg32() can not be used because it might use spin_lock */
@@ -326,7 +321,7 @@ void __start(void)
 
   showprogress('B');
 
-#if defined(CONFIG_LC823450_SPIFI) && !defined(CONFIG_SPIFLASH_BOOT)
+#if defined(CONFIG_LC823450_SPIFI) && !defined(CONFIG_LC823450_SPIFI_BOOT)
   lc823450_spiflash_earlyinit();
 #endif /* CONFIG_LC823450_SPIFI */
 
@@ -405,7 +400,7 @@ void __start(void)
 
   CURRENT_REGS = NULL;
 
-#ifdef CONFIG_DEBUG_STACK
+#ifdef CONFIG_STACK_COLORATION
   /* Set the IDLE stack to the coloration value and jump into os_start() */
 
   go_os_start((FAR void *)&_ebss, CONFIG_IDLETHREAD_STACKSIZE);
@@ -420,39 +415,3 @@ void __start(void)
 #endif
 }
 
-#if defined(CONFIG_SPIFLASH_BOOT)
-__attribute__((section (".start_gdb"))) void __start(void)
-{
-  /* XXX: Don't use stack in this function */
-
-  /* SPIF/CACHE clock */
-
-  putreg32(0x0402, 0x40080100);
-
-  /* SPIF/CACHE reset */
-
-  putreg32(0x0402, 0x40080114);
-
-  /* PinMux for QSPI */
-
-  putreg32(0x540000c0, 0x40080400);
-  putreg32(0x00000017, 0x40080404);
-
-  /* BusAcc enable */
-
-  putreg32(0x00000303, 0x40001028);
-
-  /* Stack initialize: */
-
-  __asm__ __volatile__
-  (
-    "ldr r0, =_vectors\n"
-    "bic r0, r0, #1\n"
-    "ldr sp, [r0, #0]\n"
-  );
-
-  __start_main();
-
-  /* not reached */
-}
-#endif /* defined(CONFIG_SPIFLASH_BOOT) */

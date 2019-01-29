@@ -1205,7 +1205,7 @@ static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv)
   syslog(LOG_DEBUG, "Elapsed time: %d\n",
          clock_systimer() - priv->start_time);
 
-  for (i = 0; i <= priv->tndx; i++)
+  for (i = 0; i < priv->tndx; i++)
     {
       trace = &priv->trace[i];
       syslog(LOG_DEBUG,
@@ -1423,7 +1423,9 @@ static inline void stm32_i2c_sendstart(FAR struct stm32_i2c_priv_s *priv)
    * it otherwise.
    */
 
-  if (priv->msgc > 0)
+  /* Check if there are multiple messages and the next is a continuation */
+
+  if (priv->msgc > 1)
     {
       next_norestart = (((priv->msgv + 1)->flags & I2C_M_NOSTART) != 0);
     }
