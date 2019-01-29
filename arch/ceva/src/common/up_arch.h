@@ -41,15 +41,10 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#ifndef __ASSEMBLY__
-#  include <nuttx/userspace.h>
-#endif
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#define USERSPACE2 ((struct userspace2_s *)USERSPACE)
 
 /****************************************************************************
  * Inline Functions
@@ -67,16 +62,6 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
-#ifdef CONFIG_BUILD_PROTECTED
-
-struct userspace2_s
-{
-  struct userspace_s us_base;
-  uintptr_t us_heapend;
-};
-
-#endif /* CONFIG_BUILD_PROTECTED */
 
 /****************************************************************************
  * Public Function Prototypes

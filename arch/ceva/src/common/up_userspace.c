@@ -43,8 +43,8 @@
 #include <nuttx/init.h>
 #include <nuttx/mm/mm.h>
 #include <nuttx/wqueue.h>
+#include <nuttx/userspace.h>
 
-#include "up_arch.h"
 #include "up_internal.h"
 
 #ifdef CONFIG_BUILD_PROTECTED
@@ -198,7 +198,7 @@ struct mm_heap_s *const g_mm_heap[] =
   MM_HEAP1, MM_HEAP2, MM_HEAP3, MM_HEAP4, NULL,
 };
 
-const struct userspace2_s userspace __attribute__ ((section (".DSECT userspace"))) =
+const struct userspace_s userspace __attribute__ ((section ("userspace"))) =
 {
   /* General memory map */
   .us_base            =
@@ -211,6 +211,7 @@ const struct userspace2_s userspace __attribute__ ((section (".DSECT userspace")
     .us_dataend       = (uintptr_t)g_dataend,
     .us_bssstart      = (uintptr_t)g_bssstart,
     .us_bssend        = (uintptr_t)g_bssend,
+    .us_heapend       = (uintptr_t)g_heapend,
 
     /* Memory manager heap structure */
 
@@ -235,7 +236,6 @@ const struct userspace2_s userspace __attribute__ ((section (".DSECT userspace")
     .work_usrstart    = work_usrstart,
 #endif
   },
-  .us_heapend         = (uintptr_t)g_heapend,
 };
 
 #endif /* CONFIG_BUILD_PROTECTED */

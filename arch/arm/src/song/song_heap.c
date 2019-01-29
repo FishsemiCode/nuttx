@@ -46,7 +46,6 @@
 #include <nuttx/kmalloc.h>
 
 #include "arm_mpu.h"
-#include "song_userspace.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -54,6 +53,7 @@
  ****************************************************************************/
 
 #define _START_HEAP                     ((uintptr_t)&_ebss + CONFIG_IDLETHREAD_STACKSIZE)
+#define _END_HEAP                       ((uintptr_t)&_eheap)
 #define _START_HEAP2                    ((uintptr_t)&_sheap2)
 #define _END_HEAP2                      ((uintptr_t)&_eheap2)
 #define _START_HEAP3                    ((uintptr_t)&_sheap3)
@@ -69,6 +69,7 @@
  * Public Data
  ****************************************************************************/
 
+extern uint32_t _eheap;           /* End+1 of heap */
 extern uint32_t _sheap2;          /* Start of heap2 */
 extern uint32_t _eheap2;          /* End+1 of heap2 */
 extern uint32_t _sheap3;          /* Start of heap3 */
@@ -128,7 +129,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
   /* Return the user-space heap settings */
 
   *heap_start = (FAR void *)USERSPACE->us_bssend;
-  *heap_size  = USERSPACE2->us_heapend - USERSPACE->us_bssend;
+  *heap_size  = USERSPACE->us_heapend - USERSPACE->us_bssend;
 
   /* Allow user-mode access to the user heap memory */
 

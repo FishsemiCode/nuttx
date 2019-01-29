@@ -43,8 +43,8 @@
 #include <nuttx/init.h>
 #include <nuttx/mm/mm.h>
 #include <nuttx/wqueue.h>
+#include <nuttx/userspace.h>
 
-#include "song_userspace.h"
 #include "up_internal.h"
 
 #if defined(CONFIG_BUILD_PROTECTED) && !defined(__KERNEL__)
@@ -53,7 +53,9 @@
  * Public Data
  ****************************************************************************/
 
-const struct userspace2_s userspace __attribute__ ((section(".userspace"))) =
+extern uint32_t _eheap;
+
+const struct userspace_s userspace __attribute__ ((section(".userspace"))) =
 {
   /* General memory map */
   .us_base            =
@@ -66,6 +68,7 @@ const struct userspace2_s userspace __attribute__ ((section(".userspace"))) =
     .us_dataend       = (uintptr_t)_END_DATA,
     .us_bssstart      = (uintptr_t)_START_BSS,
     .us_bssend        = (uintptr_t)_END_BSS,
+    .us_heapend       = (uintptr_t)(&_eheap),
 
     /* Memory manager heap structure */
 
@@ -90,7 +93,6 @@ const struct userspace2_s userspace __attribute__ ((section(".userspace"))) =
     .work_usrstart    = work_usrstart,
 #endif
   },
-  .us_heapend         = (uintptr_t)_END_HEAP,
 };
 
 #endif /* CONFIG_BUILD_PROTECTED && !__KERNEL__ */

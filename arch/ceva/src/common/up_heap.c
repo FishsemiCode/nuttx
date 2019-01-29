@@ -195,7 +195,7 @@ void up_allocate_heap(FAR void **heap_start, size_t *heap_size)
   struct mm_heap_s *const *heap =
     (struct mm_heap_s *const *)USERSPACE->us_heap;
   void *const *bssend = (void *const *)USERSPACE->us_bssend;
-  void *const *heapend = (void *const *)USERSPACE2->us_heapend;
+  void *const *heapend = (void *const *)USERSPACE->us_heapend;
 
   for (i = 0; i < CONFIG_ARCH_NR_USER_MEMORY; i++)
     {
