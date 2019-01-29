@@ -257,7 +257,7 @@ static uint32_t up_rsvdmem_crc(void)
   return crc32((uint8_t *)(&_cpram1_srsvd + 1), up_rsvdmem_size());
 }
 
-static void up_rsvdmem_init(void)
+static void up_rsvdmem_init(enum start_reason_e start_reason)
 {
   struct rsvdmem_head_s *head = &_cpram1_srsvd;
 
@@ -265,7 +265,8 @@ static void up_rsvdmem_init(void)
    * corrupted memory.
    */
 
-  if (head->magic  != RSVDMEM_MAGIC         ||
+  if (start_reason != START_REASON_SOC_PD   ||
+      head->magic  != RSVDMEM_MAGIC         ||
       head->size   != up_rsvdmem_size()     ||
       head->crc    != up_rsvdmem_crc())
     {
@@ -299,7 +300,7 @@ void up_earlystart(void)
         break;
 
       default:
-        up_rsvdmem_init();
+        up_rsvdmem_init(start_reason);
         break;
     }
 }
