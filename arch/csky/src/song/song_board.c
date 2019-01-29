@@ -43,7 +43,6 @@
 #include <nuttx/board.h>
 #include <arch/board/board.h>
 
-#include "song_idle.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -214,7 +213,6 @@ int board_reset(int status)
   while (1)
     {
       up_reset(status);
-      up_cpu_idle();
     }
 
   return 0;

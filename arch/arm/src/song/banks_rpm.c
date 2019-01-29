@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_BANKS_RPM
+
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
@@ -56,12 +58,10 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
-#include "song_idle.h"
+#include "nvic.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_BANKS_RPM
 
 /****************************************************************************
  * Pre-processor Definitions

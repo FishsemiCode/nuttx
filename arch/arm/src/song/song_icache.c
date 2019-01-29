@@ -38,12 +38,13 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_SONG_ICACHE
+
 #include <nuttx/arch.h>
 
 #include "chip.h"
 #include "up_arch.h"
-
-#ifdef CONFIG_SONG_ICACHE
 
 /****************************************************************************
  * Pre-processor Definitions

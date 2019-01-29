@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CORTEXM4
+
 #include <assert.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
@@ -48,7 +50,6 @@
 
 #include "chip.h"
 #include "nvic.h"
-#include "arm_nvic.h"
 #include "ram_vectors.h"
 #include "up_arch.h"
 #include "up_internal.h"
@@ -527,3 +528,4 @@ void up_irqinitialize(void)
 
   up_irq_enable();
 }
+#endif

@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_U1_CK
+
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
@@ -61,11 +63,8 @@
 #include <nuttx/timers/song_rtc.h>
 
 #include "chip.h"
-#include "song_idle.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_U1_CK
 
 /****************************************************************************
  * Pre-processor Definitions

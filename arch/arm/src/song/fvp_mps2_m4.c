@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_FVP_MPS2_M4
+
 #include <nuttx/clock.h>
 #include <nuttx/net/lan91c111.h>
 #include <nuttx/timers/arch_timer.h>
@@ -46,8 +48,6 @@
 
 #include "systick.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_FVP_MPS2_M4
 
 /****************************************************************************
  * Public Functions

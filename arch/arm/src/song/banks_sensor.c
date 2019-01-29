@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_BANKS_SENSOR
+
 #include <nuttx/audio/audio_comp.h>
 #include <nuttx/audio/audio_dma.h>
 #include <nuttx/audio/audio_i2s.h>
@@ -63,12 +65,10 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
-#include "song_idle.h"
+#include "nvic.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_BANKS_SENSOR
 
 /****************************************************************************
  * Pre-processor Definitions

@@ -45,7 +45,7 @@
 
 #include "sched/sched.h"
 
-#include "csky_vic.h"
+#include "chip.h"
 #include "up_internal.h"
 
 /****************************************************************************

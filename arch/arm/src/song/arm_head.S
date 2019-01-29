@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CORTEXM4
+
 #include "up_internal.h"
 
 /****************************************************************************
@@ -136,5 +138,7 @@ __start:
 	.space		CONFIG_EARLY_STACKSIZE
 g_early_stack:
 	.size		g_early_stack, CONFIG_EARLY_STACKSIZE
-	.end
 #endif
+
+#endif /* CONFIG_ARCH_CORTEXM4 */
+	.end

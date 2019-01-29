@@ -39,12 +39,12 @@
 
 #include <nuttx/config.h>
 
+#if defined(CONFIG_ARCH_CHIP_U1_CP) && defined(CONFIG_SONG_CLK)
+
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
 
 #include "chip.h"
-
-#if defined(CONFIG_ARCH_CHIP_U1_CP) && defined(CONFIG_SONG_CLK)
 
 /****************************************************************************
  * Private Data

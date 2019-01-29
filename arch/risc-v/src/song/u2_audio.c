@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_U2_AUDIO
+
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -48,11 +50,8 @@
 #include <nuttx/timers/song_oneshot.h>
 
 #include "chip.h"
-#include "song_idle.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_U2_AUDIO
 
 /****************************************************************************
  * Pre-processor Definitions

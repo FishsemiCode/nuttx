@@ -39,12 +39,12 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_V1_ISP
+
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_V1_ISP
 
 /****************************************************************************
  * Pre-processor Definitions

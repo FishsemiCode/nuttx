@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_ABIES_ADSP
+
 #include <nuttx/audio/audio_comp.h>
 #include <nuttx/audio/audio_dma.h>
 #include <nuttx/audio/audio_i2s.h>
@@ -63,8 +65,6 @@
 #include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_ABIES_ADSP
 
 /****************************************************************************
  * Pre-processor Definitions

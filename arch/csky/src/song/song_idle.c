@@ -43,7 +43,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
 
-#include "song_idle.h"
+#include "chip.h"
 
 /****************************************************************************
  * Private Functions

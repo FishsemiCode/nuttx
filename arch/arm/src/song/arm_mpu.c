@@ -39,16 +39,16 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARM_MPU
+
 #include <assert.h>
 
 #include <nuttx/power/pm.h>
 #include <nuttx/userspace.h>
 
-#include "arm_mpu.h"
+#include "chip.h"
 #include "mpu.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARM_MPU
 
 /****************************************************************************
  * Private Function Declarations

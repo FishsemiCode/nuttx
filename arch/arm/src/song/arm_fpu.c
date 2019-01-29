@@ -39,13 +39,13 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_FPU
+
 #include <nuttx/irq.h>
 
-#include "arm_fpu.h"
+#include "chip.h"
 #include "nvic.h"
 #include "up_arch.h"
-
-#ifdef CONFIG_ARCH_FPU
 
 /****************************************************************************
  * Pre-processor Definitions

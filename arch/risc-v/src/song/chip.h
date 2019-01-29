@@ -58,14 +58,28 @@
 
 #ifndef __ASSEMBLY__
 
-/* Clock management *********************************************************/
+/* Power ********************************************************************/
 
-void up_clk_initialize(void);
-void up_clk_finalinitialize(void);
+void up_cpu_doze(void);
+void up_cpu_idle(void);
+void up_cpu_standby(void);
+void up_cpu_sleep(void);
+void up_cpu_normal(void);
+
+void up_cpu_wfi(void);
+void up_cpu_save(void);
+void up_cpu_restore(void);
+
+/* Wakeup *******************************************************************/
 
 void up_wic_initialize(void);
 void up_wic_enable_irq(int irq);
 void up_wic_disable_irq(int irq);
+
+/* Clock *******************************************************************/
+
+void up_clk_initialize(void);
+void up_clk_finalinitialize(void);
 
 #endif /* __ASSEMBLY__ */
 

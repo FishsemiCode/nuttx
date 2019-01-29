@@ -46,8 +46,6 @@
 
 #include <string.h>
 
-#include "arm_fpu.h"
-#include "arm_mpu.h"
 #include "chip.h"
 #include "up_internal.h"
 

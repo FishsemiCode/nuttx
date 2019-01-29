@@ -43,10 +43,8 @@
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
 
-#include "arm_fpu.h"
 #include "chip.h"
 #include "nvic.h"
-#include "song_idle.h"
 #include "up_arch.h"
 #include "up_internal.h"
 

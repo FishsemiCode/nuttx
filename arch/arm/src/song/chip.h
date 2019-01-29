@@ -44,8 +44,6 @@
 
 #include <arch/song/chip.h>
 
-#include "nvic.h"
-
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -55,25 +53,6 @@
  */
 
 #define ARMV7M_PERIPHERAL_INTERRUPTS  (CONFIG_SONG_NR_IRQS - 16)
-
-/* Vector Table Offset Register (VECTAB).  Redefine the mask defined in
- * arch/arm/src/armv7-m/nvic.h; The base address of the new vector table
- * must be aligned to the size of the vector table extended to the next
- * larger power of 2.
- */
-
-#undef NVIC_VECTAB_TBLOFF_MASK
-#if CONFIG_SONG_NR_IRQS > 256
-#  error CONFIG_SONG_NR_IRQS can not be bigger than 256
-#elif CONFIG_SONG_NR_IRQS > 128
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xffffc00)
-#elif CONFIG_SONG_NR_IRQS > 64
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xffffe00)
-#elif CONFIG_SONG_NR_IRQS > 32
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xfffff00)
-#else
-#  define NVIC_VECTAB_TBLOFF_MASK     (0xfffff80)
-#endif
 
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
@@ -85,7 +64,45 @@
 
 #ifndef __ASSEMBLY__
 
-/* Clock management *********************************************************/
+/* MPU **********************************************************************/
+
+#ifdef CONFIG_ARM_MPU
+void up_mpuinitialize(void);
+void up_mpu_user_heap(uintptr_t start, size_t size);
+void up_mpu_priv_heap(uintptr_t start, size_t size);
+#else
+#  define up_mpuinitialize()
+#  define up_mpu_user_heap(start, size)
+#  define up_mpu_priv_heap(start, size)
+#endif
+
+/* FPU **********************************************************************/
+
+#ifdef CONFIG_ARCH_FPU
+void up_fpuinitialize(void);
+#else
+#  define up_fpuinitialize()
+#endif
+
+/* Power ********************************************************************/
+
+void up_cpu_doze(void);
+void up_cpu_idle(void);
+void up_cpu_standby(void);
+void up_cpu_sleep(void);
+void up_cpu_normal(void);
+
+void up_cpu_wfi(void);
+void up_cpu_save(void);
+void up_cpu_restore(void);
+
+/* Wakeup *******************************************************************/
+
+void up_wic_disable_irq(int irq);
+void up_wic_enable_irq(int irq);
+void up_wic_initialize(void);
+
+/* Clock *******************************************************************/
 
 void up_clk_initialize(void);
 void up_clk_finalinitialize(void);

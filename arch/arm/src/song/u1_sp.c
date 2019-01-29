@@ -39,6 +39,8 @@
 
 #include <nuttx/config.h>
 
+#ifdef CONFIG_ARCH_CHIP_U1_SP
+
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
@@ -71,12 +73,10 @@
 #include <sys/stat.h>
 
 #include "chip.h"
-#include "song_idle.h"
+#include "nvic.h"
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#ifdef CONFIG_ARCH_CHIP_U1_SP
 
 /****************************************************************************
  * Pre-processor Definitions

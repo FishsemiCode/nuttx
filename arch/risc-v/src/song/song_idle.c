@@ -44,7 +44,7 @@
 
 #include <syscall.h>
 
-#include "song_idle.h"
+#include "chip.h"
 #include "up_internal.h"
 
 /****************************************************************************

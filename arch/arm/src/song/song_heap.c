@@ -45,7 +45,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 
-#include "arm_mpu.h"
+#include "chip.h"
 #include "up_internal.h"
 
 /****************************************************************************

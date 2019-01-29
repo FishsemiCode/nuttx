@@ -43,7 +43,6 @@
 #include <nuttx/board.h>
 #include <arch/board/board.h>
 
-#include "song_idle.h"
 #include "up_internal.h"
 
 /****************************************************************************
