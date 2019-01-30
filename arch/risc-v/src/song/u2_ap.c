@@ -153,7 +153,7 @@ static void audio_boot(void)
  * Public Functions
  ****************************************************************************/
 
-void up_dmainitialize(void)
+void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(0, 0xa0040000, 1, "top_dmas_hclk");

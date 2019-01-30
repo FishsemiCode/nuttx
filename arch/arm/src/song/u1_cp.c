@@ -343,7 +343,7 @@ void up_wic_disable_irq(int irq)
     }
 }
 
-void up_dmainitialize(void)
+void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
   g_dma[0] = song_dmas_initialize(0, 0xb0020000, 28, "sp/dmas_hclk");

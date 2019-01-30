@@ -273,7 +273,7 @@ void lowconsole_init(void);
 /* DMA **********************************************************************/
 
 #ifdef CONFIG_ARCH_DMA
-void up_dmainitialize(void);
+void up_dma_initialize(void);
 #endif
 
 /* Memory management ********************************************************/
