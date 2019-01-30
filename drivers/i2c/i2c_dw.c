@@ -482,7 +482,7 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
   i2c->rx_outstanding   = 0;
 
   ret = clk_enable(i2c->mclk);
-  if (ret)
+  if (ret < 0)
     {
       nxmutex_unlock(&i2c->mutex);
       return ret;
@@ -956,7 +956,7 @@ FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *con
     }
 
   ret = clk_enable(i2c->mclk);
-  if (ret)
+  if (ret < 0)
     {
       i2cerr("i2c:%p open mclk failed\n", config->base);
       goto sem_prio_err;

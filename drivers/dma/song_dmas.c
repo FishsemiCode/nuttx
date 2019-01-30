@@ -514,7 +514,7 @@ static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned in
           return NULL;
         }
 
-      if(clk_enable(dma_clk))
+      if (clk_enable(dma_clk) < 0)
         {
           return NULL;
         }
