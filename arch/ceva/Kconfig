@@ -85,10 +85,6 @@ config ARCH_DCACHE
 	depends on ARCH_HAVE_DCACHE
 	select ARCH_HAVE_COHERENT_DCACHE
 
-config ARCH_HAVE_FPU
-	bool
-	default n
-
 config ARCH_NR_FPUS
 	int "FPU Number"
 	default 1

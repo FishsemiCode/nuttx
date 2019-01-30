@@ -46,37 +46,6 @@ config ARCH_FAMILY
 	string
 	default "rv32im"	if ARCH_RM32IM
 
-config ARCH_HAVE_FPU
-	bool
-	default n
-
-config ARCH_HAVE_DPFPU
-	bool
-	default n
-
-config ARCH_HAVE_QPFPU
-	bool
-	default n
-
-config ARCH_FPU
-	bool "FPU support"
-	default y
-	depends on ARCH_HAVE_FPU
-	---help---
-		Build in support for the RISCV Floating Point Unit (FPU).
-		Check your chip specifications first; not all RISCV chips
-		support the FPU.
-
-config ARCH_DPFPU
-	bool "Double FPU support"
-	depends on ARCH_FPU && ARCH_HAVE_DPFPU
-	default y
-
-config ARCH_QPFPU
-	bool "Quad FPU support"
-	depends on ARCH_DPFPU && ARCH_HAVE_QPFPU
-	default y
-
 config ARCH_FPU_FS
 	bool "Float point status support"
 	depends on ARCH_FPU

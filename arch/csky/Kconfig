@@ -54,18 +54,6 @@ config ARCH_CHIP
 	default "ch2201"	if ARCH_CHIP_CH2XXX
 	default "song"		if ARCH_CSKY_SONG
 
-config ARCH_HAVE_FPU
-	bool
-	default n
-
-config ARCH_FPU
-	bool "FPU support"
-	default y
-	depends on ARCH_HAVE_FPU
-	---help---
-		Build in support for the CSKY CK803F Floating Point Unit (FPU).
-		Check your chip specifications first;
-
 if ARCH_CK803F
 source arch/csky/src/ck803f/Kconfig
 endif
