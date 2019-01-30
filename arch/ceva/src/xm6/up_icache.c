@@ -39,8 +39,8 @@
 
 #include <nuttx/config.h>
 
-#include <arch/cache.h>
-#include <arch/irq.h>
+#include <nuttx/cache.h>
+#include <nuttx/irq.h>
 
 #include "cpm.h"
 
@@ -85,8 +85,7 @@
  * Public Functions
  ****************************************************************************/
 
-#ifdef CONFIG_ARCH_ICACHE
-
+#ifdef CONFIG_CEVA_ICACHE
 static void maintain_icache_all(uint32_t op)
 {
   irqstate_t flags;

@@ -40,9 +40,10 @@
  * Included Files
  ****************************************************************************/
 
-#include <nuttx/config.h>
-
-#include <arch/song/chip.h>
+#ifndef __ASSEMBLY__
+#  include <stdint.h>
+#  include <sys/types.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -108,4 +109,5 @@ void up_clk_initialize(void);
 void up_clk_finalinitialize(void);
 
 #endif /* __ASSEMBLY__ */
+
 #endif /* __ARCH_ARM_SRC_SONG_CHIP_H */

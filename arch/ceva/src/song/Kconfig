@@ -28,15 +28,12 @@ endchoice
 
 config SONG_TL420
 	bool
-	select ARCH_HAVE_ICACHE
 	select ARCH_TL4_VOICE
 	select ARCH_TL420
 
 config SONG_TL421
 	bool
 	select ARCH_HAVE_FPU
-	select ARCH_HAVE_DCACHE
-	select ARCH_HAVE_ICACHE
 	select ARCH_HAVE_MPU
 	select ARCH_TL4_VOICE
 	select ARCH_TL421
@@ -44,7 +41,6 @@ config SONG_TL421
 config SONG_XM6
 	bool
 	select ARCH_HAVE_FPU
-	select ARCH_HAVE_ICACHE
 	select ARCH_XM6
 	select ARCH_XM6_NO_VPU
 

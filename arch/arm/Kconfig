@@ -413,6 +413,8 @@ endchoice
 config ARCH_ARM7TDMI
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	---help---
 		The Arm7TDMI-S is an excellent workhorse processor capable of a wide
 		array of applications. Traditionally used in mobile handsets, the
@@ -421,6 +423,8 @@ config ARCH_ARM7TDMI
 config ARCH_ARM920T
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
 	---help---
@@ -436,6 +440,8 @@ config ARCH_ARM920T
 config ARCH_ARM926EJS
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
 	---help---
@@ -457,6 +463,8 @@ config ARCH_ARM926EJS
 config ARCH_ARM1136J
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
 	---help---
@@ -467,6 +475,8 @@ config ARCH_ARM1136J
 config ARCH_ARM1156T2
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
 	---help---
@@ -476,6 +486,8 @@ config ARCH_ARM1156T2
 config ARCH_ARM1176JZ
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
 	---help---
@@ -532,55 +544,61 @@ config ARCH_CORTEXM7
 	select ARCH_HAVE_LAZYFPU
 	select ARCH_HAVE_HIPRI_INTERRUPT
 	select ARCH_HAVE_RESET
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 	select ARCH_HAVE_HARDFAULT_DEBUG
 	select ARCH_HAVE_MEMFAULT_DEBUG
 
 config ARCH_CORTEXA5
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_CORTEXA7
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_CORTEXA8
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_CORTEXA9
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MMU
 	select ARCH_USE_MMU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_CORTEXR4
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MPU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_CORTEXR5
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MPU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_CORTEXR7
 	bool
 	default n
+	select ARCH_DCACHE
+	select ARCH_ICACHE
 	select ARCH_HAVE_MPU
-	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
 config ARCH_FAMILY
 	string

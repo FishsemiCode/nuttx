@@ -55,20 +55,18 @@ CMN_ASRCS += up_switchcontext.S up_testset.S vfork.S
 
 CMN_UASRCS += up_signal_handler.S
 
-CMN_CSRCS += arch_clean_dcache.c arch_clean_dcache_all.c arch_disable_dcache.c
-CMN_CSRCS += arch_enable_dcache.c arch_flush_dcache.c arch_flush_dcache_all.c
-CMN_CSRCS += arch_invalidate_dcache.c arch_invalidate_dcache_all.c
-CMN_CSRCS += up_assert.c up_blocktask.c up_copyarmstate.c up_copyfullstate.c
-CMN_CSRCS += up_doirq.c up_hardfault.c up_initialstate.c up_itm_syslog.c
-CMN_CSRCS += up_memfault.c up_mpu.c up_ramvec_attach.c up_ramvec_initialize.c
-CMN_CSRCS += up_releasepending.c up_reprioritizertr.c up_schedulesigaction.c
-CMN_CSRCS += up_sigdeliver.c up_signal_dispatch.c up_stackcheck.c up_svcall.c
-CMN_CSRCS += up_systick.c up_unblocktask.c up_vectors.c
+CMN_CSRCS += up_assert.c up_blocktask.c up_cache.c up_copyarmstate.c
+CMN_CSRCS += up_copyfullstate.c up_doirq.c up_hardfault.c up_initialstate.c
+CMN_CSRCS += up_itm_syslog.c up_memfault.c up_mpu.c up_ramvec_attach.c
+CMN_CSRCS += up_ramvec_initialize.c up_releasepending.c up_reprioritizertr.c
+CMN_CSRCS += up_schedulesigaction.c up_sigdeliver.c up_signal_dispatch.c
+CMN_CSRCS += up_stackcheck.c up_svcall.c up_systick.c up_unblocktask.c
+CMN_CSRCS += up_vectors.c
 
 # arch/arm/src/song
 #
 CHIP_ASRCS += arm_head.S
-CHIP_CSRCS += arm_cache.c arm_fpu.c arm_mpu.c arm_nvic.c
+CHIP_CSRCS += arm_fpu.c arm_mpu.c arm_nvic.c
 CHIP_CSRCS += banks_sensor.c banks_sensor_clk.c banks_rpm.c
 CHIP_CSRCS += fvp_mps2_m4.c
 CHIP_CSRCS += song_board.c song_heap.c

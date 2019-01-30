@@ -39,8 +39,8 @@
 
 #include <nuttx/config.h>
 
-#include <arch/cache.h>
-#include <arch/irq.h>
+#include <nuttx/cache.h>
+#include <nuttx/irq.h>
 
 #include <string.h>
 
@@ -92,7 +92,7 @@
  * Public Functions
  ****************************************************************************/
 
-#ifdef CONFIG_ARCH_ICACHE
+#ifdef CONFIG_CEVA_ICACHE
 static void invalidate_disabled_icache_all(void)
 {
   /* Start the invalidation */
@@ -208,8 +208,7 @@ void up_invalidate_icache_all(void)
 }
 #endif
 
-#ifdef CONFIG_ARCH_DCACHE
-
+#ifdef CONFIG_CEVA_DCACHE
 static void maintain_dcache_all(uint32_t op)
 {
   irqstate_t flags;
@@ -504,7 +503,7 @@ void up_flush_dcache_all(void)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_ARCH_ICACHE) || defined(CONFIG_ARCH_DCACHE)
+#ifdef CONFIG_CEVA_ICACHE
 void up_coherent_dcache(uintptr_t addr, size_t len)
 {
   up_clean_dcache(addr, addr + len);

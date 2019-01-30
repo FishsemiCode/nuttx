@@ -65,25 +65,15 @@ config ARCH_ITCM_SIZE
 config ARCH_DTCM_SIZE
 	int "DTCM Size"
 
-config ARCH_HAVE_ICACHE
-	bool
-	default n
-
-config ARCH_ICACHE
+config CEVA_ICACHE
 	bool "Use I-Cache"
 	default n
-	depends on ARCH_HAVE_ICACHE
-	select ARCH_HAVE_COHERENT_DCACHE
+	select ARCH_ICACHE
 
-config ARCH_HAVE_DCACHE
-	bool
-	default n
-
-config ARCH_DCACHE
+config CEVA_DCACHE
 	bool "Use D-Cache"
 	default n
-	depends on ARCH_HAVE_DCACHE
-	select ARCH_HAVE_COHERENT_DCACHE
+	select ARCH_DCACHE
 
 config ARCH_NR_FPUS
 	int "FPU Number"

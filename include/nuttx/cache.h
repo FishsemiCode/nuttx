@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/csky/include/song/cache.h
+ * include/nuttx/cache.h
  *
- *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2019 Pinecone Inc. All rights reserved.
  *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_CSKY_INCLUDE_SONG_CACHE_H
-#define __ARCH_CSKY_INCLUDE_SONG_CACHE_H
+#ifndef __INCLUDE_NUTTX_CACHE_H
+#define __INCLUDE_NUTTX_CACHE_H
 
 #ifndef __ASSEMBLY__
 
@@ -50,10 +50,6 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
-
-#if defined(CONFIG_SONG_ICACHE)
-#  define CONFIG_ARCH_ICACHE 1
-#endif
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
@@ -346,7 +342,27 @@ static inline void up_flush_dcache_all(void)
 }
 #endif
 
-#ifndef CONFIG_ARCH_HAVE_COHERENT_DCACHE
+/****************************************************************************
+ * Name: up_coherent_dcache
+ *
+ * Description:
+ *   Ensure that the I and D caches are coherent within specified region
+ *   by cleaning the D cache (i.e., flushing the D cache contents to memory
+ *   and invalidating the I cache. This is typically used when code has been
+ *   written to a memory region, and will be executed.
+ *
+ * Input Parameters:
+ *   addr - virtual start address of region
+ *   len  - Size of the address region in bytes
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_ARCH_ICACHE
+void up_coherent_dcache(uintptr_t addr, size_t len);
+#else
 static inline void up_coherent_dcache(uintptr_t addr, size_t len)
 {
 }
@@ -359,4 +375,4 @@ static inline void up_coherent_dcache(uintptr_t addr, size_t len)
 
 #endif /* __ASSEMBLY__ */
 
-#endif /* __ARCH_CSKY_INCLUDE_SONG_CACHE_H */
+#endif /* __INCLUDE_NUTTX_CACHE_H */
