@@ -18,11 +18,6 @@ config ARCH_CHIP_ABIES_ADSP
 
 config ARCH_CHIP_BANKS_ADSP
 	bool "Banks ADSP"
-	select ARCH_HAVE_FPU
-	select SONG_TL421
-
-config ARCH_CHIP_U2_ADSP
-	bool "U2 ADSP"
 	select SONG_TL421
 
 config ARCH_CHIP_V1_VDSP
@@ -39,6 +34,7 @@ config SONG_TL420
 
 config SONG_TL421
 	bool
+	select ARCH_HAVE_FPU
 	select ARCH_HAVE_DCACHE
 	select ARCH_HAVE_ICACHE
 	select ARCH_HAVE_MPU
