@@ -158,6 +158,9 @@
 #define PMIC_FSM_LDO0_ACTIVE_ON     (0x1 << 0)
 #define PMIC_FSM_LDO0_SLEEP_ON      (0x1 << 1)
 #define PMIC_FSM_LDO0_VOLT_900mV    (0x0 << 8)
+#define PMIC_FSM_LDO0_DEFAULT       (PMIC_FSM_LDO0_ACTIVE_ON | \
+                                     PMIC_FSM_LDO0_SLEEP_ON  | \
+                                     PMIC_FSM_LDO0_VOLT_900mV)
 
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
@@ -217,8 +220,19 @@ void up_earlystart(void)
    * as early as possible.
    */
 
-  putreg32(PMIC_FSM_LDO0_ACTIVE_ON | PMIC_FSM_LDO0_SLEEP_ON |
-           PMIC_FSM_LDO0_VOLT_900mV, PMIC_FSM_LDO0);
+  for (int i = 0; i < 1000; i++)
+    {
+      /* WA - writing to PMIC_FSM on power up seems to be unstable. Read
+       * the register back to make sure it's programmed correctly.
+       */
+
+      putreg32(PMIC_FSM_LDO0_DEFAULT, PMIC_FSM_LDO0);
+
+      if (getreg32(PMIC_FSM_LDO0) == PMIC_FSM_LDO0_DEFAULT)
+        {
+          break;
+        }
+    }
 }
 
 void up_earlyinitialize(void)
@@ -534,6 +548,10 @@ static void cp_flash_restore(void)
 
 static int cp_boot(const struct song_rptun_config_s *config)
 {
+  /* Make sure LDO0 voltage is correct. */
+
+  ASSERT(getreg32(PMIC_FSM_LDO0) == PMIC_FSM_LDO0_DEFAULT);
+
   cp_flash_restore();
 
   /* Attach and enable flash_s intr. */
