@@ -46,8 +46,8 @@
 
 /* Include ARM architecture-specific syscall macros */
 
-#if defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || \
-    defined(CONFIG_ARCH_CORTEXA9)
+#if defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA7) || \
+    defined(CONFIG_ARCH_CORTEXA8) || defined(CONFIG_ARCH_CORTEXA9)
 #  include <arch/armv7-a/syscall.h>
 #elif defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR5) || \
       defined(CONFIG_ARCH_CORTEXR7)

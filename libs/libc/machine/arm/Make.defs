@@ -41,6 +41,8 @@ else ifeq ($(CONFIG_ARCH_ARM926EJS),y)  # ARM926EJS is ARMv5TE
 include ${TOPDIR}/libs/libc/machine/arm/arm/Make.defs
 else ifeq ($(CONFIG_ARCH_CORTEXA5),y)   # Cortex-A5 is ARMv7-A
 include ${TOPDIR}/libs/libc/machine/arm/armv7-a/Make.defs
+else ifeq ($(CONFIG_ARCH_CORTEXA7),y)   # Cortex-A7 is ARMv7-A
+include ${TOPDIR}/libs/libc/machine/arm/armv7-a/Make.defs
 else ifeq ($(CONFIG_ARCH_CORTEXA8),y)   # Cortex-A8 is ARMv7-A
 include ${TOPDIR}/libs/libc/machine/arm/armv7-a/Make.defs
 else ifeq ($(CONFIG_ARCH_CORTEXA9),y)   # Cortex-A9 is ARMv7-A

@@ -543,6 +543,13 @@ config ARCH_CORTEXA5
 	select ARCH_USE_MMU
 	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
 
+config ARCH_CORTEXA7
+	bool
+	default n
+	select ARCH_HAVE_MMU
+	select ARCH_USE_MMU
+	select ARCH_HAVE_COHERENT_DCACHE if ELF || MODULE
+
 config ARCH_CORTEXA8
 	bool
 	default n
@@ -579,7 +586,7 @@ config ARCH_FAMILY
 	string
 	default "arm"		if ARCH_ARM7TDMI || ARCH_ARM926EJS || ARCH_ARM920T
 	default "armv6-m"	if ARCH_CORTEXM0
-	default "armv7-a"	if ARCH_CORTEXA5 || ARCH_CORTEXA8 || ARCH_CORTEXA9
+	default "armv7-a"	if ARCH_CORTEXA5 || ARCH_CORTEXA7 || ARCH_CORTEXA8 || ARCH_CORTEXA9
 	default "armv7-m"	if ARCH_CORTEXM3 || ARCH_CORTEXM4 || ARCH_CORTEXM7
 	default "armv7-r"	if ARCH_CORTEXR4 || ARCH_CORTEXR5 || ARCH_CORTEXR7
 
@@ -749,7 +756,7 @@ config ARM_SEMIHOSTING_HOSTFS
 if ARCH_CORTEXM0
 source arch/arm/src/armv6-m/Kconfig
 endif
-if ARCH_CORTEXA5 || ARCH_CORTEXA8 || ARCH_CORTEXA9
+if ARCH_CORTEXA5 || ARCH_CORTEXA7 || ARCH_CORTEXA8 || ARCH_CORTEXA9
 source arch/arm/src/armv7-a/Kconfig
 endif
 if ARCH_CORTEXM3 || ARCH_CORTEXM4 || ARCH_CORTEXM7

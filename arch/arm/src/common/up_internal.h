@@ -119,8 +119,8 @@
  * floating point register save/restore.
  */
 
-#elif defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || \
-      defined(CONFIG_ARCH_CORTEXA9) || \
+#elif defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA7) || \
+      defined(CONFIG_ARCH_CORTEXA8) || defined(CONFIG_ARCH_CORTEXA9) || \
       defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR5) || \
       defined(CONFIG_ARCH_CORTEXR7)
 
@@ -350,8 +350,8 @@ int  up_memfault(int irq, FAR void *context, FAR void *arg);
 * (but should be back-ported to the ARM7 and ARM9 families).
  */
 
-#elif defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA8) || \
-      defined(CONFIG_ARCH_CORTEXA9) || \
+#elif defined(CONFIG_ARCH_CORTEXA5) || defined(CONFIG_ARCH_CORTEXA7) || \
+      defined(CONFIG_ARCH_CORTEXA8) || defined(CONFIG_ARCH_CORTEXA9) || \
       defined(CONFIG_ARCH_CORTEXR4) || defined(CONFIG_ARCH_CORTEXR5) || \
       defined(CONFIG_ARCH_CORTEXR7)
 
