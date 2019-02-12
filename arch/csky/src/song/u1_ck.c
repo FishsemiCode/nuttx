@@ -203,7 +203,7 @@ void up_wic_disable_irq(int irq)
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(1, 0xb0020000, 28, "sp/dmas_hclk");
+  g_dma[0] = song_dmas_initialize(1, 0xb0020000, 28, NULL);
 #endif
 }
 
@@ -384,7 +384,6 @@ void up_ioe_init(void)
     .cpu  = 1,
     .base = 0xb0060000,
     .irq  = 19,
-    .mclk = "sp/gpio_clk32k",
   };
 
   g_ioe[0] = song_ioe_initialize(&cfg);
