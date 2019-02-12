@@ -1,7 +1,7 @@
 /********************************************************************************************
- * include/nuttx/rptun/song_rptun.h
+ * include/nuttx/rptun/openamp.h
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
+ *   Copyright (C) 2019 Pinecone Inc. All rights reserved.
  *   Author: Guiding Li<liguiding@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,40 +33,25 @@
  *
  ********************************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_RPTUN_SONG_RPTUN_H
-#define __INCLUDE_NUTTX_RPTUN_SONG_RPTUN_H
-
-#ifdef CONFIG_SONG_RPTUN
+#ifndef __INCLUDE_NUTTX_RPTUN_OPENAMP_H
+#define __INCLUDE_NUTTX_RPTUN_OPENAMP_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <openamp/open_amp.h>
 
-#include <nuttx/rptun/rptun.h>
-#include <nuttx/mbox/mbox.h>
+#ifdef CONFIG_RPTUN
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
-struct song_rptun_config_s
-{
-  const char *cpuname;
-  const char *firmware;
-
-  bool       master;
-  bool       nautostart;
-
-  int32_t    vringtx;
-  int32_t    vringrx;
-
-  void       *rsc;
-
-  int (*start)(const struct song_rptun_config_s *config);
-  int (*stop)(const struct song_rptun_config_s *config);
-};
+typedef void (*rpmsg_dev_cb_t)(struct rpmsg_device *rdev, void *priv);
+typedef void (*rpmsg_bind_cb_t)(struct rpmsg_device *rdev, void *priv,
+                                const char *name, uint32_t dest);
 
 /****************************************************************************
  * Public Function Prototypes
@@ -80,14 +65,19 @@ extern "C"
 #define EXTERN extern
 #endif
 
-struct rptun_dev_s *song_rptun_initialize(
-                const struct song_rptun_config_s *config,
-                struct mbox_dev_s *mbox_tx,
-                struct mbox_dev_s *mbox_rx);
+const char *rpmsg_get_cpuname(struct rpmsg_device *rdev);
+int rpmsg_register_callback(void *priv,
+                            rpmsg_dev_cb_t device_created,
+                            rpmsg_dev_cb_t device_destroy,
+                            rpmsg_bind_cb_t ns_bind);
+void rpmsg_unregister_callback(void *priv,
+                               rpmsg_dev_cb_t device_created,
+                               rpmsg_dev_cb_t device_destroy,
+                               rpmsg_bind_cb_t ns_bind);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* CONFIG_SONG_RPTUN */
-#endif /* __INCLUDE_NUTTX_RPTUN_SONG_RPTUN_H */
+#endif /* CONFIG_RPTUN */
+#endif /*__INCLUDE_NUTTX_RPTUN_OPENAMP_H */

@@ -93,6 +93,7 @@
 #define _MAC802154BASE  (0x2600) /* 802.15.4 MAC ioctl commands */
 #define _PWRBASE        (0x2700) /* Power-related ioctl commands */
 #define _FBIOCBASE      (0x2800) /* Frame buffer character driver ioctl commands */
+#define _RPTUNBASE      (0x2900) /* Remote processor tunnel ioctl commands */
 
 /* boardctl() commands share the same number space */
 
@@ -469,6 +470,11 @@
 
 #define _FBIOCVALID(c)   (_IOC_TYPE(c)==_FBIOCBASE)
 #define _FBIOC(nr)       _IOC(_FBIOCBASE,nr)
+
+/* Rptun drivers *******************************************/
+
+#define _RPTUNIOCVALID(c)   (_IOC_TYPE(c)==_RPTUNBASE)
+#define _RPTUNIOC(nr)       _IOC(_RPTUNBASE,nr)
 
 /* boardctl() command definitions *******************************************/
 

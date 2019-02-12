@@ -56,7 +56,6 @@ struct song_rptun_dev_s
   const struct song_rptun_config_s *config;
   struct mbox_dev_s                *mbox_tx;
   struct mbox_dev_s                *mbox_rx;
-  uint32_t                         count_start;
   rptun_callback_t                 callback;
   void                             *arg;
 };
@@ -66,13 +65,15 @@ struct song_rptun_dev_s
  ************************************************************************************/
 
 static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev);
-static int song_rptun_get_resource(struct rptun_dev_s *dev,
-                                    struct rsc_table_info *rsc, uint32_t *role);
-static int song_rptun_boot(struct rptun_dev_s *dev);
+static const char *song_rptun_get_firmware(struct rptun_dev_s *dev);
+static void *song_rptun_get_resource(struct rptun_dev_s *dev);
+static bool song_rptun_is_autostart(struct rptun_dev_s *dev);
+static bool song_rptun_is_master(struct rptun_dev_s *dev);
+static int song_rptun_start(struct rptun_dev_s *dev);
+static int song_rptun_stop(struct rptun_dev_s *dev);
 static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid);
 static int song_rptun_registercallback(struct rptun_dev_s *dev,
                                     rptun_callback_t callback, void *arg);
-static int song_rptun_start_isr(void *arg, uintptr_t msg);
 static int song_rptun_vring_isr(void *arg, uintptr_t msg);
 
 /************************************************************************************
@@ -82,8 +83,12 @@ static int song_rptun_vring_isr(void *arg, uintptr_t msg);
 static const struct rptun_ops_s g_song_rptun_ops =
 {
   .get_cpuname       = song_rptun_get_cpuname,
+  .get_firmware      = song_rptun_get_firmware,
   .get_resource      = song_rptun_get_resource,
-  .boot              = song_rptun_boot,
+  .is_autostart      = song_rptun_is_autostart,
+  .is_master         = song_rptun_is_master,
+  .start             = song_rptun_start,
+  .stop              = song_rptun_stop,
   .notify            = song_rptun_notify,
   .register_callback = song_rptun_registercallback,
 };
@@ -97,29 +102,62 @@ static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev)
   struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
   const struct song_rptun_config_s *config = priv->config;
 
-  return config->cpu_name;
+  return config->cpuname;
 }
 
-static int song_rptun_get_resource(struct rptun_dev_s *dev,
-                                    struct rsc_table_info *rsc, uint32_t *role)
+static const char *song_rptun_get_firmware(struct rptun_dev_s *dev)
 {
   struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
   const struct song_rptun_config_s *config = priv->config;
 
-  memcpy(rsc, &config->rsc, sizeof(config->rsc));
-  *role = config->role;
+  return config->firmware;
+}
+
+static void *song_rptun_get_resource(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  return config->rsc;
+}
+
+static bool song_rptun_is_autostart(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  return !config->nautostart;
+}
+
+static bool song_rptun_is_master(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  return config->master;
+}
+
+static int song_rptun_start(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  if (config->start)
+    {
+      return config->start(config);
+    }
 
   return 0;
 }
 
-static int song_rptun_boot(struct rptun_dev_s *dev)
+static int song_rptun_stop(struct rptun_dev_s *dev)
 {
   struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
   const struct song_rptun_config_s *config = priv->config;
 
-  if (config->boot)
+  if (config->stop)
     {
-      return config->boot(config);
+      return config->stop(config);
     }
 
   return 0;
@@ -129,18 +167,8 @@ static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid)
 {
   struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
   const struct song_rptun_config_s *config = priv->config;
-  int ret;
 
-  if (vqid == RPTUN_NOTIFY_START && config->ch_start_tx >= 0)
-    {
-      ret = MBOX_SEND(priv->mbox_tx, config->ch_start_tx, 0);
-    }
-  else
-    {
-      ret = MBOX_SEND(priv->mbox_tx, config->ch_vring_tx, 0);
-    }
-
-  return ret;
+  return  MBOX_SEND(priv->mbox_tx, config->vringtx, 0);
 }
 
 static int song_rptun_registercallback(struct rptun_dev_s *dev,
@@ -148,38 +176,13 @@ static int song_rptun_registercallback(struct rptun_dev_s *dev,
 {
   struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
   const struct song_rptun_config_s *config = priv->config;
-  int ret = 0;
 
   priv->callback = callback;
   priv->arg      = arg;
 
-  if (config->ch_start_rx >= 0)
-    {
-      ret |= MBOX_REGISTER_CALLBACK(priv->mbox_rx, config->ch_start_rx,
-                        callback ? song_rptun_start_isr : NULL, priv);
-    }
+  return MBOX_REGISTER_CALLBACK(priv->mbox_rx, config->vringrx,
+                                callback ? song_rptun_vring_isr : NULL, priv);
 
-  ret |= MBOX_REGISTER_CALLBACK(priv->mbox_rx, config->ch_vring_rx,
-                    callback ? song_rptun_vring_isr : NULL, priv);
-
-  return ret;
-}
-
-static int song_rptun_start_isr(void *arg, uintptr_t msg)
-{
-  struct song_rptun_dev_s *priv = arg;
-
-  if (priv->count_start != 0)
-    {
-      if (priv->callback)
-        {
-          priv->callback(priv->arg, RPTUN_NOTIFY_START);
-        }
-    }
-
-  priv->count_start++;
-
-  return 0;
 }
 
 static int song_rptun_vring_isr(void *arg, uintptr_t msg)

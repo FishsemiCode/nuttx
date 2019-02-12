@@ -43,6 +43,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#include <nuttx/fs/ioctl.h>
 #include <openamp/open_amp.h>
 
 #include <string.h>
@@ -51,8 +53,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define RPTUN_NOTIFY_START         (UINT32_MAX - 1)
-#define RPTUN_NOTIFY_ALL           (UINT32_MAX - 0)
+#define RPTUNIOC_START              _RPTUNIOC(1)
+#define RPTUNIOC_STOP               _RPTUNIOC(2)
+
+#define RPTUN_NOTIFY_ALL            (UINT32_MAX - 0)
 
 /* Access macros ************************************************************/
 
@@ -73,6 +77,22 @@
 #define RPTUN_GET_CPUNAME(d) ((d)->ops->get_cpuname(d))
 
 /****************************************************************************
+ * Name: RPTUN_GET_FIRMWARE
+ *
+ * Description:
+ *   Get remote firmware name
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   Firmware name on success, NULL on failure.
+ *
+ ****************************************************************************/
+
+#define RPTUN_GET_FIRMWARE(d) ((d)->ops->get_firmware(d))
+
+/****************************************************************************
  * Name: RPTUN_GET_RESOURCE
  *
  * Description:
@@ -80,21 +100,51 @@
  *
  * Input Parameters:
  *   dev  - Device-specific state data
- *   rsc  - Resource pointer to get
- *   role - Role to get
  *
  * Returned Value:
- *   OK unless an error occurs.  Then a negated errno value is returned
+ *   Resource pointer on success, NULL on failure
  *
  ****************************************************************************/
 
-#define RPTUN_GET_RESOURCE(d,r,rl) ((d)->ops->get_resource(d,r,rl))
+#define RPTUN_GET_RESOURCE(d) ((d)->ops->get_resource(d))
 
 /****************************************************************************
- * Name: RPTUN_BOOT
+ * Name: RPTUN_IS_AUTOSTART
  *
  * Description:
- *   Boot remote cpu
+ *   AUTO start or not
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   True autostart, false not autostart
+ *
+ ****************************************************************************/
+
+#define RPTUN_IS_AUTOSTART(d) ((d)->ops->is_autostart(d))
+
+/****************************************************************************
+ * Name: RPTUN_IS_MASTER
+ *
+ * Description:
+ *   IS master or not
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   True master, false remote
+ *
+ ****************************************************************************/
+
+#define RPTUN_IS_MASTER(d) ((d)->ops->is_master(d))
+
+/****************************************************************************
+ * Name: RPTUN_START
+ *
+ * Description:
+ *   START remote cpu
  *
  * Input Parameters:
  *   dev  - Device-specific state data
@@ -104,7 +154,23 @@
  *
  ****************************************************************************/
 
-#define RPTUN_BOOT(d) ((d)->ops->boot(d))
+#define RPTUN_START(d) ((d)->ops->start(d))
+
+/****************************************************************************
+ * Name: RPTUN_STOP
+ *
+ * Description:
+ *   STOP remote cpu
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   OK unless an error occurs.  Then a negated errno value is returned
+ *
+ ****************************************************************************/
+
+#define RPTUN_STOP(d) ((d)->ops->stop(d))
 
 /****************************************************************************
  * Name: RPTUN_NOTIFY
@@ -167,9 +233,12 @@ struct rptun_dev_s;
 struct rptun_ops_s
 {
   const char *(*get_cpuname)(struct rptun_dev_s *dev);
-  int (*get_resource)(struct rptun_dev_s *dev,
-                    struct rsc_table_info *rsc, uint32_t *role);
-  int (*boot)(struct rptun_dev_s *dev);
+  const char *(*get_firmware)(struct rptun_dev_s *dev);
+  void *(*get_resource)(struct rptun_dev_s *dev);
+  bool (*is_autostart)(struct rptun_dev_s *dev);
+  bool (*is_master)(struct rptun_dev_s *dev);
+  int (*start)(struct rptun_dev_s *dev);
+  int (*stop)(struct rptun_dev_s *dev);
   int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
   int (*register_callback)(struct rptun_dev_s *dev,
                     rptun_callback_t callback, void *arg);
@@ -204,6 +273,7 @@ extern "C"
 #endif
 
 int rptun_initialize(struct rptun_dev_s *dev);
+int rptun_boot(const char *cpuname);
 
 #ifdef __cplusplus
 }
