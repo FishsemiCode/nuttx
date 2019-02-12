@@ -400,12 +400,12 @@ FAR struct ioexpander_dev_s *song_ioe_initialize(FAR const struct song_ioe_confi
     }
 
   mclk = clk_get(cfg->mclk);
-  if (!mclk)
-    return NULL;
-
-  ret = clk_enable(mclk);
-  if (ret < 0)
-    return NULL;
+  if (mclk)
+    {
+      ret = clk_enable(mclk);
+      if (ret < 0)
+        return NULL;
+    }
 
   priv->cpu  = cfg->cpu;
   priv->base = cfg->base;
