@@ -593,7 +593,13 @@ struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c,
 
   dev->dev.ops = &g_ak4332_ops;
   dev->i2c = i2c;
+
   dev->mclk = clk_get(mclk);
+  if (!dev->mclk)
+    {
+      kmm_free(dev);
+      return NULL;
+    }
 
   ak4332_putreg(dev, AK4332_DAC_ADJ1, 0x02);
   ak4332_putreg(dev, AK4332_DAC_ADJ2, 0xc0);
