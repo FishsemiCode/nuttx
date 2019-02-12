@@ -54,6 +54,8 @@
  * Private Function Declarations
  ****************************************************************************/
 
+static size_t up_mpu_round_size(uintptr_t start, uintptr_t end);
+
 #ifdef CONFIG_PM
 static void up_mpu_pm_notify(struct pm_callback_s *cb, int domain,
                            enum pm_state_e pmstate);
@@ -73,6 +75,17 @@ static struct pm_callback_s g_up_mpu_pm_cb =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+static size_t up_mpu_round_size(uintptr_t start, uintptr_t end)
+{
+  size_t size = end - start;
+  size_t newsize = 1 << mpu_log2regionceil(size);
+  if (start & (newsize - 1) + size > newsize)
+    {
+      newsize *= 2;
+    }
+  return newsize;
+}
 
 #ifdef CONFIG_PM
 static void up_mpu_pm_notify(struct pm_callback_s *cb, int domain,
@@ -133,28 +146,29 @@ void up_mpuinitialize(void)
 
   DEBUGASSERT((uintptr_t)_END_TEXT >= (uintptr_t)_START_TEXT);
   mpu_priv_flash((uintptr_t)_START_TEXT,
-                 (uintptr_t)_END_TEXT - (uintptr_t)_START_TEXT);
+    up_mpu_round_size((uintptr_t)_START_TEXT, (uintptr_t)_END_TEXT));
 
 #ifdef CONFIG_ARCH_RAMFUNCS
   DEBUGASSERT((uintptr_t)&_eramfuncs >= (uintptr_t)&_sramfuncs);
   mpu_priv_flash((uintptr_t)&_sramfuncs,
-                 (uintptr_t)&_eramfuncs - (uintptr_t)&_sramfuncs);
+    up_mpu_round_size((uintptr_t)&_sramfuncs, (uintptr_t)&_eramfuncs));
 #endif
 
   DEBUGASSERT((uintptr_t)_END_BSS >= (uintptr_t)_START_DATA);
-  mpu_priv_intsram((uintptr_t)_START_DATA, (uintptr_t)_END_BSS +
-                    CONFIG_IDLETHREAD_STACKSIZE - (uintptr_t)_START_DATA);
+  mpu_priv_intsram((uintptr_t)_START_DATA,
+    up_mpu_round_size((uintptr_t)_START_DATA,
+      (uintptr_t)_END_BSS + CONFIG_IDLETHREAD_STACKSIZE));
 
 #ifdef CONFIG_BUILD_PROTECTED
   /* Configure user flash and SRAM space */
 
   DEBUGASSERT(USERSPACE->us_textend >= USERSPACE->us_textstart);
   mpu_user_flash(USERSPACE->us_textstart,
-                 USERSPACE->us_textend - USERSPACE->us_textstart);
+    up_mpu_round_size(USERSPACE->us_textstart, USERSPACE->us_textend));
 
   DEBUGASSERT(USERSPACE->us_bssend >= USERSPACE->us_datastart);
   mpu_user_intsram(USERSPACE->us_datastart,
-                   USERSPACE->us_bssend - USERSPACE->us_datastart);
+    up_mpu_round_size(USERSPACE->us_datastart, USERSPACE->us_bssend));
 #endif
 
 #ifdef CONFIG_PM
@@ -168,11 +182,11 @@ void up_mpuinitialize(void)
 
 void up_mpu_user_heap(uintptr_t start, size_t size)
 {
-  mpu_user_intsram(start, size);
+  mpu_user_intsram(start, up_mpu_round_size(start, start + size));
 }
 
 void up_mpu_priv_heap(uintptr_t start, size_t size)
 {
-  mpu_priv_intsram(start, size);
+  mpu_priv_intsram(start, up_mpu_round_size(start, start + size));
 }
 #endif
