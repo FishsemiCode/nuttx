@@ -41,6 +41,18 @@
 
 #ifdef CONFIG_ARCH_CHIP_U2_AP
 
+#include <nuttx/audio/audio.h>
+#include <nuttx/audio/audio_comp.h>
+#include <nuttx/audio/audio_i2s.h>
+#include <nuttx/audio/audio_dma.h>
+#include <nuttx/audio/ak4332.h>
+#include <nuttx/audio/dp_adc.h>
+#include <nuttx/audio/dp_vad.h>
+#include <nuttx/audio/song_audio_path.h>
+#include <nuttx/audio/song_i2s.h>
+#include <nuttx/audio/thinker.h>
+#include <nuttx/clk/clk.h>
+
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/fs.h>
@@ -433,6 +445,66 @@ void up_lateinitialize(void)
 #ifdef CONFIG_MTD_GD25
   up_flash_init();
 #endif
+
+  clk_enable(clk_get("i2c1_mclk"));
+  clk_enable(clk_get("i2c2_mclk"));
+
+  *(volatile uint32_t *)(0xa00d0014) = 0x20;
+  *(volatile uint32_t *)(0xa00d0084) = 0x1b;
+  *(volatile uint32_t *)(0xa00d0088) = 0x17;
+  *(volatile uint32_t *)(0xa00d00e4) = 0x10;
+  *(volatile uint32_t *)(0xa00f0040) = 0x1000100;
+  *(volatile uint32_t *)(0xa00f0000) = 0x1000100;
+
+  struct audio_lowerhalf_s *ak4332_0;
+  struct audio_lowerhalf_s *ak4332_1;
+  struct audio_lowerhalf_s *audio_anc;
+  struct audio_lowerhalf_s *audio_dma_in;
+  struct audio_lowerhalf_s *audio_dma_voice;
+  struct audio_lowerhalf_s *audio_dma_vt;
+  struct audio_lowerhalf_s *audio_path_in;
+  struct audio_lowerhalf_s *audio_path_voice;
+  struct audio_lowerhalf_s *audio_path_vt;
+  struct audio_lowerhalf_s *dma_playback;
+  struct audio_lowerhalf_s *dma_capture;
+  struct audio_lowerhalf_s *dp_adc0;
+  struct audio_lowerhalf_s *dp_adc1;
+  struct audio_lowerhalf_s *dp_adc2;
+  struct audio_lowerhalf_s *dp_vad;
+
+  struct audio_lowerhalf_s *pcm_playback;
+  struct audio_lowerhalf_s *pcm_capture;
+  struct audio_lowerhalf_s *thinker;
+
+  ak4332_0 = ak4332_initialize(g_i2c[1], "audio_sys_akm_clk", 3);
+  ak4332_1 = ak4332_initialize(g_i2c[2], "audio_sys_akm_clk", 3);
+  dp_adc0 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 768000, 0);
+  dp_adc1 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 768000, 1);
+  dp_adc2 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 16000, 2);
+  dp_vad = dp_vad_initialize("vad_mclk", 0xa00a0000, 23);
+
+  audio_dma_in = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
+  audio_path_in = song_audio_path_in_initialize(0xa0070000, 22, "audio_sys_in_clk", "audio_i2s_mclk");
+  audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
+  audio_path_voice = song_audio_path_voice_initialize(0xa0070000, 768000, true);
+  audio_comp_initialize("pcm0p", ak4332_0, ak4332_1, audio_path_in, audio_dma_in, NULL);
+  audio_comp_initialize("pcm0c", dp_adc0, dp_adc2, audio_path_voice, audio_dma_voice, NULL);
+
+  pcm_playback = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), true);
+  pcm_capture = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), false);
+  dma_playback = audio_dma_initialize(g_dma[0], 3, true, 4, 0xa0060018);
+  dma_capture = audio_dma_initialize(g_dma[0], 11, false, 4, 0xa0060014);
+  audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
+  audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
+
+  thinker = thinker_initialize(0xa0200000, 4);
+  audio_dma_vt = audio_dma_initialize(g_dma[1], 0, true, 0, 0xa007040c);
+  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, false, false);
+  audio_comp_initialize("pcm2c", dp_adc2, thinker, audio_path_vt, NULL);
+  audio_comp_initialize("pcm2p", audio_dma_vt, NULL);
+
+  audio_anc = song_audio_path_anc_initialize(0xa0070000, true);
+  audio_comp_initialize("pcm3p", ak4332_0, ak4332_1, audio_anc, dp_adc0, dp_adc1, NULL);
 }
 
 void up_finalinitialize(void)
