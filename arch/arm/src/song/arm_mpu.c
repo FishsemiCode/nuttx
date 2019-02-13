@@ -80,7 +80,7 @@ static size_t up_mpu_round_size(uintptr_t start, uintptr_t end)
 {
   size_t size = end - start;
   size_t newsize = 1 << mpu_log2regionceil(size);
-  if (start & (newsize - 1) + size > newsize)
+  if ((start & (newsize - 1)) + size > newsize)
     {
       newsize *= 2;
     }
