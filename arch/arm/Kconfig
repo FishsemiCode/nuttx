@@ -630,9 +630,6 @@ config ARCH_CHIP
 	default "tms570"	if ARCH_CHIP_TMS570
 	default "xmc4"		if ARCH_CHIP_XMC4
 
-config ARCH_HAVE_LAZYFPU
-	bool
-
 config ARCH_HAVE_TRUSTZONE
 	bool
 	default n

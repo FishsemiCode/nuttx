@@ -229,6 +229,9 @@ config ARCH_HAVE_DPFPU
 	bool
 	default n
 
+config ARCH_HAVE_LAZYFPU
+	bool
+
 config ARCH_HAVE_MMU
 	bool
 	default n
