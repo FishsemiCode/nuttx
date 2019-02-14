@@ -46,11 +46,6 @@ config ARCH_FAMILY
 	string
 	default "rv32im"	if ARCH_RM32IM
 
-config ARCH_FPU_FS
-	bool "Float point status support"
-	depends on ARCH_FPU
-	default n
-
 config ARCH_CHIP
 	string
 	default "nr5m100"	if ARCH_CHIP_NR5

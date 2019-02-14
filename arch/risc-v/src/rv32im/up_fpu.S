@@ -55,13 +55,11 @@
 
 	.file		"up_fpu.S"
 
-#ifdef CONFIG_ARCH_FPU_FS
-#  define FS_MASK	0x6000
-#  define FS_OFF	0x0000
-#  define FS_INITIAL	0x2000
-#  define FS_CLEAN	0x4000
-#  define FS_DIRTY	0x6000
-#endif
+#define FS_MASK		0x6000
+#define FS_OFF		0x0000
+#define FS_INITIAL	0x2000
+#define FS_CLEAN	0x4000
+#define FS_DIRTY	0x6000
 
 #if defined(CONFIG_ARCH_DPFPU)
 #  define FLOAD		fld
@@ -98,9 +96,8 @@
  ************************************************************************************/
 
 	.type		up_savefpu, function
-up_savefpu:
 
-#ifdef CONFIG_ARCH_FPU_FS
+up_savefpu:
 	lw		t0, REG_INT_CTX(a0)
 	li		t1, FS_MASK
 	and		t2, t0, t1
@@ -111,7 +108,6 @@ up_savefpu:
 	li		t1, FS_CLEAN
 	or		t0, t0, t1
 	sw		t0, REG_INT_CTX(a0)
-#endif
 
 	/* Store all floating point registers */
 
@@ -173,16 +169,15 @@ up_savefpu:
  *   interrupt level assembly logic that assumes that r0 is preserved.
  *
  ************************************************************************************/
-	.type		up_restorefpu, function
-up_restorefpu:
 
-#ifdef CONFIG_ARCH_FPU_FS
+	.type		up_restorefpu, function
+
+up_restorefpu:
 	lw		t0, REG_INT_CTX(a0)
 	li		t1, FS_MASK
 	and		t2, t0, t1
 	li		t1, FS_INITIAL
 	ble		t2, t1, 1
-#endif
 
 	/* Load all floating point registers */
 
