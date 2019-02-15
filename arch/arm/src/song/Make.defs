@@ -66,8 +66,8 @@ CMN_CSRCS += up_vectors.c
 # arch/arm/src/song
 #
 CHIP_ASRCS += arm_head.S
-CHIP_CSRCS += arm_fpu.c arm_mpu.c arm_nvic.c
-CHIP_CSRCS += banks_sensor.c banks_sensor_clk.c banks_rpm.c
+CHIP_CSRCS += arm_fpu.c arm_mpu.c arm_nvic.c abies_cp_clk.c
+CHIP_CSRCS += banks_sensor.c banks_sensor_clk.c banks_rpm.c banks_cp_clk.c
 CHIP_CSRCS += fvp_mps2_m4.c
 CHIP_CSRCS += song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
