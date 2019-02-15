@@ -63,7 +63,8 @@ static struct clk *song_clk_register_mux(const char *name,
 static struct clk *song_clk_register_gr(
             const char *name, const char *parent_name,
             uint32_t reg_base, uint16_t en_offset, uint8_t en_shift,
-            uint16_t mult_offset, uint8_t mult_shift, uint8_t mult_width, uint8_t clk_flags);
+            uint16_t mult_offset, uint8_t mult_shift, uint8_t mult_width,
+            uint8_t clk_flags, uint8_t gr_flags);
 static struct clk *song_clk_register_sdiv_fdiv(
             const char *name, const char *parent_name,
             uint32_t reg_base, uint16_t sdiv_offset, uint16_t fdiv_offset);
@@ -202,10 +203,15 @@ static struct clk *song_clk_register_mux(const char *name,
 static struct clk *song_clk_register_gr(
             const char *name, const char *parent_name,
             uint32_t reg_base, uint16_t en_offset, uint8_t en_shift,
-            uint16_t mult_offset, uint8_t mult_shift, uint8_t mult_width, uint8_t clk_flags)
+            uint16_t mult_offset, uint8_t mult_shift, uint8_t mult_width,
+            uint8_t clk_flags, uint8_t gr_flags)
 {
   struct clk *clk;
   char mult_name[SONG_CLK_NAME_MAX];
+  uint8_t fixed_div = 8;
+
+  if (gr_flags & CLK_GR_DIV_16)
+    fixed_div = 16;
 
   if (en_offset)
     {
@@ -227,7 +233,7 @@ static struct clk *song_clk_register_gr(
     return clk;
 
   return clk_register_fixed_factor(name, clk->name,
-    clk_flags | CLK_SET_RATE_PARENT | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC, 1, 8);
+    clk_flags | CLK_SET_RATE_PARENT | CLK_NAME_IS_STATIC | CLK_PARENT_NAME_IS_STATIC, 1, fixed_div);
 }
 
 static struct clk *song_clk_register_sdiv_fdiv(
@@ -597,8 +603,8 @@ static int song_register_gr_clks(uint32_t reg_base,
               gr_clks->mult_offset,
               gr_clks->mult_shift,
               gr_clks->mult_width,
-              gr_clks->clk_flags
-              );
+              gr_clks->clk_flags,
+              gr_clks->gr_flags);
       if (!clk)
         {
           return -EINVAL;

@@ -111,6 +111,7 @@ struct song_gr_clk
   uint8_t            mult_shift;
   uint8_t            mult_width;
   uint8_t            clk_flags;
+  uint8_t            gr_flags;
 };
 
 struct song_sdiv_sdiv_clk
