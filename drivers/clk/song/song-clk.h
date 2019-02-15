@@ -101,6 +101,11 @@
 
 #define SONG_CLK_NAME_MAX               50
 
+/* This describe flags used across song wrapper clk */
+
+/* pll clk flags */
+#define CLK_PLL_READ_ONLY               0x01
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -162,7 +167,7 @@ struct clk_timer
 /* the song platform pll register declaration */
 struct clk *clk_register_pll(const char *name, const char *parent_name,
                              uint8_t flags, uint32_t cfg0_reg, uint32_t cfg1_reg,
-                             uint32_t ctl_reg, uint8_t ctl_shift);
+                             uint32_t ctl_reg, uint8_t ctl_shift, uint8_t pll_flags);
 
 /* the song platform pll_lf register declaration */
 struct clk *clk_register_pll_lf(const char *name, const char *parent_name,

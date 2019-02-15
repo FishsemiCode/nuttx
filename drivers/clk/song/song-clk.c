@@ -863,7 +863,8 @@ static int song_register_pll_clks(uint32_t reg_base,
               reg_base + pll_clks->cfg0_offset,
               reg_base + pll_clks->cfg1_offset,
               reg_base + pll_clks->ctl_offset,
-              pll_clks->ctl_shift);
+              pll_clks->ctl_shift,
+              pll_clks->pll_flags);
       if (!clk)
         {
           return -EINVAL;

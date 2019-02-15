@@ -206,6 +206,7 @@ struct song_pll_clk
   uint16_t           cfg1_offset;
   uint16_t           ctl_offset;
   uint8_t            ctl_shift;
+  uint8_t            pll_flags;
 };
 
 struct song_pll_lf_clk

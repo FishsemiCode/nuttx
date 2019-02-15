@@ -225,13 +225,19 @@ const struct clk_ops clk_pll_ops =
   .set_rate    = clk_pll_set_rate,
 };
 
+const struct clk_ops clk_pll_ro_ops =
+{
+  .is_enabled  = clk_pll_is_enable,
+  .recalc_rate = clk_pll_recalc_rate,
+};
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 struct clk *clk_register_pll(const char *name, const char *parent_name,
                              uint8_t flags, uint32_t cfg0_reg, uint32_t cfg1_reg,
-                             uint32_t ctl_reg, uint8_t ctl_shift)
+                             uint32_t ctl_reg, uint8_t ctl_shift, uint8_t pll_flags)
 {
   struct clk_pll pll;
   const char **parent_names;
@@ -245,6 +251,10 @@ struct clk *clk_register_pll(const char *name, const char *parent_name,
   pll.ctl_reg = ctl_reg;
   pll.ctl_shift = ctl_shift;
 
-  return clk_register(name, parent_names, num_parents, flags,
+  if (pll_flags & CLK_PLL_READ_ONLY)
+    return clk_register(name, parent_names, num_parents, flags,
+                      &clk_pll_ro_ops, &pll, sizeof(pll));
+  else
+    return clk_register(name, parent_names, num_parents, flags,
                       &clk_pll_ops, &pll, sizeof(pll));
 }
