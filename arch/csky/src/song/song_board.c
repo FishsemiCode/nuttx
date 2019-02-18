@@ -207,9 +207,6 @@ void weak_function up_reset(int status)
 
 int board_reset(int status)
 {
-  up_disable_icache();
-  up_disable_dcache();
-
   while (1)
     {
       up_reset(status);

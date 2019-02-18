@@ -185,9 +185,6 @@ int board_app_finalinitialize(uintptr_t arg)
 #ifdef CONFIG_BOARDCTL_RESET
 int board_reset(int status)
 {
-  up_disable_icache();
-  up_disable_dcache();
-
   while (1)
     {
       up_reset(status);
