@@ -84,7 +84,7 @@ static size_t up_mpu_round_size(uintptr_t start, uintptr_t end)
     {
       newsize *= 2;
     }
-  return newsize;
+  return newsize - (start & (newsize - 1));
 }
 
 #ifdef CONFIG_PM
