@@ -264,6 +264,8 @@ static int dp_adc_configure(struct audio_lowerhalf_s *dev_,
         ret = dp_adc_datawidth(dev, bpsamp);
         if (ret < 0)
           return ret;
+        if (dev->anc_rate)
+          return OK;
         return dp_adc_samplerate(dev, samprate);
       case AUDIO_TYPE_EXTENSION:
         switch(caps->ac_format.hw)
@@ -293,17 +295,14 @@ static int dp_adc_start(struct audio_lowerhalf_s *dev_)
       case 0:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC1, 0);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC1, SB_MICBIAS, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
         break;
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC2, 0);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, SB_ADC3, 0);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
     }
 
   dp_adc_putreg(dev, DP_ADC_CR_VIC, 0);
@@ -325,17 +324,14 @@ static int dp_adc_stop(struct audio_lowerhalf_s *dev_)
       case 0:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC1, SB_ADC1);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC1, SB_MICBIAS, SB_MICBIAS);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, ADC12_LP_MODE);
         break;
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC2, SB_ADC2);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, SB_MICBIAS);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, ADC12_LP_MODE);
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, SB_ADC3, SB_ADC3);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, SB_MICBIAS);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, ADC3_LP_MODE);
         break;
     }
 
@@ -361,15 +357,12 @@ static int dp_adc_pause(struct audio_lowerhalf_s *dev_)
     {
       case 0:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC1, SB_MICBIAS, SB_MICBIAS);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, ADC12_LP_MODE);
         break;
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, SB_MICBIAS);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, ADC12_LP_MODE);
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, SB_MICBIAS);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, ADC3_LP_MODE);
         break;
     }
 
@@ -393,16 +386,13 @@ static int dp_adc_resume(struct audio_lowerhalf_s *dev_)
     {
       case 0:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC1, SB_MICBIAS, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
         break;
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
-        break;
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
+        break;
    }
 
   dp_adc_putreg(dev, DP_ADC_CR_VIC, 0);
@@ -466,71 +456,115 @@ static uint32_t dp_adc_datawidth(struct dp_adc_s *dev, int bits)
 static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                                   uint32_t rate)
 {
-
-  if (dev->anc_rate)
-    rate = dev->anc_rate;
-
   switch (rate)
     {
       case 16000:
         if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_16K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_16K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                             ADC12_LP_MODE, ADC12_LP_MODE);
+          }
         else
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_16K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_16K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3,
+                             ADC3_LP_MODE, ADC3_LP_MODE);
+          }
         break;
       case 48000:
         if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_48K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_48K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                             ADC12_LP_MODE, 0);
+          }
         else
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_48K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_48K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3,
+                             ADC3_LP_MODE, 0);
+          }
         break;
       case 96000:
         if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_96K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_96K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                             ADC12_LP_MODE, 0);
+          }
         else
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_96K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_96K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3,
+                             ADC3_LP_MODE, 0);
+          }
         break;
       case 192000:
        if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_192K);
-        else
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_192K);
+         {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_192K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                             ADC12_LP_MODE, 0);
+         }
+       else
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_192K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3,
+                             ADC3_LP_MODE, 0);
+          }
         break;
       case 384000:
         if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_384K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_384K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                             ADC12_LP_MODE, 0);
+          }
         else
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_384K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_384K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3,
+                             ADC3_LP_MODE, 0);
+          }
         break;
       case 768000:
         if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_768K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_768K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                             ADC12_LP_MODE, 0);
+          }
         else
-          dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
-                           ADC_FREQ_MASK | ADC_HPF_EN,
-                           ADC_HPF_EN | ADC_FREQ_768K);
+          {
+            dp_adc_updatereg(dev, DP_ADC_FCR_ADC2,
+                             ADC_FREQ_MASK | ADC_HPF_EN,
+                             ADC_HPF_EN | ADC_FREQ_768K);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3,
+                             ADC3_LP_MODE, 0);
+          }
         break;
       default:
         return -EINVAL;
@@ -541,26 +575,6 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
 
 static int dp_adc_set_fmt(struct dp_adc_s *dev, uint16_t fmt)
 {
-  switch (fmt & AUDIO_HWFMT_FORMAT_MASK)
-    {
-      case AUDIO_HWFMT_I2S:
-        if (dev->idx < 2)
-          dp_adc_updatereg(dev, DP_ADC_AICR_ADC,
-                           ADC_AUDIOIF_MASK, ADC_AUDIOIF_I2S);
-        else
-          dp_adc_updatereg(dev, DP_ADC_AICR_ADC2,
-                           ADC_AUDIOIF_MASK, ADC_AUDIOIF_I2S);
-        break;
-      case AUDIO_HWFMT_DSP_A:
-        if (dev->idx == 2)
-          {
-            dp_adc_updatereg(dev, DP_ADC_AICR_ADC2,
-                             ADC_AUDIOIF_MASK, ADC_AUDIOIF_DSP);
-            break;
-          }
-      default:
-        return -EINVAL;
-    }
   switch (fmt & AUDIO_HWFMT_INV_MASK)
     {
       case AUDIO_HWFMT_NB_NF:
@@ -631,6 +645,12 @@ struct audio_lowerhalf_s *dp_adc_initialize(const char *mclk, uint32_t base,
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_SOFT_MUTE, 0x00);
         break;
+    }
+
+  if (dev->anc_rate && dp_adc_samplerate(dev, dev->anc_rate) < 0)
+    {
+      kmm_free(dev);
+      return NULL;
     }
 
   return &dev->dev;
