@@ -52,7 +52,7 @@
 #  define ARRAY_SIZE(x)             (sizeof(x) / sizeof((x)[0]))
 #endif
 
-#define HOSTFS_RPMSG_CHANNEL_NAME   "rpmsg-hostfs"
+#define HOSTFS_RPMSG_EPT_NAME       "rpmsg-hostfs"
 
 #define HOSTFS_RPMSG_OPEN           1
 #define HOSTFS_RPMSG_CLOSE          2

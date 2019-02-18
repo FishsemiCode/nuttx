@@ -43,11 +43,10 @@
 #include <errno.h>
 #include <string.h>
 
-#include <openamp/open_amp.h>
-
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/hostfs.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/rptun/openamp.h>
 #include <nuttx/semaphore.h>
 
 #include "hostfs_rpmsg.h"
@@ -58,38 +57,45 @@
 
 struct hostfs_rpmsg_s
 {
-  struct rpmsg_channel *channel;
-  const char           *cpu_name;
+  struct rpmsg_endpoint ept;
+  const char            *cpuname;
 };
 
 struct hostfs_rpmsg_cookie_s
 {
-  sem_t                 sem;
-  int                   result;
-  void                  *data;
+  sem_t sem;
+  int   result;
+  void  *data;
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static void hostfs_rpmsg_default_handler(struct rpmsg_channel *channel,
-                void *data, int len, void *priv, unsigned long src);
-static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
-                void *data, int len, void *priv, unsigned long src);
-static void hostfs_rpmsg_readdir_handler(struct rpmsg_channel *channel,
-                void *data, int len, void *priv, unsigned long src);
-static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
-                void *data, int len, void *priv, unsigned long src);
-static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
-static void hostfs_rpmsg_device_created(struct remote_device *rdev, void *priv_);
-static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel);
-static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
-static void hostfs_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
+static int hostfs_rpmsg_default_handler(struct rpmsg_endpoint *ept,
+                                        void *data, size_t len,
+                                        uint32_t src, void *priv);
+static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
+                                     void *data, size_t len,
+                                     uint32_t src, void *priv);
+static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
+                                        void *data, size_t len,
+                                        uint32_t src, void *priv);
+static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
+                                       void *data, size_t len,
+                                       uint32_t src, void *priv);
+static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
+                                     void *data, size_t len,
+                                     uint32_t src, void *priv);
+static void hostfs_rpmsg_device_created(struct rpmsg_device *rdev,
+                                        void *priv_);
+static void hostfs_rpmsg_device_destroy(struct rpmsg_device *rdev,
+                                        void *priv_);
+static int  hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                                size_t len, uint32_t src, void *priv);
 static int  hostfs_rpmsg_send_recv(uint32_t command, bool copy,
-                    struct hostfs_rpmsg_header_s *msg, int len, void *data);
+                                  struct hostfs_rpmsg_header_s *msg,
+                                  int len, void *data);
 
 /****************************************************************************
  * Private Data
@@ -97,7 +103,7 @@ static int  hostfs_rpmsg_send_recv(uint32_t command, bool copy,
 
 static struct hostfs_rpmsg_s g_hostfs_rpmsg;
 
-static const rpmsg_rx_cb_t g_hostfs_rpmsg_handler[] =
+static const rpmsg_ept_cb g_hostfs_rpmsg_handler[] =
 {
   [HOSTFS_RPMSG_OPEN]      = hostfs_rpmsg_default_handler,
   [HOSTFS_RPMSG_CLOSE]     = hostfs_rpmsg_default_handler,
@@ -125,8 +131,9 @@ static const rpmsg_rx_cb_t g_hostfs_rpmsg_handler[] =
  * Private Functions
  ****************************************************************************/
 
-static void hostfs_rpmsg_default_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int hostfs_rpmsg_default_handler(struct rpmsg_endpoint *ept,
+                                        void *data, size_t len,
+                                        uint32_t src, void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   struct hostfs_rpmsg_cookie_s *cookie =
@@ -138,10 +145,13 @@ static void hostfs_rpmsg_default_handler(struct rpmsg_channel *channel,
       memcpy(cookie->data, data, len);
     }
   nxsem_post(&cookie->sem);
+
+  return 0;
 }
 
-static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
+                                     void *data, size_t len,
+                                     uint32_t src, void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   struct hostfs_rpmsg_cookie_s *cookie =
@@ -154,10 +164,13 @@ static void hostfs_rpmsg_read_handler(struct rpmsg_channel *channel,
       memcpy(cookie->data, rsp->buf, B2C(cookie->result));
     }
   nxsem_post(&cookie->sem);
+
+  return 0;
 }
 
-static void hostfs_rpmsg_readdir_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
+                                        void *data, size_t len,
+                                        uint32_t src, void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   struct hostfs_rpmsg_cookie_s *cookie =
@@ -173,10 +186,13 @@ static void hostfs_rpmsg_readdir_handler(struct rpmsg_channel *channel,
       entry->d_type = rsp->type;
     }
   nxsem_post(&cookie->sem);
+
+  return 0;
 }
 
-static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
+                                       void *data, size_t len,
+                                       uint32_t src, void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   struct hostfs_rpmsg_cookie_s *cookie =
@@ -197,10 +213,13 @@ static void hostfs_rpmsg_statfs_handler(struct rpmsg_channel *channel,
       buf->f_ffree   = rsp->buf.f_ffree;
     }
   nxsem_post(&cookie->sem);
+
+  return 0;
 }
 
-static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
+                                     void *data, size_t len,
+                                     uint32_t src, void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   struct hostfs_rpmsg_cookie_s *cookie =
@@ -220,64 +239,52 @@ static void hostfs_rpmsg_stat_handler(struct rpmsg_channel *channel,
       buf->st_ctime   = rsp->buf.st_ctime;
     }
   nxsem_post(&cookie->sem);
+
+  return 0;
 }
 
-static void hostfs_rpmsg_device_created(struct remote_device *rdev, void *priv_)
+static void hostfs_rpmsg_device_created(struct rpmsg_device *rdev,
+                                        void *priv_)
 {
   struct hostfs_rpmsg_s *priv = priv_;
-  struct rpmsg_channel *channel;
 
-  if (strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
-      channel = rpmsg_create_channel(rdev, HOSTFS_RPMSG_CHANNEL_NAME);
-      if (channel != NULL)
-        {
-          rpmsg_set_privdata(channel, priv);
-        }
+      priv->ept.priv = priv;
+      rpmsg_create_ept(&priv->ept, rdev, HOSTFS_RPMSG_EPT_NAME,
+                       RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
+                       hostfs_rpmsg_ept_cb, NULL);
     }
 }
 
-static void hostfs_rpmsg_channel_created(struct rpmsg_channel *channel)
+static void hostfs_rpmsg_device_destroy(struct rpmsg_device *rdev,
+                                        void *priv_)
 {
-  struct hostfs_rpmsg_s *priv;
+  struct hostfs_rpmsg_s *priv = priv_;
 
-  while (1)
+  if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
-      priv = rpmsg_get_privdata(channel);
-      if (priv != NULL)
-        {
-          priv->channel = channel;
-          break;
-        }
-
-      usleep(10);
+      rpmsg_destroy_ept(&priv->ept);
     }
 }
 
-static void hostfs_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
-{
-  struct hostfs_rpmsg_s *priv = rpmsg_get_privdata(channel);
-
-  if (priv != NULL)
-    {
-      priv->channel = NULL;
-    }
-}
-
-static void hostfs_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                               size_t len, uint32_t src, void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   uint32_t command = header->command;
 
   if (command < ARRAY_SIZE(g_hostfs_rpmsg_handler))
     {
-      g_hostfs_rpmsg_handler[command](channel, data, len, priv, src);
+      return g_hostfs_rpmsg_handler[command](ept, data, len, src, priv);
     }
+
+  return -EINVAL;
 }
 
 static int hostfs_rpmsg_send_recv(uint32_t command, bool copy,
-                struct hostfs_rpmsg_header_s *msg, int len, void *data)
+                                  struct hostfs_rpmsg_header_s *msg,
+                                  int len, void *data)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_cookie_s cookie;
@@ -302,11 +309,11 @@ static int hostfs_rpmsg_send_recv(uint32_t command, bool copy,
 
   if (copy)
     {
-      ret = rpmsg_send(priv->channel, msg, len);
+      ret = rpmsg_send(&priv->ept, msg, len);
     }
   else
     {
-      ret = rpmsg_send_nocopy(priv->channel, msg, len);
+      ret = rpmsg_send_nocopy(&priv->ept, msg, len);
     }
   if (ret < 0)
     {
@@ -345,17 +352,13 @@ int host_open(const char *pathname, int flags, int mode)
   len  = sizeof(*msg);
   len += B2C(strlen(pathname) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
     }
+
+  DEBUGASSERT(len <= space);
 
   msg->flags = flags;
   msg->mode  = mode;
@@ -414,7 +417,7 @@ ssize_t host_write(int fd, const void *buf, size_t count)
       struct hostfs_rpmsg_write_s *msg;
       uint32_t space;
 
-      msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+      msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
       if (!msg)
         {
           ret = -ENOMEM;
@@ -529,17 +532,13 @@ void *host_opendir(const char *name)
   len  = sizeof(*msg);
   len += B2C(strlen(name) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return NULL;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return NULL;
     }
+
+  DEBUGASSERT(len <= space);
 
   cstr2bstr(msg->pathname, name);
 
@@ -592,17 +591,13 @@ int host_statfs(const char *path, struct statfs *buf)
   len  = sizeof(*msg);
   len += B2C(strlen(path) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
     }
+
+  DEBUGASSERT(len <= space);
 
   cstr2bstr(msg->pathname, path);
 
@@ -620,17 +615,13 @@ int host_unlink(const char *pathname)
   len  = sizeof(*msg);
   len += B2C(strlen(pathname) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
     }
+
+  DEBUGASSERT(len <= space);
 
   cstr2bstr(msg->pathname, pathname);
 
@@ -648,13 +639,7 @@ int host_mkdir(const char *pathname, mode_t mode)
   len  = sizeof(*msg);
   len += B2C(strlen(pathname) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
@@ -677,17 +662,13 @@ int host_rmdir(const char *pathname)
   len  = sizeof(*msg);
   len += B2C(strlen(pathname) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
     }
+
+  DEBUGASSERT(len <= space);
 
   cstr2bstr(msg->pathname, pathname);
 
@@ -706,17 +687,13 @@ int host_rename(const char *oldpath, const char *newpath)
   oldlen  = B2C((strlen(oldpath) + 1 + 0x7) & ~0x7);
   len    += oldlen + B2C(strlen(newpath) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
     }
+
+  DEBUGASSERT(len <= space);
 
   cstr2bstr(msg->pathname, oldpath);
   cstr2bstr(msg->pathname + oldlen, newpath);
@@ -735,17 +712,13 @@ int host_stat(const char *path, struct stat *buf)
   len  = sizeof(*msg);
   len += B2C(strlen(path) + 1);
 
-  space = rpmsg_get_buffer_size(priv->channel);
-  if (len > space)
-    {
-      return -ENOMEM;
-    }
-
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       return -ENOMEM;
     }
+
+  DEBUGASSERT(len <= space);
 
   cstr2bstr(msg->pathname, path);
 
@@ -753,18 +726,14 @@ int host_stat(const char *path, struct stat *buf)
           (struct hostfs_rpmsg_header_s *)msg, len, buf);
 }
 
-int hostfs_rpmsg_init(const char *cpu_name)
+int hostfs_rpmsg_init(const char *cpuname)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
 
-  priv->cpu_name = cpu_name;
+  priv->cpuname = cpuname;
 
-  return rpmsg_register_callback(
-                HOSTFS_RPMSG_CHANNEL_NAME,
-                priv,
-                hostfs_rpmsg_device_created,
-                NULL,
-                hostfs_rpmsg_channel_created,
-                hostfs_rpmsg_channel_destroyed,
-                hostfs_rpmsg_channel_received);
+  return rpmsg_register_callback(priv,
+                                 hostfs_rpmsg_device_created,
+                                 hostfs_rpmsg_device_destroy,
+                                 NULL);
 }
