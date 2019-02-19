@@ -49,6 +49,4 @@ NET_CSRCS += usrsock_accept.c usrsock_listen.c usrsock_ioctl.c
 DEPPATH += --dep-path usrsock
 VPATH += :usrsock
 
-$(SRCDIR)/usrsock/usrsock_dev.c_CFLAGS = -fno-lto
-
 endif # CONFIG_NET_USRSOCK
