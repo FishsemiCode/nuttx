@@ -40,31 +40,31 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <openamp/open_amp.h>
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mutex.h>
+#include <nuttx/rptun/openamp.h>
 #include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define CLK_RPMSG_NAME                "rpmsg-clk"
+#define CLK_RPMSG_EPT_NAME          "rpmsg-clk"
 
-#define CLK_RPMSG_ENABLE              0
-#define CLK_RPMSG_DISABLE             1
-#define CLK_RPMSG_SETRATE             2
-#define CLK_RPMSG_SETPHASE            3
-#define CLK_RPMSG_GETPHASE            4
-#define CLK_RPMSG_GETRATE             5
-#define CLK_RPMSG_ROUNDRATE           6
-#define CLK_RPMSG_ISENABLED           7
+#define CLK_RPMSG_ENABLE            0
+#define CLK_RPMSG_DISABLE           1
+#define CLK_RPMSG_SETRATE           2
+#define CLK_RPMSG_SETPHASE          3
+#define CLK_RPMSG_GETPHASE          4
+#define CLK_RPMSG_GETRATE           5
+#define CLK_RPMSG_ROUNDRATE         6
+#define CLK_RPMSG_ISENABLED         7
 
 #ifndef ARRAY_SIZE
-#  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
+#  define ARRAY_SIZE(x)             (sizeof(x) / sizeof((x)[0]))
 #endif
 
 /****************************************************************************
@@ -73,11 +73,10 @@
 
 struct clk_rpmsg_priv_s
 {
-  struct rpmsg_channel     *channel;
-  const char               *cpu_name;
-  sem_t                     sem;
+  struct rpmsg_endpoint     ept;
   struct list_node          clk_list;  /* head of clk_rpmsg_s struct */
   struct list_node          node;      /* list node for struct priv */
+  const char               *cpuname;
 };
 
 struct clk_rpmsg_s
@@ -134,36 +133,34 @@ begin_packed_struct struct clk_rpmsg_setphase_s
  ****************************************************************************/
 
 static struct clk_rpmsg_priv_s *clk_rpmsg_get_priv(const char *name);
-static struct rpmsg_channel *clk_rpmsg_get_chnl(const char **name);
-static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
-            const char *name);
+static struct rpmsg_endpoint *clk_rpmsg_get_ept(const char **name);
+static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_endpoint *ept,
+                                             const char *name);
 
-static void clk_rpmsg_enable_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_disable_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_getrate_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_roundrate_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_setrate_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_setphase_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_getphase_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
-static void clk_rpmsg_isenabled_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
+static int clk_rpmsg_enable_handler(struct rpmsg_endpoint *ept, void *data,
+                                    size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_disable_handler(struct rpmsg_endpoint *ept, void *data,
+                                     size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_getrate_handler(struct rpmsg_endpoint *ept, void *data,
+                                     size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_roundrate_handler(struct rpmsg_endpoint *ept, void *data,
+                                       size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_setrate_handler(struct rpmsg_endpoint *ept, void *data,
+                                     size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_setphase_handler(struct rpmsg_endpoint *ept, void *data,
+                                      size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_getphase_handler(struct rpmsg_endpoint *ept, void *data,
+                                      size_t len, uint32_t src, void *priv);
+static int clk_rpmsg_isenabled_handler(struct rpmsg_endpoint *ept, void *data,
+                                       size_t len, uint32_t src, void *priv);
 
-static void clk_rpmsg_device_created(struct remote_device *rdev, void *priv_);
-static void clk_rpmsg_device_destroyed(struct remote_device *rdev, void *priv_);
-static void clk_rpmsg_channel_created(struct rpmsg_channel *channel);
-static void clk_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
-static void clk_rpmsg_channel_received(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src);
+static void clk_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_);
+static void clk_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_);
+static int clk_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                            size_t len, uint32_t src, void *priv);
 
-static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
-            struct clk_rpmsg_header_s *msg, int32_t len);
+static int64_t clk_rpmsg_sendrecv(struct rpmsg_endpoint *ept, uint32_t command,
+                                  struct clk_rpmsg_header_s *msg, int32_t len);
 static int clk_rpmsg_enable(struct clk *clk);
 static void clk_rpmsg_disable(struct clk *clk);
 static int clk_rpmsg_is_enabled(struct clk *clk);
@@ -181,7 +178,7 @@ static int clk_rpmsg_set_phase(struct clk *clk, int degrees);
 static mutex_t g_clk_rpmsg_lock          = MUTEX_INITIALIZER;
 static struct list_node g_clk_rpmsg_priv = LIST_INITIAL_VALUE(g_clk_rpmsg_priv);
 
-static const rpmsg_rx_cb_t g_clk_rpmsg_handler[] =
+static const rpmsg_ept_cb g_clk_rpmsg_handler[] =
 {
   [CLK_RPMSG_ENABLE]    = clk_rpmsg_enable_handler,
   [CLK_RPMSG_DISABLE]   = clk_rpmsg_disable_handler,
@@ -205,9 +202,9 @@ static struct clk_rpmsg_priv_s *clk_rpmsg_get_priv(const char *name)
 
   list_for_every_entry(&g_clk_rpmsg_priv, priv, struct clk_rpmsg_priv_s, node)
     {
-      size_t len = strlen(priv->cpu_name);
+      size_t len = strlen(priv->cpuname);
 
-      if (!strncmp(priv->cpu_name, name, len) &&
+      if (!strncmp(priv->cpuname, name, len) &&
             (name[len] == '/' || name[len] == 0))
         {
           goto out; /* Find the target, exit */
@@ -221,7 +218,7 @@ out:
   return priv;
 }
 
-static struct rpmsg_channel *clk_rpmsg_get_chnl(const char **name)
+static struct rpmsg_endpoint *clk_rpmsg_get_ept(const char **name)
 {
   struct clk_rpmsg_priv_s *priv;
 
@@ -231,22 +228,16 @@ static struct rpmsg_channel *clk_rpmsg_get_chnl(const char **name)
       return NULL;
     }
 
-  if (priv->channel == NULL)
-    {
-      nxsem_wait_uninterruptible(&priv->sem);
-      nxsem_post(&priv->sem);
-    }
-
   /* transfer to local clk name */
-  *name += strlen(priv->cpu_name) + 1;
+  *name += strlen(priv->cpuname) + 1;
 
-  return priv->channel;
+  return &priv->ept;
 }
 
-static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
+static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_endpoint *ept,
                                              const char *name)
 {
-  struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
+  struct clk_rpmsg_priv_s *priv = ept->priv;
   struct list_node *clk_list = &priv->clk_list;
   struct clk_rpmsg_s *clkrp;
 
@@ -276,11 +267,11 @@ static struct clk_rpmsg_s *clk_rpmsg_get_clk(struct rpmsg_channel *channel,
   return clkrp;
 }
 
-static void clk_rpmsg_enable_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_enable_handler(struct rpmsg_endpoint *ept, void *data,
+                                    size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_enable_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     {
@@ -293,14 +284,14 @@ static void clk_rpmsg_enable_handler(struct rpmsg_channel *channel,
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_disable_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_disable_handler(struct rpmsg_endpoint *ept, void *data,
+                                     size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_disable_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     {
@@ -311,94 +302,94 @@ static void clk_rpmsg_disable_handler(struct rpmsg_channel *channel,
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_getrate_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_getrate_handler(struct rpmsg_endpoint *ept, void *data,
+                                     size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_getrate_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     msg->header.result = clk_get_rate(clkrp->clk);
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_roundrate_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_roundrate_handler(struct rpmsg_endpoint *ept, void *data,
+                                       size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_roundrate_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     msg->header.result = clk_round_rate(clkrp->clk, msg->rate);
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_setrate_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_setrate_handler(struct rpmsg_endpoint *ept, void *data,
+                                     size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_setrate_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     msg->header.result = clk_set_rate(clkrp->clk, msg->rate);
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_setphase_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_setphase_handler(struct rpmsg_endpoint *ept, void *data,
+                                      size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_setphase_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     msg->header.result = clk_set_phase(clkrp->clk, msg->degrees);
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_getphase_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_getphase_handler(struct rpmsg_endpoint *ept, void *data,
+                                      size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_getphase_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     msg->header.result = clk_get_phase(clkrp->clk);
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void clk_rpmsg_isenabled_handler(struct rpmsg_channel *channel,
-            void *data, int len, void *priv, unsigned long src)
+static int clk_rpmsg_isenabled_handler(struct rpmsg_endpoint *ept, void *data,
+                                       size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_isenabled_s *msg = data;
-  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(channel, msg->name);
+  struct clk_rpmsg_s *clkrp = clk_rpmsg_get_clk(ept, msg->name);
 
   if (clkrp)
     msg->header.result = clk_is_enabled(clkrp->clk);
   else
     msg->header.result = -ENOENT;
 
-  rpmsg_send(channel, msg, sizeof(*msg));
+  return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
+static int64_t clk_rpmsg_sendrecv(struct rpmsg_endpoint *ept, uint32_t command,
                                   struct clk_rpmsg_header_s *msg, int32_t len)
 {
   struct clk_rpmsg_cookie_s cookie;
@@ -412,7 +403,7 @@ static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
   nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
   cookie.result  = -EIO;
 
-  ret = rpmsg_send_nocopy(chnl, msg, len);
+  ret = rpmsg_send_nocopy(ept, msg, len);
   if (ret < 0)
     return ret;
 
@@ -423,10 +414,10 @@ static int64_t clk_rpmsg_sendrecv(struct rpmsg_channel *chnl, uint32_t command,
   return cookie.result;
 }
 
-static void clk_rpmsg_device_created(struct remote_device *rdev, void *priv_)
+static void clk_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_)
 {
-  bool server = (uintptr_t)priv_;
   struct clk_rpmsg_priv_s *priv;
+  int ret;
 
   priv = kmm_zalloc(sizeof(struct clk_rpmsg_priv_s));
   if (!priv)
@@ -434,61 +425,34 @@ static void clk_rpmsg_device_created(struct remote_device *rdev, void *priv_)
       return;
     }
 
-  nxsem_init(&priv->sem, 0, 0);
-  nxsem_setprotocol(&priv->sem, SEM_PRIO_NONE);
+  priv->ept.priv = priv;
+  priv->cpuname  = rpmsg_get_cpuname(rdev);
 
-  priv->cpu_name = rdev->proc->cpu_name;
   list_initialize(&priv->clk_list);
 
   nxmutex_lock(&g_clk_rpmsg_lock);
   list_add_head(&g_clk_rpmsg_priv, &priv->node);
   nxmutex_unlock(&g_clk_rpmsg_lock);
 
-  if (!server)
+  ret = rpmsg_create_ept(&priv->ept, rdev, CLK_RPMSG_EPT_NAME,
+                         RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
+                         clk_rpmsg_ept_cb, NULL);
+  if (ret)
     {
-      rpmsg_create_channel(rdev, CLK_RPMSG_NAME);
+      free(priv);
     }
 }
 
-static void clk_rpmsg_device_destroyed(struct remote_device *rdev, void *priv_)
+static void clk_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_)
 {
+  struct clk_rpmsg_s *clkrp, *clkrp_tmp;
   struct clk_rpmsg_priv_s *priv;
 
-  priv = clk_rpmsg_get_priv(rdev->proc->cpu_name);
-  if (priv)
-    {
-      nxmutex_lock(&g_clk_rpmsg_lock);
-      list_delete(&priv->node);
-      nxmutex_unlock(&g_clk_rpmsg_lock);
-      kmm_free(priv);
-    }
-}
-
-static void clk_rpmsg_channel_created(struct rpmsg_channel *channel)
-{
-  const char *name = channel->rdev->proc->cpu_name;
-  struct clk_rpmsg_priv_s *priv = clk_rpmsg_get_priv(name);
-
-  if (priv)
-    {
-      priv->channel = channel;
-      rpmsg_set_privdata(channel, priv);
-      nxsem_post(&priv->sem);
-    }
-}
-
-static void clk_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
-{
-  struct clk_rpmsg_priv_s *priv = rpmsg_get_privdata(channel);
-  struct clk_rpmsg_s *clkrp, *clkrp_tmp;
-
+  priv = clk_rpmsg_get_priv(rpmsg_get_cpuname(rdev));
   if (!priv)
     {
       return;
     }
-
-  nxsem_wait_uninterruptible(&priv->sem);
-  priv->channel = NULL;
 
   list_for_every_entry_safe(&priv->clk_list, clkrp, clkrp_tmp,
                               struct clk_rpmsg_s, node)
@@ -501,13 +465,21 @@ static void clk_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
       list_delete(&clkrp->node);
       kmm_free(clkrp);
     }
+
+  nxmutex_lock(&g_clk_rpmsg_lock);
+  list_delete(&priv->node);
+  nxmutex_unlock(&g_clk_rpmsg_lock);
+
+  rpmsg_destroy_ept(&priv->ept);
+  kmm_free(priv);
 }
 
-static void clk_rpmsg_channel_received(struct rpmsg_channel *channel, void *data,
-            int len, void *priv, unsigned long src)
+static int clk_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                            size_t len, uint32_t src, void *priv)
 {
   struct clk_rpmsg_header_s *hdr = data;
   uint32_t cmd = hdr->command;
+  int ret = -EINVAL;
 
   if (hdr->response)
     {
@@ -517,122 +489,117 @@ static void clk_rpmsg_channel_received(struct rpmsg_channel *channel, void *data
         {
           cookie->result = hdr->result;
           nxsem_post(&cookie->sem);
+          ret = 0;
         }
     }
   else if (cmd < ARRAY_SIZE(g_clk_rpmsg_handler) && g_clk_rpmsg_handler[cmd])
     {
       hdr->response = 1;
-      g_clk_rpmsg_handler[cmd](channel, data, len, priv, src);
+      ret = g_clk_rpmsg_handler[cmd](ept, data, len, src, priv);
     }
+
+  return ret;
 }
 
 static int clk_rpmsg_enable(struct clk *clk)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_enable_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return -ENOMEM;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return -ENOMEM;
 
+  DEBUGASSERT(len <= size);
+
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_ENABLE,
+  return clk_rpmsg_sendrecv(ept, CLK_RPMSG_ENABLE,
           (struct clk_rpmsg_header_s *)msg, len);
 }
 
 static void clk_rpmsg_disable(struct clk *clk)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_disable_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
+  if (!msg)
     return;
 
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
-  if (!msg)
-      return;
+  DEBUGASSERT(len <= size);
 
   cstr2bstr(msg->name, name);
 
-  clk_rpmsg_sendrecv(chnl, CLK_RPMSG_DISABLE,
+  clk_rpmsg_sendrecv(ept, CLK_RPMSG_DISABLE,
       (struct clk_rpmsg_header_s *)msg, len);
 }
 
 static int clk_rpmsg_is_enabled(struct clk *clk)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_enable_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return -ENOMEM;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return -ENOMEM;
 
+  DEBUGASSERT(len <= size);
+
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_ISENABLED,
+  return clk_rpmsg_sendrecv(ept, CLK_RPMSG_ISENABLED,
           (struct clk_rpmsg_header_s *)msg, len);
 }
 
 static uint32_t clk_rpmsg_round_rate(struct clk *clk, uint32_t rate, uint32_t *parent_rate)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_roundrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
   int64_t ret;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return 0;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return 0;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return 0;
+
+  DEBUGASSERT(len <= size);
 
   msg->rate = rate;
   cstr2bstr(msg->name, name);
 
-  ret = clk_rpmsg_sendrecv(chnl, CLK_RPMSG_ROUNDRATE,
+  ret = clk_rpmsg_sendrecv(ept, CLK_RPMSG_ROUNDRATE,
             (struct clk_rpmsg_header_s *)msg, len);
   if (ret < 0)
     return 0;
@@ -642,57 +609,53 @@ static uint32_t clk_rpmsg_round_rate(struct clk *clk, uint32_t rate, uint32_t *p
 
 static int clk_rpmsg_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_setrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return -ENOMEM;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return -ENOMEM;
+
+  DEBUGASSERT(len <= size);
 
   msg->rate = rate;
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_SETRATE,
+  return clk_rpmsg_sendrecv(ept, CLK_RPMSG_SETRATE,
             (struct clk_rpmsg_header_s *)msg, len);
 }
 
 static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_getrate_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
   int64_t ret;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return 0;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return 0;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return 0;
 
+  DEBUGASSERT(len <= size);
+
   cstr2bstr(msg->name, name);
 
-  ret = clk_rpmsg_sendrecv(chnl, CLK_RPMSG_GETRATE,
+  ret = clk_rpmsg_sendrecv(ept, CLK_RPMSG_GETRATE,
             (struct clk_rpmsg_header_s *)msg, len);
   if (ret < 0)
     return 0;
@@ -702,56 +665,52 @@ static uint32_t clk_rpmsg_recalc_rate(struct clk *clk, uint32_t parent_rate)
 
 static int clk_rpmsg_get_phase(struct clk *clk)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_getphase_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return -ENOMEM;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return -ENOMEM;
 
+  DEBUGASSERT(len <= size);
+
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_GETPHASE,
+  return clk_rpmsg_sendrecv(ept, CLK_RPMSG_GETPHASE,
             (struct clk_rpmsg_header_s *)msg, len);
 }
 
 static int clk_rpmsg_set_phase(struct clk *clk, int degrees)
 {
-  struct rpmsg_channel *chnl;
+  struct rpmsg_endpoint *ept;
   struct clk_rpmsg_setphase_s *msg;
   const char *name = clk->name;
   uint32_t size, len;
 
-  chnl = clk_rpmsg_get_chnl(&name);
-  if (!chnl)
+  ept = clk_rpmsg_get_ept(&name);
+  if (!ept)
     return -ENODEV;
 
   len = sizeof(*msg) + B2C(strlen(name) + 1);
 
-  size = rpmsg_get_buffer_size(chnl);
-  if (len > size)
-    return -ENOMEM;
-
-  msg = rpmsg_get_tx_payload_buffer(chnl, &size, true);
+  msg = rpmsg_get_tx_payload_buffer(ept, &size, true);
   if (!msg)
     return -ENOMEM;
+
+  DEBUGASSERT(len <= size);
 
   msg->degrees = degrees;
   cstr2bstr(msg->name, name);
 
-  return clk_rpmsg_sendrecv(chnl, CLK_RPMSG_SETPHASE,
+  return clk_rpmsg_sendrecv(ept, CLK_RPMSG_SETPHASE,
             (struct clk_rpmsg_header_s *)msg, len);
 }
 
@@ -783,13 +742,10 @@ struct clk *clk_register_rpmsg(const char *name, uint8_t flags)
   return clk_register(name, NULL, 0, flags | CLK_IGNORE_UNUSED, &clk_rpmsg_ops, NULL, 0);
 }
 
-int clk_rpmsg_initialize(bool server)
+int clk_rpmsg_initialize(void)
 {
-  return rpmsg_register_callback(CLK_RPMSG_NAME,
-                      (void *)(uintptr_t)server,
-                      clk_rpmsg_device_created,
-                      clk_rpmsg_device_destroyed,
-                      clk_rpmsg_channel_created,
-                      clk_rpmsg_channel_destroyed,
-                      clk_rpmsg_channel_received);
+  return rpmsg_register_callback(NULL,
+                                 clk_rpmsg_device_created,
+                                 clk_rpmsg_device_destroy,
+                                 NULL);
 }

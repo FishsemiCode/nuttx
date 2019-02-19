@@ -266,7 +266,7 @@ struct clk *clk_register_mux(const char *name, const char * const *parent_names,
 struct clk *clk_register_rpmsg(const char *name, uint8_t flags);
 
 /* rpmsg clk must be initialize in board initialization */
-int clk_rpmsg_initialize(bool server);
+int clk_rpmsg_initialize(void);
 #endif
 
 #undef EXTERN
