@@ -130,7 +130,7 @@ endif
 ARCHCFLAGS = -D__NuttX__ -fno-builtin
 ARCHCXXFLAGS = -DCONFIG_WCHAR_BUILTIN -D__NuttX__ -fno-builtin
 ifneq ($(CONFIG_CXX_EXCEPTION),y)
-  ARCHCPUFLAGSXX += -fno-exceptions -fcheck-new -fno-rtti
+  ARCHCXXFLAGS += -fno-exceptions -fcheck-new -fno-rtti
 endif
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wundef
 ARCHWARNINGSXX = -Wall -Wundef
