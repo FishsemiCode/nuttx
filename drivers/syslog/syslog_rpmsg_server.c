@@ -41,10 +41,9 @@
 #include <nuttx/config.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/rptun/openamp.h>
 #include <nuttx/syslog/syslog.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
-
-#include <openamp/open_amp.h>
 
 #include "syslog.h"
 #include "syslog_rpmsg.h"
@@ -61,9 +60,10 @@
 
 struct syslog_rpmsg_server_s
 {
-  char         *tmpbuf;
-  unsigned int nextpos;
-  unsigned int alloced;
+  struct rpmsg_endpoint ept;
+  char                  *tmpbuf;
+  unsigned int          nextpos;
+  unsigned int          alloced;
 };
 
 /****************************************************************************
@@ -72,10 +72,11 @@ struct syslog_rpmsg_server_s
 
 static void syslog_rpmsg_write(const char *buf1, size_t len1,
                                const char *buf2, size_t len2);
-static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel);
-static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
-static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
+static void syslog_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
+                                 const char *name, uint32_t dest);
+static void syslog_rpmsg_ns_unbind(struct rpmsg_endpoint *ept);
+static int  syslog_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                                size_t len, uint32_t src, void *priv_);
 
 /****************************************************************************
  * Private Functions
@@ -115,36 +116,53 @@ static void syslog_rpmsg_write(const char *buf1, size_t len1,
     }
 }
 
-static void syslog_rpmsg_channel_created(struct rpmsg_channel *channel)
+static void syslog_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
+                                 const char *name, uint32_t dest)
 {
   struct syslog_rpmsg_server_s *priv;
+  int ret;
 
-  priv = kmm_zalloc(sizeof(*priv));
-  if (priv)
+  if (strcmp(name, SYSLOG_RPMSG_EPT_NAME))
     {
-      rpmsg_set_privdata(channel, priv);
+      return;
     }
-}
 
-static void syslog_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
-{
-  struct syslog_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
-
-  if (priv)
+  priv = kmm_zalloc(sizeof(struct syslog_rpmsg_server_s));
+  if (!priv)
     {
-      if (priv->nextpos)
-        {
-          syslog_rpmsg_write(priv->tmpbuf, priv->nextpos, "\n", 1);
-        }
-      kmm_free(priv->tmpbuf);
+      return;
+    }
+
+  priv->ept.priv = priv;
+
+  ret = rpmsg_create_ept(&priv->ept, rdev, SYSLOG_RPMSG_EPT_NAME,
+                         RPMSG_ADDR_ANY, dest,
+                         syslog_rpmsg_ept_cb, syslog_rpmsg_ns_unbind);
+  if (ret)
+    {
       kmm_free(priv);
     }
 }
 
-static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
+static void syslog_rpmsg_ns_unbind(struct rpmsg_endpoint *ept)
 {
-  struct syslog_rpmsg_server_s *priv = rpmsg_get_privdata(channel);
+  struct syslog_rpmsg_server_s *priv = ept->priv;
+
+  if (priv->nextpos)
+    {
+      syslog_rpmsg_write(priv->tmpbuf, priv->nextpos, "\n", 1);
+    }
+
+  rpmsg_destroy_ept(ept);
+
+  kmm_free(priv->tmpbuf);
+  kmm_free(priv);
+}
+
+static int syslog_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                               size_t len, uint32_t src, void *priv_)
+{
+  struct syslog_rpmsg_server_s *priv = priv_;
   struct syslog_rpmsg_header_s *header = data;
 
   if (header->command == SYSLOG_RPMSG_TRANSFER)
@@ -194,8 +212,10 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
 
       done.command = SYSLOG_RPMSG_TRANSFER_DONE;
       done.result  = printed + copied;
-      rpmsg_send(channel, &done, sizeof(done));
+      rpmsg_send(ept, &done, sizeof(done));
     }
+
+  return 0;
 }
 
 /****************************************************************************
@@ -204,12 +224,8 @@ static void syslog_rpmsg_channel_received(struct rpmsg_channel *channel,
 
 int syslog_rpmsg_server_init(void)
 {
-  return rpmsg_register_callback(
-                SYSLOG_RPMSG_CHANNEL_NAME,
-                NULL,
-                NULL,
-                NULL,
-                syslog_rpmsg_channel_created,
-                syslog_rpmsg_channel_destroyed,
-                syslog_rpmsg_channel_received);
+  return rpmsg_register_callback(NULL,
+                                 NULL,
+                                 NULL,
+                                 syslog_rpmsg_ns_bind);
 }

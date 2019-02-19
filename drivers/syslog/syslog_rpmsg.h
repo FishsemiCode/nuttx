@@ -41,7 +41,7 @@
  * Pre-processor definitions
  ****************************************************************************/
 
-#define SYSLOG_RPMSG_CHANNEL_NAME       "rpmsg-syslog"
+#define SYSLOG_RPMSG_EPT_NAME           "rpmsg-syslog"
 
 #define SYSLOG_RPMSG_TRANSFER           0
 #define SYSLOG_RPMSG_TRANSFER_DONE      1
