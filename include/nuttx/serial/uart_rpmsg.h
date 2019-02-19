@@ -61,7 +61,6 @@ extern "C"
 
 int uart_rpmsg_init(const char *cpu_name, const char *dev_name,
                     int buf_size, bool isconsole);
-int uart_rpmsg_server_init(const char *dev_name, int buf_size);
 
 #undef EXTERN
 #ifdef __cplusplus

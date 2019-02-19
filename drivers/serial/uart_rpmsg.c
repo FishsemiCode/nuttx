@@ -44,10 +44,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <openamp/open_amp.h>
-
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/rptun/openamp.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/serial/uart_rpmsg.h>
 
@@ -57,7 +56,7 @@
 
 #define UART_RPMSG_DEV_CONSOLE          "/dev/console"
 #define UART_RPMSG_DEV_PREFIX           "/dev/tty"
-#define UART_RPMSG_CHANNEL_PREFIX       "rpmsg-tty"
+#define UART_RPMSG_EPT_PREFIX           "rpmsg-tty"
 
 #define UART_RPMSG_TTY_WRITE            0
 #define UART_RPMSG_TTY_WAKEUP           1
@@ -89,13 +88,13 @@ begin_packed_struct struct uart_rpmsg_wakeup_s
 
 struct uart_rpmsg_priv_s
 {
-  struct rpmsg_channel *channel;
-  char                 channel_name[RPMSG_NAME_SIZE];
-  const char           *cpu_name;
-  void                 *recv_data;
-  bool                 last_upper;
+  struct rpmsg_endpoint ept;
+  const char            *devname;
+  const char            *cpuname;
+  void                  *recv_data;
+  bool                  last_upper;
 #ifdef CONFIG_SERIAL_TERMIOS
-  struct termios       termios;
+  struct termios        termios;
 #endif
 };
 
@@ -119,13 +118,10 @@ static void uart_rpmsg_send(FAR struct uart_dev_s *dev, int ch);
 static void uart_rpmsg_txint(FAR struct uart_dev_s *dev, bool enable);
 static bool uart_rpmsg_txready(FAR struct uart_dev_s *dev);
 static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev);
-static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_);
-static void uart_rpmsg_channel_created(struct rpmsg_channel *channel);
-static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel);
-static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src);
-static int  uart_rpmsg_init_(const char *cpu_name, const char *dev_name_,
-                    int buf_size, bool isconsole);
+static void uart_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_);
+static void uart_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_);
+static int  uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                              size_t len, uint32_t src, void *priv_);
 
 /****************************************************************************
  * Private Data
@@ -234,9 +230,9 @@ static bool uart_rpmsg_rxflowcontrol(FAR struct uart_dev_s *dev,
       memset(&msg, 0, sizeof(msg));
 
       msg.header.command = UART_RPMSG_TTY_WAKEUP;
-      if (priv->channel)
+      if (is_rpmsg_ept_ready(&priv->ept))
         {
-          rpmsg_send(priv->channel, &msg, sizeof(msg));
+          rpmsg_send(&priv->ept, &msg, sizeof(msg));
         }
     }
 
@@ -252,7 +248,7 @@ static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev)
   size_t len = xfer->length + xfer->nlength;
   uint32_t space;
 
-  msg = rpmsg_get_tx_payload_buffer(priv->channel, &space, true);
+  msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
   if (!msg)
     {
       dev->dmatx.length = 0;
@@ -284,7 +280,7 @@ static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev)
   msg->header.result  = -ENXIO;
   msg->header.cookie  = (uintptr_t)dev;
 
-  rpmsg_send_nocopy(priv->channel, msg, sizeof(*msg) + B2C(len));
+  rpmsg_send_nocopy(&priv->ept, msg, sizeof(*msg) + B2C(len));
 }
 
 static void uart_rpmsg_dmareceive(FAR struct uart_dev_s *dev)
@@ -330,7 +326,7 @@ static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev)
 {
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (priv->channel && dev->dmatx.length == 0)
+  if (is_rpmsg_ept_ready(&priv->ept) && dev->dmatx.length == 0)
     {
       uart_xmitchars_dma(dev);
     }
@@ -379,56 +375,43 @@ static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev)
   return true;
 }
 
-static void uart_rpmsg_device_created(struct remote_device *rdev, void *priv_)
+static void uart_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_)
+{
+  struct uart_dev_s *dev = priv_;
+  struct uart_rpmsg_priv_s *priv = dev->priv;
+  char eptname[RPMSG_NAME_SIZE];
+
+  if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
+    {
+      priv->ept.priv = dev;
+      sprintf(eptname, "%s%s", UART_RPMSG_EPT_PREFIX, priv->devname);
+      rpmsg_create_ept(&priv->ept, rdev, eptname,
+                       RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
+                       uart_rpmsg_ept_cb, NULL);
+    }
+}
+
+static void uart_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_)
 {
   struct uart_dev_s *dev = priv_;
   struct uart_rpmsg_priv_s *priv = dev->priv;
 
-  if (priv->cpu_name && strcmp(priv->cpu_name, rdev->proc->cpu_name) == 0)
+  if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
-      rpmsg_create_channel(rdev, priv->channel_name);
+      rpmsg_destroy_ept(&priv->ept);
     }
 }
 
-static void uart_rpmsg_channel_created(struct rpmsg_channel *channel)
+static int uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                             size_t len, uint32_t src, void *priv_)
 {
-  struct uart_dev_s *dev = rpmsg_get_callback_privdata(channel->name);
-  struct uart_rpmsg_priv_s *priv = dev->priv;
-
-  if (priv->channel == NULL)
-    {
-      priv->channel = channel;
-      rpmsg_set_privdata(channel, dev);
-      uart_rpmsg_dmatxavail(dev);
-    }
-}
-
-static void uart_rpmsg_channel_destroyed(struct rpmsg_channel *channel)
-{
-  struct uart_dev_s *dev = rpmsg_get_privdata(channel);
-
-  if (dev != NULL)
-    {
-      struct uart_rpmsg_priv_s *priv = dev->priv;
-      priv->channel = NULL;
-    }
-}
-
-static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv_, unsigned long src)
-{
-  struct uart_dev_s *dev = rpmsg_get_privdata(channel);
+  struct uart_dev_s *dev = priv_;
   struct uart_rpmsg_header_s *header = data;
   struct uart_rpmsg_write_s *msg = data;
 
-  if (dev == NULL)
-    {
-      return;
-    }
-
   if (header->response)
     {
-      /* Get write-cmd reponse, this tell how many data have snet */
+      /* Get write-cmd reponse, this tell how many data have sent */
 
       dev->dmatx.nbytes = header->result;
       if (header->result < 0)
@@ -456,7 +439,7 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
       priv->recv_data = NULL;
 
       header->response = 1;
-      rpmsg_send(priv->channel, msg, sizeof(*msg));
+      rpmsg_send(ept, msg, sizeof(*msg));
     }
   else if (header->command == UART_RPMSG_TTY_WAKEUP)
     {
@@ -464,9 +447,15 @@ static void uart_rpmsg_channel_received(struct rpmsg_channel *channel,
 
       uart_rpmsg_dmatxavail(dev);
     }
+
+  return 0;
 }
 
-static int uart_rpmsg_init_(const char *cpu_name, const char *dev_name_,
+/****************************************************************************
+ * Public Funtions
+ ****************************************************************************/
+
+int uart_rpmsg_init(const char *cpuname, const char *devname,
                     int buf_size, bool isconsole)
 {
   struct uart_rpmsg_priv_s *priv;
@@ -503,23 +492,21 @@ static int uart_rpmsg_init_(const char *cpu_name, const char *dev_name_,
       goto fail;
     }
 
-  priv->cpu_name = cpu_name;
+  priv->cpuname = cpuname;
+  priv->devname = devname;
 
   dev->priv = priv;
 
-  sprintf(priv->channel_name, "%s%s", UART_RPMSG_CHANNEL_PREFIX, dev_name_);
-  ret = rpmsg_register_callback(priv->channel_name, dev,
-              uart_rpmsg_device_created,
-              NULL,
-              uart_rpmsg_channel_created,
-              uart_rpmsg_channel_destroyed,
-              uart_rpmsg_channel_received);
+  ret = rpmsg_register_callback(dev,
+                                uart_rpmsg_device_created,
+                                uart_rpmsg_device_destroy,
+                                NULL);
   if (ret < 0)
     {
       goto fail;
     }
 
-  sprintf(dev_name, "%s%s", UART_RPMSG_DEV_PREFIX, dev_name_);
+  sprintf(dev_name, "%s%s", UART_RPMSG_DEV_PREFIX, devname);
   uart_register(dev_name, dev);
 
   if (dev->isconsole)
@@ -536,21 +523,6 @@ fail:
   kmm_free(dev);
 
   return ret;
-}
-
-/****************************************************************************
- * Public Funtions
- ****************************************************************************/
-
-int uart_rpmsg_init(const char *cpu_name, const char *dev_name,
-                    int buf_size, bool isconsole)
-{
-  return uart_rpmsg_init_(cpu_name, dev_name, buf_size, isconsole);
-}
-
-int uart_rpmsg_server_init(const char *dev_name, int buf_size)
-{
-  return uart_rpmsg_init_(NULL, dev_name, buf_size, false);
 }
 
 #ifdef CONFIG_RPMSG_SERIALINIT
