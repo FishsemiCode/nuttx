@@ -101,14 +101,6 @@
 
 #define SONG_CLK_NAME_MAX               50
 
-/* This describe flags used across song wrapper clk */
-
-/* pll clk flags */
-#define CLK_PLL_READ_ONLY               0x01
-
-/* gr clk flags */
-#define CLK_GR_DIV_16                   0x01
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/

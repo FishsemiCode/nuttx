@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/clk/song/song-clk.h>
 
 #include <debug.h>
 
