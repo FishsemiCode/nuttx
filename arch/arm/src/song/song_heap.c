@@ -84,7 +84,7 @@ extern uint32_t _eheap3;          /* End+1 of heap3 */
  * g_idle_topstack is a read-only variable the provides this computed
  * address.
  */
-const uintptr_t g_idle_topstack = _START_HEAP;
+const uintptr_t __attribute__ ((weak)) g_idle_topstack = _START_HEAP;
 
 /****************************************************************************
  * Public Functions

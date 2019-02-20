@@ -41,6 +41,28 @@ CMN_CSRCS += up_modifyreg16.c up_modifyreg32.c up_pthread_start.c
 CMN_CSRCS += up_puts.c up_releasestack.c up_semi_syslog.c
 CMN_CSRCS += up_stackframe.c up_task_start.c up_usestack.c up_vfork.c
 
+ifeq ($(CONFIG_ARCH_FAMILY),"armv7-a")
+# arch/arm/src/armv7-a
+#
+HEAD_ASRC += arm_vectortab.S
+
+CMN_ASRCS += arm_cpuhead.S arm_pghead.S
+CMN_ASRCS += arm_fetchadd.S arm_fpuconfig.S arm_fullcontextrestore.S
+CMN_ASRCS += arm_restorefpu.S arm_savefpu.S arm_saveusercontext.S arm_testset.S
+CMN_ASRCS += arm_vectoraddrexcptn.S arm_vectors.S arm_vfork.S
+CMN_ASRCS += cp15_clean_dcache.S cp15_coherent_dcache.S cp15_flush_dcache.S
+CMN_ASRCS += cp15_invalidate_dcache.S cp15_invalidate_dcache_all.S
+
+CMN_CSRCS += arm_addrenv.c arm_addrenv_kstack.c arm_addrenv_shm.c arm_addrenv_ustack.c arm_addrenv_utils.c
+CMN_CSRCS += arm_allocpage.c arm_assert.c arm_blocktask.c arm_cache.c arm_checkmapping.c arm_copyarmstate.c
+CMN_CSRCS += arm_copyfullstate.c arm_cpuidlestack.c arm_cpuindex.c arm_cpupause.c arm_cpustart.c
+CMN_CSRCS += arm_dataabort.c arm_doirq.c arm_gicv2.c arm_gicv2_dump.c arm_initialstate.c arm_l2cc_pl310.c
+CMN_CSRCS += arm_mmu.c arm_pgalloc.c arm_pginitialize.c arm_physpgaddr.c arm_prefetchabort.c
+CMN_CSRCS += arm_releasepending.c arm_reprioritizertr.c arm_schedulesigaction.c arm_scu.c
+CMN_CSRCS += arm_sigdeliver.c arm_signal_dispatch.c arm_syscall.c
+CMN_CSRCS += arm_unblocktask.c arm_undefinedinsn.c arm_va2pte.c arm_virtpgaddr.c
+
+else ifeq ($(CONFIG_ARCH_FAMILY),"armv7-m")
 # arch/arm/src/armv7-m
 #
 ifneq ($(CONFIG_ARMV7M_LAZYFPU),y)
@@ -63,11 +85,14 @@ CMN_CSRCS += up_schedulesigaction.c up_sigdeliver.c up_signal_dispatch.c
 CMN_CSRCS += up_stackcheck.c up_svcall.c up_systick.c up_unblocktask.c
 CMN_CSRCS += up_vectors.c
 
+endif
+
 # arch/arm/src/song
 #
 CHIP_ASRCS += arm_head.S
-CHIP_CSRCS += arm_fpu.c arm_mpu.c arm_nvic.c abies_cp_clk.c
-CHIP_CSRCS += banks_sensor.c banks_sensor_clk.c banks_rpm.c banks_cp_clk.c
+CHIP_CSRCS += arm_fpu.c arm_gic.c arm_mpu.c arm_nvic.c arm_smmu.c
+CHIP_CSRCS += abies_cp_clk.c
+CHIP_CSRCS += banks_cp.c banks_cp_clk.c banks_sensor.c banks_sensor_clk.c banks_rpm.c
 CHIP_CSRCS += fvp_mps2_m4.c
 CHIP_CSRCS += song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c

@@ -59,11 +59,45 @@
 #  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
 #endif
 
+#ifdef CONFIG_SONG_MPCORE_VBASE
+#  define CHIP_MPCORE_VBASE           CONFIG_SONG_MPCORE_VBASE
+#endif
+
+#ifdef CONFIG_ARCH_USE_MMU
+#  define PGTABLE_BASE_PADDR          CONFIG_SONG_PGTABLE_START
+#  define PGTABLE_BASE_VADDR          CONFIG_SONG_PGTABLE_VSTART
+
+#ifdef CONFIG_BOOT_RUNFROMFLASH
+#  define NUTTX_TEXT_PADDR            (CONFIG_FLASH_START & 0xfff00000)
+#  define NUTTX_TEXT_VADDR            (CONFIG_FLASH_VSTART & 0xfff00000)
+#  define NUTTX_TEXT_SIZE             CONFIG_FLASH_SIZE
+#  define NUTTX_RAM_PADDR             (CONFIG_RAM_START & 0xfff00000)
+#  define NUTTX_RAM_VADDR             (CONFIG_RAM_VSTART & 0xfff00000)
+#  define NUTTX_RAM_SIZE              CONFIG_RAM_SIZE
+#else
+#  define NUTTX_TEXT_PADDR            (CONFIG_RAM_START & 0xfff00000)
+#  define NUTTX_TEXT_VADDR            (CONFIG_RAM_VSTART & 0xfff00000)
+#  define NUTTX_TEXT_SIZE             CONFIG_RAM_SIZE
+#endif
+
+#  define NUTTX_DEV_BASE_PADDR        (CONFIG_SONG_DEV_START & 0xfff00000)
+#  define NUTTX_DEV_BASE_VADDR        (CONFIG_SONG_DEV_VSTART & 0xfff00000)
+#  define NUTTX_DEV_MAP_SIZE          CONFIG_SONG_DEV_SIZE
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
+
+/* MMU **********************************************************************/
+
+#ifdef CONFIG_ARCH_HAVE_MMU
+void up_mmuinitialize(void);
+#else
+#  define up_mmuinitialize()
+#endif
 
 /* MPU **********************************************************************/
 
@@ -80,9 +114,9 @@ void up_mpu_priv_heap(uintptr_t start, size_t size);
 /* FPU **********************************************************************/
 
 #ifdef CONFIG_ARCH_FPU
-void up_fpuinitialize(void);
+void arm_fpuconfig(void);
 #else
-#  define up_fpuinitialize()
+#  define arm_fpuconfig()
 #endif
 
 /* Power ********************************************************************/

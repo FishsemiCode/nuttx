@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_FPU
+#if defined(CONFIG_ARCH_CORTEXM4) && defined(CONFIG_ARCH_FPU)
 
 #include <nuttx/irq.h>
 
@@ -67,7 +67,7 @@
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_fpuinitialize
+ * Name: arm_fpuconfig
  *
  * Description:
  *   Configure the FPU.  Relative bit settings:
@@ -89,7 +89,7 @@
  *
  ****************************************************************************/
 
-void up_fpuinitialize(void)
+void arm_fpuconfig(void)
 {
   uint32_t regval;
 

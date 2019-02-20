@@ -44,7 +44,6 @@
 #include <nuttx/power/pm.h>
 
 #include "chip.h"
-#include "nvic.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -153,14 +152,12 @@ void up_idle(void)
 
 void weak_function up_cpu_doze(void)
 {
-  modifyreg32(NVIC_SYSCON, NVIC_SYSCON_SLEEPDEEP, 0);
   up_cpu_wfi();
 }
 
 void weak_function up_cpu_idle(void)
 {
-  modifyreg32(NVIC_SYSCON, 0, NVIC_SYSCON_SLEEPDEEP);
-  up_cpu_wfi();
+  up_cpu_doze();
 }
 
 void weak_function up_cpu_standby(void)
@@ -183,6 +180,7 @@ void weak_function up_cpu_normal(void)
 
 void up_cpu_wfi(void)
 {
+#ifdef CONFIG_ARCH_CORTEXM4
   int basepri = 0;
 
   /* Change BASEPRI to the minimal priority
@@ -206,6 +204,13 @@ void up_cpu_wfi(void)
       : "r" (0xff)
       : "memory"
     );
+#else
+  __asm__ __volatile__
+    (
+      "\tdsb\n"
+      "\twfi\n"
+    );
+#endif
 }
 
 void up_cpu_save(void)
@@ -228,7 +233,7 @@ void up_cpu_restore(void)
    * handler when we issue SVC call.
    */
 
-  up_fpuinitialize();
+  arm_fpuconfig();
 
   /* Restore core context. */
 

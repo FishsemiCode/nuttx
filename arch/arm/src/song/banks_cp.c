@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/arm/src/song/arm_head.S
+ * arch/arm/src/song/banks_cp.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Author: Yuan Zhang <zhangyuan7@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,116 +39,121 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_CORTEXM4
+#ifdef CONFIG_ARCH_CHIP_BANKS_CP
 
+#include <nuttx/drivers/addrenv.h>
+#include <nuttx/dma/song_dmas.h>
+#include <nuttx/serial/uart_16550.h>
+#include <nuttx/timers/dw_timer.h>
+#include <nuttx/timers/arch_timer.h>
+
+#include "chip.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 /****************************************************************************
- * Public Symbols
+ * Public Define
  ****************************************************************************/
-
-	.syntax		unified
-	.thumb
-	.file		"arm_head.S"
-	.globl		arm_boot
-	.globl		arm_data_initialize
-	.globl		os_start
-	.globl		_ebss
 
 /****************************************************************************
- *   GCC in LTO mode interoperates poorly with non-standard libraries that
- *   provide implementations of compiler intrinsics such as memcpy/memset
- *   or the stack protector entry points.
- *
- *   By referencing these functions from a non-LTO object that can be passed
- *   to the linker via the -plugin-opt=-pass-through=-lxxx options, the
- *   intrinsics are included in the link in a way that allows them to be
- *   pruned again if no other references to them exist.
+ * Public Data
  ****************************************************************************/
-
-	.globl		__aeabi_d2f
-	.globl		__aeabi_d2iz
-	.globl		__aeabi_d2lz
-	.globl		__aeabi_d2uiz
-	.globl		__aeabi_dcmpun
-	.globl		__aeabi_ddiv
-	.globl		__aeabi_dmul
-	.globl		__aeabi_l2f
-	.globl		__aeabi_ldivmod
-	.globl		__aeabi_ui2d
-	.globl		__aeabi_uldivmod
-	.globl		__gcc_personality_v0
-	.globl		__popcountsi2
 
 /****************************************************************************
- * Name: __start
+ * Private Data
  ****************************************************************************/
 
-	.text
-	.thumb_func
-	.globl		__start
-	.type		__start, function
-
-__start:
-#if CONFIG_EARLY_STACKSIZE > 0
-	/* Use a dedicated stack for early process to avoid
-	 * corrupt the idle stack during restoring from the
-	 * partial powerdown state.
-	 */
-
-	ldr		sp, =g_early_stack
-	bl		up_earlystart
+#ifdef CONFIG_SONG_DMAS
+static FAR struct dma_dev_s *g_dma[2] =
+{
+  [1] = DEV_END,
+};
 #endif
 
-#ifdef CONFIG_STACK_COLORATION
-	/* Set the IDLE stack to the stack coloration value then jump to
-	 * arm_boot().  We take extreme care here because were currently
-	 * executing on this stack.
-	 */
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
-	ldr		r0, =#_ebss
-	ldr		r1, =#(CONFIG_IDLETHREAD_STACKSIZE >> 2)
-	ldr		r2, =#STACK_COLOR
-1:
-	sub		r1, r1, #1
-	cmp		r1, #0
-	str		r2, [r0], #4
-	bne		1b
+void up_earlyinitialize(void)
+{
+  static const struct simple_addrenv_s addrenv[] =
+  {
+    {.va = 0xe0000000, .pa = 0xf8000000, .size = 0x08000000},
+    {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
+  };
+
+  simple_addrenv_initialize(addrenv);
+}
+
+void arm_timer_initialize(void)
+{
+#ifdef CONFIG_TIMER_DW
+  static const struct dw_timer_config_s config0 =
+  {
+    .minor = -1,
+    .base  = 0x87020000,
+    .irq   = 42,
+    .freq  = 26000000,
+  };
+
+  up_timer_set_lowerhalf(dw_timer_initialize(&config0));
+
+#ifdef CONFIG_CPULOAD_PERIOD
+  static const struct dw_timer_config_s config1 =
+  {
+    .minor = -1,
+    .base  = 0x87020014,
+    .irq   = 43,
+    .freq  = 26000000,
+  };
+
+  sched_period_extclk(dw_timer_initialize(&config1));
 #endif
 
-#ifdef CONFIG_ARMV7M_STACKCHECK
-	/* Set the stack limit before we attempt to call any functions */
+  static const struct dw_timer_config_s config2 =
+  {
+    .minor = 2,
+    .base  = 0x87020028,
+    .irq   = 44,
+    .freq  = 26000000,
+  };
 
-	ldr 		r10, =#(_ebss + 64)
+  dw_timer_initialize(&config2);
+
+  static const struct dw_timer_config_s config3 =
+  {
+    .minor = 3,
+    .base  = 0x8702003c,
+    .irq   = 45,
+    .freq  = 26000000,
+  };
+
+  dw_timer_initialize(&config3);
+#endif
+}
+
+void up_dma_initialize(void)
+{
+#ifdef CONFIG_SONG_DMAS
+  g_dma[0] = song_dmas_initialize(0, 0xe1003000, 52, NULL);
+#endif
+}
+
+#if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)
+FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
+{
+  return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
+}
 #endif
 
-	ldr		sp, =#(_ebss + CONFIG_IDLETHREAD_STACKSIZE)
-#ifdef CONFIG_ARCH_ICACHE
-	bl		up_enable_icache
-#endif
-#ifdef CONFIG_ARCH_DCACHE
-	bl		up_enable_dcache
-#endif
-	bl		arm_data_initialize
-	bl		arm_boot
-	bl		os_start
+void up_lateinitialize(void)
+{
 
-	.size		__start, .-__start
+}
 
-#if CONFIG_EARLY_STACKSIZE > 0
-/***************************************************************************
- * Name: g_early_stack
- ***************************************************************************/
+void up_finalinitialize(void)
+{
 
-	.bss
-	.local		g_early_stack
-	.type		g_early_stack, object
+}
 
-	.align		8
-	.space		CONFIG_EARLY_STACKSIZE
-g_early_stack:
-	.size		g_early_stack, CONFIG_EARLY_STACKSIZE
-#endif
-
-#endif /* CONFIG_ARCH_CORTEXM4 */
-	.end
+#endif /* CONFIG_ARCH_CHIP_BANKS_CP */

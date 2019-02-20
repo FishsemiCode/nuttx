@@ -87,8 +87,6 @@ begin_packed_struct struct zerotable_s
  * Private Function prototypes
  ****************************************************************************/
 
-static void init_kernelspace(void);
-
 #ifdef CONFIG_BUILD_PROTECTED
 static void init_userspace(void);
 #endif
@@ -148,7 +146,47 @@ static void cache_pm_notify(struct pm_callback_s *cb, int domain,
 }
 #endif
 
-static void init_kernelspace(void)
+#ifdef CONFIG_BUILD_PROTECTED
+static void init_userspace(void)
+{
+  const void *src;
+  void *dest;
+  void *end;
+
+  /* Initialize all of user-space .data */
+
+  DEBUGASSERT(USERSPACE->us_datasource != 0 &&
+              USERSPACE->us_datastart != 0 && USERSPACE->us_dataend != 0 &&
+              USERSPACE->us_datastart <= USERSPACE->us_dataend);
+
+  src  = (void *)USERSPACE->us_datasource;
+  dest = (void *)USERSPACE->us_datastart;
+  end  = (void *)USERSPACE->us_dataend;
+
+  if (src != dest)
+    {
+      memcpy(dest, src, end - dest);
+    }
+
+  /* Clear all of user-space .bss */
+
+  DEBUGASSERT(USERSPACE->us_bssstart != 0 && USERSPACE->us_bssend != 0 &&
+              USERSPACE->us_bssstart <= USERSPACE->us_bssend);
+
+  dest = (void *)USERSPACE->us_bssstart;
+  end  = (void *)USERSPACE->us_bssend;
+
+  memset(dest, 0, end - dest);
+}
+#else
+#  define init_userspace()
+#endif
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+void arm_data_initialize(void)
 {
 #ifdef CONFIG_SONG_COPY_TABLE
   struct copytable_s *copytable;
@@ -199,46 +237,6 @@ static void init_kernelspace(void)
 #endif
 }
 
-#ifdef CONFIG_BUILD_PROTECTED
-static void init_userspace(void)
-{
-  const void *src;
-  void *dest;
-  void *end;
-
-  /* Initialize all of user-space .data */
-
-  DEBUGASSERT(USERSPACE->us_datasource != 0 &&
-              USERSPACE->us_datastart != 0 && USERSPACE->us_dataend != 0 &&
-              USERSPACE->us_datastart <= USERSPACE->us_dataend);
-
-  src  = (void *)USERSPACE->us_datasource;
-  dest = (void *)USERSPACE->us_datastart;
-  end  = (void *)USERSPACE->us_dataend;
-
-  if (src != dest)
-    {
-      memcpy(dest, src, end - dest);
-    }
-
-  /* Clear all of user-space .bss */
-
-  DEBUGASSERT(USERSPACE->us_bssstart != 0 && USERSPACE->us_bssend != 0 &&
-              USERSPACE->us_bssstart <= USERSPACE->us_bssend);
-
-  dest = (void *)USERSPACE->us_bssstart;
-  end  = (void *)USERSPACE->us_bssend;
-
-  memset(dest, 0, end - dest);
-}
-#else
-#  define init_userspace()
-#endif
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
 /****************************************************************************
  * Name: __start
  *
@@ -251,25 +249,21 @@ void weak_function up_earlyinitialize(void)
 {
 }
 
-void up_start(void)
+void arm_boot(void)
 {
-  up_enable_icache();
-  up_enable_dcache();
-
-  init_kernelspace();
-  init_userspace();
-
-  up_earlyserialinit();
+  up_mmuinitialize();
 
   up_mpuinitialize();
-  up_fpuinitialize();
 
+  init_userspace();
+
+  arm_fpuconfig();
+
+  up_earlyserialinit();
   up_earlyinitialize();
   board_earlyinitialize();
 
 #ifdef CONFIG_PM
   pm_register(&g_cache_pm_cb);
 #endif
-
-  os_start();
 }

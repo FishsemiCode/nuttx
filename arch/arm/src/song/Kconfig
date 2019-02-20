@@ -12,6 +12,10 @@ choice
 	prompt "Song Chip Selection"
 	depends on ARCH_CHIP_SONG
 
+config ARCH_CHIP_BANKS_CP
+	bool "Banks CP"
+	select SONG_CORTEXA7
+
 config ARCH_CHIP_BANKS_RPM
 	bool "Banks RPM"
 	select SONG_CORTEXM4
@@ -62,6 +66,14 @@ config EARLY_STACKSIZE
 	int "Early stack size"
 	default 0
 
+config SONG_CORTEXA7
+	bool
+	select ARCH_CORTEXA7
+	select ARCH_HAVE_LOWVECTORS
+	select ARCH_HAVE_SDRAM
+	select ARM_THUMB
+	select ARMV7A_HAVE_GICv2
+
 config SONG_CORTEXM4
 	bool
 	select ARCH_CORTEXM4
@@ -85,3 +97,25 @@ config SONG_ICACHE_BASE
 
 config SONG_NR_IRQS
 	int "Interrupt Number"
+
+if ARCH_USE_MMU
+config SONG_MPCORE_VBASE
+	hex "mpcore base address"
+
+config SONG_PGTABLE_START
+	hex "pgtable base address"
+
+config SONG_PGTABLE_VSTART
+	hex "pgtable virtual base address"
+	default SONG_PGTABLE_START
+
+config SONG_DEV_START
+	hex "devices base address"
+
+config SONG_DEV_VSTART
+	hex "devices virtual base address"
+	default SONG_DEV_START
+
+config SONG_DEV_SIZE
+	int "devices map size"
+endif
