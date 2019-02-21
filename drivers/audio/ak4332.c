@@ -196,6 +196,7 @@ struct ak4332_s
   struct audio_lowerhalf_s dev;
   struct i2c_master_s *i2c;
   struct clk *mclk;
+  bool is_enable;
   bool pdm;
 };
 
@@ -377,29 +378,30 @@ static int ak4332_start(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (clk_enable(dev->mclk) == 1)
-    {
-      ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM,
-                       AK4332_PWR_PMTIM);
-      ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP1,
-                       AK4332_PWR_PMCP1);
-      usleep(6500);
-      ak4332_updatereg(dev, AK4332_PWR2,
-                       AK4332_PWR_PMLDO1P,
-                       AK4332_PWR_PMLDO1P);
-      usleep(500);
-      ak4332_updatereg(dev, AK4332_PWR2,
-                       AK4332_PWR_PMLDO1N,
-                       AK4332_PWR_PMLDO1N);
-      usleep(500);
-      ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA,
-                       AK4332_PWR_PMDA);
-      ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2,
-                       AK4332_PWR_PMCP2);
-      usleep(4500);
-      ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
-                       AK4332_PWR_PMHP);
-    }
+  if (dev->is_enable)
+    return OK;
+  dev->is_enable = true;
+  clk_enable(dev->mclk);
+  ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM,
+                   AK4332_PWR_PMTIM);
+  ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP1,
+                   AK4332_PWR_PMCP1);
+  usleep(6500);
+  ak4332_updatereg(dev, AK4332_PWR2,
+                   AK4332_PWR_PMLDO1P,
+                   AK4332_PWR_PMLDO1P);
+  usleep(500);
+  ak4332_updatereg(dev, AK4332_PWR2,
+                   AK4332_PWR_PMLDO1N,
+                   AK4332_PWR_PMLDO1N);
+  usleep(500);
+  ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA,
+                   AK4332_PWR_PMDA);
+  ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2,
+                   AK4332_PWR_PMCP2);
+  usleep(4500);
+  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
+                   AK4332_PWR_PMHP);
   return OK;
 }
 
@@ -412,16 +414,17 @@ static int ak4332_stop(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (clk_disable(dev->mclk) == 1)
-    {
-      ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
-      ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2, 0);
-      ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA, 0);
-      ak4332_updatereg(dev, AK4332_PWR2,
-                       AK4332_PWR_PMLDO1P | AK4332_PWR_PMLDO1N |
-                       AK4332_PWR_PMCP1, 0);
-      ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM, 0);
-    }
+  if (!dev->is_enable)
+    return OK;
+  dev->is_enable = false;
+  clk_disable(dev->mclk);
+  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
+  ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2, 0);
+  ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA, 0);
+  ak4332_updatereg(dev, AK4332_PWR2,
+                   AK4332_PWR_PMLDO1P | AK4332_PWR_PMLDO1N |
+                   AK4332_PWR_PMCP1, 0);
+  ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM, 0);
 
   return OK;
 }
@@ -436,8 +439,11 @@ static int ak4332_pause(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (clk_disable(dev->mclk) == 1)
-    ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
+  if (!dev->is_enable)
+    return OK;
+  dev->is_enable = false;
+  clk_disable(dev->mclk);
+  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
 
   return OK;
 }
@@ -450,9 +456,12 @@ static int ak4332_resume(struct audio_lowerhalf_s *dev_)
 {
   struct ak4332_s *dev = (struct ak4332_s *)dev_;
 
-  if (clk_enable(dev->mclk) == 1)
-    ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
-                     AK4332_PWR_PMHP);
+  if (dev->is_enable)
+    return OK;
+  dev->is_enable = true;
+  clk_enable(dev->mclk);
+  ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
+                   AK4332_PWR_PMHP);
   return OK;
 }
 #endif
