@@ -46,6 +46,7 @@
 #ifndef __ASSEMBLY__
 # include <stdint.h>
 # include <assert.h>
+# include <arch/irq.h>
 #endif
 
 /****************************************************************************
