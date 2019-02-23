@@ -251,12 +251,10 @@ void weak_function up_earlyinitialize(void)
 
 void arm_boot(void)
 {
-  up_mmuinitialize();
-
-  up_mpuinitialize();
-
   init_userspace();
 
+  up_mmuinitialize();
+  up_mpuinitialize();
   arm_fpuconfig();
 
   up_earlyserialinit();

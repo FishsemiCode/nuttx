@@ -100,6 +100,21 @@ __start:
 	bl		up_earlystart
 #endif
 
+#ifdef CONFIG_ARMV7M_STACKCHECK
+	/* Set the stack limit before we attempt to call any functions */
+
+	ldr 		r10, =#(_ebss + 64)
+#endif
+
+	ldr		sp, =#(_ebss + CONFIG_IDLETHREAD_STACKSIZE)
+
+#ifdef CONFIG_ARCH_ICACHE
+	bl		up_enable_icache
+#endif
+#ifdef CONFIG_ARCH_DCACHE
+	bl		up_enable_dcache
+#endif
+
 #ifdef CONFIG_STACK_COLORATION
 	/* Set the IDLE stack to the stack coloration value then jump to
 	 * arm_boot().  We take extreme care here because were currently
@@ -116,19 +131,6 @@ __start:
 	bne		1b
 #endif
 
-#ifdef CONFIG_ARMV7M_STACKCHECK
-	/* Set the stack limit before we attempt to call any functions */
-
-	ldr 		r10, =#(_ebss + 64)
-#endif
-
-	ldr		sp, =#(_ebss + CONFIG_IDLETHREAD_STACKSIZE)
-#ifdef CONFIG_ARCH_ICACHE
-	bl		up_enable_icache
-#endif
-#ifdef CONFIG_ARCH_DCACHE
-	bl		up_enable_dcache
-#endif
 	bl		arm_data_initialize
 	bl		arm_boot
 	bl		os_start
