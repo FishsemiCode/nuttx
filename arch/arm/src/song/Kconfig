@@ -95,13 +95,14 @@ config SONG_ICACHE_BASE
 	hex "Song icache base address"
 	depends on SONG_ICACHE
 
+config SONG_GIC_VBASE
+	hex "GIC base address"
+	depends on ARMV7A_HAVE_GICv2
+
 config SONG_NR_IRQS
 	int "Interrupt Number"
 
 if ARCH_USE_MMU
-config SONG_MPCORE_VBASE
-	hex "mpcore base address"
-
 config SONG_PGTABLE_START
 	hex "pgtable base address"
 
@@ -111,6 +112,7 @@ config SONG_PGTABLE_VSTART
 
 config SONG_DEV_START
 	hex "devices base address"
+	default 0x80000000
 
 config SONG_DEV_VSTART
 	hex "devices virtual base address"
@@ -118,4 +120,5 @@ config SONG_DEV_VSTART
 
 config SONG_DEV_SIZE
 	int "devices map size"
+	default 2147483648
 endif

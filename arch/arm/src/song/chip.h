@@ -49,41 +49,41 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* If the common ARMv7-M vector handling logic is used, then it expects the following
- * definition in this file that provides the number of supported external interrupts.
- */
-
-#define ARMV7M_PERIPHERAL_INTERRUPTS  (CONFIG_SONG_NR_IRQS - 16)
-
 #ifndef ARRAY_SIZE
 #  define ARRAY_SIZE(x)               (sizeof(x) / sizeof((x)[0]))
 #endif
 
-#ifdef CONFIG_SONG_MPCORE_VBASE
-#  define CHIP_MPCORE_VBASE           CONFIG_SONG_MPCORE_VBASE
+#ifdef CONFIG_SONG_GIC_VBASE
+#  define CHIP_MPCORE_VBASE           CONFIG_SONG_GIC_VBASE
 #endif
 
 #ifdef CONFIG_ARCH_USE_MMU
 #  define PGTABLE_BASE_PADDR          CONFIG_SONG_PGTABLE_START
 #  define PGTABLE_BASE_VADDR          CONFIG_SONG_PGTABLE_VSTART
 
-#ifdef CONFIG_BOOT_RUNFROMFLASH
-#  define NUTTX_TEXT_PADDR            (CONFIG_FLASH_START & 0xfff00000)
-#  define NUTTX_TEXT_VADDR            (CONFIG_FLASH_VSTART & 0xfff00000)
-#  define NUTTX_TEXT_SIZE             CONFIG_FLASH_SIZE
-#  define NUTTX_RAM_PADDR             (CONFIG_RAM_START & 0xfff00000)
-#  define NUTTX_RAM_VADDR             (CONFIG_RAM_VSTART & 0xfff00000)
-#  define NUTTX_RAM_SIZE              CONFIG_RAM_SIZE
-#else
-#  define NUTTX_TEXT_PADDR            (CONFIG_RAM_START & 0xfff00000)
-#  define NUTTX_TEXT_VADDR            (CONFIG_RAM_VSTART & 0xfff00000)
-#  define NUTTX_TEXT_SIZE             CONFIG_RAM_SIZE
-#endif
+#  ifdef CONFIG_BOOT_RUNFROMFLASH
+#    define NUTTX_TEXT_PADDR          (CONFIG_FLASH_START & 0xfff00000)
+#    define NUTTX_TEXT_VADDR          (CONFIG_FLASH_VSTART & 0xfff00000)
+#    define NUTTX_TEXT_SIZE           CONFIG_FLASH_SIZE
+#    define NUTTX_RAM_PADDR           (CONFIG_RAM_START & 0xfff00000)
+#    define NUTTX_RAM_VADDR           (CONFIG_RAM_VSTART & 0xfff00000)
+#    define NUTTX_RAM_SIZE            CONFIG_RAM_SIZE
+#  else
+#    define NUTTX_TEXT_PADDR          (CONFIG_RAM_START & 0xfff00000)
+#    define NUTTX_TEXT_VADDR          (CONFIG_RAM_VSTART & 0xfff00000)
+#    define NUTTX_TEXT_SIZE           CONFIG_RAM_SIZE
+#  endif
 
 #  define NUTTX_DEV_BASE_PADDR        (CONFIG_SONG_DEV_START & 0xfff00000)
 #  define NUTTX_DEV_BASE_VADDR        (CONFIG_SONG_DEV_VSTART & 0xfff00000)
 #  define NUTTX_DEV_MAP_SIZE          CONFIG_SONG_DEV_SIZE
 #endif
+
+/* If the common ARMv7-M vector handling logic is used, then it expects the following
+ * definition in this file that provides the number of supported external interrupts.
+ */
+
+#define ARMV7M_PERIPHERAL_INTERRUPTS  (CONFIG_SONG_NR_IRQS - 16)
 
 /****************************************************************************
  * Public Functions
