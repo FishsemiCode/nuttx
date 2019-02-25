@@ -143,6 +143,7 @@ static bool dw_timer_irq_pending(struct dw_timer_lowerhalf_s *lower)
 static void dw_timer_clear_irq(struct dw_timer_lowerhalf_s* lower_)
 {
   volatile uint32_t eoi = lower_->tim->EOI;
+  UNUSED(eoi);
 }
 
 static int dw_timer_start(FAR struct timer_lowerhalf_s *lower_)
