@@ -42,8 +42,7 @@
 #include <assert.h>
 #include <debug.h>
 #include <errno.h>
-
-#include <openamp/open_amp.h>
+#include <stdio.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/kthread.h>
@@ -56,6 +55,7 @@
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/pkt.h>
 #include <nuttx/net/rpmsg.h>
+#include <nuttx/rptun/openamp.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -161,12 +161,11 @@ struct net_rpmsg_drv_cookie_s
 
 struct net_rpmsg_drv_s
 {
-  FAR const char       *cpuname;
-  char                 channelname[RPMSG_NAME_SIZE];
-  sem_t                channelready;
-  struct rpmsg_channel *channel;
-  WDOG_ID              txpoll;   /* TX poll timer */
-  struct work_s        pollwork; /* For deferring poll work to the work queue */
+  FAR const char        *cpuname;
+  FAR const char        *devname;
+  struct rpmsg_endpoint ept;
+  WDOG_ID               txpoll;   /* TX poll timer */
+  struct work_s         pollwork; /* For deferring poll work to the work queue */
 
   /* This holds the information visible to the NuttX network */
 
@@ -185,18 +184,20 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev);
 
 /* RPMSG related functions */
 
-static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
-static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
-static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
+static int net_rpmsg_drv_default_handler(struct rpmsg_endpoint *ept,
+                                         void * data, size_t len,
+                                         uint32_t src, void *priv);
+static int net_rpmsg_drv_sockioctl_handler(struct rpmsg_endpoint *ept,
+                                           void * data, size_t len,
+                                           uint32_t src, void *priv);
+static int net_rpmsg_drv_transfer_handler(struct rpmsg_endpoint *ept,
+                                          void * data, size_t len,
+                                          uint32_t src, void *priv);
 
-static void net_rpmsg_drv_device_created(struct remote_device *rdev, void *priv_);
-static void net_rpmsg_drv_channel_created(struct rpmsg_channel *channel);
-static void net_rpmsg_drv_channel_destroyed(struct rpmsg_channel *channel);
-static void net_rpmsg_drv_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
+static void net_rpmsg_drv_device_created(struct rpmsg_device *rdev, void *priv_);
+static void net_rpmsg_drv_device_destroy(struct rpmsg_device *rdev, void *priv_);
+static int  net_rpmsg_drv_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                                 size_t len, uint32_t src, void *priv);
 
 static int  net_rpmsg_drv_send_recv(struct net_driver_s *dev,
                     void *header_, uint32_t command, int len);
@@ -234,7 +235,7 @@ static int  net_rpmsg_drv_ioctl(FAR struct net_driver_s *dev, int cmd,
  * Private Data
  ****************************************************************************/
 
-static const rpmsg_rx_cb_t g_net_rpmsg_drv_handler[] =
+static const rpmsg_ept_cb g_net_rpmsg_drv_handler[] =
 {
   [NET_RPMSG_IFUP]      = net_rpmsg_drv_default_handler,
   [NET_RPMSG_IFDOWN]    = net_rpmsg_drv_default_handler,
@@ -312,11 +313,11 @@ static int net_rpmsg_drv_transmit(FAR struct net_driver_s *dev, bool nocopy)
 
   if (nocopy)
     {
-      ret = rpmsg_send_nocopy(priv->channel, msg, sizeof(*msg) + msg->length);
+      ret = rpmsg_send_nocopy(&priv->ept, msg, sizeof(*msg) + msg->length);
     }
   else
     {
-      ret = rpmsg_send(priv->channel, msg, sizeof(*msg) + msg->length);
+      ret = rpmsg_send(&priv->ept, msg, sizeof(*msg) + msg->length);
     }
 
   if (ret < 0)
@@ -392,10 +393,11 @@ static int net_rpmsg_drv_txpoll(FAR struct net_driver_s *dev)
            * return a non-zero value to terminate the poll.
            */
 
-          dev->d_buf = rpmsg_get_tx_payload_buffer(priv->channel, &size, false);
+          dev->d_buf = rpmsg_get_tx_payload_buffer(&priv->ept, &size, false);
           if (dev->d_buf)
             {
               dev->d_buf += sizeof(struct net_rpmsg_transfer_s);
+              dev->d_pktsize = size - sizeof(struct net_rpmsg_transfer_s);
             }
 
           return dev->d_buf == NULL;
@@ -459,8 +461,9 @@ static void net_rpmsg_drv_reply(FAR struct net_driver_s *dev)
 
 /* RPMSG related functions */
 
-static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int net_rpmsg_drv_default_handler(struct rpmsg_endpoint *ept,
+                                         void * data, size_t len,
+                                         uint32_t src, void *priv)
 {
   struct net_rpmsg_header_s *header = data;
   struct net_rpmsg_drv_cookie_s *cookie =
@@ -468,17 +471,18 @@ static void net_rpmsg_drv_default_handler(struct rpmsg_channel *channel,
 
   memcpy(cookie->header, header, len);
   nxsem_post(&cookie->sem);
+  return 0;
 }
 
 static int net_rpmsg_drv_sockioctl_task(int argc, FAR char *argv[])
 {
   struct net_rpmsg_ioctl_s *msg;
-  struct rpmsg_channel *channel;
+  struct rpmsg_endpoint *ept;
   struct socket sock;
 
   /* Restore pointers from argv */
 
-  channel = (struct rpmsg_channel *)strtoul(argv[1], NULL, 0);
+  ept = (struct rpmsg_endpoint *)strtoul(argv[1], NULL, 0);
   msg = (struct net_rpmsg_ioctl_s *)strtoul(argv[2], NULL, 0);
 
   /* We need a temporary sock for ioctl here */
@@ -496,15 +500,16 @@ static int net_rpmsg_drv_sockioctl_task(int argc, FAR char *argv[])
 
   if (msg->header.cookie)
     {
-      rpmsg_send(channel, msg, sizeof(*msg) + msg->length);
+      rpmsg_send(ept, msg, sizeof(*msg) + msg->length);
     }
 
-  rpmsg_release_rx_buffer(channel, msg);
+  rpmsg_release_rx_buffer(ept, msg);
   return 0;
 }
 
-static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int net_rpmsg_drv_sockioctl_handler(struct rpmsg_endpoint *ept,
+                                           void * data, size_t len,
+                                           uint32_t src, void *priv)
 {
   char *argv[3];
   char arg1[16];
@@ -512,7 +517,7 @@ static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
 
   /* Save pointers into argv */
 
-  sprintf(arg1, "%#p", channel);
+  sprintf(arg1, "%#p", ept);
   sprintf(arg2, "%#p", data);
 
   argv[0] = arg1;
@@ -521,27 +526,12 @@ static void net_rpmsg_drv_sockioctl_handler(struct rpmsg_channel *channel,
 
   /* Move the action into a temp thread to avoid the deadlock */
 
-  rpmsg_hold_rx_buffer(channel, data);
+  rpmsg_hold_rx_buffer(ept, data);
   kthread_create("rpmsg-net", CONFIG_NET_RPMSG_PRIORITY,
           CONFIG_NET_RPMSG_STACKSIZE, net_rpmsg_drv_sockioctl_task, argv);
-}
 
-/****************************************************************************
- * Name: net_rpmsg_drv_transfer_handler
- *
- * Description:
- *   An message was received indicating the availability of a new RX packet
- *
- * Parameters:
- *   channel - Reference to the channel which receive the message
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *   The network is locked.
- *
- ****************************************************************************/
+  return 0;
+}
 
 #ifdef CONFIG_NET_IPv4
 static bool net_rpmsg_drv_is_ipv4(struct net_driver_s *dev)
@@ -593,17 +583,30 @@ static bool net_rpmsg_drv_is_arp(struct net_driver_s *dev)
 }
 #endif
 
-static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+/****************************************************************************
+ * Name: net_rpmsg_drv_transfer_handler
+ *
+ * Description:
+ *   An message was received indicating the availability of a new RX packet
+ *
+ * Parameters:
+ *   ept - Reference to the endpoint which receive the message
+ *
+ * Returned Value:
+ *   OK on success
+ *
+ * Assumptions:
+ *   The network is locked.
+ *
+ ****************************************************************************/
+
+static int net_rpmsg_drv_transfer_handler(struct rpmsg_endpoint *ept,
+                                          void * data, size_t len,
+                                          uint32_t src, void *priv)
 {
-  struct net_driver_s *dev = rpmsg_get_privdata(channel);
+  struct net_driver_s *dev = ept->priv;
   struct net_rpmsg_transfer_s *msg = data;
   void *oldbuf;
-
-  if (dev == NULL)
-    {
-      return;
-    }
 
   /* Lock the network and serialize driver operations if necessary.
    * NOTE: Serialization is only required in the case where the driver work
@@ -617,20 +620,7 @@ static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
 
   net_rpmsg_drv_dumppacket("receive", msg->data, msg->length);
 
-  /* Check if the packet is a valid size for the network buffer
-   * configuration.
-   */
-
-  if (msg->length < dev->d_llhdrlen || msg->length > dev->d_pktsize)
-    {
-      NETDEV_RXERRORS(dev);
-      net_unlock();
-      return;
-    }
-  else
-    {
-      NETDEV_RXPACKETS(dev);
-    }
+  NETDEV_RXPACKETS(dev);
 
   /* Copy the data from the hardware to dev->d_buf. Set
    * amount of data in dev->d_len
@@ -706,69 +696,51 @@ static void net_rpmsg_drv_transfer_handler(struct rpmsg_channel *channel,
 
   dev->d_buf = oldbuf;
   net_unlock();
+
+  return 0;
 }
 
-static void net_rpmsg_drv_device_created(struct remote_device *rdev, void *priv_)
+static void net_rpmsg_drv_device_created(struct rpmsg_device *rdev, void *priv_)
 {
   struct net_driver_s *dev = priv_;
   struct net_rpmsg_drv_s *priv = dev->d_private;
-  struct rpmsg_channel *channel;
+  char eptname[RPMSG_NAME_SIZE];
 
-  if (strcmp(priv->cpuname, rdev->proc->cpu_name) == 0)
+  if (!strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)))
     {
-      channel = rpmsg_create_channel(rdev, priv->channelname);
-      if (channel != NULL)
-        {
-          rpmsg_set_privdata(channel, dev);
-        }
+      priv->ept.priv = dev;
+      sprintf(eptname, NET_RPMSG_EPT_NAME, priv->devname);
+
+      rpmsg_create_ept(&priv->ept, rdev, eptname,
+                       RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
+                       net_rpmsg_drv_ept_cb, NULL);
     }
 }
 
-static void net_rpmsg_drv_channel_created(struct rpmsg_channel *channel)
+static void net_rpmsg_drv_device_destroy(struct rpmsg_device *rdev, void *priv_)
 {
-  struct net_driver_s *dev = rpmsg_get_privdata(channel);
-  struct net_rpmsg_drv_s *priv;
-  uint32_t size;
+  struct net_driver_s *dev = priv_;
+  struct net_rpmsg_drv_s *priv = dev->d_private;
 
-  if (dev != NULL)
+  if (!strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)))
     {
-      size  = rpmsg_get_buffer_size(channel);
-      size -= sizeof(struct net_rpmsg_transfer_s);
-      if (dev->d_pktsize > size)
-        {
-          dev->d_pktsize = size;
-        }
-
-      priv = dev->d_private;
-      priv->channel = channel;
-      nxsem_post(&priv->channelready);
+      rpmsg_destroy_ept(&priv->ept);
+      dev->d_buf = NULL;
     }
 }
 
-static void net_rpmsg_drv_channel_destroyed(struct rpmsg_channel *channel)
-{
-  struct net_driver_s *dev = rpmsg_get_privdata(channel);
-  struct net_rpmsg_drv_s *priv;
-
-  if (dev != NULL)
-    {
-      priv = dev->d_private;
-      net_rpmsg_drv_wait(&priv->channelready);
-      dev->d_buf    = NULL;
-      priv->channel = NULL;
-    }
-}
-
-static void net_rpmsg_drv_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int net_rpmsg_drv_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                                size_t len, uint32_t src, void *priv)
 {
   struct net_rpmsg_header_s *header = data;
   uint32_t command = header->command;
 
   if (command < sizeof(g_net_rpmsg_drv_handler) / sizeof(g_net_rpmsg_drv_handler[0]))
     {
-      g_net_rpmsg_drv_handler[command](channel, data, len, priv, src);
+      return g_net_rpmsg_drv_handler[command](ept, data, len, src, priv);
     }
+
+  return -EINVAL;
 }
 
 static int net_rpmsg_drv_send_recv(struct net_driver_s *dev,
@@ -787,20 +759,7 @@ static int net_rpmsg_drv_send_recv(struct net_driver_s *dev,
   header->result  = -ENXIO;
   header->cookie  = (uintptr_t)&cookie;
 
-  /* Is the channel ready? */
-
-  if (priv->channel == NULL)
-    {
-      /* No, wait until the channel ready */
-
-      net_rpmsg_drv_wait(&priv->channelready);
-
-      /* Repost to keep the semaphore still ready */
-
-      nxsem_post(&priv->channelready);
-    }
-
-  ret = rpmsg_send(priv->channel, header, len);
+  ret = rpmsg_send(&priv->ept, header, len);
   if (ret < 0)
     {
       goto out;
@@ -855,10 +814,11 @@ static void net_rpmsg_drv_poll_work(FAR void *arg)
     {
       /* Try to get the payload buffer if not yet */
 
-      dev->d_buf = rpmsg_get_tx_payload_buffer(priv->channel, &size, false);
+      dev->d_buf = rpmsg_get_tx_payload_buffer(&priv->ept, &size, false);
       if (dev->d_buf)
         {
           dev->d_buf += sizeof(struct net_rpmsg_transfer_s);
+          dev->d_pktsize = size - sizeof(struct net_rpmsg_transfer_s);
         }
     }
 
@@ -1111,10 +1071,11 @@ static void net_rpmsg_drv_txavail_work(FAR void *arg)
       if (dev->d_buf == NULL)
         {
 
-          dev->d_buf = rpmsg_get_tx_payload_buffer(priv->channel, &size, false);
+          dev->d_buf = rpmsg_get_tx_payload_buffer(&priv->ept, &size, false);
           if (dev->d_buf)
             {
               dev->d_buf += sizeof(struct net_rpmsg_transfer_s);
+              dev->d_pktsize = size - sizeof(struct net_rpmsg_transfer_s);
             }
         }
 
@@ -1391,10 +1352,7 @@ int net_rpmsg_drv_init(FAR const char *cpuname,
   dev = &priv->dev;
 
   priv->cpuname = cpuname;
-  sprintf(priv->channelname, NET_RPMSG_CHANNEL_NAME, devname);
-
-  nxsem_init(&priv->channelready, 0, 0);
-  nxsem_setprotocol(&priv->channelready, SEM_PRIO_NONE);
+  priv->devname = devname;
 
   /* Initialize the driver structure */
 
@@ -1418,9 +1376,10 @@ int net_rpmsg_drv_init(FAR const char *cpuname,
 
   /* Register the device with the openamp */
 
-  rpmsg_register_callback(priv->channelname, dev,
-    net_rpmsg_drv_device_created, NULL, net_rpmsg_drv_channel_created,
-    net_rpmsg_drv_channel_destroyed, net_rpmsg_drv_channel_received);
+  rpmsg_register_callback(dev,
+                          net_rpmsg_drv_device_created,
+                          net_rpmsg_drv_device_destroy,
+                          NULL);
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
