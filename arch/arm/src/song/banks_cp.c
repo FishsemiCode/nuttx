@@ -43,7 +43,13 @@
 
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/dma/song_dmag.h>
+#include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/mbox/song_mbox.h>
+#include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
+#include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/dw_timer.h>
 #include <nuttx/timers/arch_timer.h>
 
@@ -55,18 +61,39 @@
  * Public Define
  ****************************************************************************/
 
+#define TOP_MAILBOX_BASE            (0xE1000000)
+
+#define CPU_NAME_AP                 "ap"
+#define CPU_NAME_CP                 "cp"
+
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_CP                1
+
+#define _LOGBUF_BASE                ((uintptr_t)&_slog)
+#define _LOGBUF_SIZE                ((uint32_t)&_logsize)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
+extern uint32_t _slog;
+extern uint32_t _logsize;
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
-#ifdef CONFIG_SONG_DMAS
-static FAR struct dma_dev_s *g_dma[2] =
+#if defined (CONFIG_SONG_DMAS) || defined (CONFIG_SONG_DMAG)
+static FAR struct dma_dev_s *g_dma[3] =
 {
-  [1] = DEV_END,
+  [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[3] =
+{
+  [2] = DEV_END,
 };
 #endif
 
@@ -83,6 +110,10 @@ void up_earlyinitialize(void)
   };
 
   simple_addrenv_initialize(addrenv);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_AP, (void *)_LOGBUF_BASE, _LOGBUF_SIZE);
+#endif
 }
 
 void arm_timer_initialize(void)
@@ -135,7 +166,10 @@ void arm_timer_initialize(void)
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(0, 0xe1003000, 52, NULL);
+  g_dma[0] = song_dmas_initialize(CPU_INDEX_CP, 0xe1003000, 52, NULL);
+#endif
+#ifdef CONFIG_SONG_DMAG
+  g_dma[1] = song_dmag_initialize(CPU_INDEX_CP, 0x86300000, 51, NULL);
 #endif
 }
 
@@ -146,14 +180,138 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 }
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_AP, "CP", 1024, true);
+}
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x40,
+      .en_off     = 0x44,
+      .en_bit     = 0,
+      .src_en_off = 0x48,
+      .sta_off    = 0x50,
+      .chnl_count = 64,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 0,
+      .src_en_off = 0x8,
+      .sta_off    = 0x10,
+      .chnl_count = 64,
+      .irq        = 48,
+    },
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+static void up_rptun_init(void)
+{
+  static struct rptun_rsc_s rptun_rsc_ap
+    __attribute__ ((section(".resource_table"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .log_trace       =
+    {
+      .type          = RSC_TRACE,
+      .da            = _LOGBUF_BASE,
+      .len           = _LOGBUF_SIZE,
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .config_len    = 4,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x640,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_ap =
+  {
+    .cpu_name    = CPU_NAME_AP,
+    .role        = RPMSG_REMOTE,
+    .ch_start_tx = -1,
+    .ch_vring_tx = 0,
+    .ch_start_rx = -1,
+    .ch_vring_rx = 0,
+    .rsc         =
+    {
+      .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
+      .size      = sizeof(rptun_rsc_ap),
+    },
+  };
+
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
+
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize(true);
+#  endif
+
+#  ifdef CONFIG_RPMSG_REGULATOR
+  rpmsg_regulator_init(CPU_NAME_AP, true);
+#  endif
+
+#  ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
+#  endif
+
+#  ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_AP);
+#  endif
+}
+#endif
+
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+      up_mbox_init();
+#endif
 
+#ifdef CONFIG_SONG_RPTUN
+      up_rptun_init();
+#endif
 }
 
 void up_finalinitialize(void)
 {
-
 }
 
 #endif /* CONFIG_ARCH_CHIP_BANKS_CP */
