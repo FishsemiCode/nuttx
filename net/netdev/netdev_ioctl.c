@@ -899,7 +899,7 @@ static int netdev_ifr_ioctl(FAR struct socket *psock, int cmd,
           dev = netdev_ifr_dev(req);
           if (dev)
             {
-              ret = icmpv6_autoconfig(dev);
+              ret = icmpv6_autoconfig(dev, psock);
             }
         }
         break;

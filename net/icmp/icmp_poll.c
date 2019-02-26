@@ -60,7 +60,8 @@
  *   Poll a device "connection" structure for availability of ICMP TX data
  *
  * Input Parameters:
- *   dev - The device driver structure to use in the send operation
+ *   dev  - The device driver structure to use in the send operation
+ *   conn - A pointer to the ICMP connection structure
  *
  * Returned Value:
  *   None
@@ -70,7 +71,7 @@
  *
  ****************************************************************************/
 
-void icmp_poll(FAR struct net_driver_s *dev)
+void icmp_poll(FAR struct net_driver_s *dev, FAR struct icmp_conn_s *conn)
 {
   /* Setup for the application callback */
 
@@ -80,7 +81,7 @@ void icmp_poll(FAR struct net_driver_s *dev)
 
   /* Perform the application callback */
 
-  (void)devif_conn_event(dev, NULL, ICMP_POLL, dev->d_conncb);
+  (void)devif_conn_event(dev, conn, ICMP_POLL, conn->list);
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_ICMP && CONFIG_NET_ICMP_SOCKET */

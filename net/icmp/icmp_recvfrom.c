@@ -488,7 +488,7 @@ ssize_t icmp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
   /* Set up the callback */
 
-  state.recv_cb = icmp_callback_alloc(dev);
+  state.recv_cb = icmp_callback_alloc(dev, conn);
   if (state.recv_cb)
     {
       state.recv_cb->flags = (ICMP_ECHOREPLY | NETDEV_DOWN);
@@ -503,7 +503,7 @@ ssize_t icmp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
       ninfo("Start time: 0x%08x\n", state.recv_time);
       net_lockedwait(&state.recv_sem);
 
-      icmp_callback_free(dev, state.recv_cb);
+      icmp_callback_free(dev, conn, state.recv_cb);
     }
 
   net_unlock();

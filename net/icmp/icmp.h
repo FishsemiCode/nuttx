@@ -61,8 +61,10 @@
 
 /* Allocate/free an ICMP data callback */
 
-#define icmp_callback_alloc(dev)   devif_callback_alloc(dev, &(dev)->d_conncb)
-#define icmp_callback_free(dev,cb) devif_dev_callback_free(dev, cb)
+#define icmp_callback_alloc(dev, conn) \
+  devif_callback_alloc((dev), &(conn)->list)
+#define icmp_callback_free(dev, conn, cb) \
+  devif_conn_callback_free((dev), (cb), &(conn)->list)
 
 /****************************************************************************
  * Public types
@@ -92,6 +94,10 @@ struct icmp_conn_s
 
   struct iob_queue_s readahead;  /* Read-ahead buffering */
 #endif
+
+  /* Defines the list of ICMP callbacks */
+
+  FAR struct devif_callback_s *list;
 };
 #endif
 
@@ -237,6 +243,7 @@ FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev,
  *
  * Input Parameters:
  *   dev - The device driver structure to use in the send operation
+ *   conn - A pointer to the ICMP connection structure
  *
  * Returned Value:
  *   None
@@ -247,7 +254,7 @@ FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev,
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMP_SOCKET
-void icmp_poll(FAR struct net_driver_s *dev);
+void icmp_poll(FAR struct net_driver_s *dev, FAR struct icmp_conn_s *conn);
 #endif
 
 /****************************************************************************

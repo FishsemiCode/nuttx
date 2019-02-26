@@ -455,7 +455,7 @@ ssize_t icmp_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
 
   /* Set up the callback */
 
-  state.snd_cb = icmp_callback_alloc(dev);
+  state.snd_cb = icmp_callback_alloc(dev, conn);
   if (state.snd_cb)
     {
       state.snd_cb->flags   = (ICMP_POLL | NETDEV_DOWN);
@@ -484,7 +484,7 @@ ssize_t icmp_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
       ninfo("Start time: 0x%08x\n", state.snd_time);
       net_lockedwait(&state.snd_sem);
 
-      icmp_callback_free(dev, state.snd_cb);
+      icmp_callback_free(dev, conn, state.snd_cb);
     }
 
   net_unlock();
