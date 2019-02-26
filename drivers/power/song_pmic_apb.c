@@ -375,10 +375,6 @@ int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
 
   /* Set warm reset for the system button reset event */
   spmu_update_bits(priv, 0x18, 0x80000000, 0x0);
-  /* Buck0 keep enabled in sleep mode */
-  spmu_update_bits(priv, 0x20, 0x2, 0x2);
-  /* Buck1 keep in sleep mode */
-  spmu_update_bits(priv, 0x24, 0x2, 0x2);
 
   for (i = 0; i < SPMU_NUM_REGS; i++) {
       priv->rdev[i] = regulator_register(&spmu_regulator_desc[i], (void *)priv);
