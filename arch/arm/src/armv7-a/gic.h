@@ -50,8 +50,10 @@
 
 #include "nuttx/config.h"
 
+#ifndef __ASSEMBLY__
 #include <sys/types.h>
 #include <stdint.h>
+#endif
 
 #include "mpcore.h"
 #include "up_arch.h"
