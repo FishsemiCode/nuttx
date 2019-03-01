@@ -41,10 +41,9 @@
 
 #include <nuttx/clock.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/rptun/openamp.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/timers/rpmsg_rtc.h>
-
-#include <openamp/open_amp.h>
 
 #include <errno.h>
 #include <string.h>
@@ -53,7 +52,7 @@
  * Pre-processor definitions
  ****************************************************************************/
 
-#define RPMSG_RTC_CHANNEL_NAME      "rpmsg-rtc"
+#define RPMSG_RTC_EPT_NAME          "rpmsg-rtc"
 
 #define RPMSG_RTC_SET               0
 #define RPMSG_RTC_GET               1
@@ -119,12 +118,11 @@ struct rpmsg_rtc_lowerhalf_s
    * this file.
    */
 
-  sem_t                sem;
-  struct rpmsg_channel *channel;
-  const char           *cpu_name;
+  struct rpmsg_endpoint      ept;
+  const char                 *cpuname;
 
 #ifdef CONFIG_RTC_ALARM
-  struct lower_setalarm_s alarminfo[CONFIG_RTC_NALARMS];
+  struct lower_setalarm_s    alarminfo[CONFIG_RTC_NALARMS];
 #endif
 };
 
@@ -132,16 +130,18 @@ struct rpmsg_rtc_lowerhalf_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv);
-static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel);
-static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel);
-static void rpmsg_rtc_alarm_fire_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
-static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src);
-static int rpmsg_rtc_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
-                uint32_t command, struct rpmsg_rtc_header_s *msg, int len);
+static void rpmsg_rtc_device_created(struct rpmsg_device *rdev, void *priv);
+static void rpmsg_rtc_device_destroy(struct rpmsg_device *rdev, void *priv);
+static void rpmsg_rtc_alarm_fire_handler(struct rpmsg_endpoint *ept,
+                                         void *data, size_t len,
+                                         uint32_t src, void *priv);
+static int rpmsg_rtc_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                            size_t len, uint32_t src, void *priv);
 
+static int rpmsg_rtc_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
+                               uint32_t command,
+                               struct rpmsg_rtc_header_s *msg,
+                               int len);
 static int rpmsg_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower,
                             FAR struct rtc_time *rtctime);
 static int rpmsg_rtc_settime(FAR struct rtc_lowerhalf_s *lower,
@@ -179,48 +179,36 @@ static const struct rtc_ops_s g_rpmsg_rtc_ops =
  * Private Functions
  ****************************************************************************/
 
-static void rpmsg_rtc_device_created(struct remote_device *rdev, void *priv)
+static void rpmsg_rtc_device_created(struct rpmsg_device *rdev, void *priv)
 {
   struct rpmsg_rtc_lowerhalf_s *lower = priv;
-  struct rpmsg_channel *channel;
 
-  if (strcmp(lower->cpu_name, rdev->proc->cpu_name) == 0)
+  if (strcmp(lower->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
-      channel = rpmsg_create_channel(rdev, RPMSG_RTC_CHANNEL_NAME);
-      if (channel != NULL)
-        {
-          rpmsg_set_privdata(channel, lower);
-        }
+      lower->ept.priv = lower;
+
+      rpmsg_create_ept(&lower->ept, rdev, RPMSG_RTC_EPT_NAME,
+                       RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
+                       rpmsg_rtc_ept_cb, NULL);
     }
 }
 
-static void rpmsg_rtc_channel_created(struct rpmsg_channel *channel)
+static void rpmsg_rtc_device_destroy(struct rpmsg_device *rdev, void *priv)
 {
-  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
+  struct rpmsg_rtc_lowerhalf_s *lower = priv;
 
-  if (lower != NULL)
+  if (strcmp(lower->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
-      lower->channel = channel;
-      nxsem_post(&lower->sem);
+      rpmsg_destroy_ept(&lower->ept);
     }
 }
 
-static void rpmsg_rtc_channel_destroyed(struct rpmsg_channel *channel)
-{
-  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
-
-  if (lower != NULL)
-    {
-      nxsem_wait(&lower->sem);
-      lower->channel = NULL;
-    }
-}
-
-static void rpmsg_rtc_alarm_fire_handler(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static void rpmsg_rtc_alarm_fire_handler(struct rpmsg_endpoint *ept,
+                                         void *data, size_t len,
+                                         uint32_t src, void *priv)
 {
 #ifdef CONFIG_RTC_ALARM
-  struct rpmsg_rtc_lowerhalf_s *lower = rpmsg_get_privdata(channel);
+  struct rpmsg_rtc_lowerhalf_s *lower = priv;
   struct rpmsg_rtc_alarm_fire_s *msg = data;
   struct lower_setalarm_s *alarminfo = &lower->alarminfo[msg->id];
 
@@ -228,8 +216,8 @@ static void rpmsg_rtc_alarm_fire_handler(struct rpmsg_channel *channel,
 #endif
 }
 
-static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
-                    void *data, int len, void *priv, unsigned long src)
+static int rpmsg_rtc_ept_cb(struct rpmsg_endpoint *ept, void *data,
+                            size_t len, uint32_t src, void *priv)
 {
   struct rpmsg_rtc_header_s *header = data;
   struct rpmsg_rtc_cookie_s *cookie =
@@ -238,7 +226,7 @@ static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
   switch (header->command)
     {
     case RPMSG_RTC_ALARM_FIRE:
-      rpmsg_rtc_alarm_fire_handler(channel, data, len, priv, src);
+      rpmsg_rtc_alarm_fire_handler(ept, data, len, src, priv);
       break;
     default:
       if (cookie)
@@ -248,20 +236,17 @@ static void rpmsg_rtc_channel_received(struct rpmsg_channel *channel,
         }
       break;
     }
+
+  return 0;
 }
 
 static int rpmsg_rtc_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
-                uint32_t command, struct rpmsg_rtc_header_s *msg, int len)
+                               uint32_t command,
+                               struct rpmsg_rtc_header_s *msg,
+                               int len)
 {
   struct rpmsg_rtc_cookie_s cookie;
   int ret;
-
-  if (!lower->channel)
-    {
-      nxsem_wait(&lower->sem);
-      nxsem_post(&lower->sem);
-      DEBUGASSERT(lower->channel);
-    }
 
   nxsem_init(&cookie.sem, 0, 0);
   nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
@@ -271,7 +256,7 @@ static int rpmsg_rtc_send_recv(struct rpmsg_rtc_lowerhalf_s *lower,
   msg->result  = -ENXIO;
   msg->cookie  = (uintptr_t)&cookie;
 
-  ret = rpmsg_send(lower->channel, msg, len);
+  ret = rpmsg_send(&lower->ept, msg, len);
   if (ret < 0)
     {
       goto fail;
@@ -403,7 +388,7 @@ static int rpmsg_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
  *   Take remote core RTC as external RTC hardware through rpmsg.
  *
  * Input Parameters:
- *   cpu_name - current cpu name
+ *   cpuname - current cpu name
  *   minor  - device minor number
  *
  * Returned Value:
@@ -411,27 +396,20 @@ static int rpmsg_rtc_rdalarm(FAR struct rtc_lowerhalf_s *lower_,
  *
  ****************************************************************************/
 
-FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(const char *cpu_name, int minor)
+FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(const char *cpuname, int minor)
 {
   struct rpmsg_rtc_lowerhalf_s *lower;
 
   lower = kmm_zalloc(sizeof(*lower));
-  if (lower != NULL)
+  if (lower)
     {
-      nxsem_init(&lower->sem, 0, 0);
-      nxsem_setprotocol(&lower->sem, SEM_PRIO_NONE);
+      lower->ops     = &g_rpmsg_rtc_ops;
+      lower->cpuname = cpuname;
 
-      lower->ops = &g_rpmsg_rtc_ops;
-      lower->cpu_name = cpu_name;
-
-      rpmsg_register_callback(
-                RPMSG_RTC_CHANNEL_NAME,
-                lower,
-                rpmsg_rtc_device_created,
-                NULL,
-                rpmsg_rtc_channel_created,
-                rpmsg_rtc_channel_destroyed,
-                rpmsg_rtc_channel_received);
+      rpmsg_register_callback(lower,
+                              rpmsg_rtc_device_created,
+                              rpmsg_rtc_device_destroy,
+                              NULL);
 
       rtc_initialize(minor, (FAR struct rtc_lowerhalf_s *)lower);
     }
