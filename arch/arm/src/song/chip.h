@@ -74,9 +74,9 @@
 #    define NUTTX_TEXT_SIZE           CONFIG_RAM_SIZE
 #  endif
 
-#  define NUTTX_DEV_BASE_PADDR        (CONFIG_SONG_DEV_START & 0xfff00000)
-#  define NUTTX_DEV_BASE_VADDR        (CONFIG_SONG_DEV_VSTART & 0xfff00000)
-#  define NUTTX_DEV_MAP_SIZE          CONFIG_SONG_DEV_SIZE
+#  define NUTTX_DEV_PADDR             ((CONFIG_RAM_START + CONFIG_RAM_SIZE) & 0xfff00000)
+#  define NUTTX_DEV_VADDR             ((CONFIG_RAM_VSTART + CONFIG_RAM_SIZE) & 0xfff00000)
+#  define NUTTX_DEV_NSECT             ((0xffffffff - NUTTX_DEV_PADDR + 1) >> 20)
 #endif
 
 /* If the common ARMv7-M vector handling logic is used, then it expects the following
@@ -90,14 +90,6 @@
  ****************************************************************************/
 
 #ifndef __ASSEMBLY__
-
-/* MMU **********************************************************************/
-
-#ifdef CONFIG_ARCH_HAVE_MMU
-void up_mmuinitialize(void);
-#else
-#  define up_mmuinitialize()
-#endif
 
 /* MPU **********************************************************************/
 

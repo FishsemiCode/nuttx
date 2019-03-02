@@ -253,12 +253,11 @@ void arm_boot(void)
 {
   init_userspace();
 
-  up_mmuinitialize();
   up_mpuinitialize();
-  arm_fpuconfig();
-
-  up_earlyserialinit();
   up_earlyinitialize();
+
+  arm_fpuconfig();
+  up_earlyserialinit();
   board_earlyinitialize();
 
 #ifdef CONFIG_PM

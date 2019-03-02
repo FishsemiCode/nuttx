@@ -110,16 +110,4 @@ config SONG_PGTABLE_START
 config SONG_PGTABLE_VSTART
 	hex "pgtable virtual base address"
 	default SONG_PGTABLE_START
-
-config SONG_DEV_START
-	hex "devices base address"
-	default 0x80000000
-
-config SONG_DEV_VSTART
-	hex "devices virtual base address"
-	default SONG_DEV_START
-
-config SONG_DEV_SIZE
-	int "devices map size"
-	default 2147483648
 endif

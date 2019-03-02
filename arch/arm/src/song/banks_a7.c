@@ -54,6 +54,7 @@
 #include <nuttx/timers/arch_timer.h>
 
 #include "chip.h"
+#include "mmu.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
@@ -108,6 +109,15 @@ void up_earlyinitialize(void)
     {.va = 0xe0000000, .pa = 0xf8000000, .size = 0x08000000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
+
+#ifdef CONFIG_ARCH_USE_MMU
+  const struct section_mapping_s mapping[] =
+  {
+    {NUTTX_DEV_PADDR, NUTTX_DEV_VADDR, MMU_IOFLAGS, NUTTX_DEV_NSECT},
+  };
+
+  mmu_l1_map_regions(mapping, ARRAY_SIZE(mapping));
+#endif
 
   simple_addrenv_initialize(addrenv);
 
