@@ -199,6 +199,30 @@ void mmu_l1_map_region(const struct section_mapping_s *mapping)
 }
 #endif
 
+/************************************************************************************
+ * Name: mmu_l1_map_regions
+ *
+ * Description:
+ *   Set multiple level 1 translation table entries in order to map a region array of
+ *   memory.
+ *
+ * Input Parameters:
+ *   mappings - Describes the array of mapping to be performed.
+ *
+ ************************************************************************************/
+
+#ifndef CONFIG_ARCH_ROMPGTABLE
+void mmu_l1_map_regions(const struct section_mapping_s *mappings, size_t count)
+{
+  size_t i;
+
+  for (i = 0; i < count; i++)
+    {
+      mmu_l1_map_region(&mappings[i]);
+    }
+}
+#endif
+
 /****************************************************************************
  * Name: mmu_invalidate_region
  *
