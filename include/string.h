@@ -112,6 +112,7 @@ FAR char  *strcasestr(FAR const char *, FAR const char *);
 FAR char  *strsignal(int signum);
 FAR char  *strtok(FAR char *, FAR const char *);
 FAR char  *strtok_r(FAR char *, FAR const char *, FAR char **);
+FAR char  *strsep(FAR char **, FAR const char *);
 size_t     strxfrm(FAR char *, FAR const char *, size_t n);
 
 FAR void  *memchr(FAR const void *s, int c, size_t n);
