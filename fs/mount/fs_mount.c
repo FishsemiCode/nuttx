@@ -87,7 +87,7 @@
 #if defined(CONFIG_FS_NXFFS) || defined(CONFIG_FS_BINFS) || \
     defined(CONFIG_FS_PROCFS) || defined(CONFIG_NFS) || \
     defined(CONFIG_FS_TMPFS) || defined(CONFIG_FS_USERFS) || \
-    defined(CONFIG_FS_CROMFS)
+    defined(CONFIG_FS_CROMFS) || defined(CONFIG_FS_UNIONFS)
 #  define NODFS_SUPPORT
 #endif
 
@@ -194,6 +194,9 @@ extern const struct mountpt_operations hostfs_operations;
 #ifdef CONFIG_FS_CROMFS
 extern const struct mountpt_operations cromfs_operations;
 #endif
+#ifdef CONFIG_FS_UNIONFS
+extern const struct mountpt_operations unionfs_operations;
+#endif
 
 static const struct fsmap_t g_nonbdfsmap[] =
 {
@@ -220,6 +223,9 @@ static const struct fsmap_t g_nonbdfsmap[] =
 #endif
 #ifdef CONFIG_FS_CROMFS
     { "cromfs", &cromfs_operations },
+#endif
+#ifdef CONFIG_FS_UNIONFS
+    { "unionfs", &unionfs_operations },
 #endif
     { NULL, NULL },
 };

@@ -175,6 +175,8 @@ static int     unionfs_readdir(FAR struct inode *mountpt,
 static int     unionfs_rewinddir(FAR struct inode *mountpt,
                  FAR struct fs_dirent_s *dir);
 
+static int     unionfs_bind(FAR struct inode *blkdriver, FAR const void *data,
+                 FAR void **handle);
 static int     unionfs_unbind(FAR void *handle, FAR struct inode **blkdriver,
                  unsigned int flags);
 static int     unionfs_statfs(FAR struct inode *mountpt,
@@ -197,6 +199,9 @@ static int     unionfs_stat(FAR struct inode *mountpt,
 
 static int     unionfs_getmount(FAR const char *path,
                  FAR struct inode **inode);
+static int     unionfs_dobind(FAR const char *fspath1, FAR const char *prefix1,
+                 FAR const char *fspath2, FAR const char *prefix2,
+                 FAR void **handle);
 
 /****************************************************************************
  * Public Data
@@ -207,7 +212,7 @@ static int     unionfs_getmount(FAR const char *path,
  * with any compiler.
  */
 
-static const struct mountpt_operations g_unionfs_mops =
+const struct mountpt_operations unionfs_operations =
 {
   unionfs_open,        /* open */
   unionfs_close,       /* close */
@@ -226,7 +231,7 @@ static const struct mountpt_operations g_unionfs_mops =
   unionfs_readdir,     /* readdir */
   unionfs_rewinddir,   /* rewinddir */
 
-  NULL,                /* bind */
+  unionfs_bind,        /* bind */
   unionfs_unbind,      /* unbind */
   unionfs_statfs,      /* statfs */
 
@@ -1982,6 +1987,58 @@ static int unionfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
 }
 
 /****************************************************************************
+ * Name: unionfs_bind
+ ****************************************************************************/
+
+static int unionfs_bind(FAR struct inode *blkdriver, FAR const void *data,
+                        FAR void **handle)
+{
+  FAR const char *fspath1 = "";
+  FAR const char *prefix1 = "";
+  FAR const char *fspath2 = "";
+  FAR const char *prefix2 = "";
+  FAR char *dup;
+  FAR char *tmp;
+  FAR char *tok;
+  int ret;
+
+  /* Parse options from mount syscall */
+
+  dup = tmp = strdup(data);
+  if (!dup)
+    {
+      return -ENOMEM;
+    }
+
+  while ((tok = strsep(&tmp, ",")))
+    {
+      if (tok == strstr(tok, "fspath1="))
+        {
+          fspath1 = tok + 8;
+        }
+      else if (tok == strstr(tok, "prefix1="))
+        {
+          prefix1 = tok + 8;
+        }
+      else if (tok == strstr(tok, "fspath2="))
+        {
+          fspath2 = tok + 8;
+        }
+      else if (tok == strstr(tok, "prefix2="))
+        {
+          prefix2 = tok + 8;
+        }
+    }
+
+  /* Call unionfs_dobind to do the real work. */
+
+  ret = unionfs_dobind(fspath1, prefix1, fspath2, prefix2, handle);
+  kmm_free(dup);
+
+  return ret;
+}
+
+/****************************************************************************
  * Name: unionfs_unbind
  ****************************************************************************/
 
@@ -2599,40 +2656,17 @@ errout_with_search:
 }
 
 /****************************************************************************
- * Public Functions
+ * Name: unionfs_dobind
  ****************************************************************************/
 
-/****************************************************************************
- * Name: unionfs_mount
- *
- * Description:
- *   Create and mount a union file system
- *
- * Input Parameters:
- *   fspath1 - The full path to the first file system mountpoint
- *   prefix1 - An optiona prefix that may be applied to make the first
- *             file system appear a some path below the unionfs mountpoint,
- *   fspath2 - The full path to the second file system mountpoint
- *   prefix2 - An optiona prefix that may be applied to make the first
- *             file system appear a some path below the unionfs mountpoint,
- *   mountpt - The full path to the mountpoint for the union file system
- *
- * Returned Value:
- *   Zero (OK) is returned if the union file system was correctly created and
- *   mounted.  On any failure, a negated error value will be returned to
- *   indicate the nature of the failure.
- *
- ****************************************************************************/
-
-int unionfs_mount(FAR const char *fspath1, FAR const char *prefix1,
-                  FAR const char *fspath2, FAR const char *prefix2,
-                  FAR const char *mountpt)
+static int unionfs_dobind(FAR const char *fspath1, FAR const char *prefix1,
+                          FAR const char *fspath2, FAR const char *prefix2,
+                          FAR void **handle)
 {
   FAR struct unionfs_inode_s *ui;
-  FAR struct inode *mpinode;
   int ret;
 
-  DEBUGASSERT(fspath1 != NULL && fspath2 != NULL && mountpt != NULL);
+  DEBUGASSERT(fspath1 != NULL && fspath2 != NULL && handle != NULL);
 
   /* Allocate a structure a structure that will describe the union file
    * system.
@@ -2687,14 +2721,80 @@ int unionfs_mount(FAR const char *fspath1, FAR const char *prefix1,
         }
     }
 
-  /* Finally, mount the union FS.  We should adapt the standard mount to do
+  /* Unlink the contained mountpoint inodes from the pseudo file system.
+   * The inodes will be marked as deleted so that they will be removed when
+   * the reference count decrements to zero in inode_release().  Because we
+   * hold a reference count on the inodes, they will not be deleted until
+   * this logic calls inode_release() in the unionfs_destroy() function.
+   */
+
+  (void)inode_remove(fspath1);
+  (void)inode_remove(fspath2);
+
+  *handle = ui;
+  return OK;
+
+errout_with_prefix1:
+  if (ui->ui_fs[0].um_prefix != NULL)
+    {
+      kmm_free(ui->ui_fs[0].um_prefix);
+    }
+
+errout_with_fs2:
+  inode_release(ui->ui_fs[1].um_node);
+
+errout_with_fs1:
+  inode_release(ui->ui_fs[0].um_node);
+
+errout_with_uinode:
+  nxsem_destroy(&ui->ui_exclsem);
+  kmm_free(ui);
+  return ret;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: unionfs_mount
+ *
+ * Description:
+ *   Create and mount a union file system
+ *
+ * Input Parameters:
+ *   fspath1 - The full path to the first file system mountpoint
+ *   prefix1 - An optiona prefix that may be applied to make the first
+ *             file system appear a some path below the unionfs mountpoint,
+ *   fspath2 - The full path to the second file system mountpoint
+ *   prefix2 - An optiona prefix that may be applied to make the first
+ *             file system appear a some path below the unionfs mountpoint,
+ *   mountpt - The full path to the mountpoint for the union file system
+ *
+ * Returned Value:
+ *   Zero (OK) is returned if the union file system was correctly created and
+ *   mounted.  On any failure, a negated error value will be returned to
+ *   indicate the nature of the failure.
+ *
+ ****************************************************************************/
+
+int unionfs_mount(FAR const char *fspath1, FAR const char *prefix1,
+                  FAR const char *fspath2, FAR const char *prefix2,
+                  FAR const char *mountpt)
+{
+  FAR struct inode *mpinode;
+  int ret;
+
+  DEBUGASSERT(mountpt != NULL);
+
+  /* Mount the union FS.  We should adapt the standard mount to do
    * this using optional parameters.  This custom mount should do the job
    * for now, however.
    */
 
   /* Insert a dummy node -- we need to hold the inode semaphore
    * to do this because we will have a momentarily bad structure.
-   * NOTE that the inode will be created with a refernce count of zero.
+   * NOTE that the inode will be created with a reference count of zero.
    */
 
   inode_semtake();
@@ -2717,47 +2817,27 @@ int unionfs_mount(FAR const char *fspath1, FAR const char *prefix1,
 
   INODE_SET_MOUNTPT(mpinode);
 
-  mpinode->u.i_mops  = &g_unionfs_mops;
+  mpinode->u.i_mops  = &unionfs_operations;
 #ifdef CONFIG_FILE_MODE
   mpinode->i_mode    = 0755;
 #endif
-  mpinode->i_private = ui;
 
-  /* Unlink the contained mountpoint inodes from the pseudo file system.
-   * The inodes will be marked as deleted so that they will be removed when
-   * the reference count decrements to zero in inode_release().  Because we
-   * hold a reference count on the inodes, they will not be deleted until
-   * this logic calls inode_release() in the unionfs_destroy() function.
-   */
+  /* Call unionfs_dobind to do the real work. */
 
-  (void)inode_remove(fspath1);
-  (void)inode_remove(fspath2);
+  ret = unionfs_dobind(fspath1, prefix1, fspath2, prefix2, &mpinode->i_private);
+  if (ret < 0)
+   {
+     goto errout_with_mountpt;
+   }
+
   inode_semgive();
   return OK;
 
+errout_with_mountpt:
+  inode_release(mpinode);
+
 errout_with_semaphore:
   inode_semgive();
-
-  if (ui->ui_fs[1].um_prefix != NULL)
-    {
-      kmm_free(ui->ui_fs[1].um_prefix);
-    }
-
-errout_with_prefix1:
-  if (ui->ui_fs[0].um_prefix != NULL)
-    {
-      kmm_free(ui->ui_fs[0].um_prefix);
-    }
-
-errout_with_fs2:
-  inode_release(ui->ui_fs[1].um_node);
-
-errout_with_fs1:
-  inode_release(ui->ui_fs[0].um_node);
-
-errout_with_uinode:
-  nxsem_destroy(&ui->ui_exclsem);
-  kmm_free(ui);
   return ret;
 }
 #endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_FS_UNIONFS */
