@@ -38,12 +38,13 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_ARCH_CHIP_BANKS_CP
 #include <nuttx/irq.h>
 #include "cp15.h"
 #include "gic.h"
 #include "sctlr.h"
 
-#ifdef CONFIG_ARCH_CHIP_BANKS_CP
 	.file		"bootram.S"
 
 /***************************************************************************
