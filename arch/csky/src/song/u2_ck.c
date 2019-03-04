@@ -226,7 +226,7 @@ void csky_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_server_init("AUDIO", 1024);
+  uart_rpmsg_init(CPU_NAME_AUDIO, "AUDIO", 1024, false);
 }
 #endif
 
@@ -302,23 +302,17 @@ static void up_rptun_init(void)
 
   static const struct song_rptun_config_s rptun_cfg_audio =
   {
-    .cpu_name    = CPU_NAME_AUDIO,
-    .role        = RPMSG_MASTER,
-    .ch_start_tx = 0,
-    .ch_vring_tx = 1,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
-    .rsc         =
-    {
-      .rsc_tab   = &rptun_rsc_audio.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_audio),
-    },
+    .cpuname = CPU_NAME_AUDIO,
+    .master  = true,
+    .vringtx = 1,
+    .vringrx = 1,
+    .rsc     = &rptun_rsc_audio,
   };
 
   song_rptun_initialize(&rptun_cfg_audio, g_mbox[CPU_INDEX_AUDIO], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(true);
+  clk_rpmsg_initialize();
 #  endif
 
 #  ifdef CONFIG_SYSLOG_RPMSG_SERVER

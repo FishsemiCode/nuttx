@@ -286,23 +286,16 @@ static void up_rptun_init(void)
 
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
-    .cpu_name    = CPU_NAME_AP,
-    .role        = RPMSG_REMOTE,
-    .ch_start_tx = -1,
-    .ch_vring_tx = 62,
-    .ch_start_rx = -1,
-    .ch_vring_rx = 15,
-    .rsc         =
-    {
-      .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_ap),
-    },
+    .cpuname = CPU_NAME_AP,
+    .vringtx = 62,
+    .vringrx = 15,
+    .rsc     = &rptun_rsc_ap,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_RPM]);
 
 #  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
+  clk_rpmsg_initialize();
 #  endif
 
 #  ifdef CONFIG_SYSLOG_RPMSG

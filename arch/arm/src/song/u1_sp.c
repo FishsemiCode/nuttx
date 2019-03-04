@@ -400,7 +400,7 @@ static void up_mbox_init(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-static int ap_boot(const struct song_rptun_config_s *config)
+static int ap_start(const struct song_rptun_config_s *config)
 {
   /* SP <--shram0--> AP
    * shram0 default enabled
@@ -598,7 +598,7 @@ static void cp_flash_restore(void)
   close(fd);
 }
 
-static int cp_boot(const struct song_rptun_config_s *config)
+static int cp_start(const struct song_rptun_config_s *config)
 {
   /* Make sure LDO0 voltage is correct. */
 
@@ -659,17 +659,13 @@ static void up_rptun_init(void)
 
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
-    .cpu_name    = CPU_NAME_AP,
-    .role        = RPMSG_MASTER,
-    .ch_start_tx = 14,
-    .ch_vring_tx = 15,
-    .ch_start_rx = 14,
-    .ch_vring_rx = 15,
-    .rsc         =
-    {
-      .rsc_tab   = &rptun_rsc_ap.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_ap),
-    },
+    .cpuname    = CPU_NAME_AP,
+    .master     = true,
+    .nautostart = true,
+    .vringtx    = 15,
+    .vringrx    = 15,
+    .rsc        = &rptun_rsc_ap,
+    .start      = ap_start,
   };
 
   static struct rptun_rsc_s rptun_rsc_cp
@@ -708,17 +704,13 @@ static void up_rptun_init(void)
 
   static const struct song_rptun_config_s rptun_cfg_cp =
   {
-    .cpu_name    = CPU_NAME_CP,
-    .role        = RPMSG_MASTER,
-    .ch_start_tx = 0,
-    .ch_vring_tx = 1,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
-    .rsc         =
-    {
-      .rsc_tab   = &rptun_rsc_cp.rsc_tbl_hdr,
-      .size      = sizeof(rptun_rsc_cp),
-    },
+    .cpuname    = CPU_NAME_CP,
+    .master     = true,
+    .nautostart = true,
+    .vringtx    = 1,
+    .vringrx    = 1,
+    .rsc        = &rptun_rsc_cp,
+    .start      = cp_start,
   };
 
   static struct rptun_rsc_s rptun_rsc_acp
@@ -746,21 +738,21 @@ static void up_rptun_init(void)
     .rpmsg_vring0    =
     {
       .align         = 0x8,
-      .num           = 4,
+      .num           = 8,
     },
     .rpmsg_vring1    =
     {
       .align         = 0x8,
-      .num           = 4,
+      .num           = 8,
     },
-    .buf_size        = 0x100,
+    .buf_size        = 0x80,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_SP]);
   song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_SP]);
 
 #  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(true);
+  clk_rpmsg_initialize();
 #  endif
 
 #  ifdef CONFIG_RPMSG_REGULATOR
@@ -929,8 +921,8 @@ void up_lateinitialize(void)
 void up_finalinitialize(void)
 {
 #ifdef CONFIG_SONG_RPTUN
-  ap_boot(NULL);
-  cp_boot(NULL);
+  rptun_boot(CPU_NAME_AP);
+  rptun_boot(CPU_NAME_CP);
 #endif
 
 #ifdef CONFIG_SONG_CLK

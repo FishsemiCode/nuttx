@@ -443,39 +443,25 @@ static void up_rptun_init(void)
 {
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
-    .cpu_name    = CPU_NAME_AP,
-    .role        = RPMSG_REMOTE,
-    .ch_start_tx = 2,
-    .ch_vring_tx = 3,
-    .ch_start_rx = 2,
-    .ch_vring_rx = 3,
-    .rsc         =
-    {
-      .rsc_tab   = (void *)0xb0003400,
-      .size      = sizeof(struct rptun_rsc_s),
-    },
+    .cpuname = CPU_NAME_AP,
+    .vringtx = 3,
+    .vringrx = 3,
+    .rsc     = (void *)0xb0003400,
   };
 
   static const struct song_rptun_config_s rptun_cfg_sp =
   {
-    .cpu_name    = CPU_NAME_SP,
-    .role        = RPMSG_REMOTE,
-    .ch_start_tx = 0,
-    .ch_vring_tx = 1,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
-    .rsc         =
-    {
-      .rsc_tab   = (void *)0xb0010000,
-      .size      = sizeof(struct rptun_rsc_s),
-    },
+    .cpuname = CPU_NAME_SP,
+    .vringtx = 1,
+    .vringrx = 1,
+    .rsc     = (void *)0xb0010000,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
   song_rptun_initialize(&rptun_cfg_sp, g_mbox[CPU_INDEX_SP], g_mbox[CPU_INDEX_CP]);
 
 #  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
+  clk_rpmsg_initialize();
 #  endif
 
 #  ifdef CONFIG_RPMSG_REGULATOR

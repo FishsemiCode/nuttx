@@ -187,17 +187,10 @@ static void up_rptun_init(void)
 {
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
-    .cpu_name    = CPU_NAME_AP,
-    .role        = RPMSG_REMOTE,
-    .ch_start_tx = 0,
-    .ch_vring_tx = 1,
-    .ch_start_rx = 0,
-    .ch_vring_rx = 1,
-    .rsc         =
-    {
-      .rsc_tab   = (void *)0x6013f000,
-      .size      = sizeof(struct rptun_rsc_s),
-    },
+    .cpuname = CPU_NAME_AP,
+    .vringtx = 1,
+    .vringrx = 1,
+    .rsc     = (void *)0x6013f000,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_AUDIO]);

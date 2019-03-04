@@ -240,11 +240,11 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_server_init("SP", 1024);
-  uart_rpmsg_server_init("CP", 1024);
-  uart_rpmsg_server_init("AT", 1024);
-  uart_rpmsg_server_init("AT1", 1024);
-  uart_rpmsg_server_init("GPS", 1024);
+  uart_rpmsg_init(CPU_NAME_SP, "SP", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "CP", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "AT", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "AT1", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "GPS", 1024, false);
 }
 #endif
 
@@ -297,39 +297,26 @@ static void up_rptun_init(void)
 {
   static const struct song_rptun_config_s rptun_cfg_cp =
   {
-    .cpu_name    = CPU_NAME_CP,
-    .role        = RPMSG_MASTER,
-    .ch_start_tx = 2,
-    .ch_vring_tx = 3,
-    .ch_start_rx = 2,
-    .ch_vring_rx = 3,
-    .rsc         =
-    {
-      .rsc_tab   = (void *)0xb0003400,
-      .size      = sizeof(struct rptun_rsc_s),
-    },
+    .cpuname = CPU_NAME_CP,
+    .master  = true,
+    .vringtx = 3,
+    .vringrx = 3,
+    .rsc     = (void *)0xb0003400,
   };
 
   static const struct song_rptun_config_s rptun_cfg_sp =
   {
-    .cpu_name    = CPU_NAME_SP,
-    .role        = RPMSG_REMOTE,
-    .ch_start_tx = 14,
-    .ch_vring_tx = 15,
-    .ch_start_rx = 14,
-    .ch_vring_rx = 15,
-    .rsc         =
-    {
-      .rsc_tab   = (void *)0xb0000000,
-      .size      = sizeof(struct rptun_rsc_s),
-    },
+    .cpuname = CPU_NAME_SP,
+    .vringtx = 15,
+    .vringrx = 15,
+    .rsc     = (void *)0xb0000000,
   };
 
   song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_AP]);
   song_rptun_initialize(&rptun_cfg_sp, g_mbox[CPU_INDEX_SP], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_CLK_RPMSG
-  clk_rpmsg_initialize(false);
+  clk_rpmsg_initialize();
 #  endif
 
 #  ifdef CONFIG_RPMSG_REGULATOR
