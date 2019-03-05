@@ -140,6 +140,11 @@ static void syslog_rpmsg_work(void *priv_)
 
   flags = enter_critical_section();
 
+  if (B2C_REM(priv->head))
+    {
+      priv->head += C2B(1) - B2C_REM(priv->head);
+    }
+
   space  -= sizeof(*msg);
   len     = SYSLOG_RPMSG_COUNT(priv->head, priv->tail, priv->size);
   len_end = priv->size - priv->tail;
@@ -147,13 +152,6 @@ static void syslog_rpmsg_work(void *priv_)
   if (len > space)
     {
       len = space;
-    }
-  else
-    {
-      if (B2C_REM(priv->head))
-        {
-          priv->head += C2B(1) - B2C_REM(priv->head);
-        }
     }
 
   if (len > len_end)
