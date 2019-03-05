@@ -110,6 +110,7 @@
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL0             (TOP_PWR_BASE + 0x350)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
+#define TOP_PWR_PLLTIME             (TOP_PWR_BASE + 0x36c)
 #define TOP_PWR_FLASH_PD_CTL        (TOP_PWR_BASE + 0x3f0)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 #define TOP_PWR_SEC_M4_TCM_PD_CTL   (TOP_PWR_BASE + 0x3e8)
@@ -148,6 +149,9 @@
 #define TOP_PWR_CP_AU_PD_MK         (1 << 7)
 
 #define TOP_PWR_SEC_AU_PD_MK        (1 << 7)
+
+#define TOP_PWR_PLL_STABLE_TIME     (0x4 << 8)
+#define TOP_PWR_OSC_STABLE_TIME     (0x21 << 0)
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
@@ -261,6 +265,10 @@ void up_earlyinitialize(void)
   /* Set flash no effort to PWR_SLEEP */
 
   putreg32(TOP_PWR_CTRL_MODE << 16, TOP_PWR_FLASH_PD_CTL);
+
+  /* Configure PLL stable time (~1.15ms). */
+
+  putreg32(TOP_PWR_PLL_STABLE_TIME | TOP_PWR_OSC_STABLE_TIME, TOP_PWR_PLLTIME);
 
   /* Set PMICFSM disable full chip to DS */
 
