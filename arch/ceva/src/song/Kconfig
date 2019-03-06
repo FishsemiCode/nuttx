@@ -42,7 +42,6 @@ config SONG_XM6
 	bool
 	select ARCH_HAVE_FPU
 	select ARCH_XM6
-	select ARCH_XM6_NO_VPU
 
 config SONG_NR_IRQS
 	int "Interrupt Number"

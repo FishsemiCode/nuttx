@@ -194,57 +194,6 @@ exception_common:
 	push		modg.ui
 	push		modi.ui
 
-#ifndef CONFIG_ARCH_XM6_NO_VPU
-	vpush		v0.i8
-	vpush		v1.i8
-	vpush		v2.i8
-	vpush		v3.i8
-	vpush		v4.i8
-	vpush		v5.i8
-	vpush		v6.i8
-	vpush		v7.i8
-	vpush		v8.i8
-	vpush		v9.i8
-	vpush		v10.i8
-	vpush		v11.i8
-	vpush		v12.i8
-	vpush		v13.i8
-	vpush		v14.i8
-	vpush		v15.i8
-	vpush		v16.i8
-	vpush		v17.i8
-	vpush		v18.i8
-	vpush		v19.i8
-	vpush		v20.i8
-	vpush		v21.i8
-	vpush		v22.i8
-	vpush		v23.i8
-	vpush		v24.i8
-	vpush		v25.i8
-	vpush		v26.i8
-	vpush		v27.i8
-	vpush		v28.i8
-	vpush		v29.i8
-	vpush		v30.i8
-	vpush		v31.i8
-	vpush		v32.i8
-	vpush		v33.i8
-	vpush		v34.i8
-	vpush		v35.i8
-	vpush		v36.i8
-	vpush		v37.i8
-	vpush		v38.i8
-	vpush		v39.i8
-	vpush		v40.i8
-	vpush		v41.i8
-	vpush		v42.i8
-	vpush		v43.i8
-	vpush		v44.i8
-	vpush		v45.i8
-	vpush		v46.i8
-	vpush		v47.i8
-#endif
-
 #ifdef CONFIG_ARCH_XM6_STACKCHECK
 	/* Save the stack violation exception registers */
 
@@ -313,33 +262,6 @@ exception_common:
 	nop		#0x02
 
 	/* Unwind the same stack frame that we created at entry */
-
-#ifndef CONFIG_ARCH_XM6_NO_VPU
-	vpop		v47.i8, v46.i8
-	vpop		v45.i8, v44.i8
-	vpop		v43.i8, v42.i8
-	vpop		v41.i8, v40.i8
-	vpop		v39.i8, v38.i8
-	vpop		v37.i8, v36.i8
-	vpop		v35.i8, v34.i8
-	vpop		v33.i8, v32.i8
-	vpop		v31.i8, v30.i8
-	vpop		v29.i8, v28.i8
-	vpop		v27.i8, v26.i8
-	vpop		v25.i8, v24.i8
-	vpop		v23.i8, v22.i8
-	vpop		v21.i8, v20.i8
-	vpop		v19.i8, v18.i8
-	vpop		v17.i8, v16.i8
-	vpop		v15.i8, v14.i8
-	vpop		v13.i8, v12.i8
-	vpop		v11.i8, v10.i8
-	vpop		v9.i8, v8.i8
-	vpop		v7.i8, v6.i8
-	vpop		v5.i8, v4.i8
-	vpop		v3.i8, v2.i8
-	vpop		v1.i8, v0.i8
-#endif
 
 	pop		modi.ui
 	pop		modg.ui

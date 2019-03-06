@@ -15,8 +15,3 @@ config ARCH_XM6_STACKCHECK
 	---help---
 		This check uses DBG_STACK_START/DBG_STACK_END to check for a stack
 		overflow within each access.
-
-config ARCH_XM6_NO_VPU
-	bool
-	---help---
-		Skip the code which save and restore all VPU context registers.
