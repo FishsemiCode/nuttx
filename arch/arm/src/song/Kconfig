@@ -12,8 +12,8 @@ choice
 	prompt "Song Chip Selection"
 	depends on ARCH_CHIP_SONG
 
-config ARCH_CHIP_BANKS_CP
-	bool "Banks CP"
+config ARCH_CHIP_BANKS_A7
+	bool "Banks A7"
 	select SONG_CORTEXA7
 
 config ARCH_CHIP_BANKS_RPM

@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/banks_cp_bootram.S
+ * arch/arm/src/song/banks_a7_bootram.S
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Zhuang Liu <liuzhuang@pinecone.net>
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_CHIP_BANKS_CP
+#ifdef CONFIG_ARCH_CHIP_BANKS_A7
 #include <nuttx/irq.h>
 #include "cp15.h"
 #include "gic.h"

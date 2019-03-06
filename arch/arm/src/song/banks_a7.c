@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/banks_cp.c
+ * arch/arm/src/song/banks_a7.c
  *
  *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
  *   Author: Yuan Zhang <zhangyuan7@pinecone.net>
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_CHIP_BANKS_CP
+#ifdef CONFIG_ARCH_CHIP_BANKS_A7
 
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/dma/song_dmas.h>
@@ -64,10 +64,10 @@
 #define TOP_MAILBOX_BASE            (0xE1000000)
 
 #define CPU_NAME_AP                 "ap"
-#define CPU_NAME_CP                 "cp"
+#define CPU_NAME_A7                 "a7"
 
 #define CPU_INDEX_AP                0
-#define CPU_INDEX_CP                1
+#define CPU_INDEX_A7                1
 
 #define _LOGBUF_BASE                ((uintptr_t)&_slog)
 #define _LOGBUF_SIZE                ((uint32_t)&_logsize)
@@ -166,10 +166,10 @@ void arm_timer_initialize(void)
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(CPU_INDEX_CP, 0xe1003000, 52, NULL);
+  g_dma[0] = song_dmas_initialize(CPU_INDEX_A7, 0xe1003000, 52, NULL);
 #endif
 #ifdef CONFIG_SONG_DMAG
-  g_dma[1] = song_dmag_initialize(CPU_INDEX_CP, 0x86300000, 51, NULL);
+  g_dma[1] = song_dmag_initialize(CPU_INDEX_A7, 0x86300000, 51, NULL);
 #endif
 }
 
@@ -183,7 +183,7 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_init(CPU_NAME_AP, "CP", 1024, true);
+  uart_rpmsg_init(CPU_NAME_AP, "A7", 1024, true);
 }
 #endif
 
@@ -204,7 +204,7 @@ static void up_mbox_init(void)
       .irq        = -1,
     },
     {
-      .index      = CPU_INDEX_CP,
+      .index      = CPU_INDEX_A7,
       .base       = TOP_MAILBOX_BASE,
       .set_off    = 0x0,
       .en_off     = 0x4,
@@ -279,7 +279,7 @@ static void up_rptun_init(void)
     },
   };
 
-  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_A7]);
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize(true);
@@ -314,4 +314,4 @@ void up_finalinitialize(void)
 {
 }
 
-#endif /* CONFIG_ARCH_CHIP_BANKS_CP */
+#endif /* CONFIG_ARCH_CHIP_BANKS_A7 */

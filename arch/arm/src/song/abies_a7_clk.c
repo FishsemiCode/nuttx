@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/song/abies_cp_clk.c
+ * arch/arm/src/song/abies_a7_clk.c
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
  *   Author: zhuyanlin <zhuyanlin@pinecone.net>
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#if defined(CONFIG_ARCH_CHIP_ABIES_CP) && defined(CONFIG_SONG_CLK)
+#if defined(CONFIG_ARCH_CHIP_ABIES_A7) && defined(CONFIG_SONG_CLK)
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
@@ -1088,5 +1088,5 @@ void up_clk_initialize(void)
 void up_clk_finalinitialize(void)
 {
 }
-#endif /* (CONFIG_ARCH_CHIP_ABIES_CP) && (CONFIG_SONG_CLK) */
+#endif /* (CONFIG_ARCH_CHIP_ABIES_A7) && (CONFIG_SONG_CLK) */
 
