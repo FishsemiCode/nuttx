@@ -45,7 +45,6 @@
 #include <nuttx/timers/dw_timer.h>
 #include <nuttx/timers/song_oneshot.h>
 
-#include "song_addrenv.h"
 #include "up_arch.h"
 #include "up_internal.h"
 
