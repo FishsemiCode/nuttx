@@ -49,9 +49,6 @@
 #  define CONFIG_ARCH_INTERRUPTSTACK CONFIG_IDLETHREAD_STACKSIZE
 #endif
 
-	.EQU		DBG_STACK_START 0xd44
-	.EQU		DBG_STACK_END   0xd48
-
 .IF CONFIG_ARCH_XM6_BUG001
 	.EQU		prx pr14
 .ELSE
@@ -65,7 +62,6 @@
 	callr		#exception_common, ?prx.b
 	pop		{auxreg10}
 	nop		#0x04
-	nop		#0x02
 	retx
 .ENDM
 
@@ -86,7 +82,6 @@
 	.CSECT		inttbl
 .IF CONFIG_ARCH_XM6_BUG001
 	cmp {eq}	r0.ui, r0.ui, prx.b2, pr15.b2
-	nop
 .ENDIF
 	br		#reset_handler, #0x00, #0x00, ?prx.b
 
@@ -143,16 +138,7 @@ reset_handler:
 
 	/* Initialize the C language environment */
 	ld		(#_g_idle_topstack).ui, r0.ui
-	ld		(#_g_idle_basestack).ui, r1.ui
-	nop		#0x01
 	mov		r0.ui, sp.ui
-
-#ifdef CONFIG_ARCH_XM6_STACKCHECK
-	/* Setup the stack violation exception registers */
-
-	out {cpm}	r0.ui, (#DBG_STACK_START).ui
-	out {cpm}	r1.ui, (#DBG_STACK_END).ui
-#endif
 
 	br		#_up_start, #0x00, #0x00, ?prx.b
 
@@ -194,19 +180,8 @@ exception_common:
 	push		modg.ui
 	push		modi.ui
 
-#ifdef CONFIG_ARCH_XM6_STACKCHECK
-	/* Save the stack violation exception registers */
-
-	in {cpm}	(#DBG_STACK_START).ui, r1.ui
-	in {cpm}	(#DBG_STACK_END).ui, r2.ui
-	nop		#0x02
-	push {in1}	r1.ui
-	push {in1}	r2.ui
-#endif
-
 	modr		(sp.ui).ui +#-4
 	mov		sp.ui, r1.ui
-	nop		#0x02
 	st		r1.ui, (r1.ui).ui
 
 	/* Prepare the C language environment */
@@ -222,18 +197,7 @@ exception_common:
 	/* Switch to the dedicated stack */
 
 	mov		#_g_intstackbase, r2.ui
-	mov		#_g_intstackalloc, r3.ui
 	mov		r2.ui, sp.ui
-
-#ifdef CONFIG_ARCH_XM6_STACKCHECK
-	/* Setup the stack violation exception registers */
-
-	out {cpm}	r2.ui, (#DBG_STACK_START).ui
-	out {cpm}	r3.ui, (#DBG_STACK_END).ui
-#else
-	nop		#0x02
-#endif
-	nop		#0x04
 
 	push		retreg.ui
 	callr		#_up_doirq, ?prx.b
@@ -245,21 +209,9 @@ exception_common:
 
 	modr		(r0.ui).ui +#4
 
-#ifdef CONFIG_ARCH_XM6_STACKCHECK
-	/* Restore the stack violation exception registers */
-
-	ld		(r0.ui).ui +#4, r2.ui
-	ld		(r0.ui).ui +#4, r1.ui
-	nop
-	out {cpm}	r2.ui, (#DBG_STACK_END).ui
-	out {cpm}	r1.ui, (#DBG_STACK_START).ui
-#endif
-
 	/* Restore the stack pointer */
 
 	mov		r0.ui, sp.ui
-	nop		#0x04
-	nop		#0x02
 
 	/* Unwind the same stack frame that we created at entry */
 
@@ -268,7 +220,6 @@ exception_common:
 	pop		mode.ui
 	pop		modd.ui
 	pop		modc.ui
-	nop
 
 	pop		{auxreg9}
 	pop		{auxreg8}

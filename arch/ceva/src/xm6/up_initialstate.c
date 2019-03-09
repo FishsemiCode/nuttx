@@ -85,13 +85,6 @@ void up_initial_state(struct tcb_s *tcb)
 
       xcp->regs[REG_SP]   = (uint32_t)xcp->regs;
 
-#ifdef CONFIG_ARCH_XM6_STACKCHECK
-      /* Set the stack memory region for debugging */
-
-      xcp->regs[REG_SB]   = (uint32_t)tcb->stack_alloc_ptr;
-      xcp->regs[REG_SL]   = (uint32_t)tcb->adj_stack_ptr;
-#endif
-
       /* Save the task entry point */
 
       xcp->regs[REG_PC]   = (uint32_t)tcb->start;

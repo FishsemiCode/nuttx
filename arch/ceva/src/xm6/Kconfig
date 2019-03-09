@@ -9,9 +9,3 @@ config ARCH_XM6_BUG001
 	bool "Enable bug 001 workaround"
 	---help---
 		Read CEVA-XM6 Bug List for more information
-
-config ARCH_XM6_STACKCHECK
-	bool "Check for stack overflow on each access"
-	---help---
-		This check uses DBG_STACK_START/DBG_STACK_END to check for a stack
-		overflow within each access.
