@@ -355,6 +355,50 @@ void up_netinitialize(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_SP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x20,
+      .en_off     = 0x24,
+      .en_bit     = 16,
+      .src_en_off = 0x24,
+      .sta_off    = 0x28,
+      .chnl_count = 16,
+      .irq        = 21,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
 static int ap_boot(const struct song_rptun_config_s *config)
 {
@@ -576,50 +620,6 @@ static int cp_boot(const struct song_rptun_config_s *config)
   putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
   return 0;
 }
-
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
-{
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x10,
-      .en_off     = 0x14,
-      .en_bit     = 16,
-      .src_en_off = 0x14,
-      .sta_off    = 0x18,
-      .chnl_count = 16,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_CP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x0,
-      .en_off     = 0x4,
-      .en_bit     = 16,
-      .src_en_off = 0x4,
-      .sta_off    = 0x8,
-      .chnl_count = 16,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_SP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x20,
-      .en_off     = 0x24,
-      .en_bit     = 16,
-      .src_en_off = 0x24,
-      .sta_off    = 0x28,
-      .chnl_count = 16,
-      .irq        = 21,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
-}
-#endif
 
 static void up_rptun_init(void)
 {
