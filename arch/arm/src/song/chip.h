@@ -58,8 +58,13 @@
 #endif
 
 #ifdef CONFIG_ARCH_USE_MMU
-#  define PGTABLE_BASE_PADDR          CONFIG_SONG_PGTABLE_START
-#  define PGTABLE_BASE_VADDR          CONFIG_SONG_PGTABLE_VSTART
+#  ifdef __ASSEMBLY__
+#    define PGTABLE_BASE_PADDR        _spgtable
+#    define PGTABLE_BASE_VADDR        _spgtable
+#  else
+#    define PGTABLE_BASE_PADDR        ((uintptr_t)&_spgtable)
+#    define PGTABLE_BASE_VADDR        ((uintptr_t)&_spgtable)
+#  endif
 
 #  ifdef CONFIG_BOOT_RUNFROMFLASH
 #    define NUTTX_TEXT_PADDR          (CONFIG_FLASH_START & 0xfff00000)
@@ -84,6 +89,16 @@
  */
 
 #define ARMV7M_PERIPHERAL_INTERRUPTS  (CONFIG_SONG_NR_IRQS - 16)
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+#ifndef __ASSEMBLY__
+#  ifdef CONFIG_ARCH_USE_MMU
+extern uint32_t _spgtable;
+#  endif
+#endif
 
 /****************************************************************************
  * Public Functions

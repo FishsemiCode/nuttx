@@ -102,12 +102,3 @@ config SONG_GIC_VBASE
 
 config SONG_NR_IRQS
 	int "Interrupt Number"
-
-if ARCH_USE_MMU
-config SONG_PGTABLE_START
-	hex "pgtable base address"
-
-config SONG_PGTABLE_VSTART
-	hex "pgtable virtual base address"
-	default SONG_PGTABLE_START
-endif
