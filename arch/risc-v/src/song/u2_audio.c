@@ -185,12 +185,46 @@ static void up_mbox_init(void)
 #ifdef CONFIG_SONG_RPTUN
 static void up_rptun_init(void)
 {
+  static struct rptun_rsc_s rptun_rsc_ap
+    __attribute__ ((section(".resource_table"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x100,
+  };
+
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
     .cpuname = CPU_NAME_AP,
     .vringtx = 1,
     .vringrx = 1,
-    .rsc     = (void *)0x6013f000,
+    .rsc     = &rptun_rsc_ap,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_AUDIO]);

@@ -145,13 +145,12 @@ FAR struct i2c_master_s *g_i2c[4] =
  * Private Functions
  ****************************************************************************/
 
-#ifdef FORCE_BOOT_RISCV_CORE1
-static void audio_boot(void)
+static int audio_start(const struct song_rptun_config_s *config)
 {
   putreg32(0x60100000, TOP_PWR_RCPU1_BOOTADDR);
   modifyreg32(TOP_PWR_RCPU1_CTL, TOP_PWR_RSTCTL, 0);
+  return 0;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -266,47 +265,15 @@ static void up_mbox_init(void)
 #ifdef CONFIG_SONG_RPTUN
 static void up_rptun_init(void)
 {
-  static struct rptun_rsc_s rptun_rsc_audio
-    __attribute__ ((section(".resource_table.audio"))) =
-  {
-    .rsc_tbl_hdr     =
-    {
-      .ver           = 1,
-      .num           = 1,
-    },
-    .offset          =
-    {
-      offsetof(struct rptun_rsc_s, rpmsg_vdev),
-    },
-    .rpmsg_vdev      =
-    {
-      .type          = RSC_VDEV,
-      .id            = VIRTIO_ID_RPMSG,
-      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
-                     | 1 << VIRTIO_RPMSG_F_BIND
-                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
-      .num_of_vrings = 2,
-    },
-    .rpmsg_vring0    =
-    {
-      .align         = 0x8,
-      .num           = 4,
-    },
-    .rpmsg_vring1    =
-    {
-      .align         = 0x8,
-      .num           = 4,
-    },
-    .buf_size        = 0x100,
-  };
-
   static const struct song_rptun_config_s rptun_cfg_audio =
   {
-    .cpuname = CPU_NAME_AUDIO,
-    .master  = true,
-    .vringtx = 1,
-    .vringrx = 1,
-    .rsc     = &rptun_rsc_audio,
+    .cpuname    = CPU_NAME_AUDIO,
+    .firmware   = "/system/firmware/audio.elf",
+    .master     = true,
+    .nautostart = true,
+    .vringtx    = 1,
+    .vringrx    = 1,
+    .start      = audio_start,
   };
 
   song_rptun_initialize(&rptun_cfg_audio, g_mbox[CPU_INDEX_AUDIO], g_mbox[CPU_INDEX_AP]);
@@ -486,12 +453,6 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
-#ifdef FORCE_BOOT_RISCV_CORE1
-  /* Boot audio */
-
-  audio_boot();
-#endif
-
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif

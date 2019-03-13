@@ -17,7 +17,6 @@ config ARCH_CHIP_U2_AP
 	bool "U2 AP"
 	select ARCH_RV32IM
 	select ARCH_HAVE_FPU
-	select SONG_COPY_TABLE
 
 config ARCH_CHIP_U2_AUDIO
 	bool "U2 AUDIO"
