@@ -109,10 +109,10 @@ endif
 
 .depend: Makefile $(SRCS)
 ifeq ($(CONFIG_BUILD_FLAT),y)
-	$(Q) $(MKDEP) --obj-path bin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make_bin.dep
+	$(Q) $(MKDEP) --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >bin/Make.dep
 else
-	$(Q) $(MKDEP) --obj-path ubin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >Make_ubin.dep
-	$(Q) $(MKDEP) --obj-path kbin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $^ >Make_kbin.dep
+	$(Q) $(MKDEP) --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >ubin/Make.dep
+	$(Q) $(MKDEP) --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $^ >kbin/Make.dep
 endif
 	$(Q) touch $@
 
@@ -135,11 +135,11 @@ distclean: clean
 	$(Q) $(MAKE) -C bin  -f $(SRCDIR)/bin/Makefile -I $(SRCDIR)/bin distclean TOPDIR=$(TOPDIR)
 	$(Q) $(MAKE) -C ubin -f $(SRCDIR)/ubin/Makefile -I $(SRCDIR)/ubin distclean TOPDIR=$(TOPDIR)
 	$(Q) $(MAKE) -C kbin -f $(SRCDIR)/kbin/Makefile -I $(SRCDIR)/kbin distclean TOPDIR=$(TOPDIR)
-	$(call DELFILE, Make_bin.dep)
-	$(call DELFILE, Make_ubin.dep)
-	$(call DELFILE, Make_kbin.dep)
+	$(call DELFILE, bin/Make.dep)
+	$(call DELFILE, ubin/Make.dep)
+	$(call DELFILE, kbin/Make.dep)
 	$(call DELFILE, .depend)
 
--include Make_bin.dep
--include Make_ubin.dep
--include Make_kbin.dep
+-include bin/Make.dep
+-include ubin/Make.dep
+-include kbin/Make.dep

@@ -159,7 +159,7 @@ endif
 	$(Q) touch $@
 
 .rcdepend: $(RCSRCS)
-	$(Q) $(MKDEP) $(DEPPATH) "$(CPP)" --obj-path . -- $(CPPFLAGS) -- $^ >RCMake.dep
+	$(Q) $(MKDEP) $(DEPPATH) "$(CPP)" -- $(CPPFLAGS) -- $^ >RCMake.dep
 	$(Q) touch $@
 
 depend: .cdepend .cxxdepend .rcdepend
