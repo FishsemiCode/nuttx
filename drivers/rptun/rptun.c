@@ -47,8 +47,8 @@
 #include <nuttx/signal.h>
 #include <metal/utilities.h>
 
-#include <errno.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 #ifndef MAX
 #  define MAX(a,b)              ((a) > (b) ? (a) : (b))
@@ -70,9 +70,9 @@ struct rptun_priv_s
   struct rpmsg_virtio_shm_pool shm_pool;
   struct remoteproc_mem        shm_mem;
   struct metal_io_region       *shm_io;
-  int                          pid;
   struct metal_list            bind;
   struct metal_list            node;
+  int                          pid;
 };
 
 struct rptun_bind_s
@@ -89,6 +89,12 @@ struct rptun_cb_s
   rpmsg_dev_cb_t    device_destroy;
   rpmsg_bind_cb_t   ns_bind;
   struct metal_list node;
+};
+
+struct rptun_store_s
+{
+  int  fd;
+  char *buf;
 };
 
 /****************************************************************************
@@ -114,6 +120,15 @@ static int rptun_dev_start(struct remoteproc *rproc);
 static int rptun_dev_stop(struct remoteproc *rproc);
 static int rptun_dev_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
+static int rptun_store_open(void *store_, const char *path,
+                            const void **img_data);
+static void rptun_store_close(void *store_);
+static int rptun_store_load(void *store_, size_t offset,
+                            size_t size, const void **data,
+                            metal_phys_addr_t pa,
+                            struct metal_io_region *io,
+                            char is_blocking);
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -131,6 +146,14 @@ static struct remoteproc_ops g_rptun_ops =
 static const struct file_operations g_rptun_devops =
 {
   .ioctl = rptun_dev_ioctl,
+};
+
+static struct image_store_ops g_rptun_storeops =
+{
+  .open     = rptun_store_open,
+  .close    = rptun_store_close,
+  .load     = rptun_store_load,
+  .features = SUPPORT_SEEK,
 };
 
 static sem_t g_rptun_sem = SEM_INITIALIZER(1);
@@ -308,10 +331,34 @@ static int rptun_dev_start(struct remoteproc *rproc)
   unsigned int role = RPMSG_REMOTE;
   int ret;
 
-  rsc = RPTUN_GET_RESOURCE(priv->dev);
-  if (!rsc)
+  if (RPTUN_GET_FIRMWARE(priv->dev))
     {
-      return -EINVAL;
+      struct rptun_store_s store = {0};
+
+      ret = remoteproc_load(rproc, RPTUN_GET_FIRMWARE(priv->dev),
+                            &store, &g_rptun_storeops, NULL);
+      if (ret)
+        {
+          return ret;
+        }
+
+      rsc = rproc->rsc_table;
+
+    }
+  else
+    {
+      rsc = RPTUN_GET_RESOURCE(priv->dev);
+      if (!rsc)
+        {
+          return -EINVAL;
+        }
+
+      ret = remoteproc_set_rsc_table(rproc, (struct resource_table *)rsc,
+                                     sizeof(struct rptun_rsc_s));
+      if (ret)
+        {
+          return ret;
+        }
     }
 
   /* Update resource table on MASTER side */
@@ -465,6 +512,79 @@ static int rptun_dev_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     }
 
   return ret;
+}
+
+static int rptun_store_open(void *store_, const char *path,
+                            const void **img_data)
+{
+  struct rptun_store_s *store = store_;
+  int len = 0x100;
+
+  store->fd = open(path, O_RDONLY);
+  if (store->fd < 0)
+    {
+      return -EINVAL;
+    }
+
+  store->buf = kmm_malloc(len);
+  if (!store->buf)
+    {
+      close(store->fd);
+      return -ENOMEM;
+    }
+
+  *img_data = store->buf;
+
+  return read(store->fd, store->buf, len);
+}
+
+static void rptun_store_close(void *store_)
+{
+  struct rptun_store_s *store = store_;
+
+  kmm_free(store->buf);
+  close(store->fd);
+}
+
+static int rptun_store_load(void *store_, size_t offset,
+                            size_t size, const void **data,
+                            metal_phys_addr_t pa,
+                            struct metal_io_region *io,
+                            char is_blocking)
+{
+  struct rptun_store_s *store = store_;
+
+  if (pa == METAL_BAD_PHYS)
+    {
+      char *tmp;
+
+      tmp = kmm_realloc(store->buf, size);
+      if (!tmp)
+        {
+          return -ENOMEM;
+        }
+
+      store->buf = tmp;
+      *data = tmp;
+
+      lseek(store->fd, offset, SEEK_SET);
+
+      return read(store->fd, tmp, size);
+    }
+  else
+    {
+      void *va;
+
+      va = metal_io_phys_to_virt(io, pa);
+      if (!va)
+        {
+          return -EINVAL;
+        }
+
+      lseek(store->fd, offset, SEEK_SET);
+
+      return read(store->fd, va, size);
+    }
 }
 
 /****************************************************************************

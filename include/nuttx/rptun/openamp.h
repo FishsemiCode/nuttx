@@ -42,6 +42,7 @@
 
 #include <nuttx/config.h>
 #include <openamp/open_amp.h>
+#include <openamp/remoteproc_loader.h>
 
 #ifdef CONFIG_RPTUN
 
