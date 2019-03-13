@@ -44,6 +44,7 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/regmap/regmap.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -189,6 +190,8 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_);
 static int song_audio_path_resume(struct audio_lowerhalf_s *dev_);
 #endif
 #endif
+static int song_audio_path_ioctl(struct audio_lowerhalf_s *dev_, int cmd,
+                                 unsigned long arg);
 static int song_audio_path_channels(struct song_audio_path_s *dev,
                                     uint8_t channels);
 static uint32_t song_audio_path_datawidth(struct song_audio_path_s *dev,
@@ -213,6 +216,7 @@ static const struct audio_ops_s g_song_audio_path_ops =
   .pause = song_audio_path_pause,
   .resume = song_audio_path_resume,
 #endif
+  .ioctl = song_audio_path_ioctl,
 };
 
 /****************************************************************************
@@ -432,6 +436,46 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
   return OK;
 }
 #endif
+
+static int song_audio_path_ioctl(struct audio_lowerhalf_s *dev_, int cmd,
+                                 unsigned long arg)
+{
+  struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
+  struct regmap_arg_s *regmap_arg = (struct regmap_arg_s *)arg;
+  int i;
+
+  switch (cmd)
+    {
+      case REGMAPIOC_GETREGVALUE:
+        if (!regmap_arg || !regmap_arg->offsets ||
+            !regmap_arg->values || !regmap_arg->reg_num ||
+            regmap_arg->reg_num > SONG_AUDIO_PATH_MAX_REG)
+          return -EINVAL;
+        for (i = 0; i < regmap_arg->reg_num; ++i)
+          {
+            if (regmap_arg->offsets[i] > SONG_AUDIO_PATH_MAX_REG)
+              continue;
+            regmap_arg->values[i] = audio_path_getreg(dev, regmap_arg->offsets[i]);
+          }
+        break;
+      case REGMAPIOC_SETREGVALUE:
+        if (!regmap_arg || !regmap_arg->offsets ||
+            !regmap_arg->values || !regmap_arg->reg_num ||
+            regmap_arg->reg_num > SONG_AUDIO_PATH_MAX_REG)
+          return -EINVAL;
+        for (i = 0; i < regmap_arg->reg_num; ++i)
+          {
+            if (regmap_arg->offsets[i] > SONG_AUDIO_PATH_MAX_REG)
+              continue;
+            audio_path_putreg(dev, regmap_arg->offsets[i], regmap_arg->values[i]);
+          }
+        break;
+      default:
+        return -ENOTTY;
+    }
+
+  return OK;
+}
 
 static int song_audio_path_channels(struct song_audio_path_s *dev,
                                     uint8_t channels)
