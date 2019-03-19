@@ -955,7 +955,7 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
 
 #ifdef CONFIG_NETDB_DNSCLIENT
 #  ifdef CONFIG_NET_IPv4
-  if (net_ipv4addr_cmp(msg.dnsaddr, INADDR_ANY))
+  if (!net_ipv4addr_cmp(msg.dnsaddr, INADDR_ANY))
     {
       struct sockaddr_in dnsaddr = {};
 
@@ -967,7 +967,7 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
     }
 #  endif
 #  ifdef CONFIG_NET_IPv6
-  if (net_ipv6addr_cmp(msg.ipv6dnsaddr, &in6addr_any))
+  if (!net_ipv6addr_cmp(msg.ipv6dnsaddr, &in6addr_any))
     {
       struct sockaddr_in6 dnsaddr = {};
 
