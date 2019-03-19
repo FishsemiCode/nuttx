@@ -928,7 +928,8 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
   ret = net_rpmsg_drv_send_recv(dev, &msg, NET_RPMSG_IFUP, sizeof(msg));
   if (ret < 0)
     {
-      goto out;
+      net_unlock();
+      return ret;
     }
 
   /* Update net_driver_t field */
@@ -952,6 +953,13 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
 
   net_rpmsg_drv_ipv6multicast(dev);
 #endif
+
+  /* Set and activate a timer process */
+
+  wd_start(priv->txpoll, NET_RPMSG_DRV_WDDELAY, net_rpmsg_drv_poll_expiry, 1,
+           (wdparm_t)dev);
+
+  net_unlock();
 
 #ifdef CONFIG_NETDB_DNSCLIENT
 #  ifdef CONFIG_NET_IPv4
@@ -980,13 +988,7 @@ static int net_rpmsg_drv_ifup(FAR struct net_driver_s *dev)
 #  endif
 #endif
 
-  /* Set and activate a timer process */
-
-  wd_start(priv->txpoll, NET_RPMSG_DRV_WDDELAY, net_rpmsg_drv_poll_expiry, 1,
-           (wdparm_t)dev);
-out:
-  net_unlock();
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
