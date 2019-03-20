@@ -132,16 +132,10 @@ extern "C"
 
 int up_cpu_index(void); /* See include/nuttx/arch.h */
 
-EXTERN uint32_t  volatile g_current_irqs[CONFIG_SMP_NCPUS];
-#  define CURRENT_IRQS (g_current_irqs[up_cpu_index()])
-
 EXTERN uint32_t *volatile g_current_regs[CONFIG_SMP_NCPUS];
 #  define CURRENT_REGS (g_current_regs[up_cpu_index()])
 
 #else
-
-EXTERN uint32_t  volatile g_current_irqs[1];
-#  define CURRENT_IRQS (g_current_irqs[0])
 
 EXTERN uint32_t *volatile g_current_regs[1];
 #  define CURRENT_REGS (g_current_regs[0])
@@ -170,7 +164,7 @@ EXTERN char g_intstackbase;  /* Initial top of interrupt stack */
  *  - The declareion extern char _sdata; makes C happy.  C will believe
  *    that the value _sdata is the address of a char variable _data (it is
  *    not!).
- *  - We can recoved the linker value then by simply taking the address of
+ *  - We can recover the linker value then by simply taking the address of
  *    of _data.  like:  char *pdata = &_sdata;
  */
 

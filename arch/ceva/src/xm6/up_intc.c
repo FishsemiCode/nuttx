@@ -54,97 +54,9 @@
 
 #define DBG_GEN_MASK_OVRFLW_EXCPTN              0x10000000
 
-#define INTX_MASK_BIT(x)                        ((x) - IRQ_INT0  +  5)
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/* Name: up_irq_save, up_irq_restore, and friends.
- *
- * NOTE: This function should never be called from application code and,
- * as a general rule unless you really know what you are doing, this
- * function should not be called directly from operation system code either:
- * Typically, the wrapper functions, enter_critical_section() and
- * leave_critical section(), are probably what you really want.
- */
-
-/* Get/set the MODA register, here is the irq related bits:
- *   Bit  [4] Interrupt enable            (RW)
- *   Bit  [5] Interrupt mask for INT0     (RW)
- *   Bit  [6] Interrupt mask for INT1     (RW)
- *   Bit  [7] Interrupt mask for INT2     (RW)
- *   Bit  [8] Interrupt mask for INT3     (RW)
- *   Bit  [9] Interrupt mask for INT4     (RW)
- *   Bit [10] Interrupt mask for VINT     (RW)
- *   Bit [11] Interrupt pending for INT0  (RO)
- *   Bit [12] Interrupt pending for INT1  (RO)
- *   Bit [13] Interrupt pending for INT2  (RO)
- *   Bit [14] Interrupt pending for INT3  (RO)
- *   Bit [15] Interrupt pending for INT4  (RO)
- *   Bit [16] Interrupt pending for INTV  (RO)
- * All writable bits are clear by hardware during reset.
- *
- * We manipulate the individual mask bits instead of global enable bit since:
- * 1.Global IE not only mask INTX request but also mask TRAPX instruction.
- * 2.Hardware always enable global IE after the interrupt return.
- * Both behavior don't match the nuttx requirement.
- */
-
-static inline uint32_t getmoda(void)
-{
-  uint32_t moda;
-  __asm__ __volatile__("mov moda.ui, %0.ui\nnop #0x02" : "=r"(moda));
-  return moda;
-}
-
-static inline void setmoda(uint32_t moda)
-{
-  __asm__ __volatile__("nop #0x04\nnop\nmovp %0.ui, moda.ui" : : "r"(moda));
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/* Disable IRQs */
-
-void up_irq_disable(void)
-{
-  /* Enable IE, but disable INT0~4 and INTV */
-  setmoda(REG_IRQS_IE);
-  CURRENT_IRQS &= ~REG_IRQS_IE;
-}
-
-/* Save the current state & disable IRQs */
-
-irqstate_t up_irq_save(void)
-{
-  irqstate_t flags;
-
-  flags = CURRENT_IRQS;
-  up_irq_disable();
-  return flags;
-}
-
-/* Enable IRQs */
-
-void up_irq_enable(void)
-{
-  /*Restore INT0~4 and INTV */
-  CURRENT_IRQS |= REG_IRQS_IE;
-  setmoda(CURRENT_IRQS);
-}
-
-/* Restore saved IRQ state */
-
-void up_irq_restore(irqstate_t flags)
-{
-  if (flags & REG_IRQS_IE)
-    {
-      up_irq_enable();
-    }
-}
 
 /****************************************************************************
  * Name: up_disable_irq
@@ -162,18 +74,12 @@ void up_irq_restore(irqstate_t flags)
 
 void up_disable_irq(int irq)
 {
-  if (irq < IRQ_TRAP0)
+  if (irq >= IRQ_VINT_FIRST)
     {
-      irqstate_t flags;
-
-      flags = up_irq_save();
-      if (irq >= IRQ_INT0)
-        {
-          CURRENT_IRQS &= ~(1 << INTX_MASK_BIT(irq));
-        }
-      up_irq_restore(flags);
+      /* Forward to the secondary interrupt controller */
+      up_vintc_disable_irq(irq);
     }
-  else if (irq < IRQ_VINT_FIRST)
+  else if (irq >= IRQ_TRAP0)
     {
       switch (irq)
         {
@@ -190,11 +96,6 @@ void up_disable_irq(int irq)
           __asm__ __volatile__("rstp {imaskt} #0x08");
           break;
         }
-    }
-  else
-    {
-      /* Forward to the secondary interrupt controller */
-      up_vintc_disable_irq(irq);
     }
 }
 
@@ -219,18 +120,13 @@ void up_disable_irq(int irq)
 
 void up_enable_irq(int irq)
 {
-  if (irq < IRQ_TRAP0)
+  /* Note: All INTx is enabled by REG_MODA_DEFAULT */
+  if (irq >= IRQ_VINT_FIRST)
     {
-      irqstate_t flags;
-
-      flags = up_irq_save();
-      if (irq >= IRQ_INT0)
-        {
-          CURRENT_IRQS |= 1 << INTX_MASK_BIT(irq);
-        }
-      up_irq_restore(flags);
+      /* Forward to the secondary interrupt controller */
+      up_vintc_enable_irq(irq);
     }
-  else if (irq < IRQ_VINT_FIRST)
+  else if (irq >= IRQ_TRAP0)
     {
       switch (irq)
         {
@@ -247,11 +143,6 @@ void up_enable_irq(int irq)
           __asm__ __volatile__("setp {imaskt} #0x08");
           break;
         }
-    }
-  else
-    {
-      /* Forward to the secondary interrupt controller */
-      up_vintc_enable_irq(irq);
     }
 }
 
@@ -326,6 +217,5 @@ void up_irqinitialize(void)
 #endif
 
   /* And finally, enable interrupts */
-  CURRENT_IRQS |= REG_IRQS_IE;
-  __asm__ __volatile__("eint");
+  up_irq_enable();
 }

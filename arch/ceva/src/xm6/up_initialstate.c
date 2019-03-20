@@ -91,6 +91,8 @@ void up_initial_state(struct tcb_s *tcb)
 
       /* Initialize all no zero registers */
 
+      xcp->regs[REG_MODA] = REG_MODA_DEFAULT;
+
       /* All tasks start via a stub function in kernel space.  So all
        * tasks must start in privileged thread mode.  If CONFIG_BUILD_PROTECTED
        * is defined, then that stub function will switch to unprivileged

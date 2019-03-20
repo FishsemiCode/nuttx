@@ -46,107 +46,8 @@
 #include "vintc.h"
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define INTX_MASK_BIT(x)          ((x) - IRQ_INT0  +  1)
-#define TRAPX_MASK_BIT(x)         ((x) - IRQ_TRAP0 + 28)
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/* Name: up_irq_save, up_irq_restore, and friends.
- *
- * NOTE: This function should never be called from application code and,
- * as a general rule unless you really know what you are doing, this
- * function should not be called directly from operation system code either:
- * Typically, the wrapper functions, enter_critical_section() and
- * leave_critical section(), are probably what you really want.
- */
-
-/* Get/set the MOD1 register, here is the irq related bits:
- *   Bit  [0] Interrupt enable            (RW)
- *   Bit  [1] Interrupt mask for INT0     (RW)
- *   Bit  [2] Interrupt mask for INT1     (RW)
- *   Bit  [3] Interrupt mask for INT2     (RW)
- *   Bit  [4] Interrupt mask for INT3     (RW)
- *   Bit  [5] Interrupt mask for VINT     (RW)
- *   Bit  [6] Interrupt context for INT0  (RW)
- *   Bit  [7] Interrupt context for INT1  (RW)
- *   Bit  [8] Interrupt context for INT2  (RW)
- *   Bit  [9] Interrupt context for INT3  (RW)
- *   Bit [10] Interrupt context for INTV  (RO)
- *   Bit [11] Interrupt context for NMI   (RW)
- *   Bit [16] Interrupt pending for INT0  (RO)
- *   Bit [17] Interrupt pending for INT1  (RO)
- *   Bit [18] Interrupt pending for INT2  (RO)
- *   Bit [19] Interrupt pending for INT3  (RO)
- *   Bit [20] Interrupt pending for INTV  (RO)
- * All writable bits are clear by hardware during reset.
- *
- * We manipulate the individual mask bits instead of global enable bit since:
- * 1.Global IE not only mask INTX request but also mask TRAPX instruction.
- * 2.Hardware always enable global IE after the interrupt return.
- * Both behavior don't match the nuttx requirement.
- */
-
-static inline uint32_t getmod1(void)
-{
-  uint32_t mod1;
-  __asm__ __volatile__("mov mod1, %0\nnop" : "=r"(mod1));
-  return mod1;
-}
-
-static inline void setmod1(uint32_t mod1)
-{
-  __asm__ __volatile__("nop\nmov %0, mod1" : : "r"(mod1));
-}
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-/* Disable IRQs */
-
-void up_irq_disable(void)
-{
-  /* Enable IE, but disable INT0~3 and INTV */
-
-  setmod1(REG_IRQS_IE);
-  CURRENT_IRQS &= ~REG_IRQS_IE;
-}
-
-/* Save the current state & disable IRQs */
-
-irqstate_t up_irq_save(void)
-{
-  irqstate_t flags;
-
-  flags = CURRENT_IRQS;
-  up_irq_disable();
-  return flags;
-}
-
-/* Enable IRQs */
-
-void up_irq_enable(void)
-{
-  /* Restore INT0~3 and INTV */
-
-  CURRENT_IRQS |= REG_IRQS_IE;
-  setmod1(CURRENT_IRQS);
-}
-
-/* Restore saved IRQ state */
-
-void up_irq_restore(irqstate_t flags)
-{
-  if (flags & REG_IRQS_IE)
-    {
-      up_irq_enable();
-    }
-}
 
 /****************************************************************************
  * Name: up_disable_irq
@@ -164,28 +65,7 @@ void up_irq_restore(irqstate_t flags)
 
 void up_disable_irq(int irq)
 {
-  if (irq < IRQ_VINT_FIRST)
-    {
-      irqstate_t flags;
-
-      flags = up_irq_save();
-      if (irq >= IRQ_INT0 && irq <= IRQ_VINT)
-        {
-          CURRENT_IRQS &= ~(1 << INTX_MASK_BIT(irq));
-        }
-#if 0 /* All TRAPx is enabled by default(REG_MOD2_DEFAULT) */
-      else if (irq >= IRQ_TRAP0 && irq <= IRQ_TRAP3)
-        {
-          uint32_t mod2;
-
-          __asm__ __volatile__("mov mod2, %0\nnop" : "=r"(mod2));
-          mod2 &= ~(1 << TRAPX_MASK_BIT(irq));
-          __asm__ __volatile__("nop\nmov %0, mod2" : : "r"(mod2));
-        }
-#endif
-      up_irq_restore(flags);
-    }
-  else
+  if (irq >= IRQ_VINT_FIRST)
     {
       /* Forward to the secondary interrupt controller */
       up_vintc_disable_irq(irq);
@@ -213,28 +93,8 @@ void up_disable_irq(int irq)
 
 void up_enable_irq(int irq)
 {
-  if (irq < IRQ_VINT_FIRST)
-    {
-      irqstate_t flags;
-
-      flags = up_irq_save();
-      if (irq >= IRQ_INT0 && irq <= IRQ_VINT)
-        {
-          CURRENT_IRQS |= 1 << INTX_MASK_BIT(irq);
-        }
-#if 0 /* All TRAPx is enabled by default(REG_MOD2_DEFAULT) */
-      else if (irq >= IRQ_TRAP0 && irq <= IRQ_TRAP3)
-        {
-          uint32_t mod2;
-
-          __asm__ __volatile__("mov mod2, %0\nnop" : "=r"(mod2));
-          mod2 |= 1 << TRAPX_MASK_BIT(irq);
-          __asm__ __volatile__("nop\nmov %0, mod2" : : "r"(mod2));
-        }
-#endif
-      up_irq_restore(flags);
-    }
-  else
+  /* Note: All INTx/TRAPx is enabled by REG_MOD1_DEFAULT/REG_MOD2_DEFAULT */
+  if (irq >= IRQ_VINT_FIRST)
     {
       /* Forward to the secondary interrupt controller */
       up_vintc_enable_irq(irq);

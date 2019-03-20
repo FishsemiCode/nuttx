@@ -58,8 +58,7 @@
     "nop #0x04\nnop #0x04\nnop\n" /* Clear the pipe of instruction */ \
     /* Core auto restore to DPS here after wakeup */                  \
     "movp %1.ui, moda.ui"         /* restore the interrupt */         \
-     : : "r"(CURRENT_IRQS | REG_IRQS_IE)                              \
-     , "r"(REG_IRQS_IE)                                               \
+     : : "r"(REG_MODA_ENABLE), "r"(REG_MODA_DISABLE)                  \
   )
 #else
 #define up_cpu_pmod(pmod_inst)

@@ -55,10 +55,8 @@
  */
 
 #ifdef CONFIG_SMP
-uint32_t  volatile g_current_irqs[CONFIG_SMP_NCPUS];
 uint32_t *volatile g_current_regs[CONFIG_SMP_NCPUS];
 #else
-uint32_t  volatile g_current_irqs[1];
 uint32_t *volatile g_current_regs[1];
 #endif
 
@@ -80,12 +78,6 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
     }
   else
     {
-      /* Hardware automatically clear IE bit at the interrupt entry,
-       * update the software state(CURRENT_IRQS) to reflect the truth.
-       */
-
-      CURRENT_IRQS &= ~REG_IRQS_IE;
-
       /* Current regs non-zero indicates that we are processing an interrupt;
        * CURRENT_REGS is also used to manage interrupt level context switches.
        */
@@ -110,12 +102,6 @@ uint32_t *up_doirq(int irq, uint32_t *regs)
       */
 
       CURRENT_REGS = NULL;
-
-      /* Hardware automatically set IE bit before the interrupt return,
-       * update the software state(CURRENT_IRQS) to reflect the truth.
-       */
-
-      CURRENT_IRQS |= REG_IRQS_IE;
 
       if (regs != (uint32_t *)regs[REG_SP])
         {

@@ -174,6 +174,7 @@ exception_common:
 	push		{auxreg8}
 	push		{auxreg9}
 
+	push		moda.ui
 	push		modc.ui
 	push		modd.ui
 	push		mode.ui
@@ -220,6 +221,7 @@ exception_common:
 	pop		mode.ui
 	pop		modd.ui
 	pop		modc.ui
+	pop		moda.ui
 
 	pop		{auxreg9}
 	pop		{auxreg8}
