@@ -75,7 +75,7 @@ static void up_cpu_pmod(uint32_t pmod)
     "nop 0x07\n"              /* Clear the pipe of instruction */
     /* Core auto restore to DPS here after wakeup */
     "mov %3, mod1"            /* restore the interrupt */
-     : : "r"(CURRENT_IRQS), "d"(psvm)
+     : : "r"(CURRENT_IRQS | REG_IRQS_IE), "d"(psvm)
      , "r"(PSVM), "r"(REG_IRQS_IE)
   );
 }

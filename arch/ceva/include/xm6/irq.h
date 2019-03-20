@@ -167,8 +167,6 @@ struct xcptcontext
 
 #endif
 
-  irqstate_t irqflags;
-
   /* Register save area with XCPTCONTEXT_SIZE, only valid when:
    * 1.The task isn't running or
    * 2.The task is interrupted

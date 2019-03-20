@@ -43,7 +43,6 @@
 #include <nuttx/irq.h>
 
 #include "cpm.h"
-#include "sched/sched.h"
 #include "up_internal.h"
 #include "vintc.h"
 
@@ -52,10 +51,10 @@
  ****************************************************************************/
 
 #define DBG_GEN_MASK                            0x0d28
+
 #define DBG_GEN_MASK_OVRFLW_EXCPTN              0x10000000
 
-#define INTX_MASK_ALL                           0x07e0
-#define INTX_MASK_BIT(x)                        ((x) - IRQ_INT0 + 5)
+#define INTX_MASK_BIT(x)                        ((x) - IRQ_INT0  +  5)
 
 /****************************************************************************
  * Private Functions
@@ -92,6 +91,13 @@
  * Both behavior don't match the nuttx requirement.
  */
 
+static inline uint32_t getmoda(void)
+{
+  uint32_t moda;
+  __asm__ __volatile__("mov moda.ui, %0.ui\nnop #0x02" : "=r"(moda));
+  return moda;
+}
+
 static inline void setmoda(uint32_t moda)
 {
   __asm__ __volatile__("nop #0x04\nnop\nmovp %0.ui, moda.ui" : : "r"(moda));
@@ -105,24 +111,19 @@ static inline void setmoda(uint32_t moda)
 
 void up_irq_disable(void)
 {
-  up_irq_save();
+  /* Enable IE, but disable INT0~4 and INTV */
+  setmoda(REG_IRQS_IE);
+  CURRENT_IRQS &= ~REG_IRQS_IE;
 }
 
 /* Save the current state & disable IRQs */
 
 irqstate_t up_irq_save(void)
 {
-  struct tcb_s *rtcb = this_task();
-  irqstate_t flags = 1;
+  irqstate_t flags;
 
-  if (rtcb && !up_interrupt_context())
-    {
-      flags = rtcb->xcp.irqflags;
-      /* Disable INT0~4 and INTV */
-      setmoda(CURRENT_IRQS & ~INTX_MASK_ALL);
-      rtcb->xcp.irqflags = 1;
-    }
-
+  flags = CURRENT_IRQS;
+  up_irq_disable();
   return flags;
 }
 
@@ -130,25 +131,16 @@ irqstate_t up_irq_save(void)
 
 void up_irq_enable(void)
 {
-  struct tcb_s *rtcb = this_task();
-
-  if (rtcb && !up_interrupt_context())
-    {
-      /*Restore INT0~4 and INTV */
-      rtcb->xcp.irqflags = 0;
-      setmoda(CURRENT_IRQS);
-    }
+  /*Restore INT0~4 and INTV */
+  CURRENT_IRQS |= REG_IRQS_IE;
+  setmoda(CURRENT_IRQS);
 }
 
 /* Restore saved IRQ state */
 
 void up_irq_restore(irqstate_t flags)
 {
-  if (flags)
-    {
-      up_irq_disable();
-    }
-  else
+  if (flags & REG_IRQS_IE)
     {
       up_irq_enable();
     }
@@ -334,5 +326,6 @@ void up_irqinitialize(void)
 #endif
 
   /* And finally, enable interrupts */
+  CURRENT_IRQS |= REG_IRQS_IE;
   __asm__ __volatile__("eint");
 }
