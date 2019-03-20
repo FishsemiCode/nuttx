@@ -124,7 +124,7 @@ int dns_unregister_notify(dns_callback_t callback, FAR void *arg)
            return OK;
         }
     }
-  dns_semtake();
+  dns_semgive();
 
   return -EINVAL;
 }
