@@ -93,6 +93,22 @@
 #define RPTUN_GET_FIRMWARE(d) ((d)->ops->get_firmware(d))
 
 /****************************************************************************
+ * Name: RPTUN_GET_ADDRENV
+ *
+ * Description:
+ *   Get adress env list
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *
+ * Returned Value:
+ *   Addrenv pointer on success, NULL on failure.
+ *
+ ****************************************************************************/
+
+#define RPTUN_GET_ADDRENV(d) ((d)->ops->get_addrenv(d))
+
+/****************************************************************************
  * Name: RPTUN_GET_RESOURCE
  *
  * Description:
@@ -229,24 +245,11 @@
 
 typedef int (*rptun_callback_t)(void *arg, uint32_t vqid);
 
-struct rptun_dev_s;
-struct rptun_ops_s
+struct rptun_addrenv_s
 {
-  const char *(*get_cpuname)(struct rptun_dev_s *dev);
-  const char *(*get_firmware)(struct rptun_dev_s *dev);
-  void *(*get_resource)(struct rptun_dev_s *dev);
-  bool (*is_autostart)(struct rptun_dev_s *dev);
-  bool (*is_master)(struct rptun_dev_s *dev);
-  int (*start)(struct rptun_dev_s *dev);
-  int (*stop)(struct rptun_dev_s *dev);
-  int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
-  int (*register_callback)(struct rptun_dev_s *dev,
-                    rptun_callback_t callback, void *arg);
-};
-
-struct rptun_dev_s
-{
-  const struct rptun_ops_s *ops;
+  uintptr_t pa;
+  uintptr_t da;
+  size_t    size;
 };
 
 struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
@@ -258,6 +261,30 @@ struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
   struct fw_rsc_vdev_vring rpmsg_vring0;
   struct fw_rsc_vdev_vring rpmsg_vring1;
   unsigned int             buf_size;
+};
+
+struct rptun_dev_s;
+struct rptun_ops_s
+{
+  const char *(*get_cpuname)(struct rptun_dev_s *dev);
+  const char *(*get_firmware)(struct rptun_dev_s *dev);
+
+  const struct rptun_addrenv_s *(*get_addrenv)(struct rptun_dev_s *dev);
+  struct rptun_rsc_s *(*get_resource)(struct rptun_dev_s *dev);
+
+  bool (*is_autostart)(struct rptun_dev_s *dev);
+  bool (*is_master)(struct rptun_dev_s *dev);
+
+  int (*start)(struct rptun_dev_s *dev);
+  int (*stop)(struct rptun_dev_s *dev);
+  int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
+  int (*register_callback)(struct rptun_dev_s *dev,
+                    rptun_callback_t callback, void *arg);
+};
+
+struct rptun_dev_s
+{
+  const struct rptun_ops_s *ops;
 };
 
 /****************************************************************************

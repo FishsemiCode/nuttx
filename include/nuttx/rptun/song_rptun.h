@@ -53,16 +53,17 @@
 
 struct song_rptun_config_s
 {
-  const char *cpuname;
-  const char *firmware;
+  const char                   *cpuname;
+  const char                   *firmware;
 
-  bool       master;
-  bool       nautostart;
+  const struct rptun_addrenv_s *addrenv;
+  struct rptun_rsc_s           *rsc;
 
-  int32_t    vringtx;
-  int32_t    vringrx;
+  bool                         nautostart;
+  bool                         master;
 
-  void       *rsc;
+  int32_t                      vringtx;
+  int32_t                      vringrx;
 
   int (*start)(const struct song_rptun_config_s *config);
   int (*stop)(const struct song_rptun_config_s *config);

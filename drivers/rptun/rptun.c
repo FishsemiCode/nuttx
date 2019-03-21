@@ -68,8 +68,6 @@ struct rptun_priv_s
   struct remoteproc            rproc;
   struct rpmsg_virtio_device   vdev;
   struct rpmsg_virtio_shm_pool shm_pool;
-  struct remoteproc_mem        shm_mem;
-  struct metal_io_region       *shm_io;
   struct metal_list            bind;
   struct metal_list            node;
   int                          pid;
@@ -105,10 +103,10 @@ static struct remoteproc *rptun_init(struct remoteproc *rproc,
                                      struct remoteproc_ops *ops,
                                      void *arg);
 static void rptun_remove(struct remoteproc *rproc);
-static void *rptun_mmap(struct remoteproc *rproc,
-                        metal_phys_addr_t *pa, metal_phys_addr_t *da,
-                        size_t size, unsigned int attribute,
-                        struct metal_io_region **io);
+static int rptun_mmap(struct remoteproc *rproc,
+                      metal_phys_addr_t *pa, metal_phys_addr_t *da,
+                      void **va, size_t size, unsigned int attribute,
+                      struct metal_io_region **io_);
 static int rptun_start(struct remoteproc *rproc);
 static int rptun_stop(struct remoteproc *rproc);
 static int rptun_notify(struct remoteproc *rproc, uint32_t id);
@@ -128,6 +126,9 @@ static int rptun_store_load(void *store_, size_t offset,
                             metal_phys_addr_t pa,
                             struct metal_io_region *io,
                             char is_blocking);
+
+static metal_phys_addr_t rptun_pa_to_da(struct rptun_dev_s *dev, metal_phys_addr_t pa);
+static metal_phys_addr_t rptun_da_to_pa(struct rptun_dev_s *dev, metal_phys_addr_t da);
 
 /****************************************************************************
  * Private Data
@@ -211,25 +212,44 @@ static void rptun_remove(struct remoteproc *rproc)
   rproc->priv = NULL;
 }
 
-static void *rptun_mmap(struct remoteproc *rproc,
-                        metal_phys_addr_t *pa, metal_phys_addr_t *da,
-                        size_t size, unsigned int attribute,
-                        struct metal_io_region **io)
+static int rptun_mmap(struct remoteproc *rproc,
+                      metal_phys_addr_t *pa, metal_phys_addr_t *da,
+                      void **va, size_t size, unsigned int attribute,
+                      struct metal_io_region **io_)
 {
   struct rptun_priv_s *priv = rproc->priv;
-  metal_phys_addr_t lpa;
+  struct metal_io_region *io = metal_io_get_region();
 
   if (*pa != METAL_BAD_PHYS)
-    lpa = *pa;
+    {
+      *da = rptun_pa_to_da(priv->dev, *pa);
+      *va = metal_io_phys_to_virt(io, *pa);
+      if (!*va)
+        return -RPROC_EINVAL;
+    }
   else if (*da != METAL_BAD_PHYS)
-    lpa = *da;
+    {
+      *pa = rptun_da_to_pa(priv->dev, *da);
+      *va = metal_io_phys_to_virt(io, *pa);
+      if (!*va)
+        return -RPROC_EINVAL;
+    }
+  else if (*va)
+    {
+      *pa = metal_io_virt_to_phys(io, *va);
+      if (*pa == METAL_BAD_PHYS)
+        return -RPROC_EINVAL;
+      *da = rptun_pa_to_da(priv->dev, *pa);
+    }
   else
-    return NULL;
+    {
+      return -RPROC_EINVAL;
+    }
 
-  if (io)
-    *io = priv->shm_io;
+  if (io_)
+    *io_ = io;
 
-  return metal_io_phys_to_virt(priv->shm_io, lpa);
+  return 0;
 }
 
 static int rptun_start(struct remoteproc *rproc)
@@ -343,7 +363,6 @@ static int rptun_dev_start(struct remoteproc *rproc)
         }
 
       rsc = rproc->rsc_table;
-
     }
   else
     {
@@ -366,8 +385,9 @@ static int rptun_dev_start(struct remoteproc *rproc)
   if (RPTUN_IS_MASTER(priv->dev))
     {
       uint32_t tbsz, v0sz, v1sz, shbufsz;
+      metal_phys_addr_t da0, da1;
       uint32_t align0, align1;
-      metal_phys_addr_t pa0, pa1;
+      void *va0, *va1;
       void *shbuf;
 
       align0 = B2C(rsc->rpmsg_vring0.align);
@@ -377,13 +397,16 @@ static int rptun_dev_start(struct remoteproc *rproc)
       v0sz = vring_size(rsc->rpmsg_vring0.num, align0);
       v1sz = vring_size(rsc->rpmsg_vring1.num, align1);
 
-      pa0 = metal_io_virt_to_phys(priv->shm_io, (char *)rsc + tbsz);
-      pa1 = metal_io_virt_to_phys(priv->shm_io, (char *)rsc + tbsz + v0sz);
+      va0 = (char *)rsc + tbsz;
+      va1 = (char *)rsc + tbsz + v0sz;
 
-      remoteproc_mmap(rproc, &pa0, (metal_phys_addr_t *)&rsc->rpmsg_vring0.da,
-                      v0sz, 0, NULL);
-      remoteproc_mmap(rproc, &pa1, (metal_phys_addr_t *)&rsc->rpmsg_vring1.da,
-                      v1sz, 0, NULL);
+      da0 = da1 = METAL_BAD_PHYS;
+
+      remoteproc_mmap(rproc, NULL, &da0, &va0, v0sz, 0, NULL);
+      remoteproc_mmap(rproc, NULL, &da1, &va1, v1sz, 0, NULL);
+
+      rsc->rpmsg_vring0.da = da0;
+      rsc->rpmsg_vring1.da = da1;
 
       shbuf   = (char *)rsc + tbsz + v0sz + v1sz;
       shbufsz = rsc->buf_size * (rsc->rpmsg_vring0.num + rsc->rpmsg_vring1.num);
@@ -402,7 +425,7 @@ static int rptun_dev_start(struct remoteproc *rproc)
     }
 
   ret = rpmsg_init_vdev(&priv->vdev, vdev, rptun_ns_bind,
-                        priv->shm_io, &priv->shm_pool);
+                        metal_io_get_region(), &priv->shm_pool);
   if (ret)
     {
       remoteproc_remove_virtio(rproc, vdev);
@@ -553,11 +576,10 @@ static int rptun_store_load(void *store_, size_t offset,
                             char is_blocking)
 {
   struct rptun_store_s *store = store_;
+  char *tmp;
 
   if (pa == METAL_BAD_PHYS)
     {
-      char *tmp;
-
       tmp = kmm_realloc(store->buf, size);
       if (!tmp)
         {
@@ -566,25 +588,65 @@ static int rptun_store_load(void *store_, size_t offset,
 
       store->buf = tmp;
       *data = tmp;
-
-      lseek(store->fd, offset, SEEK_SET);
-
-      return read(store->fd, tmp, size);
     }
   else
     {
-      void *va;
-
-      va = metal_io_phys_to_virt(io, pa);
-      if (!va)
+      tmp = metal_io_phys_to_virt(io, pa);
+      if (!tmp)
         {
           return -EINVAL;
         }
-
-      lseek(store->fd, offset, SEEK_SET);
-
-      return read(store->fd, va, size);
     }
+
+  lseek(store->fd, offset, SEEK_SET);
+  return read(store->fd, tmp, size);
+}
+
+static metal_phys_addr_t rptun_pa_to_da(struct rptun_dev_s *dev, metal_phys_addr_t pa)
+{
+  const struct rptun_addrenv_s *addrenv;
+  uint32_t i;
+
+  addrenv = RPTUN_GET_ADDRENV(dev);
+  if (!addrenv)
+    {
+      return B2C(pa);
+    }
+
+  for (i = 0; addrenv[i].size; i++)
+    {
+      if (pa - addrenv[i].pa < addrenv[i].size)
+        {
+          return addrenv[i].da + B2C(pa - addrenv[i].pa);
+        }
+    }
+
+  return B2C(pa);
+}
+
+static metal_phys_addr_t rptun_da_to_pa(struct rptun_dev_s *dev, metal_phys_addr_t da)
+{
+  const struct rptun_addrenv_s *addrenv;
+  uint32_t i;
+
+  da = C2B(da);
+
+  addrenv = RPTUN_GET_ADDRENV(dev);
+  if (!addrenv)
+    {
+      return da;
+    }
+
+  for (i = 0; addrenv[i].size; i++)
+    {
+      metal_phys_addr_t tmp = C2B(addrenv[i].da);
+      if (da - tmp < addrenv[i].size)
+        {
+          return addrenv[i].pa + (da - tmp);
+        }
+    }
+
+  return da;
 }
 
 /****************************************************************************
@@ -722,17 +784,13 @@ int rptun_initialize(struct rptun_dev_s *dev)
       return ret;
     }
 
-  priv->pid    = ret;
-  priv->dev    = dev;
-  priv->shm_io = metal_io_get_region();
+  priv->pid = ret;
+  priv->dev = dev;
 
   metal_list_init(&priv->bind);
 
   remoteproc_init(&priv->rproc, &g_rptun_ops, priv);
   remoteproc_config(&priv->rproc, NULL);
-
-  remoteproc_init_mem(&priv->shm_mem, NULL, 0, 0, (size_t)-1, priv->shm_io);
-  remoteproc_add_mem(&priv->rproc, &priv->shm_mem);
 
   if (RPTUN_IS_AUTOSTART(dev))
     {

@@ -66,7 +66,8 @@ struct song_rptun_dev_s
 
 static const char *song_rptun_get_cpuname(struct rptun_dev_s *dev);
 static const char *song_rptun_get_firmware(struct rptun_dev_s *dev);
-static void *song_rptun_get_resource(struct rptun_dev_s *dev);
+static const struct rptun_addrenv_s *song_rptun_get_addrenv(struct rptun_dev_s *dev);
+static struct rptun_rsc_s *song_rptun_get_resource(struct rptun_dev_s *dev);
 static bool song_rptun_is_autostart(struct rptun_dev_s *dev);
 static bool song_rptun_is_master(struct rptun_dev_s *dev);
 static int song_rptun_start(struct rptun_dev_s *dev);
@@ -84,6 +85,7 @@ static const struct rptun_ops_s g_song_rptun_ops =
 {
   .get_cpuname       = song_rptun_get_cpuname,
   .get_firmware      = song_rptun_get_firmware,
+  .get_addrenv       = song_rptun_get_addrenv,
   .get_resource      = song_rptun_get_resource,
   .is_autostart      = song_rptun_is_autostart,
   .is_master         = song_rptun_is_master,
@@ -113,7 +115,15 @@ static const char *song_rptun_get_firmware(struct rptun_dev_s *dev)
   return config->firmware;
 }
 
-static void *song_rptun_get_resource(struct rptun_dev_s *dev)
+static const struct rptun_addrenv_s *song_rptun_get_addrenv(struct rptun_dev_s *dev)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  return config->addrenv;
+}
+
+static struct rptun_rsc_s *song_rptun_get_resource(struct rptun_dev_s *dev)
 {
   struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
   const struct song_rptun_config_s *config = priv->config;
