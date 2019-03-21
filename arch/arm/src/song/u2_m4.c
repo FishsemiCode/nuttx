@@ -85,6 +85,16 @@
 
 #define TOP_MAILBOX_BASE            (0xa0050000)
 
+#define MUX_PIN_BASE                (0xa00d0000)
+#define MUXPIN_CLKO0_CTL            (MUX_PIN_BASE + 0x14)
+#define MUXPIN_IIS0CK_CTL           (MUX_PIN_BASE + 0x84)
+#define MUXPIN_IIS0WS_CTL           (MUX_PIN_BASE + 0x88)
+#define MUXPIN_GPIO8_CTL            (MUX_PIN_BASE + 0xe4)
+
+#define MUXPIN_DS                   0x4
+#define MUXPIN_PDU                  0x2
+#define MUXPIN_FUNC_SEL             0x0
+
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
 #define TOP_PWR_M4_INTR2SLP_MK0     (TOP_PWR_BASE + 0x224)
@@ -358,6 +368,60 @@ static void up_flash_init(void)
 }
 #endif
 
+#ifdef CONFIG_AUDIO
+static void up_audio_init(void)
+{
+  struct audio_lowerhalf_s *ak4332_0;
+  struct audio_lowerhalf_s *ak4332_1;
+  struct audio_lowerhalf_s *audio_anc;
+  struct audio_lowerhalf_s *audio_dma_in;
+  struct audio_lowerhalf_s *audio_dma_voice;
+  struct audio_lowerhalf_s *audio_dma_vt;
+  struct audio_lowerhalf_s *audio_path_in;
+  struct audio_lowerhalf_s *audio_path_voice;
+  struct audio_lowerhalf_s *audio_path_vt;
+  struct audio_lowerhalf_s *dma_playback;
+  struct audio_lowerhalf_s *dma_capture;
+  struct audio_lowerhalf_s *pcm_playback;
+  struct audio_lowerhalf_s *pcm_capture;
+  struct audio_lowerhalf_s *thinker;
+
+  clk_enable(clk_get("i2c1_mclk"));
+  clk_enable(clk_get("i2c2_mclk"));
+  putreg32(2 << (MUXPIN_DS), MUXPIN_CLKO0_CTL);
+  putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0CK_CTL);
+  putreg32(1 << (MUXPIN_DS) | 1 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0WS_CTL);
+  putreg32(1 << (MUXPIN_DS), MUXPIN_GPIO8_CTL);
+  IOEXP_SETDIRECTION(g_ioe[0], 0x8, IOEXPANDER_DIRECTION_OUT);
+  IOEXP_WRITEPIN(g_ioe[0], 0x8, true);
+
+  ak4332_0 = ak4332_initialize(g_i2c[1], "audio_sys_akm_clk", 3);
+  ak4332_1 = ak4332_initialize(g_i2c[2], "audio_sys_akm_clk", 3);
+  audio_dma_in = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
+  audio_path_in = song_audio_path_in_initialize(0xa0070000, 38, "audio_sys_in_clk", "audio_i2s_mclk");
+  audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
+  audio_path_voice = song_audio_path_voice_initialize(0xa0070000, 0, false);
+  audio_comp_initialize("pcm0p", ak4332_0, ak4332_1, audio_path_in, audio_dma_in, NULL);
+  audio_comp_initialize("pcm0c", audio_path_voice, audio_dma_voice, NULL);
+
+  pcm_playback = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), true);
+  pcm_capture = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), false);
+  dma_playback = audio_dma_initialize(g_dma[0], 3, true, 4, 0xa0060018);
+  dma_capture = audio_dma_initialize(g_dma[0], 11, false, 4, 0xa0060014);
+  audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
+  audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
+
+  thinker = thinker_initialize(0xa0200000, 20);
+  audio_dma_vt = audio_dma_initialize(g_dma[1], 0, true, 0, 0xa007040c);
+  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, false, false);
+  audio_comp_initialize("pcm2c", thinker, audio_path_vt, NULL);
+  audio_comp_initialize("pcm2p", audio_dma_vt, NULL);
+
+  audio_anc = song_audio_path_anc_initialize(0xa0070000, false);
+  audio_comp_initialize("pcm3p", ak4332_0, ak4332_1, audio_anc, NULL);
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
@@ -396,55 +460,9 @@ void up_lateinitialize(void)
   up_flash_init();
 #endif
 
-  clk_enable(clk_get("i2c1_mclk"));
-  clk_enable(clk_get("i2c2_mclk"));
-
-  *(volatile uint32_t *)(0xa00d0014) = 0x20;
-  *(volatile uint32_t *)(0xa00d0084) = 0x1b;
-  *(volatile uint32_t *)(0xa00d0088) = 0x17;
-  *(volatile uint32_t *)(0xa00d00e4) = 0x10;
-  *(volatile uint32_t *)(0xa00f0040) = 0x1000100;
-  *(volatile uint32_t *)(0xa00f0000) = 0x1000100;
-
-  struct audio_lowerhalf_s *ak4332_0;
-  struct audio_lowerhalf_s *ak4332_1;
-  struct audio_lowerhalf_s *audio_anc;
-  struct audio_lowerhalf_s *audio_dma_in;
-  struct audio_lowerhalf_s *audio_dma_voice;
-  struct audio_lowerhalf_s *audio_dma_vt;
-  struct audio_lowerhalf_s *audio_path_in;
-  struct audio_lowerhalf_s *audio_path_voice;
-  struct audio_lowerhalf_s *audio_path_vt;
-  struct audio_lowerhalf_s *dma_playback;
-  struct audio_lowerhalf_s *dma_capture;
-  struct audio_lowerhalf_s *pcm_playback;
-  struct audio_lowerhalf_s *pcm_capture;
-  struct audio_lowerhalf_s *thinker;
-
-  ak4332_0 = ak4332_initialize(g_i2c[1], "audio_sys_akm_clk", 3);
-  ak4332_1 = ak4332_initialize(g_i2c[2], "audio_sys_akm_clk", 3);
-  audio_dma_in = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
-  audio_path_in = song_audio_path_in_initialize(0xa0070000, 38, "audio_sys_in_clk", "audio_i2s_mclk");
-  audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
-  audio_path_voice = song_audio_path_voice_initialize(0xa0070000, 0, false);
-  audio_comp_initialize("pcm0p", ak4332_0, ak4332_1, audio_path_in, audio_dma_in, NULL);
-  audio_comp_initialize("pcm0c", audio_path_voice, audio_dma_voice, NULL);
-
-  pcm_playback = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), true);
-  pcm_capture = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), false);
-  dma_playback = audio_dma_initialize(g_dma[0], 3, true, 4, 0xa0060018);
-  dma_capture = audio_dma_initialize(g_dma[0], 11, false, 4, 0xa0060014);
-  audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
-  audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
-
-  thinker = thinker_initialize(0xa0200000, 20);
-  audio_dma_vt = audio_dma_initialize(g_dma[1], 0, true, 0, 0xa007040c);
-  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, false, false);
-  audio_comp_initialize("pcm2c", thinker, audio_path_vt, NULL);
-  audio_comp_initialize("pcm2p", audio_dma_vt, NULL);
-
-  audio_anc = song_audio_path_anc_initialize(0xa0070000, false);
-  audio_comp_initialize("pcm3p", ak4332_0, ak4332_1, audio_anc, NULL);
+#ifdef CONFIG_AUDIO
+  up_audio_init();
+#endif
 }
 
 void up_finalinitialize(void)
