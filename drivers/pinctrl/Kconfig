@@ -13,4 +13,11 @@ menuconfig PINCTRL
 
 if PINCTRL
 
+menuconfig SONG_PINCTRL
+	bool "song pinctrl driver"
+	default n
+	depends on ARCH_CHIP_SONG
+	---help---
+		Sng platform pinctrl driver for pinctrl framework
+
 endif # PINCTRL

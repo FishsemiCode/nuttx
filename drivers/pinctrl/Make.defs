@@ -38,6 +38,10 @@
 ifeq ($(CONFIG_PINCTRL),y)
 CSRCS += pinctrl.c
 
+ifeq ($(CONFIG_SONG_PINCTRL),y)
+CSRCS += song_pinctrl.c
+endif
+
 DEPPATH += --dep-path pinctrl
 VPATH += :pinctrl
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)pinctrl}
