@@ -269,8 +269,8 @@ static void up_rptun_init(void)
   {
     .cpuname    = CPU_NAME_AUDIO,
     .firmware   = "/system/firmware/audio.elf",
-    .master     = true,
     .nautostart = true,
+    .master     = true,
     .vringtx    = 1,
     .vringrx    = 1,
     .start      = audio_start,

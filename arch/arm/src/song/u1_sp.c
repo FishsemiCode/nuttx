@@ -660,11 +660,11 @@ static void up_rptun_init(void)
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
     .cpuname    = CPU_NAME_AP,
-    .master     = true,
+    .rsc        = &rptun_rsc_ap,
     .nautostart = true,
+    .master     = true,
     .vringtx    = 15,
     .vringrx    = 15,
-    .rsc        = &rptun_rsc_ap,
     .start      = ap_start,
   };
 
@@ -705,11 +705,11 @@ static void up_rptun_init(void)
   static const struct song_rptun_config_s rptun_cfg_cp =
   {
     .cpuname    = CPU_NAME_CP,
-    .master     = true,
+    .rsc        = &rptun_rsc_cp,
     .nautostart = true,
+    .master     = true,
     .vringtx    = 1,
     .vringrx    = 1,
-    .rsc        = &rptun_rsc_cp,
     .start      = cp_start,
   };
 

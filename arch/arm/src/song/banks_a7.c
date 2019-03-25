@@ -277,9 +277,9 @@ static void up_rptun_init(void)
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
     .cpuname = CPU_NAME_AP,
+    .rsc     = &rptun_rsc_ap,
     .vringtx = 0,
     .vringrx = 0,
-    .rsc     = &rptun_rsc_ap,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_A7]);

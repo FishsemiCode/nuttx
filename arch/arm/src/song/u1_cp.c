@@ -444,17 +444,17 @@ static void up_rptun_init(void)
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
     .cpuname = CPU_NAME_AP,
+    .rsc     = (struct rptun_rsc_s *)0xb0003400,
     .vringtx = 3,
     .vringrx = 3,
-    .rsc     = (void *)0xb0003400,
   };
 
   static const struct song_rptun_config_s rptun_cfg_sp =
   {
     .cpuname = CPU_NAME_SP,
+    .rsc     = (struct rptun_rsc_s *)0xb0010000,
     .vringtx = 1,
     .vringrx = 1,
-    .rsc     = (void *)0xb0010000,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
