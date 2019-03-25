@@ -468,7 +468,7 @@ static void up_audio_init(void)
 
   thinker = thinker_initialize(0xa0200000, 4);
   audio_dma_vt = audio_dma_initialize(g_dma[1], 0, true, 0, 0xa007040c);
-  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, false, false);
+  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, false, true);
   audio_comp_initialize("pcm2c", dp_adc2, thinker, audio_path_vt, NULL);
   audio_comp_initialize("pcm2p", audio_dma_vt, NULL);
 
