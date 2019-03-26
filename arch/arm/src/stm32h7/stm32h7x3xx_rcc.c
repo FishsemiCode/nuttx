@@ -152,6 +152,24 @@ static inline void rcc_enableahb1(void)
   regval |= RCC_AHB1ENR_DMA2EN;
 #endif
 
+#ifdef CONFIG_STM32H7_OTGFS
+  /* USB OTG FS clock enable */
+
+  regval |= RCC_AHB1ENR_OTGFSEN;
+#endif
+
+#ifdef CONFIG_STM32H7_OTGHS
+#ifdef BOARD_ENABLE_USBOTG_HSULPI
+  /* Enable clocking for USB OTG HS and external PHY */
+
+  regval |= (RCC_AHB1ENR_OTGHSEN | RCC_AHB1ENR_OTGHSULPIEN);
+#else
+  /* Enable only clocking for USB OTG HS */
+
+  regval |= RCC_AHB1ENR_OTGHSEN;
+#endif
+#endif
+
   putreg32(regval, STM32_RCC_AHB1ENR);   /* Enable peripherals */
 }
 
@@ -195,6 +213,12 @@ static inline void rcc_enableahb3(void)
    */
 
   regval = getreg32(STM32_RCC_AHB3ENR);
+
+#ifdef CONFIG_STM32H7_MDMA
+  /* MDMA clock enable */
+
+  regval |= RCC_AHB3ENR_MDMAEN;
+#endif
 
   // TODO: ...
 
@@ -254,6 +278,12 @@ static inline void rcc_enableahb4(void)
              | RCC_AHB4ENR_GPIOKEN
 #endif
     );
+#endif
+
+#ifdef CONFIG_STM32H7_BDMA
+  /* BDMA clock enable */
+
+  regval |= RCC_AHB4ENR_BDMAEN;
 #endif
 
 #ifdef CONFIG_STM32H7_CRC
@@ -412,9 +442,11 @@ static inline void rcc_enableapb4(void)
 
   regval = getreg32(STM32_RCC_APB4ENR);
 
+#ifdef CONFIG_STM32H7_SYSCFG
   /* System configuration controller clock enable */
 
   regval |= RCC_APB4ENR_SYSCFGEN;
+#endif
 
 #ifdef CONFIG_STM32H7_I2C4
   /* I2C4 clock enable */
@@ -497,6 +529,21 @@ static void stm32_stdclockconfig(void)
     }
 #endif
 
+#define CONFIG_STM32H7_HSI48
+#ifdef CONFIG_STM32H7_HSI48
+  /* Enable HSI48 */
+
+  regval  = getreg32(STM32_RCC_CR);
+  regval |= RCC_CR_HSI48ON;
+  putreg32(regval, STM32_RCC_CR);
+
+  /* Wait until the HSI48 is ready */
+
+  while ((getreg32(STM32_RCC_CR) & RCC_CR_HSI48RDY) == 0)
+    {
+    }
+#endif
+
   /* Check for a timeout.  If this timeout occurs, then we are hosed.  We
    * have no real back-up plan, although the following logic makes it look
    * as though we do.
@@ -504,12 +551,11 @@ static void stm32_stdclockconfig(void)
 
   if (timeout > 0)
     {
-
-      /* Set the HCLK source/divider */
+      /* Set the D1 domain Core prescaler and the HCLK source/divider */
 
       regval = getreg32(STM32_RCC_D1CFGR);
-      regval &= ~RCC_D1CFGR_HPRE_MASK;
-      regval |= STM32_RCC_D1CFGR_HPRE;
+      regval &= ~(RCC_D1CFGR_HPRE_MASK | RCC_D1CFGR_D1CPRE_MASK);
+      regval |= (STM32_RCC_D1CFGR_HPRE | STM32_RCC_D1CFGR_D1CPRE);
       putreg32(regval, STM32_RCC_D1CFGR);
 
       /* Set PCLK1 */
@@ -680,6 +726,15 @@ static void stm32_stdclockconfig(void)
       regval &= ~RCC_D3CCIPR_SPI6SEL_MASK;
       regval |= STM32_RCC_D3CCIPR_SPI6SRC;
       putreg32(regval, STM32_RCC_D3CCIPR);
+#endif
+
+      /* Configure USB source clock */
+
+#if defined(STM32_RCC_D2CCIP2R_USBSRC)
+      regval = getreg32(STM32_RCC_D2CCIP2R);
+      regval &= ~RCC_D2CCIP2R_USBSEL_MASK;
+      regval |= STM32_RCC_D2CCIP2R_USBSRC;
+      putreg32(regval, STM32_RCC_D2CCIP2R);
 #endif
 
 #if defined(CONFIG_STM32H7_IWDG) || defined(CONFIG_STM32H7_RTC_LSICLOCK)

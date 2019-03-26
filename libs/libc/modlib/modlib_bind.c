@@ -1,7 +1,7 @@
 /****************************************************************************
  * libs/libc/modlib/modlib_bind.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,15 @@
  * Private Types
  ****************************************************************************/
 
+/* REVISIT:  This naming breaks the NuttX coding standard, but is consistent
+ * with legacy naming of other ELF32 types.
+ */
+
 typedef struct
 {
-    dq_entry_t      entry;
-    Elf32_Sym       sym;
-    int             idx;
+  dq_entry_t      entry;
+  Elf32_Sym       sym;
+  int             idx;
 } Elf32_SymCache;
 
 /****************************************************************************
@@ -75,9 +79,9 @@ typedef struct
  ****************************************************************************/
 
 static inline int modlib_readrels(FAR struct mod_loadinfo_s *loadinfo,
-                                 FAR const Elf32_Shdr *relsec,
-                                 int index, FAR Elf32_Rel *rels,
-                                 int count)
+                                  FAR const Elf32_Shdr *relsec,
+                                  int index, FAR Elf32_Rel *rels,
+                                  int count)
 {
   off_t offset;
   int size;
@@ -93,7 +97,7 @@ static inline int modlib_readrels(FAR struct mod_loadinfo_s *loadinfo,
   /* Get the file offset to the symbol table entry */
 
   offset = sizeof(Elf32_Rel) * index;
-  size = sizeof(Elf32_Rel) * count;
+  size   = sizeof(Elf32_Rel) * count;
   if (offset + size > relsec->sh_size)
     {
       size = relsec->sh_size - offset;
@@ -101,7 +105,8 @@ static inline int modlib_readrels(FAR struct mod_loadinfo_s *loadinfo,
 
   /* And, finally, read the symbol table entry into memory */
 
-  return modlib_read(loadinfo, (FAR uint8_t *)rels, size, relsec->sh_offset + offset);
+  return modlib_read(loadinfo, (FAR uint8_t *)rels, size,
+                     relsec->sh_offset + offset);
 }
 
 /****************************************************************************
@@ -152,7 +157,6 @@ static int modlib_relocate(FAR struct module_s *modp,
 
   for (i = j = 0; i < relsec->sh_size / sizeof(Elf32_Rel); i++)
     {
-
       /* Read the relocation entry into memory */
 
       rel = &rels[i % CONFIG_MODLIB_RELOCATION_BUFFERCOUNT];
@@ -174,6 +178,8 @@ static int modlib_relocate(FAR struct module_s *modp,
 
       symidx = ELF32_R_SYM(rel->r_info);
 
+      /* First try the cache */
+
       sym = NULL;
       for (e = dq_peek(&q); e; e = dq_next(e))
         {
@@ -187,7 +193,11 @@ static int modlib_relocate(FAR struct module_s *modp,
             }
         }
 
-      if (!sym)
+      /* If the symbol was not found in the cache, we will need to read the
+       * symbol from the file.
+       */
+
+      if (sym == NULL)
         {
           if (j < CONFIG_MODLIB_SYMBOL_CACHECOUNT)
             {

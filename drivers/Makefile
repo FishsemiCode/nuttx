@@ -93,8 +93,7 @@ ifeq ($(CONFIG_SIMPLE_ADDRENV),y)
   CSRCS += addrenv.c
 endif
 
-ifneq ($(CONFIG_NFILE_DESCRIPTORS),0)
-  CSRCS += dev_null.c dev_zero.c
+CSRCS += dev_null.c dev_zero.c
 
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
   CSRCS += ramdisk.c
@@ -106,7 +105,6 @@ ifeq ($(CONFIG_DRVR_READAHEAD),y)
 endif
 endif
 endif
-endif # CONFIG_NFILE_DESCRIPTORS != 0
 
 VPATH := $(patsubst :%,$(SRCDIR)$(DELIM)%,$(VPATH))
 

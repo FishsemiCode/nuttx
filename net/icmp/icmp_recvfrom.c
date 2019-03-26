@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmp/icmp_recvfrom.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -489,7 +489,7 @@ ssize_t icmp_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
   /* Set up the callback */
 
   state.recv_cb = icmp_callback_alloc(dev, conn);
-  if (state.recv_cb)
+  if (state.recv_cb != NULL)
     {
       state.recv_cb->flags = (ICMP_ECHOREPLY | NETDEV_DOWN);
       state.recv_cb->priv  = (FAR void *)&state;

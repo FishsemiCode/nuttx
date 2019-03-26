@@ -41,7 +41,7 @@ CMN_CSRCS += up_modifyreg16.c up_modifyreg32.c up_pthread_start.c
 CMN_CSRCS += up_puts.c up_releasestack.c up_semi_syslog.c
 CMN_CSRCS += up_stackframe.c up_task_start.c up_usestack.c up_vfork.c
 
-ifeq ($(CONFIG_ARCH_FAMILY),"armv7-a")
+ifeq ($(CONFIG_ARCH_ARMV7A),y)
 # arch/arm/src/armv7-a
 #
 HEAD_ASRC += arm_vectortab.S
@@ -62,7 +62,7 @@ CMN_CSRCS += arm_releasepending.c arm_reprioritizertr.c arm_schedulesigaction.c 
 CMN_CSRCS += arm_sigdeliver.c arm_signal_dispatch.c arm_syscall.c
 CMN_CSRCS += arm_unblocktask.c arm_undefinedinsn.c arm_va2pte.c arm_virtpgaddr.c
 
-else ifeq ($(CONFIG_ARCH_FAMILY),"armv7-m")
+else ifeq ($(CONFIG_ARCH_ARMV7M),y)
 # arch/arm/src/armv7-m
 #
 ifneq ($(CONFIG_ARMV7M_LAZYFPU),y)

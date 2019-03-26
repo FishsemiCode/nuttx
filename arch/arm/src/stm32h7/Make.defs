@@ -100,6 +100,10 @@ ifneq ($(CONFIG_SCHED_TICKLESS),y)
 CHIP_CSRCS += stm32_timerisr.c
 endif
 
+ifeq ($(CONFIG_BUILD_PROTECTED),y)
+CHIP_CSRCS += stm32_userspace.c stm32_mpuinit.c
+endif
+
 ifeq ($(CONFIG_STM32H7_DMA),y)
 CHIP_CSRCS += stm32_dma.c
 endif
@@ -110,4 +114,12 @@ endif
 
 ifeq ($(CONFIG_STM32H7_SPI),y)
 CHIP_CSRCS += stm32_spi.c
+endif
+
+ifeq ($(CONFIG_USBDEV),y)
+CHIP_CSRCS += stm32_otgdev.c
+endif
+
+ifeq ($(CONFIG_USBHOST),y)
+CHIP_CSRCS += stm32_otghost.c
 endif

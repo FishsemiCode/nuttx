@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/init.h>
+#include <nuttx/arch.h>
 #include <arch/board/board.h>
 
 #include <string.h>
@@ -178,5 +179,5 @@ void up_start(void)
   up_earlyinitialize();
   board_earlyinitialize();
 
-  os_start();
+  nx_start();
 }

@@ -73,6 +73,6 @@
 int main(void)
 {
     asm volatile("psrset ie,ee");
-    os_start();
+    nx_start();
     return 0;
 }

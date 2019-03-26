@@ -71,9 +71,10 @@ static const uintptr_t g_rcgcr_base[PRCM_NPERIPH] =
   TIVA_PRCM_I2CCLKGR,              /* Index 3 */
   TIVA_PRCM_SECDMACLKGR,           /* Index 4 */
   TIVA_PRCM_GPIOCLKGR,             /* Index 5 */
-  TIVA_PRCM_I2CCLKGR               /* Index 6 */
+  TIVA_PRCM_I2SCLKGR               /* Index 6 */
 };
-
+#define PRCM_PERIPH_GPIO        _PRCM_PERIPH(13, 1, 5, PRCM_GPIOCLKG_CLKEN_SHIFT)
+#define PRCM_PERIPH_I2S         _PRCM_PERIPH(14, 1, 6, PRCM_I2SCLKG_CLKEN_SHIFT)
 /* Sleep mode registers */
 
 static const uintptr_t g_scgcr_base[PRCM_NPERIPH] =
@@ -84,7 +85,7 @@ static const uintptr_t g_scgcr_base[PRCM_NPERIPH] =
   TIVA_PRCM_I2CCLKGS,              /* Index 3 */
   TIVA_PRCM_SECDMACLKGS,           /* Index 4 */
   TIVA_PRCM_GPIOCLKGS,             /* Index 5 */
-  TIVA_PRCM_I2CCLKGS               /* Index 6 */
+  TIVA_PRCM_I2SCLKGS               /* Index 6 */
 };
 
 /* Deep sleep mode registers */
@@ -97,7 +98,7 @@ static const uintptr_t g_dcgcr_base[PRCM_NPERIPH] =
   TIVA_PRCM_I2CCLKGDS,             /* Index 3 */
   TIVA_PRCM_SECDMACLKGDS,          /* Index 4 */
   TIVA_PRCM_GPIOCLKGDS,            /* Index 5 */
-  TIVA_PRCM_I2CCLKGDS              /* Index 6 */
+  TIVA_PRCM_I2SCLKGDS              /* Index 6 */
 };
 
 /******************************************************************************
@@ -128,6 +129,9 @@ static const uintptr_t g_dcgcr_base[PRCM_NPERIPH] =
  *                modify the clock division factor.  The three allowed power
  *                modes are:{PRCM_RUN_MODE, PRCM_SLEEP_MODE, or
  *                PRCM_DEEP_SLEEP_MODE}
+ *
+ * Returned Value:
+ *   None
  *
  ******************************************************************************/
 
@@ -201,6 +205,9 @@ void prcm_infclock_configure(enum prcm_clkdivider_e clkdiv,
  *   worddiv   - The desired word clock divider.
  *   bitdiv    - The desired bit clock divider.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 #ifdef CONFIG_TIVA_I2S
@@ -265,6 +272,9 @@ void prcm_audioclock_manual(uint32_t clkconfig, uint32_t mstdiv,
  *                rate configurations are: {I2S_SAMPLE_RATE_16K,
  *                I2S_SAMPLE_RATE_24K, I2S_SAMPLE_RATE_32K, or
  *                I2S_SAMPLE_RATE_48K}
+ *
+ * Returned Value:
+ *   None
  *
  ******************************************************************************/
 
@@ -368,6 +378,9 @@ void prcm_audioclock_configure(uint32_t clkconfig,
  *             5) PRCM_DOMAIN_SYSBUS
  *             6) PRCM_DOMAIN_CPU
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_powerdomain_on(uint32_t domains)
@@ -375,10 +388,10 @@ void prcm_powerdomain_on(uint32_t domains)
   /* Check the arguments. */
 
   DEBUGASSERT((domains & PRCM_DOMAIN_RFCORE) != 0 ||
-         (domains & PRCM_DOMAIN_SERIAL) != 0 ||
-         (domains & PRCM_DOMAIN_PERIPH) != 0 ||
-         (domains & PRCM_DOMAIN_CPU)    != 0 ||
-         (domains & PRCM_DOMAIN_VIMS)   != 0);
+              (domains & PRCM_DOMAIN_SERIAL) != 0 ||
+              (domains & PRCM_DOMAIN_PERIPH) != 0 ||
+              (domains & PRCM_DOMAIN_CPU)    != 0 ||
+              (domains & PRCM_DOMAIN_VIMS)   != 0);
 
   /* Assert the request to power on the right domains. */
 
@@ -438,6 +451,9 @@ void prcm_powerdomain_on(uint32_t domains)
  *             4) PRCM_DOMAIN_VIMS   : SRAM, FLASH, ROM
  *             5) PRCM_DOMAIN_SYSBUS
  *             6) PRCM_DOMAIN_CPU
+ *
+ * Returned Value:
+ *   None
  *
  ******************************************************************************/
 
@@ -518,6 +534,9 @@ void prcm_powerdomain_off(uint32_t domains)
  *    - True:  The specified domains are all powered up.
  *    - False: One or more of the domains is powered down.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 bool prcm_powerdomain_status(uint32_t domains)
@@ -548,7 +567,7 @@ bool prcm_powerdomain_status(uint32_t domains)
 
   if (domains & PRCM_DOMAIN_PERIPH)
     {
-        status = status && (pdstat0 & PRCM_DOMAIN_PERIPH) != 0;
+      status = status && (pdstat0 & PRCM_DOMAIN_PERIPH) != 0;
     }
 
   /* Return the status. */
@@ -583,6 +602,9 @@ bool prcm_powerdomain_status(uint32_t domains)
  *   peripheral - The peripheral to enable. This is an encoded value.  See the
  *                PRCRM_PERIPH_* definitions for available encodings.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_periph_runenable(uint32_t peripheral)
@@ -596,7 +618,7 @@ void prcm_periph_runenable(uint32_t peripheral)
 
   /* Enable module in Run Mode. */
 
-  modifyreg32(g_rcgcr_base[index], PRCM_PERIPH_MASKBIT(peripheral), 0);
+  modifyreg32(g_rcgcr_base[index], 0, PRCM_PERIPH_MASKBIT(peripheral));
 }
 
 /******************************************************************************
@@ -622,6 +644,9 @@ void prcm_periph_runenable(uint32_t peripheral)
  *   peripheral - The peripheral to disable. This is an encoded value.  See the
  *                PRCRM_PERIPH_* definitions for available encodings.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_periph_rundisable(uint32_t peripheral)
@@ -635,7 +660,7 @@ void prcm_periph_rundisable(uint32_t peripheral)
 
   /* Disable module in Run Mode. */
 
-  modifyreg32(g_rcgcr_base[index], 0, PRCM_PERIPH_MASKBIT(peripheral));
+  modifyreg32(g_rcgcr_base[index], PRCM_PERIPH_MASKBIT(peripheral), 0);
 }
 
 /******************************************************************************
@@ -660,6 +685,9 @@ void prcm_periph_rundisable(uint32_t peripheral)
  *                value.  See the PRCRM_PERIPH_* definitions for available
  *                encodings.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_periph_sleepenable(uint32_t peripheral)
@@ -673,7 +701,7 @@ void prcm_periph_sleepenable(uint32_t peripheral)
 
   /* Enable this peripheral in sleep mode. */
 
-  modifyreg32(g_scgcr_base[index], PRCM_PERIPH_MASKBIT(peripheral), 0);
+  modifyreg32(g_scgcr_base[index], 0, PRCM_PERIPH_MASKBIT(peripheral));
 }
 
 /******************************************************************************
@@ -699,6 +727,9 @@ void prcm_periph_sleepenable(uint32_t peripheral)
  *                value.  See the PRCRM_PERIPH_* definitions for available
  *                encodings.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_periph_sleepdisable(uint32_t peripheral)
@@ -712,7 +743,7 @@ void prcm_periph_sleepdisable(uint32_t peripheral)
 
   /* Disable this peripheral in sleep mode */
 
-  modifyreg32(g_scgcr_base[index], 0, PRCM_PERIPH_MASKBIT(peripheral));
+  modifyreg32(g_scgcr_base[index], PRCM_PERIPH_MASKBIT(peripheral), 0);
 }
 
 /******************************************************************************
@@ -737,6 +768,9 @@ void prcm_periph_sleepdisable(uint32_t peripheral)
  *                encoded value.  See the PRCRM_PERIPH_* definitions for
  *                available encodings.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_periph_deepsleepenable(uint32_t peripheral)
@@ -750,7 +784,7 @@ void prcm_periph_deepsleepenable(uint32_t peripheral)
 
   /* Enable this peripheral in sleep mode. */
 
-  modifyreg32(g_dcgcr_base[index], PRCM_PERIPH_MASKBIT(peripheral), 0);
+  modifyreg32(g_dcgcr_base[index], 0, PRCM_PERIPH_MASKBIT(peripheral));
 }
 
 /******************************************************************************
@@ -778,6 +812,9 @@ void prcm_periph_deepsleepenable(uint32_t peripheral)
  *                encoded value.  See the PRCRM_PERIPH_* definitions for
  *                available encodings.
  *
+ * Returned Value:
+ *   None
+ *
  ******************************************************************************/
 
 void prcm_periph_deepsleepdisable(uint32_t peripheral)
@@ -791,5 +828,5 @@ void prcm_periph_deepsleepdisable(uint32_t peripheral)
 
   /* Enable this peripheral in sleep mode. */
 
-  modifyreg32(g_dcgcr_base[index], 0, PRCM_PERIPH_MASKBIT(peripheral));
+  modifyreg32(g_dcgcr_base[index], PRCM_PERIPH_MASKBIT(peripheral), 0);
 }

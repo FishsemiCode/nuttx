@@ -132,7 +132,7 @@ int dram_main(int argc, char *argv)
 
       printf("ERROR: Intel HEX file load failed: %d\n", ret);
       fflush(stdout);
-      for(;;);
+      for (; ; );
     }
 
   /* No success indication.. The following cache/MMU operations will clobber
@@ -147,10 +147,10 @@ int dram_main(int argc, char *argv)
   up_clean_dcache((uintptr_t)SAM_DDRCS_VSECTION,
                   (uintptr_t)(SAM_DDRCS_VSECTION + CONFIG_SAMA5_DDRCS_SIZE));
 
-  /* Interrupts must be disabled through the following.  In this configuration,
-   * there should only be timer interrupts.  Your NuttX configuration must use
-   * CONFIG_SERIAL_LOWCONSOLE=y or printf() will hang when the interrupts
-   * are disabled!
+  /* Interrupts must be disabled through the following.  In this
+   * configuration, there should only be timer interrupts.  Your NuttX
+   * configuration must use CONFIG_SERIAL_LOWCONSOLE=y or printf() will
+   * hang when the interrupts are disabled!
    */
 
   (void)up_irq_save();
@@ -161,7 +161,8 @@ int dram_main(int argc, char *argv)
    */
 
   cp15_disable_mmu();
-  cp15_disable_caches();
+  up_disable_icache();
+  up_disable_dcache();
 
   /* Invalidate caches and TLBs */
 

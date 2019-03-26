@@ -288,6 +288,7 @@ void spin_unlock_wo_note(FAR volatile spinlock_t *lock)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SMP
 void spin_setbit(FAR volatile cpu_set_t *set, unsigned int cpu,
                  FAR volatile spinlock_t *setlock,
                  FAR volatile spinlock_t *orlock)
@@ -329,6 +330,7 @@ void spin_setbit(FAR volatile cpu_set_t *set, unsigned int cpu,
   spin_unlock(setlock);
   up_irq_restore(flags);
 }
+#endif
 
 /****************************************************************************
  * Name: spin_clrbit
@@ -347,6 +349,7 @@ void spin_setbit(FAR volatile cpu_set_t *set, unsigned int cpu,
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SMP
 void spin_clrbit(FAR volatile cpu_set_t *set, unsigned int cpu,
                  FAR volatile spinlock_t *setlock,
                  FAR volatile spinlock_t *orlock)
@@ -390,5 +393,6 @@ void spin_clrbit(FAR volatile cpu_set_t *set, unsigned int cpu,
   spin_unlock(setlock);
   up_irq_restore(flags);
 }
+#endif
 
 #endif /* CONFIG_SPINLOCK */

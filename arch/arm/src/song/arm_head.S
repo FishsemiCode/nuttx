@@ -52,7 +52,7 @@
 	.file		"arm_head.S"
 	.globl		arm_boot
 	.globl		arm_data_initialize
-	.globl		os_start
+	.globl		nx_start
 	.globl		_ebss
 
 /****************************************************************************
@@ -133,7 +133,7 @@ __start:
 
 	bl		arm_data_initialize
 	bl		arm_boot
-	bl		os_start
+	bl		nx_start
 
 	.size		__start, .-__start
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/netdev/netdev_ioctl.c
  *
- *   Copyright (C) 2007-2012, 2015-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2012, 2015-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -89,8 +89,6 @@
 #include "igmp/igmp.h"
 #include "icmpv6/icmpv6.h"
 #include "route/route.h"
-
-#if defined(CONFIG_NET) && CONFIG_NSOCKET_DESCRIPTORS > 0
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -1806,8 +1804,6 @@ void netdev_ifdown(FAR struct net_driver_s *dev)
 
       netdown_notifier_signal(dev);
 #endif
-
     }
 }
 
-#endif /* CONFIG_NET && CONFIG_NSOCKET_DESCRIPTORS */

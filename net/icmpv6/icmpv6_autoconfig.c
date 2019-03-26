@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_autoconfig.c
  *
- *   Copyright (C) 2015-2016, 2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2016, 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -282,7 +282,7 @@ errout_with_semaphore:
  *   address it can use based on that information.
  *
  * Input Parameters:
- *   dev - The device driver structure to assign the address to
+ *   dev   - The device driver structure to assign the address to
  *   psock - A pointer to a NuttX-specific, internal socket structure
  *
  * Returned Value:

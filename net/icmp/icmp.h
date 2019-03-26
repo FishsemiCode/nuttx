@@ -73,14 +73,14 @@
 #ifdef CONFIG_NET_ICMP_SOCKET
 /* Representation of a IPPROTO_ICMP socket connection */
 
-struct devif_callback_s; /* Forward reference */
+struct devif_callback_s;         /* Forward reference */
 
 struct icmp_conn_s
 {
-  dq_entry_t node;     /* Supports a double linked list */
-  uint16_t   id;       /* ICMP ECHO request ID */
-  uint8_t    nreqs;    /* Number of requests with no response received */
-  uint8_t    crefs;    /* Reference counts on this instance */
+  dq_entry_t node;               /* Supports a double linked list */
+  uint16_t   id;                 /* ICMP ECHO request ID */
+  uint8_t    nreqs;              /* Number of requests with no response received */
+  uint8_t    crefs;              /* Reference counts on this instance */
 
   /* The device that the ICMP request was sent on */
 
@@ -242,7 +242,7 @@ FAR struct icmp_conn_s *icmp_findconn(FAR struct net_driver_s *dev,
  *   Poll a device "connection" structure for availability of ICMP TX data
  *
  * Input Parameters:
- *   dev - The device driver structure to use in the send operation
+ *   dev  - The device driver structure to use in the send operation
  *   conn - A pointer to the ICMP connection structure
  *
  * Returned Value:

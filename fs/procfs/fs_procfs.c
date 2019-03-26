@@ -110,6 +110,7 @@ extern const struct procfs_operations ccm_procfsoperations;
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
 /* Table of all known / pre-registered procfs handlers / participants. */
 
 #ifdef CONFIG_FS_PROCFS_REGISTER
@@ -204,6 +205,7 @@ static const uint8_t g_procfs_entrycount = sizeof(g_procfs_entries) /
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* Helpers */
 
 static void    procfs_enum(FAR struct tcb_s *tcb, FAR void *arg);
@@ -363,7 +365,8 @@ static void procfs_enum(FAR struct tcb_s *tcb, FAR void *arg)
 static int procfs_open(FAR struct file *filep, FAR const char *relpath,
                       int oflags, mode_t mode)
 {
-  int x, ret = -ENOENT;
+  int x;
+  int ret = -ENOENT;
 
   finfo("Open '%s'\n", relpath);
 
@@ -850,7 +853,7 @@ static int procfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
           /* Save the filename=pid and file type=directory */
 
           dir->fd_dir.d_type = DTYPE_DIRECTORY;
-          snprintf(dir->fd_dir.d_name, NAME_MAX+1, "%d", (int)pid);
+          snprintf(dir->fd_dir.d_name, NAME_MAX + 1, "%d", (int)pid);
 
           /* Set up the next directory entry offset.  NOTE that we could use the
            * standard f_pos instead of our own private index.
@@ -1035,8 +1038,9 @@ static int procfs_stat(struct inode *mountpt, const char *relpath,
   memset(buf, 0, sizeof(struct stat));
   if (!relpath || relpath[0] == '\0')
     {
-      /* The path refers to the top level directory */
-      /* It's a read-only directory */
+      /* The path refers to the top level directory.
+       * It's a read-only directory.
+       */
 
       buf->st_mode = S_IFDIR | S_IROTH | S_IRGRP | S_IRUSR;
       ret = OK;

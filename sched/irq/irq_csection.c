@@ -207,7 +207,7 @@ try_again:
    * lists are valid.
    */
 
-  if (g_os_initstate >= OSINIT_TASKLISTS)
+  if (g_nx_initstate >= OSINIT_TASKLISTS)
     {
       /* If called from an interrupt handler, then just take the spinlock.
        * If we are already in a critical section, this will lock the CPU
@@ -403,7 +403,7 @@ irqstate_t enter_critical_section(void)
    * lists have been initialized.
    */
 
-  if (!up_interrupt_context() && g_os_initstate >= OSINIT_TASKLISTS)
+  if (!up_interrupt_context() && g_nx_initstate >= OSINIT_TASKLISTS)
     {
       FAR struct tcb_s *rtcb = this_task();
       DEBUGASSERT(rtcb != NULL);
@@ -450,7 +450,7 @@ void leave_critical_section(irqstate_t flags)
    * lists are valid.
    */
 
-  if (g_os_initstate >= OSINIT_TASKLISTS)
+  if (g_nx_initstate >= OSINIT_TASKLISTS)
     {
       /* If called from an interrupt handler, then just release the
        * spinlock.  The interrupt handling logic should already hold the
@@ -590,7 +590,7 @@ void leave_critical_section(irqstate_t flags)
    * lists have been initialized.
    */
 
-  if (!up_interrupt_context() && g_os_initstate >= OSINIT_TASKLISTS)
+  if (!up_interrupt_context() && g_nx_initstate >= OSINIT_TASKLISTS)
     {
       FAR struct tcb_s *rtcb = this_task();
       DEBUGASSERT(rtcb != NULL);
@@ -647,7 +647,7 @@ bool irq_cpu_locked(int cpu)
 
   /* g_cpu_irqset is not valid in early phases of initialization */
 
-  if (g_os_initstate < OSINIT_OSREADY)
+  if (g_nx_initstate < OSINIT_OSREADY)
     {
       /* We are still single threaded.  In either state of g_cpu_irqlock,
        * the correct return value should always be false.

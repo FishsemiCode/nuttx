@@ -233,7 +233,7 @@ Nintendo Wii Nunchuck:
 
   - Enable to Custom board/driver initialization at RTOS Features -> RTOS hooks
 
-    CONFIG_BOARD_INITIALIZE=y
+    CONFIG_BOARD_LATE_INITIALIZE=y
 
   - Enable the I2C Driver Support at Device Drivers, it will enable this symbol:
 
@@ -263,7 +263,7 @@ Quadrature Encoder:
 
   - These setting enable support for the common QEncode upper half driver:
 
-   CONFIG_BOARD_INITIALIZE=y
+   CONFIG_BOARD_LATE_INITIALIZE=y
 
    CONFIG_SENSORS=y
      CONFIG_SENSORS_QENCODER=y
@@ -1660,7 +1660,7 @@ Configuration Sub-directories
      FLAT build using apps/examples/sotest (assuming that you also have SD
      card support enabled and that the SD card is mount at /mnt/sdcard):
 
-      CONFIG_LIBC_DLLFCN=y
+      CONFIG_LIBC_DLFCN=y
       CONFIG_EXAMPLES_SOTEST=y
       CONFIG_EXAMPLES_SOTEST_BINDIR="/mnt/sdcard"
 

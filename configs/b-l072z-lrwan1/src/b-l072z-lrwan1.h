@@ -104,6 +104,16 @@
 #define GPIO_SX127X_DIO0  (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI |  \
                            GPIO_PORTB | GPIO_PIN4)
 
+/* CMWX1ZZABZ-091 module antenna switch
+ * CRF1 - RX RFI HF - PA1
+ * CRF2 - TX RFO HF - PC2
+ * CRF3 - TX BOOST  - PC1
+ */
+
+#define GPIO_SX127X_CRF1  (GPIO_SPEED_HIGH | GPIO_PORTA | GPIO_PIN1)
+#define GPIO_SX127X_CRF2  (GPIO_SPEED_HIGH | GPIO_PORTC | GPIO_PIN2)
+#define GPIO_SX127X_CRF3  (GPIO_SPEED_HIGH | GPIO_PORTC | GPIO_PIN1)
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -118,10 +128,10 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
  *     Called from the NSH library
  *
  ************************************************************************************/

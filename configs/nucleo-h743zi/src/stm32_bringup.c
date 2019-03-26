@@ -60,10 +60,10 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y && CONFIG_NSH_ARCHINIT:
+ *   CONFIG_BOARD_LATE_INITIALIZE=n && CONFIG_LIB_BOARDCTL=y && CONFIG_NSH_ARCHINIT:
  *     Called from the NSH library
  *
  ****************************************************************************/
@@ -137,6 +137,18 @@ int stm32_bringup(void)
       syslog(LOG_ERR, "ERROR: Failed to initialize wireless driver: %d\n", ret);
     }
 #endif  /* CONFIG_WL_NRF24L01 */
+
+#if defined(CONFIG_CDCACM) && !defined(CONFIG_CDCACM_CONSOLE)
+  /* Initialize CDCACM */
+
+  syslog(LOG_INFO, "Initialize CDCACM device\n");
+
+  ret = cdcacm_initialize(0, NULL);
+  if (ret < 0)
+    {
+      syslog(LOG_ERR, "ERROR: cdcacm_initialize failed: %d\n", ret);
+    }
+#endif  /* CONFIG_CDCACM & !CONFIG_CDCACM_CONSOLE */
 
   return OK;
 }

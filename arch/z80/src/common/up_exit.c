@@ -81,18 +81,15 @@
 #ifdef CONFIG_DUMP_ON_EXIT
 static void _up_dumponexit(FAR struct tcb_s *tcb, FAR void *arg)
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0
   FAR struct filelist *filelist;
 #if CONFIG_NFILE_STREAMS > 0
   FAR struct streamlist *streamlist;
 #endif
   int i;
-#endif
 
   sinfo("  TCB=%p name=%s\n", tcb, tcb->argv[0]);
   sinfo("    priority=%d state=%d\n", tcb->sched_priority, tcb->task_state);
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
   filelist = tcb->group->tg_filelist;
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
@@ -103,7 +100,6 @@ static void _up_dumponexit(FAR struct tcb_s *tcb, FAR void *arg)
                 i, inode->i_crefs);
         }
     }
-#endif
 
 #if CONFIG_NFILE_STREAMS > 0
   streamlist = tcb->group->tg_streamlist;
@@ -168,7 +164,7 @@ void _exit(int status)
 
   /* Destroy the task at the head of the ready to run list. */
 
-  (void)task_exit();
+  (void)nxtask_exit();
 
   /* Now, perform the context switch to the new ready-to-run task at the
    * head of the list.

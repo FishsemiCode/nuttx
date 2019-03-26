@@ -55,7 +55,7 @@
 /* Clocking *************************************************************************/
 /* The Nucleo-144  board provides the following clock sources:
  *
- *   MCO: 8 MHz from MCO output of ST-LINK is used as input clock
+ *   MCO: 8 MHz from MCO output of ST-LINK is used as input clock (default)
  *   X2:  32.768 KHz crystal for LSE
  *   X3:  HSE crystal oscillator (not provided)
  *
@@ -67,7 +67,7 @@
  *   LSE: 32.768 kHz
  */
 
-#define STM32_BOARD_XTAL        8000000ul
+#define STM32_BOARD_XTAL        8000000ul /* ST-LINK MCO */
 
 #define STM32_HSI_FREQUENCY     16000000ul
 #define STM32_LSI_FREQUENCY     32000
@@ -111,9 +111,9 @@
  *
  *   PLL1_VCO = (8,000,000 / 2) * 200 = 800 MHz
  *
- *   PLL1P = PLL1_VCO/2 = 800 MHz / 2 = 400 MHz
- *   PLL1Q = PLL1_VCO/4 = 800 MHz / 4 = 200 MHz
- *   PLL1R = PLL1_VCO/8 = 800 MHz / 8 = 100 MHz
+ *   PLL1P = PLL1_VCO/2  = 800 MHz / 2   = 400 MHz
+ *   PLL1Q = PLL1_VCO/4  = 800 MHz / 4   = 200 MHz
+ *   PLL1R = PLL1_VCO/8  = 800 MHz / 8   = 100 MHz
  */
 
 #define STM32_PLLCFG_PLL1CFG     (RCC_PLLCFGR_PLL1VCOSEL_WIDE | \
@@ -164,6 +164,7 @@
  * CPUCLK = SYSCLK / 1 = 400 MHz
  */
 
+#define STM32_RCC_D1CFGR_D1CPRE  (RCC_D1CFGR_D1CPRE_SYSCLK)
 #define STM32_SYSCLK_FREQUENCY   (STM32_PLL1P_FREQUENCY)
 #define STM32_CPUCLK_FREQUENCY   (STM32_SYSCLK_FREQUENCY / 1)
 
@@ -211,7 +212,7 @@
 
 #define STM32_RCC_D2CCIP3R_I2C4SRC   RCC_D2CCIP3R_I2C4SEL_HSI
 
-/* SPI123 clock source - PLL1 */
+/* SPI123 clock source - PLL1Q */
 
 #define STM32_RCC_D2CCIP1R_SPI123SRC RCC_D2CCIP1R_SPI123SEL_PLL1
 
@@ -222,6 +223,10 @@
 /* SPI6 clock source - APB (PCLK4) */
 
 #define STM32_RCC_D3CCIP1R_SPI6SRC   RCC_D3CCIP1R_SPI6SEL_PCLK4
+
+/* USB 1 and 2 clock source - HSI48 */
+
+#define STM32_RCC_D2CCIP2R_USBSRC RCC_D2CCIP2R_USBSEL_HSI48
 
 /* FLASH wait states
  *
@@ -327,6 +332,11 @@
 #define GPIO_SPI3_MOSI GPIO_SPI3_MOSI_4 /* PB5 */
 #define GPIO_SPI3_SCK  GPIO_SPI3_SCK_1  /* PB3 */
 #define GPIO_SPI3_NSS  GPIO_SPI3_NSS_2  /* PA4 */
+
+/* DMA ******************************************************************************/
+
+#define DMAMAP_SPI3_RX DMAMAP_DMA12_SPI3RX_0 /* DMA1 */
+#define DMAMAP_SPI3_TX DMAMAP_DMA12_SPI3TX_0 /* DMA1 */
 
 /************************************************************************************
  * Public Data

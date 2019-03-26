@@ -97,11 +97,7 @@
  * socket descriptors
  */
 
-#ifdef CONFIG_NFILE_DESCRIPTORS
-# define __SOCKFD_OFFSET CONFIG_NFILE_DESCRIPTORS
-#else
-# define __SOCKFD_OFFSET 0
-#endif
+#define __SOCKFD_OFFSET CONFIG_NFILE_DESCRIPTORS
 
 /* Capabilities of a socket */
 
@@ -231,7 +227,7 @@ struct socket
 
 /* This defines a list of sockets indexed by the socket descriptor */
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
 struct socketlist
 {
   sem_t         sl_sem;      /* Manage access to the socket list */

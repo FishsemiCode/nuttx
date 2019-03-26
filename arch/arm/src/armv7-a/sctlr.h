@@ -177,7 +177,8 @@
 #define SCR_NET                  (1 << 6)  /* Bit 6: Not Early Termination */
 #define SCR_SCD                  (1 << 7)  /* Bit 7: Secure Monitor Call disable */
 #define SCR_HCE                  (1 << 8)  /* Bit 8: Hyp Call enable */
-#define SCR_SIF                  (1 << 9)  /* Bit 9: Secure state instruction fetches from Non-secure memory are not permitted */
+#define SCR_SIF                  (1 << 9)  /* Bit 9: Secure state instruction fetches from
+                                            *        Non-secure memory are not permitted */
                                            /* Bits 10-31: Reserved */
 
 /* Secure Debug Enable Register (SDER) */

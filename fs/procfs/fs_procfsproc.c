@@ -76,6 +76,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* See include/nuttx/sched.h: */
 
 #undef HAVE_GROUPID
@@ -1049,10 +1050,8 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
                             size_t buflen, off_t offset)
 {
   FAR struct task_group_s *group = tcb->group;
-#if CONFIG_NFILE_DESCRIPTORS > 0 /* Guaranteed to be true */
   FAR struct file *file;
-#endif
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
   FAR struct socket *socket;
 #endif
   size_t remaining;
@@ -1066,7 +1065,6 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
   remaining = buflen;
   totalsize = 0;
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 /* Guaranteed to be true */
   linesize   = snprintf(procfile->line, STATUS_LINELEN, "\n%-3s %-8s %s\n",
                         "FD", "POS", "OFLAGS");
   copysize   = procfs_memcpy(procfile->line, linesize, buffer, remaining, &offset);
@@ -1082,7 +1080,9 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
 
   /* Examine each open file descriptor */
 
-  for (i = 0, file = group->tg_filelist.fl_files; i < CONFIG_NFILE_DESCRIPTORS; i++, file++)
+  for (i = 0, file = group->tg_filelist.fl_files;
+       i < CONFIG_NFILE_DESCRIPTORS;
+       i++, file++)
     {
       /* Is there an inode associated with the file descriptor? */
 
@@ -1102,9 +1102,8 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
             }
         }
     }
-#endif
 
-#if CONFIG_NSOCKET_DESCRIPTORS > 0
+#ifdef CONFIG_NET
   linesize   = snprintf(procfile->line, STATUS_LINELEN, "\n%-3s %-2s %-3s %s\n",
                         "SD", "RF", "TYP", "FLAGS");
   copysize   = procfs_memcpy(procfile->line, linesize, buffer, remaining, &offset);
@@ -1120,7 +1119,9 @@ static ssize_t proc_groupfd(FAR struct proc_file_s *procfile,
 
   /* Examine each open socket descriptor */
 
-  for (i = 0, socket = group->tg_socketlist.sl_sockets; i < CONFIG_NSOCKET_DESCRIPTORS; i++, socket++)
+  for (i = 0, socket = group->tg_socketlist.sl_sockets;
+       i < CONFIG_NSOCKET_DESCRIPTORS;
+       i++, socket++)
     {
       /* Is there an connection associated with the socket descriptor? */
 
@@ -1696,8 +1697,11 @@ static int proc_readdir(struct fs_dirent_s *dir)
           return -ENOENT;
         }
 
-      /* The TCB is still valid (or at least was when we entered this function) */
-      /* Handle the directory listing by the node type */
+      /* The TCB is still valid (or at least was when we entered this
+       * function)
+       *
+       * Handle the directory listing by the node type.
+       */
 
       switch (procdir->node->node)
         {
@@ -1718,7 +1722,7 @@ static int proc_readdir(struct fs_dirent_s *dir)
       /* Save the filename and file type */
 
       dir->fd_dir.d_type = node->dtype;
-      strncpy(dir->fd_dir.d_name, node->name, NAME_MAX+1);
+      strncpy(dir->fd_dir.d_name, node->name, NAME_MAX + 1);
 
       /* Set up the next directory entry offset.  NOTE that we could use the
        * standard f_pos instead of our own private index.

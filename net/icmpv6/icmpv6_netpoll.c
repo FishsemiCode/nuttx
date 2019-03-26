@@ -193,7 +193,7 @@ int icmpv6_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
       return -ENOMEM;
     }
 
-  /* Some of the  following must be atomic */
+  /* Some of the following must be atomic */
 
   net_lock();
 

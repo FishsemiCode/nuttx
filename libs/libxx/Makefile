@@ -46,7 +46,8 @@ endif
 ASRCS =
 CSRCS =
 
-CXXSRCS  = libxx_cxapurevirtual.cxx libxx_eabi_atexit.cxx libxx_cxa_atexit.cxx libxx_cxa_guard.cxx
+CXXSRCS  = libxx_cxapurevirtual.cxx libxx_eabi_atexit.cxx libxx_cxa_atexit.cxx
+CXXSRCS += libxx_cxa_guard.cxx
 ifeq ($(CONFIG_CXX_EXCEPTION),y)
 CXXSRCS += libxx__gnu_unwind_find_exidx.cxx
 endif

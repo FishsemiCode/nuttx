@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv7-r/arm_cache.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,21 +42,8 @@
 #include <nuttx/irq.h>
 
 #include "cp15_cacheops.h"
+#include "barriers.h"
 #include "l2cc.h"
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/* Intrinsics are used in these inline functions */
-
-#define arm_isb(n) __asm__ __volatile__ ("isb " #n : : : "memory")
-#define arm_dsb(n) __asm__ __volatile__ ("dsb " #n : : : "memory")
-#define arm_dmb(n) __asm__ __volatile__ ("dmb " #n : : : "memory")
-
-#define ARM_DSB()  arm_dsb(15)
-#define ARM_ISB()  arm_isb(15)
-#define ARM_DMB()  arm_dmb(15)
 
 /****************************************************************************
  * Public Functions
@@ -119,11 +106,12 @@ void up_invalidate_dcache_all(void)
 #endif
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: up_invalidate_icache_all
  *
  * Description:
- *   Invalidate all instruction caches to PoU, also flushes branch target cache
+ *   Invalidate all instruction caches to PoU, also flushes branch target
+ *   cache
  *
  * Input Parameters:
  *   None
@@ -131,7 +119,7 @@ void up_invalidate_dcache_all(void)
  * Returned Value:
  *   None
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 void up_invalidate_icache_all(void)
 {
@@ -231,18 +219,18 @@ void up_disable_icache(void)
 }
 
 /****************************************************************************
-* Name: up_enable_dcache
-*
-* Description:
-*   Enable the D-Cache
-*
-* Input Parameters:
-*   None
-*
-* Returned Value:
-*   None
-*
-****************************************************************************/
+ * Name: up_enable_dcache
+ *
+ * Description:
+ *   Enable the D-Cache
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
 
 void up_enable_dcache(void)
 {

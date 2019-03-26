@@ -123,7 +123,6 @@
 #define SDIO_SLOTNO 0  /* Only one slot */
 
 #ifdef HAVE_SDIO
-
 #  if !defined(CONFIG_NSH_MMCSDSLOTNO)
 #    define CONFIG_NSH_MMCSDSLOTNO SDIO_SLOTNO
 #  elif CONFIG_NSH_MMCSDSLOTNO != 0
@@ -136,18 +135,6 @@
 #    define SDIO_MINOR CONFIG_NSH_MMCSDMINOR
 #  else
 #    define SDIO_MINOR 0
-#  endif
-
-  /* SD card bringup does not work if performed on the IDLE thread because it
-   * will cause waiting.  Use either:
-   *
-   *  CONFIG_LIB_BOARDCTL=y, OR
-   *  CONFIG_BOARD_INITIALIZE=y && CONFIG_BOARD_INITTHREAD=y
-   */
-
-#  if defined(CONFIG_BOARD_INITIALIZE) && !defined(CONFIG_BOARD_INITTHREAD)
-#    warning "SDIO initialization cannot be perfomed on the IDLE thread"
-#    undef HAVE_SDIO
 #  endif
 #endif
 
@@ -416,10 +403,10 @@
  * Description:
  *   Perform architecture-specific initialization
  *
- *   CONFIG_BOARD_INITIALIZE=y :
- *     Called from board_initialize().
+ *   CONFIG_BOARD_LATE_INITIALIZE=y :
+ *     Called from board_late_initialize().
  *
- *   CONFIG_BOARD_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
+ *   CONFIG_BOARD_LATE_INITIALIZE=y && CONFIG_LIB_BOARDCTL=y :
  *     Called from the NSH library
  *
  ****************************************************************************/

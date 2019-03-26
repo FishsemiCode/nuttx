@@ -520,12 +520,18 @@ config ARCH_BOARD_MICROPENDOUS3
 		be populated with either an AVR AT90USB646, 647, 1286, or 1287 MCU.
 		Support is configured for the AT90USB647.
 
-config ARCH_BOARD_MISOC
+config ARCH_BOARD_MISOC_QEMU
 	bool "Qemu LM32 demo"
 	depends on ARCH_CHIP_LM32
 	---help---
 		This configuration is port to NuttX running on a Qemu LM32 system.
 		You can find the Qemu setup at https://bitbucket.org/key2/qemu
+
+config ARCH_BOARD_MISOC_VERILATOR
+	bool "Verilator Misoc demo"
+	depends on ARCH_CHIP_LM32 || ARCH_CHIP_MINERVA
+	---help---
+		This configuration is port to NuttX running on Verilator.
 
 config ARCH_BOARD_MOTEINO_MEGA
 	bool "LowPowerLab MoteinoMEGA"
@@ -1032,6 +1038,16 @@ config ARCH_BOARD_NUCLEO_F411RE
 		This is a minimal configuration that supports low-level test of the
 		Nucleo F411RE in the NuttX source tree.
 
+config ARCH_BOARD_NUCLEO_F446RE
+	bool "STM32F446 Nucleo F446RE"
+	depends on ARCH_CHIP_STM32F446R
+	select ARCH_HAVE_LEDS
+	select ARCH_HAVE_BUTTONS
+	select ARCH_HAVE_IRQBUTTONS
+	---help---
+		This is a minimal configuration that supports low-level test of the
+		Nucleo F446RE in the NuttX source tree.
+
 config ARCH_BOARD_NUCLEO_H743ZI
 	bool "STM32H743 Nucleo H743ZI"
 	depends on ARCH_CHIP_STM32H743ZI
@@ -1373,6 +1389,13 @@ config ARCH_BOARD_STM32F334_DISCO
 	select ARCH_HAVE_IRQBUTTONS
 	---help---
 		STMicro STM32F334-Discovery board based on the STMicro STM32F334C8T6 MCU.
+
+config ARCH_BOARD_OMNIBUSF4
+	bool "OMNIBUSF4 flight controller"
+	depends on ARCH_CHIP_STM32F405RG
+	select ARCH_HAVE_LEDS
+	---help---
+		Flight controllers compatible with the OMINBUSF4 Betaflight target
 
 config ARCH_BOARD_STM32F4_DISCOVERY
 	bool "STMicro STM32F4-Discovery board"
@@ -1843,7 +1866,7 @@ config ARCH_BOARD
 	default "metro-m4"                 if ARCH_BOARD_METRO_M4
 	default "micropendous3"            if ARCH_BOARD_MICROPENDOUS3
 	default "mirtoo"                   if ARCH_BOARD_MIRTOO
-	default "misoc"                    if ARCH_BOARD_MISOC
+	default "misoc"                    if ARCH_BOARD_MISOC_QEMU || ARCH_BOARD_MISOC_VERILATOR
 	default "moteino-mega"             if ARCH_BOARD_MOTEINO_MEGA
 	default "ne64badge"                if ARCH_BOARD_NE64BADGE
 	default "nrf52-generic"            if ARCH_BOARD_NRF52_GENERIC
@@ -1858,6 +1881,7 @@ config ARCH_BOARD
 	default "nucleo-f303ze"            if ARCH_BOARD_NUCLEO_F303ZE
 	default "nucleo-f334r8"            if ARCH_BOARD_NUCLEO_F334R8
 	default "nucleo-f4x1re"            if ARCH_BOARD_NUCLEO_F401RE || ARCH_BOARD_NUCLEO_F411RE
+	default "nucleo-f446re"            if ARCH_BOARD_NUCLEO_F446RE
 	default "nucleo-f410rb"            if ARCH_BOARD_NUCLEO_F410RB
 	default "nucleo-h743zi"            if ARCH_BOARD_NUCLEO_H743ZI
 	default "nucleo-l073rz"            if ARCH_BOARD_NUCLEO_L073RZ
@@ -1881,6 +1905,7 @@ config ARCH_BOARD
 	default "olimex-stm32-p407"        if ARCH_BOARD_OLIMEX_STM32P407
 	default "olimex-strp711"           if ARCH_BOARD_OLIMEX_STRP711
 	default "olimexino-stm32"          if ARCH_BOARD_OLIMEXINO_STM32
+	default "omnibusf4"                if ARCH_BOARD_OMNIBUSF4
 	default "open1788"                 if ARCH_BOARD_OPEN1788
 	default "or1k"                     if ARCH_BOARD_OR1K
 	default "p112"                     if ARCH_BOARD_P112
@@ -2160,7 +2185,7 @@ endif
 if ARCH_BOARD_MIRTOO
 source "configs/mirtoo/Kconfig"
 endif
-if ARCH_BOARD_MISOC
+if ARCH_BOARD_MISOC_QEMU || ARCH_BOARD_MISOC_VERILATOR
 source "configs/misoc/Kconfig"
 endif
 if ARCH_BOARD_MOTEINO_MEGA
@@ -2207,6 +2232,9 @@ source "configs/nucleo-f334r8/Kconfig"
 endif
 if ARCH_BOARD_NUCLEO_F401RE || ARCH_BOARD_NUCLEO_F411RE
 source "configs/nucleo-f4x1re/Kconfig"
+endif
+if ARCH_BOARD_NUCLEO_F44RE
+source "configs/nucleo-f446re/Kconfig"
 endif
 if ARCH_BOARD_NUCLEO_F410RB
 source "configs/nucleo-f410rb/Kconfig"
@@ -2270,6 +2298,9 @@ source "configs/olimex-strp711/Kconfig"
 endif
 if ARCH_BOARD_OLIMEXINO_STM32
 source "configs/olimexino-stm32/Kconfig"
+endif
+if ARCH_BOARD_OMNIBUSF4
+source "configs/omnibusf4/Kconfig"
 endif
 if ARCH_BOARD_OPEN1788
 source "configs/open1788/Kconfig"
@@ -2617,6 +2648,13 @@ config BOARDCTL_USBDEVCTRL
 	depends on USBDEV
 	---help---
 		Enables support for the BOARDIOC_USBDEV_CONTROL boardctl() command.
+
+config BOARDCTL_TESTSET
+	bool "Architecture-specific test/set operation"
+	default n
+	---help---
+		Enables support for the BOARDIOC_SPINLOCK boardctl() command.
+		Architecture specific logic must provide up_testset() interface.
 
 config BOARDCTL_IOCTL
 	bool "Board-specific boardctl() commands"

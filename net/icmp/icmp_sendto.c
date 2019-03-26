@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmp/icmp_sendto.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -456,7 +456,7 @@ ssize_t icmp_sendto(FAR struct socket *psock, FAR const void *buf, size_t len,
   /* Set up the callback */
 
   state.snd_cb = icmp_callback_alloc(dev, conn);
-  if (state.snd_cb)
+  if (state.snd_cb != NULL)
     {
       state.snd_cb->flags   = (ICMP_POLL | NETDEV_DOWN);
       state.snd_cb->priv    = (FAR void *)&state;

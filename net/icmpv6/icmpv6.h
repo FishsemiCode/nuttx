@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6.h
  *
- *   Copyright (C) 2015, 2017-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -232,7 +232,8 @@ int icmpv6_neighbor(const net_ipv6addr_t ipaddr);
  ****************************************************************************/
 
 #if defined(CONFIG_NET_ICMPv6_SOCKET) || defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-void icmpv6_poll(FAR struct net_driver_s *dev, FAR struct icmpv6_conn_s *conn);
+void icmpv6_poll(FAR struct net_driver_s *dev,
+                 FAR struct icmpv6_conn_s *conn);
 #endif
 
 /****************************************************************************
@@ -242,7 +243,7 @@ void icmpv6_poll(FAR struct net_driver_s *dev, FAR struct icmpv6_conn_s *conn);
  *   Set up to send an ICMPv6 Neighbor Solicitation message
  *
  * Input Parameters:
- *   dev - Reference to a device driver structure
+ *   dev    - Reference to a device driver structure
  *   ipaddr - IP address of Neighbor to be solicited
  *
  * Returned Value:
@@ -412,7 +413,7 @@ void icmpv6_notify(net_ipv6addr_t ipaddr);
  *   device.
  *
  * Input Parameters:
- *   dev - The device driver structure to assign the address to
+ *   dev   - The device driver structure to assign the address to
  *   psock - A pointer to a NuttX-specific, internal socket structure
  *
  * Returned Value:
@@ -422,7 +423,8 @@ void icmpv6_notify(net_ipv6addr_t ipaddr);
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
-int icmpv6_autoconfig(FAR struct net_driver_s *dev, FAR struct socket *psock);
+int icmpv6_autoconfig(FAR struct net_driver_s *dev,
+                      FAR struct socket *psock);
 #endif
 
 /****************************************************************************

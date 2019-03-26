@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/mount/fs_mount.c
  *
- *   Copyright (C) 2007-2009, 2011-2013, 2015, 2017, 2018 Gregory Nutt. All
+ *   Copyright (C) 2007-2009, 2011-2013, 2015, 2017-2019 Gregory Nutt. All
  *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -63,10 +63,13 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* In the canonical case, a file system is bound to a block driver.  However,
  * some less typical cases a block driver is not required.  Examples are
- * pseudo file systems (like BINFS or PROCFS) and MTD file systems (like NXFFS).
+ * pseudo file systems (like BINFS or PROCFS) and MTD file systems (like
+ * NXFFS).
  *
  * These file systems all require block drivers:
  */
@@ -402,12 +405,14 @@ int mount(FAR const char *source, FAR const char *target,
       ret = inode_reserve(target, &mountpt_inode);
       if (ret < 0)
         {
-          /* inode_reserve can fail for a couple of reasons, but the most likely
-           * one is that the inode already exists. inode_reserve may return:
+          /* inode_reserve can fail for a couple of reasons, but the most
+           * likely one is that the inode already exists. inode_reserve may
+           * return:
            *
            *  -EINVAL - 'path' is invalid for this operation
            *  -EEXIST - An inode already exists at 'path'
-           *  -ENOMEM - Failed to allocate in-memory resources for the operation
+           *  -ENOMEM - Failed to allocate in-memory resources for the
+           *            operation
            */
 
           ferr("ERROR: Failed to reserve inode for target %s\n", target);

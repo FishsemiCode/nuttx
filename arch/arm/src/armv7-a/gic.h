@@ -2,7 +2,7 @@
  * arch/arm/src/armv7-a/gic.h
  * Generic Interrupt Controller Version 2 Definitions
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Reference:
@@ -51,8 +51,8 @@
 #include "nuttx/config.h"
 
 #ifndef __ASSEMBLY__
-#include <sys/types.h>
-#include <stdint.h>
+#  include <sys/types.h>
+#  include <stdint.h>
 #endif
 
 #include "mpcore.h"

@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/devif/devif_poll.c
  *
- *   Copyright (C) 2007-2010, 2012, 2014, 2016-2018 Gregory Nutt. All rights
+ *   Copyright (C) 2007-2010, 2012, 2014, 2016-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -329,7 +329,7 @@ static inline int devif_poll_icmp(FAR struct net_driver_s *dev,
 
   /* Traverse all of the allocated ICMP connections and perform the poll action */
 
-  while (!bstop && (conn = icmp_nextconn(conn)))
+  while (!bstop && (conn = icmp_nextconn(conn)) != NULL)
     {
       /* Perform the ICMP poll */
 
@@ -365,7 +365,7 @@ static inline int devif_poll_icmpv6(FAR struct net_driver_s *dev,
 
   /* Traverse all of the allocated ICMPV6 connections and perform the poll action */
 
-  while (!bstop && (conn = icmpv6_nextconn(conn)))
+  while (!bstop && (conn = icmpv6_nextconn(conn)) != NULL)
     {
       /* Perform the ICMPV6 poll */
 
@@ -373,7 +373,7 @@ static inline int devif_poll_icmpv6(FAR struct net_driver_s *dev,
 
       /* Perform any necessary conversions on outgoing packets */
 
-      devif_packet_conversion(dev, DEVIF_ICMPV6);
+      devif_packet_conversion(dev, DEVIF_ICMP6);
 
       /* Call back into the driver */
 

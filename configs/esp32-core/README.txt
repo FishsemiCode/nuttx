@@ -44,6 +44,13 @@ STATUS
 
     CONFIG_SUPPRESS_UART_CONFIG=y
 
+  The NuttX fork, TizenRT, has taken the NuttX ESP32 code and developed it
+  further.  Refer to:
+
+    https://github.com/Samsung/TizenRT/tree/master/os/arch/xtensai
+
+  for the current status.
+
 ESP32 Features
 ==============
 

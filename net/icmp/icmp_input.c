@@ -2,8 +2,8 @@
  * net/icmp/icmp_input.c
  * Handling incoming ICMP input
  *
- *   Copyright (C) 2007-2009, 2012, 2014-2015, 2017 Gregory Nutt. All rights
- *     reserved.
+ *   Copyright (C) 2007-2009, 2012, 2014-2015, 2017, 2019 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Adapted for NuttX from logic in uIP which also has a BSD-like license:
@@ -303,6 +303,7 @@ void icmp_input(FAR struct net_driver_s *dev)
       if (conn == NULL)
         {
           /* No.. drop the packet */
+
           goto drop;
         }
 

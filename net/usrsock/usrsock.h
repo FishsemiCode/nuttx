@@ -128,7 +128,7 @@ struct usrsock_reqstate_s
   sem_t                   recvsem;   /* Semaphore signals recv completion */
   int                     result;    /* OK on success, otherwise a negated errno. */
   bool                    completed;
-  bool                    unlock;
+  bool                    unlock;    /* True: unlock is required */
 };
 
 struct usrsock_data_reqstate_s

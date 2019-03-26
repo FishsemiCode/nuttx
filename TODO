@@ -1,4 +1,4 @@
-NuttX TODO List (Last updated January 21, 2019)
+NuttX TODO List (Last updated March 18, 2019)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
@@ -13,8 +13,8 @@ nuttx/:
   (5)  SMP
   (1)  Memory Management (mm/)
   (0)  Power Management (drivers/pm)
-  (3)  Signals (sched/signal, arch/)
-  (2)  pthreads (sched/pthread)
+  (5)  Signals (sched/signal, arch/)
+  (2)  pthreads (sched/pthread, libs/libc/pthread)
   (0)  Message Queues (sched/mqueue)
   (9)  Kernel/Protected Build
   (3)  C++ Support
@@ -22,7 +22,7 @@ nuttx/:
  (18)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
   (2)  Other drivers (drivers/)
- (11)  Libraries (libs/libc/, libs/libm/)
+  (9)  Libraries (libs/libc/, libs/libm/)
  (12)  File system/Generic drivers (fs/, drivers/)
  (10)  Graphics Subsystem (graphics/)
   (1)  Build system / Toolchains
@@ -296,9 +296,9 @@ o Task/Scheduler (sched/)
 
                1. One problem is stack-related data in the IDLE threads TCB.
                   A solution might be to standardize the use of g_idle_topstack.
-                  That you could add initialization like this in os_start:
+                  That you could add initialization like this in nx_start:
 
-                  @@ -344,6 +347,11 @@ void os_start(void)
+                  @@ -344,6 +347,11 @@ void nx_start(void)
                      g_idleargv[1]  = NULL;
                      g_idletcb.argv = g_idleargv;
 
@@ -335,18 +335,18 @@ o Task/Scheduler (sched/)
 
                2. Another problem is colorizing that stack to use with
                  stack usage monitoring logic.  There is logic in some
-                 start functions to do this in a function called go_os_start.
+                 start functions to do this in a function called go_nx_start.
                  It is available in these architectures:
 
-                 ./arm/src/efm32/efm32_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/kinetis/kinetis_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/sam34/sam_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/samv7/sam_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/stm32/stm32_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/stm32f7/stm32_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/stm32l4/stm32l4_start.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/tms570/tms570_boot.c:static void go_os_start(void *pv, unsigned int nbytes)
-                 ./arm/src/xmc4/xmc4_start.c:static void go_os_start(void *pv, unsigned int nbytes)
+                 ./arm/src/efm32/efm32_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/kinetis/kinetis_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/sam34/sam_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/samv7/sam_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/stm32/stm32_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/stm32f7/stm32_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/stm32l4/stm32l4_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/tms570/tms570_boot.c:static void go_nx_start(void *pv, unsigned int nbytes)
+                 ./arm/src/xmc4/xmc4_start.c:static void go_nx_start(void *pv, unsigned int nbytes)
 
                  But no others.
   Status:     Open
@@ -763,8 +763,49 @@ o Signals (sched/signal, arch/)
   Status:      Open
   Priority:    Low. Even if there are only 31 usable signals, that is still a lot.
 
-o pthreads (sched/pthreads)
-  ^^^^^^^^^^^^^^^^^^^^^^^^^
+  Title:       NO QUEUING of SIGNAL ACTIONS
+  Description: In the architecture specific implemenation of struct xcptcontext,
+               there are fields used by signal handling logic to pass the state
+               information needed to dispatch signal actions to the appropriate
+               handler.
+
+               There is only one copy of this state information in the
+               implementations of struct xcptcontext and, as a consequence,
+               if there is a signal handler executing on a thread, then addition
+               signal actions will be lost until that signal handler completes
+               and releases those resources.
+  Status:      Open
+  Priority:    Low.  This design flaw has been around for ages and no one has yet
+               complained about it.  Apparently the visibility of the problem is
+               very low.
+
+  Title:       QUEUED SIGNAL ACTIONS ARE INAPPROPRIATELY DEFERRED
+  Descirption: The implement of nxsig_deliver() does the followin in a loop:
+               - It takes the next next queued signal action from a list
+               - Calls the architecture-specific up_sigdeliver() to perform
+                 the signal action (through some sleight of hand in
+                 up_schedule_sigaction())
+               - up_sigdeliver() is a trampoline function that performs the
+                 actual signal action as well as some housekeeping functions
+                 then 
+               - up_sigdeliver() performs a context switch back to the normal,
+                 uninterrupted thread instead of returning to nxsig_deliver().
+
+               The loop in nxsig_deliver() then will have the opportunity to
+               run until when that normal, uniterrupted thread is suspended.
+               Then the loop will continue with the next queued signal
+               action.
+
+               Normally signals execute immediately.  The is the whole reason
+               why almost all blocking APIs return when a signal is received
+               (with errno equal to EINTR).
+  Status:      Open
+  Priority:    Low.  This design flaw has been around for ages and no one has yet
+               complained about it.  Apparently the visibility of the problem is
+               very low.
+
+o pthreads (sched/pthreads libs/libc/pthread)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       PTHREAD_PRIO_PROTECT
   Description: Extend pthread_mutexattr_setprotocol().  It should support
@@ -897,15 +938,6 @@ o Kernel/Protected Build
   Status:      Open
   Priority:    Medium/High -- the kernel build configuration is not fully fielded
                yet.
-
-  Title:       NxTERM PARTITIONING.
-  Description: NxTerm is implemented (correctly) as a driver that resides
-               in the nuttx/ directory.  However, the user interfaces must be
-               moved into a NuttX library or into apps/.  Currently
-               applications calls to the NxTerm user interfaces are
-               undefined in the Kernel/Protected builds.
-  Status:      Open
-  Priority:    Medium
 
   Title:       C++ CONSTRUCTORS HAVE TOO MANY PRIVILEGES (PROTECTED MODE)
   Description: When a C++ ELF module is loaded, its C++ constructors are called
@@ -1059,6 +1091,35 @@ o Kernel/Protected Build
   Priority:    Low, this primarily an aesthetic issue but may also have some
                performance implications if the the errno variable is accessed
                via a system call at high rates.
+
+  Title:       SIGNAL ACTION VULNERABILITY
+  Description: When a signal action is peformed, the user stack is used.
+               Unlike Linux, applications do not have separate user and
+               supervisor stacks; everything is done on the user stack.
+
+               In the implementation of up_sigdeliver(), a copy of the
+               register contents that will be restored is present on the
+               stack and could be modified by the user application.  Thus,
+               if the user mucks with the return stack, problems could
+               occur when the user task returns to supervisor mode from
+               the the signal handler.
+
+               A recent commit (3 Feb 2019) does protect the status register
+               and return address so that a malicious task cannot change the
+               return address or switch to supervisor mode.  Other register
+               are still modifiable so there is other possible mayhem that
+               could be done.
+
+               A better solution, in lieu of a kernel stack, would be to
+               eliminate the stack-based register save area altogether and,
+               instead, save the registers in another, dedicated state save
+               area in the TCB.  The only hesitation to this option is that
+               it would significantly increase the size of the TCB structure
+               and, hence, the per-thread memory overhead.
+  Status:      Open
+  Priority:    Medium-ish if are attempting to make a secure environment that
+               may host malicious code.  Very low for the typical FLAT build,
+               however.
 
 o C++ Support
   ^^^^^^^^^^^
@@ -1856,20 +1917,6 @@ o Libraries (libs/libc/, libs/libm/)
   Status:      Open
   Priority:    Low
 
-  Title:       RESETTING GETOPT()
-  Description: There is an issue with the way that getopt() handles errors that
-               return '?'.
-
-               1. Does getopt() reset its global variables after returning '?' so
-                  that it can be re-used?  That would be required to support where
-                  the caller terminates parsing before reaching the last parameter.
-               2. Or is the client expected to continue parsing after getopt()
-                  returns '?'  and parse until the final parameter?
-
-               The current getopt() implementation only supports #2.
-  Status:      Open
-  Priority:    Low
-
   Title:       CONCURRENT STREAM READ/WRITE
   Description: NuttX only supports a single file pointer so reads and writes
                must be from the same position.  This prohibits implementation
@@ -1906,19 +1953,18 @@ o Libraries (libs/libc/, libs/libm/)
   Description: This implementation of dtoa in libs/libc/stdio is old and will not
                work with some newer compilers.  See
                http://patrakov.blogspot.com/2009/03/dont-use-old-dtoac.html
+               Update:  A new dtoa version is not available and enabled with
+               CONFIG_NANO_PRINF.  However, the old version of dtoa is still in
+               in place and lib_libvsprintf() has been dupliated.  I think this
+               issue should remain open until the implementations have been
+               unified.
   Status:      Open
   Priority:    ??
 
   Title:       FLOATING POINT FORMATS
   Description: Only the %f floating point format is supported.  Others are
                accepted but treated like %f.
-  Status:      Open
-  Priority:    Medium (this might important to someone).
-
-  Title:       FLOATING POINT PRECISION
-  Description: A fieldwidth and precision is required with the %f format.  If %f
-               is used with no format, than floating numbers will be printed with
-               a precision of 0 (effectively presented as integers).
+               Update:  %g is supported with CONFIG_NANO_PRINTF.
   Status:      Open
   Priority:    Medium (this might important to someone).
 
@@ -2080,7 +2126,7 @@ o File system / Generic drivers (fs/, drivers/)
                (using pctl() instead sysctl()).  My objective was to be able
                to control the number of available file descriptors on a task-
                by-task basis.  The complexity due to the partitioning of
-               descriptor space in a range for file descriptors and a range
+               descriptor space into a range for file descriptors and a range
                for socket descriptors made this feature nearly impossible to
                implement.
   Status:      Open
@@ -2347,11 +2393,10 @@ o Graphics Subsystem (graphics/)
   Priority:    Low
 
   Title:       AUTO-RAISE DISABLED
-  Description: Auto-raise is currently disabled in NX multi-server mode.  The
-               reason is complex:
+  Description: Auto-raise is currently disabled.  The reason is complex:
                - Most touchscreen controls send touch data a high rates
                - In multi-server mode, touch events get queued in a message
-                  queue.
+                 queue.
                - The logic that receives the messages performs the auto-raise.
                  But it can do stupid things after the first auto-raise as
                  it operates on the stale data in the message queue.
@@ -2367,25 +2412,6 @@ o Graphics Subsystem (graphics/)
                commands.
   Status:      Open
   Priority:    Low, the need has not yet arisen.
-
-  Title:       PER-WINDOW FRAMEBUFFERS
-  Description: One of the most awkward things to handle in the NX windowing
-               system is the re-draw callback.  This is difficult because it
-               requires ad hoc, custom logic to be able to do the redrawing
-               in most cases.
-
-               One solution would be to provide a per-window framebuffer.
-               All rending would be performed into the per-window framebuffer
-               and the rended bits would be copied the LCD or framebuffer
-               device memory on demand when the redraw is required.
-
-               This would (a) greatly simplify the graphics interface, (b)
-               greatly improve redraw performance, and (c) enable a more
-               generic use of the windowing.  The downside would be a large
-               usage of memory to hold all of the framebuffers, one for each
-               window.
-  Status:      Open
-  Priority:    Low, of mostly strategic value.
 
   Title:       VERTICAL ANTI-ALIASING
   Description: Anti-aliasing is implemented along the horizontal raster line
@@ -2423,6 +2449,26 @@ o Graphics Subsystem (graphics/)
                I have never encountered a hardware framebuffer with sub-byte pixel
                depth.  If such a beast ever shows up, then this priority would be
                higher.
+
+  Title:       INCOMPLATE PLANAR COLOR SUPPORT
+  Description: The original NX design included support for planar colors,
+               i.e,. for devices that provide separate framebuffers for each
+               color component.  Planar graphics hard was common some years
+               back but is rarely encountered today.  In fact, I am not aware
+               of any MCU that implements planar framebuffers.
+
+               Support for planar colors is, however, unverified and
+               incomplete.  In fact, many recent changes explicitly assume a
+               single color plane:  Planar colors are specified by a array
+               of components; some recent logic uses only component [0],
+               ignoring the possible existence of other color componet frames.
+
+               Completely removing planar color support is one reasonable
+               options; it is not likely that NuttX will encounter planar
+               color hardware and this would greatly simplify the logic and
+               eliminate inconsistencies in the immplementation.
+  Status:      Open
+  Priority:    Low.  There is no problem other than one of aesthetics.
 
 o Build system
   ^^^^^^^^^^^^

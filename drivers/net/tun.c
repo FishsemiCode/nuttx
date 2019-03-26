@@ -102,22 +102,28 @@
 #  define CONFIG_TUN_NINTERFACES 1
 #endif
 
+/* Make sure that packet buffers include in configured guard size and are an
+ * even multiple of 16-bits in length.
+ */
+
+#define NET_TUN_PKTSIZE ((CONFIG_NET_TUN_PKTSIZE + CONFIG_NET_GUARDSIZE + 1) & ~1)
+
 /* TX poll delay = 1 seconds. CLK_TCK is the number of clock ticks per
  * second
  */
 
-#define TUN_WDDELAY   (1*CLK_TCK)
+#define TUN_WDDELAY  (1 * CLK_TCK)
 
 /* This is a helper pointer for accessing the contents of the Ethernet header */
 
 #ifdef CONFIG_NET_ETHERNET
-#  define BUF ((struct eth_hdr_s *)priv->dev.d_buf)
+#  define BUF ((FAR struct eth_hdr_s *)priv->dev.d_buf)
 #endif
 
 /* This is a helper pointer for accessing the contents of the ip header */
 
-#define IPv4BUF ((struct ipv4_hdr_s *)(priv->dev.d_buf + priv->dev.d_llhdrlen))
-#define IPv6BUF ((struct ipv6_hdr_s *)(priv->dev.d_buf + priv->dev.d_llhdrlen))
+#define IPv4BUF ((FAR struct ipv4_hdr_s *)(priv->dev.d_buf + priv->dev.d_llhdrlen))
+#define IPv6BUF ((FAR struct ipv6_hdr_s *)(priv->dev.d_buf + priv->dev.d_llhdrlen))
 
 /****************************************************************************
  * Private Types
@@ -129,9 +135,10 @@
 
 struct tun_device_s
 {
-  bool              bifup;   /* true:ifup false:ifdown */
-  WDOG_ID           txpoll;  /* TX poll timer */
-  struct work_s     work;    /* For deferring poll work to the work queue */
+  bool              bifup;     /* true:ifup false:ifdown */
+  bool              read_wait;
+  WDOG_ID           txpoll;    /* TX poll timer */
+  struct work_s     work;      /* For deferring poll work to the work queue */
 
   FAR struct file  *filep;
 
@@ -139,15 +146,17 @@ struct tun_device_s
   FAR struct pollfd *poll_fds;
 #endif
 
-  bool              read_wait;
-
-  uint8_t           read_buf[CONFIG_NET_TUN_PKTSIZE];
-  size_t            read_d_len;
-  uint8_t           write_buf[CONFIG_NET_TUN_PKTSIZE];
-  size_t            write_d_len;
-
   sem_t             waitsem;
   sem_t             read_wait_sem;
+  size_t            read_d_len;
+  size_t            write_d_len;
+
+  /* These packet buffer arrays required 16-bit alignment.  That alignment
+   * is assured only by the preceding wide data types.
+   */
+
+  uint8_t           read_buf[NET_TUN_PKTSIZE];
+  uint8_t           write_buf[NET_TUN_PKTSIZE];
 
   /* This holds the information visible to the NuttX network */
 
@@ -170,11 +179,11 @@ static void tun_unlock(FAR struct tun_device_s *priv);
 /* Common TX logic */
 
 static int  tun_fd_transmit(FAR struct tun_device_s *priv);
-static int  tun_txpoll(struct net_driver_s *dev);
+static int  tun_txpoll(FAR struct net_driver_s *dev);
 #ifdef CONFIG_NET_ETHERNET
-static int  tun_txpoll_tap(struct net_driver_s *dev);
+static int  tun_txpoll_tap(FAR struct net_driver_s *dev);
 #endif
-static int  tun_txpoll_tun(struct net_driver_s *dev);
+static int  tun_txpoll_tun(FAR struct net_driver_s *dev);
 
 /* Interrupt handling */
 
@@ -239,6 +248,9 @@ static const struct file_operations g_tun_file_ops =
   tun_ioctl,    /* ioctl */
 #ifndef CONFIG_DISABLE_POLL
   tun_poll,     /* poll */
+#endif
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+  0,            /* unlink */
 #endif
 };
 
@@ -315,7 +327,8 @@ static void tun_unlock(FAR struct tun_device_s *priv)
  ****************************************************************************/
 
 #ifndef CONFIG_DISABLE_POLL
-static void tun_pollnotify(FAR struct tun_device_s *priv, pollevent_t eventset)
+static void tun_pollnotify(FAR struct tun_device_s *priv,
+                           pollevent_t eventset)
 {
   FAR struct pollfd *fds = priv->poll_fds;
 
@@ -379,9 +392,9 @@ static int tun_fd_transmit(FAR struct tun_device_s *priv)
  * Name: tun_txpoll
  *
  * Description:
- *   The transmitter is available, check if the network has any outgoing packets
- *   ready to send.  This is a callback from devif_poll().  devif_poll() may
- *   be called:
+ *   The transmitter is available, check if the network has any outgoing
+ *   packets ready to send.  This is a callback from devif_poll().
+ *   devif_poll() may be called:
  *
  *   1. When the preceding TX packet send is complete,
  *   2. When the preceding TX packet send timesout and the interface is reset
@@ -400,7 +413,7 @@ static int tun_fd_transmit(FAR struct tun_device_s *priv)
  *
  ****************************************************************************/
 
-static int tun_txpoll(struct net_driver_s *dev)
+static int tun_txpoll(FAR struct net_driver_s *dev)
 {
   int ret;
 
@@ -422,9 +435,9 @@ static int tun_txpoll(struct net_driver_s *dev)
  * Name: tun_txpoll_tap : for tap (ethernet bridge) mode
  *
  * Description:
- *   The transmitter is available, check if the network has any outgoing packets
- *   ready to send.  This is a callback from devif_poll().  devif_poll() may
- *   be called:
+ *   The transmitter is available, check if the network has any outgoing
+ *   packets ready to send.  This is a callback from devif_poll().
+ *   devif_poll() may be called:
  *
  *   1. When the preceding TX packet send is complete,
  *   2. When the preceding TX packet send timesout and the interface is reset
@@ -444,7 +457,7 @@ static int tun_txpoll(struct net_driver_s *dev)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ETHERNET
-static int tun_txpoll_tap(struct net_driver_s *dev)
+static int tun_txpoll_tap(FAR struct net_driver_s *dev)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)dev->d_private;
 
@@ -495,9 +508,9 @@ static int tun_txpoll_tap(struct net_driver_s *dev)
  * Name: tun_txpoll_tun : for tun (IP tunneling) mode
  *
  * Description:
- *   The transmitter is available, check if the network has any outgoing packets
- *   ready to send.  This is a callback from devif_poll().  devif_poll() may
- *   be called:
+ *   The transmitter is available, check if the network has any outgoing
+ *   packets ready to send.  This is a callback from devif_poll().
+ *   devif_poll() may be called:
  *
  *   1. When the preceding TX packet send is complete,
  *   2. When the preceding TX packet send timesout and the interface is reset
@@ -516,7 +529,7 @@ static int tun_txpoll_tap(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-static int tun_txpoll_tun(struct net_driver_s *dev)
+static int tun_txpoll_tun(FAR struct net_driver_s *dev)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)dev->d_private;
 
@@ -537,8 +550,8 @@ static int tun_txpoll_tun(struct net_driver_s *dev)
         }
     }
 
-  /* If zero is returned, the polling will continue until all connections have
-   * been examined.
+  /* If zero is returned, the polling will continue until all connections
+   * have been examined.
    */
 
   return 0;
@@ -548,7 +561,8 @@ static int tun_txpoll_tun(struct net_driver_s *dev)
  * Name: tun_net_receive
  *
  * Description:
- *   An interrupt was received indicating the availability of a new RX packet
+ *   An interrupt was received indicating the availability of a new RX
+ *   packet
  *
  * Input Parameters:
  *   priv - Reference to the driver state structure
@@ -707,7 +721,6 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
     {
       NETDEV_RXDROPPED(&priv->dev);
     }
-
 }
 #endif
 
@@ -715,7 +728,8 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
  * Name: tun_net_receive_tun : for tun (IP tunneling) mode
  *
  * Description:
- *   An interrupt was received indicating the availability of a new RX packet
+ *   An interrupt was received indicating the availability of a new RX
+ *   packet
  *
  * Input Parameters:
  *   priv - Reference to the driver state structure
@@ -903,7 +917,7 @@ static void tun_poll_expiry(int argc, wdparm_t arg, ...)
  *
  ****************************************************************************/
 
-static int tun_ifup(struct net_driver_s *dev)
+static int tun_ifup(FAR struct net_driver_s *dev)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)dev->d_private;
 
@@ -954,7 +968,7 @@ static int tun_ifup(struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-static int tun_ifdown(struct net_driver_s *dev)
+static int tun_ifdown(FAR struct net_driver_s *dev)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)dev->d_private;
   irqstate_t flags;
@@ -1038,7 +1052,7 @@ static void tun_txavail_work(FAR void *arg)
  *
  ****************************************************************************/
 
-static int tun_txavail(struct net_driver_s *dev)
+static int tun_txavail(FAR struct net_driver_s *dev)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)dev->d_private;
 
@@ -1071,7 +1085,7 @@ static int tun_txavail(struct net_driver_s *dev)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_MCASTGROUP
-static int tun_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
+static int tun_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   /* Add the MAC address to the hardware multicast routing table */
 
@@ -1083,8 +1097,8 @@ static int tun_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  * Name: tun_rmmac
  *
  * Description:
- *   NuttX Callback: Remove the specified MAC address from the hardware multicast
- *   address filtering
+ *   NuttX Callback: Remove the specified MAC address from the hardware
+ *   multicast address filtering
  *
  * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
@@ -1098,7 +1112,7 @@ static int tun_addmac(struct net_driver_s *dev, FAR const uint8_t *mac)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_MCASTGROUP
-static int tun_rmmac(struct net_driver_s *dev, FAR const uint8_t *mac)
+static int tun_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
   /* Add the MAC address to the hardware multicast routing table */
 
@@ -1535,4 +1549,3 @@ int tun_initialize(void)
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_TUN */
-

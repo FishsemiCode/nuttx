@@ -83,6 +83,10 @@ ifeq ($(CONFIG_ARCH_RAMVECTORS),y)
 CMN_CSRCS += up_ramvec_initialize.c up_ramvec_attach.c
 endif
 
+ifeq ($(CONFIG_ARMV7M_ITMSYSLOG),y)
+CMN_CSRCS += up_itm_syslog.c
+endif
+
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
 CMN_CSRCS += up_mpu.c up_task_start.c up_pthread_start.c
 ifneq ($(CONFIG_DISABLE_SIGNALS),y)
@@ -174,11 +178,15 @@ CHIP_CSRCS += stm32_otghost.c
 endif
 
 ifeq ($(CONFIG_STM32F7_TIM),y)
-CHIP_CSRCS += stm32_tim.c
+CHIP_CSRCS += stm32_tim.c stm32_tim_lowerhalf.c
 endif
 
 ifeq ($(CONFIG_STM32F7_ADC),y)
 CHIP_CSRCS += stm32_adc.c
+endif
+
+ifeq ($(CONFIG_STM32F7_QUADSPI),y)
+CHIP_CSRCS += stm32_qspi.c
 endif
 
 ifeq ($(CONFIG_STM32F7_RTC),y)
@@ -213,4 +221,8 @@ endif
 
 ifeq ($(CONFIG_SENSORS_QENCODER),y)
 CHIP_CSRCS += stm32_qencoder.c
+endif
+
+ifeq ($(CONFIG_STM32F7_CAN),y)
+CHIP_CSRCS += stm32_can.c
 endif

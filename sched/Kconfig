@@ -133,9 +133,21 @@ config SYSTEMTICK_EXTCLK
 	---help---
 		Use external clock for system tick. When enabled, the platform-specific
 		logic must start its own timer interrupt to make periodic calls to the
-		sched_process_timer() or the functions called within. The purpose is
+		nxsched_process_timer() or the functions called within. The purpose is
 		to move the scheduling off the processor clock to allow entering low
 		power states that would disable that clock.
+
+config SYSTEMTICK_HOOK
+	bool "System timer hook"
+	default n
+	---help---
+		Enable a call to a user-provided, board-level function on each timer
+		tick.  This permits custom actions that may be performed on each
+		timer tick.  The form of the user-provided function is:
+
+			void board_timerhook(void);
+
+		(prototyped in include/nuttx/board.h).
 
 endif # !SCHED_TICKLESS
 
@@ -245,9 +257,14 @@ menu "Tasks and Scheduling"
 config SPINLOCK
 	bool "Support Spinlocks"
 	default n
+	depends on ARCH_HAVE_TESTSET
 	---help---
-		Enables suppport for spinlocks.  Spinlocks are current used only for
-		SMP suppport.
+		Enables suppport for spinlocks.  Spinlocks are used primarily for
+		synchronization in SMP configurations but are available for general
+		synchronization between CPUs.  Use in a single CPU configuration would
+		most likely be fatal.  Note, however, that this does not depend on
+		CONFIG_ARCH_HAVE_MULTICPU.  This permits the use of spinlocks in
+		other novel architectures.
 
 config SPINLOCK_IRQ
 	bool "Support Spinlocks with IRQ control"
@@ -804,7 +821,7 @@ config SCHED_CPULOAD_EXTCLK
 		achieved.  This option enables use of such an "external" clock.  The
 		implementation of the clock must be provided by platform-specific
 		logic; that platform-specific logic must call the system function
-		sched_process_cpuload() at each timer expiration with interrupts
+		nxsched_process_cpuload() at each timer expiration with interrupts
 		disabled.
 
 if SCHED_CPULOAD_EXTCLK
@@ -1069,6 +1086,7 @@ config SDCLONE_DISABLE
 config NFILE_DESCRIPTORS
 	int "Maximum number of file descriptors per task"
 	default 16
+	range 3 99999
 	---help---
 		The maximum number of file descriptors per task (one for each open)
 
@@ -1134,14 +1152,14 @@ endif # PRIORITY_INHERITANCE
 
 menu "RTOS hooks"
 
-config BOARD_INITIALIZE
-	bool "Custom board/driver initialization"
+config BOARD_EARLY_INITIALIZE
+	bool "Custom board early initialization"
 	default n
 	---help---
-		By default, there are three points in time where you can insert
-		custom initialization logic:
+		There are three points in time where you can insert custom,
+		board-specific initialization logic:
 
-		1) <arch>_boardinitialize():  This function is used only for
+		1) <arch>_board_initialize():  This function is used only for
 		initialization of very low-level things like configuration of
 		GPIO pins, power setting.  The OS has not been initialized
 		at this point, so you cannot allocate memory or initialize
@@ -1152,30 +1170,85 @@ config BOARD_INITIALIZE
 		The OS has been initialized at this point and it is okay to
 		initialize drivers in this phase.
 
-		3) And, finally, when the user application code starts.
+		At this same point in time, the OS will also call a board-
+		specific initialization function named board_early_initialize()
+		if CONFIG_BOARD_EARLY_INITIALIZE is selected.  The context in
+		which board_early_initialize() executes is suitable for early
+		initialization of most, simple device drivers and is a logical,
+		board-specific extension of up_initialize().
 
-		If BOARD_INITIALIZE is selected, then an additional initialization
-		call will be performed in the boot-up sequence to a function
-		called board_initialize().  board_initialize() will be
-		call between phases 2) and 3) above, immediately after
-		up_initialize() is called.  This additional initialization
-		phase may be used, for example, to initialize board-specific
-		device drivers.
-
-if BOARD_INITIALIZE
-
-config BOARD_INITTHREAD
-	bool "Board initialization thread"
-	default n
-	---help---
+		board_early_initialize() runs on the startup, initialization thread.
 		Some initialization operations cannot be performed on the start-up,
 		initialization thread.  That is because the initialization thread
-		cannot wait for event.  If waiting is required as part of the board
-		initialization then this option must be selected.  Waiting may be
-		required, for example, to mount a file system or or initialize a
-		device such as an SD card.
+		cannot wait for event.  Waiting may be required, for example, to
+		mount a file system or or initialize a device such as an SD card.
+		For this reason, such driver initialize must be deferred to
+		board_late_initialize().
 
-if BOARD_INITTHREAD
+		3) And, finally, just before the user application code starts.
+
+		If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
+		initialization call will be performed in the boot-up sequence to a
+		function called board_late_initialize().  board_late_initialize()
+		will be called after up_initialize() is called and just before the
+		main application is started.  This additional initialization
+		phase may be used, for example, to initialize more complex,
+		board-specific device drivers.
+
+		Waiting for events, use of I2C, SPI, etc are permissable in the
+		context of board_late_initialize().  That is because
+		board_late_initialize() will run on a temporary, internal kernel
+		thread.
+
+config BOARD_LATE_INITIALIZE
+	bool "Custom board late initialization"
+	default n
+	---help---
+		There are three points in time where you can insert custom,
+		board-specific initialization logic:
+
+		1) <arch>_board_initialize():  This function is used only for
+		initialization of very low-level things like configuration of
+		GPIO pins, power setting.  The OS has not been initialized
+		at this point, so you cannot allocate memory or initialize
+		device drivers at this phase.
+
+		2) The next level of initialization is performed by a call to
+		up_initialize() (in arch/<arch>/src/common/up_initialize.c).
+		The OS has been initialized at this point and it is okay to
+		initialize drivers in this phase.
+
+		At this same point in time, the OS will also call a board-
+		specific initialization function named board_early_initialize()
+		if CONFIG_BOARD_EARLY_INITIALIZE is selected.  The context in
+		which board_early_initialize() executes is suitable for early
+		initialization of most, simple device drivers and is a logical,
+		board-specific extension of up_initialize().
+
+		board_early_initialize() runs on the startup, initialization thread.
+		Some initialization operations cannot be performed on the start-up,
+		initialization thread.  That is because the initialization thread
+		cannot wait for event.  Waiting may be required, for example, to
+		mount a file system or or initialize a device such as an SD card.
+		For this reason, such driver initialize must be deferred to
+		board_late_initialize().
+
+		3) And, finally, just before the user application code starts.
+
+		If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
+		initialization call will be performed in the boot-up sequence to a
+		function called board_late_initialize().  board_late_initialize()
+		will be called after up_initialize() is called and just before the
+		main application is started.  This additional initialization
+		phase may be used, for example, to initialize more complex,
+		board-specific device drivers.
+
+		Waiting for events, use of I2C, SPI, etc are permissable in the
+		context of board_late_initialize().  That is because
+		board_late_initialize() will run on a temporary, internal kernel
+		thread.
+
+if BOARD_LATE_INITIALIZE
 
 config BOARD_INITTHREAD_STACKSIZE
 	int "Board initialization thread stack size"
@@ -1193,15 +1266,14 @@ config BOARD_INITTHREAD_PRIORITY
 		started until the board initialization is completed.  Hence, there
 		is very little competition for the CPU.
 
-endif # BOARD_INITTHREAD
-endif # BOARD_INITIALIZE
+endif # BOARD_LATE_INITIALIZE
 
 config SCHED_STARTHOOK
 	bool "Enable startup hook"
 	default n
 	---help---
-		Enable a non-standard, internal OS API call task_starthook().
-		task_starthook() registers a function that will be called on task
+		Enable a non-standard, internal OS API call nxtask_starthook().
+		nxtask_starthook() registers a function that will be called on task
 		startup before that actual task entry point is called.  The
 		starthook is useful, for example, for setting up automatic
 		configuration of C++ constructors.

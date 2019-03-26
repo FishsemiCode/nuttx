@@ -124,7 +124,8 @@ FAR struct usrsock_conn_s *usrsock_alloc(void)
   /* The free list is protected by a semaphore (that behaves like a mutex). */
 
   _usrsock_semtake(&g_free_sem);
-  conn = (FAR struct usrsock_conn_s *)dq_remfirst(&g_free_usrsock_connections);
+  conn = (FAR struct usrsock_conn_s *)
+    dq_remfirst(&g_free_usrsock_connections);
   if (conn)
     {
       /* Make sure that the connection is marked as uninitialized */
@@ -267,7 +268,7 @@ int usrsock_setup_request_callback(FAR struct usrsock_conn_s *conn,
   pstate->cb = devif_callback_alloc(NULL, &conn->list);
   if (pstate->cb)
     {
-      /* Take a lock since only one outstanding is allowed */
+      /* Take a lock since only one outstanding request is allowed */
 
       if ((flags & USRSOCK_EVENT_REQ_COMPLETE) != 0)
         {
@@ -298,7 +299,8 @@ int usrsock_setup_data_request_callback(FAR struct usrsock_conn_s *conn,
 {
   pstate->valuelen = 0;
   pstate->valuelen_nontrunc = 0;
-  return usrsock_setup_request_callback(conn, &pstate->reqstate, event, flags);
+  return usrsock_setup_request_callback(conn, &pstate->reqstate, event,
+                                        flags);
 }
 
 /****************************************************************************
@@ -310,9 +312,9 @@ void usrsock_teardown_request_callback(FAR struct usrsock_reqstate_s *pstate)
   FAR struct usrsock_conn_s *conn = pstate->conn;
 
   if (pstate->unlock)
-   {
-     _usrsock_semgive(&conn->resp.sem);
-   }
+    {
+      _usrsock_semgive(&conn->resp.sem);
+    }
 
   /* Make sure that no further events are processed */
 

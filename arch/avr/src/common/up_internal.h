@@ -142,7 +142,7 @@ void up_addregion(void);
 #endif
 
 /* Defined in chip/xxx_lowinit.c.  This function is called from the
- * head.S file just before jumping to os_start().  This function
+ * head.S file just before jumping to nx_start().  This function
  * performs whatever very low level initialization that is needed
  * before the OS gets started (clocks, console, LEDs, etc.)
  */
@@ -151,13 +151,8 @@ void up_lowinit(void);
 
 /* Defined in chip/xxx_serial.c */
 
-#if CONFIG_NFILE_DESCRIPTORS > 0
 void up_earlyserialinit(void);
 void up_serialinit(void);
-#else
-# define up_earlyserialinit()
-# define up_serialinit()
-#endif
 
 /* Defined in drivers/lowconsole.c */
 

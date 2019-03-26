@@ -74,25 +74,46 @@ all: mklibgraphics
 	 gen32bppsources
 
 gen1bppsources:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=1 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=1 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=1 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gen2bppsource:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=2 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=2 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=2 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gen4bppsource:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=4 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=4 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=4 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gen8bppsource:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=8 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=8 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=8 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gen16bppsource:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=16 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=16 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=16 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gen24bppsource:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=24 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=24 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=24 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gen32bppsources:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=32 EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=32 EXTRADEFINES=$(EXTRADEFINES)
+ifeq ($(CONFIG_NX_RAMBACKED),y)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib TOPDIR=$(TOPDIR) NXGLIB_BITSPERPIXEL=32 EXTRADEFINES=$(EXTRADEFINES)
+endif
 
 gensources: gen1bppsources gen2bppsource gen4bppsource gen8bppsource gen16bppsource gen24bppsource gen32bppsources
 
@@ -116,12 +137,14 @@ depend: .depend
 context: gensources
 
 clean:
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib clean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 	$(call DELFILE, $(BIN))
 	$(call CLEAN)
 
 distclean: clean
-	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.sources -I $(SRCDIR)/nxglib distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.devblit -I $(SRCDIR)/nxglib distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C nxglib -f $(SRCDIR)/nxglib/Makefile.pwfb -I $(SRCDIR)/nxglib distclean TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
 	$(call DELFILE, Make.dep)
 	$(call DELFILE, .depend)
 

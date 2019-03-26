@@ -482,3 +482,29 @@ Configurations
 
       apps/graphics/NxWidgets/UnitTests/nxwm
 
+  pwfb:
+
+    This configuration uses the test at apps/examples/pwfb to verify the
+    operation of the per-window framebuffers.  That example shows three
+    windows containing text moving around, crossing each other from
+    "above" and from "below".  The example application is NOT updating the
+    windows any anyway!  The application is only changing the window
+    position.  The windows are being updated from the per-winidow
+    framebuffers automatically.
+
+    This example is reminescent of Pong:  Each window travels in straight
+    line until it hits an edge, then it bounces off.  The window is also
+    raised when it hits the edge (gets "focus").  This tests all
+    combinations of overap.
+
+      2019-03-19:  Everything works fine!
+
+  pwlines:
+
+    This configuration uses the test at apps/examples/pwline.  It is another
+    verification of the operation of the per-window framebuffers.  This
+    examples is very similar to the pwfb example used in pwfb configuration
+    except that instead of text, each window has an (trivial) animated
+    graphic (based on the rotating line of apps/examples/nslines).
+
+      2019-03-20:  Everything works fine!

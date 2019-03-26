@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmp/icmp_poll.c
  *
- *   Copyright (C) 2008-2009, 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#if defined(CONFIG_NET) && defined(CONFIG_NET_ICMP) && defined(CONFIG_NET_ICMP_SOCKET)
+#if defined(CONFIG_NET) && defined(CONFIG_NET_ICMP) && \
+    defined(CONFIG_NET_ICMP_SOCKET)
 
 #include <debug.h>
 

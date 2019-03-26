@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_poll.c
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -72,7 +72,8 @@
  *
  ****************************************************************************/
 
-void icmpv6_poll(FAR struct net_driver_s *dev, FAR struct icmpv6_conn_s *conn)
+void icmpv6_poll(FAR struct net_driver_s *dev,
+                 FAR struct icmpv6_conn_s *conn)
 {
   /* Setup for the application callback */
 

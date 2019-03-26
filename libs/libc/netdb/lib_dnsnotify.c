@@ -81,10 +81,10 @@ int dns_register_notify(dns_callback_t callback, FAR void *arg)
   FAR struct dns_notify_s *notify;
 
   notify = lib_malloc(sizeof(*notify));
-  if (!notify)
+  if (notify == NULL)
     {
       return -ENOMEM;
-  }
+    }
 
   notify->callback = callback;
   notify->arg      = arg;
@@ -124,8 +124,8 @@ int dns_unregister_notify(dns_callback_t callback, FAR void *arg)
            return OK;
         }
     }
-  dns_semgive();
 
+  dns_semgive();
   return -EINVAL;
 }
 
@@ -143,6 +143,7 @@ void dns_notify_nameserver(FAR const struct sockaddr *addr, socklen_t addrlen)
       FAR struct dns_notify_s *notify = (FAR struct dns_notify_s *)entry;
       notify->callback(notify->arg, (FAR struct sockaddr *)addr, addrlen);
     }
+
   dns_semgive();
 }
 

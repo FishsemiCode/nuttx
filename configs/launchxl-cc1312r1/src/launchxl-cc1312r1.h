@@ -46,6 +46,40 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Button GPIO IRQ numbers
+ *
+ *   DIO13_BTN1  SW1  Low input sensed when depressed
+ *   DIO14_BTN2  SW2  Low input sensed when depressed
+ */
+
+#define CC1312_SW1_IRQ  TIVA_IRQ_DIO_13
+#define CC1312_SW2_IRQ  TIVA_IRQ_DIO_14
+
+/****************************************************************************
+ * Public Data
+ ****************************************************************************/
+
+struct cc13xx_pinconfig_s; /* Forward reference */
+
+/* The LaunchXL-cc1312R1 has two LEDs controlled by software: DIO7_GLED (CR1)
+ * and DIO6_RLED (CR2).  A high output value illuminates an LED.
+ *
+ * If CONFIG_ARCH_LEDS is not defined, then the user can control the LEDs in
+ * any way.  The following definitions are used to access individual LEDs.
+ */
+
+extern const struct cc13xx_pinconfig_s g_gpio_gled;
+extern const struct cc13xx_pinconfig_s g_gpio_rled;
+
+/* The LaunchXL-CC1312R1 has two push-puttons:
+ *
+ *   DIO13_BTN1  SW1  Low input sensed when depressed
+ *   DIO14_BTN2  SW2  Low input sensed when depressed
+ */
+
+extern const struct cc13xx_pinconfig_s g_gpio_sw1;
+extern const struct cc13xx_pinconfig_s g_gpio_sw2;
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -56,10 +90,10 @@
  * Description:
  *   Bring up board features.
  *
- *   If CONFIG_BOARD_INITIALIZE=y, then this function will be called from
- *   board_initialize().
+ *   If CONFIG_BOARD_LATE_INITIALIZE=y, then this function will be called from
+ *   board_late_initialize().
  *
- *   If CONFIG_BOARD_INITIALIZE is not selected, but CONFIG_LIB_BOARDCTL=y
+ *   If CONFIG_BOARD_LATE_INITIALIZE is not selected, but CONFIG_LIB_BOARDCTL=y
  *   then this function will *probably* be called from application logic via
  *   boardctl().
  *

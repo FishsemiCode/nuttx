@@ -157,7 +157,7 @@ struct tasklist_s
  * Public Data
  ****************************************************************************/
 
-/* Declared in os_start.c ***************************************************/
+/* Declared in nx_start.c ***************************************************/
 
 /* The state of a task is indicated both by the task_state field of the TCB
  * and by a series of task lists.  All of these tasks lists are declared
@@ -490,10 +490,10 @@ void sched_tasklist_unlock(irqstate_t lock);
 #  define sched_islocked_tcb(tcb) ((tcb)->lockcount > 0)
 #endif
 
+#if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_SCHED_CPULOAD_EXTCLK)
 /* CPU load measurement support */
 
-#if defined(CONFIG_SCHED_CPULOAD) && !defined(CONFIG_SCHED_CPULOAD_EXTCLK)
-void weak_function sched_process_cpuload(void);
+void weak_function nxsched_process_cpuload(void);
 #endif
 
 /* Critical section monitor */

@@ -66,13 +66,13 @@ FAR char *strsep(FAR char **strp, FAR const char *delim)
   FAR char *sbegin = *strp;
   FAR char *end;
 
-  if (!sbegin)
+  if (sbegin == NULL)
     {
       return NULL;
     }
 
   end = strpbrk(sbegin, delim);
-  if (end)
+  if (end != NULL)
     {
       *end++ = '\0';
     }

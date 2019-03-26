@@ -78,7 +78,7 @@
  *
  *   1) User code calls vfork().  vfork() collects context information and
  *      transfers control up up_vfork().
- *   2) up_vfork()and calls task_vforksetup().
+ *   2) up_vfork()and calls nxtask_vforksetup().
  *   3) task_vforksetup() allocates and configures the child task's TCB.  This
  *      consists of:
  *      - Allocation of the child task's TCB.
@@ -90,8 +90,8 @@
  *      - Allocate and initialize the stack
  *      - Initialize special values in any CPU registers that were not
  *        already configured by up_initial_state()
- *   5) up_vfork() then calls task_vforkstart()
- *   6) task_vforkstart() then executes the child thread.
+ *   5) up_vfork() then calls nxtask_vforkstart()
+ *   6) nxtask_vforkstart() then executes the child thread.
  *
  * Input Paremeters:
  *   None

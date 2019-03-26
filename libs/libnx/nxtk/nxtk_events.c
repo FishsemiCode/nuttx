@@ -51,14 +51,6 @@
 #include "nxtk.h"
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
@@ -79,10 +71,6 @@ static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
 static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
  * Public Data
  ****************************************************************************/
 
@@ -100,20 +88,17 @@ const struct nx_callback_s g_nxtkcb =
 };
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
  * Name: nxtk_redraw
  ****************************************************************************/
 
 static void nxtk_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
                         bool more, FAR void *arg)
 {
-  FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
+  FAR struct nxtk_framedwindow_s *fwnd;
   struct nxgl_rect_s intersection;
 
-  DEBUGASSERT(hwnd && rect && fwnd->fwcb);
+  DEBUGASSERT(hwnd != NULL && rect != NULL);
+  fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
 
   ginfo("hwnd=%p rect={(%d,%d),(%d,%d)} more=%d\n",
         hwnd, rect->pt1.x, rect->pt1.y, rect->pt2.x, rect->pt2.y, more);
@@ -124,6 +109,7 @@ static void nxtk_redraw(NXWINDOW hwnd, FAR const struct nxgl_rect_s *rect,
    * forward the redraw callback.
    */
 
+  DEBUGASSERT(fwnd->fwcb != NULL);
   if (fwnd->fwcb->redraw)
     {
       /* Clip the redraw rectangle so that it lies within the client sub-window

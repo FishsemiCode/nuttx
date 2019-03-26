@@ -105,6 +105,14 @@
 #define GPIO_LED        (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT1 | \
                          GPIO_PIN9 | IOMUX_LED)
 
+/* Backlight of LCD */
+
+#define IOMUX_LCD_BL    (IOMUX_PULL_NONE | IOMUX_CMOS_OUTPUT | \
+                         IOMUX_DRIVE_40OHM | IOMUX_SPEED_MEDIUM | \
+                         IOMUX_SLEW_SLOW)
+#define GPIO_LCD_BL     (GPIO_OUTPUT | GPIO_OUTPUT_ZERO | GPIO_PORT2 | \
+                         GPIO_PIN31 | IOMUX_LCD_BL)
+
 /* Buttons
  *
  * The IMXRT board has one external user button
@@ -187,7 +195,7 @@
  *
  ****************************************************************************/
 
-#if defined(CONFIG_LIB_BOARDCTL) || defined(CONFIG_BOARD_INITIALIZE)
+#if defined(CONFIG_LIB_BOARDCTL) || defined(CONFIG_BOARD_LATE_INITIALIZE)
 int imxrt_bringup(void);
 #endif
 

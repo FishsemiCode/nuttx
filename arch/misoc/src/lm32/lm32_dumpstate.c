@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/misoc/src/lm32/lm32_dumpstate.c
  *
- *  Copyright (C) 2011 Gregory Nutt. All rights reserved.
+ *  Copyright (C) 2011, 2019 Gregory Nutt. All rights reserved.
  *  Author: Gregory Nutt <gnutt@nuttx.org>
  *          Ramtin Amin <keytwo@gmail.com>
  *

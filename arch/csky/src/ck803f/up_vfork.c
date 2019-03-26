@@ -86,8 +86,8 @@
  *
  *   1) User code calls vfork().  vfork() collects context information and
  *      transfers control up up_vfork().
- *   2) up_vfork()and calls task_vforksetup().
- *   3) task_vforksetup() allocates and configures the child task's TCB.  This
+ *   2) up_vfork()and calls nxtask_vforksetup().
+ *   3) nxtask_vforksetup() allocates and configures the child task's TCB.  This
  *      consists of:
  *      - Allocation of the child task's TCB.
  *      - Initialization of file descriptors and streams
@@ -98,10 +98,10 @@
  *      - Allocate and initialize the stack
  *      - Initialize special values in any CPU registers that were not
  *        already configured by up_initial_state()
- *   5) up_vfork() then calls task_vforkstart()
- *   6) task_vforkstart() then executes the child thread.
+ *   5) up_vfork() then calls nxtask_vforkstart()
+ *   6) nxtask_vforkstart() then executes the child thread.
  *
- * task_vforkabort() may be called if an error occurs between steps 3 and 6.
+ * nxtask_vforkabort() may be called if an error occurs between steps 3 and 6.
  *
  * Input Parameters:
  *   context - Caller context information saved by vfork()
@@ -143,10 +143,10 @@ pid_t up_vfork(const struct vfork_s *context)
 
   /* Allocate and initialize a TCB for the child task. */
 
-  child = task_vforksetup((start_t)(context->lr & ~1), &argsize);
+  child = nxtask_vforksetup((start_t)(context->lr & ~1), &argsize);
   if (!child)
     {
-      sinfo("ERROR: task_vforksetup failed\n");
+      sinfo("ERROR: nxtask_vforksetup failed\n");
       return (pid_t)ERROR;
     }
 
@@ -166,7 +166,7 @@ pid_t up_vfork(const struct vfork_s *context)
   if (ret != OK)
     {
       sinfo("ERROR: up_create_stack failed: %d\n", ret);
-      task_vforkabort(child, -ret);
+      nxtask_vforkabort(child, -ret);
       return (pid_t)ERROR;
     }
 
@@ -229,9 +229,9 @@ pid_t up_vfork(const struct vfork_s *context)
   child->cmn.xcp.regs[REG_VR14]  = context->vr14;  /* Floating point register */
   child->cmn.xcp.regs[REG_VR15]  = context->vr15;  /* Floating point register */
 
-  /* And, finally, start the child task.  On a failure, task_vforkstart()
-   * will discard the TCB by calling task_vforkabort().
+  /* And, finally, start the child task.  On a failure, nxtask_vforkstart()
+   * will discard the TCB by calling nxtask_vforkabort().
    */
 
-  return task_vforkstart(child);
+  return nxtask_vforkstart(child);
 }
