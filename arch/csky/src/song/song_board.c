@@ -49,12 +49,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#if !defined(CONFIG_BOARD_INITTHREAD) && !defined(CONFIG_NSH_ARCHINIT)
-#  error CONFIG_BOARD_INITTHREAD or CONFIG_NSH_ARCHINIT is required for late initialization
+#if !defined(CONFIG_BOARD_LATE_INITIALIZE) && !defined(CONFIG_NSH_ARCHINIT)
+#  error CONFIG_BOARD_LATE_INITIALIZE or CONFIG_NSH_ARCHINIT is required for late initialization
 #endif
 
-#if defined(CONFIG_BOARD_INITTHREAD) && defined(CONFIG_NSH_ARCHINIT)
-#  error CONFIG_BOARD_INITTHREAD and CONFIG_NSH_ARCHINIT can not be defined at the same time
+#if defined(CONFIG_BOARD_LATE_INITIALIZE) && defined(CONFIG_NSH_ARCHINIT)
+#  error CONFIG_BOARD_LATE_INITIALIZE and CONFIG_NSH_ARCHINIT can not be defined at the same time
 #endif
 
 /****************************************************************************
@@ -65,7 +65,7 @@
  * Name: board_initialize
  *
  * Description:
- *   If CONFIG_BOARD_INITIALIZE is selected, then an additional
+ *   If CONFIG_BOARD_LATE_INITIALIZE is selected, then an additional
  *   initialization call will be performed in the boot-up sequence to a
  *   function called board_initialize().  board_initialize() will be
  *   called immediately after up_intitialize() is called and just before the
@@ -74,17 +74,14 @@
  *
  ****************************************************************************/
 
-#ifdef CONFIG_BOARD_INITIALIZE
+#ifdef CONFIG_BOARD_LATE_INITIALIZE
 
-#  ifdef CONFIG_BOARD_INITTHREAD
 void weak_function up_lateinitialize(void)
 {
 }
-#  endif
 
-void board_initialize(void)
+void board_late_initialize(void)
 {
-#  ifdef CONFIG_BOARD_INITTHREAD
   /* Perform the arch late initialization */
 
   up_lateinitialize();
@@ -92,9 +89,8 @@ void board_initialize(void)
   /* Perform the board late initialization */
 
   board_lateinitialize();
-#  endif
 }
-#endif /* CONFIG_BOARD_INITIALIZE */
+#endif /* CONFIG_BOARD_LATE_INITIALIZE */
 
 /****************************************************************************
  * Name: board_app_initialize
