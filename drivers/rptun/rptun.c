@@ -610,26 +610,24 @@ static metal_phys_addr_t rptun_pa_to_da(struct rptun_dev_s *dev, metal_phys_addr
   addrenv = RPTUN_GET_ADDRENV(dev);
   if (!addrenv)
     {
-      return B2C(pa);
+      return pa;
     }
 
   for (i = 0; addrenv[i].size; i++)
     {
       if (pa - addrenv[i].pa < addrenv[i].size)
         {
-          return addrenv[i].da + B2C(pa - addrenv[i].pa);
+          return addrenv[i].da + (pa - addrenv[i].pa);
         }
     }
 
-  return B2C(pa);
+  return pa;
 }
 
 static metal_phys_addr_t rptun_da_to_pa(struct rptun_dev_s *dev, metal_phys_addr_t da)
 {
   const struct rptun_addrenv_s *addrenv;
   uint32_t i;
-
-  da = C2B(da);
 
   addrenv = RPTUN_GET_ADDRENV(dev);
   if (!addrenv)
@@ -639,10 +637,9 @@ static metal_phys_addr_t rptun_da_to_pa(struct rptun_dev_s *dev, metal_phys_addr
 
   for (i = 0; addrenv[i].size; i++)
     {
-      metal_phys_addr_t tmp = C2B(addrenv[i].da);
-      if (da - tmp < addrenv[i].size)
+      if (da - addrenv[i].da < addrenv[i].size)
         {
-          return addrenv[i].pa + (da - tmp);
+          return addrenv[i].pa + (da - addrenv[i].da);
         }
     }
 
