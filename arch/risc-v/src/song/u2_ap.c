@@ -91,6 +91,8 @@
 
 #define MUX_PIN_BASE                (0xa00d0000)
 #define MUXPIN_CLKO0_CTL            (MUX_PIN_BASE + 0x14)
+#define MUXPIN_IIS0DI_CTL           (MUX_PIN_BASE + 0x7c)
+#define MUXPIN_IIS0DO_CTL           (MUX_PIN_BASE + 0x80)
 #define MUXPIN_IIS0CK_CTL           (MUX_PIN_BASE + 0x84)
 #define MUXPIN_IIS0WS_CTL           (MUX_PIN_BASE + 0x88)
 #define MUXPIN_GPIO8_CTL            (MUX_PIN_BASE + 0xe4)
@@ -439,6 +441,8 @@ static void up_audio_init(void)
   clk_enable(clk_get("i2c1_mclk"));
   clk_enable(clk_get("i2c2_mclk"));
   putreg32(2 << (MUXPIN_DS), MUXPIN_CLKO0_CTL);
+  putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DI_CTL);
+  putreg32(1 << (MUXPIN_DS) | 0 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DO_CTL);
   putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0CK_CTL);
   putreg32(1 << (MUXPIN_DS) | 1 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0WS_CTL);
   putreg32(1 << (MUXPIN_DS), MUXPIN_GPIO8_CTL);
