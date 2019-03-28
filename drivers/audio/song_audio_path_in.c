@@ -768,8 +768,6 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
                              SONG_AUDIO_PATH_I2S_TRAN_POL_RAISE |
                              SONG_AUDIO_PATH_I2S_REC_POL_RAISE |
                              SONG_AUDIO_PATH_I2S_SLAVE_EN);
-        audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                             SONG_AUDIO_PATH_PDM3_CLK_DIR, 0);
         break;
       case AUDIO_HWFMT_CBS_CFS:
         audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
@@ -778,9 +776,6 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
                              SONG_AUDIO_PATH_I2S_SLAVE_EN,
                              SONG_AUDIO_PATH_I2S_TRAN_POL_FALL |
                              SONG_AUDIO_PATH_I2S_REC_POL_FALL);
-        audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                             SONG_AUDIO_PATH_PDM3_CLK_DIR,
-                             SONG_AUDIO_PATH_PDM3_CLK_DIR);
         break;
       default:
         return -EINVAL;

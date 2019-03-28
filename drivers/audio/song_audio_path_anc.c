@@ -357,20 +357,6 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
                        SONG_AUDIO_PATH_AKM_EN,
                        SONG_AUDIO_PATH_AKM_EN);
 
-  switch (fmt & AUDIO_HWFMT_MASTER_MASK)
-    {
-      case AUDIO_HWFMT_CBM_CFM:
-        audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                             SONG_AUDIO_PATH_PDM3_CLK_DIR, 0);
-        break;
-      case AUDIO_HWFMT_CBS_CFS:
-        audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                             SONG_AUDIO_PATH_PDM3_CLK_DIR,
-                             SONG_AUDIO_PATH_PDM3_CLK_DIR);
-        break;
-      default:
-        return -EINVAL;
-    }
   return OK;
 }
 
