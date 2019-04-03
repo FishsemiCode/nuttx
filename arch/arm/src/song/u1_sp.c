@@ -150,8 +150,8 @@
 
 #define TOP_PWR_SEC_AU_PD_MK        (1 << 7)
 
-#define TOP_PWR_PLL_STABLE_TIME     (0x4 << 8)
-#define TOP_PWR_OSC_STABLE_TIME     (0x21 << 0)
+#define TOP_PWR_PLL_STABLE_TIME     (0xf << 8)
+#define TOP_PWR_OSC_STABLE_TIME     (0x52 << 0)
 
 #define PMIC_FSM_BASE               (0xb2010000)
 #define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
