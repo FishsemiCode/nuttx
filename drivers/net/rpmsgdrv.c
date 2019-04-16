@@ -480,6 +480,10 @@ static int net_rpmsg_drv_sockioctl_task(int argc, FAR char *argv[])
   struct rpmsg_endpoint *ept;
   struct socket sock;
 
+  int domain   = NET_RPMSG_DRV_FAMILY;
+  int type     = NET_RPMSG_DRV_TYPE;
+  int protocol = NET_RPMSG_DRV_PROTOCOL;
+
   /* Restore pointers from argv */
 
   ept = (struct rpmsg_endpoint *)strtoul(argv[1], NULL, 0);
@@ -487,9 +491,15 @@ static int net_rpmsg_drv_sockioctl_task(int argc, FAR char *argv[])
 
   /* We need a temporary sock for ioctl here */
 
+  if (msg->code == SIOCIFAUTOCONF)
+    {
+      domain   = PF_INET6;
+      type     = SOCK_DGRAM;
+      protocol = IPPROTO_ICMP6;
+    }
+
   sock.s_crefs = 1; /* Initialize reference count manually */
-  msg->header.result = psock_socket(NET_RPMSG_DRV_FAMILY,
-          NET_RPMSG_DRV_TYPE, NET_RPMSG_DRV_PROTOCOL, &sock);
+  msg->header.result = psock_socket(domain, type, protocol, &sock);
   if (msg->header.result >= 0)
     {
       msg->header.result = psock_ioctl(&sock, msg->code, (unsigned long)msg->arg);
