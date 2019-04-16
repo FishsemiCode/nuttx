@@ -181,11 +181,21 @@ static size_t clk_procfs_show_subtree(FAR struct clk* clk, int level,
   size_t oldlen = buflen;
   size_t ret;
 
+  if (strchr(clk_get_name(clk), '/'))
+    {
+      clk_list_unlock();
+    }
+
   ret = clk_procfs_printf(buffer, buflen, pos, "%*s%-*s %11d %11u %11d\n",
                           level * 2, "", 40 - level * 2, clk_get_name(clk),
                           clk_is_enabled(clk), clk_get_rate(clk), clk_get_phase(clk));
   buffer += ret;
   buflen -= ret;
+
+  if (strchr(clk_get_name(clk), '/'))
+    {
+      clk_list_lock();
+    }
 
   if (buflen > 0)
     {
