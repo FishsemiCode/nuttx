@@ -361,6 +361,12 @@ int dw_wdt_initialize(FAR const struct dw_wdt_config_s *config)
       irq_attach(config->irq, dw_wdt_interrupt, wdt);
       up_enable_irq(config->irq);
     }
+  else
+    {
+      dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
+                       DW_WDT_CONTROL_IRQ_MASK, 0);
+    }
+
 
   return 0;
 }
