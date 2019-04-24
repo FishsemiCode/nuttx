@@ -82,6 +82,15 @@ static void up_idlepm(void)
 
   newstate = pm_querystate(PM_IDLE_DOMAIN);
 
+#ifdef CONFIG_PM_KEEPBUSY
+  /* Check whether need keep CPU busy */
+
+  if (pm_keepbusy(PM_IDLE_DOMAIN, newstate))
+    {
+      return;
+    }
+#endif
+
   /* MCU-specific power management logic */
 
   switch (newstate)
