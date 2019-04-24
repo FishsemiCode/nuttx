@@ -70,6 +70,8 @@
 
 #include <nuttx/config.h>
 
+#include <stdbool.h>
+
 #include <queue.h>
 
 #ifdef CONFIG_PM
@@ -282,6 +284,33 @@ enum pm_state_e
 struct pm_callback_s
 {
   struct dq_entry_s entry;   /* Supports a doubly linked list */
+
+#ifdef CONFIG_PM_KEEPBUSY
+  /**************************************************************************
+   * Name: keepbusy
+   *
+   * Description:
+   *   The driver should tell whether the PM need busy on this power state.
+   *   This is a query to driver that the system is about to enter into a
+   *   power state, and the driver should return whether the PM should keep
+   *   busy on this power state. The PM may busy the CPU and don't do WFI.
+   *
+   * Input Parameters:
+   *   cb      - Returned to the driver.  The driver version of the callback
+   *             structure may include additional, driver-specific state
+   *             data at the end of the structure.
+   *   domain  - Identifies the activity domain of the state change
+   *   pmstate - Identifies the new PM state
+   *
+   * Returned Value:
+   *   True means the PM should keep busy and just return
+   *   False means the PM continue the PM operation
+   *
+   **************************************************************************/
+
+  bool (*keepbusy)(FAR struct pm_callback_s *cb, int domain,
+                   enum pm_state_e pmstate);
+#endif
 
   /**************************************************************************
    * Name: prepare
@@ -573,6 +602,29 @@ enum pm_state_e pm_checkstate(int domain);
  ****************************************************************************/
 
 int pm_changestate(int domain, enum pm_state_e newstate);
+
+/****************************************************************************
+ * Name: pm_keepbusy
+ *
+ * Description:
+ *   The driver should tell whether the PM need busy on this power state.
+ *   This is a query to driver that the system is about to enter into a
+ *   power state, and the driver should return whether the PM should keep
+ *   busy on this power state. The PM may busy the CPU and don't do WFI.
+ *
+ * Input Parameters:
+ *   domain - The PM domain to check
+ *   newstate - Identifies the new PM state
+ *
+ * Returned Value:
+ *   True means the PM should keep busy and just return
+ *   False means the PM continue the PM operation
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM_KEEPBUSY
+bool pm_keepbusy(int domain, enum pm_state_e newstate);
+#endif
 
 /****************************************************************************
  * Name: pm_querystate

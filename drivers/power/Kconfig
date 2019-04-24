@@ -14,6 +14,14 @@ menuconfig PM
 
 if PM
 
+config PM_KEEPBUSY
+	bool "PM keep cpu busy"
+	default n
+	---help---
+		The driver should tell whether the PM need busy on this power state.
+		For some drvier/device, they don't want CPU enter this power state,
+		until some condtion happen.
+
 config PM_SLICEMS
 	int "PM time slice (msec)"
 	default 100

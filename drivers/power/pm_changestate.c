@@ -324,6 +324,62 @@ int pm_changestate(int domain, enum pm_state_e newstate)
 }
 
 /****************************************************************************
+ * Name: pm_keepbusy
+ *
+ * Description:
+ *   The driver should tell whether the PM need busy on this power state.
+ *   This is a query to driver that the system is about to enter into a
+ *   power state, and the driver should return whether the PM should keep
+ *   busy on this power state. The PM may busy the CPU and don't do WFI.
+ *
+ * Input Parameters:
+ *   domain - The PM domain to check
+ *   newstate - Identifies the new PM state
+ *
+ * Returned Value:
+ *   True means the PM should keep busy and just return
+ *   False means the PM continue the PM operation
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_PM_KEEPBUSY
+bool pm_keepbusy(int domain, enum pm_state_e newstate)
+{
+  FAR dq_entry_t *entry;
+  irqstate_t flags;
+  bool ret = false;
+
+  DEBUGASSERT(domain >=0 && domain < CONFIG_PM_NDOMAINS);
+
+  /* Disable interrupts throught this operation... changing driver states
+   * could cause additional driver activity that might interfere with the
+   * state change.  When the state change is complete, interrupts will be
+   * re-enabled.
+   */
+
+  flags = enter_critical_section();
+
+  for (entry = dq_peek(&g_pmglobals.registry);
+       entry && ret == false;
+       entry = dq_next(entry))
+    {
+      /* Is the notification callback supported? */
+
+      FAR struct pm_callback_s *cb = (FAR struct pm_callback_s *)entry;
+      if (cb->keepbusy)
+        {
+          /* Yes.. check the driver */
+
+          ret = cb->keepbusy(cb, domain, newstate);
+        }
+    }
+
+  leave_critical_section(flags);
+  return ret;
+}
+#endif
+
+/****************************************************************************
  * Name: pm_querystate
  *
  * Description:
