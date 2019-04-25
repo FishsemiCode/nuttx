@@ -121,6 +121,14 @@ config 16550_UART0_DMA_RXTIMEOUT
 
 endif
 
+config 16550_UART0_TX_WORKAROUND
+	bool "16550 UART0 TX workaround"
+	select PM_KEEPBUSY
+	default n
+	---help---
+		UART0 wants CPU keep busy until TX FIFO empty,
+		or it will TX error in lowpower mode.
+
 endif # 16550_UART0
 
 config 16550_UART1

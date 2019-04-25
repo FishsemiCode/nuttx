@@ -56,6 +56,7 @@
 #include <nuttx/serial/serial.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/serial/uart_16550.h>
+#include <nuttx/power/pm.h>
 
 #include <arch/board/board.h>
 
@@ -258,6 +259,9 @@ static uart_dev_t g_uart0port =
   .ops      = &g_uart_ops,
   .priv     = &g_uart0priv,
 };
+#ifdef CONFIG_16550_UART0_TX_WORKAROUND
+static struct pm_callback_s g_uart0pm_cb;
+#endif
 #endif
 
 /* This describes the state of the 16550 uart1 port. */
@@ -1623,6 +1627,27 @@ static void u16550_putc(FAR struct u16550_s *priv, int ch)
 }
 #endif
 
+#ifdef CONFIG_16550_UART0_TX_WORKAROUND
+static bool u16550_uart0_keepbusy(FAR struct pm_callback_s *cb,
+                                  int domain, enum pm_state_e pmstate)
+{
+  FAR uart_dev_t *dev = &TTYS0_DEV;
+  bool ret = false;
+
+  switch (pmstate)
+    {
+    case PM_STANDBY:
+    case PM_SLEEP:
+      ret = !u16550_txempty(dev);
+      break;
+    default:
+      break;
+    }
+
+  return ret;
+}
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -1677,6 +1702,10 @@ void up_serialinit(void)
 #endif
 #ifdef TTYS3_DEV
   (void)uart_register("/dev/ttyS3", &TTYS3_DEV);
+#endif
+#ifdef CONFIG_16550_UART0_TX_WORKAROUND
+  g_uart0pm_cb.keepbusy = u16550_uart0_keepbusy;
+  pm_register(&g_uart0pm_cb);
 #endif
 }
 
