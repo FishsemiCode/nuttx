@@ -173,6 +173,13 @@ void up_earlyinitialize(void)
   /* Forbid the AP power down, AP will power down following SP */
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
            TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
+
+  /* Workaround for uart0 can't wakeup CPU in PWR_SLEEP mode,
+   * Mux uart0 as GPIO35, trigger GPIO35 failing edge as IRQ
+   */
+
+  putreg32(0x16, 0xb005007c);
+  putreg32(0x87000, 0xb00600c0);
 }
 
 void up_wic_initialize(void)
