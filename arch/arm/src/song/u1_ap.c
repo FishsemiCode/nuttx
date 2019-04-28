@@ -253,6 +253,7 @@ void rpmsg_serialinit(void)
   uart_rpmsg_init(CPU_NAME_CP, "AT", 1024, false);
   uart_rpmsg_init(CPU_NAME_CP, "AT1", 1024, false);
   uart_rpmsg_init(CPU_NAME_CP, "GPS", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "GPS1", 1024, false);
 }
 #endif
 
