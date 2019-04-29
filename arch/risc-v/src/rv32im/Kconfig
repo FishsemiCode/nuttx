@@ -45,6 +45,25 @@ config RV32IM_HW_MULDIV
 		generated code to natively use mul / div instructions for any
 		math operations.
 
+config RV32IM_HW_ATOMIC
+	bool "Supports Hardware ATOMIC"
+	default n
+	---help---
+		Specifies if the architecture supports hardware atomic instructions.
+
+config RV32IM_HW_DOUBLE
+	bool "Supports Hardware double arithmetic"
+	default n
+	depends on ARCH_FPU
+	---help---
+		Specifies if the architecture supports hardware double arithmetic.
+
+config RV32IM_HW_COMPRESS
+	bool "Supports Hardware compressed instructions"
+	default n
+	---help---
+		Specifies if the architecture supports hardware compressed instructions.
+
 config RV32IM_SYSTEM_CSRRS_SUPPORT
 	bool "Supports RV core feature identification via CSRRS opcode"
 	default n

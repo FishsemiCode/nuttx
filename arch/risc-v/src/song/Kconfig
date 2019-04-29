@@ -22,6 +22,14 @@ config ARCH_CHIP_U2_AUDIO
 	bool "U2 AUDIO"
 	select ARCH_RV32IM
 
+config ARCH_CHIP_U3_AP
+	bool "U3 AP"
+	select ARCH_RV32IM
+
+config ARCH_CHIP_U3_CPR
+	bool "U3 CPR"
+	select ARCH_RV32IM
+
 config ARCH_CHIP_V1_ISP
 	bool "V1 ISP"
 	select ARCH_RV32IM
@@ -51,6 +59,12 @@ config INTC_DW
 	select ARCH_HAVE_IRQPRIO
 	select ARCH_HAVE_IRQTRIGGER
 
+config INTC_PLIC
+	bool "Platform Level Interrupt Controller"
+	select ARCH_HAVE_HIPRI_INTERRUPT
+	select ARCH_HAVE_IRQPRIO
+	select ARCH_HAVE_IRQTRIGGER
+
 config INTC_PULP
 	bool "Pulp Event Unit"
 	select ARCH_HAVE_HIPRI_INTERRUPT
@@ -61,6 +75,10 @@ endchoice
 config INTC_DW_BASE
 	hex "DW VINTC base address"
 	depends on INTC_DW
+
+config INTC_PLIC_BASE
+	hex "Plic base address"
+	depends on INTC_PLIC
 
 config INTC_PULP_BASE
 	hex "Pulp Event Unit base address"

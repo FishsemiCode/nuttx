@@ -56,6 +56,28 @@ ifeq ($(filter y, $(CONFIG_RI5CY_GAP8_TOOLCHAIN)),y)
   CONFIG_RISCV_TOOLCHAIN ?= GNU_RISCY
 endif
 
+ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
+  ISA_MULDIV := m
+endif
+
+ifeq ($(CONFIG_RV32IM_HW_ATOMIC),y)
+  ISA_ATOMIC := a
+endif
+
+ifeq ($(CONFIG_ARCH_FPU),y)
+  ISA_FLOAT := f
+  ISA_ABI   := f
+endif
+
+ifeq ($(CONFIG_RV32IM_HW_DOUBLE),y)
+  ISA_DOUBLE := d
+  ISA_ABI    := d
+endif
+
+ifeq ($(CONFIG_RV32IM_HW_COMPRESS),y)
+  ISA_COMPRESS := c
+endif
+
 #
 # Supported toolchains
 #
@@ -80,19 +102,7 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGL)
   CROSSDEV ?= riscv64-unknown-elf-
   ARCROSSDEV ?= riscv64-unknown-elf-
   MAXOPTIMIZATION ?= -Os -msave-restore
-ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
-  ifeq ($(CONFIG_ARCH_FPU),y)
-    ARCHCPUFLAGS = -march=rv32imfc -mabi=ilp32f
-  else
-    ARCHCPUFLAGS = -march=rv32imc -mabi=ilp32
-  endif
-else
-  ifeq ($(CONFIG_ARCH_FPU),y)
-    ARCHCPUFLAGS += -march=rv32ifc -mabi=ilp32f
-  else
-    ARCHCPUFLAGS += -march=rv32ic -mabi=ilp32
-  endif
-endif
+  ARCHCPUFLAGS = -march=rv32i$(ISA_MULDIV)$(ISA_ATOMIC)$(ISA_FLOAT)$(ISA_DOUBLE)$(ISA_COMPRESS) -mabi=ilp32$(ISA_ABI)
 endif
 
 ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGW)
@@ -102,27 +112,15 @@ ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RVGW)
     WINTOOL = y
   endif
   MAXOPTIMIZATION ?= -Os -msave-restore
-ifeq ($(CONFIG_RV32IM_HW_MULDIV),y)
-  ifeq ($(CONFIG_ARCH_FPU),y)
-    ARCHCPUFLAGS = -march=rv32imfc -mabi=ilp32f
-  else
-    ARCHCPUFLAGS = -march=rv32imc -mabi=ilp32
-  endif
-else
-  ifeq ($(CONFIG_ARCH_FPU),y)
-    ARCHCPUFLAGS = -march=rv32ifc -mabi=ilp32f
-  else
-    ARCHCPUFLAGS = -march=rv32ic -mabi=ilp32
-  endif
-endif
+  ARCHCPUFLAGS = -march=rv32i$(ISA_MULDIV)$(ISA_ATOMIC)$(ISA_FLOAT)$(ISA_DOUBLE)$(ISA_COMPRESS) -mabi=ilp32$(ISA_ABI)
 endif
 
 ifeq ($(CONFIG_RISCV_TOOLCHAIN),GNU_RISCY)
   CROSSDEV ?= riscv32-unknown-elf-
   ARCROSSDEV ?= riscv32-unknown-elf-
+  MAXOPTIMIZATION ?= -Os -msave-restore
   ARCHCPUFLAGS = -march=rv32imcxgap8 -mPE=8 -mFC=1 -D__riscv__ -D__pulp__ -D__GAP8__
   ifeq ($(CONFIG_ARCH_FPU),y)
     ARCHCPUFLAGS += -mhard-float
   endif
-  MAXOPTIMIZATION ?= -Os -msave-restore
 endif
