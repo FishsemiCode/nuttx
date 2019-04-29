@@ -585,8 +585,10 @@ static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
 
 static void cp_flash_restore(void)
 {
-  int fd;
   struct stat f_info;
+  char *temp;
+  int ret;
+  int fd;
 
   fd = open("/data/cpram1.rsvd", O_RDONLY);
   if (fd < 0)
@@ -595,7 +597,24 @@ static void cp_flash_restore(void)
     }
 
   fstat(fd, &f_info);
-  read(fd, (FAR void *)CPRAM1_RSVD_BASE, f_info.st_size);
+
+  temp = kmm_malloc(f_info.st_size);
+  if (!temp)
+    {
+      goto fail;
+    }
+
+  ret = read(fd, temp, f_info.st_size);
+  if (ret != f_info.st_size)
+    {
+      goto free;
+    }
+
+  memcpy((void *)CPRAM1_RSVD_BASE, temp, f_info.st_size);
+
+free:
+  kmm_free(temp);
+fail:
   close(fd);
 }
 
