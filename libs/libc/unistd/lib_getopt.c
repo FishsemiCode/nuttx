@@ -144,7 +144,7 @@ read_globals(int argc, FAR char *const argv[],
     }
 
   data->optarg = optarg;
-  data->optind = reinit ? 1 : optind;
+  data->optind = reinit ? 0 : optind;
   data->opterr = opterr;
   data->optopt = optopt;
   data->optwhere = optwhere;
