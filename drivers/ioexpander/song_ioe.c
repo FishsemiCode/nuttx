@@ -204,6 +204,15 @@ static int song_ioe_handler(int irq, FAR void *context, FAR void *arg)
         }
     }
 
+  for (i = 0; i < CONFIG_IOEXPANDER_NPINS; i += 32)
+    {
+      status = readreg(priv, SONG_IOE_INTR_STATUS(priv->cpu, i));
+      if (status)
+        {
+          writereg(priv, SONG_IOE_INTR_CLR(i), status);
+        }
+    }
+
   return 0;
 }
 #endif
