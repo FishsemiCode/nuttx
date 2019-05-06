@@ -576,7 +576,8 @@ static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
   if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_SLPU_FLASH_S)
     {
       static struct work_s worker;
-      modifyreg32(TOP_PWR_INTR_ST_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+
+      putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
       work_queue(LPWORK, &worker, cp_flash_save_work, NULL, 0);
     }
 
