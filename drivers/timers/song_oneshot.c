@@ -190,7 +190,7 @@ static inline bool song_oneshot_getintr(FAR struct song_oneshot_lowerhalf_s *low
 static inline void song_oneshot_clearintr(FAR struct song_oneshot_lowerhalf_s *lower)
 {
   FAR const struct song_oneshot_config_s *config = lower->config;
-  song_oneshot_putbit(config->base, config->intrst_off, config->intr_bit, true);
+  song_oneshot_putreg(config->base, config->intrst_off, 1 << config->intr_bit);
 }
 
 static inline void song_oneshot_enableintr(FAR struct song_oneshot_lowerhalf_s *lower)
