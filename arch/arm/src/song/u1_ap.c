@@ -531,6 +531,34 @@ static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
     putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
 }
 
+static void up_detect_uart1(bool detect)
+{
+  /* Workaround for uart1 can't wakeup PWR SLEEP */
+
+  if (detect)
+    {
+      modifyreg32(0xb00400ac, 1, 0);
+      putreg32(0xc000000, 0xb004009c);
+      putreg32(0x16, 0xb0050010);
+      putreg32(0x10007, 0xb00600a8);
+    }
+  else
+    {
+      uint32_t val = getreg32(0xb00601e0);
+
+      putreg32(0x10006, 0xb00600a8);
+      putreg32(0x14, 0xb0050010);
+      putreg32(0xc000c00, 0xb004009c);
+      modifyreg32(0xb00400ac, 0, 1);
+
+      if (val & (1 << 8))
+        {
+          pm_activity(0, 10);
+          syslog(LOG_INFO, "WAKEUP FROM PWRSLP\n");
+        }
+    }
+}
+
 void up_cpu_doze(void)
 {
   up_cpu_lp(false, false, false);
@@ -545,14 +573,22 @@ void up_cpu_idle(void)
 
 void up_cpu_standby(void)
 {
+  up_detect_uart1(true);
+
   up_cpu_lp(true, true, false);
   up_cpu_wfi();
+
+  up_detect_uart1(false);
 }
 
 void up_cpu_sleep(void)
 {
+  up_detect_uart1(true);
+
   up_cpu_lp(true, true, true);
   up_cpu_wfi();
+
+  up_detect_uart1(false);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U1_AP */
