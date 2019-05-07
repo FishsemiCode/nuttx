@@ -102,7 +102,7 @@ up_savefpu:
 	li		t1, FS_MASK
 	and		t2, t0, t1
 	li		t1, FS_DIRTY
-	bne		t2, t1, 1
+	bne		t2, t1, 1f
 	li		t1, ~FS_MASK
 	and		t0, t0, t1
 	li		t1, FS_CLEAN
@@ -177,7 +177,7 @@ up_restorefpu:
 	li		t1, FS_MASK
 	and		t2, t0, t1
 	li		t1, FS_INITIAL
-	ble		t2, t1, 1
+	ble		t2, t1, 1f
 
 	/* Load all floating point registers */
 
