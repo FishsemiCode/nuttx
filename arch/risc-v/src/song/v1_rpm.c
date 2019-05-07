@@ -40,16 +40,31 @@
 
 #ifdef CONFIG_ARCH_CHIP_V1_RPM
 
+#include <nuttx/mbox/song_mbox.h>
+#include <nuttx/rptun/song_rptun.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
 
+#include "chip.h"
+#include "up_arch.h"
 #include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CPU_NAME_AP                 "ap"
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_RPM               1
+
 #define TOP_PWR_BASE                (0xf9210000)
+
+#define TOP_MAILBOX_BASE            (0xf9000000)
+
+
+#define _LOGBUF_BASE                ((uintptr_t)&_slog)
+#define _LOGBUF_SIZE                ((uint32_t)&_logsize)
 
 /****************************************************************************
  * Private Data
@@ -59,9 +74,19 @@
  * Public Data
  ****************************************************************************/
 
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[3] =
+{
+  [2] = DEV_END,
+};
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
+extern uint32_t _slog;
+extern uint32_t _logsize;
 
 void riscv_timer_initialize(void)
 {
@@ -84,6 +109,118 @@ void riscv_timer_initialize(void)
   };
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
+#endif
+
+}
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = UINT32_MAX,
+      .en_bit     = UINT32_MAX,
+      .src_en_off = UINT32_MAX,
+      .sta_off    = UINT32_MAX,
+      .chnl_count = 64,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_RPM,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = UINT32_MAX,
+      .en_off     = 0x34,
+      .en_bit     = 16,
+      .src_en_off = 0x34,
+      .sta_off    = 0x38,
+      .chnl_count = 16,
+      .irq        = 21,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+static void up_rptun_init(void)
+{
+  static struct rptun_rsc_s rptun_rsc_ap
+    __attribute__ ((section(".resource_table"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .config_len    = 4,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 8,
+      .num           = 8,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 8,
+      .num           = 8,
+    },
+    .buf_size        = 0xe0,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_ap =
+  {
+    .cpuname = CPU_NAME_AP,
+    .rsc     = &rptun_rsc_ap,
+    .vringtx = 62,
+    .vringrx = 15,
+  };
+
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_RPM]);
+
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize();
+#  endif
+
+#  ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
+#  endif
+
+#  ifdef CONFIG_RTC_RPMSG
+  up_rtc_set_lowerhalf(rpmsg_rtc_initialize(CPU_NAME_AP, 0));
+#  endif
+
+#  ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_AP);
+#  endif
+}
+#endif
+
+void up_lateinitialize(void)
+{
+
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+  up_rptun_init();
 #endif
 
 }
