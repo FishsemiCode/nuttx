@@ -48,6 +48,7 @@
 #include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -554,7 +555,7 @@ static void up_detect_uart1(bool detect)
       if (val & (1 << 8))
         {
           pm_activity(0, 10);
-          syslog(LOG_INFO, "WAKEUP FROM PWRSLP\n");
+          syslog(LOG_INFO, "UART1 WAKEUP PWRSLP\n");
         }
     }
 }
