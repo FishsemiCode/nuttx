@@ -245,6 +245,10 @@ static void up_init_startreason(void)
     /* Clear cold boot flag. */
 
     putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
+
+    syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
+            start_reason_env[up_get_startreason()],
+            getreg32(TOP_PMICFSM_WAKEUP_REASON));
 }
 
 static size_t up_rsvdmem_size(void)
