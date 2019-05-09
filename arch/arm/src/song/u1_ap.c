@@ -506,7 +506,7 @@ void up_reset(int status)
     }
 }
 
-static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
+static void up_cpu_lp(bool deep_sleep, bool pwr_sleep)
 {
   /* Allow ARM to enter deep sleep in WFI? */
 
@@ -522,7 +522,10 @@ static void up_cpu_lp(bool deep_sleep, bool pwr_sleep, bool ds_sleep)
              TOP_PWR_AP_M4_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
   else
     putreg32(TOP_PWR_AP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+}
 
+static void up_cpu_ds(bool ds_sleep)
+{
   /* Allow DS_SLEEP (VDDMAIN OFF)? */
 
   if (ds_sleep)
@@ -562,13 +565,13 @@ static void up_detect_uart1(bool detect)
 
 void up_cpu_doze(void)
 {
-  up_cpu_lp(false, false, false);
+  up_cpu_lp(false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
-  up_cpu_lp(true, false, false);
+  up_cpu_lp(true, false);
   up_cpu_wfi();
 }
 
@@ -576,7 +579,7 @@ void up_cpu_standby(void)
 {
   up_detect_uart1(true);
 
-  up_cpu_lp(true, true, false);
+  up_cpu_lp(true, true);
   up_cpu_wfi();
 
   up_detect_uart1(false);
@@ -586,8 +589,9 @@ void up_cpu_sleep(void)
 {
   up_detect_uart1(true);
 
-  up_cpu_lp(true, true, true);
+  up_cpu_ds(true);
   up_cpu_wfi();
+  up_cpu_ds(false);
 
   up_detect_uart1(false);
 }
