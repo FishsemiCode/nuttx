@@ -77,6 +77,7 @@
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
+#include "u1_common.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -153,19 +154,6 @@
 #define TOP_PWR_PLL_STABLE_TIME     (0xf << 8)
 #define TOP_PWR_OSC_STABLE_TIME     (0x52 << 0)
 
-#define PMIC_FSM_BASE               (0xb2010000)
-#define PMIC_FSM_CONFIG1            (PMIC_FSM_BASE + 0x0c)
-#define PMIC_FSM_LDO0               (PMIC_FSM_BASE + 0x28)
-
-#define PMIC_FSM_DS_SLP_VALID       (1 << 0)
-
-#define PMIC_FSM_LDO0_ACTIVE_ON     (0x1 << 0)
-#define PMIC_FSM_LDO0_SLEEP_ON      (0x1 << 1)
-#define PMIC_FSM_LDO0_VOLT_900mV    (0x0 << 8)
-#define PMIC_FSM_LDO0_DEFAULT       (PMIC_FSM_LDO0_ACTIVE_ON | \
-                                     PMIC_FSM_LDO0_SLEEP_ON  | \
-                                     PMIC_FSM_LDO0_VOLT_900mV)
-
 #define SECURITY_BASE               (0xb0150000)
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
 #define SECURITY_CFG_0_VALUE        (0x00010000)
@@ -226,13 +214,13 @@ void up_earlystart(void)
 
   for (int i = 0; i < 1000; i++)
     {
-      /* WA - writing to PMIC_FSM on power up seems to be unstable. Read
+      /* WA - writing to TOP_PMICFSM on power up seems to be unstable. Read
        * the register back to make sure it's programmed correctly.
        */
 
-      putreg32(PMIC_FSM_LDO0_DEFAULT, PMIC_FSM_LDO0);
+      putreg32(TOP_PMICFSM_LDO0_DEFAULT, TOP_PMICFSM_LDO0);
 
-      if (getreg32(PMIC_FSM_LDO0) == PMIC_FSM_LDO0_DEFAULT)
+      if (getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT)
         {
           break;
         }
@@ -272,7 +260,7 @@ void up_earlyinitialize(void)
 
   /* Set PMICFSM disable full chip to DS */
 
-  modifyreg32(PMIC_FSM_CONFIG1, PMIC_FSM_DS_SLP_VALID, 0);
+  modifyreg32(TOP_PMICFSM_CONFIG1, TOP_PMICFSM_DS_SLP_VALID, 0);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
@@ -559,7 +547,7 @@ static void cp_flash_save_finish(void)
 
   /* Set PMICFSM enable full chip to DS */
 
-  modifyreg32(PMIC_FSM_CONFIG1, 0, PMIC_FSM_DS_SLP_VALID);
+  modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
 }
 
 static void cp_flash_save_work(FAR void *arg)
@@ -623,7 +611,7 @@ static int cp_start(const struct song_rptun_config_s *config)
 {
   /* Make sure LDO0 voltage is correct. */
 
-  ASSERT(getreg32(PMIC_FSM_LDO0) == PMIC_FSM_LDO0_DEFAULT);
+  ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
 
   cp_flash_restore();
 
@@ -941,6 +929,11 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
+  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
+          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
+
+  setenv("START_REASON", up_get_wkreason_env(), 1);
+
 #ifdef CONFIG_SONG_RPTUN
   rptun_boot(CPU_NAME_AP);
   rptun_boot(CPU_NAME_CP);

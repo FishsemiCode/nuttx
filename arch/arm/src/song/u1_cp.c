@@ -64,6 +64,7 @@
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
+#include "u1_common.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -115,21 +116,6 @@
 
 #define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)
 
-#define TOP_PMICFSM_BASE            (0xb2010000)
-#define TOP_PMICFSM_WAKEUP_REASON   (TOP_PMICFSM_BASE + 0x18)
-
-#define TOP_PMICFSM_FIRST_PON       (1 << 0)
-#define TOP_PMICFSM_PON             (1 << 1)
-#define TOP_PMICFSM_UART            (1 << 2)
-#define TOP_PMICFSM_RTC             (1 << 3)
-#define TOP_PMICFSM_GPIO0           (1 << 4)
-#define TOP_PMICFSM_GPIO1           (1 << 5)
-#define TOP_PMICFSM_GPIO2           (1 << 6)
-#define TOP_PMICFSM_GPIO3           (1 << 7)
-#define TOP_PMICFSM_WDT_RSTN        (1 << 8)
-#define TOP_PMICFSM_SOFT_RSTN       (1 << 9)
-#define TOP_PMICFSM_BUTTON_RSTN     (1 << 10)
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -139,17 +125,6 @@ struct rsvdmem_head_s
   uint32_t magic;
   uint32_t size;
   uint32_t crc;
-};
-
-enum start_reason_e
-{
-  START_REASON_CPU_PD,
-  START_REASON_SOC_PD,
-  START_REASON_PON_RSTN,
-  START_REASON_WDT_RSTN,
-  START_REASON_SOFT_RSTN,
-  START_REASON_BUTTON_RSTN,
-  START_REASON_MAX
 };
 
 /****************************************************************************
@@ -191,64 +166,13 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
  * Private Functions
  ****************************************************************************/
 
-static enum start_reason_e up_get_startreason(void)
-{
-  if (getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT)
-    {
-      uint32_t val = getreg32(TOP_PMICFSM_WAKEUP_REASON);
-      if (val & (TOP_PMICFSM_UART   |
-                  TOP_PMICFSM_RTC   |
-                  TOP_PMICFSM_GPIO0 |
-                  TOP_PMICFSM_GPIO1 |
-                  TOP_PMICFSM_GPIO2 |
-                  TOP_PMICFSM_GPIO3))
-        {
-          return START_REASON_SOC_PD;
-        }
-      else if (val & TOP_PMICFSM_WDT_RSTN)
-        {
-          return START_REASON_WDT_RSTN;
-        }
-      else if (val & TOP_PMICFSM_SOFT_RSTN)
-        {
-          return START_REASON_SOFT_RSTN;
-        }
-      else if (val & TOP_PMICFSM_BUTTON_RSTN)
-        {
-          return START_REASON_BUTTON_RSTN;
-        }
-      else
-        {
-          return START_REASON_PON_RSTN;
-        }
-    }
-  else
-    {
-      return START_REASON_CPU_PD;
-    }
-}
-
 static void up_init_startreason(void)
 {
-    static const char *start_reason_env[START_REASON_MAX] =
-    {
-      [START_REASON_CPU_PD]        = "cpu_pd",
-      [START_REASON_SOC_PD]        = "soc_pd",
-      [START_REASON_PON_RSTN]      = "pon_rstn",
-      [START_REASON_WDT_RSTN]      = "wdt_rstn",
-      [START_REASON_SOFT_RSTN]     = "soft_rstn",
-      [START_REASON_BUTTON_RSTN]   = "button_rstn",
-    };
-
-    setenv("START_REASON", start_reason_env[up_get_startreason()], 1);
+    setenv("START_REASON", up_get_wkreason_env(), 1);
 
     /* Clear cold boot flag. */
 
     putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
-
-    syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
-            start_reason_env[up_get_startreason()],
-            getreg32(TOP_PMICFSM_WAKEUP_REASON));
 }
 
 static size_t up_rsvdmem_size(void)
@@ -261,18 +185,21 @@ static uint32_t up_rsvdmem_crc(void)
   return crc32((uint8_t *)(&_cpram1_srsvd + 1), up_rsvdmem_size());
 }
 
-static void up_rsvdmem_init(enum start_reason_e start_reason)
+static void up_rsvdmem_init(void)
 {
+  enum wakeup_reason_e wakeup_reason = up_get_wkreason();
   struct rsvdmem_head_s *head = &_cpram1_srsvd;
 
   /* Clean up reserve memory area in case of initial power up, or
    * corrupted memory.
    */
 
-  if (start_reason != START_REASON_SOC_PD   ||
-      head->magic  != RSVDMEM_MAGIC         ||
-      head->size   != up_rsvdmem_size()     ||
-      head->crc    != up_rsvdmem_crc())
+  if (wakeup_reason != WAKEUP_REASON_GPIO_RSTN ||
+      wakeup_reason != WAKEUP_REASON_UART_RSTN ||
+      wakeup_reason != WAKEUP_REASON_RTC_RSTN  ||
+      head->magic   != RSVDMEM_MAGIC           ||
+      head->size    != up_rsvdmem_size()       ||
+      head->crc     != up_rsvdmem_crc())
     {
       memset(head + 1, 0, up_rsvdmem_size());
     }
@@ -295,17 +222,17 @@ static void up_rsvdmem_sleep(void)
 
 void up_earlystart(void)
 {
-  enum start_reason_e start_reason = up_get_startreason();
-
-  switch (start_reason)
+  if (getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT)
     {
-      case START_REASON_CPU_PD:
-        up_cpu_restore();
-        break;
+      /* First power on or warm reset(wakeup DS, btn, wdt...) */
 
-      default:
-        up_rsvdmem_init(start_reason);
-        break;
+      up_rsvdmem_init();
+    }
+  else
+    {
+      /* CP core auto power on */
+
+      up_cpu_restore();
     }
 }
 
