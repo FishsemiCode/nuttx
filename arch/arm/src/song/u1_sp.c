@@ -494,9 +494,6 @@ done:
 
 static void cp_flash_save_finish(void)
 {
-  struct regulator *reg;
-  struct clk *clk;
-
   /* HW_IDLE_MK = 1 */
 
   putreg32(TOP_PWR_CP_HW_IDLE_MK << 16 |
@@ -518,6 +515,12 @@ static void cp_flash_save_finish(void)
   /* Sfrst of cp_m4 released */
 
   putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
+}
+
+void up_flash_save_final(void)
+{
+  struct regulator *reg;
+  struct clk *clk;
 
   /* Jump to flash_pd */
 
@@ -552,23 +555,27 @@ static void cp_flash_save_finish(void)
   modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
 }
 
-static void cp_flash_save_work(FAR void *arg)
+static void up_flash_save_work(FAR void *arg)
 {
   /* Save cpram to flash */
 
   cp_flash_save_prepare();
   cp_flash_save_data();
   cp_flash_save_finish();
+
+  /* Final work */
+
+  up_flash_save_final();
 }
 
-static int cp_flash_save_isr(int irq, FAR void *context, FAR void *arg)
+static int up_flash_save_isr(int irq, FAR void *context, FAR void *arg)
 {
   if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_SLPU_FLASH_S)
     {
       static struct work_s worker;
 
       putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
-      work_queue(LPWORK, &worker, cp_flash_save_work, NULL, 0);
+      work_queue(LPWORK, &worker, up_flash_save_work, NULL, 0);
     }
 
   return 0;
@@ -615,13 +622,9 @@ static int cp_start(const struct song_rptun_config_s *config)
 
   ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
 
+  /* Restore CP flash to ram */
+
   cp_flash_restore();
-
-  /* Attach and enable flash_s intr. */
-
-  irq_attach(18, cp_flash_save_isr, NULL);
-  up_enable_irq(18);
-  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
 
   /* SP <--shram1--> CP
    * enable shram1 for IPC
@@ -931,11 +934,6 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
-  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
-          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
-
-  setenv("START_REASON", up_get_wkreason_env(), 1);
-
 #ifdef CONFIG_SONG_RPTUN
   rptun_boot(CPU_NAME_AP);
   rptun_boot(CPU_NAME_CP);
@@ -944,6 +942,17 @@ void up_finalinitialize(void)
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
+
+  /* Attach and enable flash_s intr. */
+
+  irq_attach(18, up_flash_save_isr, NULL);
+  up_enable_irq(18);
+  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+
+  setenv("START_REASON", up_get_wkreason_env(), 1);
+
+  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
+          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
 }
 
 void up_reset(int status)
