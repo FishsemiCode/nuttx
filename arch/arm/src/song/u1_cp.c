@@ -194,12 +194,12 @@ static void up_rsvdmem_init(void)
    * corrupted memory.
    */
 
-  if (wakeup_reason != WAKEUP_REASON_GPIO_RSTN ||
-      wakeup_reason != WAKEUP_REASON_UART_RSTN ||
-      wakeup_reason != WAKEUP_REASON_RTC_RSTN  ||
-      head->magic   != RSVDMEM_MAGIC           ||
-      head->size    != up_rsvdmem_size()       ||
-      head->crc     != up_rsvdmem_crc())
+  if ((wakeup_reason != WAKEUP_REASON_GPIO_RSTN &&
+      wakeup_reason  != WAKEUP_REASON_UART_RSTN &&
+      wakeup_reason  != WAKEUP_REASON_RTC_RSTN) ||
+      head->magic    != RSVDMEM_MAGIC           ||
+      head->size     != up_rsvdmem_size()       ||
+      head->crc      != up_rsvdmem_crc())
     {
       memset(head + 1, 0, up_rsvdmem_size());
     }
