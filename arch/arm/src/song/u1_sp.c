@@ -83,6 +83,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CP_RVSD_FILE                "/persist/cpram1.rsvd"
+
 #define CPU_NAME_AP                 "ap"
 #define CPU_NAME_CP                 "cp"
 #define CPU_INDEX_AP                0
@@ -450,7 +452,7 @@ static void cp_flash_save_data(void)
   size_t bytes;
   char *temp;
 
-  fd = open("/data/cpram1.rsvd", O_WRONLY | O_CREAT | O_TRUNC);
+  fd = open(CP_RVSD_FILE, O_WRONLY | O_CREAT | O_TRUNC);
   if (fd < 0)
     {
       return;
@@ -484,7 +486,7 @@ static void cp_flash_save_data(void)
   goto done;
 
 fail:
-  unlink("/data/cpram1.rsvd");
+  unlink(CP_RVSD_FILE);
 done:
   kmm_free(temp);
   close(fd);
@@ -579,7 +581,7 @@ static void cp_flash_restore(void)
   int ret;
   int fd;
 
-  fd = open("/data/cpram1.rsvd", O_RDONLY);
+  fd = open(CP_RVSD_FILE, O_RDONLY);
   if (fd < 0)
     {
       return;
