@@ -40,6 +40,7 @@
 
 #ifdef CONFIG_ARCH_CHIP_V1_RPM
 
+#include <nuttx/drivers/addrenv.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_rpmsg.h>
@@ -112,6 +113,21 @@ void riscv_timer_initialize(void)
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
+}
+
+void up_earlyinitialize(void)
+{
+  static const struct simple_addrenv_s addrenv[] =
+  {
+    {.va = 0x00000000, .pa = 0xfae00000, .size = 0x00040000},
+    {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
+  };
+
+  simple_addrenv_initialize(addrenv);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_AP, (void *)_LOGBUF_BASE, _LOGBUF_SIZE);
+#endif
 }
 
 #ifdef CONFIG_RPMSG_UART
