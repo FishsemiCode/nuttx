@@ -42,6 +42,7 @@
 
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/song_oneshot.h>
@@ -112,6 +113,13 @@ void riscv_timer_initialize(void)
 #endif
 
 }
+
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_AP, "RPM", 1024, true);
+}
+#endif
 
 #ifdef CONFIG_SONG_MBOX
 static void up_mbox_init(void)
