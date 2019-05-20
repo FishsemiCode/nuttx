@@ -87,6 +87,32 @@ extern FAR struct i2c_master_s *g_i2c[];
 #endif
 #define NVIC_IRQ_PENDSV                 (24)
 
+#define READ_CSR(reg) \
+({ \
+  unsigned long __tmp; \
+  asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
+  __tmp; \
+})
+
+#define WRITE_CSR(reg, val) \
+({ \
+  asm volatile ("csrw " #reg ", %0" :: "rK"(val)); \
+})
+
+#define SET_CSR(reg, bit) \
+({ \
+  unsigned long __tmp; \
+  asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "rK"(bit)); \
+  __tmp; \
+})
+
+#define CLEAR_CSR(reg, bit) \
+({ \
+  unsigned long __tmp; \
+  asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "rK"(bit)); \
+  __tmp; \
+})
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/

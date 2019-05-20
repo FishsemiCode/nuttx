@@ -41,6 +41,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
+#include "irq/irq.h"
 #include "sched/sched.h"
 #include "up_internal.h"
 
@@ -153,11 +154,22 @@ uint32_t *up_dispatch_all(uint32_t *regs)
 
       /* Deliver the IRQ */
 
-      up_dispatch_irq(cause, regs);
+      if (cause == 11)
+        {
+          up_dispatch_irq(cause, regs);
+        }
+      else
+        {
+          irq_unexpected_isr(cause , regs, NULL);
+        }
     }
   else if (cause == 11)
     {
       up_swint(11, regs, NULL);
+    }
+  else
+    {
+      irq_unexpected_isr(cause, regs, NULL);
     }
 
 #ifdef CONFIG_ARCH_FPU

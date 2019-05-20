@@ -49,6 +49,7 @@ config HIPRI_INTERRUPT_PRIORITY
 	depends on ARCH_HIPRI_INTERRUPT
 	default 0x0f if INTC_DW
 	default 0xffffffff if INTC_PULP
+	default 0xffffffff if INTC_PLIC
 
 choice
 	prompt "Song Interrupt Controller Selection"

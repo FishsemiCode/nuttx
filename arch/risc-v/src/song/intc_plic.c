@@ -51,6 +51,15 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define PLIC_PRIORITY               (CONFIG_INTC_PLIC_BASE + 0x00000000)
+#define PLIC_ENABLE                 (CONFIG_INTC_PLIC_BASE + 0x00002000)
+#define PLIC_THRESHOLD              (CONFIG_INTC_PLIC_BASE + 0x00200000)
+#define PLIC_CLAIM                  (CONFIG_INTC_PLIC_BASE + 0x00200004)
+
+#define PLIC_ENABLE_MASK            0x1f
+#define PLIC_ENABLE_SHIFT           5
+#define PLIC_PRIO_SHIFT             2
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -58,6 +67,20 @@
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+static inline void plic_set_enable(int irq, int enable)
+{
+  int addr = PLIC_ENABLE + ((irq >> PLIC_ENABLE_SHIFT) * 4);
+
+  if (enable)
+    {
+      modifyreg32(addr, 0, (1 << (irq & PLIC_ENABLE_MASK)));
+    }
+  else
+    {
+      modifyreg32(addr, (1 << (irq & PLIC_ENABLE_MASK)), 0);
+    }
+}
 
 /****************************************************************************
  * Public Functions
@@ -85,7 +108,37 @@ void weak_function up_wic_disable_irq(int irq)
 
 void up_irqinitialize(void)
 {
+  int irq;
+
+  for (irq = 0; irq < NR_IRQS; irq++)
+    {
+      plic_set_enable(irq, 0);
+      putreg32(1, (PLIC_PRIORITY + (irq << PLIC_PRIO_SHIFT)));
+    }
+
+  putreg32(0, PLIC_THRESHOLD);
+
+  SET_CSR(mie, (1 << 11));
+
+  up_wic_initialize();
+  up_irq_enable();
 }
+
+#ifdef CONFIG_ARCH_IRQPRIO
+/****************************************************************************
+ * Name: up_prioritize_irq
+ *
+ * Description:
+ * Set interrupt priority
+ *
+ ****************************************************************************/
+
+int up_prioritize_irq(int irq, int priority)
+{
+  putreg32(priority, (PLIC_PRIORITY + (irq << PLIC_PRIO_SHIFT)));
+  return OK;
+}
+#endif
 
 /****************************************************************************
  * Name: up_dispatch_irq
@@ -97,9 +150,11 @@ void up_irqinitialize(void)
 
 void up_dispatch_irq(int irq, FAR void *context)
 {
+  irq = getreg32(PLIC_CLAIM);
+  irq_dispatch(irq, context);
+  putreg32(irq, PLIC_CLAIM);
 }
 
-#ifndef CONFIG_ARCH_HIPRI_INTERRUPT
 /****************************************************************************
  * Name: up_disable_irq
  *
@@ -110,6 +165,8 @@ void up_dispatch_irq(int irq, FAR void *context)
 
 void up_disable_irq(int irq)
 {
+  plic_set_enable(irq, 0);
+  up_wic_disable_irq(irq);
 }
 
 /****************************************************************************
@@ -122,10 +179,11 @@ void up_disable_irq(int irq)
 
 void up_enable_irq(int irq)
 {
+  plic_set_enable(irq, 1);
+  up_wic_enable_irq(irq);
 }
 
-#else
-
+#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
 /****************************************************************************
  * Name: up_irq_save
  *
@@ -136,6 +194,21 @@ void up_enable_irq(int irq)
 
 irqstate_t up_irq_save(void)
 {
+  struct tcb_s *rtcb = this_task();
+  irqstate_t flags = 1;
+
+  if (!rtcb || up_interrupt_context())
+    {
+      return flags;
+    }
+
+  flags = rtcb->xcp.irqflags;
+
+  putreg32(CONFIG_HIPRI_INTERRUPT_PRIORITY, PLIC_THRESHOLD);
+
+  rtcb->xcp.irqflags = 1;
+
+  return flags;
 }
 
 /****************************************************************************
@@ -148,30 +221,23 @@ irqstate_t up_irq_save(void)
 
 void up_irq_restore(irqstate_t flags)
 {
-}
+  struct tcb_s *rtcb = this_task();
 
-/****************************************************************************
- * Name: up_disable_irq
- *
- * Description:
- *   Disable the IRQ specified by 'irq'
- *
- ****************************************************************************/
+  if (!rtcb || up_interrupt_context())
+    {
+      return;
+    }
 
-void up_disable_irq(int irq)
-{
-}
-
-/****************************************************************************
- * Name: up_enable_irq
- *
- * Description:
- *   Enable the IRQ specified by 'irq'
- *
- ****************************************************************************/
-
-void up_enable_irq(int irq)
-{
+  if(flags)
+    {
+      putreg32(CONFIG_HIPRI_INTERRUPT_PRIORITY, PLIC_THRESHOLD);
+      rtcb->xcp.irqflags = 1;
+    }
+  else
+    {
+      rtcb->xcp.irqflags = 0;
+      putreg32(0, PLIC_THRESHOLD);
+    }
 }
 #endif /* CONFIG_ARCH_HIPRI_INTERRUPT */
 #endif /* CONFIG_INTC_PLIC */
