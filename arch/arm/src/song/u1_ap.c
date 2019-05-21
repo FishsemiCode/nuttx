@@ -556,7 +556,7 @@ void up_cpu_standby(void)
 void up_cpu_sleep(void)
 {
   up_cpu_ds(true);
-  up_cpu_wfi();
+  up_cpu_standby();
   up_cpu_ds(false);
 }
 

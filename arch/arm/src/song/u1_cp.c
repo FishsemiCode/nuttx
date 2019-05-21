@@ -594,7 +594,7 @@ void up_cpu_sleep(void)
 {
   up_rsvdmem_sleep();
   up_cpu_ds(true);
-  up_cpu_save();
+  up_cpu_standby();
   up_cpu_ds(false);
 }
 
