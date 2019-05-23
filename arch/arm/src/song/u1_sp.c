@@ -447,12 +447,12 @@ static void cp_flash_save_prepare(void)
 
 static void cp_flash_save_data(void)
 {
-  int fd;
   size_t save_bytes;
   size_t bytes;
   char *temp;
+  int fd;
 
-  fd = open(CP_RVSD_FILE, O_WRONLY | O_CREAT | O_TRUNC);
+  fd = open(CP_RVSD_FILE, O_RDWR | O_CREAT);
   if (fd < 0)
     {
       return;
@@ -475,12 +475,28 @@ static void cp_flash_save_data(void)
       goto fail;
     }
 
-  memcpy(temp, (void *)CPRAM1_RSVD_BASE, save_bytes);
-  bytes = write(fd, temp, save_bytes);
-  if (bytes != save_bytes)
+  bytes = read(fd, temp, 12);
+  if (bytes < 0)
     {
-      /* Write not completely successfully, delelte file */
       goto fail;
+    }
+
+  /* Check flash head is equal with ram ?
+   * If so, skip updating flash.
+   * Or flush ram data to flash.
+   */
+
+  if (bytes != 12 || memcmp(temp, (void *)CPRAM1_RSVD_BASE, 12))
+    {
+      memcpy(temp, (void *)CPRAM1_RSVD_BASE, save_bytes);
+
+      lseek(fd, 0, SEEK_SET);
+      bytes = write(fd, temp, save_bytes);
+      if (bytes != save_bytes)
+        {
+          /* Write not completely successfully, delelte file */
+          goto fail;
+        }
     }
 
   goto done;
