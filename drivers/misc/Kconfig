@@ -1,0 +1,16 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+if MISC
+
+config MISC_RPMSG
+	bool "Misc rpmsg"
+	default y
+	depends on OPENAMP
+	---help---
+		This selection enables misc_rpmsg, for someone wanted control
+		remote core do something, then can use this driver.
+
+endif

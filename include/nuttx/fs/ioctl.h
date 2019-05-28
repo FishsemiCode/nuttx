@@ -94,8 +94,9 @@
 #define _PWRBASE        (0x2700) /* Power-related ioctl commands */
 #define _FBIOCBASE      (0x2800) /* Frame buffer character driver ioctl commands */
 #define _PINCTRLBASE    (0x2900) /* Pinctrl driver ioctl commands */
-#define _RPTUNBASE      (0x2900) /* Remote processor tunnel ioctl commands */
 #define _REGMAPIOCBASE  (0x2a00) /* Regmap ioctl commands */
+#define _MISCBASE       (0x2b00) /* Retention ioctl commands */
+#define _RPTUNBASE      (0x2c00) /* Remote processor tunnel ioctl commands */
 
 /* boardctl() commands share the same number space */
 
@@ -473,26 +474,31 @@
 #define _FBIOCVALID(c)   (_IOC_TYPE(c)==_FBIOCBASE)
 #define _FBIOC(nr)       _IOC(_FBIOCBASE,nr)
 
-/* Rptun drivers *******************************************/
+/* Pinctrl driver command definitions ****************************************/
+/* see nuttx/include/pinctrl/pinctrl.h */
 
-#define _RPTUNIOCVALID(c)   (_IOC_TYPE(c)==_RPTUNBASE)
-#define _RPTUNIOC(nr)       _IOC(_RPTUNBASE,nr)
+#define _PINCTRLCVALID(c)    (_IOC_TYPE(c)==_PINCTRLBASE)
+#define _PINCTRLC(nr)        _IOC(_PINCTRLBASE,nr)
 
 /* NuttX Regmap driver ioctl definitions *************************************/
 
 #define _REGMAPIOCVALID(c) (_IOC_TYPE(c)==_REGMAPIOCBASE)
 #define _REGMAPIOC(nr)     _IOC(_REGMAPIOCBASE,nr)
 
+/* Rptun drivers ************************************************************/
+
+#define _RPTUNIOCVALID(c)   (_IOC_TYPE(c)==_RPTUNBASE)
+#define _RPTUNIOC(nr)       _IOC(_RPTUNBASE,nr)
+
+/* Misc drivers *******************************************************/
+
+#define _MISCIOCVALID(c)   (_IOC_TYPE(c)==_MISCBASE)
+#define _MISCIOC(nr)       _IOC(_MISCBASE,nr)
+
 /* boardctl() command definitions *******************************************/
 
 #define _BOARDIOCVALID(c) (_IOC_TYPE(c)==_BOARDBASE)
 #define _BOARDIOC(nr)     _IOC(_BOARDBASE,nr)
-
-/* Pinctrl driver command definitions ******************************************/
-/* see nuttx/include/pinctrl/pinctrl.h */
-
-#define _PINCTRLCVALID(c)    (_IOC_TYPE(c)==_PINCTRLBASE)
-#define _PINCTRLC(nr)        _IOC(_PINCTRLBASE,nr)
 
 /****************************************************************************
  * Public Type Definitions

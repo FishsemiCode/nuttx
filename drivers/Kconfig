@@ -352,6 +352,18 @@ endif # PIPES
 
 source drivers/power/Kconfig
 
+config MISC
+	bool "Misc Support"
+	default n
+	---help---
+		This selection enables misc, this driver usualy contain some
+		small and useful things.
+
+if MISC
+source drivers/misc/Kconfig
+endif # MISC
+
+
 menuconfig RPTUN
 	bool "Remote Proc Tunnel Driver Support"
 	default n

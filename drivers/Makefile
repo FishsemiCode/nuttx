@@ -74,6 +74,7 @@ include pinctrl$(DELIM)Make.defs
 include pipes$(DELIM)Make.defs
 include power$(DELIM)Make.defs
 include pwm$(DELIM)Make.defs
+include misc$(DELIM)Make.defs
 include rptun$(DELIM)Make.defs
 include sensors$(DELIM)Make.defs
 include serial$(DELIM)Make.defs
