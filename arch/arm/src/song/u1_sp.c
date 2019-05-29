@@ -52,6 +52,7 @@
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/misc/misc_rpmsg.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/power/consumer.h>
@@ -173,6 +174,13 @@
 static FAR struct dma_dev_s *g_dma[2] =
 {
   [1] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_MISC_RPMSG
+static FAR struct misc_dev_s *g_misc[3] =
+{
+  [2] = DEV_END,
 };
 #endif
 
@@ -414,6 +422,7 @@ static int ap_start(const struct song_rptun_config_s *config)
   return 0;
 }
 
+#ifdef CONFIG_MISC_RPMSG
 static void cp_flash_save_prepare(void)
 {
   /* CP TCM, AU_PD_MK = 1 */
@@ -445,69 +454,6 @@ static void cp_flash_save_prepare(void)
   while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_WK_UP);
 }
 
-static void cp_flash_save_data(void)
-{
-  size_t save_bytes;
-  size_t bytes;
-  char *temp;
-  int fd;
-
-  fd = open(CP_RVSD_FILE, O_RDWR | O_CREAT);
-  if (fd < 0)
-    {
-      return;
-    }
-
-  /*
-   * struct cpram1.rsvd
-   * {
-   *   uint32_t magic;
-   *   uint32_t size;
-   *   uint32_t checksum;
-   *   uint8_t  data[];
-   * }
-   */
-
-  save_bytes = getreg32(CPRAM1_RSVD_SIZE) + 12;
-  temp = kmm_malloc(save_bytes);
-  if (!temp)
-    {
-      goto fail;
-    }
-
-  bytes = read(fd, temp, 12);
-  if (bytes < 0)
-    {
-      goto fail;
-    }
-
-  /* Check flash head is equal with ram ?
-   * If so, skip updating flash.
-   * Or flush ram data to flash.
-   */
-
-  if (bytes != 12 || memcmp(temp, (void *)CPRAM1_RSVD_BASE, 12))
-    {
-      memcpy(temp, (void *)CPRAM1_RSVD_BASE, save_bytes);
-
-      lseek(fd, 0, SEEK_SET);
-      bytes = write(fd, temp, save_bytes);
-      if (bytes != save_bytes)
-        {
-          /* Write not completely successfully, delelte file */
-          goto fail;
-        }
-    }
-
-  goto done;
-
-fail:
-  unlink(CP_RVSD_FILE);
-done:
-  kmm_free(temp);
-  close(fd);
-}
-
 static void cp_flash_save_finish(void)
 {
   /* HW_IDLE_MK = 1 */
@@ -532,6 +478,7 @@ static void cp_flash_save_finish(void)
 
   putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
 }
+#endif
 
 void up_flash_save_final(void)
 {
@@ -573,11 +520,13 @@ void up_flash_save_final(void)
 
 static void up_flash_save_work(FAR void *arg)
 {
+#ifdef CONFIG_MISC_RPMSG
   /* Save cpram to flash */
 
   cp_flash_save_prepare();
-  cp_flash_save_data();
+  MISC_RETENT_SAVE(g_misc[1], CP_RVSD_FILE);
   cp_flash_save_finish();
+#endif
 
   /* Final work */
 
@@ -597,50 +546,20 @@ static int up_flash_save_isr(int irq, FAR void *context, FAR void *arg)
   return 0;
 }
 
-static void cp_flash_restore(void)
-{
-  struct stat f_info;
-  char *temp;
-  int ret;
-  int fd;
-
-  fd = open(CP_RVSD_FILE, O_RDONLY);
-  if (fd < 0)
-    {
-      return;
-    }
-
-  fstat(fd, &f_info);
-
-  temp = kmm_malloc(f_info.st_size);
-  if (!temp)
-    {
-      goto fail;
-    }
-
-  ret = read(fd, temp, f_info.st_size);
-  if (ret != f_info.st_size)
-    {
-      goto free;
-    }
-
-  memcpy((void *)CPRAM1_RSVD_BASE, temp, f_info.st_size);
-
-free:
-  kmm_free(temp);
-fail:
-  close(fd);
-}
-
 static int cp_start(const struct song_rptun_config_s *config)
 {
+#ifdef CONFIG_MISC_RPMSG
+  /* Restore CP flash to ram */
+
+  if (up_is_warm_rstn())
+    {
+      MISC_RETENT_RESTORE(g_misc[1], CP_RVSD_FILE);
+    }
+#endif
+
   /* Make sure LDO0 voltage is correct. */
 
   ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
-
-  /* Restore CP flash to ram */
-
-  cp_flash_restore();
 
   /* SP <--shram1--> CP
    * enable shram1 for IPC
@@ -795,6 +714,11 @@ static void up_rptun_init(void)
 
 #  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
   hostfs_rpmsg_server_init();
+#  endif
+
+#  ifdef CONFIG_MISC_RPMSG
+  g_misc[0] = misc_rpmsg_initialize(CPU_NAME_AP, false);
+  g_misc[1] = misc_rpmsg_initialize(CPU_NAME_CP, false);
 #  endif
 }
 #endif
@@ -964,6 +888,8 @@ void up_finalinitialize(void)
   irq_attach(18, up_flash_save_isr, NULL);
   up_enable_irq(18);
   modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+
+  /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);
 

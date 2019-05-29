@@ -48,6 +48,7 @@
 #include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/misc/misc_rpmsg.h>
 #include <nuttx/power/pm.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
@@ -145,6 +146,19 @@ FAR struct i2c_master_s *g_i2c[3] =
 {
   [2] = DEV_END,
 };
+#endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+#ifdef CONFIG_MISC_RPMSG
+static void up_misc_init(void)
+{
+  /* Retention init */
+
+  misc_rpmsg_initialize(CPU_NAME_SP, true);
+}
 #endif
 
 /****************************************************************************
@@ -339,6 +353,10 @@ static void up_rptun_init(void)
 
 #  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
+#  endif
+
+#  ifdef CONFIG_MISC_RPMSG
+  up_misc_init();
 #  endif
 }
 #endif

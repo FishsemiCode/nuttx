@@ -170,4 +170,18 @@ static inline char *up_get_wkreason_env(void)
   return env;
 }
 
+static inline bool up_is_warm_rstn(void)
+{
+  enum wakeup_reason_e wakeup_reason = up_get_wkreason();
+
+  if (wakeup_reason == WAKEUP_REASON_GPIO_RSTN ||
+      wakeup_reason == WAKEUP_REASON_UART_RSTN ||
+      wakeup_reason == WAKEUP_REASON_RTC_RSTN)
+    {
+      return true;
+    }
+
+  return false;
+}
+
 #endif //__ARCH_ARM_SRC_SONG_U1_COMMON_H

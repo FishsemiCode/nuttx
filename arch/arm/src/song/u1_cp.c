@@ -46,6 +46,7 @@
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/misc/misc_rpmsg.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
@@ -58,6 +59,8 @@
 #include <nuttx/timers/song_rtc.h>
 
 #include <crc32.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "chip.h"
 #include "nvic.h"
@@ -120,13 +123,6 @@
  * Private Types
  ****************************************************************************/
 
-struct rsvdmem_head_s
-{
-  uint32_t magic;
-  uint32_t size;
-  uint32_t crc;
-};
-
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -145,8 +141,8 @@ static FAR struct dma_dev_s *g_dma[2] =
 extern uint32_t _slog;
 extern uint32_t _logsize;
 
-extern struct rsvdmem_head_s _cpram1_srsvd;
-extern uint8_t _cpram1_ersvd;
+extern uint32_t _cpram1_srsvd;
+extern uint32_t _cpram1_ersvd;
 
 #ifdef CONFIG_SONG_MBOX
 FAR struct mbox_dev_s *g_mbox[4] =
@@ -166,55 +162,41 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
  * Private Functions
  ****************************************************************************/
 
-static void up_init_startreason(void)
+#ifdef CONFIG_MISC_RPMSG
+static void up_misc_init(void)
 {
-    setenv("START_REASON", up_get_wkreason_env(), 1);
+  uint32_t size = (uintptr_t)&_cpram1_ersvd - (uintptr_t)&_cpram1_srsvd;
+  void *base = &_cpram1_srsvd;
+  int fd;
 
-    /* Clear cold boot flag. */
+  /* Clear the memory if not wakeup from DS */
 
-    putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
-}
-
-static size_t up_rsvdmem_size(void)
-{
-  return &_cpram1_ersvd - (uint8_t *)(&_cpram1_srsvd + 1);
-}
-
-static uint32_t up_rsvdmem_crc(void)
-{
-  return crc32((uint8_t *)(&_cpram1_srsvd + 1), up_rsvdmem_size());
-}
-
-static void up_rsvdmem_init(void)
-{
-  enum wakeup_reason_e wakeup_reason = up_get_wkreason();
-  struct rsvdmem_head_s *head = &_cpram1_srsvd;
-
-  /* Clean up reserve memory area in case of initial power up, or
-   * corrupted memory.
-   */
-
-  if ((wakeup_reason != WAKEUP_REASON_GPIO_RSTN &&
-      wakeup_reason  != WAKEUP_REASON_UART_RSTN &&
-      wakeup_reason  != WAKEUP_REASON_RTC_RSTN) ||
-      head->magic    != RSVDMEM_MAGIC           ||
-      head->size     != up_rsvdmem_size()       ||
-      head->crc      != up_rsvdmem_crc())
+  if (!up_is_warm_rstn())
     {
-      memset(head + 1, 0, up_rsvdmem_size());
+      memset(base, 0, size);
+    }
+
+  /* Retention init */
+
+  misc_rpmsg_initialize(CPU_NAME_SP, true);
+
+  /* Add ram-misc block */
+
+  fd = open("/dev/misc", 0);
+  if (fd >= 0)
+    {
+      struct misc_retent_add_s add =
+        {
+          .blkid = 0,
+          .base  = base,
+          .size  = size,
+        };
+
+      ioctl(fd, MISC_RETENT_ADD, (unsigned long)&add);
+      close(fd);
     }
 }
-
-static void up_rsvdmem_sleep(void)
-{
-  struct rsvdmem_head_s *head = &_cpram1_srsvd;
-
-  /* Update reserve memory header before entering sleep. */
-
-  head->magic = RSVDMEM_MAGIC;
-  head->size  = up_rsvdmem_size();
-  head->crc   = up_rsvdmem_crc();
-}
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -222,18 +204,14 @@ static void up_rsvdmem_sleep(void)
 
 void up_earlystart(void)
 {
-  if (getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT)
-    {
-      /* First power on or warm reset(wakeup DS, btn, wdt...) */
-
-      up_rsvdmem_init();
-    }
-  else
+  if (!(getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT))
     {
       /* CP core auto power on */
 
       up_cpu_restore();
     }
+
+  putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
 }
 
 void up_earlyinitialize(void)
@@ -408,6 +386,10 @@ static void up_rptun_init(void)
 #  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
 #  endif
+
+#  ifdef CONFIG_MISC_RPMSG
+  up_misc_init();
+#  endif
 }
 #endif
 
@@ -458,8 +440,6 @@ void up_ioe_init(void)
 
 void up_lateinitialize(void)
 {
-  up_init_startreason();
-
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
 #endif
@@ -490,6 +470,10 @@ void up_finalinitialize(void)
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
+
+  /* Set start reason to env */
+
+  setenv("START_REASON", up_get_wkreason_env(), 1);
 }
 
 void up_reset(int status)
@@ -592,7 +576,6 @@ void up_cpu_standby(void)
 
 void up_cpu_sleep(void)
 {
-  up_rsvdmem_sleep();
   up_cpu_ds(true);
   up_cpu_standby();
   up_cpu_ds(false);
