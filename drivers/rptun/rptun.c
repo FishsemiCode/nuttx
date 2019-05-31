@@ -71,6 +71,7 @@ struct rptun_priv_s
   struct metal_list            bind;
   struct metal_list            node;
   int                          pid;
+  bool                         started;
 };
 
 struct rptun_bind_s
@@ -464,6 +465,7 @@ static int rptun_dev_start(struct remoteproc *rproc)
 
   RPTUN_REGISTER_CALLBACK(priv->dev, rptun_callback, priv);
 
+  priv->started = true;
   return 0;
 }
 
@@ -515,6 +517,7 @@ static int rptun_dev_stop(struct remoteproc *rproc)
       kmm_free(bind);
     }
 
+  priv->started = false;
   return 0;
 }
 
@@ -527,10 +530,16 @@ static int rptun_dev_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   switch (cmd)
     {
       case RPTUNIOC_START:
-        ret = rptun_dev_start(&priv->rproc);
+        if (!priv->started)
+          {
+            ret = rptun_dev_start(&priv->rproc);
+          }
         break;
       case RPTUNIOC_STOP:
-        ret = rptun_dev_stop(&priv->rproc);
+        if (priv->started)
+          {
+            ret = rptun_dev_stop(&priv->rproc);
+          }
         break;
     }
 
