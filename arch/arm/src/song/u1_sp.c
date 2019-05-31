@@ -875,8 +875,23 @@ void up_lateinitialize(void)
 void up_finalinitialize(void)
 {
 #ifdef CONFIG_SONG_RPTUN
-  rptun_boot(CPU_NAME_AP);
-  rptun_boot(CPU_NAME_CP);
+  if (up_get_wkreason() == WAKEUP_REASON_RTC_RSTN)
+    {
+      if (getreg32(0xb2020040) & 0x1)
+        {
+          rptun_boot(CPU_NAME_CP);
+        }
+
+      if (getreg32(0xb2020080) & 0x1)
+        {
+          rptun_boot(CPU_NAME_AP);
+        }
+    }
+  else
+    {
+      rptun_boot(CPU_NAME_AP);
+      rptun_boot(CPU_NAME_CP);
+    }
 #endif
 
 #ifdef CONFIG_SONG_CLK
