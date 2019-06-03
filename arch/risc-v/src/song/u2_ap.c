@@ -411,6 +411,8 @@ static void up_flash_init(void)
   FAR struct mtd_dev_s *mtd;
 
   mtd = gd25_initialize(g_spi[0]);
+  if (mtd == NULL)
+    return;
   register_mtddriver(path, mtd, 0, mtd);
   parse_block_partition(path, up_partition_init, path);
 }
