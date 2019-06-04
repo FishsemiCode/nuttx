@@ -376,6 +376,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x054,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "thinkers_mclk",
@@ -571,12 +572,6 @@ static const struct song_gate_clk gate[] =
   },
 #ifdef CONFIG_DEBUG_SONG_CLK
   {
-    .name = "topbus_rfphyclk",
-    .parent_name = "btrf_pclk",
-    .en_offset = 0x094,
-    .en_shift = 2,
-  },
-  {
     .name = "rcpu0_wdt_pclk",
     .parent_name = "top_pclk0",
     .en_offset = 0x098,
@@ -642,6 +637,18 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x09c,
     .en_shift = 3,
   },
+  {
+    .name = "dolphin_adc_pclk",
+    .parent_name = "codec_ref_clk",
+    .en_offset = 0x0a0,
+    .en_shift = 4,
+  },
+  {
+    .name = "dolphin_vad_pclk",
+    .parent_name = "vad_bus_clk",
+    .en_offset = 0x0a0,
+    .en_shift = 2,
+  },
 #endif
   {
     .name = "mailbox_hclk",
@@ -656,22 +663,10 @@ static const struct song_gate_clk gate[] =
     .en_shift = 0,
   },
   {
-    .name = "dolphin_vad_pclk",
-    .parent_name = "vad_bus_clk",
-    .en_offset = 0x0a0,
-    .en_shift = 2,
-  },
-  {
     .name = "dolphin_adc_mclk",
     .parent_name = "codec_ref_clk",
     .en_offset = 0x0a0,
     .en_shift = 3,
-  },
-  {
-    .name = "dolphin_adc_pclk",
-    .parent_name = "codec_ref_clk",
-    .en_offset = 0x0a0,
-    .en_shift = 4,
   },
   {
     .name = "cpu_sys_icm_clk",
