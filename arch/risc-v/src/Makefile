@@ -188,6 +188,7 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
+	$(Q) $(STRIP) $(NUTTX) -o $(OUTDIR)$(DELIM)nuttx.strip
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
 	$(Q) $(NM) -S --numeric-sort $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.sym
