@@ -538,6 +538,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_bus_mclk",
     .en_offset = 0x090,
     .en_shift = 15,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "btdm_bb_hclk",
