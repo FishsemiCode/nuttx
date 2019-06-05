@@ -386,7 +386,11 @@
  * This should not be changed.
  */
 
-#define TCP_RTO 3
+#ifdef CONFIG_NET_TCP_RTO
+# define TCP_RTO CONFIG_NET_TCP_RTO
+#else
+# define TCP_RTO 3
+#endif
 
 /* The maximum number of times a segment should be retransmitted
  * before the connection should be aborted.
@@ -532,7 +536,11 @@
  * left untouched. Units: half second.
  */
 
-#define TCP_TIME_WAIT_TIMEOUT (60*2)
+#ifdef CONFIG_NET_TCP_WAIT_TIMEOUT
+# define TCP_TIME_WAIT_TIMEOUT CONFIG_NET_TCP_WAIT_TIMEOUT
+#else
+# define TCP_TIME_WAIT_TIMEOUT (60*2)
+#endif
 
 /* ARP configuration options */
 
