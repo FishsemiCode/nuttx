@@ -171,7 +171,6 @@ static int dw_wdt_start(FAR struct watchdog_lowerhalf_s *lower)
   if (!wdt->active)
     {
       clk_enable(wdt->tclk);
-      wdt->active = true;
 
       dw_wdt_modifyreg(wdt->base, DW_WDT_CONTROL_OFFSET,
                        0, DW_WDT_CONTROL_WDT_EN_MASK);
@@ -182,6 +181,8 @@ static int dw_wdt_start(FAR struct watchdog_lowerhalf_s *lower)
 
       dw_wdt_putreg(wdt->base, DW_WDT_COUNTER_RESTART_OFFSET,
                     DW_WDT_COUNTER_RESTART_KICK_VALUE);
+
+      wdt->active = true;
     }
 
   return 0;
@@ -287,6 +288,10 @@ static void dw_wdt_pm_notify(FAR struct pm_callback_s *cb,
       if (wdt->active)
         {
           clk_disable(wdt->tclk);
+          if (clk_is_enabled(wdt->tclk))
+            {
+              PANIC();
+            }
         }
       break;
     }
