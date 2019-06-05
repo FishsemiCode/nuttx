@@ -183,10 +183,13 @@ static uint16_t tcp_close_eventhandler(FAR struct net_driver_s *dev,
 
       if (pstate != NULL)
         {
-          /* Wake up the waiting thread with a successful result */
+          if (conn->tcpstateflags == TCP_CLOSED)
+            {
+              /* Wake up the waiting thread with a successful result */
 
-          pstate->cl_result = OK;
-          goto end_wait;
+              pstate->cl_result = OK;
+              goto end_wait;
+            }
         }
 
       /* Otherwise, nothing is waiting on the close event and we can perform
@@ -205,20 +208,6 @@ static uint16_t tcp_close_eventhandler(FAR struct net_driver_s *dev,
           flags = 0;
         }
     }
-
-#ifdef CONFIG_NET_SOLINGER
-  /* Check for a timeout. */
-
-  else if (pstate && tcp_close_timeout(pstate))
-    {
-      /* Yes.. Wake up the waiting thread and report the timeout */
-
-      nerr("ERROR: CLOSE timeout\n");
-      pstate->cl_result = -ETIMEDOUT;
-      goto end_wait;
-    }
-
-#endif /* CONFIG_NET_SOLINGER */
 
 #ifdef CONFIG_NET_TCP_WRITE_BUFFERS
   /* Check if all outstanding bytes have been ACKed */
@@ -428,9 +417,20 @@ static inline int tcp_close_disconnect(FAR struct socket *psock)
 
       if (linger)
         {
+          struct timespec abstime;
+
           /* Wait for the disconnect event */
 
-          (void)net_lockedwait(&state.cl_sem);
+          DEBUGVERIFY(clock_gettime(CLOCK_REALTIME, &abstime));
+          abstime.tv_sec += psock->s_linger / DSEC_PER_SEC;
+          abstime.tv_nsec += (psock->s_linger % DSEC_PER_SEC) * NSEC_PER_DSEC;
+          if (abstime.tv_nsec >= NSEC_PER_SEC)
+            {
+              abstime.tv_sec++;
+              abstime.tv_nsec -= NSEC_PER_SEC;
+            }
+
+          (void)net_timedwait(&state.cl_sem, &abstime);
 
           /* We are now disconnected */
 
