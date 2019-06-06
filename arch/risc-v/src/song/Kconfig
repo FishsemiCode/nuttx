@@ -30,6 +30,11 @@ config ARCH_CHIP_U3_CPR
 	bool "U3 CPR"
 	select ARCH_RV32IM
 
+config ARCH_CHIP_U3_QEMU
+	bool "U3 Qemu"
+	select ARCH_RV32IM
+	select RISCV_MTIME
+
 config ARCH_CHIP_V1_ISP
 	bool "V1 ISP"
 	select ARCH_RV32IM
@@ -84,6 +89,9 @@ config INTC_PLIC_BASE
 config INTC_PULP_BASE
 	hex "Pulp Event Unit base address"
 	depends on INTC_PULP
+
+config RISCV_MTIME
+	bool
 
 config SONG_COPY_TABLE
 	bool

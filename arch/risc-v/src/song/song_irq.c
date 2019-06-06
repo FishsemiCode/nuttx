@@ -44,6 +44,7 @@
 #include "irq/irq.h"
 #include "sched/sched.h"
 #include "up_internal.h"
+#include "riscv_mtimer.h"
 
 /****************************************************************************
  * Public Data
@@ -158,6 +159,12 @@ uint32_t *up_dispatch_all(uint32_t *regs)
         {
           up_dispatch_irq(cause, regs);
         }
+#ifdef CONFIG_RISCV_MTIME
+      else if (cause == 7)
+        {
+          riscv_mtimer_interrupt();
+        }
+#endif
       else
         {
           irq_unexpected_isr(cause , regs, NULL);
