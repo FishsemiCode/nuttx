@@ -46,6 +46,8 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/regmap/regmap.h>
 
+#include "song_audio.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -302,8 +304,8 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
   int i;
 
   clk_enable(dev->sys_in_clk);
-  clk_enable(clk_get("audio_clk_3072k"));
-  clk_enable(clk_get("audio_sys_clk_30720k"));
+  clk_enable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_enable(clk_get(AUDIO_SYS_CLK49152K));
   if (!dev->i2s_en)
     clk_enable(clk_get("out0"));
   if (dev->i2s_en)
@@ -364,11 +366,11 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
     }
 
   clk_disable(dev->sys_in_clk);
-  clk_disable(clk_get("audio_clk_3072k"));
-  clk_disable(clk_get("audio_sys_clk_30720k"));
+  clk_disable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_disable(clk_get(AUDIO_SYS_CLK49152K));
   if (!dev->i2s_en)
     clk_disable(clk_get("out0"));
-  if (!clk_is_enabled(clk_get("audio_clk_3072k")))
+  if (!clk_is_enabled(clk_get(AUDIO_SYS_CLK3072K)))
     for (i = 0; i < dev->channels; ++i)
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                            SONG_AUDIO_PATH_ANC_ENABLE, 0);
@@ -395,11 +397,11 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_)
     }
 
   clk_disable(dev->sys_in_clk);
-  clk_disable(clk_get("audio_clk_3072k"));
-  clk_disable(clk_get("audio_sys_clk_30720k"));
+  clk_disable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_disable(clk_get(AUDIO_SYS_CLK49152K));
   if (!dev->i2s_en)
     clk_disable(clk_get("out0"));
-  if (!clk_is_enabled(clk_get("audio_clk_3072k")))
+  if (!clk_is_enabled(clk_get(AUDIO_SYS_CLK3072K)))
     for (i = 0; i < dev->channels; ++i)
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                            SONG_AUDIO_PATH_ANC_ENABLE, 0);
@@ -417,8 +419,8 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
   int i;
 
   clk_enable(dev->sys_in_clk);
-  clk_enable(clk_get("audio_clk_3072k"));
-  clk_enable(clk_get("audio_sys_clk_30720k"));
+  clk_enable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_enable(clk_get(AUDIO_SYS_CLK49152K));
   if (!dev->i2s_en)
     clk_enable(clk_get("out0"));
   if (dev->i2s_en)

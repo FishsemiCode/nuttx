@@ -43,6 +43,8 @@
 #include <nuttx/clk/clk.h>
 #include <nuttx/kmalloc.h>
 
+#include "song_audio.h"
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -215,8 +217,8 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   int i;
 
-  clk_enable(clk_get("audio_clk_3072k"));
-  clk_enable(clk_get("audio_sys_clk_30720k"));
+  clk_enable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_enable(clk_get(AUDIO_SYS_CLK49152K));
   clk_enable(clk_get("out0"));
   for (i = 0; i < dev->channels; ++i)
     {
@@ -249,13 +251,13 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   int i;
 
-  clk_disable(clk_get("audio_clk_3072k"));
-  clk_disable(clk_get("audio_sys_clk_30720k"));
+  clk_disable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_disable(clk_get(AUDIO_SYS_CLK49152K));
   clk_disable(clk_get("out0"));
 
   for (i = 0; i < dev->channels; ++i)
      {
-      if (!clk_is_enabled(clk_get("audio_clk_3072k")))
+      if (!clk_is_enabled(clk_get(AUDIO_SYS_CLK3072K)))
         audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                              SONG_AUDIO_PATH_ANC_ENABLE, 0);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
@@ -278,13 +280,13 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_)
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   int i;
 
-  clk_disable(clk_get("audio_clk_3072k"));
-  clk_disable(clk_get("audio_sys_clk_30720k"));
+  clk_disable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_disable(clk_get(AUDIO_SYS_CLK49152K));
   clk_disable(clk_get("out0"));
 
   for (i = 0; i < dev->channels; ++i)
     {
-      if (!clk_is_enabled(clk_get("audio_clk_3072k")))
+      if (!clk_is_enabled(clk_get(AUDIO_SYS_CLK3072K)))
         audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                              SONG_AUDIO_PATH_ANC_ENABLE, 0);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
@@ -305,8 +307,8 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   int i;
 
-  clk_enable(clk_get("audio_clk_3072k"));
-  clk_enable(clk_get("audio_sys_clk_30720k"));
+  clk_enable(clk_get(AUDIO_SYS_CLK3072K));
+  clk_enable(clk_get(AUDIO_SYS_CLK49152K));
   clk_enable(clk_get("out0"));
   for (i = 0; i < dev->channels; ++i)
     {
