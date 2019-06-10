@@ -113,7 +113,10 @@
 #define TOP_PWR_CK802_CTL0          (TOP_PWR_BASE + 0x22c)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_SLPCTL0             (TOP_PWR_BASE + 0x350)
+#define TOP_PWR_SLPCTL1             (TOP_PWR_BASE + 0x354)
 #define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
+#define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
+#define TOP_PWR_SLPCTL_AP_M4        (TOP_PWR_BASE + 0x360)
 #define TOP_PWR_PLLTIME             (TOP_PWR_BASE + 0x36c)
 #define TOP_PWR_FLASH_PD_CTL        (TOP_PWR_BASE + 0x3f0)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
@@ -144,9 +147,15 @@
 
 #define TOP_PWR_SLP_DMA_MK          (1 << 2)
 
+#define TOP_PWR_SLP_RF_MASK         (3 << 8)
+
 #define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)
 #define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
 #define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
+
+#define TOP_PWR_CP_SLP_MASK         (7 << 0)
+
+#define TOP_PWR_AP_SLP_MASK         (7 << 0)
 
 #define TOP_PWR_CTRL_MODE           (1 << 0)
 
@@ -881,10 +890,26 @@ void up_finalinitialize(void)
         {
           rptun_boot(CPU_NAME_CP);
         }
+      else
+        {
+          /* Mask CP & RF effect to power */
+
+          putreg32(TOP_PWR_SLP_RF_MASK << 16 |
+                   TOP_PWR_SLP_RF_MASK, TOP_PWR_SLPCTL1);
+          putreg32(TOP_PWR_CP_SLP_MASK << 16 |
+                   TOP_PWR_CP_SLP_MASK, TOP_PWR_SLPCTL_CP_M4);
+        }
 
       if (getreg32(0xb2020080) & 0x1)
         {
           rptun_boot(CPU_NAME_AP);
+        }
+      else
+        {
+          /* Mask AP effect to power */
+
+          putreg32(TOP_PWR_AP_SLP_MASK << 16 |
+                   TOP_PWR_AP_SLP_MASK, TOP_PWR_SLPCTL_AP_M4);
         }
     }
   else

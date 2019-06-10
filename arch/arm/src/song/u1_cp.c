@@ -115,6 +115,7 @@
 #define TOP_PWR_RF_TP_CALIB_SLP_MK  (1 << 9)
 
 #define TOP_PWR_CP_M4_SLP_EN        (1 << 0)
+#define TOP_PWR_CP_M4_SLP_MK        (1 << 1)
 #define TOP_PWR_CP_M4_DS_SLP_EN     (1 << 2)
 
 #define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)
@@ -217,12 +218,22 @@ void up_earlystart(void)
 void up_earlyinitialize(void)
 {
   /* Unmask SLEEPING for reset */
+
   putreg32(TOP_PWR_CP_M4_IDLE_MK << 16, TOP_PWR_CP_M4_RSTCTL);
+
+  /* Set RF & SLP init value */
+
+  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
+  putreg32(TOP_PWR_CP_M4_SLP_EN << 16 |
+           TOP_PWR_CP_M4_SLP_MK << 16 |
+           TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
 
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
    * if use systick as wakeup reason form DEEPSLEEP, CPU will hang.
    */
+
   putreg32(TOP_PWR_CP_M4_TCM_AU_PD_MK << 16, TOP_PWR_CP_M4_TCM_PD_CTL0);
 #endif
 
