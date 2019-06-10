@@ -406,8 +406,8 @@ static const struct song_div_clk div[] =
     .div_width = 4,
   },
   {
-    .name = "audio_clk_3072k",
-    .parent_name = "pll1",
+    .name = "audio_sys_clk3072k",
+    .parent_name = "audio_mclk_mx",
     .en_offset = 0x064,
     .en_shift = 0,
     .div_offset = 0x064,
@@ -436,7 +436,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "codec_ref_clk",
-    .parent_name = "pll1",
+    .parent_name = "audio_mclk_mx",
     .en_offset = 0x08c,
     .en_shift = 0,
     .div_offset = 0x08c,
@@ -445,7 +445,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "vad_bus_clk",
-    .parent_name = "pll0",
+    .parent_name = "audio_mclk_mx",
     .en_offset = 0x0f4,
     .en_shift = 0,
     .div_offset = 0x0f4,
@@ -522,7 +522,7 @@ static const struct song_gate_clk gate[] =
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
-    .name = "audio_sys_clk_30720k",
+    .name = "audio_sys_clk_49152k",
     .parent_name = "audio_mclk_mx",
     .en_offset = 0x090,
     .en_shift = 13,
