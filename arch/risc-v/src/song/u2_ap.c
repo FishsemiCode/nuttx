@@ -421,7 +421,6 @@ static void up_flash_init(void)
 #ifdef CONFIG_AUDIO
 static void up_audio_init(void)
 {
-  struct clk *audio_mclk_mx;
   struct audio_lowerhalf_s *ak4332_0;
   struct audio_lowerhalf_s *ak4332_1;
   struct audio_lowerhalf_s *audio_anc;
@@ -442,12 +441,8 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *thinker;
 
   /* audio_mclk_mx mux to audio_mclk */
-  audio_mclk_mx = clk_get("audio_mclk_mx");
-  if (!audio_mclk_mx)
-    {
-      return;
-    }
-  clk_set_parent(audio_mclk_mx, clk_get("audio_mclk"));
+
+  clk_set_parent(clk_get("audio_mclk_mx"), clk_get("audio_mclk"));
 
   clk_enable(clk_get("i2c1_mclk"));
   clk_enable(clk_get("i2c2_mclk"));
