@@ -134,6 +134,7 @@ void up_idle(void)
   irqstate_t flags;
 
   flags = up_irq_save();
+  sched_lock();
 
   /* Perform IDLE mode power management */
 
@@ -144,6 +145,7 @@ void up_idle(void)
   up_cpu_normal();
   pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
+  sched_unlock();
   up_irq_restore(flags);
 }
 

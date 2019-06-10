@@ -141,9 +141,10 @@ void up_idle(void)
 {
   irqstate_t flags;
 
-  /* Disable irqs before wfi */
+  /* Disable irqs & sched lock before wfi */
 
   __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
+  sched_lock();
 
   /* Perform IDLE mode power management */
 
@@ -154,8 +155,9 @@ void up_idle(void)
   up_cpu_normal();
   pm_changestate(PM_IDLE_DOMAIN, PM_RESTORE);
 
-  /* Restore irqs */
+  /* Sched unlock & restore irqs */
 
+  sched_unlock();
   __asm__ volatile("csrs mstatus, %0" :: "r"(flags & 0x8));
 }
 
