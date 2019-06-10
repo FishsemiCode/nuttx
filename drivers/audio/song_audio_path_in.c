@@ -488,10 +488,7 @@ static int song_audio_path_channels(struct song_audio_path_s *dev,
     return -EINVAL;
 
   dev->channels = channels;
-  audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                       SONG_AUDIO_PATH_AUDIO_IN_SLOT_MASK,
-                       (channels - 1) <<
-                       SONG_AUDIO_PATH_AUDIO_IN_SLOT_SHIT);
+
   if (dev->i2s_en)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
