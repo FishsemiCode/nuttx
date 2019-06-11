@@ -56,6 +56,8 @@
 #  include <arch/tl4/irq.h>
 #elif defined(CONFIG_ARCH_XM6)
 #  include <arch/xm6/irq.h>
+#elif defined(CONFIG_ARCH_XC5)
+#  include <arch/xc5/irq.h>
 #endif
 
 /****************************************************************************
@@ -78,5 +80,16 @@
 #define IRQ_VINT13          (IRQ_VINT_FIRST + 13)
 #define IRQ_VINT14          (IRQ_VINT_FIRST + 14)
 #define IRQ_VINT15          (IRQ_VINT_FIRST + 15)
+#define IRQ_VINT16          (IRQ_VINT_FIRST + 16)
+#define IRQ_VINT17          (IRQ_VINT_FIRST + 17)
+#define IRQ_VINT18          (IRQ_VINT_FIRST + 18)
+#define IRQ_VINT19          (IRQ_VINT_FIRST + 19)
+#define IRQ_VINT20          (IRQ_VINT_FIRST + 20)
+#define IRQ_VINT21          (IRQ_VINT_FIRST + 21)
+#define IRQ_VINT22          (IRQ_VINT_FIRST + 22)
+#define IRQ_VINT23          (IRQ_VINT_FIRST + 23)
+#define IRQ_VINT24          (IRQ_VINT_FIRST + 24)
+#define IRQ_VINT25          (IRQ_VINT_FIRST + 25)
+#define IRQ_VINT26          (IRQ_VINT_FIRST + 26)
 
 #endif /* __ARCH_CEVA_INCLUDE_IRQ_H */

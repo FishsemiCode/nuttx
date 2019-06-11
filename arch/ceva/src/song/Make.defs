@@ -56,6 +56,15 @@ CMN_CSRCS  += up_intc.c up_mpu.c up_psu.c
 CMN_UASRCS += syscall.S up_signal_handler.S
 HEAD_ASRC  += up_head.S
 
+else ifeq ($(CONFIG_ARCH_XC5),y)
+# arch/ceva/src/xc5
+#
+CMN_ASRCS  += syscall.S up_svcall_handler.S vfork.S cpm.S
+CMN_CSRCS  += up_hardfault.c up_icache.c up_initialstate.c
+CMN_CSRCS  += up_intc.c up_mpu.c up_psu.c
+CMN_UASRCS += syscall.S up_signal_handler.S
+HEAD_ASRC  += up_head.S
+
 else ifeq ($(CONFIG_ARCH_XM6),y)
 # arch/ceva/src/xm6
 #
@@ -69,6 +78,6 @@ endif
 
 # arch/ceva/src/song
 #
-CHIP_CSRCS += abies_adsp.c banks_adsp.c v1_vdsp.c
+CHIP_CSRCS += abies_adsp.c banks_adsp.c v1_vdsp.c u3_cpx.c
 CHIP_CSRCS += dw_vintc.c
 

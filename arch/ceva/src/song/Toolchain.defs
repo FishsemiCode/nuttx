@@ -76,6 +76,13 @@ else ifeq ($(CONFIG_ARCH_XM6),y)
   ifeq ($(SNCSDT_LICENSE_FILE),)
     export SNCSDT_LICENSE_FILE=27000@10.235.240.121
   endif
+else ifeq ($(CONFIG_ARCH_XC5),y)
+  CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/xc5)/
+  include ${TOPDIR}/arch/ceva/src/xc5/Toolchain.defs
+  ifeq ($(SNCSDT_LICENSE_FILE),)
+    export SNCSDT_LICENSE_FILE=27000@10.235.240.121
+  endif
+  export CEVAXCTOOLS=$(CROSSDEV)
 endif
 
 LD = $(CROSSDEV)cofflnk -quiet
@@ -129,9 +136,13 @@ endif
 
 ARCHCFLAGS = -D__NuttX__ -fno-builtin
 ARCHCXXFLAGS = -DCONFIG_WCHAR_BUILTIN -D__NuttX__ -fno-builtin
+
+ifneq ($(CONFIG_ARCH_XC5),y)
 ifneq ($(CONFIG_CXX_EXCEPTION),y)
   ARCHCXXFLAGS += -fno-exceptions -fcheck-new -fno-rtti
 endif
+endif
+
 ARCHWARNINGS = -Wall -Wstrict-prototypes -Wundef
 ARCHWARNINGSXX = -Wall -Wundef
 ARCHDEFINES =

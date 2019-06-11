@@ -38,6 +38,15 @@ config ARCH_TL421
 		electronics applications, where low power and portability are major
 		requirements.
 
+config ARCH_XC5
+	bool
+	default n
+	---help---
+		CEVA-XC5 is a licensable DSP and memory subsystem (MSS) platform
+		designed for advanced wireless communication, with low power and
+		flexible architecture support for both legacy and next-generation
+		wireless standards.
+
 config ARCH_XM6
 	bool
 	default n
@@ -53,6 +62,7 @@ config ARCH_XM6
 config ARCH_FAMILY
 	string
 	default "tl4"		if ARCH_TL420 || ARCH_TL421
+	default "xc5"		if ARCH_XC5
 	default "xm6"		if ARCH_XM6
 
 config ARCH_CHIP
@@ -152,6 +162,9 @@ config DEBUG_HARDFAULT
 
 if ARCH_TL420 || ARCH_TL421
 source arch/ceva/src/tl4/Kconfig
+endif
+if ARCH_XC5
+source arch/ceva/src/xc5/Kconfig
 endif
 if ARCH_XM6
 source arch/ceva/src/xm6/Kconfig

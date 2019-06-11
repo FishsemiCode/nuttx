@@ -20,6 +20,10 @@ config ARCH_CHIP_BANKS_ADSP
 	bool "Banks ADSP"
 	select SONG_TL421
 
+config ARCH_CHIP_U3_CPX
+	bool "U3 CPX"
+	select SONG_XC5
+
 config ARCH_CHIP_V1_VDSP
 	bool "V1 VDSP"
 	select SONG_XM6
@@ -37,6 +41,11 @@ config SONG_TL421
 	select ARCH_HAVE_MPU
 	select ARCH_TL4_VOICE
 	select ARCH_TL421
+
+config SONG_XC5
+	bool
+	select ARCH_HAVE_FPU
+	select ARCH_XC5
 
 config SONG_XM6
 	bool

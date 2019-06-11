@@ -40,6 +40,8 @@ ifeq ($(CONFIG_ARCH_TL420),y)
 ARCH_SUBDIR = tl4
 else ifeq ($(CONFIG_ARCH_TL421),y)
 ARCH_SUBDIR = tl4
+else ifeq ($(CONFIG_ARCH_XC5),y)
+ARCH_SUBDIR = xc5
 else ifeq ($(CONFIG_ARCH_XM6),y)
 ARCH_SUBDIR = xm6
 endif
@@ -169,6 +171,11 @@ $(UBIN): $(UOBJS)
 	$(call ARCHIVE, $@, $(UOBJS))
 
 board$(DELIM)libboard$(LIBEXT):
+ifeq ($(CONFIG_ARCH_XC5), y)
+	$(Q) if [ ! -L "$(CROSSDEV)/cevaxccc-xdrv" ]; then \
+		ln -sf "$(CROSSDEV)/cevaxccc-drv"  "$(CROSSDEV)/cevaxccc-xdrv";\
+	fi
+endif
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(LDSCRIPT)
