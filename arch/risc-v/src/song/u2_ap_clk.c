@@ -850,6 +850,15 @@ static const struct song_lp_reg_clk lp_reg[] =
   {}
 };
 
+static const struct clk_rate def_rates[] =
+{
+  {
+    .name = "clk_cpu_sys",
+    .rate = 98304000,
+  },
+  {},
+};
+
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -872,6 +881,7 @@ static const struct song_clk_table clk_tbl =
 void up_clk_initialize(void)
 {
   song_clk_initialize(0xa00e0000, &clk_tbl);
+  clk_set_rates(def_rates);
 }
 
 void up_clk_finalinitialize(void)
