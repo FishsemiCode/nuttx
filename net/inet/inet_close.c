@@ -430,7 +430,11 @@ static inline int tcp_close_disconnect(FAR struct socket *psock)
               abstime.tv_nsec -= NSEC_PER_SEC;
             }
 
-          (void)net_timedwait(&state.cl_sem, &abstime);
+          ret = net_timedwait(&state.cl_sem, &abstime);
+          if (ret)
+            {
+              state.cl_result = ret;
+            }
 
           /* We are now disconnected */
 
@@ -514,7 +518,6 @@ int inet_close(FAR struct socket *psock)
                    */
 
                   nerr("ERROR: tcp_close_disconnect failed: %d\n", ret);
-                  return ret;
                 }
 
               /* Stop the network monitor for all sockets */
