@@ -48,10 +48,19 @@
 
 #define TOP_PMICFSM_BASE                (0xb2010000)
 #define TOP_PMICFSM_CONFIG1             (TOP_PMICFSM_BASE + 0x0c)
+#define TOP_PMICFSM_WAKEUP_ENABLE       (TOP_PMICFSM_BASE + 0x14)
 #define TOP_PMICFSM_WAKEUP_REASON       (TOP_PMICFSM_BASE + 0x18)
 #define TOP_PMICFSM_LDO0                (TOP_PMICFSM_BASE + 0x28)
 
 #define TOP_PMICFSM_DS_SLP_VALID        (1 << 0)
+
+#define TOP_PMICFSM_PON_ENABLE          (1 << 4)
+#define TOP_PMICFSM_UART_ENABLE         (1 << 8)
+#define TOP_PMICFSM_RTC_ENABLE          (1 << 12)
+#define TOP_PMICFSM_GPIO0_ENABLE        (1 << 16)
+#define TOP_PMICFSM_GPIO1_ENABLE        (1 << 20)
+#define TOP_PMICFSM_GPIO2_ENABLE        (1 << 24)
+#define TOP_PMICFSM_GPIO3_ENABLE        (1 << 28)
 
 #define TOP_PMICFSM_FIRST_PON           (1 << 0)
 #define TOP_PMICFSM_PON                 (1 << 1)
