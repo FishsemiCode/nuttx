@@ -1333,6 +1333,13 @@ config SIG_EVTHREAD
 		different mechanism would need to be development to support this
 		feature on the PROTECTED or KERNEL build.
 
+config SIG_EVTHREAD_HPWORK
+	bool "SIGEV_THHREAD use HPWORK"
+	default n
+	depends on SIG_EVTHREAD
+	---help---
+		SIGEV_THHREAD use HPWORK, if n, use LPWORK.
+
 menuconfig SIG_DEFAULT
 	bool "Default signal actions"
 	default n
