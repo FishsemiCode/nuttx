@@ -123,6 +123,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .min_uV = 650000,
       .max_uV = 1437500,
       .boot_on = true,
+      .apply_uV = 1100000,
   },
   [SPMU_REG_BUCK2] = {
       .name = "buck2",

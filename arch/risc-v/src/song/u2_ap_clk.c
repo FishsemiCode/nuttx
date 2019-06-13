@@ -854,7 +854,7 @@ static const struct clk_rate def_rates[] =
 {
   {
     .name = "clk_cpu_sys",
-    .rate = 98304000,
+    .rate = 147456000,
   },
   {},
 };
@@ -881,11 +881,11 @@ static const struct song_clk_table clk_tbl =
 void up_clk_initialize(void)
 {
   song_clk_initialize(0xa00e0000, &clk_tbl);
-  clk_set_rates(def_rates);
 }
 
 void up_clk_finalinitialize(void)
 {
+  clk_set_rates(def_rates);
   clk_disable_unused();
 }
 #endif /* (CONFIG_ARCH_CHIP_U2_AP) && (CONFIG_SONG_CLK) */
