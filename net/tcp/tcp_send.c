@@ -430,12 +430,51 @@ void tcp_reset(FAR struct net_driver_s *dev)
   FAR struct tcp_hdr_s *tcp = tcp_header(dev);
   uint16_t tmp16;
   uint8_t seqbyte;
+  uint16_t acklen = 0;
+  uint8_t domain;
+  uint32_t ackno;
+
+#if defined(CONFIG_NET_IPv4) && defined(CONFIG_NET_IPv6)
+  bool ipv6 = IFF_IS_IPv6(dev->d_flags);
+  domain = ipv6 ? PF_INET6 : PF_INET;
+#elif defined(CONFIG_NET_IPv4)
+  domain = PF_INET;
+#else /* defined(CONFIG_NET_IPv6) */
+  domain = PF_INET6;
+#endif
 
 #ifdef CONFIG_NET_STATISTICS
   g_netstats.tcp.rst++;
 #endif
 
   /* TCP setup */
+
+  if ((tcp->flags & TCP_SYN) != 0 || (tcp->flags & TCP_FIN) != 0)
+    {
+      acklen++;
+    }
+
+#ifdef CONFIG_NET_IPv6
+#ifdef CONFIG_NET_IPv4
+  if (ipv6)
+#endif
+    {
+      FAR struct ipv6_hdr_s *ip = IPv6BUF;
+      acklen += (ip->len[0] << 8 | ip->len[1]);
+    }
+#endif /* CONFIG_NET_IPv6 */
+
+#ifdef CONFIG_NET_IPv4
+#ifdef CONFIG_NET_IPv6
+  else
+#endif
+    {
+      FAR struct ipv4_hdr_s *ip = IPv4BUF;
+      acklen += (ip->len[0] << 8) + ip->len[1] - (ip->vhl & 0x0f) * 4;
+    }
+#endif /* CONFIG_NET_IPv4 */
+
+  acklen -= (tcp->tcpoffset >> 4) << 2;
 
   tcp->flags     = TCP_RST | TCP_ACK;
   tcp->tcpoffset = 5 << 4;
@@ -462,17 +501,9 @@ void tcp_reset(FAR struct net_driver_s *dev)
    * acknowledging. If the least significant byte overflowed, we need
    * to propagate the carry to the other bytes as well.
    */
+  ackno = tcp_addsequence(tcp->ackno, acklen);
 
-  if (++(tcp->ackno[3]) == 0)
-    {
-      if (++(tcp->ackno[2]) == 0)
-        {
-          if (++(tcp->ackno[1]) == 0)
-            {
-              ++(tcp->ackno[0]);
-            }
-        }
-    }
+  tcp_setsequence(tcp->ackno, ackno);
 
   /* Swap port numbers. */
 
