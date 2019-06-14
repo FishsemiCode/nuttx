@@ -65,6 +65,7 @@ else
   ARCH_SRCDIR = $(TOPDIR)/arch/$(CONFIG_ARCH)/src
 ifeq ($(WINTOOL),y)
   NUTTX = "${shell cygpath -w $(OUTDIR)/nuttx$(EXEEXT)}"
+  STRIPFILE = "${shell cygpath -w $(OUTDIR)/nuttx.strip}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/chip}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/common}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
@@ -73,6 +74,7 @@ ifeq ($(WINTOOL),y)
   LDSCRIPT := ${shell cygpath -m $(LDSCRIPT)}
 else
   NUTTX = "$(OUTDIR)/nuttx$(EXEEXT)"
+  STRIPFILE = "$(OUTDIR)/nuttx.strip"
   CFLAGS += -I$(ARCH_SRCDIR)/chip
   CFLAGS += -I$(ARCH_SRCDIR)/common
   CFLAGS += -I$(ARCH_SRCDIR)/$(ARCH_SUBDIR)
@@ -196,12 +198,12 @@ nuttx$(EXEEXT): $(HEAD_OBJ) board$(DELIM)libboard$(LIBEXT) $(LDSCRIPT)
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
 		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) -T $(notdir $(LDSCRIPT)) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
-	$(Q) $(STRIP) $(NUTTX) -o $(OUTDIR)$(DELIM)nuttx.strip
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
 	$(Q) $(NM) -S --numeric-sort $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.sym
 	$(Q) $(OBJDUMP) -S $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.lst
 	$(Q) $(OBJDUMP) -s -x $(NUTTX) > $(OUTDIR)$(DELIM)nuttx.dump
+	$(Q) $(STRIP) $(NUTTX) -o $(STRIPFILE)
 endif
 
 # This is part of the top-level export target
