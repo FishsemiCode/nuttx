@@ -13,6 +13,11 @@ config RPTUN_STACKSIZE
 	int "rptun stack size"
 	default 2048
 
+config RPTUN_USE_HPWORK
+	bool "rptun use HPWORK"
+	default n
+	depends on SCHED_HPWORK
+
 config SONG_RPTUN
 	bool "Song Tunnel Support"
 	default n

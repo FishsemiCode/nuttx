@@ -70,7 +70,11 @@ struct rptun_priv_s
   struct rpmsg_virtio_shm_pool shm_pool;
   struct metal_list            bind;
   struct metal_list            node;
+#ifdef CONFIG_RPTUN_USE_HPWORK
+  struct work_s                work;
+#else
   int                          pid;
+#endif
   bool                         started;
 };
 
@@ -169,6 +173,21 @@ static METAL_DECLARE_LIST(g_rptun_priv);
  * Private Functions
  ****************************************************************************/
 
+#ifdef CONFIG_RPTUN_USE_HPWORK
+static void rptun_worker(void *arg)
+{
+  struct rptun_priv_s *priv = arg;
+
+  remoteproc_get_notification(&priv->rproc, RPTUN_NOTIFY_ALL);
+}
+
+static int rptun_callback(void *arg, uint32_t vqid)
+{
+  struct rptun_priv_s *priv = arg;
+
+  return work_queue(HPWORK, &priv->work, rptun_worker, priv, 0);
+}
+#else
 static int rptun_thread(int argc, FAR char *argv[])
 {
   struct rptun_priv_s *priv;
@@ -199,6 +218,7 @@ static int rptun_callback(void *arg, uint32_t vqid)
 
   return nxsig_kill(priv->pid, SIGUSR1);
 }
+#endif
 
 static struct remoteproc *rptun_init(struct remoteproc *rproc,
                                      struct remoteproc_ops *ops,
@@ -772,8 +792,11 @@ int rptun_initialize(struct rptun_dev_s *dev)
 {
   struct metal_init_params params = METAL_INIT_DEFAULTS;
   struct rptun_priv_s *priv;
-  char str[16], name[16];
+  char name[16];
+#ifndef CONFIG_RPTUN_USE_HPWORK
+  char str[16];
   char *argv[2];
+#endif
   int ret;
 
   ret = metal_init(&params);
@@ -790,6 +813,7 @@ int rptun_initialize(struct rptun_dev_s *dev)
 
   sprintf(name, "rptun%s", RPTUN_GET_CPUNAME(dev));
 
+#ifndef CONFIG_RPTUN_USE_HPWORK
   itoa((int)priv, str, 10);
   argv[0] = str;
   argv[1] = NULL;
@@ -805,6 +829,8 @@ int rptun_initialize(struct rptun_dev_s *dev)
     }
 
   priv->pid = ret;
+#endif
+
   priv->dev = dev;
 
   metal_list_init(&priv->bind);
