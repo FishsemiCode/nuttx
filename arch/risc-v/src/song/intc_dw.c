@@ -123,6 +123,12 @@ void up_irqinitialize(void)
 {
   int i;
 
+  /* Make all interrupt to vector 11 */
+  for (i = 0; i < INTC_DW_PRIORITY_COUNT; i++)
+    {
+      g_intc_dw->IRQ_VECTORX[i].VECTOR = 11;
+    }
+
   /* Disable and umask all interrupt */
   for (i = 0; 32*i < NR_IRQS; i++)
     {
