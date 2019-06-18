@@ -535,6 +535,7 @@ static uint32_t song_audio_path_datawidth(struct song_audio_path_s *dev,
                              SONG_AUDIO_PATH_AUDIO_IN_WIDTH_MASK,
                              SONG_AUDIO_PATH_AUDIO_IN_WIDTH_16BITS);
         break;
+      case 24:
       case 32:
         audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                              SONG_AUDIO_PATH_AUDIO_IN_WIDTH_MASK,
