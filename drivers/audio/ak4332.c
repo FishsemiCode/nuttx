@@ -468,6 +468,11 @@ static int ak4332_resume(struct audio_lowerhalf_s *dev_)
 
 static int ak4332_setdatawidth(struct ak4332_s *dev, uint32_t bpsamp)
 {
+  if (dev->pdm)
+    {
+      return 0;
+    }
+
   switch (bpsamp)
     {
       case 16:
@@ -503,31 +508,37 @@ static int ak4332_setdatawidth(struct ak4332_s *dev, uint32_t bpsamp)
 static int ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
 {
   if (dev->pdm)
-    rate = 48000;
-
-  switch (rate)
     {
-      case 8000:
-        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                         AK4332_CLK_FS_8K);
-        break;
-      case 16000:
-        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                         AK4332_CLK_FS_16K);
-        break;
-      case 48000:
-        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                         AK4332_CLK_FS_48K);
-        break;
-      case 96000:
-        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                         AK4332_CLK_FS_96K);
-        break;
-      default:
-        return -EINVAL;
+      rate = 48000;
     }
-  ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_CM_MASK,
-                   AK4332_CLK_CM_256FS);
+  else
+    {
+      switch (rate)
+        {
+          case 8000:
+            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                             AK4332_CLK_FS_8K);
+            break;
+          case 16000:
+            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                             AK4332_CLK_FS_16K);
+            break;
+          case 48000:
+            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                             AK4332_CLK_FS_48K);
+            break;
+          case 96000:
+            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                             AK4332_CLK_FS_96K);
+            break;
+          default:
+            return -EINVAL;
+        }
+
+      ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_CM_MASK,
+                       AK4332_CLK_CM_256FS);
+    }
+
   clk_set_rate(dev->mclk, rate * 256);
 
   return OK;
