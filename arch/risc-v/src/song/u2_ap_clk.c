@@ -171,8 +171,6 @@ static const struct song_mux_clk mux[] =
     .name = "audio_mclk_mx",
     .parent_names = audio_mclk_mx_src,
     .num_parents = ARRAY_SIZE(audio_mclk_mx_src),
-    .en_offset = 0x68,
-    .en_shift  = 0,
     .mux_offset = 0x68,
     .mux_shift = 4,
     .mux_width = 1,
@@ -182,8 +180,6 @@ static const struct song_mux_clk mux[] =
     .name = "vad_mclk",
     .parent_names = vad_mclk_src,
     .num_parents = ARRAY_SIZE(vad_mclk_src),
-    .en_offset = 0xf0,
-    .en_shift  = 0,
     .mux_offset = 0xf0,
     .mux_shift = 4,
     .mux_width = 1,
@@ -196,7 +192,7 @@ static const struct song_sdiv_fdiv_clk sdiv_fdiv[] =
 {
   {
     .name = "audio_sys_in_clk",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .sdiv_offset = 0xe0,
     .fdiv_offset = 0xe4,
   },
@@ -408,7 +404,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "audio_sys_clk3072k",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x064,
     .en_shift = 0,
     .div_offset = 0x064,
@@ -427,7 +423,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "thinkers_pclk",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x078,
     .en_shift = 8,
     .div_offset = 0x078,
@@ -437,7 +433,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "codec_ref_clk",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x08c,
     .en_shift = 0,
     .div_offset = 0x08c,
@@ -446,7 +442,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "vad_bus_clk",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x0f4,
     .en_shift = 0,
     .div_offset = 0x0f4,
@@ -458,6 +454,12 @@ static const struct song_div_clk div[] =
 
 static const struct song_gate_clk gate[] =
 {
+  {
+    .name = "audio_mclk_gated",
+    .parent_name = "audio_mclk_mx",
+    .en_offset = 0x068,
+    .en_shift  = 0,
+  },
   {
     .name = "top_dmas_hclk",
     .parent_name = "top_bus_mclk",
@@ -517,14 +519,14 @@ static const struct song_gate_clk gate[] =
   },
   {
     .name = "audio_sys_hclk",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x090,
     .en_shift = 12,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "audio_sys_clk_49152k",
-    .parent_name = "audio_mclk_mx",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x090,
     .en_shift = 13,
   },
@@ -836,6 +838,12 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x0a4,
     .en_shift = 15,
     .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "vad_mclk_gated",
+    .parent_name = "vad_mclk",
+    .en_offset = 0xf0,
+    .en_shift  = 0,
   },
   {},
 };
