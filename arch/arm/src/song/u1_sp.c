@@ -365,6 +365,7 @@ void rpmsg_serialinit(void)
 void up_netinitialize(void)
 {
   net_rpmsg_drv_init(CPU_NAME_CP, "sl0", NET_LL_SLIP);
+  net_rpmsg_drv_init(CPU_NAME_CP, "sl1", NET_LL_SLIP);
 }
 #endif
 
