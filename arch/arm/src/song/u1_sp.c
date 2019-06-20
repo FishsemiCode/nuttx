@@ -889,6 +889,12 @@ void up_lateinitialize(void)
 void up_finalinitialize(void)
 {
 #ifdef CONFIG_SONG_RPTUN
+  /* Force boot AP */
+
+  rptun_boot(CPU_NAME_AP);
+
+  /* Choice boot CP */
+
   if (up_get_wkreason() == WAKEUP_REASON_RTC_RSTN)
     {
       if (getreg32(0xb2020040) & 0x1)
@@ -904,22 +910,9 @@ void up_finalinitialize(void)
           putreg32(TOP_PWR_CP_SLP_MASK << 16 |
                    TOP_PWR_CP_SLP_MASK, TOP_PWR_SLPCTL_CP_M4);
         }
-
-      if (getreg32(0xb2020080) & 0x1)
-        {
-          rptun_boot(CPU_NAME_AP);
-        }
-      else
-        {
-          /* Mask AP effect to power */
-
-          putreg32(TOP_PWR_AP_SLP_MASK << 16 |
-                   TOP_PWR_AP_SLP_MASK, TOP_PWR_SLPCTL_AP_M4);
-        }
     }
   else
     {
-      rptun_boot(CPU_NAME_AP);
       rptun_boot(CPU_NAME_CP);
     }
 #endif
