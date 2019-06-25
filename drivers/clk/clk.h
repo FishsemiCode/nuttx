@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <strings.h>
 
 #ifdef CONFIG_CLK
 
@@ -93,6 +94,21 @@ static inline uint32_t gcd(uint32_t a, uint32_t b)
       b = r;
     }
   return b;
+}
+
+static inline int is_power_of_2(uint32_t n)
+{
+  return (n != 0 && ((n & (n - 1)) == 0));
+}
+
+static inline uint32_t roundup_pow_of_two(uint32_t n)
+{
+  return 1 << fls(n - 1);
+}
+
+static inline uint32_t rounddown_pow_of_two(uint32_t n)
+{
+  return 1 << (fls(n) - 1);
 }
 
 #endif /* CONFIG_CLK */

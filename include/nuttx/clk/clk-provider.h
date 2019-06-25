@@ -72,8 +72,9 @@
 #define CLK_DIVIDER_READ_ONLY           0x08
 #define CLK_DIVIDER_MAX_HALF            0x10 /* the max div is only half of the maximum one */
 #define CLK_DIVIDER_DIV_NEED_EVEN       0x20
+#define CLK_DIVIDER_POWER_OF_TWO        0x40
 #define CLK_DIVIDER_MINDIV_OFF          8
-#define CLK_DIVIDER_MINDIV_MSK          0xff
+#define CLK_DIVIDER_MINDIV_MSK          0xff00
 
 /* fractional_divider clk flags */
 #define CLK_FRAC_MUL_NEED_EVEN          0x01
