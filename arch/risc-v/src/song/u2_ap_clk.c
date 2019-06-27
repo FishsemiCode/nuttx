@@ -377,7 +377,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "thinkers_mclk",
-    .parent_name = "audio_mclk",
+    .parent_name = "thinkers_pclk",
     .en_offset = 0x058,
     .en_shift = 0,
     .div_offset = 0x058,
