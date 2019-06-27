@@ -47,6 +47,7 @@
  ****************************************************************************/
 
 #define THINKER_IR              (0x002c)
+#define THINKER_IMR             (0x0030)
 #define THINKER_SMOOTH_CONFIG2  (0x0094)
 #define THINKER_MCTRL_CR        (0x01fc)
 
@@ -142,11 +143,12 @@ static inline void thinker_update_bits(struct thinker_dev_s *thinker,
 static int song_thinker_irq_handler(int irq, void *context, void *args)
 {
   struct thinker_dev_s *thinker = args;
-  uint32_t status, id, index, cmode;
+  uint32_t status, id, index, cmode, imr;
   struct audio_msg_s msg;
   int i;
 
   status = thinker_read(thinker, THINKER_IR);
+  imr = thinker_read(thinker, THINKER_IMR);
   cmode = (thinker_read(thinker, THINKER_MCTRL_CR) >> 1) & 0x3;
   index = thinker_read(thinker, THINKER_SMOOTH_CONFIG2) & 0xf;
   thinker_write(thinker, THINKER_IR, status);
@@ -166,20 +168,23 @@ static int song_thinker_irq_handler(int irq, void *context, void *args)
 
   for (i = 0; i < THINKER_IR_COUNT; i++)
     {
-      if (!(status & (1 << i)))
+      if (!(imr & (status & (1 << i))))
         continue;
 
       if (i != THINKER_FBANK_INTR
               && i != THINKER_SMOOTH_INTR)
-      {
+        {
           syslog(LOG_ERR, "Uncaught INTR: %d\n", i);
           continue;
-      }
+        }
 
       msg.msgId = (i == THINKER_FBANK_INTR) ? AUDIO_MSG_SLIENCE : id;
       msg.u.data = index;
 
-      thinker->dev.upper(thinker->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK);
+      if (thinker->dev.upper && thinker->dev.priv)
+        {
+          thinker->dev.upper(thinker->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK);
+        }
     }
 
   return OK;
@@ -206,7 +211,7 @@ static int thinker_configure(struct audio_lowerhalf_s *dev,
 
   if (caps->ac_type != AUDIO_TYPE_EXTENSION
         || caps->ac_format.hw != AUDIO_EU_LOAD_MODULE)
-    return -EINVAL;
+    return 0;
 
   size = vector[0];
   start = (uint32_t *)vector[1];
@@ -276,6 +281,8 @@ struct audio_lowerhalf_s *thinker_initialize(uintptr_t base, int irq)
 
   irq_attach(irq, song_thinker_irq_handler, thinker);
   up_enable_irq(irq);
+
+  thinker_write(thinker, THINKER_IMR, 1 << THINKER_SMOOTH_INTR);
 
   return &thinker->dev;
 }

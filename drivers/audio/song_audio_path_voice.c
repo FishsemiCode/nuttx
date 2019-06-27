@@ -90,8 +90,8 @@
 #define SONG_AUDIO_PATH_DUAL_MIC_384K_8K            0x0000b000
 #define SONG_AUDIO_PATH_DUAL_MIC_768K_8K            0x0000d000
 #define SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC       0x00000001
-#define SONG_AUDIO_PATH_EXT_ADC_SRC_SLOT_MK(x)      (0x3 << (x * 2 + 2))
-#define SONG_AUDIO_PATH_EXT_ADC_SRC_SLOT_SHIFT(x)   (x * 2 + 2)
+#define SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(x)        (0x3 << (x * 2 + 2))
+#define SONG_AUDIO_PATH_VOICE_DMA_SLOT_SHIFT(x)     (x * 2 + 2)
 
 #define SONG_AUDIO_PATH_D_ADC12_EN                  0x00000040
 #define SONG_AUDIO_PATH_D_ADC3_EN                   0x00000080
@@ -112,7 +112,6 @@
 struct song_audio_path_s
 {
   struct audio_lowerhalf_s dev;
-  uint32_t adc_rate;
   uint32_t base;
   uint32_t voice_adc_enable_bitsmap;
   uint8_t channels;
@@ -382,11 +381,20 @@ static int song_audio_path_channels(struct song_audio_path_s *dev,
       if (!channels || channels > 2)
         return -EINVAL;
 
-      for (i = 0; i < channels; i++)
+      for (i = 0; i < 3; i++)
         {
-          audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                               SONG_AUDIO_PATH_EXT_ADC_SRC_SLOT_MK(i),
-                               (i + 1) << SONG_AUDIO_PATH_EXT_ADC_SRC_SLOT_SHIFT(i));
+          if (i < channels)
+            {
+              audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                                   SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(i),
+                                   (i + 1) << SONG_AUDIO_PATH_VOICE_DMA_SLOT_SHIFT(i));
+            }
+          else
+            {
+              audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                                   SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(i),
+                                   0);
+            }
         }
     }
   else
@@ -459,105 +467,6 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
         }
 
       return 0;
-    }
-
-  if (dev->adc_rate)
-    {
-      switch(dev->adc_rate)
-        {
-          case 16000:
-            audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_MASK,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_16K);
-            break;
-          case 48000:
-            audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_MASK,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_48K);
-            break;
-          case 96000:
-            audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_MASK,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_96K);
-            switch (rate)
-              {
-                case 8000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_96K_8K);
-                  break;
-                case 16000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_96K_16K);
-                  break;
-                case 48000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_96K_48K);
-                  break;
-                default:
-                  return -EINVAL;
-              }
-            break;
-          case 192000:
-            audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_MASK,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_192K);
-            break;
-          case 384000:
-            audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_MASK,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_384K);
-            switch (rate)
-              {
-                case 8000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_384K_8K);
-                  break;
-                case 16000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_384K_16K);
-                  break;
-                case 48000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_384K_48K);
-                  break;
-                default:
-                  return -EINVAL;
-              }
-            break;
-          case 768000:
-            audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_MASK,
-                                 SONG_AUDIO_PATH_D_ADC12_FS_768K);
-            switch (rate)
-              {
-                case 8000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_768K_8K);
-                  break;
-                case 16000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_768K_16K);
-                  break;
-                case 48000:
-                  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                                       SONG_AUDIO_PATH_DUAL_MIC_MODE_MASK,
-                                       SONG_AUDIO_PATH_DUAL_MIC_768K_48K);
-                  break;
-                default:
-                  return -EINVAL;
-              }
-            break;
-          default:
-            return -EINVAL;
-        }
     }
 
   switch (rate)
@@ -654,7 +563,7 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
  * Public Functions
  ****************************************************************************/
 
-struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, uint32_t adc_rate, bool extern_adc)
+struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, bool extern_adc)
 {
   struct song_audio_path_s *dev;
 
@@ -664,7 +573,6 @@ struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, uint3
 
   dev->dev.ops = &g_song_audio_path_ops;
   dev->base = base;
-  dev->adc_rate = adc_rate;
   dev->extern_adc = extern_adc;
   clk_enable(clk_get("audio_mclk"));
 

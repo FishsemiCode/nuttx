@@ -730,11 +730,16 @@ struct audio_lowerhalf_s *dp_adc_initialize(const char *mclk, uint32_t base,
 
   clk_enable(dev->mclk);
 
-  dp_adc_putreg(dev, DP_ADC_FCR_ADC, 0xe8);
-  dp_adc_putreg(dev, DP_ADC_AICR_SB_ADC, 0x0e);
-  dp_adc_putreg(dev, DP_ADC_CR_ADC12, 0x20);
-  dp_adc_putreg(dev, DP_ADC_CR_VIC, 0x40);
+  if (dev->idx < 2)
+    {
+      dp_adc_putreg(dev, DP_ADC_AICR_SB_ADC, 0x0e);
+    }
+  else
+    {
+      dp_adc_putreg(dev, DP_ADC_AICR_SB_ADC2, 0x0e);
+    }
 
+  dp_adc_putreg(dev, DP_ADC_CR_VIC, 0x40);
   while(!(dp_adc_getreg(dev, DP_ADC_SR) & PON_ACK));
 
   switch (dev->idx)
@@ -742,17 +747,17 @@ struct audio_lowerhalf_s *dp_adc_initialize(const char *mclk, uint32_t base,
       case 0:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC1, CAP_CP, CAP_CP);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x00);
-        dp_adc_updatereg(dev, DP_ADC_GCR_MIC12, 0xf, 0xa);
+        dp_adc_updatereg(dev, DP_ADC_GCR_MIC12, 0xf, 0xf);
         break;
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, CAP_CP, CAP_CP);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x00);
-        dp_adc_updatereg(dev, DP_ADC_GCR_MIC12, 0xf << 4, 0xa << 4);
+        dp_adc_updatereg(dev, DP_ADC_GCR_MIC12, 0xf << 4, 0xf << 4);
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC3, CAP_CP, CAP_CP);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_SOFT_MUTE, 0x00);
-        dp_adc_updatereg(dev, DP_ADC_GCR_MIC3, 0xf, 0xa);
+        dp_adc_updatereg(dev, DP_ADC_GCR_MIC3, 0xf, 0xf);
         break;
     }
 

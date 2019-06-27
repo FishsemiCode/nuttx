@@ -44,6 +44,14 @@
 #include <nuttx/audio/audio.h>
 
 /****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
+
+#define AUDIO_PATH_VT_SRC_DMA0          0
+#define AUDIO_PATH_VT_SRC_EXTERN_ADC3   1
+#define AUDIO_PATH_VT_SRC_VOICE_ADC3    2
+
+/****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
@@ -52,8 +60,8 @@ struct audio_lowerhalf_s *song_audio_path_anc_initialize(uintptr_t base, bool ex
 struct audio_lowerhalf_s *song_audio_path_in_initialize(uintptr_t base, int irq, const char *sys_in_clk,
                                                         const char *i2s_mclk);
 
-struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, uint32_t adc_rate, bool extern_adc);
+struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, bool extern_adc);
 
-struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, bool vt_src, bool extern_adc);
+struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_src, bool dma_out);
 
 #endif
