@@ -111,5 +111,15 @@ static inline uint32_t rounddown_pow_of_two(uint32_t n)
   return 1 << (fls(n) - 1);
 }
 
+static uint32_t roundup_double(double n)
+{
+  uint32_t intn = (uint32_t)n;
+  if (n == (double)intn)
+    {
+      return intn;
+    }
+  return intn + 1;
+}
+
 #endif /* CONFIG_CLK */
 #endif /* __DRIVER_CLK_CLK_H */

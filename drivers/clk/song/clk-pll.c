@@ -68,6 +68,7 @@
 
 #define PLL_FRAC_SHIFT      0
 #define PLL_FRAC_MASK       0xFFFFFF
+#define PLL_FARC_GRAN       ((double)(0.0000000596))
 
 #define to_clk_pll(_clk) (struct clk_pll *)(_clk->private_data)
 
@@ -78,7 +79,7 @@
 static uint32_t
 clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
 {
-  uint32_t val, rate, div, dsmpd, refdiv, fbdiv, postdiv1, postdiv2;
+  uint32_t val, div, dsmpd, refdiv, fbdiv, postdiv1, postdiv2;
   struct clk_pll *pll = to_clk_pll(clk);
 
   val = clk_read(pll->cfg0_reg);
@@ -91,47 +92,67 @@ clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
   div = refdiv * postdiv1 * postdiv2;
 
   if (dsmpd)
-    rate = ((uint64_t)parent_rate * fbdiv) / div;
+    {
+      return ((uint64_t)parent_rate * fbdiv) / div;
+    }
   else
     {
       uint32_t frac;
+      double rate_d;
 
       val = clk_read(pll->cfg1_reg);
       frac = (val >> PLL_FRAC_SHIFT) & PLL_FRAC_MASK;
-      rate = (parent_rate * (fbdiv * (1ull << 24) + frac)) / (div * (1ull << 24));
+      rate_d = (parent_rate * (fbdiv + frac * PLL_FARC_GRAN)) / div;
+      return roundup_double(rate_d);
     }
-
-  return rate;
 }
 
 /*****************************************************
  * fixed postdiv2 = 1 refdiv = 2, solve postdiv1, fbdiv
  *
+ * for INT division:
  *           parent_rate * fbdiv
  * rate  = -----------------------
  *            postdiv1 * 1 * 2
+ * ==>
+ *
+ * 2 * rate * postdiv1 = p_rate * fbdiv
+ *
+ * for DOUBLE division:
+ * 2 * rate * posdiv1 = p_rate * (fbdiv + 1/(1 << 24))
+ *
  *****************************************************/
 
 static uint32_t
 clk_pll_round_rate(struct clk *clk, uint32_t rate, uint32_t *best_parent_rate)
 {
-  uint32_t refdiv, fbdiv, postdiv1, postdiv2, prate, tmprate;
+  uint32_t refdiv, fbdiv, postdiv1, postdiv2, prate, gcdrate;
 
   prate = *best_parent_rate;
 
   postdiv2 = 1, refdiv = 2;
   rate = rate * refdiv * postdiv2;
 
-  tmprate = gcd(rate, prate);
-  rate = rate / tmprate;
-  prate = prate / tmprate;
+  gcdrate = gcd(rate, prate);
+  fbdiv = rate / gcdrate;
+  postdiv1 = prate / gcdrate;
 
-  tmprate = (prate * rate) / (gcd(rate, prate));
-  fbdiv = tmprate / prate;
-  postdiv1 = tmprate / rate;
+  if (postdiv1 <= PLL_POSTDIV1_MASK)
+    {
+      /* frequency can divide in INT */
+      return ((uint64_t)*best_parent_rate * fbdiv) / (postdiv1 * postdiv2 * refdiv);
+    }
+  else
+    {
+      /* frequency must divide in DOUBLE */
+      double fbdiv_frac, rate_d;
 
-  rate = ((uint64_t)*best_parent_rate * fbdiv) / (postdiv1 * postdiv2 * refdiv);
-  return rate;
+      fbdiv_frac = (double)fbdiv * PLL_POSTDIV1_MASK / postdiv1;
+      postdiv1 = PLL_POSTDIV1_MASK;
+
+      rate_d = *best_parent_rate * fbdiv_frac / (postdiv1 * postdiv2 * refdiv);
+      return roundup_double(rate_d);
+    }
 }
 
 static void clk_pll_endisable(struct clk *clk, int enable)
@@ -182,28 +203,48 @@ static int clk_pll_is_enable(struct clk *clk)
 
 static int clk_pll_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate)
 {
-  uint32_t val, refdiv, fbdiv, postdiv1, postdiv2, prate, tmprate;
+  uint32_t val, refdiv, fbdiv, postdiv1, postdiv2, prate, gcdrate;
   struct clk_pll *pll = to_clk_pll(clk);
 
   prate = parent_rate;
-
   postdiv2 = 1, refdiv = 2;
   rate = rate * refdiv * postdiv2;
 
-  tmprate = gcd(rate, prate);
-  rate = rate / tmprate;
-  prate = prate / tmprate;
+  gcdrate = gcd(rate, prate);
+  fbdiv = rate / gcdrate;
+  postdiv1 = prate / gcdrate;
 
-  tmprate = (prate * rate) / (gcd(rate, prate));
-  fbdiv = tmprate / prate;
-  postdiv1 = tmprate / rate;
+  if (postdiv1 <= PLL_POSTDIV1_MASK)
+    {
+      /* frequency can divide in INT */
 
-  val = (1 << PLL_DSMPD_SHIFT) | (postdiv2 << PLL_POSTDIV2_SHIFT)
-        | (postdiv1 << PLL_POSTDIV1_SHIFT) | (fbdiv << PLL_FBDIV_SHIFT)
-        | (refdiv << PLL_REFDIV_SHIFT);
+      val = (1 << PLL_DSMPD_SHIFT) | (postdiv2 << PLL_POSTDIV2_SHIFT)
+            | (postdiv1 << PLL_POSTDIV1_SHIFT) | (fbdiv << PLL_FBDIV_SHIFT)
+            | (refdiv << PLL_REFDIV_SHIFT);
+
+      clk_write(pll->cfg0_reg, val);
+    }
+  else
+    {
+      /* frequency must divide in DOUBLE */
+      /* fix postdiv1 to PLL_POSTDIV1_MASK, solve fbdiv(int), fbdiv_frac */
+
+      double fbdiv_frac = (double)fbdiv * PLL_POSTDIV1_MASK / postdiv1;
+      postdiv1 = PLL_POSTDIV1_MASK;
+
+      fbdiv = (uint32_t)fbdiv_frac;
+      fbdiv_frac = fbdiv_frac - fbdiv;
+
+      val = (0 << PLL_DSMPD_SHIFT) | (postdiv2 << PLL_POSTDIV2_SHIFT)
+            | (postdiv1 << PLL_POSTDIV1_SHIFT) | (fbdiv << PLL_FBDIV_SHIFT)
+            | (refdiv << PLL_REFDIV_SHIFT);
+      clk_write(pll->cfg0_reg, val);
+
+      val = fbdiv_frac / PLL_FARC_GRAN;
+      clk_write(pll->cfg1_reg, val);
+    }
 
   clkerr("Start to adjust pll freq\n");
-  clk_write(pll->cfg0_reg, val);
   val = (1 << (pll->ctl_shift + 16)) | (1 << pll->ctl_shift);
   clk_write(pll->ctl_reg, val);
   while (clk_read(pll->ctl_reg) & (1 << pll->ctl_shift));
