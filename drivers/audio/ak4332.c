@@ -511,33 +511,31 @@ static int ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
     {
       rate = 48000;
     }
-  else
-    {
-      switch (rate)
-        {
-          case 8000:
-            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                             AK4332_CLK_FS_8K);
-            break;
-          case 16000:
-            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                             AK4332_CLK_FS_16K);
-            break;
-          case 48000:
-            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                             AK4332_CLK_FS_48K);
-            break;
-          case 96000:
-            ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
-                             AK4332_CLK_FS_96K);
-            break;
-          default:
-            return -EINVAL;
-        }
 
-      ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_CM_MASK,
-                       AK4332_CLK_CM_256FS);
+  switch (rate)
+    {
+      case 8000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_8K);
+        break;
+      case 16000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_16K);
+        break;
+      case 48000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_48K);
+        break;
+      case 96000:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_96K);
+        break;
+      default:
+        return -EINVAL;
     }
+
+  ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_CM_MASK,
+                   AK4332_CLK_CM_256FS);
 
   clk_set_rate(dev->mclk, rate * 256);
 
