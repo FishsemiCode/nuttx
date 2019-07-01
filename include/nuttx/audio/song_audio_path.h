@@ -57,10 +57,13 @@
 
 struct audio_lowerhalf_s *song_audio_path_anc_initialize(uintptr_t base, bool extern_adc);
 
-struct audio_lowerhalf_s *song_audio_path_in_initialize(uintptr_t base, int irq, const char *sys_in_clk,
+struct audio_lowerhalf_s *song_audio_path_in_initialize(uintptr_t base,
+                                                        const char *sys_in_clk,
                                                         const char *i2s_mclk);
 
-struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, bool extern_adc);
+struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base,
+                                                           bool extern_adc,
+                                                           uint32_t adcs);
 
 struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_src, bool dma_out);
 

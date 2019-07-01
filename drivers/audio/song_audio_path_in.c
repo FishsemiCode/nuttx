@@ -42,7 +42,6 @@
 #include <nuttx/audio/audio.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
-#include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/regmap/regmap.h>
 
@@ -786,22 +785,12 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
   return OK;
 }
 
-static int song_audio_path_irq_handler(int irq, FAR void *context, void *args)
-{
-  struct song_audio_path_s *dev = (struct song_audio_path_s *)args;
-  uint32_t status;
-
-  status = audio_path_getreg(dev, SONG_AUDIO_PATH_INTR_STATUS);
-  audio_path_putreg(dev, SONG_AUDIO_PATH_INTR_STATUS, status);
-
-  return OK;
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-struct audio_lowerhalf_s *song_audio_path_in_initialize(uintptr_t base, int irq, const char *sys_in_clk,
+struct audio_lowerhalf_s *song_audio_path_in_initialize(uintptr_t base,
+                                                        const char *sys_in_clk,
                                                         const char *i2s_mclk)
 {
   struct song_audio_path_s *dev;

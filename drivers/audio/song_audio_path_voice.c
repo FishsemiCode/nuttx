@@ -116,6 +116,7 @@ struct song_audio_path_s
   uint32_t voice_adc_enable_bitsmap;
   uint8_t channels;
   bool extern_adc;
+  int adcs;
 };
 
 /****************************************************************************
@@ -262,7 +263,8 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
   if (dev->extern_adc)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
-                           SONG_AUDIO_PATH_D_ADC12_EN, SONG_AUDIO_PATH_D_ADC12_EN);
+                           SONG_AUDIO_PATH_D_ADC12_EN | SONG_AUDIO_PATH_D_ADC3_EN,
+                           SONG_AUDIO_PATH_D_ADC12_EN | SONG_AUDIO_PATH_D_ADC3_EN);
     }
   else
     {
@@ -289,7 +291,8 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
   if (dev->extern_adc)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
-                           SONG_AUDIO_PATH_D_ADC12_EN, 0);
+                           SONG_AUDIO_PATH_D_ADC12_EN | SONG_AUDIO_PATH_D_ADC3_EN,
+                           0);
     }
   else
     {
@@ -328,7 +331,8 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_)
   if (dev->extern_adc)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
-                           SONG_AUDIO_PATH_D_ADC12_EN, 0);
+                           SONG_AUDIO_PATH_D_ADC12_EN | SONG_AUDIO_PATH_D_ADC3_EN,
+                           0);
     }
   else
     {
@@ -356,7 +360,8 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
   if (dev->extern_adc)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
-                           SONG_AUDIO_PATH_D_ADC12_EN, SONG_AUDIO_PATH_D_ADC12_EN);
+                           SONG_AUDIO_PATH_D_ADC12_EN | SONG_AUDIO_PATH_D_ADC3_EN,
+                           SONG_AUDIO_PATH_D_ADC12_EN | SONG_AUDIO_PATH_D_ADC3_EN);
     }
   else
     {
@@ -383,17 +388,20 @@ static int song_audio_path_channels(struct song_audio_path_s *dev,
 
       for (i = 0; i < 3; i++)
         {
-          if (i < channels)
+          uint8_t adc = (dev->adcs >> i * 8) & 0xff;
+
+          if (adc != 0xff)
             {
               audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
                                    SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(i),
-                                   (i + 1) << SONG_AUDIO_PATH_VOICE_DMA_SLOT_SHIFT(i));
+                                   (adc + 1) << SONG_AUDIO_PATH_VOICE_DMA_SLOT_SHIFT(i));
             }
           else
             {
               audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
                                    SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(i),
                                    0);
+              break;
             }
         }
     }
@@ -563,7 +571,9 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
  * Public Functions
  ****************************************************************************/
 
-struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, bool extern_adc)
+struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base,
+                                                           bool extern_adc,
+                                                           uint32_t adcs)
 {
   struct song_audio_path_s *dev;
 
@@ -574,6 +584,8 @@ struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base, bool 
   dev->dev.ops = &g_song_audio_path_ops;
   dev->base = base;
   dev->extern_adc = extern_adc;
+  dev->adcs = adcs;
+
   clk_enable(clk_get("audio_mclk"));
 
   if (extern_adc)

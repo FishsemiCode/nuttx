@@ -101,6 +101,7 @@ struct song_audio_path_s
   struct audio_lowerhalf_s dev;
   uintptr_t base;
   int vt_src;
+  bool dma_out;
 };
 
 /****************************************************************************
@@ -204,6 +205,19 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
 
   clk_enable(clk_get(AUDIO_SYS_CLK3072K));
   clk_enable(clk_get(AUDIO_SYS_CLK49152K));
+
+  if (dev->dma_out)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                           SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC,
+                           SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                           SONG_AUDIO_PATH_VOICE_DMA_SLOT0_MK,
+                           SONG_AUDIO_PATH_VOICE_DMA_SLOT0_ADC3);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                           SONG_AUDIO_PATH_VOICE_DMA_SLOT12_MK,
+                           0);
+    }
 
   if (dev->vt_src == AUDIO_PATH_VT_SRC_EXTERN_ADC3)
     {
@@ -332,6 +346,7 @@ struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_s
   dev->dev.ops = &g_song_audio_path_ops;
   dev->base = base;
   dev->vt_src = vt_src;
+  dev->dma_out = dma_out;
 
   clk_enable(clk_get("audio_mclk"));
   clk_enable(clk_get("thinkers_pclk"));
@@ -380,19 +395,6 @@ struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_s
                              SONG_AUDIO_PATH_EXT_ADC_FREQ_MASK,
                              SONG_AUDIO_PATH_EXT_ADC_FREQ_16K);
         break;
-    }
-
-  if (vt_src != AUDIO_PATH_VT_SRC_DMA0 && dma_out)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                           SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC,
-                           SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                           SONG_AUDIO_PATH_VOICE_DMA_SLOT0_MK,
-                           SONG_AUDIO_PATH_VOICE_DMA_SLOT0_ADC3);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                           SONG_AUDIO_PATH_VOICE_DMA_SLOT12_MK,
-                           0);
     }
 
   return &dev->dev;
