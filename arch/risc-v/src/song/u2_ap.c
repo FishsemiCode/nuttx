@@ -435,10 +435,10 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *dp_adc0;
   struct audio_lowerhalf_s *dp_adc1;
   struct audio_lowerhalf_s *dp_adc2;
-  struct audio_lowerhalf_s *dp_vad;
   struct audio_lowerhalf_s *pcm_playback;
   struct audio_lowerhalf_s *pcm_capture;
   struct audio_lowerhalf_s *thinker;
+  uint32_t voice_adcs;
 
   /* audio_mclk_mx mux to audio_mclk */
 
@@ -446,6 +446,7 @@ static void up_audio_init(void)
 
   clk_enable(clk_get("i2c1_mclk"));
   clk_enable(clk_get("i2c2_mclk"));
+
   putreg32(2 << (MUXPIN_DS), MUXPIN_CLKO0_CTL);
   putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DI_CTL);
   putreg32(1 << (MUXPIN_DS) | 0 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DO_CTL);
@@ -459,15 +460,16 @@ static void up_audio_init(void)
   ak4332_1 = ak4332_initialize(g_i2c[2], "audio_sys_akm_clk", 3);
   dp_adc0 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 0);
   dp_adc1 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 1);
-  dp_adc2 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 16000, 2);
-  dp_vad = dp_vad_initialize("vad_mclk", 0xa00a0000, 23);
+  dp_adc2 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 2);
+  dp_vad_initialize("vad_mclk_gated", 0xa00a0000, 23);
 
   audio_dma_in = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
-  audio_path_in = song_audio_path_in_initialize(0xa0070000, 22, "audio_sys_in_clk", "audio_i2s_mclk");
+  audio_path_in = song_audio_path_in_initialize(0xa0070000, "audio_sys_in_clk", "audio_i2s_mclk");
   audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
-  audio_path_voice = song_audio_path_voice_initialize(0xa0070000, true);
+  voice_adcs = 0 | (0x2 << 8) | (0xff << 16) | (0xff << 24);
+  audio_path_voice = song_audio_path_voice_initialize(0xa0070000, true, voice_adcs);
   audio_comp_initialize("pcm0p", ak4332_0, ak4332_1, audio_path_in, audio_dma_in, NULL);
-  audio_comp_initialize("pcm0c", dp_adc0, dp_adc1, audio_path_voice, audio_dma_voice, NULL);
+  audio_comp_initialize("pcm0c", audio_dma_voice, audio_path_voice, dp_adc0, dp_adc2, NULL);
 
   pcm_playback = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), true);
   pcm_capture = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), false);
@@ -478,7 +480,7 @@ static void up_audio_init(void)
 
   thinker = thinker_initialize(0xa0200000, 4);
   audio_dma_vt = audio_dma_initialize(g_dma[1], 0, true, 0, 0xa007040c);
-  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, AUDIO_PATH_VT_SRC_EXTERN_ADC3, true);
+  audio_path_vt = song_audio_path_vt_initialize(0xa0070000, AUDIO_PATH_VT_SRC_EXTERN_ADC3, false);
   audio_comp_initialize("pcm2c", dp_adc2, thinker, audio_path_vt, NULL);
   audio_comp_initialize("pcm2p", audio_dma_vt, NULL);
 
