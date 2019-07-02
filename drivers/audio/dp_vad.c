@@ -225,7 +225,9 @@ static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
 
   status = dp_vad_getreg(dev, DP_VAD_CR4) & IRQ_FLAG;
   if (status)
-    dp_vad_updatereg(dev, DP_VAD_CR4, IRQ_FLAG, IRQ_FLAG);
+    {
+      dp_vad_updatereg(dev, DP_VAD_CR4, IRQ_FLAG, IRQ_FLAG);
+    }
 
   return OK;
 }
@@ -250,6 +252,9 @@ struct audio_lowerhalf_s *dp_vad_initialize(const char *mclk, uint32_t base, int
       kmm_free(dev);
       return NULL;
     }
+
+  clk_enable(clk_get("vad_bus_clk"));
+  clk_enable(clk_get("vad_mclk_pll0"));
 
   dp_vad_updatereg(dev, DP_VAD_CR4,
                    IRQ_MODE_MASK, IRQ_MODE_HIGH);

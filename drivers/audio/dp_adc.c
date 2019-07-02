@@ -376,7 +376,6 @@ static int dp_adc_start(struct audio_lowerhalf_s *dev_)
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, SB_ADC3, 0);
-        dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, 0);
         break;
     }
 
@@ -406,7 +405,6 @@ static int dp_adc_stop(struct audio_lowerhalf_s *dev_)
         break;
       case 2:
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, SB_ADC3, SB_ADC3);
-        dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, SB_MICBIAS);
         break;
     }
 
@@ -433,8 +431,7 @@ static int dp_adc_pause(struct audio_lowerhalf_s *dev_)
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, SB_MICBIAS);
         break;
-      case 2:
-        dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, SB_MICBIAS);
+      default:
         break;
     }
 
@@ -459,8 +456,7 @@ static int dp_adc_resume(struct audio_lowerhalf_s *dev_)
       case 1:
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, 0);
         break;
-      case 2:
-        dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, 0);
+      default:
         break;
    }
 
@@ -758,6 +754,7 @@ struct audio_lowerhalf_s *dp_adc_initialize(const char *mclk, uint32_t base,
         dp_adc_updatereg(dev, DP_ADC_CR_MIC3, CAP_CP, CAP_CP);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_SOFT_MUTE, 0x00);
         dp_adc_updatereg(dev, DP_ADC_GCR_MIC3, 0xf, 0xf);
+        dp_adc_updatereg(dev, DP_ADC_CR_MIC3, SB_MICBIAS, 0);
         break;
     }
 
