@@ -61,6 +61,9 @@
 #define SONG_AUDIO_PATH_VOICE_ADCx_REST_MASK        0x000f0000
 #define SONG_AUDIO_PATH_VOICE_ADCx_ENABLE_MASK      0x0000000f
 
+#define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_MASK(x)     (0x7 << (x * 3 + 11))
+#define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_SHIFT(x)    (x * 3 + 11)
+
 #define SONG_AUDIO_PATH_VOICE_ADC_FIFO_RESET        0x00010000
 #define SONG_AUDIO_PATH_VOICE_ADC_ENABLE            0x00000001
 
@@ -415,6 +418,10 @@ static int song_audio_path_channels(struct song_audio_path_s *dev,
           audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG1,
                                SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_MASK(i),
                                i << SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_SHIFT(i));
+
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG0,
+                               SONG_AUDIO_PATH_VOICE_ADCx_GAIN_MASK(i),
+                               0x3 << SONG_AUDIO_PATH_VOICE_ADCx_GAIN_SHIFT(i));
         }
     }
 
