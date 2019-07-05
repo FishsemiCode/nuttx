@@ -80,9 +80,10 @@
 /* NVIC priority levels *****************************************************/
 
 #define NVIC_SYSH_PRIORITY_MIN     0xff /* All bits set in minimum priority */
-#define NVIC_SYSH_PRIORITY_DEFAULT 0x80 /* Midpoint is the default */
+#define NVIC_SYSH_PRIORITY_DEFAULT 0xa0 /* Midpoint is the default */
 #define NVIC_SYSH_PRIORITY_MAX     0x00 /* Zero is maximum priority */
-#define NVIC_SYSH_PRIORITY_STEP    0x20 /* Three bits of interrupt priority used */
+#define NVIC_SYSH_PRIORITY_STEP    0x40 /* Three bits priority used, bits[7-6] as group */
+#define NVIC_SYSH_PRIORITY_SUBSTEP 0x20 /* Three bits priority used, bit[5] as sub */
 
 /****************************************************************************
  * Public Types

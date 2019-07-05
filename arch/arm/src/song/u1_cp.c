@@ -451,6 +451,10 @@ void up_ioe_init(void)
 
 void up_extra_init(void)
 {
+  /* Set RFIF IRQ SUB PRIORITY */
+
+  up_prioritize_irq(31, NVIC_SYSH_PRIORITY_DEFAULT - NVIC_SYSH_PRIORITY_SUBSTEP);
+
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);

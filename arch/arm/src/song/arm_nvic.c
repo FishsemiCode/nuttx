@@ -109,6 +109,7 @@ static void up_nvic_pm_notify(struct pm_callback_s *cb, int domain,
 static const uint32_t g_nvic_scb_regaddr[] =
 {
     NVIC_VECTAB,
+    NVIC_AIRCR,
     NVIC_SYSCON,
     NVIC_SYSH4_7_PRIORITY,
     NVIC_SYSH8_11_PRIORITY,
@@ -166,7 +167,15 @@ static void up_nvic_restore(void)
 
   for (j = 0; j < NVIC_REGSAVE_SCB_NUM; j++)
     {
-      putreg32(g_nvic_regsave[i++], g_nvic_scb_regaddr[j]);
+      if (g_nvic_scb_regaddr[j] == NVIC_AIRCR)
+        {
+          uint32_t val = g_nvic_regsave[i++] & NVIC_AIRCR_PRIGROUP_MASK;
+          putreg32(val | (0x5fa << NVIC_AIRCR_VECTKEY_SHIFT), g_nvic_scb_regaddr[j]);
+        }
+      else
+        {
+          putreg32(g_nvic_regsave[i++], g_nvic_scb_regaddr[j]);
+        }
     }
 
   for (j = 0; j < NR_IRQS - NVIC_IRQ_FIRST; j += 4)
@@ -490,6 +499,13 @@ void up_irqinitialize(void)
 
   up_ramvec_initialize();
 #endif
+
+  /* Now bits[7-5] are available in each 8bits,
+   * Take bits[7-6] as group priority, take bit[5] as subpriorities.
+   */
+
+  modifyreg32(NVIC_AIRCR, NVIC_AIRCR_VECTKEY_MASK | NVIC_AIRCR_PRIGROUP_MASK,
+              (0x5fa << NVIC_AIRCR_VECTKEY_SHIFT) | (0x5 << NVIC_AIRCR_PRIGROUP_SHIFT));
 
   /* Set all interrupts (and exceptions) to the default priority */
 
