@@ -848,6 +848,22 @@ static void up_flash_init(void)
 }
 #endif
 
+void up_extra_init(void)
+{
+  /* Attach and enable flash_s intr. */
+
+  irq_attach(18, up_flash_save_isr, NULL);
+  up_enable_irq(18);
+  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+
+  /* Set start reason to env */
+
+  setenv("START_REASON", up_get_wkreason_env(), 1);
+
+  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
+          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
+}
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
@@ -885,6 +901,8 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_ONCHIP_FLASH
   up_flash_init();
 #endif
+
+  up_extra_init();
 }
 
 void up_finalinitialize(void)
@@ -921,19 +939,6 @@ void up_finalinitialize(void)
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
-
-  /* Attach and enable flash_s intr. */
-
-  irq_attach(18, up_flash_save_isr, NULL);
-  up_enable_irq(18);
-  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
-
-  /* Set start reason to env */
-
-  setenv("START_REASON", up_get_wkreason_env(), 1);
-
-  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
-          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
 }
 
 void up_reset(int status)

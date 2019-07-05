@@ -449,6 +449,13 @@ void up_ioe_init(void)
 }
 #endif
 
+void up_extra_init(void)
+{
+  /* Set start reason to env */
+
+  setenv("START_REASON", up_get_wkreason_env(), 1);
+}
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
@@ -474,6 +481,8 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_IOE
   up_ioe_init();
 #endif
+
+  up_extra_init();
 }
 
 void up_finalinitialize(void)
@@ -481,10 +490,6 @@ void up_finalinitialize(void)
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
-
-  /* Set start reason to env */
-
-  setenv("START_REASON", up_get_wkreason_env(), 1);
 }
 
 void up_reset(int status)
