@@ -68,3 +68,7 @@ config VINTC_DW
 config VINTC_DW_BASE
 	hex "DW VINTC base address"
 	depends on VINTC_DW
+
+config VINTC_DW_ACK
+	bool "DesignWare interrupt Controller ACK"
+	depends on VINTC_DW

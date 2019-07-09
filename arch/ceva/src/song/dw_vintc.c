@@ -83,6 +83,10 @@ struct dw_vintc_s
   volatile uint32_t IRQ_INTERNAL_PLEVEL;
   volatile uint32_t RESERVED1[2];
   volatile uint32_t IRQ_PRX[64];
+#ifdef CONFIG_VINTC_DW_ACK
+  volatile uint32_t RESERVED2[390];
+  volatile uint32_t ACK_CLR; /* 0x800 */
+#endif
 };
 
 /****************************************************************************
@@ -98,13 +102,23 @@ static FAR struct dw_vintc_s * const g_dw_vintc
 
 static int dw_vintc_interrupt(int irq, FAR void *context, FAR void *arg)
 {
-  uint32_t status;
+  uint32_t status_array[NR_IRQS/32+1];
   int i, j;
+
+  /* Get all interrupt status */
+  for (i = 0; i < NR_IRQS; i+= 32)
+    {
+      status_array[i/32] = g_dw_vintc->IRQ_MASKSTATUS[i/32];
+    }
+
+#ifdef CONFIG_VINTC_DW_ACK
+  g_dw_vintc->ACK_CLR = 1;
+#endif
 
   /* Dispatch request one by one */
   for (i = 0; i < NR_IRQS; i += 32)
     {
-      status = g_dw_vintc->IRQ_MASKSTATUS[i/32];
+      uint32_t status = status_array[i/32];
       for (j = 0; status; j++)
         {
           if (status & (1 << j))
