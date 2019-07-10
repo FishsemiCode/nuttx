@@ -473,8 +473,8 @@ static void up_audio_init(void)
 
   pcm_playback = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), true);
   pcm_capture = audio_i2s_initialize(song_i2s_initialize(0xa0060000, "pcm_mclk"), false);
-  dma_playback = audio_dma_initialize(g_dma[0], 3, true, 4, 0xa0060018);
-  dma_capture = audio_dma_initialize(g_dma[0], 11, false, 4, 0xa0060014);
+  dma_playback = audio_dma_initialize(g_dma[1], 3, true, 4, 0xa0060018);
+  dma_capture = audio_dma_initialize(g_dma[1], 11, false, 4, 0xa0060014);
   audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
   audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
 
