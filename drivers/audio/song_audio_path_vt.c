@@ -70,6 +70,9 @@
 #define SONG_AUDIO_PATH_VOICE_VT_SRC_MASK           0x00000001
 #define SONG_AUDIO_PATH_VOICE_VT_SRC_VOICE_ADC3     0
 #define SONG_AUDIO_PATH_VOICE_VT_SRC_DMAS           1
+#define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_MASK(x)     (0x7 << (x * 3 + 11))
+#define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_SHIFT(x)    (x * 3 + 11)
+#define SONG_AUDIO_PATH_VOICE_TRIGGER_GAIN_MASK     0x7fe
 
 #define SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_MASK(x)   (0x70 << (x * 8))
 #define SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_SHIFT(x)  (4 + x * 8)
@@ -206,24 +209,23 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
   clk_enable(clk_get(AUDIO_SYS_CLK3072K));
   clk_enable(clk_get(AUDIO_SYS_CLK49152K));
 
-  if (dev->dma_out)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                           SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC,
-                           SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                           SONG_AUDIO_PATH_VOICE_DMA_SLOT0_MK,
-                           SONG_AUDIO_PATH_VOICE_DMA_SLOT0_ADC3);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
-                           SONG_AUDIO_PATH_VOICE_DMA_SLOT12_MK,
-                           0);
-    }
-
   if (dev->vt_src == AUDIO_PATH_VT_SRC_EXTERN_ADC3)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
                            SONG_AUDIO_PATH_D_ADC3_EN,
                            SONG_AUDIO_PATH_D_ADC3_EN);
+      if (dev->dma_out)
+        {
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                               SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC,
+                               SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                               SONG_AUDIO_PATH_VOICE_DMA_SLOT0_MK,
+                               SONG_AUDIO_PATH_VOICE_DMA_SLOT0_ADC3);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                               SONG_AUDIO_PATH_VOICE_DMA_SLOT12_MK,
+                               0);
+        }
     }
   else if (dev->vt_src == AUDIO_PATH_VT_SRC_VOICE_ADC3)
     {
@@ -233,10 +235,17 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL0,
                            SONG_AUDIO_PATH_VOICE_ADCx_ENABLE(3),
                            SONG_AUDIO_PATH_VOICE_ADCx_ENABLE(3));
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
-                           SONG_AUDIO_PATH_VOICE_VT_ENABLE,
-                           SONG_AUDIO_PATH_VOICE_VT_ENABLE);
+      if (dev->dma_out)
+        {
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
+                               SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC,
+                               0);
+        }
     }
+
+  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
+                       SONG_AUDIO_PATH_VOICE_VT_ENABLE,
+                       SONG_AUDIO_PATH_VOICE_VT_ENABLE);
 
   return OK;
 }
@@ -266,9 +275,10 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
                            SONG_AUDIO_PATH_VOICE_VT_FIFO_RESET);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
                            SONG_AUDIO_PATH_VOICE_VT_FIFO_RESET, 0);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
-                           SONG_AUDIO_PATH_VOICE_VT_ENABLE, 0);
     }
+
+  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
+                       SONG_AUDIO_PATH_VOICE_VT_ENABLE, 0);
 
   clk_disable(clk_get(AUDIO_SYS_CLK3072K));
   clk_disable(clk_get(AUDIO_SYS_CLK49152K));
@@ -286,16 +296,8 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_)
 {
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
 
-  if (dev->vt_src == AUDIO_PATH_VT_SRC_EXTERN_ADC3)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
-                           SONG_AUDIO_PATH_D_ADC3_EN, 0);
-    }
-  else if (dev->vt_src == AUDIO_PATH_VT_SRC_VOICE_ADC3)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
-                           SONG_AUDIO_PATH_VOICE_VT_ENABLE, 0);
-    }
+  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
+                       SONG_AUDIO_PATH_VOICE_VT_ENABLE, 0);
 
   clk_disable(clk_get(AUDIO_SYS_CLK3072K));
   clk_disable(clk_get(AUDIO_SYS_CLK49152K));
@@ -314,18 +316,9 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
   clk_enable(clk_get(AUDIO_SYS_CLK3072K));
   clk_enable(clk_get(AUDIO_SYS_CLK49152K));
 
-  if (dev->vt_src == AUDIO_PATH_VT_SRC_EXTERN_ADC3)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
-                           SONG_AUDIO_PATH_D_ADC3_EN,
-                           SONG_AUDIO_PATH_D_ADC3_EN);
-    }
-  else if (dev->vt_src == AUDIO_PATH_VT_SRC_VOICE_ADC3)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
-                           SONG_AUDIO_PATH_VOICE_VT_ENABLE,
-                           SONG_AUDIO_PATH_VOICE_VT_ENABLE);
-    }
+  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
+                       SONG_AUDIO_PATH_VOICE_VT_ENABLE,
+                       SONG_AUDIO_PATH_VOICE_VT_ENABLE);
 
   return OK;
 }
@@ -364,6 +357,18 @@ struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_s
         audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG0,
                              SONG_AUDIO_PATH_VOICE_VT_SRC_MASK,
                              SONG_AUDIO_PATH_VOICE_VT_SRC_VOICE_ADC3);
+
+        audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG0,
+                             SONG_AUDIO_PATH_VOICE_ADCx_GAIN_MASK(3),
+                             0x3 << SONG_AUDIO_PATH_VOICE_ADCx_GAIN_SHIFT(3));
+
+        audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG0,
+                             SONG_AUDIO_PATH_VOICE_TRIGGER_GAIN_MASK,
+                             0x7fe);
+
+        audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG1,
+                             SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_MASK(3),
+                             0x3 << SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_SHIFT(3));
 
         if (audio_path_getreg(dev, SONG_AUDIO_PATH_CFG) & SONG_AUDIO_PATH_DMIC_FREQ_MASK
                               & (1 << ((audio_path_getreg(dev, SONG_AUDIO_PATH_ADC_CFG1)
