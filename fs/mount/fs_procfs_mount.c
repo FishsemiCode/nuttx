@@ -484,6 +484,7 @@ static ssize_t mount_read(FAR struct file *filep, FAR char *buffer,
 {
   FAR struct mount_file_s *procfile;
   foreach_mountpoint_t handler;
+  struct mount_info_s info;
   ssize_t ret;
 
   finfo("buffer=%p buflen=%d\n", buffer, (int)buflen);
@@ -494,8 +495,6 @@ static ssize_t mount_read(FAR struct file *filep, FAR char *buffer,
   DEBUGASSERT(procfile);
 
   /* Provide the requested data */
-
-  struct mount_info_s info;
 
   memset(&info, 0, sizeof(struct mount_info_s));
   info.line      = procfile->line;
