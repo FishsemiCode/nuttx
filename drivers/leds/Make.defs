@@ -62,6 +62,12 @@ ifeq ($(CONFIG_LEDS_MAX7219),y)
   LEDVPATH = :leds
 endif
 
+ifeq ($(CONFIG_FISHLED),y)
+  CSRCS += fishled.c
+  LEDDEPATH = --dep-path leds
+  LEDVPATH = :leds
+endif
+
 ifeq ($(CONFIG_RGBLED),y)
   CSRCS += rgbled.c
   LEDDEPATH = --dep-path leds
