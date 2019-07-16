@@ -44,7 +44,9 @@
 #include <time.h>
 #include <string.h>
 #include <errno.h>
+#include <syslog.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/irq.h>
 
 #include "clock/clock.h"
@@ -175,6 +177,11 @@ static void timer_timeout(int argc, wdparm_t itimer)
     }
 #else
   FAR struct posix_timer_s *timer = (FAR struct posix_timer_s *)itimer;
+
+  if (!up_interrupt_context())
+    {
+      syslog(LOG_INFO, "WARNING, %s, NOT IRQ, line %d\n",  __func__, __LINE__);
+    }
 
   /* Send the specified signal to the specified task.   Increment the
    * reference count on the timer first so that will not be deleted until
