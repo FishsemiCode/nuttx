@@ -106,6 +106,13 @@
 #define SONG_AUDIO_PATH_D_ADC12_FS_192K             0x00004000
 #define SONG_AUDIO_PATH_D_ADC12_FS_384K             0x00005000
 #define SONG_AUDIO_PATH_D_ADC12_FS_768K             0x00006000
+#define SONG_AUDIO_PATH_D_ADC3_FS_MASK              0x00070000
+#define SONG_AUDIO_PATH_D_ADC3_FS_16K               0x00010000
+#define SONG_AUDIO_PATH_D_ADC3_FS_48K               0x00020000
+#define SONG_AUDIO_PATH_D_ADC3_FS_96K               0x00030000
+#define SONG_AUDIO_PATH_D_ADC3_FS_192K              0x00040000
+#define SONG_AUDIO_PATH_D_ADC3_FS_384K              0x00050000
+#define SONG_AUDIO_PATH_D_ADC3_FS_768K              0x00060000
 #define SONG_AUDIO_PATH_DMIC_FREQ_MASK              0x00000007
 
 /****************************************************************************
@@ -454,29 +461,50 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
           audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                                SONG_AUDIO_PATH_D_ADC12_FS_MASK,
                                SONG_AUDIO_PATH_D_ADC12_FS_16K);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC3_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC3_FS_16K);
           break;
         case 48000:
           audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                                SONG_AUDIO_PATH_D_ADC12_FS_MASK,
                                SONG_AUDIO_PATH_D_ADC12_FS_48K);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC3_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC3_FS_48K);
           break;
         case 96000:
           audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                                SONG_AUDIO_PATH_D_ADC12_FS_MASK,
                                SONG_AUDIO_PATH_D_ADC12_FS_96K);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC3_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC3_FS_96K);
+          break;
         case 192000:
           audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                                SONG_AUDIO_PATH_D_ADC12_FS_MASK,
                                SONG_AUDIO_PATH_D_ADC12_FS_192K);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC3_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC3_FS_192K);
           break;
         case 384000:
           audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                                SONG_AUDIO_PATH_D_ADC12_FS_MASK,
                                SONG_AUDIO_PATH_D_ADC12_FS_384K);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC3_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC3_FS_384K);
+          break;
         case 768000:
           audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
                                SONG_AUDIO_PATH_D_ADC12_FS_MASK,
                                SONG_AUDIO_PATH_D_ADC12_FS_768K);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC3_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC3_FS_768K);
+          break;
         default:
           return -EINVAL;
         }

@@ -51,6 +51,7 @@
 
 #define SONG_AUDIO_PATH_ANC_CTL(x)                  (0x000 + (x) * 0x200)
 #define SONG_AUDIO_PATH_ANC_CFG(x)                  (0x004 + (x) * 0x200)
+#define SONG_AUDIO_PATH_ANC_CFG2(x)                 (0x00c + (x) * 0x200)
 
 #define SONG_AUDIO_PATH_CTL0                        0x480
 #define SONG_AUDIO_PATH_CFG                         0x488
@@ -61,12 +62,27 @@
 #define SONG_AUDIO_PATH_ANC_HW_ANC_EN               0x00080000
 #define SONG_AUDIO_PATH_ANC_FB_MIC_EN               0x00000010
 #define SONG_AUDIO_PATH_ANC_FF_MIC_EN               0x00000001
+#define SONG_AUDIO_PATH_ANC_CIC2_MODE               0x00020000
+
+#define SONG_AUDIO_PATH_FF_MIC_SEL_MASK             0x00000030
+#define SONG_AUDIO_PATH_FF_MIC_DOLPHIN_ADC1         0x00000010
+#define SONG_AUDIO_PATH_FB_MIC_SEL_MASK             0x000000c0
+#define SONG_AUDIO_PATH_FB_MIC_DOLPHIN_ADC2         0x00000080
 
 #define SONG_AUDIO_PATH_I2S_EN                      0x00000020
 #define SONG_AUDIO_PATH_AKM_EN                      0x00000010
 #define SONG_AUDIO_PATH_PDM_EN                      0x00000008
+#define SONG_AUDIO_PATH_D_ADC12_EN                  0x00000040
 
 #define SONG_AUDIO_PATH_PDM3_CLK_DIR                0x00000008
+
+#define SONG_AUDIO_PATH_D_ADC12_FS_MASK             0x00007000
+#define SONG_AUDIO_PATH_D_ADC12_FS_16K              0x00001000
+#define SONG_AUDIO_PATH_D_ADC12_FS_48K              0x00002000
+#define SONG_AUDIO_PATH_D_ADC12_FS_96K              0x00003000
+#define SONG_AUDIO_PATH_D_ADC12_FS_192K             0x00004000
+#define SONG_AUDIO_PATH_D_ADC12_FS_384K             0x00005000
+#define SONG_AUDIO_PATH_D_ADC12_FS_768K             0x00006000
 
 /****************************************************************************
  * Private Types
@@ -114,6 +130,8 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_);
 #endif
 static int song_audio_path_channels(struct song_audio_path_s *dev,
                                     uint8_t channels);
+static int song_audio_path_samplerate(struct song_audio_path_s *dev,
+                                      uint32_t rate);
 static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
                                    uint16_t fmt);
 
@@ -170,7 +188,7 @@ static int song_audio_path_configure(struct audio_lowerhalf_s *dev_,
 #endif
 {
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
-  int nchannels;
+  int nchannels, samprate;
   int ret = OK;
 
   DEBUGASSERT(song_audio_path && caps);
@@ -180,16 +198,22 @@ static int song_audio_path_configure(struct audio_lowerhalf_s *dev_,
 
   switch (caps->ac_type)
     {
-      case AUDIO_TYPE_OUTPUT:
+      case AUDIO_TYPE_INPUT:
 
-        /* Save the current stream configuration */
+        samprate  = caps->ac_controls.hw[0] |
+                    (caps->ac_controls.b[3] << 16);
+
+        if (song_audio_path_samplerate(dev, samprate) < 0)
+          return -EINVAL;
+
+        break;
+      case AUDIO_TYPE_OUTPUT:
 
         nchannels = caps->ac_channels;
 
-        if (!nchannels)
-          return -EINVAL;
         if (song_audio_path_channels(dev, nchannels) < 0)
           return -EINVAL;
+
         break;
       case AUDIO_TYPE_EXTENSION:
         switch(caps->ac_format.hw)
@@ -220,6 +244,8 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
   clk_enable(clk_get(AUDIO_SYS_CLK3072K));
   clk_enable(clk_get(AUDIO_SYS_CLK49152K));
   clk_enable(clk_get("out0"));
+  clk_enable(clk_get("audio_sys_in_clk"));
+
   for (i = 0; i < dev->channels; ++i)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
@@ -230,12 +256,18 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
                            SONG_AUDIO_PATH_ANC_HW_ANC_EN,
                            SONG_AUDIO_PATH_ANC_HW_ANC_EN);
-      if (!dev->extern_adc)
-        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
-                             SONG_AUDIO_PATH_ANC_FF_MIC_EN |
-                             SONG_AUDIO_PATH_ANC_FB_MIC_EN,
-                             SONG_AUDIO_PATH_ANC_FF_MIC_EN |
-                             SONG_AUDIO_PATH_ANC_FB_MIC_EN);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                           SONG_AUDIO_PATH_ANC_FF_MIC_EN |
+                           SONG_AUDIO_PATH_ANC_FB_MIC_EN,
+                           SONG_AUDIO_PATH_ANC_FF_MIC_EN |
+                           SONG_AUDIO_PATH_ANC_FB_MIC_EN);
+    }
+
+  if (dev->extern_adc)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
+                           SONG_AUDIO_PATH_D_ADC12_EN,
+                           SONG_AUDIO_PATH_D_ADC12_EN);
     }
 
   return OK;
@@ -254,6 +286,7 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
   clk_disable(clk_get(AUDIO_SYS_CLK3072K));
   clk_disable(clk_get(AUDIO_SYS_CLK49152K));
   clk_disable(clk_get("out0"));
+  clk_disable(clk_get("audio_sys_in_clk"));
 
   for (i = 0; i < dev->channels; ++i)
      {
@@ -266,7 +299,13 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
                            SONG_AUDIO_PATH_ANC_FB_MIC_EN, 0);
      }
 
- return OK;
+  if (dev->extern_adc)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
+                           SONG_AUDIO_PATH_D_ADC12_EN, 0);
+    }
+
+  return OK;
 }
 #endif
 
@@ -283,6 +322,7 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_)
   clk_disable(clk_get(AUDIO_SYS_CLK3072K));
   clk_disable(clk_get(AUDIO_SYS_CLK49152K));
   clk_disable(clk_get("out0"));
+  clk_disable(clk_get("audio_sys_in_clk"));
 
   for (i = 0; i < dev->channels; ++i)
     {
@@ -293,6 +333,12 @@ static int song_audio_path_pause(struct audio_lowerhalf_s *dev_)
                            SONG_AUDIO_PATH_ANC_HW_ANC_EN |
                            SONG_AUDIO_PATH_ANC_FF_MIC_EN |
                            SONG_AUDIO_PATH_ANC_FB_MIC_EN, 0);
+    }
+
+  if (dev->extern_adc)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
+                           SONG_AUDIO_PATH_D_ADC12_EN, 0);
     }
 
   return OK;
@@ -310,6 +356,8 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
   clk_enable(clk_get(AUDIO_SYS_CLK3072K));
   clk_enable(clk_get(AUDIO_SYS_CLK49152K));
   clk_enable(clk_get("out0"));
+  clk_enable(clk_get("audio_sys_in_clk"));
+
   for (i = 0; i < dev->channels; ++i)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
@@ -318,13 +366,19 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
                            SONG_AUDIO_PATH_ANC_HW_ANC_EN,
                            SONG_AUDIO_PATH_ANC_HW_ANC_EN);
-      if (!dev->extern_adc)
-        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
-                             SONG_AUDIO_PATH_ANC_FF_MIC_EN |
-                             SONG_AUDIO_PATH_ANC_FB_MIC_EN,
-                             SONG_AUDIO_PATH_ANC_FF_MIC_EN |
-                             SONG_AUDIO_PATH_ANC_FB_MIC_EN);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                           SONG_AUDIO_PATH_ANC_FF_MIC_EN |
+                           SONG_AUDIO_PATH_ANC_FB_MIC_EN,
+                           SONG_AUDIO_PATH_ANC_FF_MIC_EN |
+                           SONG_AUDIO_PATH_ANC_FB_MIC_EN);
 
+    }
+
+  if (dev->extern_adc)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
+                           SONG_AUDIO_PATH_D_ADC12_EN,
+                           SONG_AUDIO_PATH_D_ADC12_EN);
     }
 
   return OK;
@@ -336,15 +390,75 @@ static int song_audio_path_channels(struct song_audio_path_s *dev,
 {
   int i;
 
-  if (!channels)
+  if (!channels || channels > 2)
     return -EINVAL;
 
   dev->channels = channels;
+
   for (i = 0; i < channels; ++i)
-    audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
-                         SONG_AUDIO_PATH_ANC_SDM_BYPASS, 0);
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                           SONG_AUDIO_PATH_ANC_SDM_BYPASS, 0);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                           SONG_AUDIO_PATH_ANC_CIC2_MODE,
+                           SONG_AUDIO_PATH_ANC_CIC2_MODE);
+
+      if (dev->extern_adc)
+        {
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG2(i),
+                               SONG_AUDIO_PATH_FF_MIC_SEL_MASK |
+                               SONG_AUDIO_PATH_FB_MIC_SEL_MASK,
+                               SONG_AUDIO_PATH_FF_MIC_DOLPHIN_ADC1 |
+                               SONG_AUDIO_PATH_FB_MIC_DOLPHIN_ADC2);
+        }
+    }
 
   return OK;
+}
+
+static int song_audio_path_samplerate(struct song_audio_path_s *dev,
+                                      uint32_t rate)
+{
+  if (dev->extern_adc)
+    {
+      switch (rate)
+        {
+        case 16000:
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC12_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC12_FS_16K);
+          break;
+        case 48000:
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC12_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC12_FS_48K);
+          break;
+        case 96000:
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC12_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC12_FS_96K);
+          break;
+        case 192000:
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC12_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC12_FS_192K);
+          break;
+        case 384000:
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC12_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC12_FS_384K);
+          break;
+        case 768000:
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                               SONG_AUDIO_PATH_D_ADC12_FS_MASK,
+                               SONG_AUDIO_PATH_D_ADC12_FS_768K);
+          break;
+        default:
+          return -EINVAL;
+        }
+    }
+
+  return 0;
 }
 
 static int song_audio_path_set_fmt(struct song_audio_path_s *dev,

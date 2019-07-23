@@ -92,8 +92,8 @@
 #define SONG_AUDIO_PATH_D_ADC3_EN                   0x00000080
 
 #define SONG_AUDIO_PATH_DMIC_FREQ_MASK              0x00000007
-#define SONG_AUDIO_PATH_EXT_ADC_FREQ_MASK           0x00070000
-#define SONG_AUDIO_PATH_EXT_ADC_FREQ_16K            0x00010000
+#define SONG_AUDIO_PATH_EXT_ADC3_FREQ_MASK          0x00070000
+#define SONG_AUDIO_PATH_EXT_ADC3_FREQ_16K           0x00010000
 
 /****************************************************************************
  * Private Types
@@ -211,6 +211,9 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
 
   if (dev->vt_src == AUDIO_PATH_VT_SRC_EXTERN_ADC3)
     {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
+                           SONG_AUDIO_PATH_EXT_ADC3_FREQ_MASK,
+                           SONG_AUDIO_PATH_EXT_ADC3_FREQ_16K);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
                            SONG_AUDIO_PATH_D_ADC3_EN,
                            SONG_AUDIO_PATH_D_ADC3_EN);
@@ -344,7 +347,7 @@ struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_s
   clk_enable(clk_get("audio_mclk"));
   clk_enable(clk_get("thinkers_pclk"));
   clk_enable(clk_get("thinkers_mclk"));
-  clk_set_rate(clk_get("thinkers_mclk"), 12288000);
+  clk_set_rate(clk_get("thinkers_mclk"), 6144000);
 
   switch (vt_src)
     {
@@ -397,8 +400,8 @@ struct audio_lowerhalf_s *song_audio_path_vt_initialize(uintptr_t base, int vt_s
                              SONG_AUDIO_PATH_VOICE_VT_SRC_EXT_ADC_MK,
                              SONG_AUDIO_PATH_VOICE_VT_SRC_EXT_ADC3);
         audio_path_updatereg(dev, SONG_AUDIO_PATH_CFG,
-                             SONG_AUDIO_PATH_EXT_ADC_FREQ_MASK,
-                             SONG_AUDIO_PATH_EXT_ADC_FREQ_16K);
+                             SONG_AUDIO_PATH_EXT_ADC3_FREQ_MASK,
+                             SONG_AUDIO_PATH_EXT_ADC3_FREQ_16K);
         break;
     }
 
