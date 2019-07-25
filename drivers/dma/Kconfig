@@ -12,10 +12,38 @@ menuconfig DMA
 
 if DMA
 
+config DMA_LINK
+	bool "Support DMA link configure"
+
 config SONG_DMAG
 	bool "Song DMAG"
 	depends on ARCH_CHIP_SONG
 	depends on CLK
+
+if SONG_DMAG
+
+config SONG_DMAG_LINK
+	bool "Support Song DMAG link configure"
+	default n
+	select DMA_LINK
+
+if SONG_DMAG_LINK
+
+config SONG_DMAG_RAM_OFFSET
+	hex "DMAG RAM offset"
+	default 0x800
+
+config SONG_DMAG_CH_RAM_SIZE
+	hex "DMAG IRAM size for each channel"
+	default 0x40
+
+config SONG_DMAG_DST_CH_RAM_SIZE
+	hex "DMAG IRAM size for destination channel"
+	default 0x10
+
+endif
+
+endif
 
 config SONG_DMAS
 	bool "Song DMAS"

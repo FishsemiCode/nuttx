@@ -71,8 +71,6 @@
 #define SONG_DMAG_REG_MONITOR_CTRL(x)           (0x0138 + (x) * 0x40)
 #define SONG_DMAG_REG_MONITOR_OUT(x)            (0x013c + (x) * 0x40)
 
-#define SONG_DMAG_REG_RAM_DATA                  0x4000
-
 #define SONG_DMAG_CTRL_ENABLE                   0x01
 #define SONG_DMAG_CTRL_CLOSE                    0x02
 #define SONG_DMAG_CTRL_PAUSE                    0x04
@@ -114,6 +112,16 @@
 #define SONG_DMAG_MONITOR_DST_NUM               0x03
 #define SONG_DMAG_MONITOR_MASK                  0x03
 
+#ifdef CONFIG_SONG_DMAG_LINK
+# define SONG_DMAG_RAM_DATA_OFFSET              CONFIG_SONG_DMAG_RAM_OFFSET
+# define SONG_DMAG_CH_LINK_SIZE                 CONFIG_SONG_DMAG_CH_RAM_SIZE
+# define SONG_DMAG_CH_DST_LINK_SIZE             CONFIG_SONG_DMAG_DST_CH_RAM_SIZE
+# define SONG_DMAG_CH_SRC_LINK_SIZE             (SONG_DMAG_CH_LINK_SIZE - SONG_DMAG_CH_DST_LINK_SIZE)
+# define SONG_DMAG_CH_LINK_ITEM_SIZE            8
+# define SONG_DMAG_CH_DST_LINK_NUM              (SONG_DMAG_CH_DST_LINK_SIZE / SONG_DMAG_CH_LINK_ITEM_SIZE)
+# define SONG_DMAG_CH_SRC_LINK_NUM              (SONG_DMAG_CH_SRC_LINK_SIZE / SONG_DMAG_CH_LINK_ITEM_SIZE)
+#endif
+
 #define MIN(x, y)                               ((x) < (y) ? (x) : (y))
 #define MAX(x, y)                               ((x) > (y) ? (x) : (y))
 
@@ -133,6 +141,10 @@ struct song_dmag_chan_s
   uintptr_t dst_addr;
   uintptr_t src_addr;
   size_t len;
+#ifdef CONFIG_SONG_DMAG_LINK
+  unsigned int work_mode;
+  struct dma_link_config_s *link_cfg;
+#endif
 };
 
 struct song_dmag_dev_s
@@ -204,11 +216,21 @@ static size_t song_dmag_residual(struct dma_chan_s *chan_)
   struct song_dmag_dev_s *dev = chan->dev;
   uint32_t ca;
 
+#ifdef CONFIG_SONG_DMAG_LINK
+  if (chan->work_mode != DMA_BLOCK_MODE)
+    {
+      song_dmag_write(dev, SONG_DMAG_REG_MONITOR_CTRL(chan->index),
+                      SONG_DMAG_MONITOR_SRC_NUM);
+      ca = song_dmag_read(dev, SONG_DMAG_REG_MONITOR_OUT(chan->index));
+
+      return chan->link_cfg->src_link_num - ca;
+    }
+#endif
   song_dmag_write(dev, SONG_DMAG_REG_MONITOR_CTRL(chan->index),
                   SONG_DMAG_MONITOR_DST_ADDR);
   ca = song_dmag_read(dev, SONG_DMAG_REG_MONITOR_OUT(chan->index));
 
-  return chan->len - (ca - chan->src_addr);
+  return chan->len - (ca - chan->dst_addr);
 }
 
 static int song_dmag_chan_config(struct dma_chan_s *chan_,
@@ -231,7 +253,14 @@ static void song_dmag_chan_irq(struct song_dmag_chan_s *chan)
   struct song_dmag_dev_s *dev = chan->dev;
   unsigned int index = chan->index;
   uint32_t status = song_dmag_read(dev, SONG_DMAG_REG_CH_INTR_STATUS(index));
-  ssize_t len = chan->len - song_dmag_residual(&chan->chan);
+  ssize_t len;
+
+#ifdef CONFIG_SONG_DMAG_LINK
+  if (chan->work_mode != DMA_BLOCK_MODE)
+    len = chan->link_cfg->src_link_num - song_dmag_residual(&chan->chan);
+  else
+#endif
+    len = chan->len - song_dmag_residual(&chan->chan);
 
   song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_STATUS(index), status);
   if (status & SONG_DMAG_INTR_ERROR)
@@ -272,6 +301,9 @@ static int song_dmag_start(struct dma_chan_s *chan_,
   chan->len = len;
   chan->callback = callback;
   chan->arg = arg;
+#ifdef CONFIG_SONG_DMAG_LINK
+  chan->work_mode = DMA_BLOCK_MODE;
+#endif
 
   song_dmag_update_bits(dev, SONG_DMAG_REG_CONFIG(index),
                         SONG_DMAG_CONFIG_BLOCK_MASK |
@@ -353,6 +385,70 @@ static void song_dmag_put_chan(struct dma_dev_s *dev,
 {
 }
 
+#ifdef CONFIG_SONG_DMAG_LINK
+static int song_dmag_start_link(struct dma_chan_s *chan_,
+                                dma_callback_t callback, void *arg,
+                                unsigned int work_mode, struct dma_link_config_s *cfg)
+{
+    struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
+    struct song_dmag_dev_s *dev = chan->dev;
+    unsigned int index = chan->index;
+    unsigned int src_link_offset, dst_link_offset;
+    unsigned int cnt;
+
+    if (song_dmag_is_busy(dev, index))
+      return -EBUSY;
+
+    if (chan->work_mode > DMA_DUAL_LINK_MODE ||
+        cfg->src_link_num > SONG_DMAG_CH_SRC_LINK_NUM ||
+        cfg->dst_link_num > SONG_DMAG_CH_DST_LINK_NUM)
+      return -EINVAL;
+
+    chan->callback = callback;
+    chan->arg = arg;
+    chan->link_cfg = cfg;
+    chan->work_mode = work_mode;
+
+    song_dmag_update_bits(dev, SONG_DMAG_REG_CONFIG(index),
+                          SONG_DMAG_CONFIG_SRC_MASK |
+                          SONG_DMAG_CONFIG_SCATTER_MASK,
+                          SONG_DMAG_CONFIG_SRC_INC |
+                          work_mode);
+
+    src_link_offset = SONG_DMAG_RAM_DATA_OFFSET + index * SONG_DMAG_CH_LINK_SIZE;
+    dst_link_offset = src_link_offset + SONG_DMAG_CH_SRC_LINK_SIZE;
+
+    song_dmag_write(dev, SONG_DMAG_REG_LINK_ADDR(index), (dst_link_offset << 16) + src_link_offset);
+    song_dmag_write(dev, SONG_DMAG_REG_LINK_NUM(index), (cfg->dst_link_num << 16) + cfg->src_link_num);
+
+    for (cnt = 0; cnt < cfg->src_link_num; cnt++)
+      {
+        song_dmag_write(dev, src_link_offset, cfg->src_link[cnt].addr);
+        song_dmag_write(dev, src_link_offset + 0x04, cfg->src_link[cnt].link_size);
+
+        src_link_offset += SONG_DMAG_CH_LINK_ITEM_SIZE;
+      }
+
+    for (cnt = 0; cnt < cfg->dst_link_num; cnt++)
+      {
+        song_dmag_write(dev, dst_link_offset, cfg->dst_link[cnt].addr);
+        song_dmag_write(dev, dst_link_offset + 0x04, cfg->dst_link[cnt].link_size);
+
+        dst_link_offset += SONG_DMAG_CH_LINK_ITEM_SIZE;
+      }
+
+    song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_EN(index),
+                    SONG_DMAG_INTR_ERROR |
+                    SONG_DMAG_INTR_TRANS_END);
+    song_dmag_update_bits(dev, SONG_DMAG_REG_INTR_EN(dev->cpu),
+                          1 << index, 1 << index);
+    song_dmag_write(dev, SONG_DMAG_REG_CTRL(index),
+                    SONG_DMAG_CTRL_ENABLE);
+
+    return OK;
+}
+#endif
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -362,6 +458,9 @@ struct dma_ops_s g_song_dmag_ops =
   song_dmag_chan_config,
   song_dmag_start,
   song_dmag_start_cyclic,
+#ifdef CONFIG_SONG_DMAG_LINK
+  song_dmag_start_link,
+#endif
   song_dmag_stop,
   song_dmag_pause,
   song_dmag_resume,
