@@ -148,8 +148,7 @@ static const struct song_onchip_info_s g_info_map[] =
 {
   {0x20, 0x0e, 0xff, "%02x", "chip-id"},
   {0x25, 0x01, 0x1f, "%02x", "soc-id"},
-  {0xa0, 0x06, 0xff, "%c",   "lot-id"},
-  {0xb0, 0x01, 0xff, "%03d", "wafer-id"},
+  {0x40, 0x10, 0xff, "%d", "board-id"},
   {},
 };
 #endif
@@ -226,13 +225,19 @@ static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
 
       song_onchip_flash_read(dev, info->offset, info->nbytes, buf);
 
-      for (i = info->nbytes - 1; i >= 0; i--)
+      for (i = 0; i < info->nbytes; i++)
         {
-          buf[i] &= info->mask;
-          len    += sprintf(&value[len], info->format, buf[i]);
+          if (buf[i] != 0xff)
+          {
+            buf[i] &= info->mask;
+            len    += sprintf(&value[len], info->format, buf[i]);
+          }
         }
 
-      setenv(info->name, value, 1);
+      if (len > 0)
+        {
+          setenv(info->name, value, 1);
+        }
       info++;
     }
 }
