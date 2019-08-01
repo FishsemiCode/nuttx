@@ -621,6 +621,7 @@ struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c,
 
   ak4332_putreg(dev, AK4332_DAC_ADJ1, 0x02);
   ak4332_putreg(dev, AK4332_DAC_ADJ2, 0xc0);
+  ak4332_putreg(dev, AK4332_OUT_MODE, 0x40);
 
   switch (mix)
   {
