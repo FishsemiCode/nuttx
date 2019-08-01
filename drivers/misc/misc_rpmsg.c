@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/environ.h>
 
 #include <nuttx/misc/misc_rpmsg.h>
 #include <nuttx/power/pm.h>
@@ -58,6 +59,7 @@
 #define MISC_RPMSG_RETENT_ADD           0
 #define MISC_RPMSG_RETENT_SET           1
 #define MISC_RPMSG_REMOTE_BOOT          2
+#define MISC_RPMSG_REMOTE_ENVSYNC       3
 
 #define MISC_RETENT_MAGIC               (0xdeadbeef)
 
@@ -93,6 +95,15 @@ begin_packed_struct struct misc_rpmsg_remote_boot_s
 {
   uint32_t command;
   char     name[16];
+} end_packed_struct;
+
+begin_packed_struct struct misc_rpmsg_remote_envsync_s
+{
+  uint32_t command;
+  uint32_t response;
+  uint32_t result;
+  char     name[16];
+  char     value[32];
 } end_packed_struct;
 
 struct misc_rpmsg_s
@@ -132,6 +143,9 @@ static int misc_retent_set_handler(struct rpmsg_endpoint *ept,
 static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
                                    void *data, size_t len,
                                    uint32_t src, void *priv_);
+static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_);
 
 static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd);
 static int misc_retent_save(struct misc_dev_s *dev, char *file);
@@ -141,6 +155,7 @@ static int misc_retent_restore(struct misc_dev_s *dev, char *file);
 static int misc_retent_add(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_retent_set(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_remote_boot(struct misc_rpmsg_s *priv, unsigned long arg);
+static int misc_remote_envsync(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 /****************************************************************************
@@ -149,9 +164,10 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 static const rpmsg_ept_cb g_misc_rpmsg_handler[] =
 {
-  [MISC_RPMSG_RETENT_ADD]  = misc_retent_add_handler,
-  [MISC_RPMSG_RETENT_SET]  = misc_retent_set_handler,
-  [MISC_RPMSG_REMOTE_BOOT] = misc_remote_boot_handler,
+  [MISC_RPMSG_RETENT_ADD]     = misc_retent_add_handler,
+  [MISC_RPMSG_RETENT_SET]     = misc_retent_set_handler,
+  [MISC_RPMSG_REMOTE_BOOT]    = misc_remote_boot_handler,
+  [MISC_RPMSG_REMOTE_ENVSYNC] = misc_remote_envsync_handler,
 };
 
 static const struct misc_ops_s g_misc_ops =
@@ -264,6 +280,37 @@ static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
     }
 
   return 0;
+}
+
+static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_)
+{
+  struct misc_rpmsg_remote_envsync_s *msg = data;
+
+  if (msg->response)
+    {
+      if (!msg->result)
+        {
+          return setenv_global(msg->name, msg->value, 1);
+        }
+        return 0;
+    }
+  else
+    {
+      msg->response = 1;
+
+      char *value = getenv_global(msg->name);
+      if (!value)
+        {
+          msg->result = -EINVAL;
+        }
+      else
+        {
+          nbstr2cstr(msg->value, value, 32);
+        }
+      return rpmsg_send(ept, msg, sizeof(*msg));
+    }
 }
 
 static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd)
@@ -504,9 +551,22 @@ static int misc_remote_boot(struct misc_rpmsg_s *priv, unsigned long arg)
   struct misc_rpmsg_remote_boot_s msg;
 
   msg.command = MISC_RPMSG_REMOTE_BOOT;
-  cstr2bstr(msg.name, remote->name);
+  ncstr2bstr(msg.name, remote->name, 16);
 
   return rpmsg_send(&priv->ept, &msg, sizeof(struct misc_rpmsg_remote_boot_s));
+}
+
+static int misc_remote_envsync(struct misc_rpmsg_s *priv, unsigned long arg)
+{
+  struct misc_remote_envsync_s *env = (struct misc_remote_envsync_s *)arg;
+  struct misc_rpmsg_remote_envsync_s msg;
+
+  msg.command  = MISC_RPMSG_REMOTE_ENVSYNC;
+  msg.response = 0;
+  msg.result   = 0;
+  ncstr2bstr(msg.name, env->name, 16);
+
+  return rpmsg_send(&priv->ept, &msg, sizeof(msg));
 }
 
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
@@ -525,6 +585,9 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
         break;
       case MISC_REMOTE_BOOT:
         ret = misc_remote_boot(priv, arg);
+        break;
+      case MISC_REMOTE_ENVSYNC:
+        ret = misc_remote_envsync(priv, arg);
         break;
     }
 

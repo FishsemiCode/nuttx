@@ -56,6 +56,7 @@
 #define MISC_RETENT_ADD         _MISCIOC(1)
 #define MISC_RETENT_SET         _MISCIOC(2)
 #define MISC_REMOTE_BOOT        _MISCIOC(3)
+#define MISC_REMOTE_ENVSYNC     _MISCIOC(4)
 
 /* Access macros ************************************************************/
 
@@ -125,6 +126,12 @@ struct misc_retent_set_s
 struct misc_remote_boot_s
 {
   const char *name;
+};
+
+struct misc_remote_envsync_s
+{
+  const char *name;
+  const char *value;
 };
 
 /****************************************************************************
