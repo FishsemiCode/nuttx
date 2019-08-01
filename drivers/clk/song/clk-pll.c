@@ -54,6 +54,7 @@
 #define PLL_FBDIV_MASK      0xFFF
 #define PLL_POSTDIV1_SHIFT  20
 #define PLL_POSTDIV1_MASK   0x7
+#define PLL_POSTDIV1_MIDDLE 0x3
 #define PLL_POSTDIV2_SHIFT  24
 #define PLL_POSTDIV2_MASK   0x7
 #define PLL_DSMPD_SHIFT     28
@@ -147,8 +148,8 @@ clk_pll_round_rate(struct clk *clk, uint32_t rate, uint32_t *best_parent_rate)
       /* frequency must divide in DOUBLE */
       double fbdiv_frac, rate_d;
 
-      fbdiv_frac = (double)fbdiv * PLL_POSTDIV1_MASK / postdiv1;
-      postdiv1 = PLL_POSTDIV1_MASK;
+      fbdiv_frac = (double)fbdiv * PLL_POSTDIV1_MIDDLE / postdiv1;
+      postdiv1 = PLL_POSTDIV1_MIDDLE;
 
       rate_d = *best_parent_rate * fbdiv_frac / (postdiv1 * postdiv2 * refdiv);
       return roundup_double(rate_d);
@@ -227,10 +228,10 @@ static int clk_pll_set_rate(struct clk *clk, uint32_t rate, uint32_t parent_rate
   else
     {
       /* frequency must divide in DOUBLE */
-      /* fix postdiv1 to PLL_POSTDIV1_MASK, solve fbdiv(int), fbdiv_frac */
+      /* fix postdiv1 to PLL_POSTDIV1_MIDDLE, solve fbdiv(int), fbdiv_frac */
 
-      double fbdiv_frac = (double)fbdiv * PLL_POSTDIV1_MASK / postdiv1;
-      postdiv1 = PLL_POSTDIV1_MASK;
+      double fbdiv_frac = (double)fbdiv * PLL_POSTDIV1_MIDDLE / postdiv1;
+      postdiv1 = PLL_POSTDIV1_MIDDLE;
 
       fbdiv = (uint32_t)fbdiv_frac;
       fbdiv_frac = fbdiv_frac - fbdiv;
