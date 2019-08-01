@@ -297,8 +297,6 @@ static int audio_dma_start(struct audio_lowerhalf_s *dev)
 {
   struct audio_dma_s *audio_dma = (struct audio_dma_s *)dev;
 
-  if (dq_empty(&audio_dma->pendq))
-    return -EINVAL;
   return DMA_START_CYCLIC(audio_dma->chan, audio_dma_callback, audio_dma,
                           audio_dma->dst_addr, audio_dma->src_addr,
                           audio_dma->buffer_num * audio_dma->buffer_size,
@@ -497,6 +495,13 @@ static void audio_dma_callback(struct dma_chan_s *chan, void *arg, ssize_t len)
   bool final = false;
 
   apb = (struct ap_buffer_s*)dq_remfirst(&audio_dma->pendq);
+  if (!apb)
+    {
+      /* xrun */
+      DMA_PAUSE(audio_dma->chan);
+      audio_dma->xrun = true;
+      return;
+    }
 
   if (!audio_dma->playback)
     up_invalidate_dcache((uintptr_t)apb->samp,
