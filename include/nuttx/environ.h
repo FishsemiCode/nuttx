@@ -42,6 +42,8 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
+
 #ifndef CONFIG_DISABLE_ENVIRON
 
 /****************************************************************************
@@ -96,6 +98,130 @@ extern "C"
 struct task_group_s;  /* Forward reference */
 int env_foreach(FAR struct task_group_s *group, env_foreach_t cb,
                 FAR void *arg);
+
+/****************************************************************************
+ * Name: get_environ_ptr_global
+ *
+ * Description:
+ *   Return a pointer to the assign thread specific environ variable.
+ *
+ * Input Parameters:
+ *   None.
+ *
+ * Returned Value:
+ *   A pointer to the per-thread environ variable.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+FAR char **get_environ_ptr_global(void);
+
+/****************************************************************************
+ * Name: getenv_global
+ *
+ * Description:
+ *   The getenv_global() function searches the environment list for a string that
+ *   matches the string pointed to by name.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to find.
+ *
+ * Returned Value:
+ *   The value of the valiable (read-only) or NULL on failure
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+FAR char *getenv_global(FAR const char *name);
+
+/****************************************************************************
+ * Name: putenv_global
+ *
+ * Description:
+ *   The putenv_global() function adds or changes the value of environment variables.
+ *   The argument string is of the form name=value. If name does not already
+ *   exist in  the  environment, then string is added to the environment. If
+ *   name does exist, then the value of name in the environment is changed to
+ *   value.
+ *
+ * Input Parameters:
+ *   name=value string describing the environment setting to add/modify
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int putenv_global(FAR const char *string);
+
+/****************************************************************************
+ * Name: clearenv_global
+ *
+ * Description:
+ *   The clearenv_global() function clears the environment of all name-value pairs
+ *   and sets the value of the external variable environ to NULL.
+ *
+ * Input Parameters:
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int clearenv_global(void);
+
+/****************************************************************************
+ * Name: setenv_global
+ *
+ * Description:
+ *   The setenv_global() function adds the variable name to the environment with the
+ *   specified 'value' if the varialbe 'name" does not exist. If the 'name'
+ *   does exist in the environment, then its value is changed to 'value' if
+ *   'overwrite' is non-zero; if 'overwrite' is zero, then the value of name
+ *   unaltered.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to change
+ *   value - The new value of the variable
+ *   overwrite - Replace any existing value if non-zero.
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int setenv_global(FAR const char *name, FAR const char *value, int overwrite);
+
+/****************************************************************************
+ * Name: unsetenv_global
+ *
+ * Description:
+ *   The unsetenv_global() function deletes the variable name from the environment.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to delete
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int unsetenv_global(FAR const char *name);
 
 #undef EXTERN
 #ifdef __cplusplus

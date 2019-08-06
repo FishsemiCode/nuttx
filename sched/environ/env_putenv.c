@@ -46,34 +46,14 @@
 #include <string.h>
 #include <errno.h>
 
+#include <nuttx/environ.h>
 #include <nuttx/kmalloc.h>
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: putenv
- *
- * Description:
- *   The putenv() function adds or changes the value of environment variables.
- *   The argument string is of the form name=value. If name does not already
- *   exist in  the  environment, then string is added to the environment. If
- *   name does exist, then the value of name in the environment is changed to
- *   value.
- *
- * Input Parameters:
- *   name=value string describing the environment setting to add/modify
- *
- * Returned Value:
- *   Zero on success
- *
- * Assumptions:
- *   Not called from an interrupt handler
- *
- ****************************************************************************/
-
-int putenv(FAR const char *string)
+static int putenv_by_pid(pid_t pid, FAR const char *string)
 {
   char *pname;
   char *pequal;
@@ -102,7 +82,14 @@ int putenv(FAR const char *string)
       /* Then let setenv do all of the work */
 
       *pequal = '\0';
-      ret = setenv(pname, pequal + 1, TRUE);
+      if (pid == 0)
+        {
+          ret = setenv_global(pname, pequal + 1, TRUE);
+        }
+      else
+        {
+          ret = setenv(pname, pequal + 1, TRUE);
+        }
     }
 
   kmm_free(pname);
@@ -111,6 +98,62 @@ int putenv(FAR const char *string)
 errout:
   set_errno(ret);
   return ERROR;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: putenv
+ *
+ * Description:
+ *   The putenv() function adds or changes the value of environment variables.
+ *   The argument string is of the form name=value. If name does not already
+ *   exist in  the  environment, then string is added to the environment. If
+ *   name does exist, then the value of name in the environment is changed to
+ *   value.
+ *
+ * Input Parameters:
+ *   name=value string describing the environment setting to add/modify
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int putenv(FAR const char *string)
+{
+  return putenv_by_pid(getpid(), string);
+}
+
+/****************************************************************************
+ * Name: putenv_global
+ *
+ * Description:
+ *   The putenv_global() function adds or changes the value of environment variables.
+ *   The argument string is of the form name=value. If name does not already
+ *   exist in  the  environment, then string is added to the environment. If
+ *   name does exist, then the value of name in the environment is changed to
+ *   value.
+ *
+ * Input Parameters:
+ *   name=value string describing the environment setting to add/modify
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int putenv_global(FAR const char *string)
+{
+  return putenv_by_pid(0, string);
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

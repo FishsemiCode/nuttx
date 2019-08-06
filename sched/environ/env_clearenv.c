@@ -47,6 +47,19 @@
 #include "environ/environ.h"
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int clearenv_by_pid(pid_t pid)
+{
+  FAR struct tcb_s *tcb = sched_gettcb(pid);
+  DEBUGASSERT(tcb->group);
+
+  env_release(tcb->group);
+  return OK;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -70,11 +83,30 @@
 
 int clearenv(void)
 {
-  FAR struct tcb_s *tcb = this_task();
-  DEBUGASSERT(tcb->group);
+  return clearenv_by_pid(getpid());
+}
 
-  env_release(tcb->group);
-  return OK;
+/****************************************************************************
+ * Name: clearenv_global
+ *
+ * Description:
+ *   The clearenv_global() function clears the environment of all name-value pairs
+ *   and sets the value of the external variable environ to NULL.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   None
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int clearenv_global(void)
+{
+  return clearenv_by_pid(0);
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

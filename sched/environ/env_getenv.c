@@ -50,28 +50,10 @@
 #include "environ/environ.h"
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: getenv
- *
- * Description:
- *   The getenv() function searches the environment list for a string that
- *   matches the string pointed to by name.
- *
- * Input Parameters:
- *   name - The name of the variable to find.
- *
- * Returned Value:
- *   The value of the valiable (read-only) or NULL on failure
- *
- * Assumptions:
- *   Not called from an interrupt handler
- *
- ****************************************************************************/
-
-FAR char *getenv(FAR const char *name)
+static FAR char *getenv_by_pid(pid_t pid, FAR const char *name)
 {
   FAR struct tcb_s *rtcb;
   FAR struct task_group_s *group;
@@ -87,10 +69,9 @@ FAR char *getenv(FAR const char *name)
       goto errout;
     }
 
-  /* Get a reference to the thread-private environ in the TCB. */
 
   sched_lock();
-  rtcb  = this_task();
+  rtcb = sched_gettcb(pid);
   group = rtcb->group;
 
   /* Check if the variable exists */
@@ -123,6 +104,56 @@ errout_with_lock:
 errout:
   set_errno(ret);
   return NULL;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: getenv
+ *
+ * Description:
+ *   The getenv() function searches the environment list for a string that
+ *   matches the string pointed to by name.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to find.
+ *
+ * Returned Value:
+ *   The value of the valiable (read-only) or NULL on failure
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+FAR char *getenv(FAR const char *name)
+{
+  return getenv_by_pid(getpid(), name);
+}
+
+/****************************************************************************
+ * Name: getenv_global
+ *
+ * Description:
+ *   The getenv_global() function searches the environment list for a string that
+ *   matches the string pointed to by name.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to find.
+ *
+ * Returned Value:
+ *   The value of the valiable (read-only) or NULL on failure
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+FAR char *getenv_global(FAR const char *name)
+{
+  return getenv_by_pid(0, name);
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

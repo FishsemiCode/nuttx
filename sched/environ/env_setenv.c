@@ -47,39 +47,17 @@
 #include <string.h>
 #include <errno.h>
 
+#include <nuttx/environ.h>
 #include <nuttx/kmalloc.h>
 
 #include "sched/sched.h"
 #include "environ/environ.h"
 
 /****************************************************************************
- * Public Functions
+ * Private Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Name: setenv
- *
- * Description:
- *   The setenv() function adds the variable name to the environment with the
- *   specified 'value' if the varialbe 'name" does not exist. If the 'name'
- *   does exist in the environment, then its value is changed to 'value' if
- *   'overwrite' is non-zero; if 'overwrite' is zero, then the value of name
- *   unaltered.
- *
- * Input Parameters:
- *   name - The name of the variable to change
- *   value - The new value of the variable
- *   overwrite - Replace any existing value if non-zero.
- *
- * Returned Value:
- *   Zero on success
- *
- * Assumptions:
- *   Not called from an interrupt handler
- *
- ****************************************************************************/
-
-int setenv(FAR const char *name, FAR const char *value, int overwrite)
+static int setenv_by_pid(pid_t pid, FAR const char *name, FAR const char *value, int overwrite)
 {
   FAR struct tcb_s *rtcb;
   FAR struct task_group_s *group;
@@ -107,7 +85,14 @@ int setenv(FAR const char *name, FAR const char *value, int overwrite)
 
       if (overwrite)
         {
-          return unsetenv(name);
+          if (pid == 0)
+            {
+              return unsetenv_global(name);
+            }
+          else
+            {
+              return unsetenv(name);
+            }
         }
       else
         {
@@ -120,7 +105,7 @@ int setenv(FAR const char *name, FAR const char *value, int overwrite)
   /* Get a reference to the thread-private environ in the TCB. */
 
   sched_lock();
-  rtcb  = this_task();
+  rtcb = sched_gettcb(pid);
   group = rtcb->group;
   DEBUGASSERT(group);
 
@@ -197,5 +182,64 @@ errout:
   return ERROR;
 }
 
-#endif /* CONFIG_DISABLE_ENVIRON */
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
+/****************************************************************************
+ * Name: setenv
+ *
+ * Description:
+ *   The setenv() function adds the variable name to the environment with the
+ *   specified 'value' if the varialbe 'name" does not exist. If the 'name'
+ *   does exist in the environment, then its value is changed to 'value' if
+ *   'overwrite' is non-zero; if 'overwrite' is zero, then the value of name
+ *   unaltered.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to change
+ *   value - The new value of the variable
+ *   overwrite - Replace any existing value if non-zero.
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int setenv(FAR const char *name, FAR const char *value, int overwrite)
+{
+  return setenv_by_pid(getpid(), name, value, overwrite);
+}
+
+/****************************************************************************
+ * Name: setenv_global
+ *
+ * Description:
+ *   The setenv_global() function adds the variable name to the environment with the
+ *   specified 'value' if the varialbe 'name" does not exist. If the 'name'
+ *   does exist in the environment, then its value is changed to 'value' if
+ *   'overwrite' is non-zero; if 'overwrite' is zero, then the value of name
+ *   unaltered.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to change
+ *   value - The new value of the variable
+ *   overwrite - Replace any existing value if non-zero.
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int setenv_global(FAR const char *name, FAR const char *value, int overwrite)
+{
+  return setenv_by_pid(0, name, value, overwrite);
+}
+
+#endif /* CONFIG_DISABLE_ENVIRON */

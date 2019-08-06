@@ -51,30 +51,13 @@
 #include "sched/sched.h"
 #include "environ/environ.h"
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+/**************************************************************************
+ * Private Functions
+ **************************************************************************/
 
-/****************************************************************************
- * Name: unsetenv
- *
- * Description:
- *   The unsetenv() function deletes the variable name from the environment.
- *
- * Input Parameters:
- *   name - The name of the variable to delete
- *
- * Returned Value:
- *   Zero on success
- *
- * Assumptions:
- *   Not called from an interrupt handler
- *
- ****************************************************************************/
-
-int unsetenv(FAR const char *name)
+static int unsetenv_by_pid(pid_t pid, FAR const char *name)
 {
-  FAR struct tcb_s *rtcb = this_task();
+  FAR struct tcb_s *rtcb = sched_gettcb(pid);
   FAR struct task_group_s *group = rtcb->group;
   FAR char *pvar;
   FAR char *newenvp;
@@ -130,6 +113,54 @@ int unsetenv(FAR const char *name)
 
   sched_unlock();
   return ret;
+}
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
+
+/****************************************************************************
+ * Name: unsetenv
+ *
+ * Description:
+ *   The unsetenv() function deletes the variable name from the environment.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to delete
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int unsetenv(FAR const char *name)
+{
+  return unsetenv_by_pid(getpid(), name);
+}
+
+/****************************************************************************
+ * Name: unsetenv_global
+ *
+ * Description:
+ *   The unsetenv_global() function deletes the variable name from the environment.
+ *
+ * Input Parameters:
+ *   name - The name of the variable to delete
+ *
+ * Returned Value:
+ *   Zero on success
+ *
+ * Assumptions:
+ *   Not called from an interrupt handler
+ *
+ ****************************************************************************/
+
+int unsetenv_global(FAR const char *name)
+{
+  return unsetenv_by_pid(0, name);
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */

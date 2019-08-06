@@ -94,5 +94,30 @@ FAR char **get_environ_ptr(void)
 #endif
 }
 
+/****************************************************************************
+ * Name: get_environ_ptr_global
+ *
+ * Description:
+ *   Return a pointer to the assign thread specific environ variable.
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   A pointer to the per-thread environ variable.
+ *
+ * Assumptions:
+ *
+ ****************************************************************************/
+
+FAR char **get_environ_ptr_global(void)
+{
+  /* Type of internal representation of environment is incompatible with
+   * char ** return value.
+   */
+
+  return NULL;
+}
+
 #endif /* CONFIG_DISABLE_ENVIRON */
 
