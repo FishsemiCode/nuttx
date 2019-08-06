@@ -63,6 +63,8 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include <sys/ioctl.h>
+
 #include "chip.h"
 #include "nvic.h"
 #include "systick.h"
@@ -156,9 +158,25 @@ FAR struct i2c_master_s *g_i2c[3] =
 #ifdef CONFIG_MISC_RPMSG
 static void up_misc_init(void)
 {
+  int fd;
+
   /* Retention init */
 
   misc_rpmsg_initialize(CPU_NAME_SP, true);
+
+  fd = open("/dev/misc", 0);
+  if (fd >= 0)
+    {
+      /* Get board-id env from sp */
+
+      struct misc_remote_envsync_s env =
+        {
+          .name = "board-id",
+        };
+
+      ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
+      close(fd);
+    }
 }
 #endif
 

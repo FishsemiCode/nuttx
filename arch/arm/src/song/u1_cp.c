@@ -194,6 +194,15 @@ static void up_misc_init(void)
         };
 
       ioctl(fd, MISC_RETENT_ADD, (unsigned long)&add);
+
+      /* Get board-id env from sp */
+
+      struct misc_remote_envsync_s env =
+        {
+          .name = "board-id",
+        };
+
+      ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
       close(fd);
     }
 }
