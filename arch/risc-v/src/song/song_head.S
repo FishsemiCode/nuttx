@@ -58,6 +58,10 @@
 	.type		__start, function
 
 __start:
+	/* Set mie */
+
+	csrw		mie, zero
+
 	/* Set mtvec */
 
 	lui		t0, %hi(_vectors)
