@@ -52,10 +52,10 @@
 
 static const char *out_clk_src[] =
 {
-  "pll0",         /* TODO:it is a fake clk as ic bug */
   "top_bus_mclk",
+  "rfphy_sys_clk",
   "pll1_mclk",
-  "rfphy_pll0_clk",
+  "pll0",
   "clk32k",
   "codec_ref_clk",
 };
@@ -70,6 +70,18 @@ static const char *pll1_pll0_src[] =
 {
   "pll0",
   "pll1_occ",
+};
+
+static const char *audio_mclk_mx_src[] =
+{
+  "pll0",
+  "audio_mclk",
+};
+
+static const char *vad_mclk_src[] =
+{
+  "vad_mclk_pll0",
+  "clk32k",
 };
 
 static const struct song_fixed_rate_clk fixed_rate[] =
@@ -155,6 +167,24 @@ static const struct song_mux_clk mux[] =
     .mux_width = 1,
     .mux_flags = CLK_MUX_HIWORD_MASK,
   },
+  {
+    .name = "audio_mclk_mx",
+    .parent_names = audio_mclk_mx_src,
+    .num_parents = ARRAY_SIZE(audio_mclk_mx_src),
+    .mux_offset = 0x68,
+    .mux_shift = 4,
+    .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
+  },
+  {
+    .name = "vad_mclk",
+    .parent_names = vad_mclk_src,
+    .num_parents = ARRAY_SIZE(vad_mclk_src),
+    .mux_offset = 0xf0,
+    .mux_shift = 4,
+    .mux_width = 1,
+    .mux_flags = CLK_MUX_HIWORD_MASK,
+  },
   {},
 };
 
@@ -162,7 +192,7 @@ static const struct song_sdiv_fdiv_clk sdiv_fdiv[] =
 {
   {
     .name = "audio_sys_in_clk",
-    .parent_name = "audio_mclk",
+    .parent_name = "audio_mclk_gated",
     .sdiv_offset = 0xe0,
     .fdiv_offset = 0xe4,
   },
@@ -203,20 +233,10 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .gr_offset = 0x0,
     .div_offset = 0x88,
   },
-  {},
-};
-
-static const struct song_gr_clk gr[] =
-{
   {
-    .name = "m4_cti_clk",
-    .parent_name = "m4_clk",
-    .en_offset = 0x78,
-    .en_shift = 0,
-    .mult_offset = 0x78,
-    .mult_shift = 4,
-    .mult_width = 3,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .name = "vad_mclk_pll0_div",
+    .parent_name = "pll0",
+    .div_offset = 0xec,
   },
   {},
 };
@@ -346,17 +366,18 @@ static const struct song_div_clk div[] =
     .div_width = 4,
   },
   {
-    .name = "tl421_bus_clk",
+    .name = "spi_pclk",
     .parent_name = "pll1",
     .en_offset = 0x054,
     .en_shift = 0,
     .div_offset = 0x054,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "thinkers_mclk",
-    .parent_name = "audio_mclk",
+    .parent_name = "thinkers_pclk",
     .en_offset = 0x058,
     .en_shift = 0,
     .div_offset = 0x058,
@@ -365,7 +386,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "btdm_bb_sys_clk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "btdm_bb_hclk",
     .en_offset = 0x5c,
     .en_shift = 0,
     .div_offset = 0x5c,
@@ -382,8 +403,8 @@ static const struct song_div_clk div[] =
     .div_width = 4,
   },
   {
-    .name = "audio_clk_3072k",
-    .parent_name = "pll1",
+    .name = "audio_sys_clk3072k",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x064,
     .en_shift = 0,
     .div_offset = 0x064,
@@ -401,19 +422,44 @@ static const struct song_div_clk div[] =
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
+    .name = "thinkers_pclk",
+    .parent_name = "audio_mclk_gated",
+    .en_offset = 0x078,
+    .en_shift = 8,
+    .div_offset = 0x078,
+    .div_shift = 4,
+    .div_width = 4,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
     .name = "codec_ref_clk",
-    .parent_name = "pll1",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x08c,
     .en_shift = 0,
     .div_offset = 0x08c,
     .div_shift = 4,
     .div_width = 6,
   },
+  {
+    .name = "vad_bus_clk",
+    .parent_name = "audio_mclk_gated",
+    .en_offset = 0x0f4,
+    .en_shift = 0,
+    .div_offset = 0x0f4,
+    .div_shift = 4,
+    .div_width = 5,
+  },
   {},
 };
 
 static const struct song_gate_clk gate[] =
 {
+  {
+    .name = "audio_mclk_gated",
+    .parent_name = "audio_mclk_mx",
+    .en_offset = 0x068,
+    .en_shift  = 0,
+  },
   {
     .name = "top_dmas_hclk",
     .parent_name = "top_bus_mclk",
@@ -427,13 +473,14 @@ static const struct song_gate_clk gate[] =
     .en_shift = 1,
   },
   {
-    .name = "tl421_ictl_hclk",
+    .name = "ictl0_hclk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x090,
     .en_shift = 2,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
-    .name = "tl421_wdt_tclk",
+    .name = "rcpu1_wdt_tclk",
     .parent_name = "clk32k",
     .en_offset = 0x090,
     .en_shift = 3,
@@ -452,7 +499,7 @@ static const struct song_gate_clk gate[] =
   },
 #ifdef CONFIG_DEBUG_SONG_CLK
   {
-    .name = "tl421_wdt_pclk",
+    .name = "rcpu1_wdt_pclk",
     .parent_name = "top_pclk0",
     .en_offset = 0x090,
     .en_shift = 4,
@@ -463,31 +510,39 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x090,
     .en_shift = 7,
   },
+#endif
   {
-    .name = "thinkers_pclk",
-    .parent_name = "audio_mclk",
+    .name = "pd_fsm_clk",
+    .parent_name = "top_pclk0",
     .en_offset = 0x090,
     .en_shift = 8,
   },
   {
-    .name = "audio_sys_pclk",
-    .parent_name = "tl421_bus_clk",
-    .en_offset = 0x090,
-    .en_shift = 9,
-  },
-#endif
-  {
     .name = "audio_sys_hclk",
-    .parent_name = "audio_mclk",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x090,
     .en_shift = 12,
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
-    .name = "audio_sys_clk_30720k",
-    .parent_name = "audio_mclk",
+    .name = "audio_sys_clk_49152k",
+    .parent_name = "audio_mclk_gated",
     .en_offset = 0x090,
     .en_shift = 13,
+  },
+  {
+    .name = "topbus_ck803sclk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x090,
+    .en_shift = 14,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "ictl1_hclk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x090,
+    .en_shift = 15,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "btdm_bb_hclk",
@@ -503,21 +558,7 @@ static const struct song_gate_clk gate[] =
     .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
-    .name = "m4_clk",
-    .parent_name = "top_bus_mclk",
-    .en_offset = 0x098,
-    .en_shift = 0,
-    .clk_flags = CLK_IGNORE_UNUSED,
-  },
-  {
-    .name = "m4_wic_clk",
-    .parent_name = "m4_clk",
-    .en_offset = 0x098,
-    .en_shift = 1,
-    .clk_flags = CLK_IGNORE_UNUSED,
-  },
-  {
-    .name = "m4_wdt_tclk",
+    .name = "rcpu0_wdt_tclk",
     .parent_name = "clk32k",
     .en_offset = 0x098,
     .en_shift = 3,
@@ -536,13 +577,7 @@ static const struct song_gate_clk gate[] =
   },
 #ifdef CONFIG_DEBUG_SONG_CLK
   {
-    .name = "topbus_rfphyclk",
-    .parent_name = "btrf_pclk",
-    .en_offset = 0x094,
-    .en_shift = 2,
-  },
-  {
-    .name = "m4_wdt_pclk",
+    .name = "rcpu0_wdt_pclk",
     .parent_name = "top_pclk0",
     .en_offset = 0x098,
     .en_shift = 2,
@@ -579,13 +614,13 @@ static const struct song_gate_clk gate[] =
   },
   {
     .name = "spi0_pclk",
-    .parent_name = "top_pclk1",
+    .parent_name = "spi_pclk",
     .en_offset = 0x098,
     .en_shift = 11,
   },
   {
     .name = "spi1_pclk",
-    .parent_name = "top_pclk0",
+    .parent_name = "spi_pclk",
     .en_offset = 0x098,
     .en_shift = 12,
   },
@@ -607,19 +642,19 @@ static const struct song_gate_clk gate[] =
     .en_offset = 0x09c,
     .en_shift = 3,
   },
+  {
+    .name = "dolphin_adc_pclk",
+    .parent_name = "codec_ref_clk",
+    .en_offset = 0x0a0,
+    .en_shift = 4,
+  },
+  {
+    .name = "dolphin_vad_pclk",
+    .parent_name = "vad_bus_clk",
+    .en_offset = 0x0a0,
+    .en_shift = 2,
+  },
 #endif
-  {
-    .name = "cs_dap_clk",
-    .parent_name = "top_pclk0",
-    .en_offset = 0x0a0,
-    .en_shift = 8,
-  },
-  {
-    .name = "m4_dapclk",
-    .parent_name = "top_pclk0",
-    .en_offset = 0x0a0,
-    .en_shift = 9,
-  },
   {
     .name = "mailbox_hclk",
     .parent_name = "top_bus_mclk",
@@ -627,11 +662,189 @@ static const struct song_gate_clk gate[] =
     .en_shift = 0,
   },
   {
-    .name = "m4_stclk",
+    .name = "vad_mclk_pll0",
+    .parent_name = "vad_mclk_pll0_div",
+    .en_offset = 0x0a0,
+    .en_shift = 0,
+  },
+  {
+    .name = "dolphin_adc_mclk",
+    .parent_name = "codec_ref_clk",
+    .en_offset = 0x0a0,
+    .en_shift = 3,
+  },
+  {
+    .name = "cpu_sys_icm_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 8,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "bootrom_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 9,
+  },
+  {
+    .name = "cpu_sys_stclk",
     .parent_name = "clk32k",
     .en_offset = 0x0a0,
     .en_shift = 10,
     .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm16_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 11,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm17_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 12,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm18_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 13,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm19_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 14,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "clk_cpu_sys",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a0,
+    .en_shift = 15,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm0_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 0,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm1_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 1,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm2_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 2,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm3_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 3,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm4_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 4,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm5_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 5,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm6_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 6,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm7_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 7,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm8_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 8,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm9_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 9,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm10_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 10,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm11_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 11,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm12_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 12,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm13_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 13,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm14_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 14,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "tcm15_clk",
+    .parent_name = "top_bus_mclk",
+    .en_offset = 0x0a4,
+    .en_shift = 15,
+    .clk_flags = CLK_IGNORE_UNUSED,
+  },
+  {
+    .name = "vad_mclk_gated",
+    .parent_name = "vad_mclk",
+    .en_offset = 0xf0,
+    .en_shift  = 0,
   },
   {},
 };
@@ -649,7 +862,6 @@ static const struct song_lp_reg_clk lp_reg[] =
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
-  .gr_clks           = gr,
   .sdiv_fdiv_clks    = sdiv_fdiv,
   .gr_fdiv_clks      = gr_fdiv,
   .div_clks          = div,
