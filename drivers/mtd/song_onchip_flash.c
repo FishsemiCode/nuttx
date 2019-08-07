@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/environ.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mtd/mtd.h>
@@ -236,7 +237,7 @@ static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
 
       if (len > 0)
         {
-          setenv(info->name, value, 1);
+          setenv_global(info->name, value, 1);
         }
       info++;
     }
