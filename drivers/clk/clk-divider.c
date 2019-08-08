@@ -200,9 +200,15 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
   if (!(clk->flags & CLK_SET_RATE_PARENT))
     {
       parent_rate = *best_parent_rate;
-      bestdiv = _div_round(parent_rate, rate, divider->flags);
-      bestdiv = bestdiv == 0 ? 1 : bestdiv;
-      bestdiv = bestdiv > maxdiv ? maxdiv : bestdiv;
+      if (parent_rate > rate)
+        {
+          bestdiv = _div_round(parent_rate, rate, divider->flags);
+          bestdiv = bestdiv > maxdiv ? maxdiv : bestdiv;
+        }
+      else
+        {
+          bestdiv = 1;
+        }
       return bestdiv;
     }
 
@@ -218,7 +224,7 @@ static uint32_t clk_divider_bestdiv(struct clk *clk, uint32_t rate,
         i = _next_div(i, divider->flags))
     {
       parent_rate = clk_round_rate(clk_get_parent(clk),
-          MULT_ROUND_UP(rate, i));
+          rate * i);
       now = DIV_ROUND_UP(parent_rate, i);
       if (_is_best_div(rate, now, best, divider->flags))
         {
