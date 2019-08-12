@@ -132,10 +132,11 @@
 #define REG_A0123E           79
 #define REG_MODU0            80
 #define REG_MODU1            81
+#define REG_RETREG2          82
 
 /* The total number of registers is saved on the stack */
 
-#define XCPTCONTEXT_REGS      82
+#define XCPTCONTEXT_REGS      83
 #define XCPTCONTEXT_SIZE      (4 * XCPTCONTEXT_REGS)
 
 /****************************************************************************
