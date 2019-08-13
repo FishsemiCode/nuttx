@@ -63,6 +63,7 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 
+#include <fcntl.h>
 #include <sys/ioctl.h>
 
 #include "chip.h"
