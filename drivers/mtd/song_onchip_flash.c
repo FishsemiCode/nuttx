@@ -149,7 +149,7 @@ static const struct song_onchip_info_s g_info_map[] =
 {
   {0x20, 0x0e, 0xff, "%02x", "chip-id"},
   {0x25, 0x01, 0x1f, "%02x", "soc-id"},
-  {0x40, 0x10, 0xff, "%d", "board-id"},
+  {0x40, 0x10, 0xff, "%c", "board-id"},
   {},
 };
 #endif
@@ -410,6 +410,33 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
             {
               *ptr_base = (FAR void *)priv->cfg->cpu_base;
               ret       = OK;
+            }
+        }
+        break;
+
+      case MTDIOC_ENVWRITE:
+        {
+          FAR struct song_onchip_env_info_s *env = (FAR struct song_onchip_env_info_s *)arg;
+          const struct song_onchip_info_s *info = g_info_map;
+
+          while(info->name)
+            {
+              if (!strcmp(info->name, env->name))
+                {
+                  size_t nbytes;
+                  size_t nblocks;
+                  nbytes  = strlen(env->value) + 1;
+                  nbytes  = nbytes > info->nbytes ? info->nbytes : nbytes;
+                  nblocks = (nbytes + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+                  song_onchip_flash_bwrite(dev, info->offset / BLOCK_SIZE,
+                      nblocks, (uint8_t *)env->value);
+
+                  ret = OK;
+                  break;
+                }
+
+              info++;
             }
         }
         break;
