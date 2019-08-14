@@ -57,6 +57,7 @@
 #define MISC_RETENT_SET         _MISCIOC(2)
 #define MISC_REMOTE_BOOT        _MISCIOC(3)
 #define MISC_REMOTE_ENVSYNC     _MISCIOC(4)
+#define MISC_REMOTE_INFOWRITE   _MISCIOC(5)
 
 /* Access macros ************************************************************/
 
@@ -133,6 +134,8 @@ struct misc_remote_envsync_s
   const char *name;
   const char *value;
 };
+
+#define misc_remote_infowrite_s misc_remote_envsync_s
 
 /****************************************************************************
  * Public Function Prototypes

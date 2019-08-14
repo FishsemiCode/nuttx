@@ -41,6 +41,7 @@
 #include <nuttx/environ.h>
 
 #include <nuttx/misc/misc_rpmsg.h>
+#include <nuttx/mtd/song_onchip_flash.h>
 #include <nuttx/power/pm.h>
 #include <nuttx/rptun/openamp.h>
 #include <nuttx/rptun/rptun.h>
@@ -49,6 +50,7 @@
 #include <fcntl.h>
 #include <crc32.h>
 #include <string.h>
+#include <sys/ioctl.h>
 
 /****************************************************************************
  * Pre-processor definitions
@@ -60,6 +62,7 @@
 #define MISC_RPMSG_RETENT_SET           1
 #define MISC_RPMSG_REMOTE_BOOT          2
 #define MISC_RPMSG_REMOTE_ENVSYNC       3
+#define MISC_RPMSG_REMOTE_INFOWRITE     4
 
 #define MISC_RETENT_MAGIC               (0xdeadbeef)
 
@@ -106,6 +109,13 @@ begin_packed_struct struct misc_rpmsg_remote_envsync_s
   char     value[32];
 } end_packed_struct;
 
+begin_packed_struct struct misc_rpmsg_remote_infowrite_s
+{
+  uint32_t command;
+  char     name[16];
+  char     value[32];
+} end_packed_struct;
+
 struct misc_rpmsg_s
 {
   struct misc_dev_s     dev;
@@ -146,6 +156,9 @@ static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
 static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
                                    void *data, size_t len,
                                    uint32_t src, void *priv_);
+static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_);
 
 static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd);
 static int misc_retent_save(struct misc_dev_s *dev, char *file);
@@ -164,10 +177,11 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 static const rpmsg_ept_cb g_misc_rpmsg_handler[] =
 {
-  [MISC_RPMSG_RETENT_ADD]     = misc_retent_add_handler,
-  [MISC_RPMSG_RETENT_SET]     = misc_retent_set_handler,
-  [MISC_RPMSG_REMOTE_BOOT]    = misc_remote_boot_handler,
-  [MISC_RPMSG_REMOTE_ENVSYNC] = misc_remote_envsync_handler,
+  [MISC_RPMSG_RETENT_ADD]       = misc_retent_add_handler,
+  [MISC_RPMSG_RETENT_SET]       = misc_retent_set_handler,
+  [MISC_RPMSG_REMOTE_BOOT]      = misc_remote_boot_handler,
+  [MISC_RPMSG_REMOTE_ENVSYNC]   = misc_remote_envsync_handler,
+  [MISC_RPMSG_REMOTE_INFOWRITE] = misc_remote_infowrite_handler,
 };
 
 static const struct misc_ops_s g_misc_ops =
@@ -311,6 +325,33 @@ static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
         }
       return rpmsg_send(ept, msg, sizeof(*msg));
     }
+}
+
+static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_)
+{
+  struct misc_rpmsg_remote_infowrite_s *msg = data;
+  int fd;
+
+  fd = open("/dev/onchip-info", 0);
+  if (fd < 0)
+    {
+      _err("open onchip-info err\n");
+    }
+  else
+    {
+      struct song_onchip_env_info_s env =
+        {
+          .name  = msg->name,
+          .value = msg->value,
+        };
+
+      ioctl(fd, MTDIOC_ENVWRITE, (unsigned long)&env);
+      close(fd);
+    }
+
+  return 0;
 }
 
 static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd)
@@ -569,6 +610,18 @@ static int misc_remote_envsync(struct misc_rpmsg_s *priv, unsigned long arg)
   return rpmsg_send(&priv->ept, &msg, sizeof(msg));
 }
 
+static int misc_remote_infowrite(struct misc_rpmsg_s *priv, unsigned long arg)
+{
+  struct misc_remote_infowrite_s *env = (struct misc_remote_infowrite_s *)arg;
+  struct misc_rpmsg_remote_infowrite_s msg;
+
+  msg.command = MISC_RPMSG_REMOTE_INFOWRITE;
+  ncstr2bstr(msg.name, env->name, 16);
+  ncstr2bstr(msg.value, env->value, 32);
+
+  return rpmsg_send(&priv->ept, &msg, sizeof(msg));
+}
+
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
   struct inode *inode = filep->f_inode;
@@ -588,6 +641,9 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
         break;
       case MISC_REMOTE_ENVSYNC:
         ret = misc_remote_envsync(priv, arg);
+        break;
+      case MISC_REMOTE_INFOWRITE:
+        ret = misc_remote_infowrite(priv, arg);
         break;
     }
 
