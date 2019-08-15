@@ -174,6 +174,7 @@
 #define SECURITY_CFG_0              (SECURITY_BASE + 0x30)
 #define SECURITY_CFG_0_VALUE        (0x00010000)
 
+#define MUX_PIN09                   (0xb0050014)
 #define MUX_PIN23                   (0xb005004c)
 #define MUX_PIN24                   (0xb0050050)
 #define MUX_PIN25                   (0xb0050054)
@@ -836,8 +837,9 @@ static void up_spi_init(void)
     .irq = 31,
     .tx_dma = 5,
     .rx_dma = 13,
-    .cs_num = 1,
+    .cs_num = 2,
     .cs_gpio[0] = 26,
+    .cs_gpio[1] = 9,
     .mclk = "spi1_mclk",
   };
 
@@ -847,6 +849,7 @@ static void up_spi_init(void)
   putreg32(0x10, MUX_PIN24);
   putreg32(0x10, MUX_PIN25);
   putreg32(0x12, MUX_PIN26);
+  putreg32(0x12, MUX_PIN09);
   g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
 }
 #endif
