@@ -532,7 +532,7 @@ FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev);
+FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev, uint32_t spi_devid);
 
 /****************************************************************************
  * Name: gd5f_initialize
@@ -542,7 +542,7 @@ FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *gd5f_initialize(FAR struct spi_dev_s *dev);
+FAR struct mtd_dev_s *gd5f_initialize(FAR struct spi_dev_s *dev, uint32_t spi_devid);
 
 /****************************************************************************
  * Name: s25fl1_initialize
