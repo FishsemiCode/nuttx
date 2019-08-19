@@ -190,8 +190,9 @@ void up_irqinitialize(void)
  * up_dispatch_irq
  ****************************************************************************/
 
-void up_dispatch_irq(int irq, FAR void *context)
+int up_dispatch_irq(int irq, FAR void *context)
 {
+  int ret = 0;
   int hirq;
 
   /* Dispatch highest priority irq */
@@ -201,6 +202,7 @@ void up_dispatch_irq(int irq, FAR void *context)
     {
       g_intc_dw->IRQ_INTFORCE[hirq / 32] &= ~(1 << (hirq % 32));
       irq_dispatch(hirq, context);
+      ret = g_intc_dw->IRQ_PRX[hirq] >= CONFIG_HIPRI_INTERRUPT_PRIORITY;
     }
 
   /* Clear ACK */
@@ -210,6 +212,8 @@ void up_dispatch_irq(int irq, FAR void *context)
   /* Reset the priority level */
 
   g_intc_dw->IRQ_INTERNAL_PLEVEL = g_intc_dw->IRQ_PLEVEL;
+
+  return ret;
 }
 
 /****************************************************************************

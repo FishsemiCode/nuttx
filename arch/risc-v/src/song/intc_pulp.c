@@ -117,10 +117,11 @@ void up_irqinitialize(void)
  *
  ****************************************************************************/
 
-void up_dispatch_irq(int irq, FAR void *context)
+int up_dispatch_irq(int irq, FAR void *context)
 {
   irq_dispatch(irq, context);
   up_ack_irq(irq);
+  return 0;
 }
 
 #ifndef CONFIG_ARCH_HIPRI_INTERRUPT

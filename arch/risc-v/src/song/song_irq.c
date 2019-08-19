@@ -131,9 +131,10 @@ irqstate_t up_irq_enable(void)
  *
  ****************************************************************************/
 
-void weak_function up_dispatch_irq(int irq, FAR void *context)
+int weak_function up_dispatch_irq(int irq, FAR void *context)
 {
   irq_dispatch(irq, context);
+  return 0;
 }
 
 /****************************************************************************
@@ -144,6 +145,7 @@ uint32_t *up_dispatch_all(uint32_t *regs)
 {
   uint32_t *savestate;
   uint32_t cause;
+  int hirq = 0;
 
   savestate = (uint32_t *)g_current_regs;
   g_current_regs = regs;
@@ -157,7 +159,7 @@ uint32_t *up_dispatch_all(uint32_t *regs)
 
       if (cause == 11)
         {
-          up_dispatch_irq(cause, regs);
+          hirq = up_dispatch_irq(cause, regs);
         }
 #ifdef CONFIG_RISCV_MTIME
       else if (cause == 7)
@@ -199,8 +201,13 @@ uint32_t *up_dispatch_all(uint32_t *regs)
 
   /* Restore the irqflags for the new task */
 
-  struct tcb_s *rtcb = this_task();
-  up_irq_restore(rtcb->xcp.irqflags);
+  if (!hirq)
+    {
+      struct tcb_s *rtcb = this_task();
+      up_irq_restore(rtcb->xcp.irqflags);
+    }
+#else
+  (hirq);
 #endif
 
   /* Return the stack pointer */

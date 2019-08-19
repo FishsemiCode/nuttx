@@ -148,11 +148,14 @@ int up_prioritize_irq(int irq, int priority)
  *
  ****************************************************************************/
 
-void up_dispatch_irq(int irq, FAR void *context)
+int up_dispatch_irq(int irq, FAR void *context)
 {
   irq = getreg32(PLIC_CLAIM);
   irq_dispatch(irq, context);
   putreg32(irq, PLIC_CLAIM);
+
+  return (getreg32(PLIC_PRIORITY + (irq << PLIC_PRIO_SHIFT))
+          > CONFIG_HIPRI_INTERRUPT_PRIORITY);
 }
 
 /****************************************************************************
