@@ -75,6 +75,7 @@
 #define SONG_AUDIO_PATH_VOICE_ADC_MIC_SRC_SHIFT(x)  (4 + x * 8)
 #define SONG_AUDIO_PATH_VOICE_ADC_MODE_MASK(x)      (0x07 << (x * 8))
 #define SONG_AUDIO_PATH_VOICE_ADC_MODE_SHIFT(x)     (x * 8)
+#define SONG_AUDIO_PATH_VOICE_ADC_UX_SWAP_MASK      (0x88888888)
 #define SONG_AUDIO_PATH_VOICE_ADC_768K_48K          0
 #define SONG_AUDIO_PATH_VOICE_ADC_768K_16K          1
 #define SONG_AUDIO_PATH_VOICE_ADC_3072K_48K         2
@@ -623,6 +624,9 @@ struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base,
 
   clk_enable(clk_get("audio_mclk"));
 
+  audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG1,
+                            SONG_AUDIO_PATH_VOICE_ADC_UX_SWAP_MASK,
+                            0);
   if (extern_adc)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
