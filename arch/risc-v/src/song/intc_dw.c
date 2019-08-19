@@ -96,6 +96,43 @@ static struct intc_dw_s * const g_intc_dw
   = (struct intc_dw_s *)CONFIG_INTC_DW_BASE;
 
 /****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int intc_find_highprio_irq(void)
+{
+  uint32_t status;
+  int hprio, hirq;
+  int i, j;
+
+  hprio = -1;
+  hirq  = -1;
+
+  for (i = 0; i < NR_IRQS; i += 32)
+    {
+      status = g_intc_dw->IRQ_FINALSTATUS[i/32];
+
+      for (j = 0; status; j++)
+        {
+          if (status & (1 << j))
+            {
+              int cur = g_intc_dw->IRQ_PRX[i+j];
+
+              if (cur > hprio)
+                {
+                  hprio = cur;
+                  hirq  = i + j;
+                }
+
+              status &= ~(1 << j);
+            }
+        }
+    }
+
+  return hirq;
+}
+
+/****************************************************************************
  * Public Functions
  ****************************************************************************/
 
@@ -155,27 +192,23 @@ void up_irqinitialize(void)
 
 void up_dispatch_irq(int irq, FAR void *context)
 {
-  uint32_t status;
-  int i, j;
+  int hirq;
 
-  /* Dispatch request one by one */
-  for (i = 0; i < NR_IRQS; i += 32)
-  {
-    status = g_intc_dw->IRQ_FINALSTATUS[i/32];
-    for (j = 0; status; j++)
+  /* Dispatch highest priority irq */
+
+  hirq = intc_find_highprio_irq();
+  if (hirq >= 0)
     {
-      if (status & (1 << j))
-      {
-        g_intc_dw->IRQ_INTFORCE[i/32] &= ~(1 << j);
-        irq_dispatch(i + j, context);
-        status &= ~(1 << j);
-      }
+      g_intc_dw->IRQ_INTFORCE[hirq / 32] &= ~(1 << (hirq % 32));
+      irq_dispatch(hirq, context);
     }
-  }
+
+  /* Clear ACK */
 
   g_intc_dw->ACK_CLR = 1;
 
   /* Reset the priority level */
+
   g_intc_dw->IRQ_INTERNAL_PLEVEL = g_intc_dw->IRQ_PLEVEL;
 }
 
