@@ -241,9 +241,9 @@ config AUDIO_NULL_WORKER_STACKSIZE
 endif # AUDIO_NULL
 
 config AUDIO_I2S
-        bool "Audio I2S"
-        depends on AUDIO
-        depends on I2S
+	bool "Audio I2S"
+	depends on AUDIO
+	depends on I2S
 
 config AUDIO_DMA
 	bool "Audio Dma"
@@ -268,7 +268,7 @@ config AUDIO_DP_ADC
 
 config AUDIO_DP_VAD
 	bool "DP VAD driver"
-        depends on AUDIO
+	depends on AUDIO
 
 config AUDIO_SONG_AUDIO_PATH
 	bool "Song audio path"
