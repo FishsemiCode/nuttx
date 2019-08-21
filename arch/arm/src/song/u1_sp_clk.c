@@ -138,6 +138,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .en_shift = 3,
     .gr_offset = 0x0,
     .div_offset = 0x80,
+    .clk_flags = CLK_IGNORE_UNUSED,
   },
   {
     .name = "uart1_clk",
