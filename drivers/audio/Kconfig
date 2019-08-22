@@ -258,6 +258,22 @@ config AUDIO_THINKER
 	---help---
 		Select to enable support for the thinker-S device.
 
+if AUDIO_THINKER
+
+config AUDIO_VT_SRC_DMA
+	bool "Audio voice trigger source DMA IN"
+	default n
+	---help---
+		Audio voice trigger source DMA IN
+
+config AUDIO_VT_OUT_DMA
+	bool "Audio voice trigger output DMA"
+	default n
+	---help---
+		Audio voice trigger output DMA
+
+endif # AUDIO_THINKER
+
 config AUDIO_AK4332
 	bool "AK4332 dac driver"
 	depends on AUDIO
