@@ -53,6 +53,12 @@ struct song_rtc_config_s
   uintptr_t base;
   uint32_t  irq;
   uint32_t  index;
+
+  /* Which index of alarm need to correct after settime().
+   * Index mask here (index0 << 0) | (index1 << 1) | (index < x).
+   */
+
+  uint32_t  correct;
 };
 
 /****************************************************************************

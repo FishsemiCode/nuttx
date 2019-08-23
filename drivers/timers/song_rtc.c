@@ -207,11 +207,43 @@ static int song_rtc_rdtime(FAR struct rtc_lowerhalf_s *lower_,
   return 0;
 }
 
+static int song_rtc_correctalarm(FAR const struct song_rtc_config_s *config,
+                                 FAR const struct rtc_time *time)
+{
+  FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)config->base;
+  uint32_t correct = config->correct;
+  int i = 0;
+
+  while (correct)
+    {
+      if (correct & 0x1)
+        {
+          FAR struct song_rtc_alarm_s *alarm = &base->ALARM[i];
+          time_t curalarm = alarm->CNT_HI;
+          time_t curtime = base->SET_CNT2;
+          time_t newtime = mktime((FAR struct tm *)time);
+
+          if (curalarm > curtime)
+            {
+              alarm->CNT_HI     = newtime + (curalarm - curtime);
+              alarm->INT_UPDATE = 1; /* Trigger the update */
+            }
+        }
+
+      correct >>= 1;
+      i++;
+    }
+
+  return 0;
+}
+
 static int song_rtc_settime(FAR struct rtc_lowerhalf_s *lower_,
                             FAR const struct rtc_time *rtctime)
 {
   FAR struct song_rtc_lowerhalf_s *lower = (FAR struct song_rtc_lowerhalf_s *)lower_;
   FAR struct song_rtc_s *base = (FAR struct song_rtc_s *)lower->config->base;
+
+  song_rtc_correctalarm(lower->config, rtctime);
 
   base->SET_CNT2     = mktime((FAR struct tm *)rtctime);
   base->SET_CNT1     = song_rtc_nsec2cnt(rtctime->tm_nsec);
