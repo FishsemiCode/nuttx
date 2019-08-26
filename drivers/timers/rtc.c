@@ -50,6 +50,7 @@
 #include <nuttx/signal.h>
 #include <nuttx/clock.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/misc/misc_rpmsg.h>
 #include <nuttx/timers/rtc.h>
 
 /****************************************************************************
@@ -422,6 +423,9 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                  */
 
                 clock_synchronize();
+#ifdef CONFIG_MISC_RPMSG
+                misc_rpmsg_clocksync();
+#endif
               }
           }
       }

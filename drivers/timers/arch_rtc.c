@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 
 #include <nuttx/arch.h>
+#include <nuttx/misc/misc_rpmsg.h>
 #include <nuttx/timers/arch_rtc.h>
 
 /****************************************************************************
@@ -265,6 +266,12 @@ int up_rtc_settime(FAR const struct timespec *tp)
       rtctime.tm_nsec = tp->tv_nsec;
 #endif
       ret = g_rtc_lower->ops->settime(g_rtc_lower, &rtctime);
+#ifdef CONFIG_MISC_RPMSG
+      if (ret >= 0)
+        {
+          misc_rpmsg_clocksync();
+        }
+#endif
     }
 
   return ret;

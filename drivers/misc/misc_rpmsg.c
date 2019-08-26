@@ -56,13 +56,16 @@
  * Pre-processor definitions
  ****************************************************************************/
 
+#define MISC_RPMSG_MAX_PRIV             2
+
 #define MISC_RPMSG_EPT_NAME             "rpmsg-misc"
 
 #define MISC_RPMSG_RETENT_ADD           0
 #define MISC_RPMSG_RETENT_SET           1
 #define MISC_RPMSG_REMOTE_BOOT          2
-#define MISC_RPMSG_REMOTE_ENVSYNC       3
-#define MISC_RPMSG_REMOTE_INFOWRITE     4
+#define MISC_RPMSG_REMOTE_CLOCKSYNC     3
+#define MISC_RPMSG_REMOTE_ENVSYNC       4
+#define MISC_RPMSG_REMOTE_INFOWRITE     5
 
 #define MISC_RETENT_MAGIC               (0xdeadbeef)
 
@@ -99,6 +102,8 @@ begin_packed_struct struct misc_rpmsg_remote_boot_s
   uint32_t command;
   char     name[16];
 } end_packed_struct;
+
+#define misc_rpmsg_remote_clocksync_s misc_rpmsg_head_s
 
 begin_packed_struct struct misc_rpmsg_remote_envsync_s
 {
@@ -153,12 +158,15 @@ static int misc_retent_set_handler(struct rpmsg_endpoint *ept,
 static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
                                    void *data, size_t len,
                                    uint32_t src, void *priv_);
+static int misc_remote_clocksync_handler(struct rpmsg_endpoint *ept,
+                                         void *data, size_t len,
+                                         uint32_t src, void *priv_);
 static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
-                                   void *data, size_t len,
-                                   uint32_t src, void *priv_);
+                                       void *data, size_t len,
+                                       uint32_t src, void *priv_);
 static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
-                                   void *data, size_t len,
-                                   uint32_t src, void *priv_);
+                                         void *data, size_t len,
+                                         uint32_t src, void *priv_);
 
 static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd);
 static int misc_retent_save(struct misc_dev_s *dev, char *file);
@@ -168,7 +176,9 @@ static int misc_retent_restore(struct misc_dev_s *dev, char *file);
 static int misc_retent_add(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_retent_set(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_remote_boot(struct misc_rpmsg_s *priv, unsigned long arg);
+static int misc_remote_clocksync(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_remote_envsync(struct misc_rpmsg_s *priv, unsigned long arg);
+static int misc_remote_infowrite(struct misc_rpmsg_s *priv, unsigned long arg);
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg);
 
 /****************************************************************************
@@ -180,6 +190,7 @@ static const rpmsg_ept_cb g_misc_rpmsg_handler[] =
   [MISC_RPMSG_RETENT_ADD]       = misc_retent_add_handler,
   [MISC_RPMSG_RETENT_SET]       = misc_retent_set_handler,
   [MISC_RPMSG_REMOTE_BOOT]      = misc_remote_boot_handler,
+  [MISC_RPMSG_REMOTE_CLOCKSYNC] = misc_remote_clocksync_handler,
   [MISC_RPMSG_REMOTE_ENVSYNC]   = misc_remote_envsync_handler,
   [MISC_RPMSG_REMOTE_INFOWRITE] = misc_remote_infowrite_handler,
 };
@@ -194,6 +205,9 @@ static const struct file_operations g_misc_devops =
 {
   .ioctl = misc_dev_ioctl,
 };
+
+static struct misc_rpmsg_s *g_misc_priv[MISC_RPMSG_MAX_PRIV];
+static int g_misc_idx;
 
 /****************************************************************************
  * Private Functions
@@ -296,9 +310,40 @@ static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
   return 0;
 }
 
+static int misc_remote_clocksync_(const char *cpuname)
+{
+  int i;
+  struct misc_rpmsg_remote_clocksync_s msg =
+    {
+      .command = MISC_RPMSG_REMOTE_CLOCKSYNC,
+    };
+
+  for (i = 0; i < g_misc_idx; i++)
+    {
+      if (!cpuname || strcmp(cpuname, g_misc_priv[i]->cpuname))
+        {
+          rpmsg_send(&g_misc_priv[i]->ept, &msg, sizeof(msg));
+        }
+    }
+
+  return 0;
+}
+
+static int misc_remote_clocksync_handler(struct rpmsg_endpoint *ept,
+                                         void *data, size_t len,
+                                         uint32_t src, void *priv_)
+{
+#ifdef CONFIG_RTC
+  struct misc_rpmsg_s *priv = priv_;
+  clock_synchronize();
+  misc_remote_clocksync_(priv->cpuname);
+#endif
+  return 0;
+}
+
 static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
-                                   void *data, size_t len,
-                                   uint32_t src, void *priv_)
+                                       void *data, size_t len,
+                                       uint32_t src, void *priv_)
 {
   struct misc_rpmsg_remote_envsync_s *msg = data;
 
@@ -328,8 +373,8 @@ static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
 }
 
 static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
-                                   void *data, size_t len,
-                                   uint32_t src, void *priv_)
+                                         void *data, size_t len,
+                                         uint32_t src, void *priv_)
 {
   struct misc_rpmsg_remote_infowrite_s *msg = data;
   int fd;
@@ -597,6 +642,16 @@ static int misc_remote_boot(struct misc_rpmsg_s *priv, unsigned long arg)
   return rpmsg_send(&priv->ept, &msg, sizeof(struct misc_rpmsg_remote_boot_s));
 }
 
+static int misc_remote_clocksync(struct misc_rpmsg_s *priv, unsigned long arg)
+{
+  struct misc_rpmsg_remote_clocksync_s msg =
+    {
+      .command = MISC_RPMSG_REMOTE_CLOCKSYNC,
+    };
+
+  return rpmsg_send(&priv->ept, &msg, sizeof(msg));
+}
+
 static int misc_remote_envsync(struct misc_rpmsg_s *priv, unsigned long arg)
 {
   struct misc_remote_envsync_s *env = (struct misc_remote_envsync_s *)arg;
@@ -635,6 +690,9 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
         break;
       case MISC_RETENT_SET:
         ret = misc_retent_set(priv, arg);
+        break;
+      case MISC_REMOTE_CLOCKSYNC:
+        ret = misc_remote_clocksync(priv, arg);
         break;
       case MISC_REMOTE_BOOT:
         ret = misc_remote_boot(priv, arg);
@@ -683,8 +741,42 @@ struct misc_dev_s *misc_rpmsg_initialize(const char *cpuname,
 
   if (devctl)
     {
+      /* Client */
+
       register_driver("/dev/misc", &g_misc_devops, 0666, priv);
+    }
+  else
+    {
+      /* Server */
+
+      if (g_misc_idx >= MISC_RPMSG_MAX_PRIV)
+        {
+          return NULL;
+        }
+
+      g_misc_priv[g_misc_idx++] = priv;
     }
 
   return &priv->dev;
+}
+
+int misc_rpmsg_clocksync(void)
+{
+  struct file filep;
+  int ret;
+
+  ret = file_open(&filep, "/dev/misc", 0, 0);
+  if (ret)
+    {
+      /* Server */
+
+      return misc_remote_clocksync_(NULL);
+    }
+
+  /* Client */
+
+  ret = file_ioctl(&filep, MISC_REMOTE_CLOCKSYNC, 0);
+  file_close(&filep);
+
+  return ret;
 }

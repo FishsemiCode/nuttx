@@ -56,8 +56,9 @@
 #define MISC_RETENT_ADD         _MISCIOC(1)
 #define MISC_RETENT_SET         _MISCIOC(2)
 #define MISC_REMOTE_BOOT        _MISCIOC(3)
-#define MISC_REMOTE_ENVSYNC     _MISCIOC(4)
-#define MISC_REMOTE_INFOWRITE   _MISCIOC(5)
+#define MISC_REMOTE_CLOCKSYNC   _MISCIOC(4)
+#define MISC_REMOTE_ENVSYNC     _MISCIOC(5)
+#define MISC_REMOTE_INFOWRITE   _MISCIOC(6)
 
 /* Access macros ************************************************************/
 
@@ -151,6 +152,7 @@ extern "C"
 
 struct misc_dev_s *misc_rpmsg_initialize(const char *cpuname,
                                          bool devctl);
+int misc_rpmsg_clocksync(void);
 
 #ifdef __cplusplus
 }
