@@ -84,6 +84,9 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CONFIG_BOARD_LOOPSPER10USEC  ((CONFIG_BOARD_LOOPSPERMSEC+50)/100)
+#define CONFIG_BOARD_LOOPSPERUSEC    ((CONFIG_BOARD_LOOPSPERMSEC+500)/1000)
+
 #define CP_RVSD_FILE                "/persist/cpram1.rsvd"
 
 #define CPU_NAME_AP                 "ap"
@@ -101,6 +104,7 @@
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
+#define TOP_PWR_TOP_PCLK1_CTL       (TOP_PWR_BASE + 0x04c)
 #define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_SEC_M4_RSTCTL       (TOP_PWR_BASE + 0x0d8)
 #define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
@@ -225,8 +229,40 @@ FAR struct spi_dev_s *g_spi[3] =
  * Public Functions
  ****************************************************************************/
 
+static void udelay_coarse(useconds_t microseconds)
+{
+  volatile int i;
+
+  /* Cause this is called very early, and no global value this time.
+   * So can't use up_udelay().
+   */
+
+  while (microseconds > 10)
+    {
+      for (i = 0; i < CONFIG_BOARD_LOOPSPER10USEC; i++)
+        {
+        }
+
+      microseconds -= 10;
+    }
+
+  while (microseconds > 0)
+    {
+      for (i = 0; i < CONFIG_BOARD_LOOPSPERUSEC; i++)
+        {
+        }
+
+      microseconds--;
+    }
+}
+
 void up_earlystart(void)
 {
+  /* Set freq of TOP_PCLK1 low */
+
+  putreg32(0xf000f0, TOP_PWR_TOP_PCLK1_CTL);
+  udelay_coarse(5);
+
   /* VDDAON(LDO0) runs at low voltage in deep sleep. Recover the voltage
    * as early as possible.
    */
@@ -244,6 +280,11 @@ void up_earlystart(void)
           break;
         }
     }
+
+  /* Restore freq of TOP_PCLK1 */
+
+  udelay_coarse(5);
+  putreg32(0xf00090, TOP_PWR_TOP_PCLK1_CTL);
 }
 
 void up_earlyinitialize(void)
