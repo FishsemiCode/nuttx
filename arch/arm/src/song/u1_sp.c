@@ -936,12 +936,12 @@ void up_lateinitialize(void)
   up_spi_init();
 #endif
 
-#ifdef CONFIG_SONG_PMIC_APB
-  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
-#endif
-
 #ifdef CONFIG_SONG_ONCHIP_FLASH
   up_flash_init();
+#endif
+
+#ifdef CONFIG_SONG_PMIC_APB
+  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
 #endif
 
   up_extra_init();
