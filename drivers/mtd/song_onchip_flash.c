@@ -150,6 +150,7 @@ static const struct song_onchip_info_s g_info_map[] =
   {0x20, 0x0e, 0xff, "%02x", "chip-id"},
   {0x25, 0x01, 0x1f, "%02x", "soc-id"},
   {0x40, 0x10, 0xff, "%c", "board-id"},
+  {0x80, 0x4, 0xff, "%02x", "pmic-trim"},
   {},
 };
 #endif
@@ -228,7 +229,7 @@ static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
 
       for (i = 0; i < info->nbytes; i++)
         {
-          if (buf[i] != 0xff)
+          if (!strcmp(info->name, "pmic-trim") || buf[i] != 0xff)
           {
             buf[i] &= info->mask;
             len    += sprintf(&value[len], info->format, buf[i]);

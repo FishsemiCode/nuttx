@@ -41,6 +41,7 @@
 
 #include <sys/types.h>
 
+#include <endian.h>
 #include <limits.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -60,6 +61,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+#define PMIC_TRIM_MASK  0x3ff0000
 
 /* Debug ********************************************************************/
 
@@ -357,6 +359,8 @@ static int spmu_is_enabled(struct regulator_dev *rdev)
 int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
 {
   struct spmu_regulator *priv;
+  const char *str = NULL;
+  unsigned long trim;
   int i, ret = 0;
 
   if (!base || !rf_base) {
@@ -372,6 +376,14 @@ int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
 
   priv->base = base;
   priv->rf_base = rf_base;
+
+  /* Set the trim value */
+  str = getenv_global("pmic-trim");
+  if (str) {
+      trim = strtoul(str, NULL, 16);
+      trim = htobe32(trim);
+      spmu_update_bits(priv, 0xf0, PMIC_TRIM_MASK, trim);
+  }
 
   for (i = 0; i < SPMU_NUM_REGS; i++) {
       priv->rdev[i] = regulator_register(&spmu_regulator_desc[i], (void *)priv);
