@@ -395,10 +395,11 @@ int up_rtc_initialize(void)
 {
   static const struct song_rtc_config_s config =
   {
-    .minor = 0,
-    .base  = 0xb2020000,
-    .irq   = 16,
-    .index = 1,
+    .minor   = 0,
+    .base    = 0xb2020000,
+    .irq     = 16,
+    .index   = 1,
+    .correct = 1,
   };
 
   up_rtc_set_lowerhalf(song_rtc_initialize(&config));
