@@ -50,6 +50,7 @@
 #include <errno.h>
 #include <debug.h>
 
+#include <nuttx/environ.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/power/regulator.h>
 
@@ -359,7 +360,7 @@ static int spmu_is_enabled(struct regulator_dev *rdev)
 int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
 {
   struct spmu_regulator *priv;
-  const char *str = NULL;
+  char *str = NULL;
   unsigned long trim;
   int i, ret = 0;
 
@@ -378,6 +379,7 @@ int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
   priv->rf_base = rf_base;
 
   /* Set the trim value */
+
   str = getenv_global("pmic-trim");
   if (str) {
       trim = strtoul(str, NULL, 16);
