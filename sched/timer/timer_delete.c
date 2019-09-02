@@ -41,7 +41,6 @@
 
 #include <time.h>
 #include <errno.h>
-#include <syslog.h>
 
 #include "timer/timer.h"
 
@@ -83,11 +82,6 @@ int timer_delete(timer_t timerid)
     {
       set_errno(-ret);
       return ERROR;
-    }
-
-  if (ret == 1)
-    {
-      syslog(LOG_INFO, "WARNING, %s, line %d\n",  __func__, __LINE__);
     }
 
   return OK;
