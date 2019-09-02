@@ -58,6 +58,12 @@ config LCD_EXTERNINIT
 
 menu "LCD driver selection"
 
+config LCD_ILI9486
+	bool "Ili9486 spi interface lcd"
+	default n
+	---help---
+		ili9486.c. Driver for ilitek9486 spi display panel.
+
 config LCD_NOGETRUN
 	bool "Write-only LCD"
 	default n

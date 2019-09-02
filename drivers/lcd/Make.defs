@@ -43,6 +43,10 @@ endif
 
 # Include support for Graphics LCD drivers
 
+ifeq ($(CONFIG_LCD_ILI9486),y)
+  CSRCS += ili9486.c
+endif
+
 ifeq ($(CONFIG_LCD_FT80X),y)
   CSRCS += ft80x.c
 ifeq ($(CONFIG_LCD_FT80X_SPI),y)
