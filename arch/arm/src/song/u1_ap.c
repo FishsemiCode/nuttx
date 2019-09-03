@@ -46,6 +46,8 @@
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
+#include <nuttx/pinctrl/pinctrl.h>
+#include <nuttx/pinctrl/song_pinctrl.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/misc/misc_rpmsg.h>
@@ -149,6 +151,13 @@ FAR struct spi_dev_s *g_spi[2] =
 FAR struct i2c_master_s *g_i2c[3] =
 {
   [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SONG_PINCTRL
+FAR struct pinctrl_dev_s *g_pinctrl[2] =
+{
+  [1] = DEV_END,
 };
 #endif
 
@@ -481,6 +490,14 @@ static void up_i2c_init(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_PINCTRL
+static void up_pinctrl_init(void)
+{
+  g_pinctrl[0] = song_pinctrl_initialize(0xb0050000, 41);
+  pinctrl_register(g_pinctrl[0], 0);
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
@@ -517,6 +534,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_I2C_DW
   up_i2c_init();
+#endif
+
+#ifdef CONFIG_SONG_PINCTRL
+  up_pinctrl_init();
 #endif
 }
 
