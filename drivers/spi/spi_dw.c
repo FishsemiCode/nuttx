@@ -504,7 +504,6 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
     duplex = SPI_CTRL0_TMOD_RX;
 
   dw_spi_set_duplex(hw, duplex, nwords);
-  dw_spi_enable(hw, true);
 
   if (rxbuffer)
     {
@@ -520,6 +519,12 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
                 spi, up_addrenv_va_to_pa(rxbuffer),
                 up_addrenv_va_to_pa((void *)&hw->DATA), nwords);
     }
+
+  /* For RX: DMA_START, SPI enable
+   * For TX: SPI enable, DMA_START
+   */
+
+  dw_spi_enable(hw, true);
 
   if (txbuffer)
     {
