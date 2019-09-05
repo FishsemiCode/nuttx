@@ -1,8 +1,8 @@
 /****************************************************************************
- * drivers/syslog/syslog_flush.c
+ * include/nuttx/drivers/dumpfile.h
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2019 FishSemi Inc. All rights reserved.
+ *   Author: Zhang Yuan<zhangyuan@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,65 +37,39 @@
  * Included Files
  ****************************************************************************/
 
+#ifndef __INCLUDE_NUTTX_DRIVERS_DUMPFILE_H
+#define __INCLUDE_NUTTX_DRIVERS_DUMPFILE_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include <stdbool.h>
-#include <assert.h>
-
-#include <nuttx/syslog/syslog.h>
-#include <nuttx/drivers/dumpfile.h>
-
-#include "syslog.h"
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Name: syslog_flush
- *
- * Description:
- *   This is called by system crash-handling logic.  It must flush any
- *   buffered data to the SYSLOG device.
- *
- *   Interrupts are disabled at the time of the crash and this logic must
- *   perform the flush using low-level, non-interrupt driven logic.
- *
- *   REVISIT:  There is an implementation problem in that if a character
- *   driver is the underlying device, then there is no mechanism to flush
- *   the data buffered in the driver with interrupts disabled.
- *
- *   Currently, this function on (a) dumps the interrupt buffer (if the
- *   SYSLOG interrupt buffer is enabled), and (b) only the SYSLOG interface
- *   supports supports the 'sc_force()' method.
- *
- * Input Parameters:
- *   ch - The character to add to the SYSLOG (must be positive).
- *
- * Returned Value:
- *   Zero (OK)is returned on  success.  A negated errno value is returned
- *   on any failure.
- *
- ****************************************************************************/
-
-int syslog_flush(void)
-{
-  DEBUGASSERT(g_syslog_channel != NULL);
-
 #ifdef CONFIG_CRASH_DUMPFILE
-  dumpfile_flush();
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
+#else
+#define EXTERN extern
 #endif
 
-#ifdef CONFIG_SYSLOG_INTBUFFER
-  /* Flush any characters that may have been added to the interrupt
-   * buffer.
-   */
+int dumpfile_write(FAR const char * fmt,...);
+int dumpfile_flush(void);
 
-  (void)syslog_flush_intbuffer(g_syslog_channel, true);
-#endif
-
-  /* Then flush all of the buffered output to the SYSLOG device */
-
-  DEBUGASSERT(g_syslog_channel->sc_flush != NULL);
-  return g_syslog_channel->sc_flush();
+#ifdef __cplusplus
 }
+#endif
+
+#endif /* CONFIG_CRASH_DUMPFILE */
+#endif /* __INCLUDE_NUTTX_DRIVERS_DUMPFILE_H */

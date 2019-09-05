@@ -42,6 +42,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/drivers/dumpfile.h>
 
 #ifdef CONFIG_ARCH_DEBUG_H
 # include <arch/debug.h>
@@ -114,8 +115,18 @@
 #endif
 
 #ifdef CONFIG_DEBUG_ALERT
-#  define _alert(format, ...) \
-   __arch_syslog(LOG_EMERG, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
+#  ifdef CONFIG_CRASH_DUMPFILE
+#    define _alert(format, ...) \
+     do \
+       { \
+         __arch_syslog(LOG_EMERG, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__); \
+         dumpfile_write(format, ##__VA_ARGS__); \
+       } \
+     while(0)
+#  else
+#    define _alert(format, ...) \
+     __arch_syslog(LOG_EMERG, EXTRA_FMT format EXTRA_ARG, ##__VA_ARGS__)
+#  endif
 #else /* CONFIG_DEBUG_ERROR */
 #  define  _alert(x...)
 #endif

@@ -96,6 +96,10 @@ endif
 
 CSRCS += dev_null.c dev_zero.c
 
+ifeq ($(CONFIG_CRASH_DUMPFILE),y)
+  CSRCS += dumpfile.c
+endif
+
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
   CSRCS += ramdisk.c
 ifeq ($(CONFIG_DRVR_WRITEBUFFER),y)

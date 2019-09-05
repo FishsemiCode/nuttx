@@ -26,6 +26,19 @@ config DEV_ZERO
 	bool "Enable /dev/zero"
 	default n
 
+config CRASH_DUMPFILE
+	bool "Enable crash dump file"
+	default n
+	depends on !DISABLE_MOUNTPOINT
+
+if CRASH_DUMPFILE
+
+config CRASH_DUMPFILE_MOUNTPOINT
+	string "Mountpoint of the crash dump file"
+	default "/log"
+
+endif # CRASH_DUMPFILE
+
 source drivers/crypto/Kconfig
 source drivers/loop/Kconfig
 
