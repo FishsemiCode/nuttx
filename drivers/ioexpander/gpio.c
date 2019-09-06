@@ -411,7 +411,7 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
        */
 
       case GPIOC_REGISTER:
-        if (arg && dev->gp_pintype == GPIO_INTERRUPT_PIN)
+        if (arg && dev->gp_pintype >= GPIO_INTERRUPT_PIN)
           {
             pid = getpid();
             flags = spin_lock_irqsave();
@@ -461,7 +461,7 @@ static int gpio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
        */
 
       case GPIOC_UNREGISTER:
-        if (dev->gp_pintype == GPIO_INTERRUPT_PIN)
+        if (dev->gp_pintype >= GPIO_INTERRUPT_PIN)
           {
             pid = getpid();
             flags = spin_lock_irqsave();
@@ -580,7 +580,7 @@ int gpio_pin_register(FAR struct gpio_dev_s *dev, int minor)
         }
         break;
 
-      case GPIO_INTERRUPT_PIN:
+      default:
         {
           DEBUGASSERT(dev->gp_ops->go_read != NULL &&
                       dev->gp_ops->go_attach != NULL &&
@@ -597,9 +597,6 @@ int gpio_pin_register(FAR struct gpio_dev_s *dev, int minor)
           fmt = "/dev/gpint%u";
         }
         break;
-
-      default:
-        return -EINVAL;
     }
 
   snprintf(devname, 16, fmt, (unsigned int)minor);
@@ -642,14 +639,11 @@ void gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor)
         }
         break;
 
-      case GPIO_INTERRUPT_PIN:
+      default:
         {
           fmt = "/dev/gpint%u";
         }
         break;
-
-      default:
-        return;
     }
 
   snprintf(devname, 16, fmt, (unsigned int)minor);
