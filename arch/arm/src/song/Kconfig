@@ -46,6 +46,14 @@ config ARCH_CHIP_U1_CP
 	select SONG_COPY_TABLE
 	select SONG_ZERO_TABLE
 
+config ARCH_CHIP_U1_RECOVERY
+	bool "U1 RECOVERY"
+	select ARCH_HAVE_POWEROFF
+	select SONG_CORTEXM4
+	select SONG_HAVE_RNG
+	select SONG_ICACHE
+	select SONG_COPY_TABLE
+
 config ARCH_CHIP_U1_SP
 	bool "U1 SP"
 	select ARCH_HAVE_POWEROFF

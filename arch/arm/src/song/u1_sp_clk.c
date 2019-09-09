@@ -39,7 +39,8 @@
 
 #include <nuttx/config.h>
 
-#if defined(CONFIG_ARCH_CHIP_U1_SP) && defined(CONFIG_SONG_CLK)
+#if (defined(CONFIG_ARCH_CHIP_U1_SP) || defined(CONFIG_ARCH_CHIP_U1_RECOVERY)) \
+    && defined(CONFIG_SONG_CLK)
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
@@ -530,4 +531,5 @@ void up_clk_finalinitialize(void)
 {
   clk_disable_unused();
 }
-#endif /* (CONFIG_ARCH_CHIP_U1_SP) && (CONFIG_SONG_CLK) */
+#endif /* (defined(CONFIG_ARCH_CHIP_U1_SP) || defined(CONFIG_ARCH_CHIP_U1_RECOVERY)) \
+          && defined(CONFIG_SONG_CLK) */
