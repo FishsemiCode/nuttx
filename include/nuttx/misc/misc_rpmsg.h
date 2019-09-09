@@ -43,11 +43,12 @@
 #include <nuttx/config.h>
 
 #include <nuttx/fs/ioctl.h>
-#include <openamp/open_amp.h>
 
 #include <string.h>
 
 #ifdef CONFIG_MISC_RPMSG
+
+#include <openamp/open_amp.h>
 
 /****************************************************************************
  * Pre-processor Definitions
