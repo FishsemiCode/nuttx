@@ -329,15 +329,22 @@ void up_earlyinitialize(void)
 
       putreg32(TOP_PWR_SLP_DMA_MK << 16 |
                TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
+
+      /* Configure PLL stable time (~1.15ms). */
+
+      putreg32(TOP_PWR_PLL_STABLE_TIME | TOP_PWR_OSC_STABLE_TIME, TOP_PWR_PLLTIME);
+    }
+  else
+    {
+      /* Configure PLL stable time (~1.15ms). */
+
+      putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
+               TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
     }
 
   /* Set flash no effort to PWR_SLEEP */
 
   putreg32(TOP_PWR_CTRL_MODE << 16, TOP_PWR_FLASH_PD_CTL);
-
-  /* Configure PLL stable time (~1.15ms). */
-
-  putreg32(TOP_PWR_PLL_STABLE_TIME | TOP_PWR_OSC_STABLE_TIME, TOP_PWR_PLLTIME);
 
   /* Set PMICFSM disable full chip to DS */
 

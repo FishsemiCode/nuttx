@@ -83,6 +83,9 @@
                                          TOP_PMICFSM_LDO0_SLEEP_ON  | \
                                          TOP_PMICFSM_LDO0_VOLT_900mV)
 
+#define TOP_PMICFSM_PLL_STABLE_TIME     (0xf << 8)
+#define TOP_PMICFSM_OSC_STABLE_TIME     (0x52 << 0)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
