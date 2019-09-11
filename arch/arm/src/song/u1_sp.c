@@ -323,10 +323,13 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_SEC_AU_PD_MK << 16, TOP_PWR_SEC_M4_TCM_PD_CTL);
 #endif
 
-  /* Set the DMAS no effort to power down */
+  if (up_is_u1v1())
+    {
+      /* Set the DMAS no effort to power down */
 
-  putreg32(TOP_PWR_SLP_DMA_MK << 16 |
-           TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
+      putreg32(TOP_PWR_SLP_DMA_MK << 16 |
+               TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
+    }
 
   /* Set flash no effort to PWR_SLEEP */
 
