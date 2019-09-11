@@ -259,33 +259,48 @@ static void udelay_coarse(useconds_t microseconds)
 
 void up_earlystart(void)
 {
-  /* Set freq of TOP_PCLK1 low */
-
-  putreg32(0xf000f0, TOP_PWR_TOP_PCLK1_CTL);
-  udelay_coarse(5);
-
-  /* VDDAON(LDO0) runs at low voltage in deep sleep. Recover the voltage
-   * as early as possible.
-   */
-
-  for (int i = 0; i < 1000; i++)
+  if (up_is_u1v1())
     {
-      /* WA - writing to TOP_PMICFSM on power up seems to be unstable. Read
-       * the register back to make sure it's programmed correctly.
+      int i;
+
+      /* Set freq of TOP_PCLK1 low */
+
+      putreg32(0xf000f0, TOP_PWR_TOP_PCLK1_CTL);
+      udelay_coarse(5);
+
+      /* VDDAON(LDO0) runs at low voltage in deep sleep. Recover the voltage
+       * as early as possible.
        */
 
-      putreg32(TOP_PMICFSM_LDO0_DEFAULT, TOP_PMICFSM_LDO0);
-
-      if (getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT)
+      for (i = 0; i < 1000; i++)
         {
-          break;
+          /* WA - writing to TOP_PMICFSM on power up seems to be unstable. Read
+           * the register back to make sure it's programmed correctly.
+           */
+
+          putreg32(TOP_PMICFSM_LDO0_DEFAULT, TOP_PMICFSM_LDO0);
+
+          if (getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT)
+            {
+              break;
+            }
         }
+
+      /* Restore freq of TOP_PCLK1 */
+
+      udelay_coarse(5);
+      putreg32(0xf00090, TOP_PWR_TOP_PCLK1_CTL);
     }
+  else
+    {
+      /* Set VDDMAIN 1.1V@work+0.8V@SLEEP+off@DS */
 
-  /* Restore freq of TOP_PCLK1 */
+      putreg32(0xc02401, TOP_PMICFSM_BUCK1);
 
-  udelay_coarse(5);
-  putreg32(0xf00090, TOP_PWR_TOP_PCLK1_CTL);
+      /* Set VDDAON 1.1V@work and 0.7V@SLEEP */
+
+      putreg32(0x41403, TOP_PMICFSM_LDO0);
+    }
 }
 
 void up_earlyinitialize(void)
@@ -880,30 +895,33 @@ static void cp_flash_save_finish(void)
 
 static void up_ds_enter_final(void)
 {
-  struct regulator *reg;
-  struct clk *clk;
-
-  /* Decrease LDO0/VDDAON voltage to 0.625V. Before setting
-   * voltage, decrease clock rate first.
-   */
-
-  clk = clk_get("top_bus_mclk");
-  if (clk != NULL)
+  if (up_is_u1v1())
     {
-      clk_set_rate(clk, 51200000);
-    }
+      struct regulator *reg;
+      struct clk *clk;
 
-  clk = clk_get("top_pclk1");
-  if (clk != NULL)
-    {
-      clk_set_rate(clk, 3200000);
-    }
+      /* Decrease LDO0/VDDAON voltage to 0.625V. Before setting
+       * voltage, decrease clock rate first.
+       */
 
-  reg = regulator_get(NULL, "ldo0");
-  if (reg != NULL)
-    {
-      const int voltage = 700000;
-      regulator_set_voltage(reg, voltage, voltage);
+      clk = clk_get("top_bus_mclk");
+      if (clk != NULL)
+        {
+          clk_set_rate(clk, 51200000);
+        }
+
+      clk = clk_get("top_pclk1");
+      if (clk != NULL)
+        {
+          clk_set_rate(clk, 3200000);
+        }
+
+      reg = regulator_get(NULL, "ldo0");
+      if (reg != NULL)
+        {
+          const int voltage = 700000;
+          regulator_set_voltage(reg, voltage, voltage);
+        }
     }
 
   /* Jump to flash_pd */
