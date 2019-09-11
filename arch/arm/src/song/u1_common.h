@@ -51,6 +51,7 @@
 #define TOP_PMICFSM_WAKEUP_ENABLE       (TOP_PMICFSM_BASE + 0x14)
 #define TOP_PMICFSM_WAKEUP_REASON       (TOP_PMICFSM_BASE + 0x18)
 #define TOP_PMICFSM_LDO0                (TOP_PMICFSM_BASE + 0x28)
+#define TOP_PMICFSM_PLLTIME             (TOP_PMICFSM_BASE + 0xe8)
 
 #define TOP_PMICFSM_DS_SLP_VALID        (1 << 0)
 
@@ -191,6 +192,11 @@ static inline bool up_is_warm_rstn(void)
     }
 
   return false;
+}
+
+static inline bool up_is_u1v1(void)
+{
+  return getreg32(TOP_PMICFSM_PLLTIME) == 0xdeadbeaf;
 }
 
 #endif //__ARCH_ARM_SRC_SONG_U1_COMMON_H
