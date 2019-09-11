@@ -73,6 +73,7 @@
 #include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
+#include "u1_common.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -227,12 +228,15 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
            TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
 
-  /* Workaround for uart0 can't wakeup CPU in PWR_SLEEP mode,
-   * Mux uart0 as GPIO35, trigger GPIO35 failing edge as IRQ
-   */
+  if (up_is_u1v1())
+    {
+      /* Workaround for uart0 can't wakeup CPU in PWR_SLEEP mode,
+       * Mux uart0 as GPIO35, trigger GPIO35 failing edge as IRQ
+       */
 
-  putreg32(0x16, 0xb005007c);
-  putreg32(0x87000, 0xb00600c0);
+      putreg32(0x16, 0xb005007c);
+      putreg32(0x87000, 0xb00600c0);
+    }
 }
 
 void up_wic_initialize(void)
