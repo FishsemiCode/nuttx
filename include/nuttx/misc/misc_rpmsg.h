@@ -118,6 +118,7 @@ struct misc_retent_add_s
   uint32_t blkid;
   void     *base;
   uint32_t size;
+  bool     dma;
 };
 
 struct misc_retent_set_s

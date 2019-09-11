@@ -86,8 +86,9 @@ begin_packed_struct struct misc_rpmsg_retent_add_s
 {
   uint32_t command;
   uint32_t blkid;
-  uint32_t base;
+  uintptr_t base;
   uint32_t size;
+  uint32_t dma;
 } end_packed_struct;
 
 begin_packed_struct struct misc_rpmsg_retent_set_s
@@ -133,8 +134,9 @@ struct misc_rpmsg_s
 struct misc_retent_blk_s
 {
   uint32_t magic;
-  uint32_t base;
+  uintptr_t base;
   uint32_t size;
+  uint32_t dma;
   uint32_t crc;
   uint32_t flush;
   uint32_t blkid;
@@ -269,6 +271,7 @@ static int misc_retent_add_handler(struct rpmsg_endpoint *ept,
   blk->blkid = msg->blkid;
   blk->base  = (uintptr_t)up_addrenv_pa_to_va(msg->base);
   blk->size  = msg->size;
+  blk->dma   = msg->dma;
   blk->flush = true;
 
   metal_list_add_tail(&priv->blks, &blk->node);
@@ -446,8 +449,6 @@ static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd)
   if (ret != sizeof(struct misc_retent_blk_s) ||
           memcmp(temp, blk, sizeof(struct misc_retent_blk_s)))
     {
-      char *wabuf;
-
       /* Flush block header first */
 
       lseek(fd, begin, SEEK_SET);
@@ -457,18 +458,28 @@ static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd)
           goto fail;
         }
 
-      /* Workaround here, FLASH/DMAS can't access some memory */
-
-      wabuf = kmm_malloc(blk->size);
-      if (!wabuf)
+      if (blk->dma)
         {
-          ret = -ENOMEM;
-          goto fail;
+          write(fd, (void *)blk->base, blk->size);
         }
+      else
+        {
+          char *wabuf;
 
-      memcpy(wabuf, (void *)blk->base, blk->size);
-      write(fd, wabuf, blk->size);
-      kmm_free(wabuf);
+          /* FLASH/DMAS can't access some memory */
+
+          wabuf = kmm_malloc(blk->size);
+          if (!wabuf)
+            {
+              ret = -ENOMEM;
+              goto fail;
+            }
+
+          memcpy(wabuf, (void *)blk->base, blk->size);
+          write(fd, wabuf, blk->size);
+
+          kmm_free(wabuf);
+        }
     }
   else
     {
@@ -521,7 +532,6 @@ fail:
 
 static int misc_retent_restore_blk(struct misc_retent_blk_s *blk, int fd)
 {
-  char *temp = NULL;
   int ret = 0;
 
   if (!blk->flush)
@@ -530,32 +540,54 @@ static int misc_retent_restore_blk(struct misc_retent_blk_s *blk, int fd)
       goto fail;
     }
 
-  /* Workaround here, FLASH/DMAS can't access some memory */
-
-  temp = kmm_malloc(blk->size);
-  if (!temp)
+  if (blk->dma)
     {
-      ret = -ENOMEM;
-      goto fail;
+      ret = read(fd, (void *)blk->base, blk->size);
+      if (ret != blk->size)
+        {
+          goto fail;
+        }
+
+      if (blk->crc != crc32((const uint8_t *)blk->base, blk->size))
+        {
+          ret = -EINVAL;
+          goto fail;
+        }
     }
-
-  ret = read(fd, temp, blk->size);
-  if (ret != blk->size)
+  else
     {
-      goto fail;
-    }
+      char *temp;
 
-  if (blk->crc == crc32((const uint8_t *)temp, blk->size))
-    {
+      /* FLASH/DMAS can't access some memory */
+
+      temp = kmm_malloc(blk->size);
+      if (!temp)
+        {
+          ret = -ENOMEM;
+          goto fail;
+        }
+
+      ret = read(fd, temp, blk->size);
+      if (ret != blk->size)
+        {
+          kmm_free(temp);
+          goto fail;
+        }
+
+      if (blk->crc != crc32((const uint8_t *)temp, blk->size))
+        {
+          ret = -EINVAL;
+          kmm_free(temp);
+          goto fail;
+        }
+
       memcpy((void *)blk->base, temp, blk->size);
-      ret = 0;
-      goto done;
+      kmm_free(temp);
     }
 
+  return 0;
 fail:
   memset((void *)blk->base, 0, blk->size);
-done:
-  kmm_free(temp);
   return ret;
 }
 
@@ -620,6 +652,7 @@ static int misc_retent_add(struct misc_rpmsg_s *priv, unsigned long arg)
   msg.blkid   = add->blkid;
   msg.base    = (uintptr_t)up_addrenv_va_to_pa(add->base);
   msg.size    = add->size;
+  msg.dma     = add->dma;
 
   return rpmsg_send(&priv->ept, &msg, sizeof(struct misc_rpmsg_retent_add_s));
 }
