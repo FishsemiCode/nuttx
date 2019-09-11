@@ -479,130 +479,6 @@ static int ap_start(const struct song_rptun_config_s *config)
   return 0;
 }
 
-#ifdef CONFIG_MISC_RPMSG
-static void cp_flash_save_prepare(void)
-{
-  /* CP TCM, AU_PD_MK = 1 */
-
-  putreg32(TOP_PWR_CP_AU_PD_MK << 16 |
-           TOP_PWR_CP_AU_PD_MK, TOP_PWR_CP_M4_TCM_PD_CTL0);
-
-  /* CP TCM, WK_UP = 1, trigger PU */
-
-  putreg32(TOP_PWR_CP_WK_UP << 16 |
-           TOP_PWR_CP_WK_UP, TOP_PWR_CP_M4_TCM_PD_CTL0);
-
-  /* CP TCM, wait until PU done */
-
-  while (getreg32(TOP_PWR_CP_M4_TCM_PD_CTL0) & TOP_PWR_CP_WK_UP);
-
-  /* CP UNIT, sfrst of cp_m4 asserted */
-
-  putreg32(TOP_PWR_CP_M4_PORESET << 16 |
-           TOP_PWR_CP_M4_PORESET, TOP_PWR_CP_M4_RSTCTL);
-
-  /* CP UNIT, WK_UP = 1, trigger PU */
-
-  putreg32(TOP_PWR_CP_WK_UP << 16 |
-           TOP_PWR_CP_WK_UP, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* CP UNIT, wait until PU done */
-
-  while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_WK_UP);
-}
-
-static void cp_flash_save_finish(void)
-{
-  /* HW_IDLE_MK = 1 */
-
-  putreg32(TOP_PWR_CP_HW_IDLE_MK << 16 |
-           TOP_PWR_CP_HW_IDLE_MK, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* PD_EN = 1, trigger PD */
-
-  putreg32(TOP_PWR_CP_PD_EN << 16 |
-           TOP_PWR_CP_PD_EN, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* Wait until PD done */
-
-  while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_PD_EN);
-
-  /* HW_IDLE_MK = 0 */
-
-  putreg32(TOP_PWR_CP_HW_IDLE_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
-
-  /* Sfrst of cp_m4 released */
-
-  putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
-}
-#endif
-
-void up_flash_save_final(void)
-{
-  struct regulator *reg;
-  struct clk *clk;
-
-  /* Jump to flash_pd */
-
-  putreg32(TOP_PWR_FLASH_S_2PD_JMP << 16 |
-           TOP_PWR_FLASH_S_2PD_JMP, TOP_PWR_SLPCTL_SEC_M4);
-
-  /* Decrease LDO0/VDDAON voltage to 0.625V. Before setting
-   * voltage, decrease clock rate first.
-   */
-
-  clk = clk_get("top_bus_mclk");
-  if (clk != NULL)
-    {
-      clk_set_rate(clk, 51200000);
-    }
-
-  clk = clk_get("top_pclk1");
-  if (clk != NULL)
-    {
-      clk_set_rate(clk, 3200000);
-    }
-
-  reg = regulator_get(NULL, "ldo0");
-  if (reg != NULL)
-    {
-      const int voltage = 700000;
-      regulator_set_voltage(reg, voltage, voltage);
-    }
-
-  /* Set PMICFSM enable full chip to DS */
-
-  modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
-}
-
-static void up_flash_save_work(FAR void *arg)
-{
-#ifdef CONFIG_MISC_RPMSG
-  /* Save cpram to flash */
-
-  cp_flash_save_prepare();
-  MISC_RETENT_SAVE(g_misc[1], CP_RVSD_FILE);
-  cp_flash_save_finish();
-#endif
-
-  /* Final work */
-
-  up_flash_save_final();
-}
-
-static int up_flash_save_isr(int irq, FAR void *context, FAR void *arg)
-{
-  if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_SLPU_FLASH_S)
-    {
-      static struct work_s worker;
-
-      putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
-      work_queue(LPWORK, &worker, up_flash_save_work, NULL, 0);
-    }
-
-  return 0;
-}
-
 static int cp_start(const struct song_rptun_config_s *config)
 {
 #ifdef CONFIG_MISC_RPMSG
@@ -895,12 +771,6 @@ static void up_flash_init(void)
 
 void up_extra_init(void)
 {
-  /* Attach and enable flash_s intr. */
-
-  irq_attach(18, up_flash_save_isr, NULL);
-  up_enable_irq(18);
-  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
-
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);
@@ -950,8 +820,138 @@ void up_lateinitialize(void)
   up_extra_init();
 }
 
+#ifdef CONFIG_MISC_RPMSG
+static void cp_flash_save_prepare(void)
+{
+  /* CP TCM, AU_PD_MK = 1 */
+
+  putreg32(TOP_PWR_CP_AU_PD_MK << 16 |
+           TOP_PWR_CP_AU_PD_MK, TOP_PWR_CP_M4_TCM_PD_CTL0);
+
+  /* CP TCM, WK_UP = 1, trigger PU */
+
+  putreg32(TOP_PWR_CP_WK_UP << 16 |
+           TOP_PWR_CP_WK_UP, TOP_PWR_CP_M4_TCM_PD_CTL0);
+
+  /* CP TCM, wait until PU done */
+
+  while (getreg32(TOP_PWR_CP_M4_TCM_PD_CTL0) & TOP_PWR_CP_WK_UP);
+
+  /* CP UNIT, sfrst of cp_m4 asserted */
+
+  putreg32(TOP_PWR_CP_M4_PORESET << 16 |
+           TOP_PWR_CP_M4_PORESET, TOP_PWR_CP_M4_RSTCTL);
+
+  /* CP UNIT, WK_UP = 1, trigger PU */
+
+  putreg32(TOP_PWR_CP_WK_UP << 16 |
+           TOP_PWR_CP_WK_UP, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* CP UNIT, wait until PU done */
+
+  while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_WK_UP);
+}
+
+static void cp_flash_save_finish(void)
+{
+  /* HW_IDLE_MK = 1 */
+
+  putreg32(TOP_PWR_CP_HW_IDLE_MK << 16 |
+           TOP_PWR_CP_HW_IDLE_MK, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* PD_EN = 1, trigger PD */
+
+  putreg32(TOP_PWR_CP_PD_EN << 16 |
+           TOP_PWR_CP_PD_EN, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* Wait until PD done */
+
+  while (getreg32(TOP_PWR_CP_UNIT_PD_CTL) & TOP_PWR_CP_PD_EN);
+
+  /* HW_IDLE_MK = 0 */
+
+  putreg32(TOP_PWR_CP_HW_IDLE_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
+
+  /* Sfrst of cp_m4 released */
+
+  putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
+}
+#endif
+
+static void up_ds_enter_final(void)
+{
+  struct regulator *reg;
+  struct clk *clk;
+
+  /* Decrease LDO0/VDDAON voltage to 0.625V. Before setting
+   * voltage, decrease clock rate first.
+   */
+
+  clk = clk_get("top_bus_mclk");
+  if (clk != NULL)
+    {
+      clk_set_rate(clk, 51200000);
+    }
+
+  clk = clk_get("top_pclk1");
+  if (clk != NULL)
+    {
+      clk_set_rate(clk, 3200000);
+    }
+
+  reg = regulator_get(NULL, "ldo0");
+  if (reg != NULL)
+    {
+      const int voltage = 700000;
+      regulator_set_voltage(reg, voltage, voltage);
+    }
+
+  /* Jump to flash_pd */
+
+  putreg32(TOP_PWR_FLASH_S_2PD_JMP << 16 |
+           TOP_PWR_FLASH_S_2PD_JMP, TOP_PWR_SLPCTL_SEC_M4);
+
+  /* Set PMICFSM enable full chip to DS */
+
+  modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
+}
+
+static void up_ds_enter_work(FAR void *arg)
+{
+#ifdef CONFIG_MISC_RPMSG
+  /* Save cpram to flash */
+
+  cp_flash_save_prepare();
+  MISC_RETENT_SAVE(g_misc[1], CP_RVSD_FILE);
+  cp_flash_save_finish();
+#endif
+
+  /* Final work */
+
+  up_ds_enter_final();
+}
+
+static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
+{
+  if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_SLPU_FLASH_S)
+    {
+      static struct work_s worker;
+
+      putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
+      work_queue(LPWORK, &worker, up_ds_enter_work, NULL, 0);
+    }
+
+  return 0;
+}
+
 void up_finalinitialize(void)
 {
+  /* Attach and enable DS enter exit intr */
+
+  irq_attach(18, up_ds_enter_exit_isr, NULL);
+  up_enable_irq(18);
+  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+
 #ifdef CONFIG_SONG_RPTUN
   /* Force boot AP */
 
