@@ -136,6 +136,8 @@
 #define TOP_PWR_SFRST_RESET         (1 << 0)
 
 #define TOP_PWR_SLPU_FLASH_S        (1 << 0)
+#define TOP_PWR_CP_DS_WAKEUP        (1 << 4)
+#define TOP_PWR_AP_DS_WAKEUP        (1 << 5)
 
 #define TOP_PWR_CP_PD_EN            (1 << 0)
 #define TOP_PWR_CP_WK_UP            (1 << 1)
@@ -342,6 +344,13 @@ void up_earlyinitialize(void)
 
   putreg32(TOP_PMICFSM_UART_ENABLE |
            TOP_PMICFSM_RTC_ENABLE, TOP_PMICFSM_WAKEUP_ENABLE);
+
+  /* Set CP & RF no effect to power */
+
+  putreg32(TOP_PWR_SLP_RF_MASK << 16 |
+           TOP_PWR_SLP_RF_MASK, TOP_PWR_SLPCTL1);
+  putreg32(TOP_PWR_CP_SLP_MASK << 16 |
+           TOP_PWR_CP_SLP_MASK, TOP_PWR_SLPCTL_CP_M4);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
@@ -958,6 +967,20 @@ static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
       putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
       work_queue(LPWORK, &worker, up_ds_enter_work, NULL, 0);
     }
+  else if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_AP_DS_WAKEUP)
+    {
+#ifdef CONFIG_SONG_RPTUN
+      rptun_boot(CPU_NAME_AP);
+#endif
+      putreg32(TOP_PWR_AP_DS_WAKEUP, TOP_PWR_INTR_ST_SEC_M4_1);
+    }
+  else if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_CP_DS_WAKEUP)
+    {
+#ifdef CONFIG_SONG_RPTUN
+      rptun_boot(CPU_NAME_CP);
+#endif
+      putreg32(TOP_PWR_CP_DS_WAKEUP, TOP_PWR_INTR_ST_SEC_M4_1);
+    }
 
   return 0;
 }
@@ -969,33 +992,35 @@ void up_finalinitialize(void)
   irq_attach(18, up_ds_enter_exit_isr, NULL);
   up_enable_irq(18);
   modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+  if (!up_is_u1v1())
+    {
+      modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_AP_DS_WAKEUP);
+      modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_CP_DS_WAKEUP);
+    }
 
 #ifdef CONFIG_SONG_RPTUN
-  /* Force boot AP */
-
-  rptun_boot(CPU_NAME_AP);
-
-  /* Choice boot CP */
-
-  if (up_get_wkreason() == WAKEUP_REASON_RTC_RSTN)
+  if (!up_is_warm_rstn())
     {
-      if (getreg32(0xb2020040) & 0x1)
-        {
-          rptun_boot(CPU_NAME_CP);
-        }
-      else
-        {
-          /* Mask CP & RF effect to power */
-
-          putreg32(TOP_PWR_SLP_RF_MASK << 16 |
-                   TOP_PWR_SLP_RF_MASK, TOP_PWR_SLPCTL1);
-          putreg32(TOP_PWR_CP_SLP_MASK << 16 |
-                   TOP_PWR_CP_SLP_MASK, TOP_PWR_SLPCTL_CP_M4);
-        }
+      rptun_boot(CPU_NAME_AP);
+      rptun_boot(CPU_NAME_CP);
     }
   else
     {
-      rptun_boot(CPU_NAME_CP);
+      if (up_is_u1v1())
+        {
+          /* Force boot AP, choice boot CP */
+
+          rptun_boot(CPU_NAME_AP);
+          if (up_get_wkreason() == WAKEUP_REASON_RTC_RSTN)
+            {
+              if (getreg32(0xb2020040) & 0x1)
+                rptun_boot(CPU_NAME_CP);
+            }
+          else
+            {
+              rptun_boot(CPU_NAME_CP);
+            }
+        }
     }
 #endif
 
