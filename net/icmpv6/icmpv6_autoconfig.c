@@ -423,6 +423,8 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
 
   if (ret < 0)
     {
+      int senderr;
+
       nerr("ERROR: Failed to get the router advertisement: %d (retries=%d)\n",
            ret, retries);
 
@@ -430,10 +432,10 @@ int icmpv6_autoconfig(FAR struct net_driver_s *dev)
        * Advertisement message.
        */
 
-      ret = icmpv6_send_message(dev, true);
-      if (ret < 0)
+      senderr = icmpv6_send_message(dev, true);
+      if (senderr < 0)
         {
-          nerr("ERROR: Failed send neighbor advertisement: %d\n", ret);
+          nerr("ERROR: Failed send neighbor advertisement: %d\n", senderr);
         }
 
       /* No off-link communications; No router address. */
