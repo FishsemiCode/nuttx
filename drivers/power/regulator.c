@@ -88,18 +88,18 @@ static int _regulator_set_voltage_unlocked(struct regulator *regulator, int min_
  ****************************************************************************/
 static int _regulator_is_enabled(struct regulator_dev *rdev)
 {
-  if (!rdev->desc->ops->is_enabled)
+  if (!rdev->ops->is_enabled)
       return 1;
 
-  return rdev->desc->ops->is_enabled(rdev);
+  return rdev->ops->is_enabled(rdev);
 }
 
 static int _regulator_do_enable(struct regulator_dev *rdev)
 {
   int ret = 0;
 
-  if (rdev->desc->ops->enable) {
-      ret = rdev->desc->ops->enable(rdev);
+  if (rdev->ops->enable) {
+      ret = rdev->ops->enable(rdev);
       if (ret < 0) {
           pwrerr("failed to enable %d\n", ret);
           return ret;
@@ -116,8 +116,8 @@ static int _regulator_do_disable(struct regulator_dev *rdev)
 {
   int ret = 0;
 
-  if (rdev->desc->ops->disable) {
-      ret = rdev->desc->ops->disable(rdev);
+  if (rdev->ops->disable) {
+      ret = rdev->ops->disable(rdev);
       if (ret < 0) {
           pwrerr("failed to disable %d\n", ret);
       }
@@ -176,7 +176,7 @@ static int regulator_map_voltage_iterate(struct regulator_dev *rdev, int min_uV,
 
   /* Find the smallest voltage that falls within the specified range. */
   for (i = 0; i < rdev->desc->n_voltages; i++) {
-      ret = rdev->desc->ops->list_voltage(rdev, i);
+      ret = rdev->ops->list_voltage(rdev, i);
       if (ret < 0)
           continue;
 
@@ -196,15 +196,15 @@ static int _regulator_get_voltage(struct regulator_dev *rdev)
 {
   int sel, ret;
 
-  if (rdev->desc->ops->get_voltage_sel) {
-      sel = rdev->desc->ops->get_voltage_sel(rdev);
+  if (rdev->ops->get_voltage_sel) {
+      sel = rdev->ops->get_voltage_sel(rdev);
       if (sel < 0)
           return sel;
-      ret = rdev->desc->ops->list_voltage(rdev, sel);
-  } else if (rdev->desc->ops->get_voltage) {
-      ret = rdev->desc->ops->get_voltage(rdev);
-  } else if (rdev->desc->ops->list_voltage) {
-      ret = rdev->desc->ops->list_voltage(rdev, 0);
+      ret = rdev->ops->list_voltage(rdev, sel);
+  } else if (rdev->ops->get_voltage) {
+      ret = rdev->ops->get_voltage(rdev);
+  } else if (rdev->ops->list_voltage) {
+      ret = rdev->ops->list_voltage(rdev, 0);
   } else {
       return -EINVAL;
   }
@@ -214,7 +214,7 @@ static int _regulator_get_voltage(struct regulator_dev *rdev)
 
 static int _regulator_do_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV)
 {
-  const struct regulator_ops *ops = rdev->desc->ops;
+  const struct regulator_ops *ops = rdev->ops;
   unsigned int selector;
   int new_uV = 0, old_uV = _regulator_get_voltage(rdev);
   int ret = 0, delay = 0, best_val;
@@ -256,7 +256,7 @@ static int _regulator_do_set_voltage(struct regulator_dev *rdev, int min_uV, int
 static int _regulator_set_voltage_unlocked(struct regulator *regulator, int min_uV, int max_uV)
 {
   struct regulator_dev *rdev = regulator->rdev;
-  const struct regulator_ops *ops = rdev->desc->ops;
+  const struct regulator_ops *ops = rdev->ops;
   int old_min_uV, old_max_uV;
   int ret = 0;
 
@@ -587,7 +587,8 @@ int regulator_get_voltage(struct regulator *regulator)
  *
  ****************************************************************************/
 
-struct regulator_dev *regulator_register(const struct regulator_desc *regulator_desc, void *priv)
+struct regulator_dev *regulator_register(const struct regulator_desc *regulator_desc,
+                          const struct regulator_ops *regulator_ops, void *priv)
 {
   struct regulator_dev *rdev;
 
@@ -596,27 +597,27 @@ struct regulator_dev *regulator_register(const struct regulator_desc *regulator_
       return NULL;
   }
 
-  if (regulator_desc->name == NULL || regulator_desc->ops == NULL) {
+  if (regulator_desc->name == NULL || regulator_ops == NULL) {
       pwrerr("regulator name or ops is null\n");
       return NULL;
   }
 
-  if (regulator_desc->ops->get_voltage && regulator_desc->ops->get_voltage_sel) {
+  if (regulator_ops->get_voltage && regulator_ops->get_voltage_sel) {
       pwrerr("get_voltage and get_voltage_sel are assigned\n");
       return NULL;
   }
 
-  if (regulator_desc->ops->set_voltage && regulator_desc->ops->set_voltage_sel) {
+  if (regulator_ops->set_voltage && regulator_ops->set_voltage_sel) {
       pwrerr("set_voltage and set_voltage_sel are assigned\n");
       return NULL;
   }
 
-  if (regulator_desc->ops->get_voltage_sel && !regulator_desc->ops->list_voltage) {
+  if (regulator_ops->get_voltage_sel && !regulator_ops->list_voltage) {
       pwrerr("list voltage is null\n");
       return NULL;
   }
 
-  if (regulator_desc->ops->set_voltage_sel && !regulator_desc->ops->list_voltage) {
+  if (regulator_ops->set_voltage_sel && !regulator_ops->list_voltage) {
       pwrerr("list voltage is null\n");
       return NULL;
   }
@@ -628,6 +629,7 @@ struct regulator_dev *regulator_register(const struct regulator_desc *regulator_
   }
 
   rdev->desc = regulator_desc;
+  rdev->ops = regulator_ops;
   rdev->priv = priv;
   nxsem_init(&rdev->regulator_sem, 0, 1);
   list_initialize(&rdev->consumer_list);

@@ -1,5 +1,5 @@
 /****************************************************************************
- * drivers/power/spmu_regulator_apb.c
+ * drivers/power/song_pmic_apb.c
  * Lower half driver for song pmic regulator driver with apb interface
  *
  *   Copyright (C) 2018 Pinecone Electronics Inc. All rights reserved.
@@ -63,31 +63,19 @@
  * Pre-processor Definitions
  ****************************************************************************/
 #define PMIC_TRIM_MASK  0x3ff0000
+#define SPMU_NUM_REGS   9
 
 /* Debug ********************************************************************/
 
 /****************************************************************************
  * Private
  ****************************************************************************/
-enum {
-  SPMU_REG_BUCK0 = 0,
-  SPMU_REG_BUCK1,
-  SPMU_REG_LDO0,
-  SPMU_REG_LDO1,
-  SPMU_REG_LDO2,
-  SPMU_REG_LDO3,
-  SPMU_REG_LDO4,
-  SPMU_REG_LDO5,
-  SPMU_REG_LDO6,
-  /* Total number of regulators */
-  SPMU_NUM_REGS,
-};
-
 struct spmu_regulator {
   uintptr_t base;
   uintptr_t rf_base;
   struct regulator_dev *rdev[SPMU_NUM_REGS];
 };
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -109,140 +97,6 @@ static const struct regulator_ops  spmu_regulator_ops =
   .is_enabled = spmu_is_enabled,
 };
 
-static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
-  [SPMU_REG_BUCK0] = {
-      .name = "buck0",
-      .id = SPMU_REG_BUCK0,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x20,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x20,
-      .enable_mask = 0x1,
-      .enable_time = 500,
-      .ramp_delay = 20000,
-      .uV_step = 0,
-      .min_uV = 0,
-      .max_uV = UINT_MAX,
-      .boot_on = true,
-  },
-  [SPMU_REG_BUCK1] = {
-      .name = "buck1",
-      .id = SPMU_REG_BUCK1,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x24,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x24,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 12500,
-      .min_uV = 650000,
-      .max_uV = 1437500,
-      .boot_on = true,
-  },
-  [SPMU_REG_LDO0] = {
-      .name = "ldo0",
-      .id = SPMU_REG_LDO0,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x28,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x28,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 25000,
-      .min_uV = 600000,
-      .max_uV = 1375000,
-      .boot_on = true,
-  },
-  [SPMU_REG_LDO1] = {
-      .name = "ldo1",
-      .id = SPMU_REG_LDO1,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x2c,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x2c,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 50000,
-      .min_uV = 1750000,
-      .max_uV = 3300000,
-      .boot_on = true,
-  },
-  [SPMU_REG_LDO2] = {
-      .name = "ldo2",
-      .id = SPMU_REG_LDO2,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x30,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x30,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 50000,
-      .min_uV = 1750000,
-      .max_uV = 3300000,
-  },
-  [SPMU_REG_LDO3] = {
-      .name = "ldo3",
-      .id = SPMU_REG_LDO3,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x34,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x34,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 50000,
-      .min_uV = 1750000,
-      .max_uV = 3300000,
-      .boot_on = true,
-  },
-  [SPMU_REG_LDO4] = {
-      .name = "ldo4",
-      .id = SPMU_REG_LDO4,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x38,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x38,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 50000,
-      .min_uV = 1750000,
-      .max_uV = 3300000,
-  },
-  [SPMU_REG_LDO5] = {
-      .name = "ldo5",
-      .id = SPMU_REG_LDO5,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x3c,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x3c,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 50000,
-      .min_uV = 1750000,
-      .max_uV = 3300000,
-  },
-  [SPMU_REG_LDO6] = {
-      .name = "ldo6",
-      .id = SPMU_REG_LDO6,
-      .ops = &spmu_regulator_ops,
-      .vsel_reg = 0x40,
-      .vsel_mask = 0x3f00,
-      .enable_reg = 0x40,
-      .enable_mask = 0x1,
-      .enable_time = 100,
-      .ramp_delay = 20000,
-      .uV_step = 50000,
-      .min_uV = 1800000,
-      .max_uV = 3000000,
-      .boot_on = true,
-  },
-};
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -283,14 +137,14 @@ static int spmu_set_voltage(struct regulator_dev *rdev, int min_uV, int max_uV, 
       return -EINVAL;
   }
 
-  if (rdev->desc->id == SPMU_REG_BUCK0 || rdev->desc->id == SPMU_REG_LDO6) {
+  if (!strcmp(rdev->desc->name, "buck0") || !strcmp(rdev->desc->name, "ldo6")) {
       pwrerr("%s not supported %d\n", __func__, rdev->desc->id);
       return -EINVAL;
   }
 
   val = (min_uV - rdev->desc->min_uV) / rdev->desc->uV_step;
   /* For ldo0, 0x0 is for 900mv and 0xc 600mv */
-  if (rdev->desc->id == SPMU_REG_LDO0 && (min_uV == 600000 || min_uV == 900000)) {
+  if (!strcmp(rdev->desc->name, "ldo0") && (min_uV == 600000 || min_uV == 900000)) {
       if (min_uV == 600000)
           val = 0xc;
       else if (min_uV == 900000)
@@ -316,7 +170,7 @@ static int spmu_get_voltage(struct regulator_dev *rdev)
   val >>= ffs(rdev->desc->vsel_mask) - 1;
 
   /* For ldo0, 0x0 is for 900mv and 0xc 600mv */
-  if (rdev->desc->id == SPMU_REG_LDO0 && (val == 0x0 || val == 0xc)) {
+  if (!strcmp(rdev->desc->name, "ldo0") && (val == 0x0 || val == 0xc)) {
       if (val == 0x0)
           return 900000;
       else if (val == 0xc)
@@ -357,7 +211,8 @@ static int spmu_is_enabled(struct regulator_dev *rdev)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
+int spmu_apb_init(uintptr_t base, uintptr_t rf_base,
+         const struct regulator_desc *rdesc, int len)
 {
   struct spmu_regulator *priv;
   char *str = NULL;
@@ -387,8 +242,9 @@ int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base)
       spmu_update_bits(priv, 0xf0, PMIC_TRIM_MASK, trim);
   }
 
-  for (i = 0; i < SPMU_NUM_REGS; i++) {
-      priv->rdev[i] = regulator_register(&spmu_regulator_desc[i], (void *)priv);
+  for (i = 0; i < len; i++) {
+      priv->rdev[i] = regulator_register(&rdesc[i],
+                           &spmu_regulator_ops, (void *)priv);
       if (priv->rdev[i] == NULL) {
           pwrerr("%s failed to register %d\n", __func__, i);
           ret = -EINVAL;

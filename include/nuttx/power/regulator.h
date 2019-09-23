@@ -104,7 +104,6 @@ struct regulator_desc
   const char *name;
   int id;
   unsigned int n_voltages;
-  const struct regulator_ops *ops;
 
   unsigned int vsel_reg;
   unsigned int vsel_mask;
@@ -124,6 +123,7 @@ struct regulator_dev
 {
   /* Fields required by the upper-half driver */
   const struct regulator_desc *desc; /* regulator descriptor struct */
+  const struct regulator_ops *ops; /* regulator operations */
   uint32_t use_count; /* the use count by consumer */
   uint32_t open_count; /* the open count by consumer */
   sem_t regulator_sem;  /* Enforce mutually exclusive access */
@@ -164,13 +164,15 @@ extern "C"
  *
  * Input parameters:
  *   desc - The regulator descriptor struct.
+ *   ops  - The regulator operations pointer
  *
  * Returned value:
  *    The pointer to struct regulator_dev on success or NULL on failure.
  *
  ****************************************************************************/
 
-struct regulator_dev *regulator_register(const struct regulator_desc *desc, void *priv);
+struct regulator_dev *regulator_register(const struct regulator_desc *desc,
+        const struct regulator_ops *ops, void *priv);
 
 /****************************************************************************
  * Name: regulator_unregister
@@ -198,12 +200,15 @@ void regulator_unregister(struct regulator_dev *rdev);
  * Input Parameters:
  *   base    - the base addr for song pmic module
  *   rf_base - the base addr for rf power module
+ *   rdesc   - the regulator descriptors
+ *   len     - the number of regulator descriptors
  *
  * Returned Value:
  *
  ****************************************************************************/
 #if defined(CONFIG_SONG_PMIC_APB)
-int spmu_regulator_apb_initialize(uintptr_t base, uintptr_t rf_base);
+int spmu_apb_init(uintptr_t base, uintptr_t rf_base,
+         const struct regulator_desc *rdesc, int len);
 #endif
 
 /****************************************************************************
