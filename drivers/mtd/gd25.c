@@ -658,7 +658,10 @@ static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
   size_t blocksleft = nblocks;
 
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
-
+  if (startblock == 0) {
+    syslog(LOG_INFO, "ERROR, erase addr startblock %d nblocks %d\n",
+        startblock, nblocks);
+  }
   /* Lock access to the SPI bus until we complete the erase */
 
   gd25_lock(priv->spi);
@@ -709,7 +712,10 @@ static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
   FAR struct gd25_dev_s *priv = (FAR struct gd25_dev_s *)dev;
 
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
-
+  if (startblock == 0) {
+    syslog(LOG_INFO, "ERROR, write addr startblock %d nblocks %d buffer %p\n",
+        startblock, nblocks, buffer);
+  }
   /* Lock the SPI bus and write all of the pages to FLASH */
 
   gd25_lock(priv->spi);
