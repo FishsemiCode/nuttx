@@ -870,7 +870,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_PMIC_APB
-  spmu_regulator_apb_initialize(0xb2010000, 0xb0180000);
+  up_pmu_initialize();
 #endif
 
   up_extra_init();
