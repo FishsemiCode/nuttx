@@ -64,6 +64,10 @@ CSRCS += up_allocateheap.c up_devconsole.c up_qspiflash.c
 
 HOSTSRCS = up_hostusleep.c
 
+ifeq ($(CONFIG_STACK_COLORATION),y)
+  CSRCS += up_checkstack.c
+endif
+
 ifeq ($(CONFIG_SCHED_TICKLESS),y)
   CSRCS += up_tickless.c
 endif

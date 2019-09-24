@@ -181,6 +181,12 @@
 #define SECTORS_PER_CLUSTER 4
 #define LOGICAL_SECTOR_SIZE 512
 
+/* This is the value used to mark the stack for subsequent stack monitoring
+ * logic.
+ */
+
+#define STACK_COLOR    0xdeadbeef
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -376,6 +382,11 @@ struct spi_dev_s *up_spiflashinitialize(FAR const char *name);
 #ifdef CONFIG_SIM_QSPIFLASH
 struct qspi_dev_s;
 struct qspi_dev_s *up_qspiflashinitialize(void);
+#endif
+
+/* Debug ********************************************************************/
+#ifdef CONFIG_STACK_COLORATION
+void up_stack_color(FAR void *stackbase, size_t nbytes);
 #endif
 
 #endif /* __ASSEMBLY__ */
