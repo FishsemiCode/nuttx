@@ -142,6 +142,13 @@ config INPUT_ADS7843E
 
 if INPUT_ADS7843E
 
+config ADS7843E_IOEDEV
+	int "IOE dev number"
+	default 0
+	depends on SONG_IOE
+	---help---
+		Selects the IOE dev number identifying that connects the ADS843E to the MCU.
+
 config ADS7843E_MULTIPLE
 	bool "Multiple ADS7843E Devices"
 	default n
@@ -154,6 +161,13 @@ config ADS7843E_NPOLLWAITERS
 	depends on !DISABLE_POLL
 	---help---
 		Maximum number of threads that can be waiting on poll()
+
+config ADS7843E_PENIRQ_GPIO
+	int "IOE gpio number"
+	default 39
+	---help---
+		Selects the gpio number identifying that trigger interrupt
+		by the ADS843E to the MCU.
 
 config ADS7843E_SPIDEV
 	int "SPI bus number"
