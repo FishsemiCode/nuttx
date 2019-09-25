@@ -253,14 +253,28 @@ void up_earlyinitialize(void)
 
 void up_wic_initialize(void)
 {
-  putreg32(0xffffffff, TOP_PWR_CP_M4_INTR2SLP_MK0);
+  if (up_is_u1v1())
+    {
+      putreg32(0xffffffff, TOP_PWR_CP_M4_INTR2SLP_MK0);
+    }
+  else
+    {
+      putreg32(0xffffffff, TOP_PMICFSM_CP_M4_INT2SLP_MK0);
+    }
 }
 
 void up_wic_enable_irq(int irq)
 {
   if (irq >= NVIC_IRQ_FIRST)
     {
-      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+      if (up_is_u1v1())
+        {
+          modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+        }
+      else
+        {
+          modifyreg32(TOP_PMICFSM_CP_M4_INT2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
+        }
     }
 }
 
@@ -268,7 +282,14 @@ void up_wic_disable_irq(int irq)
 {
   if (irq >= NVIC_IRQ_FIRST)
     {
-      modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+      if (up_is_u1v1())
+        {
+          modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+        }
+      else
+        {
+          modifyreg32(TOP_PMICFSM_CP_M4_INT2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
+        }
     }
 }
 
