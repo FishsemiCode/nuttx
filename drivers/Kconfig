@@ -37,6 +37,10 @@ config CRASH_DUMPFILE_MOUNTPOINT
 	string "Mountpoint of the crash dump file"
 	default "/log"
 
+config CRASH_DUMPFILE_NUM
+	int "max dump file num"
+	default 10
+
 endif # CRASH_DUMPFILE
 
 source drivers/crypto/Kconfig

@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
 
 #include <nuttx/drivers/dumpfile.h>
 
@@ -119,6 +120,47 @@ int dumpfile_write(FAR const char *fmt, ...)
 
   if (!g_dump_stream)
     {
+      FAR DIR *dir;
+      FAR struct dirent *file;
+      char *file_abspath;
+      int unlink_pos, file_pos;
+
+      dir = opendir(CONFIG_CRASH_DUMPFILE_MOUNTPOINT);
+      if (!dir)
+        {
+          syslog(LOG_ERR, "open dump log dir fail\n");
+          return 0;
+        }
+
+      unlink_pos = 2;
+      file_pos = 2;
+
+      while ((file = readdir(dir)) != NULL)
+        {
+          if (strcmp(file->d_name, ".") == 0 || strcmp(file->d_name, "..") == 0)
+            {
+              continue;
+            }
+
+          file_pos++;
+          if ((file_pos - unlink_pos) >= CONFIG_CRASH_DUMPFILE_NUM)
+            {
+              unlink_pos++;
+            }
+        }
+
+      file_abspath = (char *)zalloc(MAX_DUMPFILE_NAME_LEN);
+      for (file_pos = 2, seekdir(dir, 2); file_pos < unlink_pos; file_pos++)
+        {
+          file = readdir(dir);
+          snprintf(file_abspath, MAX_DUMPFILE_NAME_LEN, "%s/%s", \
+            CONFIG_CRASH_DUMPFILE_MOUNTPOINT, file->d_name);
+          unlink(file_abspath);
+        }
+
+      free(file_abspath);
+      closedir(dir);
+
       g_dump_stream = dumpfile_open();
 
       fprintf(g_dump_stream, "NuttX %s %s\n", \
