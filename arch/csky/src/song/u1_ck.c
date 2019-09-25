@@ -41,14 +41,17 @@
 
 #ifdef CONFIG_ARCH_CHIP_U1_CK
 
-#include <nuttx/arch.h>
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
+#include <nuttx/pinctrl/pinctrl.h>
+#include <nuttx/pinctrl/song_pinctrl.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
+#include <nuttx/misc/misc_rpmsg.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -61,6 +64,9 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
+
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -81,6 +87,8 @@
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
+#define TOP_PWR_INTR_EN_AP_M4       (TOP_PWR_BASE + 0x128)
+#define TOP_PWR_INTR_ST_AP_M4       (TOP_PWR_BASE + 0x134)
 #define TOP_PWR_AP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
 #define TOP_PWR_AP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x204)
 #define TOP_PWR_CK802_CTL0          (TOP_PWR_BASE + 0x22c)
@@ -92,6 +100,8 @@
 #define TOP_PWR_AP_M4_IDLE_MK       (1 << 5)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
+
+#define TOP_PWR_SLP_U1RXD_ACT       (1 << 21)
 
 #define TOP_PWR_AP_M4_PD_MK         (1 << 3)
 #define TOP_PWR_AP_M4_AU_PU_MK      (1 << 6)
@@ -107,6 +117,9 @@
 #define TOP_PWR_AP_M4_SLP_EN        (1 << 0)
 #define TOP_PWR_AP_M4_SLP_MK        (1 << 1)
 #define TOP_PWR_AP_M4_DS_SLP_EN     (1 << 2)
+
+#define TOP_PMICFSM_BASE                (0xb2010000)
+#define TOP_PMICFSM_AP_M4_INT2SLP_MK0   (TOP_PMICFSM_BASE + 0xf4)
 
 /****************************************************************************
  * Private Data
@@ -151,6 +164,42 @@ FAR struct i2c_master_s *g_i2c[3] =
 };
 #endif
 
+#ifdef CONFIG_SONG_PINCTRL
+FAR struct pinctrl_dev_s *g_pinctrl[2] =
+{
+  [1] = DEV_END,
+};
+#endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+#ifdef CONFIG_MISC_RPMSG
+static void up_misc_init(void)
+{
+  int fd;
+
+  /* Retention init */
+
+  misc_rpmsg_initialize(CPU_NAME_SP, true);
+
+  fd = open("/dev/misc", 0);
+  if (fd >= 0)
+    {
+      /* Get board-id env from sp */
+
+      struct misc_remote_envsync_s env =
+        {
+          .name = "board-id",
+        };
+
+      ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
+      close(fd);
+    }
+}
+#endif
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -187,17 +236,17 @@ void up_earlyinitialize(void)
 
 void up_wic_initialize(void)
 {
-  putreg32(0xffffffff, TOP_PWR_AP_M4_INTR2SLP_MK0);
+  putreg32(0xffffffff, TOP_PMICFSM_AP_M4_INT2SLP_MK0);
 }
 
 void up_wic_enable_irq(int irq)
 {
-  modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 1 << irq, 0);
+  modifyreg32(TOP_PMICFSM_AP_M4_INT2SLP_MK0, 1 << irq, 0);
 }
 
 void up_wic_disable_irq(int irq)
 {
-  modifyreg32(TOP_PWR_AP_M4_INTR2SLP_MK0, 0, 1 << irq);
+  modifyreg32(TOP_PMICFSM_AP_M4_INT2SLP_MK0, 0, 1 << irq);
 }
 
 void up_dma_initialize(void)
@@ -245,6 +294,7 @@ void rpmsg_serialinit(void)
   uart_rpmsg_init(CPU_NAME_CP, "AT", 1024, false);
   uart_rpmsg_init(CPU_NAME_CP, "AT1", 1024, false);
   uart_rpmsg_init(CPU_NAME_CP, "GPS", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "GPS1", 1024, false);
 }
 #endif
 
@@ -330,6 +380,10 @@ static void up_rptun_init(void)
 #  ifdef CONFIG_FS_HOSTFS_RPMSG
   hostfs_rpmsg_init(CPU_NAME_SP);
 #  endif
+
+#  ifdef CONFIG_MISC_RPMSG
+  up_misc_init();
+#  endif
 }
 #endif
 
@@ -338,10 +392,11 @@ int up_rtc_initialize(void)
 {
   static const struct song_rtc_config_s config =
   {
-    .minor = 0,
-    .base  = 0xb2020000,
-    .irq   = 0,
-    .index = 1,
+    .minor   = 0,
+    .base    = 0xb2020000,
+    .irq     = 0,
+    .index   = 1,
+    .correct = 1,
   };
 
   up_rtc_set_lowerhalf(song_rtc_initialize(&config));
@@ -423,6 +478,36 @@ static void up_i2c_init(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_PINCTRL
+static void up_pinctrl_init(void)
+{
+  g_pinctrl[0] = song_pinctrl_initialize(0xb0050000, 41);
+  pinctrl_register(g_pinctrl[0], 0);
+}
+#endif
+
+static int up_pwr_isr(int irq, FAR void *context, FAR void *arg)
+{
+  if (getreg32(TOP_PWR_INTR_ST_AP_M4) & TOP_PWR_SLP_U1RXD_ACT)
+    {
+      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_AP_M4);
+    }
+
+  return 0;
+}
+
+static void up_extra_init(void)
+{
+  /* Attach and enable TOP_PWR intrrupt */
+
+  irq_attach(2, up_pwr_isr, NULL);
+  up_enable_irq(2);
+
+  /* Enable SLP_U1RXD_ACT in TOP_PWR */
+
+  modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
+}
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
@@ -460,6 +545,12 @@ void up_lateinitialize(void)
 #ifdef CONFIG_I2C_DW
   up_i2c_init();
 #endif
+
+#ifdef CONFIG_SONG_PINCTRL
+  up_pinctrl_init();
+#endif
+
+  up_extra_init();
 }
 
 void up_finalinitialize(void)
