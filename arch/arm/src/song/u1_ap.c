@@ -90,6 +90,8 @@
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
+#define TOP_PWR_INTR_EN_AP_M4       (TOP_PWR_BASE + 0x128)
+#define TOP_PWR_INTR_ST_AP_M4       (TOP_PWR_BASE + 0x134)
 #define TOP_PWR_AP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
 #define TOP_PWR_AP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x204)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
@@ -100,6 +102,8 @@
 #define TOP_PWR_AP_M4_IDLE_MK       (1 << 5)
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)
+
+#define TOP_PWR_SLP_U1RXD_ACT       (1 << 21)
 
 #define TOP_PWR_AP_M4_PD_MK         (1 << 3)
 #define TOP_PWR_AP_M4_AU_PU_MK      (1 << 6)
@@ -227,16 +231,6 @@ void up_earlyinitialize(void)
 
   putreg32(TOP_PWR_AP_M4_AU_PD_MK << 16 |
            TOP_PWR_AP_M4_AU_PD_MK, TOP_PWR_AP_UNIT_PD_CTL);
-
-  if (up_is_u1v1())
-    {
-      /* Workaround for uart0 can't wakeup CPU in PWR_SLEEP mode,
-       * Mux uart0 as GPIO35, trigger GPIO35 failing edge as IRQ
-       */
-
-      putreg32(0x16, 0xb005007c);
-      putreg32(0x87000, 0xb00600c0);
-    }
 }
 
 void up_wic_initialize(void)
@@ -502,6 +496,40 @@ static void up_pinctrl_init(void)
 }
 #endif
 
+static int up_pwr_isr(int irq, FAR void *context, FAR void *arg)
+{
+  if (getreg32(TOP_PWR_INTR_ST_AP_M4) & TOP_PWR_SLP_U1RXD_ACT)
+    {
+      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_AP_M4);
+    }
+
+  return 0;
+}
+
+static void up_extra_init(void)
+{
+  if (up_is_u1v1())
+    {
+      /* Workaround for uart0 can't wakeup CPU in PWR_SLEEP mode,
+       * Mux uart0 as GPIO35, trigger GPIO35 failing edge as IRQ
+       */
+
+      putreg32(0x16, 0xb005007c);
+      putreg32(0x87000, 0xb00600c0);
+    }
+  else
+    {
+      /* Attach and enable TOP_PWR intrrupt */
+
+      irq_attach(18, up_pwr_isr, NULL);
+      up_enable_irq(18);
+
+      /* Enable SLP_U1RXD_ACT in TOP_PWR */
+
+      modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
+    }
+}
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
@@ -543,6 +571,8 @@ void up_lateinitialize(void)
 #ifdef CONFIG_SONG_PINCTRL
   up_pinctrl_init();
 #endif
+
+  up_extra_init();
 }
 
 void up_finalinitialize(void)

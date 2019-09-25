@@ -47,12 +47,16 @@
  ****************************************************************************/
 
 #define TOP_PMICFSM_BASE                (0xb2010000)
+#define TOP_PMICFSM_INT_STATUS          (TOP_PMICFSM_BASE + 0x04)
+#define TOP_PMICFSM_INT_MASK            (TOP_PMICFSM_BASE + 0x08)
 #define TOP_PMICFSM_CONFIG1             (TOP_PMICFSM_BASE + 0x0c)
 #define TOP_PMICFSM_WAKEUP_ENABLE       (TOP_PMICFSM_BASE + 0x14)
 #define TOP_PMICFSM_WAKEUP_REASON       (TOP_PMICFSM_BASE + 0x18)
 #define TOP_PMICFSM_BUCK1               (TOP_PMICFSM_BASE + 0x24)
 #define TOP_PMICFSM_LDO0                (TOP_PMICFSM_BASE + 0x28)
 #define TOP_PMICFSM_PLLTIME             (TOP_PMICFSM_BASE + 0xe8)
+
+#define TOP_PMICFSM_SLP_U0RXD_ACT       (1 << 10)
 
 #define TOP_PMICFSM_DS_SLP_VALID        (1 << 0)
 

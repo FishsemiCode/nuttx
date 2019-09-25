@@ -803,8 +803,30 @@ static void up_flash_init(void)
 }
 #endif
 
-void up_extra_init(void)
+static int up_pmicfsm_isr(int irq, FAR void *context, FAR void *arg)
 {
+  if (getreg32(TOP_PMICFSM_INT_STATUS) & TOP_PMICFSM_SLP_U0RXD_ACT)
+    {
+      putreg32(TOP_PMICFSM_SLP_U0RXD_ACT, TOP_PMICFSM_INT_STATUS);
+    }
+
+  return 0;
+}
+
+static void up_extra_init(void)
+{
+  if (!up_is_u1v1())
+    {
+      /* Attach and enable PMICFSM intrrupt */
+
+      irq_attach(32, up_pmicfsm_isr, NULL);
+      up_enable_irq(32);
+
+      /* Enable SLP_U0RXD_ACT in PMICFSM */
+
+      modifyreg32(TOP_PMICFSM_INT_MASK, TOP_PMICFSM_SLP_U0RXD_ACT, 0);
+    }
+
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);
