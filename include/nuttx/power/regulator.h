@@ -212,7 +212,7 @@ int spmu_apb_init(uintptr_t base, uintptr_t rf_base,
 #endif
 
 /****************************************************************************
- * Name: song_pmic_regulator_i2c_initialize
+ * Name: spmu_i2c_init
  *
  * Description:
  *   Initialize song pmic module with i2c interface.
@@ -221,12 +221,15 @@ int spmu_apb_init(uintptr_t base, uintptr_t rf_base,
  *   i2c  - the i2c master
  *   addr - the device i2c address
  *   freq - the i2c frequency
+ *   rdesc   - the regulator descriptors
+ *   len     - the number of regulator descriptors
 
  * Returned Value:
  *
  ****************************************************************************/
 #if defined(CONFIG_SONG_PMIC_I2C)
-int spmu_regulator_i2c_initialize(struct i2c_master_s *i2c, uint8_t addr, uint32_t freq);
+int spmu_i2c_init(struct i2c_master_s *i2c, uint8_t addr, uint32_t freq,
+          const struct regulator_desc *rdesc, int len);
 #endif
 
 #endif /* CONFIG_REGULATOR */
