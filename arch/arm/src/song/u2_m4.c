@@ -458,7 +458,7 @@ void up_lateinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_PMIC_I2C
-  spmu_regulator_i2c_initialize(g_i2c[0], 0x70, 400000);
+  up_pmu_initialize();
 #endif
 
 #ifdef CONFIG_MTD_GD25

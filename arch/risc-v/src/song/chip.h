@@ -81,6 +81,9 @@ void up_wic_disable_irq(int irq);
 void up_clk_initialize(void);
 void up_clk_finalinitialize(void);
 
+/* PMU *******************************************************************/
+void up_pmu_initialize(void);
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_RISCV_SRC_SONG_CHIP_H */

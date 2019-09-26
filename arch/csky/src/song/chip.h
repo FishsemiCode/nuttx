@@ -77,5 +77,8 @@ void up_wic_initialize(void);
 void up_clk_initialize(void);
 void up_clk_finalinitialize(void);
 
+/* PMU *******************************************************************/
+void up_pmu_initialize(void);
+
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SONG_CHIP_H */
