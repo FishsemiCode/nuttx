@@ -199,7 +199,6 @@ static int song_sel_gpio(FAR struct pinctrl_dev_s *dev, uint32_t pin)
 FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base, uint32_t num)
 {
   FAR struct song_pinctrl_dev_s *priv;
-  int ret = 0;
 
   priv = kmm_zalloc(sizeof(struct song_pinctrl_dev_s));
   if (priv == NULL)

@@ -431,16 +431,10 @@ void tcp_reset(FAR struct net_driver_s *dev)
   uint16_t tmp16;
   uint8_t seqbyte;
   uint16_t acklen = 0;
-  uint8_t domain;
   uint32_t ackno;
 
 #if defined(CONFIG_NET_IPv4) && defined(CONFIG_NET_IPv6)
   bool ipv6 = IFF_IS_IPv6(dev->d_flags);
-  domain = ipv6 ? PF_INET6 : PF_INET;
-#elif defined(CONFIG_NET_IPv4)
-  domain = PF_INET;
-#else /* defined(CONFIG_NET_IPv6) */
-  domain = PF_INET6;
 #endif
 
 #ifdef CONFIG_NET_STATISTICS
@@ -518,7 +512,7 @@ void tcp_reset(FAR struct net_driver_s *dev)
   if (IFF_IS_IPv6(dev->d_flags))
 #endif
     {
-      FAR struct ipv6_hdr_s *ipv6 = IPv6BUF;
+      FAR struct ipv6_hdr_s *ipv6_hdr = IPv6BUF;
 
       /* Set the packet length to the size of the IPv6 + TCP headers */
 
@@ -526,8 +520,8 @@ void tcp_reset(FAR struct net_driver_s *dev)
 
       /* Swap IPv6 addresses */
 
-      net_ipv6addr_hdrcopy(ipv6->destipaddr, ipv6->srcipaddr);
-      net_ipv6addr_hdrcopy(ipv6->srcipaddr, dev->d_ipv6addr);
+      net_ipv6addr_hdrcopy(ipv6_hdr->destipaddr, ipv6_hdr->srcipaddr);
+      net_ipv6addr_hdrcopy(ipv6_hdr->srcipaddr, dev->d_ipv6addr);
     }
 #endif /* CONFIG_NET_IPv6 */
 
