@@ -239,7 +239,8 @@ int spmu_apb_init(uintptr_t base, uintptr_t rf_base,
   if (str) {
       trim = strtoul(str, NULL, 16);
       trim = htobe32(trim);
-      spmu_update_bits(priv, 0xf0, PMIC_TRIM_MASK, trim);
+      if (trim != 0xffffffff)
+          spmu_update_bits(priv, 0xf0, PMIC_TRIM_MASK, trim);
   }
 
   for (i = 0; i < len; i++) {
