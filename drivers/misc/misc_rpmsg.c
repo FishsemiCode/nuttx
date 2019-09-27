@@ -118,7 +118,8 @@ begin_packed_struct struct misc_rpmsg_remote_infowrite_s
 {
   uint32_t command;
   char     name[16];
-  char     value[32];
+  uint8_t  value[32];
+  uint32_t len;
 } end_packed_struct;
 
 struct misc_rpmsg_s
@@ -382,17 +383,21 @@ static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
   fd = open("/dev/onchip-info", 0);
   if (fd < 0)
     {
-      _err("open onchip-info err\n");
+      syslog(LOG_ERR, "open onchip-info err\n");
     }
   else
     {
       struct song_onchip_env_info_s env =
         {
-          .name  = msg->name,
-          .value = msg->value,
+          .name = msg->name,
+          .buf  = msg->value,
+          .len  = msg->len,
         };
 
-      ioctl(fd, MTDIOC_ENVWRITE, (unsigned long)&env);
+      if (ioctl(fd, MTDIOC_ENVWRITE, (unsigned long)&env))
+        {
+          syslog(LOG_ERR, "ioctl MTDIOC_ENVWRITE err\n");
+        }
       close(fd);
     }
 
@@ -669,10 +674,14 @@ static int misc_remote_infowrite(struct misc_rpmsg_s *priv, unsigned long arg)
 {
   struct misc_remote_infowrite_s *env = (struct misc_remote_infowrite_s *)arg;
   struct misc_rpmsg_remote_infowrite_s msg;
+  uint32_t len;
 
   msg.command = MISC_RPMSG_REMOTE_INFOWRITE;
   ncstr2bstr(msg.name, env->name, 16);
-  ncstr2bstr(msg.value, env->value, 32);
+
+  len = env->len > sizeof(msg.value) ? sizeof(msg.value) : env->len;
+  memcpy(msg.value, env->value, len);
+  msg.len = len;
 
   return rpmsg_send(&priv->ept, &msg, sizeof(msg));
 }

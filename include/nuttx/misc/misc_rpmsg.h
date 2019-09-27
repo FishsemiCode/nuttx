@@ -137,7 +137,12 @@ struct misc_remote_envsync_s
   const char *value;
 };
 
-#define misc_remote_infowrite_s misc_remote_envsync_s
+struct misc_remote_infowrite_s
+{
+  const char *name;
+  uint8_t    *value;
+  uint32_t    len;
+};
 
 /****************************************************************************
  * Public Function Prototypes
