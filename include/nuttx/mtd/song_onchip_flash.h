@@ -58,7 +58,8 @@
 struct song_onchip_env_info_s
 {
   FAR const char *name;
-  FAR const char *value;
+  FAR uint8_t    *buf;
+  uint32_t       len;
 };
 
 struct song_onchip_flash_timing_s
