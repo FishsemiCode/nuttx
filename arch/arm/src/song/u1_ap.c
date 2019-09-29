@@ -549,6 +549,10 @@ static void up_extra_init(void)
 
       modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
     }
+
+  /* Set start reason to env */
+
+  setenv("START_REASON", up_get_wkreason_env(), 1);
 }
 
 void up_lateinitialize(void)
