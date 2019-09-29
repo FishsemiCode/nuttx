@@ -198,6 +198,10 @@ int up_dispatch_irq(int irq, FAR void *context)
   /* Dispatch highest priority irq */
 
   hirq = intc_find_highprio_irq();
+#ifdef CONFIG_ARCH_BOARD_U2
+  /* Clear ACK */
+  g_intc_dw->ACK_CLR = 1;
+#endif
   if (hirq >= 0)
     {
       g_intc_dw->IRQ_INTFORCE[hirq / 32] &= ~(1 << (hirq % 32));
@@ -205,10 +209,11 @@ int up_dispatch_irq(int irq, FAR void *context)
       ret = g_intc_dw->IRQ_PRX[hirq] >= CONFIG_HIPRI_INTERRUPT_PRIORITY;
     }
 
+#ifndef CONFIG_ARCH_BOARD_U2
   /* Clear ACK */
 
   g_intc_dw->ACK_CLR = 1;
-
+#endif
   /* Reset the priority level */
 
   g_intc_dw->IRQ_INTERNAL_PLEVEL = g_intc_dw->IRQ_PLEVEL;
