@@ -894,6 +894,13 @@ static int lfs_dir_update(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
 static int lfs_dir_append(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
                           FAR lfs_entry_t *entry, FAR const void *data)
 {
+  const char *path = data;
+
+  if (strlen(path) > LFS_NAME_MAX)
+    {
+      return -ENAMETOOLONG;
+    }
+
   /* check if we fit, if top bit is set we do not and move on */
 
   while (true)
