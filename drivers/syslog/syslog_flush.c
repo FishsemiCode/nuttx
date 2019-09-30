@@ -43,7 +43,6 @@
 #include <assert.h>
 
 #include <nuttx/syslog/syslog.h>
-#include <nuttx/drivers/dumpfile.h>
 
 #include "syslog.h"
 
@@ -81,10 +80,6 @@
 int syslog_flush(void)
 {
   DEBUGASSERT(g_syslog_channel != NULL);
-
-#ifdef CONFIG_CRASH_DUMPFILE
-  dumpfile_flush();
-#endif
 
 #ifdef CONFIG_SYSLOG_INTBUFFER
   /* Flush any characters that may have been added to the interrupt

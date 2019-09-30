@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/drivers/dumpfile.h
+ * include/nuttx/crashdump/dumpfile.h
  *
  *   Copyright (C) 2019 FishSemi Inc. All rights reserved.
- *   Author: Zhang Yuan<zhangyuan@fishsemi.com>
+ *   Author: Yuan Zhang<zhangyuan@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,8 +37,8 @@
  * Included Files
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_DRIVERS_DUMPFILE_H
-#define __INCLUDE_NUTTX_DRIVERS_DUMPFILE_H
+#ifndef __INCLUDE_NUTTX_CRASHDUMP_DUMPFILE_H
+#define __INCLUDE_NUTTX_CRASHDUMP_DUMPFILE_H
 
 /****************************************************************************
  * Included Files
@@ -64,12 +64,12 @@ extern "C"
 #define EXTERN extern
 #endif
 
+int dumpfile_initialize(const char *cpuname, char *buf, int size);
 int dumpfile_write(FAR const char * fmt,...);
-int dumpfile_flush(void);
 
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* CONFIG_CRASH_DUMPFILE */
-#endif /* __INCLUDE_NUTTX_DRIVERS_DUMPFILE_H */
+#endif /* __INCLUDE_NUTTX_CRASHDUMP_DUMPFILE_H */

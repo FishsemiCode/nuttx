@@ -1,0 +1,21 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file kconfig-language.txt in the NuttX tools repository.
+#
+
+config CRASH_DUMPFILE
+	bool "Enable crash dump file"
+	default n
+	depends on !DISABLE_MOUNTPOINT
+
+if CRASH_DUMPFILE
+
+config CRASH_DUMPFILE_MOUNTPOINT
+	string "Mountpoint of the crash dump file"
+	default "/log"
+
+config CRASH_DUMPFILE_NUM
+	int "max dump file num"
+	default 10
+
+endif # CRASH_DUMPFILE

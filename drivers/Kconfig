@@ -26,23 +26,6 @@ config DEV_ZERO
 	bool "Enable /dev/zero"
 	default n
 
-config CRASH_DUMPFILE
-	bool "Enable crash dump file"
-	default n
-	depends on !DISABLE_MOUNTPOINT
-
-if CRASH_DUMPFILE
-
-config CRASH_DUMPFILE_MOUNTPOINT
-	string "Mountpoint of the crash dump file"
-	default "/log"
-
-config CRASH_DUMPFILE_NUM
-	int "max dump file num"
-	default 10
-
-endif # CRASH_DUMPFILE
-
 source drivers/crypto/Kconfig
 source drivers/loop/Kconfig
 
@@ -487,3 +470,11 @@ menuconfig 1WIRE
 source drivers/1wire/Kconfig
 
 source drivers/syslog/Kconfig
+
+menuconfig CRASH_DUMP
+	bool "crash dump drivers"
+	default n
+
+if CRASH_DUMP
+source drivers/crashdump/Kconfig
+endif # CRASH_DUMP

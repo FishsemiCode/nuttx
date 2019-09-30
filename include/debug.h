@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
-#include <nuttx/drivers/dumpfile.h>
+#include <nuttx/crashdump/dumpfile.h>
 
 #ifdef CONFIG_ARCH_DEBUG_H
 # include <arch/debug.h>

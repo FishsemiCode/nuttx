@@ -89,16 +89,13 @@ include video$(DELIM)Make.defs
 include wireless$(DELIM)Make.defs
 include contactless$(DELIM)Make.defs
 include 1wire$(DELIM)Make.defs
+include crashdump$(DELIM)Make.defs
 
 ifeq ($(CONFIG_SIMPLE_ADDRENV),y)
   CSRCS += addrenv.c
 endif
 
 CSRCS += dev_null.c dev_zero.c
-
-ifeq ($(CONFIG_CRASH_DUMPFILE),y)
-  CSRCS += dumpfile.c
-endif
 
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
   CSRCS += ramdisk.c
