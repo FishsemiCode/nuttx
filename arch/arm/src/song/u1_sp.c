@@ -526,7 +526,10 @@ static int cp_start(const struct song_rptun_config_s *config)
 
   /* Make sure LDO0 voltage is correct. */
 
-  ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
+  if (up_is_u1v1())
+    {
+      ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
+    }
 
   /* SP <--shram1--> CP
    * enable shram1 for IPC
