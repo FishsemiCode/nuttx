@@ -134,7 +134,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
 {
   {
     .name = "uart0_tx_clk",
-    .parent_name = "pll0_out_mult",
+    .parent_name = "pll0_out",
     .en_offset = 0x9c,
     .en_shift = 3,
     .gr_offset = 0x0,
