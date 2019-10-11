@@ -111,6 +111,7 @@
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+#define TOP_PWR_RESET_RECOVERY      (0xbbbb1234)
 
 #define TOP_PWR_AP_M4_SLP_EN        (1 << 0)
 #define TOP_PWR_AP_M4_SLP_MK        (1 << 1)
@@ -623,6 +624,14 @@ void up_reset(int status)
 
       putreg32(TOP_PWR_AP_M4_SFRST << 16 |
                TOP_PWR_AP_M4_SFRST, TOP_PWR_AP_M4_RSTCTL);
+    }
+  else if (status == 3)
+    {
+      /* Reset board to recovery */
+
+      putreg32(TOP_PWR_RESET_RECOVERY, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_SFRST_RESET << 16 |
+               TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
     }
   else
     {

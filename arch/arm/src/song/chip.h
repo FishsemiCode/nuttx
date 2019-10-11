@@ -152,7 +152,12 @@ void up_clk_initialize(void);
 void up_clk_finalinitialize(void);
 
 /* PMU *******************************************************************/
+
 void up_pmu_initialize(void);
+
+/* RECOVERY *******************************************************************/
+
+void up_jump_to_recovery(void);
 
 #endif /* __ASSEMBLY__ */
 

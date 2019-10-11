@@ -150,6 +150,7 @@
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
+#define TOP_PWR_RESET_RECOVERY      (0xbbbb1234)
 
 #define TOP_PWR_SLP_DMA_MK          (1 << 2)
 
@@ -314,6 +315,13 @@ void up_earlyinitialize(void)
   };
 
   simple_addrenv_initialize(addrenv);
+
+  /* Check whether jump to recovery.bin */
+
+  if (getreg32(TOP_PWR_RES_REG2) == TOP_PWR_RESET_RECOVERY)
+    {
+      up_jump_to_recovery();
+    }
 
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
@@ -1082,6 +1090,14 @@ void up_reset(int status)
                TOP_PWR_SEC_IDLE_MK, TOP_PWR_SEC_M4_RSTCTL);
       putreg32(TOP_PWR_SEC_SFRST << 16 |
                TOP_PWR_SEC_SFRST, TOP_PWR_SEC_M4_RSTCTL);
+    }
+  else if (status == 3)
+    {
+      /* Reset board to recovery */
+
+      putreg32(TOP_PWR_RESET_RECOVERY, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_SFRST_RESET << 16 |
+               TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
     }
   else
     {
