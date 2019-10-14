@@ -64,6 +64,7 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
+#include <nuttx/crashdump/dumpfile.h>
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -84,6 +85,9 @@
 #define CPU_INDEX_AP                0
 #define CPU_INDEX_CP                1
 #define CPU_INDEX_SP                2
+
+#define DUMPFILE_BASE               ((uintptr_t)&_sdumplog)
+#define DUMPFILE_END                ((uintptr_t)&_edumplog)
 
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
@@ -120,6 +124,9 @@
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+extern uint32_t _sdumplog;
+extern uint32_t _edumplog;
 
 #ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
@@ -606,6 +613,10 @@ void up_finalinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
+#endif
+
+#ifdef CONFIG_CRASH_DUMPFILE
+  dumpfile_initialize("ap", (char *)DUMPFILE_BASE, DUMPFILE_END - DUMPFILE_BASE);
 #endif
 }
 

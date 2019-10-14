@@ -57,6 +57,7 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
+#include <nuttx/crashdump/dumpfile.h>
 
 #include <crc32.h>
 #include <fcntl.h>
@@ -145,6 +146,12 @@ extern uint32_t _logsize;
 
 extern uint32_t _cpram1_srsvd;
 extern uint32_t _cpram1_ersvd;
+
+extern uint32_t _ssharmv1;
+extern uint32_t _esharmv1;
+
+extern uint32_t _ssharmv2;
+extern uint32_t _esharmv2;
 
 #ifdef CONFIG_SONG_MBOX
 FAR struct mbox_dev_s *g_mbox[4] =
@@ -526,6 +533,19 @@ void up_finalinitialize(void)
 {
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
+#endif
+
+#ifdef CONFIG_CRASH_DUMPFILE
+  if (up_is_u1v1())
+    {
+      dumpfile_initialize("cp", (char *)&_ssharmv1, \
+                          ((uintptr_t)&_esharmv1) - ((uintptr_t)&_ssharmv1));
+    }
+  else
+    {
+      dumpfile_initialize("cp", (char *)&_ssharmv2, \
+                          ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
+    }
 #endif
 }
 
