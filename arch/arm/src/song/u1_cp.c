@@ -192,6 +192,7 @@ static void up_misc_init(void)
           .blkid = 0,
           .base  = base,
           .size  = size,
+          .dma   = !up_is_u1v1(),
         };
 
       ioctl(fd, MISC_RETENT_ADD, (unsigned long)&add);
