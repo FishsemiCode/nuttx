@@ -46,6 +46,7 @@
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/mtd/song_onchip_flash.h>
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -110,6 +111,7 @@ struct song_onchip_info_s
   uint16_t        offset;
   uint8_t         nbytes;
   uint8_t         mask;
+  bool            hex;
   FAR const char  *format;
   FAR const char  *name;
 };
@@ -147,9 +149,9 @@ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned 
 #ifndef CONFIG_DISABLE_ENVIRON
 static const struct song_onchip_info_s g_info_map[] =
 {
-  {0x20, 0x0e, 0xff, "%02x", "chip-id"},
-  {0x40, 0x10, 0xff, "%c", "board-id"},
-  {0x80, 0x04, 0xff, "%02x", "pmic-trim"},
+  {0x20, 0x0e, 0xff, true,  "%02x", "chip-id"},
+  {0x40, 0x10, 0xff, false, "%c",   "board-id"},
+  {0x80, 0x04, 0xff, true,  "%02x", "pmic-trim"},
   {},
 };
 #endif
@@ -228,8 +230,11 @@ static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
 
       for (i = 0; i < info->nbytes; i++)
         {
-           buf[i] &= info->mask;
-           len    += sprintf(&value[len], info->format, buf[i]);
+          if (info->hex || isprint(buf[i]))
+            {
+              buf[i] &= info->mask;
+              len    += sprintf(&value[len], info->format, buf[i]);
+            }
         }
 
       if (len > 0)
