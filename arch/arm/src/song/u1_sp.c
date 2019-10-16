@@ -987,7 +987,7 @@ static void up_ds_enter_final(void)
   modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
 }
 
-static void up_ds_enter_work(FAR void *arg)
+static void up_ds_enter_work(void)
 {
 #ifdef CONFIG_MISC_RPMSG
   /* Save cpram to flash */
@@ -1002,27 +1002,46 @@ static void up_ds_enter_work(FAR void *arg)
   up_ds_enter_final();
 }
 
-static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
+static void up_ds_enter_exit_work(FAR void *arg)
 {
-  if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_SLPU_FLASH_S)
-    {
-      static struct work_s worker;
+  uint32_t status = (uintptr_t)arg;
 
-      putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
-      work_queue(LPWORK, &worker, up_ds_enter_work, NULL, 0);
+  if (status & TOP_PWR_SLPU_FLASH_S)
+    {
+      up_ds_enter_work();
     }
-  else if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_AP_DS_WAKEUP)
+  else if (status & TOP_PWR_AP_DS_WAKEUP)
     {
 #ifdef CONFIG_SONG_RPTUN
       rptun_boot(CPU_NAME_AP);
 #endif
-      putreg32(TOP_PWR_AP_DS_WAKEUP, TOP_PWR_INTR_ST_SEC_M4_1);
     }
-  else if (getreg32(TOP_PWR_INTR_ST_SEC_M4_1) & TOP_PWR_CP_DS_WAKEUP)
+  else if (status & TOP_PWR_CP_DS_WAKEUP)
     {
 #ifdef CONFIG_SONG_RPTUN
       rptun_boot(CPU_NAME_CP);
 #endif
+    }
+}
+
+static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
+{
+  static struct work_s worker;
+  uint32_t status = getreg32(TOP_PWR_INTR_ST_SEC_M4_1);
+
+  if (status & TOP_PWR_SLPU_FLASH_S)
+    {
+      work_queue(HPWORK, &worker, up_ds_enter_exit_work, (void *)status, 0);
+      putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_SEC_M4_1);
+    }
+  else if (status & TOP_PWR_AP_DS_WAKEUP)
+    {
+      work_queue(HPWORK, &worker, up_ds_enter_exit_work, (void *)status, 0);
+      putreg32(TOP_PWR_AP_DS_WAKEUP, TOP_PWR_INTR_ST_SEC_M4_1);
+    }
+  else if (status & TOP_PWR_CP_DS_WAKEUP)
+    {
+      work_queue(HPWORK, &worker, up_ds_enter_exit_work, (void *)status, 0);
       putreg32(TOP_PWR_CP_DS_WAKEUP, TOP_PWR_INTR_ST_SEC_M4_1);
     }
 
