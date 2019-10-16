@@ -370,6 +370,10 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_CP_SLP_MASK << 16 |
            TOP_PWR_CP_SLP_MASK, TOP_PWR_SLPCTL_CP_M4);
 
+  /* Set top shram1 enabled */
+
+  putreg32(SECURITY_CFG_0_VALUE, SECURITY_CFG_0);
+
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
 #endif
@@ -539,11 +543,8 @@ static int cp_start(const struct song_rptun_config_s *config)
       ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
     }
 
-  /* SP <--shram1--> CP
-   * enable shram1 for IPC
-   */
+  /* SP <--shram1--> CP */
 
-  putreg32(SECURITY_CFG_0_VALUE, SECURITY_CFG_0);
   putreg32(TOP_PWR_CP_M4_PORESET << 16, TOP_PWR_CP_M4_RSTCTL);
   return 0;
 }
