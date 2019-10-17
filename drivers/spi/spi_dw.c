@@ -653,6 +653,17 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
 
   if (using_dma)
     {
+      int org = spi->n_bytes * 8;
+      int div = 4 / spi->n_bytes;
+      int remain;
+
+      /* TMP increase spi bits to 32 */
+
+      dw_spi_setbits(dev, 32);
+
+      remain = nwords % div;
+      nwords = nwords / div;
+
       while (nwords > 0)
         {
           if (!txbuffer && nwords > UINT16_MAX)
@@ -669,6 +680,13 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
 
           nwords -= nsize;
         }
+
+      /* Revert spi bits to original */
+
+      dw_spi_setbits(dev, org);
+
+      if (remain)
+        dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, remain);
     }
   else
     dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, nwords);
