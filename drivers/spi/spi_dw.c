@@ -176,7 +176,7 @@ static uint32_t dw_spi_write_fifo(struct dw_spi_s *spi)
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)spi->config->base;
   uint32_t max = dw_spi_tx_max(spi);
   uint32_t written = max;
-  uint16_t txw = 0;
+  uint32_t txw = 0;
 
   while (max--)
     {
@@ -184,8 +184,10 @@ static uint32_t dw_spi_write_fifo(struct dw_spi_s *spi)
         {
           if (spi->n_bytes == 1)
             txw = *(uint8_t *)(spi->tx);
-          else
+          else if (spi->n_bytes == 2)
             txw = *(uint16_t *)(spi->tx);
+          else
+            txw = *(uint32_t *)(spi->tx);
         }
       hw->DATA = txw;
       spi->tx += spi->n_bytes;
@@ -207,7 +209,7 @@ static uint32_t dw_spi_read_fifo(struct dw_spi_s *spi)
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)spi->config->base;
   uint32_t max = dw_spi_rx_max(spi);
   uint32_t read = max;
-  uint16_t rxw;
+  uint32_t rxw;
 
   while (max--)
     {
@@ -216,8 +218,10 @@ static uint32_t dw_spi_read_fifo(struct dw_spi_s *spi)
         {
           if (spi->n_bytes == 1)
             *(uint8_t *)(spi->rx) = rxw;
-          else
+          else if (spi->n_bytes == 2)
             *(uint16_t *)(spi->rx) = rxw;
+          else
+            *(uint32_t *)(spi->rx) = rxw;
         }
       spi->rx += spi->n_bytes;
     }
@@ -428,12 +432,14 @@ static void dw_spi_setbits(FAR struct spi_dev_s *dev, int nbits)
   const struct dw_spi_config_s *config = spi->config;
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)config->base;
 
-  DEBUGASSERT(nbits >= 4 || nbits <= 16);
+  DEBUGASSERT(nbits >= 4 || nbits <= 32);
 
   if (nbits <= 8)
     spi->n_bytes = 1;
-  else
+  else if (nbits <= 16)
     spi->n_bytes = 2;
+  else
+    spi->n_bytes = 4;
 
   dw_spi_update_reg(&hw->CTRL0, g_dw_spi_dfs_set[spi->ver].mask,
                 (nbits - 1) << g_dw_spi_dfs_set[spi->ver].shift);
@@ -517,7 +523,7 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
       DMA_CONFIG(spi->rx_chan, &cfg);
       DMA_START(spi->rx_chan, dw_spi_dma_cb,
                 spi, up_addrenv_va_to_pa(rxbuffer),
-                up_addrenv_va_to_pa((void *)&hw->DATA), nwords);
+                up_addrenv_va_to_pa((void *)&hw->DATA), nwords * spi->n_bytes);
     }
 
   /* For RX: DMA_START, SPI enable
@@ -540,7 +546,7 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
       up_clean_dcache((uintptr_t)txbuffer, (uintptr_t)txbuffer + nwords * spi->n_bytes);
       DMA_START(spi->tx_chan, rxbuffer ? NULL : dw_spi_dma_cb,
                 spi, up_addrenv_va_to_pa((void *)&hw->DATA),
-                up_addrenv_va_to_pa((void *)txbuffer), nwords);
+                up_addrenv_va_to_pa((void *)txbuffer), nwords * spi->n_bytes);
     }
   else /* RECEIVE-only mode, we need to trigger the transfer */
     {
