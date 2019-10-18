@@ -477,6 +477,7 @@ static void up_spi_init(void)
     .rx_dma = 12,
     .cs_num = 1,
     .cs_gpio[0] = 22,
+    .hbits = true,
     .mclk = "spi0_mclk",
   };
 

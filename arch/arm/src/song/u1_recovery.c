@@ -377,6 +377,7 @@ static void up_spi_init(void)
     .cs_num = 2,
     .cs_gpio[0] = 26,
     .cs_gpio[1] = 9,
+    .hbits = true,
     .mclk = "spi1_mclk",
   };
 
