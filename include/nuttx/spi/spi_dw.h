@@ -62,6 +62,8 @@ struct dw_spi_config_s
   uint8_t cs_gpio[CONFIG_SPI_DW_MAX_CS];
   uintptr_t mode_ctrl;
   uint32_t mode_sel_bit;
+  /* HIGH bits to 32 */
+  bool hbits;
   FAR const char *mclk;
 };
 

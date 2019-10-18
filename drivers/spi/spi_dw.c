@@ -660,15 +660,19 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
   if (using_dma)
     {
       int org = spi->n_bytes * 8;
-      int div = 4 / spi->n_bytes;
-      int remain;
+      int remain = 0;
 
-      /* TMP increase spi bits to 32 */
+      if (spi->config->hbits)
+        {
+          int div = 4 / spi->n_bytes;
 
-      dw_spi_setbits(dev, 32);
+          /* TMP increase spi bits to 32 */
 
-      remain = nwords % div;
-      nwords = nwords / div;
+          dw_spi_setbits(dev, 32);
+
+          remain = nwords % div;
+          nwords = nwords / div;
+        }
 
       while (nwords > 0)
         {
