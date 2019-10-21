@@ -37,6 +37,7 @@
  * Included Files
  ****************************************************************************/
 
+#include <endian.h>
 #include <errno.h>
 #include <stdio.h>
 #include <nuttx/arch.h>
@@ -659,19 +660,43 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
 
   if (using_dma)
     {
+      const uint32_t *swtx = txbuffer;
       int org = spi->n_bytes * 8;
-      int remain = 0;
+      uint32_t *swrx = rxbuffer;
+      uint32_t *temp = NULL;
+      bool swap = false;
+      int i;
 
-      if (spi->config->hbits)
+      if (spi->config->hbits &&
+         (spi->n_bytes == 1) &&
+         (spi->n_bytes * nwords % 4 == 0))
         {
           int div = 4 / spi->n_bytes;
 
           /* TMP increase spi bits to 32 */
 
           dw_spi_setbits(dev, 32);
-
-          remain = nwords % div;
           nwords = nwords / div;
+
+          /* Swap txdata */
+
+          if (txbuffer)
+            {
+              temp = kmm_zalloc(nwords * spi->n_bytes);
+              if (!temp)
+                {
+                  spierr("DW_SPI-%p alloc swtc failed!\n", spi->config->base);
+                  goto out;
+                }
+
+              for (i = 0; i < nwords; i++)
+                {
+                  temp[i] = __swap_uint32(swtx[i]);
+                }
+             }
+
+          ret = nwords;
+          swap = true;
         }
 
       while (nwords > 0)
@@ -681,7 +706,7 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
           else
             nsize = nwords;
 
-          dw_spi_dma_transfer(spi, txbuffer, rxbuffer, nsize);
+          dw_spi_dma_transfer(spi, swap ? temp : txbuffer, rxbuffer, nsize);
 
           if (txbuffer)
             txbuffer += nsize * spi->n_bytes;
@@ -691,16 +716,33 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
           nwords -= nsize;
         }
 
-      /* Revert spi bits to original */
+      if (swap)
+        {
+          if (temp)
+            {
+              kmm_free(temp);
+              temp = NULL;
+            }
 
-      dw_spi_setbits(dev, org);
+          /* Swap rxdata */
 
-      if (remain)
-        dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, remain);
+          if (swrx)
+            {
+              for (i = 0; i < ret; i++)
+                {
+                  swrx[i] = __swap_uint32(swrx[i]);
+                }
+            }
+
+          /* Revert spi bits to original */
+
+          dw_spi_setbits(dev, org);
+        }
     }
   else
     dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, nwords);
 
+out:
   clk_disable(spi->clk);
 }
 #endif
