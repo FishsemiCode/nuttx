@@ -293,6 +293,11 @@ void up_dma_initialize(void)
 #if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 {
+  if (up_is_u1v1())
+    {
+      return NULL;
+    }
+
   return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
 }
 #endif
