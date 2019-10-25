@@ -192,7 +192,7 @@ static int song_dmas_set_timeout(struct song_dmas_dev_s *dev,
   if (!timeout)
     return OK;
 
-  if (!dev->clkinit)
+  if (dev->clkname && !dev->clkinit)
     return -EPERM;
 
   if (index < 8)
