@@ -536,6 +536,10 @@ static int up_pwr_isr(int irq, FAR void *context, FAR void *arg)
   if (getreg32(TOP_PWR_INTR_ST_AP_M4) & TOP_PWR_SLP_U1RXD_ACT)
     {
       putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_AP_M4);
+#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
+                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+#endif
     }
 
   return 0;
