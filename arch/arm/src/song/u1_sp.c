@@ -381,6 +381,13 @@ void up_earlyinitialize(void)
 
   putreg32(SECURITY_CFG_0_VALUE, SECURITY_CFG_0);
 
+  if (up_is_warm_rstn())
+    {
+      /* Wake up from DS, resotre UART0 interrupt setting */
+
+      modifyreg32(0xb2000004, 0x1, 0);
+    }
+
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
 #endif
@@ -989,6 +996,10 @@ static void up_ds_enter_final(void)
           regulator_set_voltage(reg, voltage, voltage);
         }
     }
+
+  /* Force enable UART0 interrupt for UART0 wakeup DS */
+
+  modifyreg32(0xb2000004, 0, 0x1);
 
   /* Jump to flash_pd */
 
