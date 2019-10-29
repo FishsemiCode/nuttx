@@ -63,6 +63,13 @@ struct song_oneshot_config_s
   uint32_t  intren_off;
   uint32_t  intrst_off;
   uint32_t  intr_bit;
+
+  /* For some platform need man calibration,
+   * set this false if can auto calibration.
+   */
+
+  bool      man_calib;
+  uint32_t  man_calibv;
 };
 
 /****************************************************************************

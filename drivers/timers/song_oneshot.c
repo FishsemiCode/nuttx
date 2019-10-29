@@ -222,17 +222,20 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
             SONG_ONESHOT_C1_MAX_BIT, SONG_ONESHOT_C1_MAX_MASK, config->c1_max);
         }
 
-      if (config->calib_inc)
+      if (config->man_calib)
         {
           /* Set calib auto upd false, set CALIB_32KINC */
 
           song_oneshot_putbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_AUTO_UPD_EN, false);
-          song_oneshot_putreg(config->base, config->calib_inc, 0xfa0000);
+          song_oneshot_putreg(config->base, config->calib_inc, config->man_calibv);
         }
+      else
+        {
+          /* Start 32KHz clock calibration first */
 
-      /* Start 32KHz clock calibration first */
-
-      song_oneshot_putbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_START, true);
+          song_oneshot_putbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_AUTO_UPD_EN, true);
+          song_oneshot_putbit(config->base, config->calib_off, SONG_ONESHOT_CALIB_START, true);
+        }
 
       /* Then release the reset signal */
 
