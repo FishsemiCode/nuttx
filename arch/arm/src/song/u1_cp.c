@@ -319,24 +319,50 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 void arm_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
-  static const struct song_oneshot_config_s config =
-  {
-    .minor      = -1,
-    .base       = TOP_PWR_BASE,
-    .irq        = 18,
-    .c1_freq    = 8192000,
-    .ctl_off    = 0x170,
-    .calib_off  = 0x194,
-    .calib_inc  = 0x198,
-    .c1_off     = 0x174,
-    .c2_off     = 0x178,
-    .spec_off   = 0x1a4,
-    .intren_off = 0x12c,
-    .intrst_off = 0x138,
-    .intr_bit   = 0,
-  };
+  if (up_is_u1v1())
+    {
+      static const struct song_oneshot_config_s config =
+        {
+          .minor      = -1,
+          .base       = TOP_PWR_BASE,
+          .irq        = 18,
+          .c1_freq    = 8192000,
+          .ctl_off    = 0x170,
+          .calib_off  = 0x194,
+          .calib_inc  = 0x198,
+          .c1_off     = 0x174,
+          .c2_off     = 0x178,
+          .spec_off   = 0x1a4,
+          .intren_off = 0x12c,
+          .intrst_off = 0x138,
+          .intr_bit   = 0,
+          .man_calib  = true,
+          .man_calibv = 0xfa0000,
+        };
 
-  up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
+      up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
+    }
+  else
+    {
+      static const struct song_oneshot_config_s config =
+        {
+          .minor      = -1,
+          .base       = TOP_PWR_BASE,
+          .irq        = 18,
+          .c1_freq    = 8192000,
+          .ctl_off    = 0x170,
+          .calib_off  = 0x194,
+          .calib_inc  = 0x198,
+          .c1_off     = 0x174,
+          .c2_off     = 0x178,
+          .spec_off   = 0x1a4,
+          .intren_off = 0x12c,
+          .intrst_off = 0x138,
+          .intr_bit   = 0,
+        };
+
+      up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
+    }
 #endif
 
 #ifdef CONFIG_CPULOAD_PERIOD
