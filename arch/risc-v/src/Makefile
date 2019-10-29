@@ -68,6 +68,7 @@ ifeq ($(WINTOOL),y)
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(ARCH_SUBDIR)}"
   CFLAGS += -I "${shell cygpath -w $(ARCH_SRCDIR)/$(CONFIG_ARCH_CHIP)}"
   CFLAGS += -I "${shell cygpath -w $(TOPDIR)/sched}"
+  LDSCRIPT := ${shell cygpath -m $(LDSCRIPT)}
 else
   NUTTX = "$(OUTDIR)/nuttx$(EXEEXT)"
   STRIPFILE = "$(OUTDIR)/nuttx.strip"
@@ -114,8 +115,6 @@ BIN  = libarch$(LIBEXT)
 
 LDSTARTGROUP ?= --start-group
 LDENDGROUP ?= --end-group
-
-LDFLAGS += $(ARCHSCRIPT)
 
 EXTRA_LIBS ?=
 EXTRA_LIBPATHS ?=
@@ -187,8 +186,9 @@ board/libboard$(LIBEXT):
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	$(Q) echo "LD: nuttx"
+	$(Q) $(call PREPROCESS, $(LDSCRIPT), $(notdir $(LDSCRIPT)))
 	$(Q) $(LD) --entry=__start $(LDFLAGS) $(LIBPATHS) $(EXTRA_LIBPATHS) \
-		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) \
+		-o $(NUTTX) $(HEAD_OBJ) $(EXTRA_OBJS) -T $(notdir $(LDSCRIPT)) \
 		$(LDSTARTGROUP) $(LDLIBS) $(EXTRA_LIBS) $(LIBGCC) $(LDENDGROUP)
 ifneq ($(CONFIG_WINDOWS_NATIVE),y)
 	$(Q) $(NM) -S --size-sort $(NUTTX) > $(OUTDIR)$(DELIM)System.map
@@ -228,6 +228,7 @@ clean:
 ifeq ($(BOARDMAKE),y)
 	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" clean
 endif
+	$(call DELFILE, $(notdir $(LDSCRIPT)))
 	$(call DELFILE, $(KBIN))
 	$(call DELFILE, $(UBIN))
 	$(call DELFILE, $(BIN))
