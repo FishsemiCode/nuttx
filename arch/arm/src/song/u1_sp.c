@@ -871,6 +871,10 @@ static int up_pmicfsm_isr(int irq, FAR void *context, FAR void *arg)
   if (getreg32(TOP_PMICFSM_INT_STATUS) & TOP_PMICFSM_SLP_U0RXD_ACT)
     {
       putreg32(TOP_PMICFSM_SLP_U0RXD_ACT, TOP_PMICFSM_INT_STATUS);
+
+      /* WORKAROUND here, for ap response uart0 slowly */
+
+      up_mdelay(1);
     }
 
   return 0;
