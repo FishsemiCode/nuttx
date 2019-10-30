@@ -219,6 +219,10 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_CPULOAD_PERIOD
   sched_period_extclk(systick_initialize(false, 32768, -1));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 #ifdef CONFIG_SONG_MBOX
@@ -429,10 +433,6 @@ static void up_audio_init(void)
 
 void up_lateinitialize(void)
 {
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
-#endif
-
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
 #endif

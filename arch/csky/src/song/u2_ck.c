@@ -220,6 +220,10 @@ void csky_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 #ifdef CONFIG_RPMSG_UART
@@ -410,10 +414,6 @@ static void up_flash_init(void)
 
 void up_lateinitialize(void)
 {
-#ifdef CONFIG_SONG_CLK
-  up_clk_initialize();
-#endif
-
 #ifdef CONFIG_SONG_MBOX
   up_mbox_init();
 #endif
