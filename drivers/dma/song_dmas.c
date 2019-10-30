@@ -503,30 +503,6 @@ static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned in
   if (ident > 15)
     return NULL;
 
-  if (dev->clkname && !dev->clkinit)
-    {
-      struct clk *dma_clk;
-      uint32_t intv_unit;
-
-      dma_clk = clk_get(dev->clkname);
-      if (dma_clk == NULL)
-        {
-          return NULL;
-        }
-
-      if (clk_enable(dma_clk) < 0)
-        {
-          return NULL;
-        }
-
-      intv_unit = clk_get_rate(dma_clk) / 1000000; /* microsecond */
-      intv_unit = MAX(intv_unit, SONG_DMAS_INTV_UNIT_MIN);
-      intv_unit = MIN(intv_unit, SONG_DMAS_INTV_UNIT_MAX);
-      song_dmas_write(dev, SONG_DMAS_REG_INTV_UNIT, intv_unit);
-
-      dev->clkinit = true;
-    }
-
   song_dmas_stop(&dev->channels[ident].chan);
 
   return &dev->channels[ident].chan;
@@ -574,6 +550,32 @@ struct dma_dev_s *song_dmas_initialize(int cpu, uintptr_t base, int irq, const c
   dev->base = base;
   dev->cpu = cpu;
   dev->clkname = clkname;
+
+  if (dev->clkname && !dev->clkinit)
+    {
+      struct clk *dma_clk;
+      uint32_t intv_unit;
+
+      dma_clk = clk_get(dev->clkname);
+      if (dma_clk == NULL)
+        {
+          kmm_free(dev);
+          return NULL;
+        }
+
+      if (clk_enable(dma_clk) < 0)
+        {
+          kmm_free(dev);
+          return NULL;
+        }
+
+      intv_unit = clk_get_rate(dma_clk) / 1000000; /* microsecond */
+      intv_unit = MAX(intv_unit, SONG_DMAS_INTV_UNIT_MIN);
+      intv_unit = MIN(intv_unit, SONG_DMAS_INTV_UNIT_MAX);
+      song_dmas_write(dev, SONG_DMAS_REG_INTV_UNIT, intv_unit);
+
+      dev->clkinit = true;
+    }
 
   /* enable the low power control */
   song_dmas_write(dev, SONG_DMAS_REG_LP_CTL, 0x01ffff);
