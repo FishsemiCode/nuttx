@@ -189,9 +189,19 @@ void uart_xmitchars_done(FAR uart_dev_t *dev)
   size_t nbytes = xfer->nbytes;
   struct uart_buffer_s *txbuf = &dev->xmit;
 
-  /* Move tail for nbytes. */
+  /* Skip the update if the tail position change which mean
+   * someone reset(e.g. TCOFLUSH) the xmit buffer during DMA.
+   */
 
-  txbuf->tail  = (txbuf->tail + nbytes) % txbuf->size;
+  if (xfer->buffer == &txbuf->buffer[txbuf->tail])
+    {
+      /* Move tail for nbytes. */
+
+      txbuf->tail  = (txbuf->tail + nbytes) % txbuf->size;
+    }
+
+  /* Reset xmit buffer. */
+
   xfer->nbytes = 0;
   xfer->length = xfer->nlength = 0;
 
