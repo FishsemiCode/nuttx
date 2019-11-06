@@ -126,6 +126,11 @@ struct song_dmas_chan_s
   size_t period_num;
   size_t period_len;
   size_t next_period;
+#ifdef CONFIG_SONG_DMAS_RXCHECK
+  void *rx_buf;
+  size_t rx_bufsz;
+  uintptr_t ori_dst;
+#endif
 };
 
 struct song_dmas_dev_s
@@ -264,6 +269,49 @@ static int song_dmas_chan_config(struct dma_chan_s *chan_, const struct dma_conf
   return OK;
 }
 
+#ifdef CONFIG_SONG_DMAS_RXCHECK
+static int song_dmas_rxbuf_check(struct song_dmas_chan_s *chan,
+                           uintptr_t dst, size_t len)
+{
+  chan->ori_dst = 0;
+
+  if (((dst + len) % 0x400) < 0x20)
+    {
+      size_t size = len + 16;
+
+      /* the last thansfer will across 1k border */
+
+      if (!chan->rx_buf)
+        {
+          chan->rx_buf = kmm_malloc(size);
+          if (!chan->rx_buf)
+            {
+              return -ENOMEM;
+            }
+          chan->rx_bufsz = size;
+        }
+
+      if (chan->rx_bufsz < size)
+        {
+          void *tmp = kmm_realloc(chan->rx_buf, size);
+          if (!tmp)
+            {
+              kmm_free(chan->rx_buf);
+              chan->rx_buf = NULL;
+              return -ENOMEM;
+            }
+          chan->rx_buf = tmp;
+          chan->rx_bufsz = size;
+        }
+
+      chan->ori_dst = dst;
+      chan->dst_addr = (uintptr_t)chan->rx_buf;
+    }
+
+  return OK;
+}
+#endif
+
 static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
                            void *arg, uintptr_t dst, uintptr_t src, size_t len)
 {
@@ -287,6 +335,14 @@ static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
                           SONG_DMAS_CTL1_BLKMOD_SIGNLE);
   else
     {
+#ifdef CONFIG_SONG_DMAS_RXCHECK
+      int ret = song_dmas_rxbuf_check(chan, dst, len);
+      if (ret != OK)
+        {
+          return ret;
+        }
+#endif
+
       song_dmas_update_bits(dev, SONG_DMAS_REG_CTL1(index),
                             SONG_DMAS_CTL1_CHMOD_MASK |
                             SONG_DMAS_CTL1_WRAP_EN,
@@ -325,6 +381,10 @@ static int song_dmas_start_cyclic(struct dma_chan_s *chan_,
     return -EINVAL;
   if (len % period_len || len <= period_len)
     return -EINVAL;
+#ifdef CONFIG_SONG_DMAS_RXCHECK
+  if (index >= 8 && dst % 32)
+    return -EINVAL;
+#endif
 
   chan->callback = callback;
   chan->arg = arg;
@@ -445,6 +505,15 @@ static void song_dmas_next_transfer(struct song_dmas_chan_s *chan)
 
 static void song_dmas_chan_irq(struct song_dmas_chan_s* chan, bool match, bool flush)
 {
+#ifdef CONFIG_SONG_DMAS_RXCHECK
+  if (chan->index >= 8 && chan->ori_dst)
+    {
+      /* Dma rx channel has use internal buffer */
+
+      memcpy((void *)chan->ori_dst, (void *)chan->dst_addr, chan->period_len);
+    }
+#endif
+
   if (chan->period_num > 1)
     {
       if (match)
@@ -510,6 +579,14 @@ static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned in
 
 static void song_dmas_put_chan(struct dma_dev_s *dev, struct dma_chan_s *chan)
 {
+#ifdef CONFIG_SONG_DMAS_RXCHECK
+  struct song_dmas_chan_s *chan_ = (struct song_dmas_chan_s *)chan;
+
+  if (chan_->rx_buf)
+    {
+      kmm_free(chan_->rx_buf);
+    }
+#endif
 }
 
 /****************************************************************************

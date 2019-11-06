@@ -50,4 +50,12 @@ config SONG_DMAS
 	depends on ARCH_CHIP_SONG
 	depends on CLK
 
+if SONG_DMAS
+
+config SONG_DMAS_RXCHECK
+	bool "Check dma-rx last transfer across 1k border or not"
+	default n
+
+endif
+
 endif
