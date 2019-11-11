@@ -184,6 +184,7 @@ struct dw_i2c_dev_s
 {
   struct i2c_master_s dev;              /* I2c private data */
   struct clk *mclk;                     /* I2c master clk */
+  struct clk *pclk;                     /* I2c peripheral clk */
   FAR struct dw_i2c_hw_s *hw;           /* Hardware i2c controller info */
 
   uint32_t msgs_num;                    /* number of mesgs */
@@ -481,9 +482,20 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
   i2c->internal_status  = 0;
   i2c->rx_outstanding   = 0;
 
+  if (i2c->pclk)
+    {
+      ret = clk_enable(i2c->pclk);
+      if (ret < 0)
+        {
+          nxmutex_unlock(&i2c->mutex);
+          return ret;
+        }
+    }
+
   ret = clk_enable(i2c->mclk);
   if (ret < 0)
     {
+      clk_disable(i2c->pclk);
       nxmutex_unlock(&i2c->mutex);
       return ret;
     }
@@ -525,6 +537,7 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
 done:
   dw_i2c_disable(i2c);
   clk_disable(i2c->mclk);
+  clk_disable(i2c->pclk);
   nxmutex_unlock(&i2c->mutex);
   return ret;
 }
@@ -945,6 +958,15 @@ FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *con
       goto sem_prio_err;
     }
 
+  if (config->pclk)
+    {
+      i2c->pclk = clk_get(config->pclk);
+      if (!i2c->pclk)
+        {
+          i2cwarn("i2c:%p mclk invalid\n", config->base);
+        }
+    }
+
   if (config->rate)
     {
       ret = clk_set_rate(i2c->mclk, config->rate);
@@ -955,16 +977,28 @@ FAR struct i2c_master_s *dw_i2c_initialize(FAR const struct dw_i2c_config_s *con
         }
     }
 
+  if (i2c->pclk)
+    {
+      ret = clk_enable(i2c->pclk);
+      if (ret < 0)
+        {
+          i2cerr("i2c:%p open pclk failed\n", config->base);
+          goto sem_prio_err;
+        }
+    }
+
   ret = clk_enable(i2c->mclk);
   if (ret < 0)
     {
       i2cerr("i2c:%p open mclk failed\n", config->base);
+      clk_disable(i2c->pclk);
       goto sem_prio_err;
     }
 
   dw_i2c_hw_init(i2c, config);
 
   clk_disable(i2c->mclk);
+  clk_disable(i2c->pclk);
 
   ret = irq_attach(config->irq, dw_i2c_isr, i2c);
   if (ret < 0)
