@@ -122,6 +122,7 @@ struct dw_spi_s
 {
   struct spi_dev_s spi_dev;
   struct clk *clk;
+  struct clk *pclk;
   const struct dw_spi_config_s *config;
   struct ioexpander_dev_s *ioe;
   struct dma_chan_s *tx_chan;
@@ -468,9 +469,14 @@ static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
                                 struct dw_spi_s, spi_dev);
   struct dw_spi_hw_s *hw = (struct dw_spi_hw_s *)spi->config->base;
 
+  if (spi->pclk && clk_enable(spi->pclk) < 0)
+    {
+      return 0;
+    }
+
   if (clk_enable(spi->clk) < 0)
     {
-      spierr("DW_SPI-%p enable clock failed:%d\n", spi->config->base, ret);
+      clk_disable(spi->pclk);
       return 0;
     }
 
@@ -481,6 +487,7 @@ static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
   wd = hw->DATA;
   dw_spi_enable(hw, false);
   clk_disable(spi->clk);
+  clk_disable(spi->pclk);
 
   return wd;
 }
@@ -645,10 +652,21 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
       return;
     }
 
+  if (spi->pclk)
+    {
+      ret = clk_enable(spi->pclk);
+      if (ret < 0)
+        {
+          spierr("DW_SPI-%p enable pclock failed:%d\n", spi->config->base, ret);
+          return;
+        }
+    }
+
   ret = clk_enable(spi->clk);
   if (ret < 0)
     {
       spierr("DW_SPI-%p enable clock failed:%d\n", spi->config->base, ret);
+      clk_disable(spi->pclk);
       return;
     }
 
@@ -744,6 +762,7 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
 
 out:
   clk_disable(spi->clk);
+  clk_disable(spi->pclk);
 }
 #endif
 
@@ -897,6 +916,15 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
       spierr("DW_SPI-%p create clock failed\n", config->base);
       kmm_free(spi);
       return NULL;
+    }
+
+  if (config->pclk)
+    {
+      spi->pclk = clk_get(config->pclk);
+      if (!spi->pclk)
+        {
+          spiwarn("DW_SPI-%p create pclock failed\n", config->base);
+        }
     }
 
   spi->spi_dev.ops = &dw_spi_ops;

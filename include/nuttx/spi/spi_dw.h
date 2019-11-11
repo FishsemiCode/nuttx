@@ -65,6 +65,7 @@ struct dw_spi_config_s
   /* HIGH bits to 32 */
   bool hbits;
   FAR const char *mclk;
+  FAR const char *pclk;
 };
 
 /****************************************************************************
