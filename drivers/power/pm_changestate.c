@@ -97,11 +97,15 @@ static void pm_timer(int domain)
       pdom->wdog = wd_create();
     }
 
-  if (pdom->state < PM_SLEEP && !pdom->stay[pdom->state] &&
-      pmtick[pdom->state])
+  if (pdom->state < PM_SLEEP && !pdom->stay[pdom->state])
     {
       int delay = pmtick[pdom->state] + pdom->btime - clock_systimer();
       int left  = wd_gettime(pdom->wdog);
+
+      if (delay <= 0)
+        {
+          delay = 1;
+        }
 
       if (!WDOG_ISACTIVE(pdom->wdog) || abs(delay - left) > PM_TIMER_GAP)
         {
