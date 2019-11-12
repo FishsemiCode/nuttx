@@ -222,9 +222,17 @@ static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
 
   while(info->name)
     {
-      char value[4 * BLOCK_SIZE];
-      uint8_t buf[BLOCK_SIZE];
+      uint8_t *buf;
+      char *value;
       int i, len = 0;
+
+      buf = kmm_malloc(info->nbytes * 3 + 1);
+      if (!buf)
+        {
+          return;
+        }
+
+      value = (char *)buf + info->nbytes;
 
       song_onchip_flash_read(dev, info->offset, info->nbytes, buf);
 
@@ -241,6 +249,8 @@ static void song_onchip_initalize_env(FAR struct mtd_dev_s *dev)
         {
           setenv_global(info->name, value, 1);
         }
+
+      kmm_free(buf);
       info++;
     }
 }
@@ -423,13 +433,49 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
 
           while(info->name)
             {
-              if (!strcmp(info->name, env->name) && (info->nbytes == env->len))
+              if (!strcmp(info->name, env->name))
                 {
                   size_t nblocks;
-                  nblocks = (info->nbytes + BLOCK_SIZE - 1) / BLOCK_SIZE;
+                  uint8_t *swap;
 
+                  if (info->hex && info->nbytes * 2 == env->len)
+                    {
+                      int i;
+
+                      swap = kmm_malloc(info->nbytes);
+                      if (!swap)
+                        {
+                          return -ENOMEM;
+                        }
+
+                      for (i = 0; i < info->nbytes; i++)
+                        {
+                          char byte[3];
+
+                          byte[0] = env->buf[i*2 + 0];
+                          byte[1] = env->buf[i*2 + 1];
+                          byte[2] = '\0';
+
+                          swap[i] = strtol(byte, NULL, 16);
+                        }
+                    }
+                  else if (!info->hex && info->nbytes == env->len)
+                    {
+                      swap = env->buf;
+                    }
+                  else
+                    {
+                      break;
+                    }
+
+                  nblocks = (info->nbytes + BLOCK_SIZE - 1) / BLOCK_SIZE;
                   song_onchip_flash_bwrite(dev, info->offset / BLOCK_SIZE,
-                      nblocks, env->buf);
+                                           nblocks, swap);
+
+                  if (swap != env->buf)
+                    {
+                      kmm_free(swap);
+                    }
 
                   ret = OK;
                   break;
