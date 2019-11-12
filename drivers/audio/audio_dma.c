@@ -376,10 +376,12 @@ static int audio_dma_allocbuffer(struct audio_lowerhalf_s *dev,
 
   if (!audio_dma->alloc_addr)
     {
-      audio_dma->alloc_addr = kumm_calloc(audio_dma->buffer_num,
-                                          audio_dma->buffer_size);
+      audio_dma->alloc_addr = kumm_memalign(32,
+                                            audio_dma->buffer_num *
+                                            audio_dma->buffer_size);
       if (!audio_dma->alloc_addr)
         return -ENOMEM;
+
       if (audio_dma->playback)
         audio_dma->src_addr = up_addrenv_va_to_pa(audio_dma->alloc_addr);
       else
