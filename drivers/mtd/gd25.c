@@ -75,9 +75,11 @@
 
 /*      Command                    Value      Description                 */
 /*                                                                        */
+
 #define GD25_WREN                   0x06    /* Write enable               */
 #define GD25_WRDI                   0x04    /* Write Disable              */
 #define GD25_RDSR                   0x05    /* Read status register       */
+#define GD25_RDSR1                  0x35    /* Read status register-1     */
 #define GD25_WRSR                   0x01    /* Write Status Register      */
 #define GD25_RDDATA                 0x03    /* Read data bytes            */
 #define GD25_FRD                    0x0b    /* Higher speed read          */
@@ -91,7 +93,6 @@
 #define GD25_RDMFID                 0x90    /* Read Manufacturer / Device */
 #define GD25_JEDEC_ID               0x9f    /* JEDEC ID read              */
 #define GD25_4BEN                   0xb7    /* Enable 4-byte Mode         */
-#define GD25_RDSR1                  0x35    /* Read status register-1     */
 
 /**************************************************************************
  * GD25 Registers
@@ -173,7 +174,8 @@ static void gd25_unprotect(FAR struct gd25_dev_s *priv);
 static uint8_t gd25_waitwritecomplete(FAR struct gd25_dev_s *priv);
 static inline void gd25_wren(FAR struct gd25_dev_s *priv);
 static inline void gd25_wrdi(FAR struct gd25_dev_s *priv);
-static bool gd25_is_erased(FAR struct gd25_dev_s *priv, off_t address, off_t size);
+static bool gd25_is_erased(FAR struct gd25_dev_s *priv, off_t address,
+        off_t size);
 static void gd25_sectorerase(FAR struct gd25_dev_s *priv, off_t offset);
 static inline int gd25_chiperase(FAR struct gd25_dev_s *priv);
 static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
@@ -195,15 +197,12 @@ static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
     size_t nblocks, FAR const uint8_t *buf);
 static ssize_t gd25_read(FAR struct mtd_dev_s *dev, off_t offset,
     size_t nbytes, FAR uint8_t *buffer);
-static int gd25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
+static int gd25_ioctl(FAR struct mtd_dev_s *dev, int cmd,
+    unsigned long arg);
 #ifdef CONFIG_MTD_BYTE_WRITE
 static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
     size_t nbytes, FAR const uint8_t *buffer);
 #endif
-
-/**************************************************************************
- * Private Data
- **************************************************************************/
 
 /**************************************************************************
  * Private Functions
@@ -309,11 +308,14 @@ static inline int gd25_readid(FAR struct gd25_dev_s *priv)
 
           if ((gd25_rdsr(priv, 1) & GD25_SR1_EN4B) != GD25_SR1_EN4B)
             {
-              ferr("capacity %02x: can't enable 4-byte mode!\n", capacity);
+              ferr("ERROR: capacity %02x: Can't enable 4-byte mode!\n",
+                   capacity);
               return -EBUSY;
             }
-          priv->addr_4byte = 1;
+
+          priv->addr_4byte = true;
         }
+
       return OK;
     }
 
@@ -390,7 +392,10 @@ static uint8_t gd25_waitwritecomplete(FAR struct gd25_dev_s *priv)
 static inline uint8_t gd25_rdsr(FAR struct gd25_dev_s *priv, uint32_t id)
 {
   uint8_t status;
-  uint8_t rdsr[2] = {GD25_RDSR, GD25_RDSR1};
+  uint8_t rdsr[2] =
+  {
+    GD25_RDSR, GD25_RDSR1
+  };
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
   (void)SPI_SEND(priv->spi, rdsr[id]);
@@ -437,7 +442,8 @@ static inline void gd25_wrdi(FAR struct gd25_dev_s *priv)
  * Name:  gd25_is_erased
  **************************************************************************/
 
-static bool gd25_is_erased(FAR struct gd25_dev_s *priv, off_t address, off_t size)
+static bool gd25_is_erased(FAR struct gd25_dev_s *priv, off_t address,
+                           off_t size)
 {
   size_t npages = size >> GD25_PAGE_SHIFT;
   uint32_t erased_32;
@@ -554,7 +560,7 @@ static inline int gd25_chiperase(FAR struct gd25_dev_s *priv)
  **************************************************************************/
 
 static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
-    off_t address, size_t nbytes)
+                          off_t address, size_t nbytes)
 {
   finfo("address: %08lx nbytes: %d\n", (long)address, (int)nbytes);
 
@@ -607,11 +613,13 @@ static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
  **************************************************************************/
 
 #ifndef CONFIG_GD25_READONLY
-static void gd25_pagewrite(FAR struct gd25_dev_s *priv, FAR const uint8_t *buffer,
-    off_t address, size_t nbytes)
+static void gd25_pagewrite(FAR struct gd25_dev_s *priv,
+                           FAR const uint8_t *buffer, off_t address,
+                           size_t nbytes)
 {
   finfo("address: %08lx nwords: %d\n", (long)address, (int)nbytes);
-  DEBUGASSERT(priv && buffer && (address & 0xff) == 0 && (nbytes & 0xff) == 0);
+  DEBUGASSERT(priv && buffer && (address & 0xff) == 0 &&
+              (nbytes & 0xff) == 0);
 
   for (; nbytes > 0; nbytes -= GD25_PAGE_SIZE)
     {
@@ -661,7 +669,8 @@ static void gd25_pagewrite(FAR struct gd25_dev_s *priv, FAR const uint8_t *buffe
 
 #if defined(CONFIG_MTD_BYTE_WRITE) && !defined(CONFIG_GD25_READONLY)
 static inline void gd25_bytewrite(FAR struct gd25_dev_s *priv,
-    FAR const uint8_t *buffer, off_t offset, uint16_t count)
+                                  FAR const uint8_t *buffer, off_t offset,
+                                  uint16_t count)
 {
   finfo("offset: %08lx  count:%d\n", (long)offset, count);
 
@@ -709,7 +718,7 @@ static inline void gd25_bytewrite(FAR struct gd25_dev_s *priv,
  **************************************************************************/
 
 static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
-    size_t nblocks)
+                      size_t nblocks)
 {
 #ifdef CONFIG_GD25_READONLY
   return -EACESS
@@ -718,10 +727,7 @@ static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
   size_t blocksleft = nblocks;
 
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
-  if (startblock == 0) {
-    syslog(LOG_INFO, "ERROR, erase addr startblock %d nblocks %d\n",
-        startblock, nblocks);
-  }
+
   /* Lock access to the SPI bus until we complete the erase */
 
   gd25_lock(priv->spi);
@@ -744,13 +750,14 @@ static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
  **************************************************************************/
 
 static ssize_t gd25_bread(FAR struct mtd_dev_s *dev, off_t startblock,
-    size_t nblocks, FAR uint8_t *buffer)
+                          size_t nblocks, FAR uint8_t *buffer)
 {
   ssize_t nbytes;
 
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
 
-  nbytes = gd25_read(dev, startblock << GD25_PAGE_SHIFT, nblocks << GD25_PAGE_SHIFT, buffer);
+  nbytes = gd25_read(dev, startblock << GD25_PAGE_SHIFT,
+                     nblocks << GD25_PAGE_SHIFT, buffer);
   if (nbytes > 0)
     {
       nbytes >>= GD25_PAGE_SHIFT;
@@ -764,7 +771,7 @@ static ssize_t gd25_bread(FAR struct mtd_dev_s *dev, off_t startblock,
  **************************************************************************/
 
 static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
-    size_t nblocks, FAR const uint8_t *buffer)
+                           size_t nblocks, FAR const uint8_t *buffer)
 {
 #ifdef CONFIG_GD25_READONLY
   return -EACCESS;
@@ -772,10 +779,7 @@ static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
   FAR struct gd25_dev_s *priv = (FAR struct gd25_dev_s *)dev;
 
   finfo("startblock: %08lx nblocks: %d\n", (long)startblock, (int)nblocks);
-  if (startblock == 0) {
-    syslog(LOG_INFO, "ERROR, write addr startblock %d nblocks %d buffer %p\n",
-        startblock, nblocks, buffer);
-  }
+
   /* Lock the SPI bus and write all of the pages to FLASH */
 
   gd25_lock(priv->spi);
@@ -791,8 +795,8 @@ static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
  * Name: gd25_read
  **************************************************************************/
 
-static ssize_t gd25_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
-    FAR uint8_t *buffer)
+static ssize_t gd25_read(FAR struct mtd_dev_s *dev, off_t offset,
+                         size_t nbytes, FAR uint8_t *buffer)
 {
   FAR struct gd25_dev_s *priv = (FAR struct gd25_dev_s *)dev;
 
@@ -814,7 +818,7 @@ static ssize_t gd25_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
 
 #ifdef CONFIG_MTD_BYTE_WRITE
 static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
-    size_t nbytes, FAR const uint8_t *buffer)
+                          size_t nbytes, FAR const uint8_t *buffer)
 {
 #ifdef CONFIG_GD25_READONLY
   return -EACCESS;
@@ -848,7 +852,7 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
       /* Write the 1st partial-page */
 
       count = nbytes;
-      bytestowrite = GD25_PAGE_SIZE - (offset & (GD25_PAGE_SIZE-1));
+      bytestowrite = GD25_PAGE_SIZE - (offset & (GD25_PAGE_SIZE - 1));
       gd25_bytewrite(priv, buffer, offset, bytestowrite);
 
       /* Update offset and count */
@@ -948,7 +952,8 @@ static int gd25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
  *
  **************************************************************************/
 
-FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *spi, uint32_t spi_devid)
+FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *spi,
+                                      uint32_t spi_devid)
 {
   FAR struct gd25_dev_s *priv;
   int ret;
