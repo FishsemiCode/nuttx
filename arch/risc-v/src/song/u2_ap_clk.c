@@ -101,6 +101,17 @@ static const struct song_fixed_rate_clk fixed_rate[] =
   {},
 };
 
+static const struct song_fixed_factor_clk fixed_factor[] =
+{
+  {
+    .name = "audio_sys_clk3072k_div16",
+    .parent_name = "audio_mclk_gated",
+    .fixed_mult  = 1,
+    .fixed_div   = 16,
+  },
+  {},
+};
+
 static const struct song_pll_lf_clk pll_lf[] =
 {
   {
@@ -403,15 +414,6 @@ static const struct song_div_clk div[] =
     .div_width = 4,
   },
   {
-    .name = "audio_sys_clk3072k",
-    .parent_name = "audio_mclk_gated",
-    .en_offset = 0x064,
-    .en_shift = 0,
-    .div_offset = 0x064,
-    .div_shift = 4,
-    .div_width = 4,
-  },
-  {
     .name = "at_clk",
     .parent_name = "rfphy_pll0_clk",
     .en_offset = 0x06c,
@@ -454,6 +456,12 @@ static const struct song_div_clk div[] =
 
 static const struct song_gate_clk gate[] =
 {
+  {
+    .name = "audio_sys_clk3072k",
+    .parent_name = "audio_sys_clk3072k_div16",
+    .en_offset = 0x064,
+    .en_shift  = 0,
+  },
   {
     .name = "audio_mclk_gated",
     .parent_name = "audio_mclk_mx",
@@ -871,6 +879,7 @@ static const struct clk_rate def_rates[] =
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
+  .fixed_factor_clks = fixed_factor,
   .sdiv_fdiv_clks    = sdiv_fdiv,
   .gr_fdiv_clks      = gr_fdiv,
   .div_clks          = div,
