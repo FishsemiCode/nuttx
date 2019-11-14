@@ -223,10 +223,13 @@ static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
   struct dp_vad_s *dev = args;
   uint32_t status;
 
+  up_udelay(100);
   status = dp_vad_getreg(dev, DP_VAD_CR4) & IRQ_FLAG;
   if (status)
     {
       dp_vad_updatereg(dev, DP_VAD_CR4, IRQ_FLAG, IRQ_FLAG);
+      up_udelay(100);
+      dp_vad_getreg(dev, DP_VAD_CR4);
     }
 
   return OK;
