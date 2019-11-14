@@ -736,6 +736,7 @@ struct audio_lowerhalf_s *dp_adc_initialize(const char *mclk, uint32_t base,
     }
 
   dp_adc_putreg(dev, DP_ADC_CR_VIC, 0x40);
+  dp_adc_putreg(dev, DP_ADC_ANA1, 0x04);
   while(!(dp_adc_getreg(dev, DP_ADC_SR) & PON_ACK));
 
   switch (dev->idx)
