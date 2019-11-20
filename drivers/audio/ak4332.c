@@ -417,7 +417,6 @@ static int ak4332_stop(struct audio_lowerhalf_s *dev_)
   if (!dev->is_enable)
     return OK;
   dev->is_enable = false;
-  clk_disable(dev->mclk);
   ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP, 0);
   ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP2, 0);
   ak4332_updatereg(dev, AK4332_PWR3, AK4332_PWR_PMDA, 0);
@@ -425,6 +424,8 @@ static int ak4332_stop(struct audio_lowerhalf_s *dev_)
                    AK4332_PWR_PMLDO1P | AK4332_PWR_PMLDO1N |
                    AK4332_PWR_PMCP1, 0);
   ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM, 0);
+
+  clk_disable(dev->mclk);
 
   return OK;
 }

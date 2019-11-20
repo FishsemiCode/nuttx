@@ -517,7 +517,7 @@ static void up_audio_init(void)
   audio_path_anc   = song_audio_path_anc_initialize(0xa0070000, true);
 
   audio_comp_initialize("pcm0c", audio_dma_voice, audio_path_voice, dp_adc0, dp_adc2, NULL);
-  audio_comp_initialize("pcm0p", ak4332_0, ak4332_1, audio_path_in, audio_dma_in, NULL);
+  audio_comp_initialize("pcm0p", audio_path_in, ak4332_0, ak4332_1, audio_dma_in, NULL);
   audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
   audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
   audio_comp_initialize("pcm3p", ak4332_0, ak4332_1, audio_path_anc, dp_adc0, dp_adc1, NULL);
@@ -529,7 +529,7 @@ static void up_audio_init(void)
   audio_path_anc   = song_audio_path_anc_initialize(0xa0070000, false);
 
   audio_comp_initialize("pcm0c", audio_dma_voice, audio_path_voice, NULL);
-  audio_comp_initialize("pcm0p", ak4332_0, ak4332_1, audio_path_in, audio_dma_in, NULL);
+  audio_comp_initialize("pcm0p", audio_path_in, ak4332_0, ak4332_1, audio_dma_in, NULL);
   audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
   audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
   audio_comp_initialize("pcm3p", ak4332_0, ak4332_1, audio_path_anc, NULL);

@@ -364,15 +364,21 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
       clk_disable(dev->i2s_sclk);
     }
 
+  if (!clk_is_enabled(clk_get(AUDIO_SYS_CLK3072K)))
+    {
+      for (i = 0; i < dev->channels; i++)
+        {
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
+                               SONG_AUDIO_PATH_ANC_ENABLE, 0);
+        }
+    }
+
   clk_disable(dev->sys_in_clk);
   clk_disable(clk_get(AUDIO_SYS_CLK3072K));
   clk_disable(clk_get(AUDIO_SYS_CLK49152K));
+
   if (!dev->i2s_en)
     clk_disable(clk_get("out0"));
-  if (!clk_is_enabled(clk_get(AUDIO_SYS_CLK3072K)))
-    for (i = 0; i < dev->channels; ++i)
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
-                           SONG_AUDIO_PATH_ANC_ENABLE, 0);
 
   return OK;
 }
