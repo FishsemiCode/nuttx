@@ -355,9 +355,9 @@ static int misc_remote_envsync_handler(struct rpmsg_endpoint *ept,
     {
       if (!msg->result)
         {
-          return setenv_global(msg->name, msg->value, 1);
+          setenv_global(msg->name, msg->value, 1);
         }
-        return 0;
+      return 0;
     }
   else
     {
