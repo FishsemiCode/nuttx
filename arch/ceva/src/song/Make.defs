@@ -78,6 +78,6 @@ endif
 
 # arch/ceva/src/song
 #
-CHIP_CSRCS += abies_adsp.c banks_adsp.c v1_vdsp.c u3_cpx.c
+CHIP_CSRCS += abies_adsp.c banks_adsp.c v1_vdsp.c u3_cpx.c u3_cpx_clk.c
 CHIP_CSRCS += dw_vintc.c
 
