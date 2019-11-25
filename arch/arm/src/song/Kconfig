@@ -63,6 +63,22 @@ config ARCH_CHIP_U1_SP
 	select SONG_ICACHE
 	select SONG_COPY_TABLE
 
+config ARCH_CHIP_U11_AP
+	bool "U11 AP"
+	select ARCH_HAVE_FPU
+	select ARCH_HAVE_RAMFUNCS
+	select SONG_CORTEXM4
+	select SONG_ICACHE
+
+config ARCH_CHIP_U11_CP
+	bool "U11 CP"
+	select ARCH_HAVE_FPU
+	select ARCH_HAVE_RAMFUNCS
+	select SONG_CORTEXM4
+	select SONG_ICACHE
+	select SONG_COPY_TABLE
+	select SONG_ZERO_TABLE
+
 config ARCH_CHIP_U2_M4
 	bool "U2 M4"
 	select ARCH_HAVE_FPU
