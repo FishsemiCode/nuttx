@@ -165,8 +165,6 @@ struct gd25_dev_s
 
 /* Helpers */
 
-static inline void gd25_purdid(FAR struct gd25_dev_s *priv);
-static inline void gd25_pd(FAR struct gd25_dev_s *priv);
 static void gd25_lock(FAR struct spi_dev_s *spi);
 static inline void gd25_unlock(FAR struct spi_dev_s *spi);
 static inline int gd25_readid(FAR struct gd25_dev_s *priv);
@@ -211,30 +209,6 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
  **************************************************************************/
 
 /**************************************************************************
- * Name: gd25_purdid
- **************************************************************************/
-
-static inline void gd25_purdid(FAR struct gd25_dev_s *priv)
-{
-  SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_PURDID);
-  SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
-  up_udelay(20);
-}
-
-/**************************************************************************
- * Name: gd25_pd
- **************************************************************************/
-
-static inline void gd25_pd(FAR struct gd25_dev_s *priv)
-{
-  SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_PD);
-  SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
-  up_udelay(20);
-}
-
-/**************************************************************************
  * Name: gd25_lock
  **************************************************************************/
 
@@ -271,7 +245,6 @@ static inline int gd25_readid(FAR struct gd25_dev_s *priv)
   /* Lock and configure the SPI bus */
 
   gd25_lock(priv->spi);
-  gd25_purdid(priv);
 
   /* Select this FLASH part. */
 
@@ -353,7 +326,6 @@ out:
    * Or success.
    */
 
-  gd25_pd(priv);
   gd25_unlock(priv->spi);
   return ret;
 }
@@ -368,7 +340,6 @@ static void gd25_unprotect(FAR struct gd25_dev_s *priv)
   /* Lock and configure the SPI bus */
 
   gd25_lock(priv->spi);
-  gd25_purdid(priv);
 
   /* Wait for any preceding write or erase operation to complete. */
 
@@ -393,7 +364,6 @@ static void gd25_unprotect(FAR struct gd25_dev_s *priv)
 
   /* Unlock the SPI bus */
 
-  gd25_pd(priv);
   gd25_unlock(priv->spi);
 }
 #endif
@@ -767,7 +737,6 @@ static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
   /* Lock access to the SPI bus until we complete the erase */
 
   gd25_lock(priv->spi);
-  gd25_purdid(priv);
 
   while (blocksleft-- > 0)
     {
@@ -777,7 +746,6 @@ static int gd25_erase(FAR struct mtd_dev_s *dev, off_t startblock,
       startblock++;
     }
 
-  gd25_pd(priv);
   gd25_unlock(priv->spi);
   return (int)nblocks;
 #endif
@@ -821,10 +789,8 @@ static ssize_t gd25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
   /* Lock the SPI bus and write all of the pages to FLASH */
 
   gd25_lock(priv->spi);
-  gd25_purdid(priv);
   gd25_pagewrite(priv, buffer, startblock << GD25_PAGE_SHIFT,
                  nblocks << GD25_PAGE_SHIFT);
-  gd25_pd(priv);
   gd25_unlock(priv->spi);
 
   return nblocks;
@@ -845,9 +811,7 @@ static ssize_t gd25_read(FAR struct mtd_dev_s *dev, off_t offset,
   /* Lock the SPI bus and select this FLASH part */
 
   gd25_lock(priv->spi);
-  gd25_purdid(priv);
   gd25_byteread(priv, buffer, offset, nbytes);
-  gd25_pd(priv);
   gd25_unlock(priv->spi);
 
   finfo("return nbytes: %d,%x,%x\n", (int)nbytes, buffer[0], buffer[1]);
@@ -883,7 +847,6 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
   endpage = (offset + nbytes) / GD25_PAGE_SIZE;
 
   gd25_lock(priv->spi);
-  gd25_purdid(priv);
   if (startpage == endpage)
     {
       /* All bytes within one programmable page.  Just do the write. */
@@ -925,7 +888,6 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
         }
     }
 
-  gd25_pd(priv);
   gd25_unlock(priv->spi);
   return nbytes;
 #endif
@@ -967,9 +929,7 @@ static int gd25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
           /* Erase the entire device */
 
           gd25_lock(priv->spi);
-          gd25_purdid(priv);
           ret = gd25_chiperase(priv);
-          gd25_pd(priv);
           gd25_unlock(priv->spi);
         }
         break;
