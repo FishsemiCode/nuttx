@@ -266,6 +266,10 @@ void arm_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 
@@ -491,6 +495,9 @@ void up_lateinitialize(void)
 
 void up_finalinitialize(void)
 {
+#ifdef CONFIG_SONG_CLK
+  up_clk_finalinitialize();
+#endif
 }
 
 void up_reset(int status)

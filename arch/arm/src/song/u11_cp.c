@@ -318,6 +318,10 @@ void arm_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 #ifdef CONFIG_RPMSG_UART
@@ -623,6 +627,10 @@ void up_finalinitialize(void)
 
 #ifdef CONFIG_SONG_RPTUN
   rptun_boot(CPU_NAME_AP);
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_finalinitialize();
 #endif
 }
 
