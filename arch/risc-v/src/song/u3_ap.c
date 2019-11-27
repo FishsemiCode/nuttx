@@ -44,14 +44,18 @@
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/mbox/song_mbox.h>
 #include <nuttx/power/consumer.h>
 #include <nuttx/power/regulator.h>
+#include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
 #include <nuttx/timers/dw_wdt.h>
@@ -71,8 +75,22 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CPU_NAME_AP                     "ap"
+#define CPU_NAME_CPR                    "cpr"
+#define CPU_NAME_CPX                    "cpx"
+#define CPU_INDEX_AP                    0
+#define CPU_INDEX_CPR                   1
+#define CPU_INDEX_CPX                   2
+
+#define TOP_MAILBOX_BASE                (0xb0030000)
+
 #define TOP_PWR_BASE                    (0xb0040000)
+#define TOP_PWR_RSTCTL1                 (TOP_PWR_BASE + 0x0d4)
 #define TOP_PWR_TOP_ROCKET_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
+#define TOP_PWR_CP_ROCKET_CTL           (TOP_PWR_BASE + 0x21c)
+
+#define TOP_PWR_CP_ROCKET_RSTN          (1 << 11)
+#define TOP_PWR_CP_XC5_RSTN             (1 << 12)
 
 /****************************************************************************
  * Private Data
@@ -96,12 +114,30 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 };
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[4] =
+{
+  [3] = DEV_END,
+};
+#endif
+
 #ifdef CONFIG_SPI_DW
 FAR struct spi_dev_s *g_spi[3] =
 {
   [2] = DEV_END,
 };
 #endif
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int cpr_start(const struct song_rptun_config_s *config)
+{
+  putreg32(0x40100410, TOP_PWR_CP_ROCKET_CTL);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_ROCKET_RSTN, 0);
+  return 0;
+}
 
 /****************************************************************************
  * Public Functions
@@ -207,6 +243,93 @@ void up_wdtinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x20,
+      .en_off     = 0x24,
+      .en_bit     = 16,
+      .src_en_off = 0x24,
+      .sta_off    = 0x28,
+      .chnl_count = 16,
+      .irq        = 6,
+    },
+    {
+      .index      = CPU_INDEX_CPR,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CPX,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_CPR, "CPR", 1024, false);
+}
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+static void up_rptun_init(void)
+{
+  static const struct rptun_addrenv_s addrenv[] =
+  {
+    {.pa = 0xd0100000, .da = 0x40100000, .size = 0x00100000},
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_cpr =
+  {
+    .cpuname    = CPU_NAME_CPR,
+    .firmware   = "/etc/firmware/cpr.elf",
+    .addrenv    = addrenv,
+    .nautostart = true,
+    .master     = true,
+    .vringtx    = 1,
+    .vringrx    = 1,
+    .start      = cpr_start,
+  };
+
+  song_rptun_initialize(&rptun_cfg_cpr, g_mbox[CPU_INDEX_CPR], g_mbox[CPU_INDEX_AP]);
+
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize();
+#  endif
+
+#  ifdef CONFIG_SYSLOG_RPMSG_SERVER
+  syslog_rpmsg_server_init();
+#  endif
+
+#  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+  hostfs_rpmsg_server_init();
+#  endif
+}
+#endif
+
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
@@ -257,6 +380,14 @@ static void up_i2c_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+  up_rptun_init();
+#endif
+
 #ifdef CONFIG_RTC_SONG
   up_rtc_initialize();
 #endif

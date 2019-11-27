@@ -46,6 +46,7 @@
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/ioexpander/song_ioe.h>
+#include <nuttx/mbox/song_mbox.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
 #include <nuttx/rptun/song_rptun.h>
@@ -66,12 +67,27 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CPU_NAME_AP                     "ap"
+#define CPU_NAME_CPR                    "cpr"
+#define CPU_NAME_CPX                    "cpx"
+#define CPU_INDEX_AP                    0
+#define CPU_INDEX_CPR                   1
+#define CPU_INDEX_CPX                   2
+
+#define LOGBUF_BASE                     ((uintptr_t)&_slog)
+#define LOGBUF_SIZE                     ((uint32_t)&_logsize)
+
+#define TOP_MAILBOX_BASE                (0xb0030000)
+
 #define TOP_PWR_BASE                    (0xb0040000)
 #define TOP_PWR_CP_ROCKET_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+extern uint32_t _slog;
+extern uint32_t _logsize;
 
 #ifdef CONFIG_SONG_DMAS
 static FAR struct dma_dev_s *g_dma[2] =
@@ -88,6 +104,13 @@ static FAR struct dma_dev_s *g_dma[2] =
 FAR struct ioexpander_dev_s *g_ioe[2] =
 {
   [1] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[4] =
+{
+  [3] = DEV_END,
 };
 #endif
 
@@ -122,6 +145,10 @@ void up_earlyinitialize(void)
   };
 
   simple_addrenv_initialize(addrenv);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
+#endif
 }
 
 void up_wic_initialize(void)
@@ -213,6 +240,118 @@ void up_wdtinit(void)
 }
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_AP, "CPR", 1024, true);
+}
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+static void up_rptun_init(void)
+{
+  static struct rptun_rsc_s rptun_rsc_ap
+    __attribute__ ((section(".resource_table"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x100,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_ap =
+  {
+    .cpuname    = CPU_NAME_AP,
+    .rsc        = &rptun_rsc_ap,
+    .vringtx    = 1,
+    .vringrx    = 1,
+  };
+
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CPR]);
+
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize();
+#  endif
+
+#  ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
+#  endif
+
+#  ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_AP);
+#  endif
+}
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x20,
+      .en_off     = 0x24,
+      .en_bit     = 16,
+      .src_en_off = 0x24,
+      .sta_off    = 0x28,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CPR,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = 6,
+    },
+    {
+      .index      = CPU_INDEX_CPX,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
@@ -230,6 +369,14 @@ void up_ioe_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+  up_rptun_init();
+#endif
+
 #ifdef CONFIG_WATCHDOG_DW
   up_wdtinit();
 #endif
