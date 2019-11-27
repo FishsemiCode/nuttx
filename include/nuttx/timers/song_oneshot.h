@@ -40,6 +40,7 @@
  * Included Files
  ****************************************************************************/
 
+#include <stdbool.h>
 #include <nuttx/config.h>
 #include <nuttx/timers/oneshot.h>
 
