@@ -126,6 +126,7 @@ struct song_dmas_chan_s
   size_t period_num;
   size_t period_len;
   size_t next_period;
+  bool paused;
 #ifdef CONFIG_SONG_DMAS_RXCHECK
   void *rx_buf;
   size_t rx_bufsz;
@@ -142,6 +143,12 @@ struct song_dmas_dev_s
   bool clkinit;
   struct song_dmas_chan_s channels[16];
 };
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+static int song_dmas_resume(struct dma_chan_s *chan_);
 
 /****************************************************************************
  * Private Functions
@@ -328,6 +335,7 @@ static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
   chan->src_addr = src;
   chan->period_num = 1;
   chan->period_len = len;
+  chan->paused = false;
 
   if (index < 8)
     song_dmas_update_bits(dev, SONG_DMAS_REG_CTL1(index),
@@ -393,6 +401,7 @@ static int song_dmas_start_cyclic(struct dma_chan_s *chan_,
   chan->period_num = len / period_len;
   chan->period_len = period_len;
   chan->next_period = 1;
+  chan->paused = false;
 
   if (index < 8)
     {
@@ -430,6 +439,7 @@ static int song_dmas_pause(struct dma_chan_s *chan_)
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
 
   song_dmas_write(chan->dev, SONG_DMAS_REG_PAUSE, chan->index);
+  chan->paused = true;
 
   return OK;
 }
@@ -439,6 +449,11 @@ static int song_dmas_stop(struct dma_chan_s *chan_)
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
   struct song_dmas_dev_s *dev = chan->dev;
   unsigned int index = chan->index;
+
+  if (chan->paused)
+    {
+      song_dmas_resume(chan_);
+    }
 
   /* disable finish/match/flush interrupt */
   song_dmas_update_bits(dev, SONG_DMAS_REG_INT_EN0(dev->cpu),
@@ -465,6 +480,7 @@ static int song_dmas_resume(struct dma_chan_s *chan_)
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
 
   song_dmas_write(chan->dev, SONG_DMAS_REG_RESUME, chan->index);
+  chan->paused = false;
 
   return OK;
 }
