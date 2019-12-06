@@ -109,6 +109,7 @@
 #define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_SEC_M4_RSTCTL       (TOP_PWR_BASE + 0x0d8)
 #define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
+#define TOP_PWR_WDTRST_CTL          (TOP_PWR_BASE + 0x114)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
 #define TOP_PWR_INTR_EN_SEC_M4_1    (TOP_PWR_BASE + 0x140)
 #define TOP_PWR_INTR_ST_SEC_M4_1    (TOP_PWR_BASE + 0x144)
@@ -170,6 +171,11 @@
 #define TOP_PWR_CP_AU_PD_MK         (1 << 7)
 
 #define TOP_PWR_SEC_AU_PD_MK        (1 << 7)
+
+#define TOP_PWR_CPWDT_BITED         (1 << 10)
+#define TOP_PWR_APWDT_BITED         (1 << 9)
+#define TOP_PWR_SPWDT_BITED         (1 << 8)
+#define TOP_PWR_WDT_BITED_MASK      (TOP_PWR_CPWDT_BITED | TOP_PWR_APWDT_BITED | TOP_PWR_SPWDT_BITED)
 
 #define TOP_PWR_PLL_STABLE_TIME     (0xf << 8)
 #define TOP_PWR_OSC_STABLE_TIME     (0x52 << 0)
@@ -882,6 +888,8 @@ static int up_pmicfsm_isr(int irq, FAR void *context, FAR void *arg)
 
 static void up_extra_init(void)
 {
+  uint32_t wdtrst;
+
   if (!up_is_u1v1())
     {
       /* Attach and enable PMICFSM intrrupt */
@@ -898,8 +906,14 @@ static void up_extra_init(void)
 
   setenv("START_REASON", up_get_wkreason_env(), 1);
 
-  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
-          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
+  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x, WDTRST 0x%x\n",
+          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON), getreg32(TOP_PWR_WDTRST_CTL));
+
+  wdtrst = getreg32(TOP_PWR_WDTRST_CTL) & TOP_PWR_WDT_BITED_MASK;
+  if (wdtrst)
+    {
+      modifyreg32(TOP_PWR_WDTRST_CTL, 0, (wdtrst << 16) | wdtrst);
+    }
 }
 
 void up_lateinitialize(void)
