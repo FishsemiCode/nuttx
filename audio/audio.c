@@ -175,8 +175,11 @@ static int audio_open(FAR struct file *filep)
 
   /* Save the new open count on success */
 
+  if(upper->crefs == 0)
+    upper->usermq = NULL;
+
   upper->crefs = tmp;
-  upper->usermq = NULL;
+
   ret = OK;
 
 errout_with_sem:
