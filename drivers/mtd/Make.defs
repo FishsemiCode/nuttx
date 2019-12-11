@@ -158,6 +158,10 @@ ifeq ($(CONFIG_SONG_ONCHIP_FLASH),y)
 CSRCS += song_onchip_flash.c
 endif
 
+ifeq ($(CONFIG_SONG_SPI_FLASH),y)
+CSRCS += song_spi_flash.c
+endif
+
 # Include MTD driver support
 
 DEPPATH += --dep-path mtd

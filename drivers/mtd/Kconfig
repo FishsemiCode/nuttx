@@ -844,6 +844,13 @@ config SONG_ONCHIP_FLASH
 	---help---
 		Song on-chip flash controller/flash cell mtd driver.
 
+config SONG_SPI_FLASH
+	bool "Song spi flash"
+	default n
+	depends on ARCH_CHIP_SONG
+	---help---
+		Song spi flash controller mtd driver.
+
 config MTD_SST25
 	bool "SPI-based SST25 FLASH"
 	default n
