@@ -871,7 +871,7 @@ static const struct clk_rate def_rates[] =
 {
   {
     .name = "clk_cpu_sys",
-    .rate = 147456000,
+    .rate = 50000000,
   },
   {},
 };
