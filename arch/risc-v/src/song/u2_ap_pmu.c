@@ -92,6 +92,7 @@ static const struct regulator_desc spmu_regulator_desc[SPMU_NUM_REGS] = {
       .uV_step = 25000,
       .min_uV = 800000,
       .max_uV = 2375000,
+      .apply_uV = 1800000,
       .boot_on = true,
   },
   [SPMU_REG_BUCK3] = {
