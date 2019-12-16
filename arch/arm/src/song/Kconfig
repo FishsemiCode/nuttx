@@ -78,6 +78,7 @@ config ARCH_CHIP_U11_CP
 	select SONG_ICACHE
 	select SONG_COPY_TABLE
 	select SONG_ZERO_TABLE
+	select SONG_WARM_START
 
 config ARCH_CHIP_U2_M4
 	bool "U2 M4"
@@ -126,3 +127,6 @@ config SONG_GIC_VBASE
 
 config SONG_NR_IRQS
 	int "Interrupt Number"
+
+config SONG_WARM_START
+	bool

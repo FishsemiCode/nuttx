@@ -76,6 +76,9 @@
  *
  ************************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+	.section	.warm_start, "aw"
+#endif
 	.thumb_func
 	.globl	up_fullcontextrestore
 	.type	up_fullcontextrestore, function

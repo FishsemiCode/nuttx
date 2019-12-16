@@ -143,6 +143,9 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
  * Public Functions
  ****************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+__attribute__((section(".warm_start")))
+#endif
 void up_earlystart(void)
 {
   putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);

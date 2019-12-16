@@ -134,7 +134,11 @@
  * return stack immediately above REG_XPSR.
  */
 
+#ifdef CONFIG_SONG_WARM_START
+	.section	.warm_start, "aw"
+#else
 	.text
+#endif
 	.type	exception_common, function
 	.thumb_func
 exception_common:

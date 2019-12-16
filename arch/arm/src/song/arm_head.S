@@ -84,6 +84,25 @@
  * Name: __start
  ****************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+	.section	.warm_start, "aw"
+	.thumb_func
+	.globl		__warm_start
+	.type		__warm_start, function
+
+__warm_start:
+#if CONFIG_EARLY_STACKSIZE > 0
+	/* Use a dedicated stack for early process to avoid
+	 * corrupt the idle stack during restoring from the
+	 * partial powerdown state.
+	 */
+
+	ldr		sp, =g_early_stack
+	bl		up_earlystart
+#endif
+	.size		__warm_start, .-__warm_start
+#endif
+
 	.text
 	.thumb_func
 	.globl		__start

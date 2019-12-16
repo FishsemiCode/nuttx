@@ -77,7 +77,11 @@
  *
  ************************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+	.section	.warm_start, "aw"
+#else
 	.text
+#endif
 	.thumb_func
 	.globl	up_saveusercontext
 	.type	up_saveusercontext, function

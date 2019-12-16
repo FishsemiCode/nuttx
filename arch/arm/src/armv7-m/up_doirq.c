@@ -54,6 +54,9 @@
  * Public Functions
  ****************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+__attribute__((section(".warm_start")))
+#endif
 uint32_t *up_doirq(int irq, uint32_t *regs)
 {
   board_autoled_on(LED_INIRQ);

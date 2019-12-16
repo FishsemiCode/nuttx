@@ -125,6 +125,9 @@ static void dispatch_syscall(void)
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+__attribute__((section(".warm_start")))
+#endif
 int up_svcall(int irq, FAR void *context, FAR void *arg)
 {
   uint32_t *regs = (uint32_t *)context;

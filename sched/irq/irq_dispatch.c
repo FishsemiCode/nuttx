@@ -132,6 +132,9 @@
  *
  ****************************************************************************/
 
+#ifdef CONFIG_SONG_WARM_START
+__attribute__((section(".warm_start")))
+#endif
 void irq_dispatch(int irq, FAR void *context)
 {
   xcpt_t vector = irq_unexpected_isr;
