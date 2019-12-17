@@ -41,6 +41,7 @@
 
 #ifdef CONFIG_ARCH_CHIP_U11_CP
 
+#include <nuttx/arch.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
@@ -51,14 +52,16 @@
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
-#include <nuttx/crashdump/dumpfile.h>
+#include <nuttx/wqueue.h>
 
 #include <fcntl.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 
 #include "chip.h"
@@ -77,37 +80,52 @@
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
-#define TOP_PWR_CP_M4_INTR2SLP_MK0  (TOP_PWR_BASE + 0x150)
+#define TOP_PWR_INTR_EN_CP_M4       (TOP_PWR_BASE + 0x12c)
+#define TOP_PWR_INTR_ST_CP_M4       (TOP_PWR_BASE + 0x138)
+#define TOP_PWR_INTR_EN_CP_M4_1     (TOP_PWR_BASE + 0x140)
+#define TOP_PWR_INTR_ST_CP_M4_1     (TOP_PWR_BASE + 0x144)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
 #define TOP_PWR_SLPCTL1             (TOP_PWR_BASE + 0x354)
+#define TOP_PWR_SLPCTL_SEC_M4       (TOP_PWR_BASE + 0x358)
 #define TOP_PWR_SLPCTL_CP_M4        (TOP_PWR_BASE + 0x35c)
 #define TOP_PWR_CP_M4_TCM_PD_CTL0   (TOP_PWR_BASE + 0x3e0)
 
-#define TOP_PWR_CP_M4_SFRST         (1 << 4)
+#define TOP_PWR_CP_M4_SFRST         (1 << 4)    //TOP_PWR_CP_M4_RSTCTL
 #define TOP_PWR_CP_M4_IDLE_MK       (1 << 5)
 
-#define TOP_PWR_SFRST_RESET         (1 << 0)
+#define TOP_PWR_SFRST_RESET         (1 << 0)    //TOP_PWR_SFRST_CTL
 
-#define TOP_PWR_CP_M4_PD_MK         (1 << 3)
+#define TOP_PWR_SLP_U1RXD_ACT       (1 << 21)   //TOP_PWR_INTR_EN_CP_M4
+                                                //TOP_PWR_INTR_ST_CP_M4
+
+#define TOP_PWR_SLPU_FLASH_S        (1 << 0)    //TOP_PWR_INTR_EN_CP_M4_1
+#define TOP_PWR_AP_DS_WAKEUP        (1 << 5)    //TOP_PWR_INTR_ST_CP_M4_1
+
+#define TOP_PWR_CP_M4_PD_MK         (1 << 3)    //TOP_PWR_CP_UNIT_PD_CTL
 #define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
 #define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
 
-#define TOP_PWR_RESET_NORMAL        (0x00000000)
+#define TOP_PWR_RESET_NORMAL        (0x00000000)//TOP_PWR_RES_REG2
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
 #define TOP_PWR_RESET_RECOVERY      (0xbbbb1234)
 
-#define TOP_PWR_CP_M4_COLD_BOOT     (1 << 2)
+#define TOP_PWR_CP_M4_COLD_BOOT     (1 << 2)    //TOP_PWR_BOOT_REG
 
-#define TOP_PWR_RF_TP_TM2_SLP_MK    (1 << 8)
+#define TOP_PWR_RF_TP_TM2_SLP_MK    (1 << 8)    //TOP_PWR_SLPCTL1
 #define TOP_PWR_RF_TP_CALIB_SLP_MK  (1 << 9)
 
-#define TOP_PWR_CP_M4_SLP_EN        (1 << 0)
+#define TOP_PWR_SEC_M4_SLP_EN       (1 << 0)    //TOP_PWR_SLPCTL_SEC_M4
+#define TOP_PWR_SEC_M4_SLP_MK       (1 << 1)
+#define TOP_PWR_SEC_M4_DS_SLP_EN    (1 << 2)
+
+#define TOP_PWR_CP_M4_SLP_EN        (1 << 0)    //TOP_PWR_SLPCTL_CP_M4
 #define TOP_PWR_CP_M4_SLP_MK        (1 << 1)
 #define TOP_PWR_CP_M4_DS_SLP_EN     (1 << 2)
+#define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
 
-#define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)
+#define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)    //TOP_PWR_CP_M4_TCM_PD_CTL0
 
 /****************************************************************************
  * Private Types
@@ -135,6 +153,8 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 };
 #endif
 
+extern uint32_t _vectors[];
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -148,14 +168,58 @@ __attribute__((section(".warm_start")))
 #endif
 void up_earlystart(void)
 {
+  if (!(getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT))
+    {
+      /* Reset the NVIC vector location */
+
+      putreg32((uint32_t)_vectors, NVIC_VECTAB);
+
+      /* CP core auto power on */
+
+      up_cpu_restore();
+    }
+
   putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
 }
 
 void up_earlyinitialize(void)
 {
+  /* Configure PLL stable time (~1.15ms). */
+
+  putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
+           TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
+
+  /* Mask SP effect to system */
+
+  putreg32(TOP_PWR_SEC_M4_SLP_EN << 16 |
+           TOP_PWR_SEC_M4_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+
+  putreg32(TOP_PWR_SEC_M4_SLP_MK << 16 |
+           TOP_PWR_SEC_M4_SLP_MK, TOP_PWR_SLPCTL_SEC_M4);
+
+  putreg32(TOP_PWR_SEC_M4_DS_SLP_EN << 16 |
+           TOP_PWR_SEC_M4_DS_SLP_EN, TOP_PWR_SLPCTL_SEC_M4);
+
   /* Unmask SLEEPING for reset */
 
   putreg32(TOP_PWR_CP_M4_IDLE_MK << 16, TOP_PWR_CP_M4_RSTCTL);
+
+  /* Set PMICFSM disable full chip to DS */
+
+  modifyreg32(TOP_PMICFSM_CONFIG1, TOP_PMICFSM_DS_SLP_VALID, 0);
+
+  /* Set PMICFSM WAKEUP_ENABLE, now only support UART0 RTC wakeup DS */
+
+  putreg32(TOP_PMICFSM_UART_ENABLE |
+           TOP_PMICFSM_RTC_ENABLE, TOP_PMICFSM_WAKEUP_ENABLE);
+
+  /* Set RF & SLP init value */
+
+  putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+           TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
+  putreg32(TOP_PWR_CP_M4_SLP_EN << 16 |
+           TOP_PWR_CP_M4_SLP_MK << 16 |
+           TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
 
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
@@ -164,6 +228,10 @@ void up_earlyinitialize(void)
 
   putreg32(TOP_PWR_CP_M4_TCM_AU_PD_MK << 16, TOP_PWR_CP_M4_TCM_PD_CTL0);
 #endif
+
+  /* Temp mask AP effect to SLEEP, remove it after boot AP */
+
+  putreg32(0x70007, 0xb0040360);
 }
 
 void up_wic_initialize(void)
@@ -226,7 +294,7 @@ void arm_timer_initialize(void)
 }
 
 #ifdef CONFIG_RTC_SONG
-int up_rtc_initialize(void)
+static int up_rtc_initialize(void)
 {
   static const struct song_rtc_config_s config =
   {
@@ -258,7 +326,7 @@ void up_wdtinit(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-void up_ioe_init(void)
+static void up_ioe_init(void)
 {
   static const struct song_ioe_config_s cfg =
   {
@@ -271,7 +339,7 @@ void up_ioe_init(void)
 }
 #endif
 
-void up_extra_init(void)
+static void up_extra_init(void)
 {
   /* Set start reason to env */
 
@@ -295,8 +363,74 @@ void up_lateinitialize(void)
   up_extra_init();
 }
 
+static void up_ds_enter_work(void)
+{
+  /* Jump to flash_pd */
+
+  putreg32(TOP_PWR_FLASH_S_2PD_JMP << 16 |
+           TOP_PWR_FLASH_S_2PD_JMP, TOP_PWR_SLPCTL_CP_M4);
+
+  /* Set PMICFSM enable full chip to DS */
+
+  modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
+}
+
+static void up_top_pwr_work(FAR void *arg)
+{
+  uint32_t status = (uintptr_t)arg;
+
+  if (status & TOP_PWR_SLPU_FLASH_S)
+    {
+      up_ds_enter_work();
+    }
+  else if (status & TOP_PWR_AP_DS_WAKEUP)
+    {
+    }
+}
+
+static int up_top_pwr_isr(int irq, FAR void *context, FAR void *arg)
+{
+  static struct work_s worker;
+  uint32_t status = getreg32(TOP_PWR_INTR_ST_CP_M4_1);
+
+  if (status & TOP_PWR_SLPU_FLASH_S)
+    {
+      work_queue(HPWORK, &worker, up_top_pwr_work, (void *)status, 0);
+      putreg32(TOP_PWR_SLPU_FLASH_S, TOP_PWR_INTR_ST_CP_M4_1);
+    }
+  else if (status & TOP_PWR_AP_DS_WAKEUP)
+    {
+      work_queue(HPWORK, &worker, up_top_pwr_work, (void *)status, 0);
+      putreg32(TOP_PWR_AP_DS_WAKEUP, TOP_PWR_INTR_ST_CP_M4_1);
+    }
+
+  if (getreg32(TOP_PWR_INTR_ST_CP_M4) & TOP_PWR_SLP_U1RXD_ACT)
+    {
+      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_CP_M4);
+#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
+                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+#endif
+    }
+
+  return 0;
+}
+
 void up_finalinitialize(void)
 {
+  /* Attach TOP_PWR intr */
+
+  irq_attach(18, up_top_pwr_isr, NULL);
+  up_enable_irq(18);
+
+  /* Enable SLPU_FLASH_S & AP_DS_WAKEUP intr */
+
+  modifyreg32(TOP_PWR_INTR_EN_CP_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+  modifyreg32(TOP_PWR_INTR_EN_CP_M4_1, 0, TOP_PWR_AP_DS_WAKEUP);
+
+  /* Enable SLP_U1RXD_ACT intr */
+
+  modifyreg32(TOP_PWR_INTR_EN_CP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
 }
 
 void up_reset(int status)
@@ -339,24 +473,82 @@ void up_reset(int status)
     }
 }
 
+static void up_cpu_lp(bool deep_sleep, bool pwr_sleep)
+{
+  /* Allow ARM to enter deep sleep in WFI? */
+
+  if (deep_sleep)
+    putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+  else
+    putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  /* Allow PWR_SLEEP (VDDMAIN ON)?
+   * CP auto power down is enabled in PWR_SLEEP.
+   */
+
+  if (pwr_sleep)
+    {
+      putreg32(TOP_PWR_CP_M4_SLP_EN << 16 |
+               TOP_PWR_CP_M4_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16, TOP_PWR_CP_UNIT_PD_CTL);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
+               TOP_PWR_CP_M4_AU_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
+    }
+}
+
+static void up_cpu_ds(bool ds_sleep)
+{
+  /* Allow DS_SLEEP (VDDMAIN OFF)? */
+
+  if (ds_sleep)
+    {
+      putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16 |
+               TOP_PWR_CP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+               TOP_PWR_RF_TP_TM2_SLP_MK |
+               TOP_PWR_RF_TP_CALIB_SLP_MK << 16 |
+               TOP_PWR_RF_TP_CALIB_SLP_MK, TOP_PWR_SLPCTL1);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+      putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+               TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
+    }
+}
+
 void up_cpu_doze(void)
 {
+  up_cpu_lp(false, false);
+  up_cpu_ds(false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
+  up_cpu_lp(true, false);
+  up_cpu_ds(false);
   up_cpu_wfi();
 }
 
 void up_cpu_standby(void)
 {
-  up_cpu_wfi();
+  up_cpu_lp(true, true);
+  up_cpu_ds(false);
+  up_cpu_save();
 }
 
 void up_cpu_sleep(void)
 {
-  up_cpu_wfi();
+  up_cpu_lp(true, true);
+  up_cpu_ds(true);
+  putreg32(TOP_PWR_CP_M4_AU_PD_MK << 16 |
+           TOP_PWR_CP_M4_AU_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
+  up_cpu_save();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U11_CP */
