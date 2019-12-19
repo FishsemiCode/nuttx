@@ -81,6 +81,10 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CPU_NAME_CP                 "cp"
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_CP                1
+
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
@@ -127,6 +131,13 @@ static FAR struct dma_dev_s *g_dma[2] =
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[3] =
+{
+  [2] = DEV_END,
+};
+#endif
 
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
@@ -177,6 +188,12 @@ void up_earlyinitialize(void)
   /* Unmask SLEEPING for reset */
 
   putreg32(TOP_PWR_AP_M4_IDLE_MK << 16, TOP_PWR_AP_M4_RSTCTL);
+
+  /* Set SLP init value */
+
+  putreg32(TOP_PWR_AP_M4_SLP_EN << 16 |
+           TOP_PWR_AP_M4_SLP_MK << 16 |
+           TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
 
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
@@ -255,6 +272,66 @@ void arm_timer_initialize(void)
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 }
+
+
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_CP, "CP", 1024, false);
+}
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = 21,
+    },
+    {
+      .index      = CPU_INDEX_CP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+static void up_rptun_init(void)
+{
+  static const struct song_rptun_config_s rptun_cfg_cp =
+  {
+    .cpuname = CPU_NAME_CP,
+    .rsc     = (struct rptun_rsc_s *)0xb0000000,
+    .vringtx = 15,
+    .vringrx = 15,
+  };
+
+  song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_AP]);
+
+#ifdef CONFIG_SYSLOG_RPMSG_SERVER
+  syslog_rpmsg_server_init();
+#endif
+}
+#endif
 
 #ifdef CONFIG_RTC_SONG
 int up_rtc_initialize(void)
@@ -365,6 +442,14 @@ static void up_extra_init(void)
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+  up_rptun_init();
+#endif
+
 #ifdef CONFIG_RTC_SONG
   up_rtc_initialize();
 #endif
@@ -435,23 +520,60 @@ void up_reset(int status)
     }
 }
 
+static void up_cpu_lp(bool deep_sleep, bool pwr_sleep)
+{
+  /* Allow ARM to enter deep sleep in WFI? */
+
+  if (deep_sleep)
+    putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+  else
+    putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
+
+  /* Allow PWR_SLEEP (VDDMAIN ON)? */
+
+  if (pwr_sleep)
+    putreg32(TOP_PWR_AP_M4_SLP_EN << 16 |
+             TOP_PWR_AP_M4_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
+  else
+    putreg32(TOP_PWR_AP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+}
+
+static void up_cpu_ds(bool ds_sleep)
+{
+  /* Allow DS_SLEEP (VDDMAIN OFF)? */
+
+  if (ds_sleep)
+    putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16 |
+             TOP_PWR_AP_M4_DS_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
+  else
+    putreg32(TOP_PWR_AP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
+}
+
 void up_cpu_doze(void)
 {
+  up_cpu_lp(false, false);
+  up_cpu_ds(false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
+  up_cpu_lp(true, false);
+  up_cpu_ds(false);
   up_cpu_wfi();
 }
 
 void up_cpu_standby(void)
 {
+  up_cpu_lp(true, true);
+  up_cpu_ds(false);
   up_cpu_wfi();
 }
 
 void up_cpu_sleep(void)
 {
+  up_cpu_lp(true, true);
+  up_cpu_ds(true);
   up_cpu_wfi();
 }
 

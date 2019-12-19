@@ -69,6 +69,7 @@ config ARCH_CHIP_U11_AP
 	select ARCH_HAVE_RAMFUNCS
 	select SONG_CORTEXM4
 	select SONG_ICACHE
+	select SONG_WARM_START
 
 config ARCH_CHIP_U11_CP
 	bool "U11 CP"

@@ -75,16 +75,26 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define CPU_NAME_AP                 "ap"
+#define CPU_INDEX_AP                0
+#define CPU_INDEX_CP                1
+
+#define LOGBUF_BASE                 ((uintptr_t)&_slog)
+#define LOGBUF_SIZE                 ((uint32_t)&_logsize)
+
 #define TOP_MAILBOX_BASE            (0xb0030000)
 
 #define TOP_PWR_BASE                (0xb0040000)
 #define TOP_PWR_CP_M4_RSTCTL        (TOP_PWR_BASE + 0x0dc)
+#define TOP_PWR_AP_M4_RSTCTL        (TOP_PWR_BASE + 0x0e0)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x11c)
 #define TOP_PWR_INTR_EN_CP_M4       (TOP_PWR_BASE + 0x12c)
 #define TOP_PWR_INTR_ST_CP_M4       (TOP_PWR_BASE + 0x138)
 #define TOP_PWR_INTR_EN_CP_M4_1     (TOP_PWR_BASE + 0x140)
 #define TOP_PWR_INTR_ST_CP_M4_1     (TOP_PWR_BASE + 0x144)
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
+#define TOP_PWR_AP_M4_CTL0          (TOP_PWR_BASE + 0x218)
+#define TOP_PWR_CK802_CTL0          (TOP_PWR_BASE + 0x22c)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
 #define TOP_PWR_SLPCTL1             (TOP_PWR_BASE + 0x354)
@@ -94,6 +104,8 @@
 
 #define TOP_PWR_CP_M4_SFRST         (1 << 4)    //TOP_PWR_CP_M4_RSTCTL
 #define TOP_PWR_CP_M4_IDLE_MK       (1 << 5)
+
+#define TOP_PWR_AP_M4_PORESET       (1 << 0)    //TOP_PWR_AP_M4_RSTCTL
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)    //TOP_PWR_SFRST_CTL
 
@@ -106,6 +118,11 @@
 #define TOP_PWR_CP_M4_PD_MK         (1 << 3)    //TOP_PWR_CP_UNIT_PD_CTL
 #define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
 #define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
+
+#define TOP_PWR_AP_CPU_SEL          (1 << 22)   //TOP_PWR_AP_M4_CTL0
+
+#define TOP_PWR_CPU_RSTCTL          (1 << 1)    //TOP_PWR_CK802_CTL0
+#define TOP_PWR_CPUCLK_EN           (1 << 0)
 
 #define TOP_PWR_RESET_NORMAL        (0x00000000)//TOP_PWR_RES_REG2
 #define TOP_PWR_RESET_ROMBOOT       (0xaaaa1234)
@@ -146,10 +163,20 @@ static FAR struct dma_dev_s *g_dma[2] =
  * Public Data
  ****************************************************************************/
 
+extern uint32_t _slog;
+extern uint32_t _logsize;
+
 #ifdef CONFIG_SONG_IOE
 FAR struct ioexpander_dev_s *g_ioe[2] =
 {
   [1] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+FAR struct mbox_dev_s *g_mbox[3] =
+{
+  [2] = DEV_END,
 };
 #endif
 
@@ -229,9 +256,9 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_CP_M4_TCM_AU_PD_MK << 16, TOP_PWR_CP_M4_TCM_PD_CTL0);
 #endif
 
-  /* Temp mask AP effect to SLEEP, remove it after boot AP */
-
-  putreg32(0x70007, 0xb0040360);
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
+#endif
 }
 
 void up_wic_initialize(void)
@@ -293,6 +320,154 @@ void arm_timer_initialize(void)
 #endif
 }
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_AP, "CP", 1024, true);
+}
+#endif
+
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = 21,
+    },
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+static int ap_relocate(uint32_t ap_flash, uint32_t ap_sram_va, uint32_t ap_sram_pa)
+{
+  struct vector_table
+  {
+    uint32_t magic;
+    uint32_t reserved[3];
+    uint32_t warm_flash;
+    uint32_t warm_size;
+    uint32_t warm_sram;
+  };
+
+  struct vector_table *vector = (struct vector_table *)(ap_flash + 0x400);
+  uint32_t dst;
+
+  if (vector->magic != 0x21494350)
+    {
+      return -EINVAL;
+    }
+
+  dst = vector->warm_sram - ap_sram_va + ap_sram_pa;
+  memcpy((void *)dst, (void *)vector->warm_flash, vector->warm_size);
+
+  return 0;
+}
+
+static int ap_start(const struct song_rptun_config_s *config)
+{
+  int ret;
+
+  ret = ap_relocate(0x02089000, 0x00000000, 0xb1000000);
+  if (ret)
+    {
+      return ret;
+    }
+
+  if (getreg32(TOP_PWR_AP_M4_CTL0) & TOP_PWR_AP_CPU_SEL)
+    {
+      /* Boot AP CK802 */
+
+      modifyreg32(TOP_PWR_CK802_CTL0, 0, TOP_PWR_CPUCLK_EN);
+      modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_CPU_RSTCTL, 0);
+    }
+  else
+    {
+      /* Boot AP M4 */
+
+      putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
+    }
+
+  return 0;
+}
+
+static void up_rptun_init(void)
+{
+  static struct rptun_rsc_s rptun_rsc_ap
+      __attribute__ ((section(".resource_table.ap"))) =
+  {
+    .rsc_tbl_hdr     =
+    {
+      .ver           = 1,
+      .num           = 1,
+    },
+    .offset          =
+    {
+      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+    },
+    .rpmsg_vdev      =
+    {
+      .type          = RSC_VDEV,
+      .id            = VIRTIO_ID_RPMSG,
+      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                     | 1 << VIRTIO_RPMSG_F_BIND
+                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
+      .num_of_vrings = 2,
+    },
+    .rpmsg_vring0    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .rpmsg_vring1    =
+    {
+      .align         = 0x8,
+      .num           = 4,
+    },
+    .buf_size        = 0x640,
+  };
+
+  static const struct song_rptun_config_s rptun_cfg_ap =
+  {
+    .cpuname    = CPU_NAME_AP,
+    .rsc        = &rptun_rsc_ap,
+    .nautostart = true,
+    .master     = true,
+    .vringtx    = 15,
+    .vringrx    = 15,
+    .start      = ap_start,
+  };
+
+  song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
+
+#ifdef CONFIG_SYSLOG_RPMSG
+  syslog_rpmsg_init();
+#endif
+}
+#endif
+
 #ifdef CONFIG_RTC_SONG
 static int up_rtc_initialize(void)
 {
@@ -344,10 +519,21 @@ static void up_extra_init(void)
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);
+
+  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x\n",
+          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON));
 }
 
 void up_lateinitialize(void)
 {
+#ifdef CONFIG_SONG_MBOX
+  up_mbox_init();
+#endif
+
+#ifdef CONFIG_SONG_RPTUN
+  up_rptun_init();
+#endif
+
 #ifdef CONFIG_RTC_SONG
   up_rtc_initialize();
 #endif
@@ -385,6 +571,9 @@ static void up_top_pwr_work(FAR void *arg)
     }
   else if (status & TOP_PWR_AP_DS_WAKEUP)
     {
+#ifdef CONFIG_SONG_RPTUN
+      rptun_boot(CPU_NAME_AP);
+#endif
     }
 }
 
@@ -431,6 +620,10 @@ void up_finalinitialize(void)
   /* Enable SLP_U1RXD_ACT intr */
 
   modifyreg32(TOP_PWR_INTR_EN_CP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
+
+#ifdef CONFIG_SONG_RPTUN
+  rptun_boot(CPU_NAME_AP);
+#endif
 }
 
 void up_reset(int status)
