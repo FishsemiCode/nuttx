@@ -129,6 +129,7 @@ struct misc_rpmsg_s
   struct rpmsg_endpoint ept;
   struct metal_list     blks;
   const char            *cpuname;
+  bool                  server;
 };
 
 struct misc_retent_blk_s
@@ -227,6 +228,18 @@ static void misc_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_)
       rpmsg_create_ept(&priv->ept, rdev, MISC_RPMSG_EPT_NAME,
                        RPMSG_ADDR_ANY, RPMSG_ADDR_ANY,
                        misc_rpmsg_ept_cb, NULL);
+
+      if (priv->server)
+        {
+          /* Server */
+
+          if (g_misc_idx >= MISC_RPMSG_MAX_PRIV)
+            {
+              return;
+            }
+
+          g_misc_priv[g_misc_idx++] = priv;
+        }
     }
 }
 
@@ -770,6 +783,7 @@ struct misc_dev_s *misc_rpmsg_initialize(const char *cpuname,
 
   priv->cpuname = cpuname;
   priv->dev.ops = &g_misc_ops;
+  priv->server  = !devctl;
 
   ret = rpmsg_register_callback(priv,
                                 misc_rpmsg_device_created,
@@ -786,17 +800,6 @@ struct misc_dev_s *misc_rpmsg_initialize(const char *cpuname,
       /* Client */
 
       register_driver("/dev/misc", &g_misc_devops, 0666, priv);
-    }
-  else
-    {
-      /* Server */
-
-      if (g_misc_idx >= MISC_RPMSG_MAX_PRIV)
-        {
-          return NULL;
-        }
-
-      g_misc_priv[g_misc_idx++] = priv;
     }
 
   return &priv->dev;
