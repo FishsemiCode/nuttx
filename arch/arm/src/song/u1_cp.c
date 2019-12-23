@@ -43,6 +43,7 @@
 
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/drivers/ramdisk.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -524,6 +525,14 @@ void up_extra_init(void)
   /* Set RFIF IRQ SUB PRIORITY */
 
   up_prioritize_irq(31, NVIC_SYSH_PRIORITY_DEFAULT - NVIC_SYSH_PRIORITY_SUBSTEP);
+
+#ifdef CONFIG_RAMDISK
+  /* Register a RAMDISK device: /dev/ram1 */
+
+  ramdisk_register(1, (uint8_t *)U1_CP_RAMDISK_BASE,
+                   U1_CP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
+                   RDFLAG_WRENABLED | RDFLAG_FUNLINK);
+#endif
 
   /* Set start reason to env */
 
