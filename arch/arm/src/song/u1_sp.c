@@ -1153,6 +1153,13 @@ void up_finalinitialize(void)
               rptun_boot(CPU_NAME_CP);
             }
         }
+      else
+        {
+          if (up_get_wkreason() == WAKEUP_REASON_UART_RSTN)
+            {
+              rptun_boot(CPU_NAME_CP);
+            }
+        }
     }
 #endif
 
