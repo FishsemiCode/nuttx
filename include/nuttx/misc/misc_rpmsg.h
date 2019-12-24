@@ -60,8 +60,26 @@
 #define MISC_REMOTE_CLOCKSYNC   _MISCIOC(4)
 #define MISC_REMOTE_ENVSYNC     _MISCIOC(5)
 #define MISC_REMOTE_INFOWRITE   _MISCIOC(6)
+#define MISC_REMOTE_RAMFLUSH    _MISCIOC(7)
 
 /* Access macros ************************************************************/
+
+/****************************************************************************
+ * Name: MISC_RAMFLUSH_REGISTER
+ *
+ * Description:
+ *   Register ramflush callback
+ *
+ * Input Parameters:
+ *   dev - Device-specific state data
+ *   c   - Callback registered to misc
+ *
+ * Returned Value:
+ *   Zero on success, NULL on failure.
+ *
+ ****************************************************************************/
+
+#define MISC_RAMFLUSH_REGISTER(d,c) ((d)?(d)->ops->ramflush_register((d),(c)):0)
 
 /****************************************************************************
  * Name: MISC_RETENT_SAVE
@@ -101,9 +119,12 @@
  * Public Types
  ****************************************************************************/
 
+typedef int (*misc_ramflush_cb_t)(char *fpath);
+
 struct misc_dev_s;
 struct misc_ops_s
 {
+  int (*ramflush_register)(struct misc_dev_s *dev, misc_ramflush_cb_t cb);
   int (*retent_save)(struct misc_dev_s *dev, char *file);
   int (*retent_restore)(struct misc_dev_s *dev, char *file);
 };
@@ -143,6 +164,11 @@ struct misc_remote_infowrite_s
   const char *name;
   uint8_t    *value;
   uint32_t    len;
+};
+
+struct misc_remote_ramflush_s
+{
+  const char *fpath;
 };
 
 /****************************************************************************
