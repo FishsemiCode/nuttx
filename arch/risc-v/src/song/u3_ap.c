@@ -55,6 +55,7 @@
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
 #include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/spi/spi_dw.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/arch_rtc.h>
@@ -86,11 +87,19 @@
 
 #define TOP_PWR_BASE                    (0xb0040000)
 #define TOP_PWR_RSTCTL1                 (TOP_PWR_BASE + 0x0d4)
+#define TOP_PWR_CHIPRST_CTL             (TOP_PWR_BASE + 0x114)
 #define TOP_PWR_TOP_ROCKET_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_CP_ROCKET_CTL           (TOP_PWR_BASE + 0x21c)
+#define TOP_PWR_RES_REG2                (TOP_PWR_BASE + 0x260)
 
-#define TOP_PWR_CP_ROCKET_RSTN          (1 << 11)
+#define TOP_PWR_CP_ROCKET_RSTN          (1 << 11)   //TOP_PWR_RSTCTL1
 #define TOP_PWR_CP_XC5_RSTN             (1 << 12)
+
+#define TOP_PWR_SFRST                   (1 << 1)    //TOP_PWR_CHIPRST_CTL
+
+#define TOP_PWR_RESET_NORMAL            (0x00000000)//TOP_PWR_RES_REG2
+#define TOP_PWR_RESET_ROMBOOT           (0xaaaa1234)
+#define TOP_PWR_RESET_RECOVERY          (0xbbbb1234)
 
 /****************************************************************************
  * Private Data
@@ -122,9 +131,9 @@ FAR struct mbox_dev_s *g_mbox[4] =
 #endif
 
 #ifdef CONFIG_SPI_DW
-FAR struct spi_dev_s *g_spi[3] =
+FAR struct spi_dev_s *g_spi[4] =
 {
-  [2] = DEV_END,
+  [3] = DEV_END,
 };
 #endif
 
@@ -378,6 +387,48 @@ static void up_i2c_init(void)
 }
 #endif
 
+#ifdef CONFIG_SPI_DW
+static void up_spi_init(void)
+{
+  static const struct dw_spi_config_s config[] =
+  {
+    {
+      .bus = 0,
+      .base = 0xb0110000,
+      .irq = 11,
+      .tx_dma = 4,
+      .rx_dma = 12,
+      .cs_num = 1,
+      .cs_gpio[0] = 20,
+      .mclk = "spi0_mclk",
+    },
+    {
+      .bus = 1,
+      .base = 0xb0120000,
+      .irq = 15,
+      .tx_dma = 5,
+      .rx_dma = 13,
+      .cs_num = 1,
+      .cs_gpio[0] = 24,
+      .mclk = "spi1_mclk",
+    },
+    {
+      .bus = 2,
+      .base = 0xb0250000,
+      .irq = 16,
+      .tx_dma = 3,
+      .rx_dma = 11,
+      .cs_num = 1,
+      .cs_gpio[0] = 28,
+      .mclk = "spi2_mclk",
+    },
+  };
+  int config_num = sizeof(config) / sizeof(config[0]);
+
+  dw_spi_allinitialize(config, config_num, g_ioe[0], NULL, g_spi);
+}
+#endif
+
 void up_lateinitialize(void)
 {
 #ifdef CONFIG_SONG_MBOX
@@ -404,6 +455,10 @@ void up_lateinitialize(void)
   up_i2c_init();
 #endif
 
+#ifdef CONFIG_SPI_DW
+  up_spi_init();
+#endif
+
 #ifdef CONFIG_PWM_SONG
   song_pwm_initialize(0, 0xb0100000, 4, "pwm_mclk");
 #endif
@@ -418,6 +473,22 @@ void up_finalinitialize(void)
 
 void up_reset(int status)
 {
+  if (status == 1)
+    {
+      /* Reset board to romboot */
+
+      putreg32(TOP_PWR_RESET_ROMBOOT, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_SFRST << 16 |
+               TOP_PWR_SFRST, TOP_PWR_CHIPRST_CTL);
+    }
+  else
+    {
+      /* Reset board */
+
+      putreg32(TOP_PWR_RESET_NORMAL, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_SFRST << 16 |
+               TOP_PWR_SFRST, TOP_PWR_CHIPRST_CTL);
+    }
 }
 
 void up_cpu_doze(void)
