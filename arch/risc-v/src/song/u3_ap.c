@@ -47,6 +47,8 @@
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/i2c/i2c_dw.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -134,6 +136,13 @@ FAR struct mbox_dev_s *g_mbox[4] =
 FAR struct spi_dev_s *g_spi[4] =
 {
   [3] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_I2C_DW
+FAR struct i2c_master_s *g_i2c[3] =
+{
+  [2] = DEV_END,
 };
 #endif
 
@@ -252,6 +261,13 @@ void up_wdtinit(void)
 }
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void)
+{
+  uart_rpmsg_init(CPU_NAME_CPR, "CPR", 1024, false);
+}
+#endif
+
 #ifdef CONFIG_SONG_MBOX
 static void up_mbox_init(void)
 {
@@ -293,13 +309,6 @@ static void up_mbox_init(void)
   };
 
   song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
-}
-#endif
-
-#ifdef CONFIG_RPMSG_UART
-void rpmsg_serialinit(void)
-{
-  uart_rpmsg_init(CPU_NAME_CPR, "CPR", 1024, false);
 }
 #endif
 

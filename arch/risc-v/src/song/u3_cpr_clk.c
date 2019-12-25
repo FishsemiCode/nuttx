@@ -56,7 +56,7 @@ static const char *rf_port_src[] =
   "ap/pll0_mclk",
 };
 
-static const struct song_mux_clk mux_div[] =
+static const struct song_mux_div_clk mux_div[] =
 {
   {
     .name = "rf_port",
@@ -84,6 +84,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x058,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "sim_clk",
@@ -198,6 +199,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "cp_bus_mclk",
     .en_offset = 0x94,
     .en_shift = 6,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "wdt1_tclk",

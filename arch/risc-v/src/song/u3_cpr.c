@@ -45,6 +45,7 @@
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/power/regulator.h>
@@ -80,7 +81,15 @@
 #define TOP_MAILBOX_BASE                (0xb0030000)
 
 #define TOP_PWR_BASE                    (0xb0040000)
+#define TOP_PWR_CHIPRST_CTL             (TOP_PWR_BASE + 0x114)
 #define TOP_PWR_CP_ROCKET_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
+#define TOP_PWR_RES_REG2                (TOP_PWR_BASE + 0x260)
+
+#define TOP_PWR_SFRST                   (1 << 1)    //TOP_PWR_CHIPRST_CTL
+
+#define TOP_PWR_RESET_NORMAL            (0x00000000)//TOP_PWR_RES_REG2
+#define TOP_PWR_RESET_ROMBOOT           (0xaaaa1234)
+#define TOP_PWR_RESET_RECOVERY          (0xbbbb1234)
 
 /****************************************************************************
  * Private Data
@@ -247,6 +256,50 @@ void rpmsg_serialinit(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_MBOX
+static void up_mbox_init(void)
+{
+  static const struct song_mbox_config_s config[] =
+  {
+    {
+      .index      = CPU_INDEX_AP,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x20,
+      .en_off     = 0x24,
+      .en_bit     = 16,
+      .src_en_off = 0x24,
+      .sta_off    = 0x28,
+      .chnl_count = 16,
+      .irq        = -1,
+    },
+    {
+      .index      = CPU_INDEX_CPR,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x0,
+      .en_off     = 0x4,
+      .en_bit     = 16,
+      .src_en_off = 0x4,
+      .sta_off    = 0x8,
+      .chnl_count = 16,
+      .irq        = 6,
+    },
+    {
+      .index      = CPU_INDEX_CPX,
+      .base       = TOP_MAILBOX_BASE,
+      .set_off    = 0x10,
+      .en_off     = 0x14,
+      .en_bit     = 16,
+      .src_en_off = 0x14,
+      .sta_off    = 0x18,
+      .chnl_count = 16,
+      .irq        = -1,
+    }
+  };
+
+  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
+}
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
 static void up_rptun_init(void)
 {
@@ -308,50 +361,6 @@ static void up_rptun_init(void)
 }
 #endif
 
-#ifdef CONFIG_SONG_MBOX
-static void up_mbox_init(void)
-{
-  static const struct song_mbox_config_s config[] =
-  {
-    {
-      .index      = CPU_INDEX_AP,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x20,
-      .en_off     = 0x24,
-      .en_bit     = 16,
-      .src_en_off = 0x24,
-      .sta_off    = 0x28,
-      .chnl_count = 16,
-      .irq        = -1,
-    },
-    {
-      .index      = CPU_INDEX_CPR,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x0,
-      .en_off     = 0x4,
-      .en_bit     = 16,
-      .src_en_off = 0x4,
-      .sta_off    = 0x8,
-      .chnl_count = 16,
-      .irq        = 6,
-    },
-    {
-      .index      = CPU_INDEX_CPX,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x10,
-      .en_off     = 0x14,
-      .en_bit     = 16,
-      .src_en_off = 0x14,
-      .sta_off    = 0x18,
-      .chnl_count = 16,
-      .irq        = -1,
-    }
-  };
-
-  song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
-}
-#endif
-
 #ifdef CONFIG_SONG_IOE
 void up_ioe_init(void)
 {
@@ -395,6 +404,22 @@ void up_finalinitialize(void)
 
 void up_reset(int status)
 {
+  if (status == 1)
+    {
+      /* Reset board to romboot */
+
+      putreg32(TOP_PWR_RESET_ROMBOOT, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_SFRST << 16 |
+               TOP_PWR_SFRST, TOP_PWR_CHIPRST_CTL);
+    }
+  else
+    {
+      /* Reset board */
+
+      putreg32(TOP_PWR_RESET_NORMAL, TOP_PWR_RES_REG2);
+      putreg32(TOP_PWR_SFRST << 16 |
+               TOP_PWR_SFRST, TOP_PWR_CHIPRST_CTL);
+    }
 }
 
 void up_cpu_doze(void)
