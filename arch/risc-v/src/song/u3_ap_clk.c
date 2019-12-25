@@ -60,18 +60,6 @@ static const char *timer_out_clk_src[] =
   "clk32k",
 };
 
-static const char *rf_port_src[] =
-{
-  "sys_clk",
-  "pll0_mclk",
-};
-
-static const char *pll1_pll0_src[] =
-{
-  "pll0",
-  "pll1_occ",
-};
-
 static const struct song_fixed_rate_clk fixed_rate[] =
 {
   {
@@ -80,7 +68,7 @@ static const struct song_fixed_rate_clk fixed_rate[] =
   },
   {
     .name = "sys_clk",
-    .fixed_rate = 38400000,
+    .fixed_rate = 19200000,
   },
   {},
 };
@@ -100,7 +88,7 @@ static const struct song_fixed_factor_clk fixed_factor[] =
     .fixed_div = 1,
   },
   {},
-}
+};
 
 static const struct song_pll_clk pll[] =
 {
@@ -169,6 +157,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .en_offset = 0x98,
     .en_shift = 4,
     .div_offset = 0x80,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "uart1_clk",
@@ -177,6 +166,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .en_shift = 13,
     .gr_offset = 0x0,
     .div_offset = 0x84,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "uart2_clk",
@@ -208,21 +198,29 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
     .name = "spi0_mclk",
     .parent_name = "pll0_mclk",
     .div_offset = 0x70,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,
   },
   {
     .name = "spi1_mclk",
     .parent_name = "pll0_mclk",
     .div_offset = 0x74,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,
   },
   {
     .name = "spi2_mclk",
     .parent_name = "pll0_mclk",
     .div_offset = 0xc8,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,
   },
   {
     .name = "spi3_mclk",
     .parent_name = "pll0_mclk",
     .div_offset = 0x308,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,
   },
   {},
 };
@@ -235,6 +233,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x50,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_bus_mclk",
@@ -242,6 +241,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x44,
     .div_shift = 4,
     .div_width = 5,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_peribus_mclk",
@@ -251,6 +251,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x048,
     .div_shift = 4,
     .div_width = 3,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "at_clk",
@@ -347,6 +348,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x60,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_bus_apb_aon",
@@ -356,6 +358,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x7c,
     .div_shift = 4,
     .div_width = 4,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "psram_clk",
@@ -458,6 +461,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_bus_mclk",
     .en_offset = 0x94,
     .en_shift = 10,
+    .clk_flags = CLK_IS_CRITICAL,
   },
 #ifdef CONFIG_DEBUG_SONG_CLK
   {
