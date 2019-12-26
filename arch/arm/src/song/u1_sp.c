@@ -361,6 +361,7 @@ void up_earlyinitialize(void)
 
       putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
                TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
+      modifyreg32(TOP_PMICFSM_CONFIG2, 0, TOP_PMICFSM_DS_RF_RST_MK);
     }
 
   /* Set flash no effort to PWR_SLEEP */

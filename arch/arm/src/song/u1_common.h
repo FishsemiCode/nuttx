@@ -50,6 +50,7 @@
 #define TOP_PMICFSM_INT_STATUS          (TOP_PMICFSM_BASE + 0x04)
 #define TOP_PMICFSM_INT_MASK            (TOP_PMICFSM_BASE + 0x08)
 #define TOP_PMICFSM_CONFIG1             (TOP_PMICFSM_BASE + 0x0c)
+#define TOP_PMICFSM_CONFIG2             (TOP_PMICFSM_BASE + 0x10)
 #define TOP_PMICFSM_WAKEUP_ENABLE       (TOP_PMICFSM_BASE + 0x14)
 #define TOP_PMICFSM_WAKEUP_REASON       (TOP_PMICFSM_BASE + 0x18)
 #define TOP_PMICFSM_BUCK1               (TOP_PMICFSM_BASE + 0x24)
@@ -81,6 +82,8 @@
 #define TOP_PMICFSM_WDT_RSTN            (1 << 8)
 #define TOP_PMICFSM_SOFT_RSTN           (1 << 9)
 #define TOP_PMICFSM_BUTTON_RSTN         (1 << 10)
+
+#define TOP_PMICFSM_DS_RF_RST_MK        (1 << 6)
 
 #define TOP_PMICFSM_LDO0_ACTIVE_ON      (0x1 << 0)
 #define TOP_PMICFSM_LDO0_SLEEP_ON       (0x1 << 1)
