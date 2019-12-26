@@ -43,10 +43,14 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/partition.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/misc/misc_rpmsg.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/mtd/song_spi_flash.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
@@ -61,6 +65,7 @@
 #include <nuttx/wqueue.h>
 
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 
@@ -177,6 +182,14 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 FAR struct mbox_dev_s *g_mbox[3] =
 {
   [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SONG_SPI_FLASH
+struct song_spi_flash_config_s spiflash =
+{
+  .base = 0xb0130000,
+  .cpu_base = 0x02000000,
 };
 #endif
 
@@ -533,6 +546,33 @@ static void up_ioe_init(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_SPI_FLASH
+static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
+{
+  char path[NAME_MAX];
+
+  snprintf(path, NAME_MAX, "/dev/%s", part->name);
+
+  register_mtdpartition(path, 0, arg, part->firstblock, part->nblocks);
+}
+
+static void up_flash_init(void)
+{
+  char *path = "/dev/spiflash";
+  FAR struct mtd_dev_s *mtd;
+
+  mtd = song_spi_flash_initialize(&spiflash);
+  if (mtd == NULL)
+    {
+      ferr("ERROR: Spi flash initialize failed\n");
+      return;
+    }
+
+  register_mtddriver(path, mtd, 0, mtd);
+  parse_block_partition(path, up_partition_init, path);
+}
+#endif
+
 static void up_extra_init(void)
 {
   /* Set start reason to env */
@@ -563,6 +603,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_IOE
   up_ioe_init();
+#endif
+
+#ifdef CONFIG_SONG_SPI_FLASH
+  up_flash_init();
 #endif
 
   up_extra_init();
