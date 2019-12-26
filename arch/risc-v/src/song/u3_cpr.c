@@ -140,7 +140,7 @@ void up_earlyinitialize(void)
 {
   static const struct simple_addrenv_s addrenv[] =
   {
-    {.va = 0x40000000, .pa = 0xd0000000, .size = 0x00100000},
+    {.va = 0x40100000, .pa = 0xd0100000, .size = 0x00100000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 
