@@ -113,7 +113,7 @@ static const struct song_gr_clk gr[] =
     .mult_offset = 0x7c,
     .mult_shift = 4,
     .mult_width = 3,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {},
 };
@@ -139,7 +139,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .en_shift = 3,
     .gr_offset = 0x0,
     .div_offset = 0x80,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "uart1_clk",
@@ -148,7 +148,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
     .en_shift = 11,
     .gr_offset = 0x0,
     .div_offset = 0x84,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "uart2_clk",
@@ -198,7 +198,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x048,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_pclk1",
@@ -208,7 +208,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x04c,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_pclk2",
@@ -218,7 +218,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x054,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "pll1_mclk",
@@ -237,7 +237,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x06c,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "bus_lp_clk",
@@ -247,7 +247,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x0cc,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "flash_ctrl_clk",
@@ -275,7 +275,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x2f8,
     .div_shift = 4,
     .div_width = 3,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {},
 };
@@ -287,14 +287,14 @@ static const struct song_gate_clk gate[] =
     .parent_name = "sec_m4_bus_clk",
     .en_offset = 0x098,
     .en_shift = 0,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "sec_m4_wic_clk",
     .parent_name = "sec_m4_clk",
     .en_offset = 0x098,
     .en_shift = 1,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "swdt_tclk",
@@ -307,7 +307,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "sec_m4_clk",
     .en_offset = 0x098,
     .en_shift = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "dmas_hclk",
@@ -406,7 +406,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_bus_mclk",
     .en_offset = 0x09c,
     .en_shift = 6,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "security_clk32k",
@@ -420,35 +420,35 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_bus_mclk",
     .en_offset = 0x09c,
     .en_shift = 7,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "topbus_shram0clk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x0b8,
     .en_shift = 0,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "topbus_shram1clk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x0b8,
     .en_shift = 1,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "topbus_sectcmclk",
     .parent_name = "sec_m4_bus_clk",
     .en_offset = 0x0b8,
     .en_shift = 2,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "sec_m4_icache_clk",
     .parent_name = "sec_m4_clk",
     .en_offset = 0x0b8,
     .en_shift = 14,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   }
 #endif
   {
@@ -474,7 +474,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "clk32k",
     .en_offset = 0x0b8,
     .en_shift = 10,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {},
 };

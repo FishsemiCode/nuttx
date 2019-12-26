@@ -165,7 +165,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x0c0,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "gnss_clk",

@@ -118,7 +118,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "cpr/cp_bus_mclk",
     .en_offset = 0x98,
     .en_shift = 9,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
 #ifdef CONFIG_DEBUG_SONG_CLK
   {

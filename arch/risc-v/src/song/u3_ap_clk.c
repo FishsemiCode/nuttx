@@ -261,7 +261,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x06c,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "pwm_mclk",
@@ -281,7 +281,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x0cc,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "pll_adj_clk",
@@ -328,7 +328,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x04c,
     .div_shift = 4,
     .div_width = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "wdt_dly_cnt",
@@ -338,7 +338,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x2f8,
     .div_shift = 4,
     .div_width = 3,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_bus_apb_top",
@@ -368,7 +368,7 @@ static const struct song_div_clk div[] =
     .div_offset = 0x16c,
     .div_shift = 4,
     .div_width = 5,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {},
 };
@@ -392,7 +392,7 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_bus_mclk",
     .en_offset = 0x90,
     .en_shift = 4,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "dmas_hclk",
@@ -429,14 +429,14 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_bus_mclk",
     .en_offset = 0x90,
     .en_shift = 10,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "top_bus_shram1_mclk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x90,
     .en_shift = 11,
-    .clk_flags = CLK_IGNORE_UNUSED,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "gpio_clk32k",
