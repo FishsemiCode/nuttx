@@ -597,6 +597,9 @@ static int __clk_disable(struct clk *clk)
   if (!clk || clk->enable_count == 0)
     return 0;
 
+  if (clk->flags & CLK_IS_CRITICAL)
+    return 0;
+
   if (--clk->enable_count == 0)
     {
       if (clk->ops->disable)
@@ -719,9 +722,8 @@ static void clk_disable_unused_subtree(struct clk *clk)
 
   if (clk_is_enabled(clk))
     {
-      if (clk->flags & CLK_IGNORE_UNUSED)
+      if (clk->flags & CLK_IS_CRITICAL)
         {
-          /* let ignore_unused same as enable the clk */
           __clk_enable(clk);
         }
       else if (clk->ops->disable)

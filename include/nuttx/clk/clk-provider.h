@@ -59,7 +59,7 @@
 #define CLK_GET_RATE_NOCACHE            0x10 /* do not use the cached clk rate */
 #define CLK_NAME_IS_STATIC              0x20 /* static name: don't malloc in register */
 #define CLK_PARENT_NAME_IS_STATIC       0x40 /* static parent name :don't malloc in register */
-#define CLK_IGNORE_UNUSED               0x80 /* do not gate even if unused */
+#define CLK_IS_CRITICAL                 0x80 /* critical clk do not gate ever */
 
 /* gating clk flags */
 #define CLK_GATE_SET_TO_DISABLE         0x01
