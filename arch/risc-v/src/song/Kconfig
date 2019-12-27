@@ -25,10 +25,12 @@ config ARCH_CHIP_U2_AUDIO
 config ARCH_CHIP_U3_AP
 	bool "U3 AP"
 	select ARCH_RV32IM
+	select ARCH_DCACHE
 
 config ARCH_CHIP_U3_CPR
 	bool "U3 CPR"
 	select ARCH_RV32IM
+	select ARCH_DCACHE
 
 config ARCH_CHIP_U3_QEMU
 	bool "U3 Qemu"
@@ -92,6 +94,9 @@ config INTC_PULP_BASE
 
 config RISCV_MTIME
 	bool
+
+config SONG_DCACHE_LINEBYTES
+	int "Data cache line bytes"
 
 config SONG_COPY_TABLE
 	bool
