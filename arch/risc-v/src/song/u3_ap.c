@@ -91,11 +91,16 @@
 #define TOP_PWR_RSTCTL1                 (TOP_PWR_BASE + 0x0d4)
 #define TOP_PWR_CHIPRST_CTL             (TOP_PWR_BASE + 0x114)
 #define TOP_PWR_TOP_ROCKET_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
+#define TOP_PWR_CP_XC5_CTL0             (TOP_PWR_BASE + 0x210)
+#define TOP_PWR_CP_XC5_BOOT_ADDR        (TOP_PWR_BASE + 0x214)
 #define TOP_PWR_CP_ROCKET_CTL           (TOP_PWR_BASE + 0x21c)
 #define TOP_PWR_RES_REG2                (TOP_PWR_BASE + 0x260)
 
 #define TOP_PWR_CP_ROCKET_RSTN          (1 << 11)   //TOP_PWR_RSTCTL1
-#define TOP_PWR_CP_XC5_RSTN             (1 << 12)
+#define TOP_PWR_CP_XC5_RSTN             ((1 << 12) | (1 << 19) | (1 << 20))
+
+#define TOP_PWR_CP_XC5_WAIT             (1 << 3)    //TOP_PWR_CP_XC5_CTL0
+#define TOP_PWR_CP_XC5_CACHE_INV        (1 << 4)
 
 #define TOP_PWR_SFRST                   (1 << 1)    //TOP_PWR_CHIPRST_CTL
 
@@ -154,6 +159,25 @@ static int cpr_start(const struct song_rptun_config_s *config)
 {
   putreg32(0x40100410, TOP_PWR_CP_ROCKET_CTL);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_ROCKET_RSTN, 0);
+  return 0;
+}
+
+static int cpx_config(const struct song_rptun_config_s *config, void *data)
+{
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, TOP_PWR_CP_XC5_WAIT);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
+
+  return 0;
+}
+
+static int cpx_start(const struct song_rptun_config_s *config)
+{
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_CACHE_INV, TOP_PWR_CP_XC5_CACHE_INV);
+  putreg32(0x40200000, TOP_PWR_CP_XC5_BOOT_ADDR);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, TOP_PWR_CP_XC5_RSTN);
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, 0);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
+
   return 0;
 }
 
@@ -265,6 +289,7 @@ void up_wdtinit(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_CPR, "CPR", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CPX, "CPX", 1024, false);
 }
 #endif
 
@@ -318,6 +343,7 @@ static void up_rptun_init(void)
   static const struct rptun_addrenv_s addrenv[] =
   {
     {.pa = 0xd0100000, .da = 0x40100000, .size = 0x00100000},
+    {.pa = 0xd0200000, .da = 0x40200000, .size = 0x00100000},
     {.pa = 0x00000000, .da = 0x00000000, .size = 0x00000000},
   };
 
@@ -333,7 +359,20 @@ static void up_rptun_init(void)
     .start      = cpr_start,
   };
 
+  static const struct song_rptun_config_s rptun_cfg_cpx = {
+    .cpuname    = CPU_NAME_CPX,
+    .firmware   = "/dev/cpx.coff",
+    .addrenv    = addrenv,
+    .nautostart = true,
+    .master     = true,
+    .vringtx    = 1,
+    .vringrx    = 1,
+    .config     = cpx_config,
+    .start      = cpx_start,
+  };
+
   song_rptun_initialize(&rptun_cfg_cpr, g_mbox[CPU_INDEX_CPR], g_mbox[CPU_INDEX_AP]);
+  song_rptun_initialize(&rptun_cfg_cpx, g_mbox[CPU_INDEX_CPX], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize();

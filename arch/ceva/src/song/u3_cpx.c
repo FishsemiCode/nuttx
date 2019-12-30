@@ -41,6 +41,13 @@
 
 #ifdef CONFIG_ARCH_CHIP_U3_CPX
 
+#include <nuttx/drivers/addrenv.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/hostfs_rpmsg.h>
+#include <nuttx/mbox/song_mbox.h>
+#include <nuttx/rptun/song_rptun.h>
+#include <nuttx/serial/uart_rpmsg.h>
+#include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
 #include <nuttx/timers/dw_timer.h>
 #include <nuttx/timers/song_oneshot.h>
