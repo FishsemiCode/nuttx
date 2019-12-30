@@ -70,6 +70,7 @@ static const struct rptun_addrenv_s *song_rptun_get_addrenv(struct rptun_dev_s *
 static struct rptun_rsc_s *song_rptun_get_resource(struct rptun_dev_s *dev);
 static bool song_rptun_is_autostart(struct rptun_dev_s *dev);
 static bool song_rptun_is_master(struct rptun_dev_s *dev);
+static int song_rptun_config(struct rptun_dev_s *dev, void *data);
 static int song_rptun_start(struct rptun_dev_s *dev);
 static int song_rptun_stop(struct rptun_dev_s *dev);
 static int song_rptun_notify(struct rptun_dev_s *dev, uint32_t vqid);
@@ -89,6 +90,7 @@ static const struct rptun_ops_s g_song_rptun_ops =
   .get_resource      = song_rptun_get_resource,
   .is_autostart      = song_rptun_is_autostart,
   .is_master         = song_rptun_is_master,
+  .config            = song_rptun_config,
   .start             = song_rptun_start,
   .stop              = song_rptun_stop,
   .notify            = song_rptun_notify,
@@ -145,6 +147,19 @@ static bool song_rptun_is_master(struct rptun_dev_s *dev)
   const struct song_rptun_config_s *config = priv->config;
 
   return config->master;
+}
+
+static int song_rptun_config(struct rptun_dev_s *dev, void *data)
+{
+  struct song_rptun_dev_s *priv = (struct song_rptun_dev_s *)dev;
+  const struct song_rptun_config_s *config = priv->config;
+
+  if (config->config)
+    {
+      return config->config(config, data);
+    }
+
+  return 0;
 }
 
 static int song_rptun_start(struct rptun_dev_s *dev)

@@ -65,6 +65,7 @@ struct song_rptun_config_s
   int32_t                      vringtx;
   int32_t                      vringrx;
 
+  int (*config)(const struct song_rptun_config_s *config, void *data);
   int (*start)(const struct song_rptun_config_s *config);
   int (*stop)(const struct song_rptun_config_s *config);
 };
