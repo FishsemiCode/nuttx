@@ -69,12 +69,13 @@
 	.extern		_g_idle_basestack
 	.extern		_up_doirq
 	.extern		_up_start
+	.extern		_up_relocate
 
 /****************************************************************************
  * Interrupt Functions
  ****************************************************************************/
 	.CSECT		inttbl
-	brr {t}		reset_handler
+	br {t}		reset_handler
 
 	.ORG		0x20
 	IRQ_HANDLER	IRQ_TRAPE, retb
@@ -117,6 +118,7 @@
 _up_vintc_handler:
 	IRQ_HANDLER	IRQ_VINT, reti
 
+	.CSECT		resetsec
 reset_handler:
 	mov		#0x0, mod0
 	mov		#0x0, mod1
@@ -132,6 +134,11 @@ reset_handler:
 	nop
 	nop
 	mov		a0, sp
+	nop
+	nop
+	push {dw}       retreg
+	callr {t}	_up_relocate
+	pop {dw}        retreg
 	brr {t}		_up_start
 
 /****************************************************************************

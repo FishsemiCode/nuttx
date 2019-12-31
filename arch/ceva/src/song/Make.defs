@@ -61,7 +61,7 @@ else ifeq ($(CONFIG_ARCH_XC5),y)
 #
 CMN_ASRCS  += syscall.S up_svcall_handler.S vfork.S cpm.S
 CMN_CSRCS  += up_hardfault.c up_icache.c up_initialstate.c
-CMN_CSRCS  += up_intc.c up_mpu.c up_psu.c
+CMN_CSRCS  += up_intc.c up_mpu.c up_psu.c up_relocate.c
 CMN_UASRCS += syscall.S up_signal_handler.S
 HEAD_ASRC  += up_head.S
 
