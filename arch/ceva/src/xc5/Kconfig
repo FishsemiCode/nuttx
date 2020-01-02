@@ -5,7 +5,7 @@
 
 comment "XC5 Configuration Options"
 
-config ARCH__BUG001
-	bool "Enable bug 001 workaround"
+config XC5_PSU_ENABLE
+	bool "Enable power management of XC5"
 	---help---
-		Read CEVA-XC5 Bug List for more information
+	  Doze or idle mode of xc5 power managerment.

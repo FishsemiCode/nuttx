@@ -48,8 +48,7 @@
  ****************************************************************************/
 
 //disable psu function temporily
-#define CEVAXC5_PSU_ENABLE 0
-#if CEVAXC5_PSU_ENABLE
+#if CONFIG_XC5_PSU_ENABLE
 
 /****************************************************************************
  * Private Functions
@@ -74,7 +73,7 @@ static void up_cpu_pmod(uint32_t psvm)
 static void up_cpu_pmod(uint32_t psvm)
 {
 }
-#endif
+#endif /* CONFIG_XC5_PSU_ENABLE */
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
