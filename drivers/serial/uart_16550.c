@@ -77,6 +77,12 @@
 #  define DMA_SECTION
 #endif
 
+#ifdef CONFIG_SONG_DMAS_DCACHE_WA
+# define DCACHE_ALIGN __attribute__((aligned(CONFIG_SONG_DCACHE_LINEBYTES)))
+#else
+# define DCACHE_ALIGN
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -177,20 +183,20 @@ static const struct uart_ops_s g_uart_ops =
 /* I/O buffers */
 
 #ifdef CONFIG_16550_UART0
-static char g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE] DMA_SECTION;
-static char g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE] DMA_SECTION;
+static char g_uart0rxbuffer[CONFIG_16550_UART0_RXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
+static char g_uart0txbuffer[CONFIG_16550_UART0_TXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART1
-static char g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE] DMA_SECTION;
-static char g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE] DMA_SECTION;
+static char g_uart1rxbuffer[CONFIG_16550_UART1_RXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
+static char g_uart1txbuffer[CONFIG_16550_UART1_TXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART2
-static char g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE] DMA_SECTION;
-static char g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE] DMA_SECTION;
+static char g_uart2rxbuffer[CONFIG_16550_UART2_RXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
+static char g_uart2txbuffer[CONFIG_16550_UART2_TXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
 #endif
 #ifdef CONFIG_16550_UART3
-static char g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE] DMA_SECTION;
-static char g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE] DMA_SECTION;
+static char g_uart3rxbuffer[CONFIG_16550_UART3_RXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
+static char g_uart3txbuffer[CONFIG_16550_UART3_TXBUFSIZE] DCACHE_ALIGN DMA_SECTION;
 #endif
 
 /* DMA receive buffers */

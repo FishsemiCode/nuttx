@@ -108,6 +108,11 @@
 #define MIN(x, y)                               ((x) < (y) ? (x) : (y))
 #define MAX(x, y)                               ((x) > (y) ? (x) : (y))
 
+#ifdef CONFIG_SONG_DMAS_DCACHE_WA
+#define DCACHE_LINEMASK     (CONFIG_SONG_DCACHE_LINEBYTES - 1)
+#define DCACHE_ALIGNUP(a)   (((a) + DCACHE_LINEMASK) & ~DCACHE_LINEMASK)
+#endif
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -127,7 +132,7 @@ struct song_dmas_chan_s
   size_t period_len;
   size_t next_period;
   bool paused;
-#ifdef CONFIG_SONG_DMAS_RXCHECK
+#if defined(CONFIG_SONG_DMAS_RXCHECK) || defined(CONFIG_SONG_DMAS_DCACHE_WA)
   void *rx_buf;
   size_t rx_bufsz;
   uintptr_t ori_dst;
@@ -319,6 +324,47 @@ static int song_dmas_rxbuf_check(struct song_dmas_chan_s *chan,
 }
 #endif
 
+#ifdef CONFIG_SONG_DMAS_DCACHE_WA
+static int song_dmas_dcache_wa(struct song_dmas_chan_s *chan,
+                               uintptr_t dst, size_t len)
+{
+  chan->ori_dst = 0;
+
+  if ((dst & DCACHE_LINEMASK) || (len & DCACHE_LINEMASK))
+    {
+      size_t size = DCACHE_ALIGNUP(len);
+
+      if (chan->rx_buf && chan->rx_bufsz < size)
+        {
+          kmm_free(chan->rx_buf);
+          chan->rx_buf = NULL;
+        }
+
+      if (!chan->rx_buf)
+        {
+          chan->rx_buf = kmm_memalign(CONFIG_SONG_DCACHE_LINEBYTES, size);
+          if (!chan->rx_buf)
+            {
+              return -ENOMEM;
+            }
+          chan->rx_bufsz = size;
+        }
+
+      chan->ori_dst = dst;
+      chan->dst_addr = (uintptr_t)chan->rx_buf;
+
+      up_clean_dcache((uintptr_t)chan->rx_buf, (uintptr_t)chan->rx_buf + size);
+    }
+  else
+    {
+      up_clean_dcache((uintptr_t)up_addrenv_pa_to_va((uintptr_t)dst),
+                      (uintptr_t)up_addrenv_pa_to_va((uintptr_t)dst) + len);
+    }
+
+  return OK;
+}
+#endif
+
 static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
                            void *arg, uintptr_t dst, uintptr_t src, size_t len)
 {
@@ -345,6 +391,14 @@ static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
     {
 #ifdef CONFIG_SONG_DMAS_RXCHECK
       int ret = song_dmas_rxbuf_check(chan, dst, len);
+      if (ret != OK)
+        {
+          return ret;
+        }
+#endif
+
+#ifdef CONFIG_SONG_DMAS_DCACHE_WA
+      int ret = song_dmas_dcache_wa(chan, dst, len);
       if (ret != OK)
         {
           return ret;
@@ -391,6 +445,10 @@ static int song_dmas_start_cyclic(struct dma_chan_s *chan_,
     return -EINVAL;
 #ifdef CONFIG_SONG_DMAS_RXCHECK
   if (index >= 8 && dst % 32)
+    return -EINVAL;
+#endif
+#ifdef CONFIG_SONG_DMAS_DCACHE_WA
+  if (index >= 8 && ((dst & DCACHE_LINEMASK) || (len & DCACHE_LINEMASK)))
     return -EINVAL;
 #endif
 
@@ -527,6 +585,15 @@ static void song_dmas_chan_irq(struct song_dmas_chan_s* chan, bool match, bool f
       /* Dma rx channel has use internal buffer */
 
       memcpy((void *)chan->ori_dst, (void *)chan->dst_addr, chan->period_len);
+    }
+#endif
+
+#ifdef CONFIG_SONG_DMAS_DCACHE_WA
+  if (chan->index >= 8 && chan->ori_dst)
+    {
+      /* Dma rx channel has use internal buffer */
+
+      memcpy(up_addrenv_pa_to_va((uintptr_t)chan->ori_dst), (void *)chan->dst_addr, chan->period_len);
     }
 #endif
 

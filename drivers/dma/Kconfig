@@ -56,6 +56,11 @@ config SONG_DMAS_RXCHECK
 	bool "Check dma-rx last transfer across 1k border or not"
 	default n
 
+config SONG_DMAS_DCACHE_WA
+	bool "Workaround for cache invalidate with cache-line aligned"
+	depends on ARCH_DCACHE
+	default n
+
 endif
 
 endif
