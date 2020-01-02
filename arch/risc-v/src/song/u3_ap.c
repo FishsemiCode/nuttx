@@ -474,7 +474,7 @@ static void up_spi_init(void)
   };
   int config_num = sizeof(config) / sizeof(config[0]);
 
-  dw_spi_allinitialize(config, config_num, g_ioe[0], NULL, g_spi);
+  dw_spi_allinitialize(config, config_num, g_ioe[0], g_dma[0], g_spi);
 }
 #endif
 
