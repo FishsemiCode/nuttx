@@ -53,6 +53,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/power/consumer.h>
+#include <nuttx/power/pm.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
@@ -90,17 +91,47 @@
 #define TOP_PWR_BASE                    (0xb0040000)
 #define TOP_PWR_RSTCTL1                 (TOP_PWR_BASE + 0x0d4)
 #define TOP_PWR_CHIPRST_CTL             (TOP_PWR_BASE + 0x114)
+#define TOP_PWR_INTR_EN_TOP_ROCKET_0    (TOP_PWR_BASE + 0x124)
+#define TOP_PWR_INTR_ST_TOP_ROCKET_0    (TOP_PWR_BASE + 0x130)
+#define TOP_PWR_INTR_EN_TOP_ROCKET_1    (TOP_PWR_BASE + 0x140)
+#define TOP_PWR_INTR_ST_TOP_ROCKET_1    (TOP_PWR_BASE + 0x144)
 #define TOP_PWR_TOP_ROCKET_INTR2SLP_MK0 (TOP_PWR_BASE + 0x148)
 #define TOP_PWR_CP_XC5_CTL0             (TOP_PWR_BASE + 0x210)
 #define TOP_PWR_CP_XC5_BOOT_ADDR        (TOP_PWR_BASE + 0x214)
 #define TOP_PWR_CP_ROCKET_CTL           (TOP_PWR_BASE + 0x21c)
 #define TOP_PWR_RES_REG2                (TOP_PWR_BASE + 0x260)
+#define TOP_PWR_SLPCTL1                 (TOP_PWR_BASE + 0x354)
+#define TOP_PWR_SLPCTL_TOP_ROCKET       (TOP_PWR_BASE + 0x358)
+#define TOP_PWR_SLPCTL_CP_ROCKET        (TOP_PWR_BASE + 0x35c)
+
+#define TOP_PMICFSM_BASE                (0xb2010000)
+#define TOP_PMICFSM_CONFIG1             (TOP_PMICFSM_BASE + 0x0c)
+#define TOP_PMICFSM_WAKEUP_ENABLE       (TOP_PMICFSM_BASE + 0x14)
+
+#define TOP_PMICFSM_UART_ENABLE         (1 << 8)
+#define TOP_PMICFSM_RTC_ENABLE          (1 << 12)
+
+#define TOP_PMICFSM_DS_SLP_VALID        (1 << 0)
 
 #define TOP_PWR_CP_ROCKET_RSTN          (1 << 11)   //TOP_PWR_RSTCTL1
 #define TOP_PWR_CP_XC5_RSTN             ((1 << 12) | (1 << 19) | (1 << 20))
 
 #define TOP_PWR_CP_XC5_WAIT             (1 << 3)    //TOP_PWR_CP_XC5_CTL0
 #define TOP_PWR_CP_XC5_CACHE_INV        (1 << 4)
+
+#define TOP_PWR_TOP_ROCKET_SLP_EN       (1 << 0)
+#define TOP_PWR_TOP_ROCKET_SLP_MK       (1 << 1)
+#define TOP_PWR_TOP_ROCKET_DS_SLP_EN    (1 << 2)
+#define TOP_PWR_SLPU_SAVE_2PD_JMP       (1 << 8)
+
+#define TOP_PWR_CP_ROCKET_WAKEUP        (1 << 3)
+#define TOP_PWR_CP_XC5_WAKEUP           (1 << 4)
+#define TOP_PWR_SLPU_SAVE_ENTRY         (1 << 5)
+
+#define TOP_PWR_SLP_RF_MASK             (3 << 8)
+#define TOP_PWR_CP_ROCKET_SLP_MASK      (1 << 1)
+
+#define TOP_PWR_SLP_U1RXD_ACT           (1 << 9)
 
 #define TOP_PWR_SFRST                   (1 << 1)    //TOP_PWR_CHIPRST_CTL
 
@@ -181,6 +212,42 @@ static int cpx_start(const struct song_rptun_config_s *config)
   return 0;
 }
 
+static uint8_t up_i2c_pmic_read(void)
+{
+  struct i2c_config_s pmic =
+    {
+      .frequency = 400000,
+      .address   = 0x60,
+      .addrlen   = 0x07,
+    };
+
+  uint8_t pbuf[2] =
+    {
+      0x5b, 0x00
+    };
+
+  i2c_writeread(g_i2c[0], &pmic, &pbuf[0], 1, &pbuf[1], 1);
+
+  return pbuf[1];
+}
+
+static void up_i2c_pmic_write(uint8_t value)
+{
+  struct i2c_config_s pmic =
+    {
+      .frequency = 400000,
+      .address   = 0x60,
+      .addrlen   = 0x07,
+    };
+
+  uint8_t pbuf[2];
+
+  pbuf[0] = 0x5b;
+  pbuf[1] = value;
+
+  i2c_write(g_i2c[0], &pmic, pbuf, 2);
+}
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -194,6 +261,15 @@ void up_earlyinitialize(void)
   };
 
   simple_addrenv_initialize(addrenv);
+
+  /* Set PMICFSM disable full chip to DS */
+
+  modifyreg32(TOP_PMICFSM_CONFIG1, TOP_PMICFSM_DS_SLP_VALID, 0);
+
+  /* Set PMICFSM WAKEUP_ENABLE, now only support UART0 RTC wakeup DS */
+
+  putreg32(TOP_PMICFSM_UART_ENABLE |
+           TOP_PMICFSM_RTC_ENABLE, TOP_PMICFSM_WAKEUP_ENABLE);
 }
 
 void up_wic_initialize(void)
@@ -365,8 +441,8 @@ static void up_rptun_init(void)
     .addrenv    = addrenv,
     .nautostart = true,
     .master     = true,
-    .vringtx    = 1,
-    .vringrx    = 1,
+    .vringtx    = 15,
+    .vringrx    = 15,
     .config     = cpx_config,
     .start      = cpx_start,
   };
@@ -433,6 +509,10 @@ static void up_i2c_init(void)
   int config_num = sizeof(config) / sizeof(config[0]);
 
   dw_i2c_allinitialize(config, config_num, g_i2c);
+
+  /* WORKAROUND here, i2c read error at first trasfer when wakeup from DS */
+
+  up_i2c_pmic_read();
 }
 #endif
 
@@ -513,8 +593,86 @@ void up_lateinitialize(void)
 #endif
 }
 
+static void up_ds_enter(void)
+{
+  /* Set I2C PMIC sleep */
+
+  up_i2c_pmic_write(0x2);
+
+  /* Jump to slpu_pd */
+
+  putreg32(TOP_PWR_SLPU_SAVE_2PD_JMP << 16 |
+           TOP_PWR_SLPU_SAVE_2PD_JMP, TOP_PWR_SLPCTL_TOP_ROCKET);
+
+  /* Set PMICFSM enable full chip to DS */
+
+  modifyreg32(TOP_PMICFSM_CONFIG1, 0, TOP_PMICFSM_DS_SLP_VALID);
+}
+
+static void up_ds_enter_exit_work(FAR void *arg)
+{
+  uint32_t status = (uintptr_t)arg;
+
+  if (status & TOP_PWR_SLPU_SAVE_ENTRY)
+    {
+      up_ds_enter();
+    }
+  else if (status & TOP_PWR_CP_ROCKET_WAKEUP)
+    {
+#ifdef CONFIG_SONG_RPTUN
+      rptun_boot(CPU_NAME_CPR);
+#endif
+    }
+  else if (status & TOP_PWR_CP_XC5_WAKEUP)
+    {
+#ifdef CONFIG_SONG_RPTUN
+      rptun_boot(CPU_NAME_CPX);
+#endif
+    }
+}
+
+static int up_top_pwr_isr(int irq, FAR void *context, FAR void *arg)
+{
+  static struct work_s worker;
+  uint32_t status = getreg32(TOP_PWR_INTR_ST_TOP_ROCKET_1);
+
+  if (getreg32(TOP_PWR_INTR_ST_TOP_ROCKET_0) & TOP_PWR_SLP_U1RXD_ACT)
+    {
+      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_TOP_ROCKET_0);
+#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
+                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+#endif
+    }
+
+  if (status & TOP_PWR_SLPU_SAVE_ENTRY)
+    {
+      work_queue(HPWORK, &worker, up_ds_enter_exit_work, (void *)status, 0);
+      putreg32(TOP_PWR_SLPU_SAVE_ENTRY, TOP_PWR_INTR_ST_TOP_ROCKET_1);
+    }
+  else if (status & TOP_PWR_CP_ROCKET_WAKEUP)
+    {
+      work_queue(HPWORK, &worker, up_ds_enter_exit_work, (void *)status, 0);
+      putreg32(TOP_PWR_CP_ROCKET_WAKEUP, TOP_PWR_INTR_ST_TOP_ROCKET_1);
+    }
+  else if (status & TOP_PWR_CP_XC5_WAKEUP)
+    {
+      work_queue(HPWORK, &worker, up_ds_enter_exit_work, (void *)status, 0);
+      putreg32(TOP_PWR_CP_XC5_WAKEUP, TOP_PWR_INTR_ST_TOP_ROCKET_1);
+    }
+
+  return 0;
+}
+
 void up_finalinitialize(void)
 {
+  irq_attach(3, up_top_pwr_isr, NULL);
+  up_enable_irq(3);
+  modifyreg32(TOP_PWR_INTR_EN_TOP_ROCKET_0, 0, TOP_PWR_SLP_U1RXD_ACT);
+  modifyreg32(TOP_PWR_INTR_EN_TOP_ROCKET_1, 0, TOP_PWR_CP_ROCKET_WAKEUP);
+  modifyreg32(TOP_PWR_INTR_EN_TOP_ROCKET_1, 0, TOP_PWR_CP_XC5_WAKEUP);
+  modifyreg32(TOP_PWR_INTR_EN_TOP_ROCKET_1, 0, TOP_PWR_SLPU_SAVE_ENTRY);
+
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
@@ -540,23 +698,49 @@ void up_reset(int status)
     }
 }
 
+static void up_cpu_lp(bool pwr_sleep, bool deep_sleep)
+{
+  if (pwr_sleep)
+    {
+      putreg32(TOP_PWR_TOP_ROCKET_SLP_EN << 16 |
+               TOP_PWR_TOP_ROCKET_SLP_EN, TOP_PWR_SLPCTL_TOP_ROCKET);
+    }
+  else
+    {
+      putreg32(TOP_PWR_TOP_ROCKET_SLP_EN << 16, TOP_PWR_SLPCTL_TOP_ROCKET);
+    }
+
+  if (deep_sleep)
+    {
+      putreg32(TOP_PWR_TOP_ROCKET_DS_SLP_EN << 16 |
+               TOP_PWR_TOP_ROCKET_DS_SLP_EN, TOP_PWR_SLPCTL_TOP_ROCKET);
+    }
+  else
+    {
+      putreg32(TOP_PWR_TOP_ROCKET_DS_SLP_EN << 16, TOP_PWR_SLPCTL_TOP_ROCKET);
+    }
+}
+
 void up_cpu_doze(void)
 {
+  up_cpu_lp(false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
-  up_cpu_wfi();
+  up_cpu_doze();
 }
 
 void up_cpu_standby(void)
 {
+  up_cpu_lp(true, false);
   up_cpu_wfi();
 }
 
 void up_cpu_sleep(void)
 {
+  up_cpu_lp(true, true);
   up_cpu_wfi();
 }
 

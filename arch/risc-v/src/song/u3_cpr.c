@@ -55,8 +55,10 @@
 #include <nuttx/serial/uart_rpmsg.h>
 #include <nuttx/syslog/syslog_rpmsg.h>
 #include <nuttx/timers/arch_alarm.h>
+#include <nuttx/timers/arch_rtc.h>
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
+#include <nuttx/timers/song_rtc.h>
 
 #include <stdio.h>
 
@@ -81,15 +83,33 @@
 #define TOP_MAILBOX_BASE                (0xb0030000)
 
 #define TOP_PWR_BASE                    (0xb0040000)
+#define TOP_PWR_CP_ROCKET_RSTCTL        (TOP_PWR_BASE + 0x0e4)
 #define TOP_PWR_CHIPRST_CTL             (TOP_PWR_BASE + 0x114)
 #define TOP_PWR_CP_ROCKET_INTR2SLP_MK0  (TOP_PWR_BASE + 0x14c)
+#define TOP_PWR_CP_UNIT_PD_CTL          (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_RES_REG2                (TOP_PWR_BASE + 0x260)
+#define TOP_PWR_BOOT_REG                (TOP_PWR_BASE + 0x290)
+#define TOP_PWR_SLPCTL1                 (TOP_PWR_BASE + 0x354)
+#define TOP_PWR_SLPCTL_CP_ROCKET        (TOP_PWR_BASE + 0x35c)
 
 #define TOP_PWR_SFRST                   (1 << 1)    //TOP_PWR_CHIPRST_CTL
+
+#define TOP_PWR_CP_ROCKET_PD_MK         (1 << 3)    //TOP_PWR_CP_UNIT_PD_CTL
+#define TOP_PWR_CP_ROCKET_AU_PU_MK      (1 << 6)
+#define TOP_PWR_CP_ROCKET_AU_PD_MK      (1 << 7)
 
 #define TOP_PWR_RESET_NORMAL            (0x00000000)//TOP_PWR_RES_REG2
 #define TOP_PWR_RESET_ROMBOOT           (0xaaaa1234)
 #define TOP_PWR_RESET_RECOVERY          (0xbbbb1234)
+
+#define TOP_PWR_CP_ROCKET_COLD_BOOT     (1 << 2)    //TOP_PWR_BOOT_REG
+
+#define TOP_PWR_RF_TP_TM2_SLP_MK        (1 << 8)    //TOP_PWR_SLPCTL1
+#define TOP_PWR_RF_TP_CALIB_SLP_MK      (1 << 9)
+
+#define TOP_PWR_CP_ROCKET_SLP_EN        (1 << 0)    //TOP_PWR_SLPCTL_CP_ROCKET
+#define TOP_PWR_CP_ROCKET_SLP_MK        (1 << 1)
+#define TOP_PWR_CP_ROCKET_DS_SLP_EN     (1 << 2)
 
 /****************************************************************************
  * Private Data
@@ -145,6 +165,18 @@ FAR struct i2c_master_s *g_i2c[4] =
  * Public Functions
  ****************************************************************************/
 
+void up_earlystart(void)
+{
+  if (!(getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_ROCKET_COLD_BOOT))
+    {
+      /* CP core auto power on */
+
+      up_cpu_restore();
+    }
+
+  putreg32(TOP_PWR_CP_ROCKET_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
+}
+
 void up_earlyinitialize(void)
 {
   static const struct simple_addrenv_s addrenv[] =
@@ -154,6 +186,17 @@ void up_earlyinitialize(void)
   };
 
   simple_addrenv_initialize(addrenv);
+
+  /* Init CP rocket SLEEP value */
+
+  putreg32(TOP_PWR_CP_ROCKET_SLP_EN << 16 |
+           TOP_PWR_CP_ROCKET_SLP_MK << 16 |
+           TOP_PWR_CP_ROCKET_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_ROCKET);
+
+  /* Forbid CP rocket AUTO power down */
+
+  putreg32(TOP_PWR_CP_ROCKET_AU_PD_MK << 16 |
+           TOP_PWR_CP_ROCKET_AU_PD_MK, TOP_PWR_CP_UNIT_PD_CTL);
 
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, LOGBUF_SIZE);
@@ -422,24 +465,56 @@ void up_reset(int status)
     }
 }
 
+static void up_cpu_lp(bool pwr_sleep, bool deep_sleep)
+{
+  if (pwr_sleep)
+    {
+      putreg32(TOP_PWR_CP_ROCKET_SLP_EN << 16 |
+               TOP_PWR_CP_ROCKET_SLP_EN, TOP_PWR_SLPCTL_CP_ROCKET);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_ROCKET_SLP_EN << 16, TOP_PWR_SLPCTL_CP_ROCKET);
+    }
+
+  if (deep_sleep)
+    {
+      putreg32(TOP_PWR_CP_ROCKET_DS_SLP_EN << 16 |
+               TOP_PWR_CP_ROCKET_DS_SLP_EN, TOP_PWR_SLPCTL_CP_ROCKET);
+      putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+               TOP_PWR_RF_TP_TM2_SLP_MK |
+               TOP_PWR_RF_TP_CALIB_SLP_MK << 16 |
+               TOP_PWR_RF_TP_CALIB_SLP_MK, TOP_PWR_SLPCTL1);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_ROCKET_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_ROCKET);
+      putreg32(TOP_PWR_RF_TP_TM2_SLP_MK << 16 |
+               TOP_PWR_RF_TP_CALIB_SLP_MK << 16, TOP_PWR_SLPCTL1);
+    }
+}
+
 void up_cpu_doze(void)
 {
+  up_cpu_lp(false, false);
   up_cpu_wfi();
 }
 
 void up_cpu_idle(void)
 {
-  up_cpu_wfi();
+  up_cpu_doze();
 }
 
 void up_cpu_standby(void)
 {
-  up_cpu_wfi();
+  up_cpu_lp(true, false);
+  up_cpu_save();
 }
 
 void up_cpu_sleep(void)
 {
-  up_cpu_wfi();
+  up_cpu_lp(true, true);
+  up_cpu_save();
 }
 
 #endif /* CONFIG_ARCH_CHIP_U3_CPR */

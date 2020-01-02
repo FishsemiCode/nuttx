@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/ceva/src/xc5/up_psu.c
+ * arch/ceva/src/xc5/psu.h
  *
- *   Copyright (C) 2019 FishSemi Inc. All rights reserved.
+ *   Copyright (C) 2020 FishSemi Inc. All rights reserved.
  *   Author: Bo Zhang <zhangbo@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,47 +39,19 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/irq.h>
-
-#include "up_internal.h"
+#ifndef __ARCH_CEVA_SRC_XC5_PSU_H
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-//disable psu function temporily
-#if CONFIG_XC5_PSU_ENABLE
+#define XC5_DOZE  0x1ff2
+#define XC5_IDLE  0x1ff3
 
 /****************************************************************************
- * Private Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
-static void up_cpu_pmod(uint32_t psvm)
-{
-  __asm__ __volatile__                                             \
-  (                                                                \
-    "mov #0x2,    mod2\n"                                          \
-    "mov #0x3f80, modp\n"      /* Enable the interrupt */          \
-    "mov %0,   r0\n"           /* Enter the low power mode */      \
-    "mov #0x250,  r1\n"                                            \
-    "out {dw,cpm} r0, (r1)\n"  /* output to cpm register psmv */   \
-    "nop\nnop\nnop\nnop\nnop\nnop\nnop\nnop\n"                     \
-    /* Core auto restore to DPS here after wakeup */               \
-    "mov #0x0080, modp"        /* restore the interrupt */         \
-	: : "r"(psvm)                                              \
-  );
-}
-#else
-static void up_cpu_pmod(uint32_t psvm)
-{
-}
-#endif /* CONFIG_XC5_PSU_ENABLE */
+void up_psu_lp(int value);
 
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-void up_psu_lp(int value)
-{
-  up_cpu_pmod(value);
-}
+#endif /* __ARCH_CEVA_SRC_XC5_PSU_H */

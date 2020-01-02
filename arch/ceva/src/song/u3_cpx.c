@@ -55,9 +55,7 @@
 #include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
-
-#define TOP_MAILBOX_BASE            (0xb0030000)
-#define TOP_PWR_BASE                (0xb0040000)
+#include "psu.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -70,7 +68,16 @@
 #define CPU_INDEX_CPR                   1
 #define CPU_INDEX_CPX                   2
 
-#define LOGBUF_BASE                 ((uintptr_t)&_slog)
+#define LOGBUF_BASE                     ((uintptr_t)&_slog)
+
+#define TOP_MAILBOX_BASE                (0xb0030000)
+
+#define TOP_PWR_BASE                    (0xb0040000)
+#define TOP_PWR_SLPCTL_CP_XC5           (TOP_PWR_BASE + 0x360)
+
+#define TOP_PWR_CP_XC5_SLP_EN           (1 << 0)    //TOP_PWR_SLPCTL_CP_XC5
+#define TOP_PWR_CP_XC5_SLP_MK           (1 << 1)
+#define TOP_PWR_CP_XC5_DS_SLP_EN        (1 << 2)
 
 /****************************************************************************
  * Public Data
@@ -99,6 +106,10 @@ void up_earlyinitialize(void)
 
   simple_addrenv_initialize(addrenv);
 
+  putreg32(TOP_PWR_CP_XC5_SLP_EN << 16 |
+           TOP_PWR_CP_XC5_SLP_MK << 16 |
+           TOP_PWR_CP_XC5_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_XC5);
+
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init_early(CPU_NAME_AP, (void *)LOGBUF_BASE, CONFIG_LOGBUF_SIZE);
 #endif
@@ -109,20 +120,20 @@ void ceva_timer_initialize(void)
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config0 =
   {
-      .minor      = -1,
-      .base       = TOP_PWR_BASE,
-      .irq        = IRQ_VINT23,
-      .c1_max     = 480,
-      .c1_freq    = 4800000,
-      .ctl_off    = 0x170,
-      .calib_off  = 0x194,
-      .calib_inc  = 0x198,
-      .c1_off     = 0x174,
-      .c2_off     = 0x178,
-      .spec_off   = 0x1a8,
-      .intren_off = 0x12c,
-      .intrst_off = 0x138,
-      .intr_bit   = 1,
+    .minor      = -1,
+    .base       = TOP_PWR_BASE,
+    .irq        = IRQ_VINT23,
+    .c1_max     = 480,
+    .c1_freq    = 4800000,
+    .ctl_off    = 0x170,
+    .calib_off  = 0x194,
+    .calib_inc  = 0x198,
+    .c1_off     = 0x174,
+    .c2_off     = 0x178,
+    .spec_off   = 0x1a8,
+    .intren_off = 0x12c,
+    .intrst_off = 0x138,
+    .intr_bit   = 1,
   };
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config0));
@@ -189,8 +200,8 @@ static void up_rptun_init(void)
   {
     .cpuname = CPU_NAME_AP,
     .rsc     = &rptun_rsc_ap,
-    .vringtx = 1,
-    .vringrx = 1,
+    .vringtx = 15,
+    .vringrx = 15,
   };
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CPX]);
@@ -264,18 +275,51 @@ void up_finalinitialize(void)
 {
 }
 
+static void up_cpu_lp(bool pwr_sleep, bool deep_sleep)
+{
+  if (pwr_sleep)
+    {
+      putreg32(TOP_PWR_CP_XC5_SLP_EN << 16 |
+               TOP_PWR_CP_XC5_SLP_EN, TOP_PWR_SLPCTL_CP_XC5);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_XC5_SLP_EN << 16, TOP_PWR_SLPCTL_CP_XC5);
+    }
+
+  if (deep_sleep)
+    {
+      putreg32(TOP_PWR_CP_XC5_DS_SLP_EN << 16 |
+               TOP_PWR_CP_XC5_DS_SLP_EN, TOP_PWR_SLPCTL_CP_XC5);
+    }
+  else
+    {
+      putreg32(TOP_PWR_CP_XC5_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_XC5);
+    }
+}
+
+void up_cpu_doze(void)
+{
+  up_cpu_lp(false, false);
+  up_psu_lp(XC5_DOZE);
+}
+
+void up_cpu_idle(void)
+{
+  up_cpu_lp(false, false);
+  up_psu_lp(XC5_IDLE);
+}
+
 void up_cpu_standby(void)
 {
-  up_cpu_idle();
+  up_cpu_lp(true, false);
+  up_psu_lp(XC5_IDLE);
 }
 
 void up_cpu_sleep(void)
 {
-  up_cpu_standby();
-}
-
-void up_cpu_normal(void)
-{
+  up_cpu_lp(true, true);
+  up_psu_lp(XC5_IDLE);
 }
 
 #endif /* CONFIG_ARCH_CHIP_U3_CPX */
