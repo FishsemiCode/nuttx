@@ -9,6 +9,7 @@ config MISC_RPMSG
 	bool "Misc rpmsg"
 	default y
 	depends on OPENAMP
+	select SCHED_HPWORK
 	---help---
 		This selection enables misc_rpmsg, for someone wanted control
 		remote core do something, then can use this driver.
