@@ -1049,8 +1049,9 @@ static void up_flash_init(void)
 {
   static const struct song_onchip_flash_timing_s timing[] =
   {
-    {0x00, 0x00},   /* RD_CTRL1 */
-    {0x04, 0x00},   /* RD_CTRL2 */
+    {0x00, 0x000},   /* RD_CTRL1 */
+    {0x04, 0x000},   /* RD_CTRL2 */
+    {0x3c, 0x346},   /* PRIORITY_CTL */
     {-1,0},
   };
   static const struct song_onchip_flash_config_s config =
