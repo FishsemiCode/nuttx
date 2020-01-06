@@ -113,6 +113,6 @@ config LIB_ENVPATH
 
 config LIB_NEWLIB
 	bool "Compensation for newlib"
-	default y if ARCH_ARM
+	default y if ARCH_ARM || ARCH_RISCV
 	---help---
 		Enable the newlib to compensate the toolchain request.
