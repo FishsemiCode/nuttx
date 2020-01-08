@@ -318,7 +318,7 @@ void up_earlystart(void)
     {
       /* Set VDDMAIN 1.1V@work+0.8V@SLEEP+off@DS */
 
-      putreg32(0xc02401, TOP_PMICFSM_BUCK1);
+      putreg32(0xc2401, TOP_PMICFSM_BUCK1);
 
       /* Set VDDAON 1.1V@work and 0.7V@SLEEP */
 
