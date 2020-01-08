@@ -509,6 +509,7 @@ static const struct song_mux_clk mux[] =
     .mux_shift = 4,
     .mux_width = 2,
     .mux_flags = CLK_MUX_HIWORD_MASK,
+    .clk_flags = CLK_IS_CRITICAL,
   },
   {
     .name = "gnss_i_rf0_clk",
