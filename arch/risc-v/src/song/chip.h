@@ -84,6 +84,14 @@ void up_clk_finalinitialize(void);
 /* PMU *******************************************************************/
 void up_pmu_initialize(void);
 
+/* FPU **********************************************************************/
+
+#ifdef CONFIG_ARCH_FPU
+void up_fpuconfig(void);
+#else
+#  define up_fpuconfig()
+#endif
+
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_RISCV_SRC_SONG_CHIP_H */

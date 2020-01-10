@@ -213,6 +213,8 @@ void up_start(void)
   init_kernelspace();
   init_userspace();
 
+  up_fpuconfig();
+
   up_earlyserialinit();
 
   up_earlyinitialize();

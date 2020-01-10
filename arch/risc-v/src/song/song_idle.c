@@ -212,6 +212,8 @@ void up_cpu_save(void)
 
 void up_cpu_restore(void)
 {
+  up_fpuconfig();
+
   /* Restore full context */
 
   up_fullcontextrestore(g_up_cpu_regs);
