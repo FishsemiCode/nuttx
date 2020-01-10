@@ -195,6 +195,7 @@ void up_boot(void);
 /* Context switching */
 
 void up_copystate(uint32_t *dest, uint32_t *src);
+void up_copyfullstate(uint32_t *dest, uint32_t *src);
 
 /* Signal handling **********************************************************/
 

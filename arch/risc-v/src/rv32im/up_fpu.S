@@ -50,6 +50,7 @@
  * Public Symbols
  ************************************************************************************/
 
+	.globl		up_fpuconfig
 	.globl		up_savefpu
 	.globl		up_restorefpu
 
@@ -75,6 +76,31 @@
 /************************************************************************************
  * Public Functions
  ************************************************************************************/
+
+/************************************************************************************
+ * Name: up_fpuconfig
+ *
+ * Description:
+ *   init fpu
+ *
+ * C Function Prototype:
+ *   void up_fpuconfig(void);
+ *
+ * Input Parameters:
+ *   None
+ *
+ * Returned Value:
+ *   This function does not return anything explicitly.
+ *
+ ************************************************************************************/
+
+	.type		up_fpuconfig, function
+
+up_fpuconfig:
+	li		a0, FS_INITIAL
+	csrs		mstatus, a0
+	csrwi		fcsr, 0
+	ret
 
 /************************************************************************************
  * Name: up_savefpu

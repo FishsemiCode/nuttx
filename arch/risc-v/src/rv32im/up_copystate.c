@@ -88,3 +88,21 @@ void up_copystate(uint32_t *dest, uint32_t *src)
     }
 }
 
+
+/****************************************************************************
+ * Name: up_copyfullstate
+ ****************************************************************************/
+
+void up_copyfullstate(uint32_t *dest, uint32_t *src)
+{
+  int i;
+
+  if (src != dest)
+    {
+      for (i = 0; i < XCPTCONTEXT_REGS; i++)
+        {
+          dest[i] = src[i];
+        }
+    }
+}
+
