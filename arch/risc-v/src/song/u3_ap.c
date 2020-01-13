@@ -188,7 +188,7 @@ FAR struct i2c_master_s *g_i2c[3] =
 
 static int cpr_start(const struct song_rptun_config_s *config)
 {
-  putreg32(0x40100410, TOP_PWR_CP_ROCKET_CTL);
+  putreg32(0x40200410, TOP_PWR_CP_ROCKET_CTL);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_ROCKET_RSTN, 0);
   return 0;
 }
@@ -204,7 +204,7 @@ static int cpx_config(const struct song_rptun_config_s *config, void *data)
 static int cpx_start(const struct song_rptun_config_s *config)
 {
   modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_CACHE_INV, TOP_PWR_CP_XC5_CACHE_INV);
-  putreg32(0x40200000, TOP_PWR_CP_XC5_BOOT_ADDR);
+  putreg32(0x40300000, TOP_PWR_CP_XC5_BOOT_ADDR);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, TOP_PWR_CP_XC5_RSTN);
   modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, 0);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
@@ -256,7 +256,7 @@ void up_earlyinitialize(void)
 {
   static const struct simple_addrenv_s addrenv[] =
   {
-    {.va = 0x40000000, .pa = 0xd0000000, .size = 0x00100000},
+    {.va = 0x40000000, .pa = 0xd0000000, .size = 0x00200000},
     {.va = 0x00000000, .pa = 0x00000000, .size = 0x00000000},
   };
 
@@ -418,8 +418,8 @@ static void up_rptun_init(void)
 {
   static const struct rptun_addrenv_s addrenv[] =
   {
-    {.pa = 0xd0100000, .da = 0x40100000, .size = 0x00100000},
     {.pa = 0xd0200000, .da = 0x40200000, .size = 0x00100000},
+    {.pa = 0xd0300000, .da = 0x40300000, .size = 0x00100000},
     {.pa = 0x00000000, .da = 0x00000000, .size = 0x00000000},
   };
 
