@@ -26,11 +26,13 @@ config ARCH_CHIP_U3_AP
 	bool "U3 AP"
 	select ARCH_RV32IM
 	select ARCH_DCACHE
+	select ARCH_HAVE_FPU
 
 config ARCH_CHIP_U3_CPR
 	bool "U3 CPR"
 	select ARCH_RV32IM
 	select ARCH_DCACHE
+	select ARCH_HAVE_FPU
 
 config ARCH_CHIP_U3_QEMU
 	bool "U3 Qemu"
