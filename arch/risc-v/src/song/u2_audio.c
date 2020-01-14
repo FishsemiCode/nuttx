@@ -145,7 +145,7 @@ void riscv_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_init(CPU_NAME_AP, "AUDIO", 1024, true);
+  uart_rpmsg_init(CPU_NAME_AP, "AUDIO", 256, true);
 }
 #endif
 

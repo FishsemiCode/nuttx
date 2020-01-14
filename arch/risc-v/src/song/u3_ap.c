@@ -364,8 +364,8 @@ void up_wdtinit(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_init(CPU_NAME_CPR, "CPR", 1024, false);
-  uart_rpmsg_init(CPU_NAME_CPX, "CPX", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CPR, "CPR", 256, false);
+  uart_rpmsg_init(CPU_NAME_CPX, "CPX", 256, false);
 }
 #endif
 

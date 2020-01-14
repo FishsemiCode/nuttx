@@ -193,7 +193,7 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_init(CPU_NAME_AP, "A7", 1024, true);
+  uart_rpmsg_init(CPU_NAME_AP, "A7", 256, true);
 }
 #endif
 

@@ -229,7 +229,7 @@ void csky_timer_initialize(void)
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void)
 {
-  uart_rpmsg_init(CPU_NAME_AUDIO, "AUDIO", 1024, false);
+  uart_rpmsg_init(CPU_NAME_AUDIO, "AUDIO", 256, false);
 }
 #endif
 
