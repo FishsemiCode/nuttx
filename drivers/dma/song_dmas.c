@@ -146,14 +146,43 @@ struct song_dmas_dev_s
   int cpu;
   const char *clkname;
   bool clkinit;
-  struct song_dmas_chan_s channels[16];
+  struct song_dmas_chan_s *channels[CONFIG_SONG_DMAS_CHANNEL_NUM];
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
+static int song_dmas_chan_config(struct dma_chan_s *chan_,
+                                 const struct dma_config_s *cfg);
+static int song_dmas_start(struct dma_chan_s *chan_, dma_callback_t callback,
+                           void *arg, uintptr_t dst, uintptr_t src, size_t len);
+static int song_dmas_start_cyclic(struct dma_chan_s *chan_,
+                                  dma_callback_t callback, void *arg,
+                                  uintptr_t dst, uintptr_t src,
+                                  size_t len, size_t period_len);
+static int song_dmas_stop(struct dma_chan_s *chan_);
+static int song_dmas_pause(struct dma_chan_s *chan_);
 static int song_dmas_resume(struct dma_chan_s *chan_);
+static size_t song_dmas_residual(struct dma_chan_s *chan_);
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+static const struct dma_ops_s g_song_dmas_ops =
+{
+  .config       = song_dmas_chan_config,
+  .start        = song_dmas_start,
+  .start_cyclic = song_dmas_start_cyclic,
+#ifdef CONFIG_DMA_LINK
+  .start_link   = NULL,
+#endif
+  .stop         = song_dmas_stop,
+  .pause        = song_dmas_pause,
+  .resume       = song_dmas_resume,
+  .residual     = song_dmas_residual,
+};
 
 /****************************************************************************
  * Private Functions
@@ -492,16 +521,6 @@ static int song_dmas_start_cyclic(struct dma_chan_s *chan_,
   return OK;
 }
 
-static int song_dmas_pause(struct dma_chan_s *chan_)
-{
-  struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
-
-  song_dmas_write(chan->dev, SONG_DMAS_REG_PAUSE, chan->index);
-  chan->paused = true;
-
-  return OK;
-}
-
 static int song_dmas_stop(struct dma_chan_s *chan_)
 {
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
@@ -529,6 +548,16 @@ static int song_dmas_stop(struct dma_chan_s *chan_)
   if (index > 7)
     song_dmas_write(dev, SONG_DMAS_REG_INT_CLR0,
                     index + 16);
+
+  return OK;
+}
+
+static int song_dmas_pause(struct dma_chan_s *chan_)
+{
+  struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
+
+  song_dmas_write(chan->dev, SONG_DMAS_REG_PAUSE, chan->index);
+  chan->paused = true;
 
   return OK;
 }
@@ -623,7 +652,7 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
   int0 = song_dmas_read(dev, SONG_DMAS_REG_INT0(dev->cpu));
   int1 = song_dmas_read(dev, SONG_DMAS_REG_INT1(dev->cpu));
 
-  for (i = 0; i < 16; i++)
+  for (i = 0; i < CONFIG_SONG_DMAS_CHANNEL_NUM; i++)
     {
       bool finish = (int0 >> i) & 1;
       bool flush  = (int0 >> (i + 16)) & 1;
@@ -639,7 +668,7 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
           /* clear FINISH/FLUSH before to avoid clear the upcoming request accidentally
            * clear MATCH after to let the handler update the match address first
            */
-          song_dmas_chan_irq(&dev->channels[i], match, flush);
+          song_dmas_chan_irq(dev->channels[i], match, flush);
 
           if (match)
             song_dmas_write(dev, SONG_DMAS_REG_INT_CLR1, i);
@@ -651,41 +680,62 @@ static int song_dmas_irq_handler(int irq, FAR void *context, void *args)
 static struct dma_chan_s *song_dmas_get_chan(struct dma_dev_s *dev_, unsigned int ident)
 {
   struct song_dmas_dev_s *dev = (struct song_dmas_dev_s *)dev_;
+  struct song_dmas_chan_s *channel;
 
-  if (ident > 15)
-    return NULL;
-
-  song_dmas_stop(&dev->channels[ident].chan);
-
-  return &dev->channels[ident].chan;
-}
-
-static void song_dmas_put_chan(struct dma_dev_s *dev, struct dma_chan_s *chan)
-{
-#ifdef CONFIG_SONG_DMAS_RXCHECK
-  struct song_dmas_chan_s *chan_ = (struct song_dmas_chan_s *)chan;
-
-  if (chan_->rx_buf)
+  if (ident >= CONFIG_SONG_DMAS_CHANNEL_NUM)
     {
-      kmm_free(chan_->rx_buf);
+      return NULL;
     }
-#endif
+
+  if (dev->channels[ident])
+    {
+      return &dev->channels[ident]->chan;
+    }
+
+  channel = kmm_zalloc(sizeof(struct song_dmas_chan_s));
+  if (!channel)
+    {
+      return NULL;
+    }
+
+  channel->dev         = dev;
+  channel->index       = ident;
+  channel->chan.ops    = &g_song_dmas_ops;
+  dev->channels[ident] = channel;
+
+  song_dmas_stop(&channel->chan);
+
+  return &channel->chan;
 }
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-static const struct dma_ops_s g_song_dmas_ops =
+static void song_dmas_put_chan(struct dma_dev_s *dev_, struct dma_chan_s *chan)
 {
-  song_dmas_chan_config,
-  song_dmas_start,
-  song_dmas_start_cyclic,
-  song_dmas_stop,
-  song_dmas_pause,
-  song_dmas_resume,
-  song_dmas_residual,
-};
+  struct song_dmas_dev_s *dev = (struct song_dmas_dev_s *)dev_;
+  struct song_dmas_chan_s *channel = (struct song_dmas_chan_s *)chan;
+  int i;
+
+  if (!channel)
+    {
+      return;
+    }
+
+  for (i = 0; i < CONFIG_SONG_DMAS_CHANNEL_NUM; i++)
+    {
+      if (dev->channels[i] == channel)
+        {
+          #ifdef CONFIG_SONG_DMAS_RXCHECK
+          if (channel->rx_buf)
+            {
+              kmm_free(channel->rx_buf);
+            }
+          #endif
+
+          kmm_free(channel);
+          dev->channels[i] = NULL;
+          break;
+        }
+    }
+}
 
 /****************************************************************************
  * Public Functions
@@ -694,18 +744,10 @@ static const struct dma_ops_s g_song_dmas_ops =
 struct dma_dev_s *song_dmas_initialize(int cpu, uintptr_t base, int irq, const char *clkname)
 {
   struct song_dmas_dev_s *dev;
-  unsigned int i;
 
   dev = kmm_zalloc(sizeof(struct song_dmas_dev_s));
   if (!dev)
     return NULL;
-
-  for (i = 0; i < 16; ++i)
-    {
-      dev->channels[i].dev = dev;
-      dev->channels[i].index = i;
-      dev->channels[i].chan.ops = &g_song_dmas_ops;
-    }
 
   dev->base = base;
   dev->cpu = cpu;

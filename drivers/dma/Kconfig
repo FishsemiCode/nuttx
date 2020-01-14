@@ -22,6 +22,10 @@ config SONG_DMAG
 
 if SONG_DMAG
 
+config SONG_DMAG_CHANNEL_NUM
+	int "DAMG channel number"
+	default 16
+
 config SONG_DMAG_LINK
 	bool "Support Song DMAG link configure"
 	default n
@@ -51,6 +55,10 @@ config SONG_DMAS
 	depends on CLK
 
 if SONG_DMAS
+
+config SONG_DMAS_CHANNEL_NUM
+	int "DAMS channel number"
+	default 16
 
 config SONG_DMAS_RXCHECK
 	bool "Check dma-rx last transfer across 1k border or not"

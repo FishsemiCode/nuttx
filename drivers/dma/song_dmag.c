@@ -154,7 +154,48 @@ struct song_dmag_dev_s
   int cpu;
   const char *clkname;
   bool clkinit;
-  struct song_dmag_chan_s channels[16];
+  struct song_dmag_chan_s *channels[CONFIG_SONG_DMAG_CHANNEL_NUM];
+};
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+static int song_dmag_chan_config(struct dma_chan_s *chan_,
+                                 const struct dma_config_s *cfg);
+static int song_dmag_start(struct dma_chan_s *chan_,
+                           dma_callback_t callback,
+                           void *arg, uintptr_t dst,
+                           uintptr_t src, size_t len);
+static int song_dmag_start_cyclic(struct dma_chan_s *chan,
+                                  dma_callback_t callback,
+                                  void *arg, uintptr_t dst,
+                                  uintptr_t src, size_t len,
+                                  size_t period_len);
+static int song_dmag_start_link(struct dma_chan_s *chan_,
+                                dma_callback_t callback, void *arg,
+                                unsigned int work_mode, struct dma_link_config_s *cfg);
+static int song_dmag_stop(struct dma_chan_s *chan_);
+static int song_dmag_pause(struct dma_chan_s *chan_);
+static int song_dmag_resume(struct dma_chan_s *chan_);
+static size_t song_dmag_residual(struct dma_chan_s *chan_);
+
+/****************************************************************************
+ * Private Data
+ ****************************************************************************/
+
+struct dma_ops_s g_song_dmag_ops =
+{
+  .config       = song_dmag_chan_config,
+  .start        = song_dmag_start,
+  .start_cyclic = song_dmag_start_cyclic,
+#ifdef CONFIG_SONG_DMAG_LINK
+  .start_link   = song_dmag_start_link,
+#endif
+  .stop         = song_dmag_stop,
+  .pause        = song_dmag_pause,
+  .resume       = song_dmag_resume,
+  .residual     = song_dmag_residual,
 };
 
 /****************************************************************************
@@ -188,51 +229,6 @@ static bool song_dmag_is_busy(struct song_dmag_dev_s *dev,
   return (song_dmag_read(dev, SONG_DMAG_REG_STATUS) >> index) & 1;
 }
 
-static int song_dmag_pause(struct dma_chan_s *chan_)
-{
-  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
-  struct song_dmag_dev_s *dev = chan->dev;
-
-  song_dmag_write(dev, SONG_DMAG_REG_CTRL(chan->index),
-                  SONG_DMAG_CTRL_PAUSE);
-
-  return OK;
-}
-
-static int song_dmag_resume(struct dma_chan_s *chan_)
-{
-  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
-  struct song_dmag_dev_s *dev = chan->dev;
-
-  song_dmag_write(dev, SONG_DMAG_REG_CTRL(chan->index),
-                  SONG_DMAG_CTRL_RESUME);
-
-  return OK;
-}
-
-static size_t song_dmag_residual(struct dma_chan_s *chan_)
-{
-  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
-  struct song_dmag_dev_s *dev = chan->dev;
-  uint32_t ca;
-
-#ifdef CONFIG_SONG_DMAG_LINK
-  if (chan->work_mode != DMA_BLOCK_MODE)
-    {
-      song_dmag_write(dev, SONG_DMAG_REG_MONITOR_CTRL(chan->index),
-                      SONG_DMAG_MONITOR_SRC_NUM);
-      ca = song_dmag_read(dev, SONG_DMAG_REG_MONITOR_OUT(chan->index));
-
-      return chan->link_cfg->src_link_num - ca;
-    }
-#endif
-  song_dmag_write(dev, SONG_DMAG_REG_MONITOR_CTRL(chan->index),
-                  SONG_DMAG_MONITOR_DST_ADDR);
-  ca = song_dmag_read(dev, SONG_DMAG_REG_MONITOR_OUT(chan->index));
-
-  return chan->len - (ca - chan->dst_addr);
-}
-
 static int song_dmag_chan_config(struct dma_chan_s *chan_,
                                  const struct dma_config_s *cfg)
 {
@@ -245,42 +241,6 @@ static int song_dmag_chan_config(struct dma_chan_s *chan_,
   if (song_dmag_is_busy(dev, chan->index))
     return -EBUSY;
 
-  return OK;
-}
-
-static void song_dmag_chan_irq(struct song_dmag_chan_s *chan)
-{
-  struct song_dmag_dev_s *dev = chan->dev;
-  unsigned int index = chan->index;
-  uint32_t status = song_dmag_read(dev, SONG_DMAG_REG_CH_INTR_STATUS(index));
-  ssize_t len;
-
-#ifdef CONFIG_SONG_DMAG_LINK
-  if (chan->work_mode != DMA_BLOCK_MODE)
-    len = chan->link_cfg->src_link_num - song_dmag_residual(&chan->chan);
-  else
-#endif
-    len = chan->len - song_dmag_residual(&chan->chan);
-
-  song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_STATUS(index), status);
-  if (status & SONG_DMAG_INTR_ERROR)
-    len = -ENXIO;
-  if (chan->callback)
-    chan->callback(&chan->chan, chan->arg, len);
-}
-
-static int song_dmag_irq_handler(int irq, void *context, void *args)
-{
-  struct song_dmag_dev_s *dev = args;
-  uint32_t status;
-  unsigned int i;
-
-  status = song_dmag_read(dev, SONG_DMAG_REG_INTR_STATUS(dev->cpu));
-  for (i = 0; i < 16; i++)
-   {
-     if (status & (1 << i))
-       song_dmag_chan_irq(&dev->channels[i]);
-   }
   return OK;
 }
 
@@ -333,56 +293,6 @@ static int song_dmag_start_cyclic(struct dma_chan_s *chan,
                                   size_t period_len)
 {
   return -ENOTSUP;
-}
-
-static int song_dmag_stop(struct dma_chan_s *chan_)
-{
-  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
-  struct song_dmag_dev_s *dev = chan->dev;
-  unsigned int index = chan->index;
-
-  song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_EN(index), 0);
-  song_dmag_update_bits(dev, SONG_DMAG_REG_INTR_EN(dev->cpu),
-                        1 << index, 0);
-  song_dmag_write(dev, SONG_DMAG_REG_CTRL(index),
-                  SONG_DMAG_CTRL_CLOSE);
-  while(song_dmag_is_busy(dev, index));
-  song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_STATUS(index), ~0);
-
-  return OK;
-}
-
-static struct dma_chan_s *song_dmag_get_chan(struct dma_dev_s *dev_,
-                                             unsigned int ident)
-{
-  struct song_dmag_dev_s *dev = (struct song_dmag_dev_s *)dev_;
-
-  if (ident > 15)
-    return NULL;
-
-  if (dev->clkname && !dev->clkinit)
-    {
-      struct clk *dma_clk;
-      dma_clk = clk_get(dev->clkname);
-      if (dma_clk == NULL)
-        {
-          return NULL;
-        }
-      if (clk_enable(dma_clk) < 0)
-        {
-          return NULL;
-        }
-      dev->clkinit = true;
-    }
-
-  song_dmag_stop(&dev->channels[ident].chan);
-
-  return &dev->channels[ident].chan;
-}
-
-static void song_dmag_put_chan(struct dma_dev_s *dev,
-                               struct dma_chan_s *chan)
-{
 }
 
 #ifdef CONFIG_SONG_DMAG_LINK
@@ -449,23 +359,158 @@ static int song_dmag_start_link(struct dma_chan_s *chan_,
 }
 #endif
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-struct dma_ops_s g_song_dmag_ops =
+static int song_dmag_stop(struct dma_chan_s *chan_)
 {
-  song_dmag_chan_config,
-  song_dmag_start,
-  song_dmag_start_cyclic,
+  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
+  struct song_dmag_dev_s *dev = chan->dev;
+  unsigned int index = chan->index;
+
+  song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_EN(index), 0);
+  song_dmag_update_bits(dev, SONG_DMAG_REG_INTR_EN(dev->cpu),
+                        1 << index, 0);
+  song_dmag_write(dev, SONG_DMAG_REG_CTRL(index),
+                  SONG_DMAG_CTRL_CLOSE);
+  while(song_dmag_is_busy(dev, index));
+  song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_STATUS(index), ~0);
+
+  return OK;
+}
+
+static int song_dmag_pause(struct dma_chan_s *chan_)
+{
+  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
+  struct song_dmag_dev_s *dev = chan->dev;
+
+  song_dmag_write(dev, SONG_DMAG_REG_CTRL(chan->index),
+                  SONG_DMAG_CTRL_PAUSE);
+
+  return OK;
+}
+
+static int song_dmag_resume(struct dma_chan_s *chan_)
+{
+  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
+  struct song_dmag_dev_s *dev = chan->dev;
+
+  song_dmag_write(dev, SONG_DMAG_REG_CTRL(chan->index),
+                  SONG_DMAG_CTRL_RESUME);
+
+  return OK;
+}
+
+static size_t song_dmag_residual(struct dma_chan_s *chan_)
+{
+  struct song_dmag_chan_s *chan = (struct song_dmag_chan_s *)chan_;
+  struct song_dmag_dev_s *dev = chan->dev;
+  uint32_t ca;
+
 #ifdef CONFIG_SONG_DMAG_LINK
-  song_dmag_start_link,
+  if (chan->work_mode != DMA_BLOCK_MODE)
+    {
+      song_dmag_write(dev, SONG_DMAG_REG_MONITOR_CTRL(chan->index),
+                      SONG_DMAG_MONITOR_SRC_NUM);
+      ca = song_dmag_read(dev, SONG_DMAG_REG_MONITOR_OUT(chan->index));
+
+      return chan->link_cfg->src_link_num - ca;
+    }
 #endif
-  song_dmag_stop,
-  song_dmag_pause,
-  song_dmag_resume,
-  song_dmag_residual,
-};
+  song_dmag_write(dev, SONG_DMAG_REG_MONITOR_CTRL(chan->index),
+                  SONG_DMAG_MONITOR_DST_ADDR);
+  ca = song_dmag_read(dev, SONG_DMAG_REG_MONITOR_OUT(chan->index));
+
+  return chan->len - (ca - chan->dst_addr);
+}
+
+static void song_dmag_chan_irq(struct song_dmag_chan_s *chan)
+{
+  struct song_dmag_dev_s *dev = chan->dev;
+  unsigned int index = chan->index;
+  uint32_t status = song_dmag_read(dev, SONG_DMAG_REG_CH_INTR_STATUS(index));
+  ssize_t len;
+
+#ifdef CONFIG_SONG_DMAG_LINK
+  if (chan->work_mode != DMA_BLOCK_MODE)
+    len = chan->link_cfg->src_link_num - song_dmag_residual(&chan->chan);
+  else
+#endif
+    len = chan->len - song_dmag_residual(&chan->chan);
+
+  song_dmag_write(dev, SONG_DMAG_REG_CH_INTR_STATUS(index), status);
+  if (status & SONG_DMAG_INTR_ERROR)
+    len = -ENXIO;
+  if (chan->callback)
+    chan->callback(&chan->chan, chan->arg, len);
+}
+
+static int song_dmag_irq_handler(int irq, void *context, void *args)
+{
+  struct song_dmag_dev_s *dev = args;
+  uint32_t status;
+  unsigned int i;
+
+  status = song_dmag_read(dev, SONG_DMAG_REG_INTR_STATUS(dev->cpu));
+  for (i = 0; i < CONFIG_SONG_DMAG_CHANNEL_NUM; i++)
+   {
+     if (status & (1 << i))
+       song_dmag_chan_irq(&dev->channels[i]);
+   }
+  return OK;
+}
+
+static struct dma_chan_s *song_dmag_get_chan(struct dma_dev_s *dev_,
+                                             unsigned int ident)
+{
+  struct song_dmag_dev_s *dev = (struct song_dmag_dev_s *)dev_;
+  struct song_dmag_chan_s *channel;
+
+  if (ident >= CONFIG_SONG_DMAG_CHANNEL_NUM)
+    {
+      return NULL;
+    }
+
+  if (dev->channels[ident])
+    {
+      return &dev->channels[ident]->chan;
+    }
+
+  channel = kmm_zalloc(sizeof(struct song_dmag_chan_s));
+  if (!channel)
+    {
+      return NULL;
+    }
+
+  channel->dev         = dev;
+  channel->index       = ident;
+  channel->chan.ops    = &g_song_dmag_ops;
+  dev->channels[ident] = channel;
+
+  song_dmag_stop(&channel->chan);
+
+  return &channel->chan;
+}
+
+static void song_dmag_put_chan(struct dma_dev_s *dev_,
+                               struct dma_chan_s *chan)
+{
+  struct song_dmag_dev_s *dev = (struct song_dmag_dev_s *)dev_;
+  struct song_dmag_chan_s *channel = (struct song_dmag_chan_s *)chan;
+  int i;
+
+  if (!channel)
+    {
+      return;
+    }
+
+  for (i = 0; i < CONFIG_SONG_DMAG_CHANNEL_NUM; i++)
+    {
+      if (dev->channels[i] == channel)
+        {
+          kmm_free(channel);
+          dev->channels[i] = NULL;
+          break;
+        }
+    }
+}
 
 /****************************************************************************
  * Public Functions
@@ -480,16 +525,29 @@ struct dma_dev_s *song_dmag_initialize(int cpu, uintptr_t base, int irq, const c
   if (!dev)
     return NULL;
 
-  for (i = 0; i < 16; ++i)
-   {
-     dev->channels[i].index = i;
-     dev->channels[i].dev = dev;
-     dev->channels[i].chan.ops = &g_song_dmag_ops;
-   }
-
   dev->base = base;
   dev->cpu = cpu;
   dev->clkname = clkname;
+
+  if (dev->clkname && !dev->clkinit)
+    {
+      struct clk *dma_clk;
+
+      dma_clk = clk_get(dev->clkname);
+      if (dma_clk == NULL)
+        {
+          kmm_free(dev);
+          return NULL;
+        }
+
+      if (clk_enable(dma_clk) < 0)
+        {
+          kmm_free(dev);
+          return NULL;
+        }
+
+      dev->clkinit = true;
+    }
 
   /* enable the low power control */
   song_dmag_write(dev, SONG_DMAG_REG_LP_EN, 0xffffffff);
