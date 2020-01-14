@@ -526,14 +526,6 @@ void up_extra_init(void)
 
   up_prioritize_irq(31, NVIC_SYSH_PRIORITY_DEFAULT - NVIC_SYSH_PRIORITY_SUBSTEP);
 
-#ifdef CONFIG_RAMDISK
-  /* Register a RAMDISK device: /dev/ram1 */
-
-  ramdisk_register(1, (uint8_t *)U1_CP_RAMDISK_BASE,
-                   U1_CP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
-                   RDFLAG_WRENABLED | RDFLAG_FUNLINK);
-#endif
-
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);

@@ -599,14 +599,6 @@ static void up_extra_init(void)
       modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
     }
 
-#ifdef CONFIG_RAMDISK
-  /* Register a RAMDISK device: /dev/ram1 */
-
-  ramdisk_register(1, (uint8_t *)U1_AP_RAMDISK_BASE,
-                   U1_AP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
-                   RDFLAG_WRENABLED | RDFLAG_FUNLINK);
-#endif
-
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);

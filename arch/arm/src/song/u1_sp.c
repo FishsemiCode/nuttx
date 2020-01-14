@@ -613,197 +613,6 @@ static int cp_start(const struct song_rptun_config_s *config)
   return 0;
 }
 
-#ifdef CONFIG_RAMDISK
-static int up_file_copy(char *dstfile, char *srcfile)
-{
-  char *buf = NULL;
-  int ret = 0;
-  int fdr = -1;
-  int fdw = -1;
-
-  fdr = open(srcfile, O_RDONLY);
-  if (fdr < 0)
-    {
-      return fdr;
-    }
-
-  fdw = open(dstfile, O_WRONLY | O_CREAT);
-  if (fdw < 0)
-    {
-      goto out;
-    }
-
-  buf = kmm_malloc(1024);
-  if (!buf)
-    {
-      goto out;
-    }
-
-  while (1)
-    {
-      int nr, nw;
-
-      nr = read(fdr, buf, 1024);
-      if (nr == 0)
-        {
-          break;
-        }
-      else if (nr < 0)
-        {
-          ret = nr;
-          goto out;
-        }
-
-      do
-        {
-          nw = write(fdw, buf, nr);
-          if (nw >= 0)
-            {
-              nr -= nw;
-            }
-          else
-            {
-              ret = nw;
-              goto out;
-            }
-        }
-      while (nr > 0);
-    }
-
-out:
-  if (buf) free(buf);
-  if (fdr >= 0) close(fdr);
-  if (fdw >= 0) close(fdw);
-  return ret;
-}
-
-static void up_folder_copy(char *dstdir, char *srcdir, char *append,
-                           bool dstauto, bool srcclr)
-{
-  DIR *dirp;
-
-  dirp = opendir(srcdir);
-  if (!dirp)
-    {
-      return;
-    }
-
-  for (; ; )
-    {
-      FAR struct dirent *entryp = readdir(dirp);
-      char dstfile[64];
-      char srcfile[64];
-
-      if (!entryp)
-        {
-          /* Finished with this directory */
-
-          break;
-        }
-
-      if (DIRENT_ISDIRECTORY(entryp->d_type))
-        {
-          continue;
-        }
-
-      if (dstauto)
-        {
-          char *last;
-
-          if (strlen(entryp->d_name) <= 3)
-            {
-              continue;
-            }
-
-          last = entryp->d_name + strlen(entryp->d_name) - 3;
-          if (strcmp(last , ".ap") == 0)
-            {
-              dstdir = "/diskap";
-            }
-          else if (strcmp(last, ".cp") == 0)
-            {
-              dstdir = "/diskcp";
-            }
-          else
-            {
-              continue;
-            }
-
-          snprintf(dstfile, 64, "%s/%.*s", dstdir, strlen(entryp->d_name) - 3, entryp->d_name);
-        }
-      else
-        {
-          snprintf(dstfile, 64, "%s/%s%s", dstdir, entryp->d_name, append);
-        }
-
-      snprintf(srcfile, 64, "%s/%s", srcdir, entryp->d_name);
-      up_file_copy(dstfile, srcfile);
-
-      if (srcclr)
-        {
-          unlink(srcfile);
-        }
-    }
-
-  closedir(dirp);
-}
-
-static int up_ramdisk_flush(char *fpath)
-{
-  if (strcmp(fpath, "amt") == 0)
-    {
-      up_folder_copy("/onchip/amtr", "/disksp/amtw", NULL, false, true);
-    }
-  else if (strncmp(fpath, "/diskap", 7) == 0)
-    {
-      ramdisk_register(2, (uint8_t *)U1_AP_RAMDISK_BASE_PY,
-                       U1_AP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
-                       RDFLAG_WRENABLED | RDFLAG_FUNLINK);
-
-      mount("/dev/ram2", "/diskap", "littlefs", 0, "autoformat");
-
-      up_folder_copy("/onchip", "/diskap", ".ap", false, false);
-
-      umount("/diskap");
-    }
-  else if (strncmp(fpath, "/diskcp", 7) == 0)
-    {
-      ramdisk_register(3, (uint8_t *)U1_CP_RAMDISK_BASE_PY,
-                       U1_CP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
-                       RDFLAG_WRENABLED | RDFLAG_FUNLINK);
-
-      mount("/dev/ram3", "/diskcp", "littlefs", 0, "autoformat");
-
-      up_folder_copy("/onchip", "/diskcp", ".cp", false, false);
-
-      umount("/diskcp");
-    }
-
-  return 0;
-}
-
-static int up_ramdisk_restore(void)
-{
-  ramdisk_register(2, (uint8_t *)U1_AP_RAMDISK_BASE_PY,
-                   U1_AP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
-                   RDFLAG_WRENABLED | RDFLAG_FUNLINK);
-
-  ramdisk_register(3, (uint8_t *)U1_CP_RAMDISK_BASE_PY,
-                   U1_CP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
-                   RDFLAG_WRENABLED | RDFLAG_FUNLINK);
-
-  mount("/dev/ram2", "/diskap", "littlefs", 0, "forceformat");
-  mount("/dev/ram3", "/diskcp", "littlefs", 0, "forceformat");
-
-  up_folder_copy(NULL, "/onchip", NULL, true, false);
-
-  umount("/diskap");
-  umount("/diskcp");
-
-  return 0;
-}
-#endif
-
 static void up_rptun_init(void)
 {
   static struct rptun_rsc_s rptun_rsc_ap
@@ -953,10 +762,6 @@ static void up_rptun_init(void)
 #  ifdef CONFIG_MISC_RPMSG
   g_misc[0] = misc_rpmsg_initialize(CPU_NAME_AP, false);
   g_misc[1] = misc_rpmsg_initialize(CPU_NAME_CP, false);
-
-  #  ifdef CONFIG_RAMDISK
-  MISC_RAMFLUSH_REGISTER(g_misc[0], up_ramdisk_flush);
-  #  endif
 #  endif
 }
 #endif
@@ -1275,10 +1080,6 @@ static void up_ds_enter_work(void)
 
   cp_flash_save_prepare();
   MISC_RETENT_SAVE(g_misc[1], CP_RVSD_FILE);
-#ifdef CONFIG_RAMDISK
-  up_ramdisk_flush("/diskap");
-  up_ramdisk_flush("/diskcp");
-#endif
   cp_flash_save_finish();
 #endif
 
@@ -1349,12 +1150,6 @@ void up_finalinitialize(void)
 #ifdef CONFIG_SONG_RPTUN
   if (!up_is_warm_rstn())
     {
-#ifdef CONFIG_RAMDISK
-      /* AP & CP Ramdisk restore */
-
-      up_ramdisk_restore();
-#endif
-
       rptun_boot(CPU_NAME_AP);
       rptun_boot(CPU_NAME_CP);
     }
