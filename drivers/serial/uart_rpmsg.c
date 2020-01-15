@@ -320,6 +320,20 @@ static void uart_rpmsg_dmareceive(FAR struct uart_dev_s *dev)
 
 static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev)
 {
+  struct uart_rpmsg_priv_s *priv = dev->priv;
+
+  if (is_rpmsg_ept_ready(&priv->ept))
+    {
+      struct uart_rpmsg_wakeup_s msg =
+        {
+          .header =
+            {
+              .command = UART_RPMSG_TTY_WAKEUP,
+            },
+        };
+
+      rpmsg_send(&priv->ept, &msg, sizeof(msg));
+    }
 }
 
 static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev)
