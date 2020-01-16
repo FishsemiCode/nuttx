@@ -1136,17 +1136,6 @@ static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
 
 void up_finalinitialize(void)
 {
-  /* Attach and enable DS enter exit intr */
-
-  irq_attach(18, up_ds_enter_exit_isr, NULL);
-  up_enable_irq(18);
-  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
-  if (!up_is_u1v1())
-    {
-      modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_AP_DS_WAKEUP);
-      modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_CP_DS_WAKEUP);
-    }
-
 #ifdef CONFIG_SONG_RPTUN
   if (!up_is_warm_rstn())
     {
@@ -1155,11 +1144,12 @@ void up_finalinitialize(void)
     }
   else
     {
+      /* Force boot AP, choice boot CP */
+
+      rptun_boot(CPU_NAME_AP);
+
       if (up_is_u1v1())
         {
-          /* Force boot AP, choice boot CP */
-
-          rptun_boot(CPU_NAME_AP);
           if (up_get_wkreason() == WAKEUP_REASON_RTC_RSTN)
             {
               if (getreg32(0xb2020040) & 0x1)
@@ -1179,6 +1169,16 @@ void up_finalinitialize(void)
         }
     }
 #endif
+
+  /* Attach and enable DS enter exit intr */
+
+  irq_attach(18, up_ds_enter_exit_isr, NULL);
+  up_enable_irq(18);
+  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
+  if (!up_is_u1v1())
+    {
+      modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_CP_DS_WAKEUP);
+    }
 
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
