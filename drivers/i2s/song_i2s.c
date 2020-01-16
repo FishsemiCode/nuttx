@@ -275,7 +275,8 @@ static int song_i2s_set_fmt(struct song_i2s_s *dev, uint16_t fmt)
       case AUDIO_HWFMT_CBS_CFS:
         song_i2s_updatereg(dev, SONG_I2S_MODE, SONG_I2S_TRAN_POL_MASK |
                            SONG_I2S_REC_POL_MASK | SONG_I2S_SLAVE_EN,
-                           SONG_I2S_TRAN_POL_FALL | SONG_I2S_REC_POL_FALL);
+                           SONG_I2S_TRAN_POL_FALL | SONG_I2S_REC_POL_FALL |
+                           SONG_I2S_SLAVE_EN);
         break;
       default:
         return -EINVAL;
