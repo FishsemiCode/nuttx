@@ -58,6 +58,7 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
+#include <nuttx/analog/song_adc.h>
 #include <nuttx/crashdump/dumpfile.h>
 
 #include <crc32.h>
@@ -520,6 +521,22 @@ void up_ioe_init(void)
 }
 #endif
 
+#ifdef CONFIG_ADC_SONG
+void up_adc_init(void)
+{
+  static const struct song_adc_config_s cfg =
+  {
+    .minor  = 0,
+    .base = 0xb0180000,
+    .ctl_off = 0xf0,
+    .sta_off = 0xd4,
+    .clk_off = 0x68,
+  };
+
+  song_adc_register(&cfg);
+}
+#endif
+
 void up_extra_init(void)
 {
   /* Set RFIF IRQ SUB PRIORITY */
@@ -551,6 +568,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_IOE
   up_ioe_init();
+#endif
+
+#ifdef CONFIG_ADC_SONG
+  up_adc_init();
 #endif
 
   up_extra_init();
