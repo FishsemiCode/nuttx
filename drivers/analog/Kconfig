@@ -127,6 +127,12 @@ config PGA11X_MULTIPLE
 
 endif # if ADC_PGA11X
 
+config ADC_SONG
+	bool "song dac support"
+	default n
+	---help---
+		Enable driver support for the song ADC.
+
 endif # ADC
 
 config COMP

@@ -1,8 +1,8 @@
 /****************************************************************************
- * include/nuttx/analog/ioctl.h
+ * include/nuttx/analog/song_adc.h
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Copyright (C) 2020 FishSemi Inc. All rights reserved.
+ *   Author: Yuan Zhang<zhangyuan@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,78 +33,66 @@
  *
  ****************************************************************************/
 
-#ifndef __INCLUDE_NUTTX_ANALOG_IOCTL_H
-#define __INCLUDE_NUTTX_ANALOG_IOCTL_H
+#ifndef __INCLUDE_NUTTX_ANALOG_SONG_ADC_H
+#define __INCLUDE_NUTTX_ANALOG_SONG_ADC_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/fs/ioctl.h>
+#include <nuttx/analog/ioctl.h>
+#include <stdint.h>
+
+#if defined(CONFIG_ADC_SONG)
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* The analog driver sub-system uses the standard character driver framework.
- * However, since the driver is a devices control interface rather than a
- * data transfer interface, the majority of the functionality is implemented
- * in driver ioctl calls.  Standard ioctl commands are listed below:
- */
+#define ANIOC_SONG_ADC_VBAT             _ANIOC(AN_SONG_ADC_FIRST + 0)
+#define ANIOC_SONG_ADC_VBAT_CALIBRATE   _ANIOC(AN_SONG_ADC_FIRST + 1)
 
-/* DAC/ADC */
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
 
-#define ANIOC_TRIGGER     _ANIOC(0x0001)  /* Trigger one conversion
-                                           * IN: None
-                                           * OUT: None */
-#define ANIOC_WDOG_UPPER  _ANIOC(0x0002)  /* Set upper threshold for watchdog
-                                           * IN: Threshold value
-                                           * OUT: None */
-#define ANIOC_WDOG_LOWER  _ANIOC(0x0003)  /* Set lower threshold for watchdog
-                                           * IN: Threshold value
-                                           * OUT: None */
+struct song_adc_vbat_cal_s
+{
+  int32_t ref_vbat_low;
+  int32_t ref_vbat_high;
+  int32_t cal_vbat_low;
+  int32_t cal_vbat_high;
+};
 
-#define AN_FIRST          0x0001          /* First common command */
-#define AN_NCMDS          3               /* Number of common commands */
-
-/* User defined ioctl commands are also supported. These will be forwarded
- * by the upper-half QE driver to the lower-half QE driver via the ioctl()
- * method fo the QE lower-half interface.  However, the lower-half driver
- * must reserve a block of commands as follows in order prevent IOCTL
- * command numbers from overlapping.
- */
-
-/* See include/nuttx/analog/ads1242.h */
-
-#define AN_ADS2142_FIRST  (AN_FIRST + AN_NCMDS)
-#define AN_ADS2142_NCMDS  6
-
-/* See include/nuttx/analog/lm92001.h */
-
-#define AN_LMP92001_FIRST (AN_FIRST + AN_NCMDS + AN_ADS2142_NCMDS)
-#define AN_LMP92001_NCMDS 7
-
-/* See include/nuttx/analog/song_adc.h */
-
-#define AN_SONG_ADC_FIRST (AN_LMP92001_FIRST + AN_LMP92001_NCMDS)
-#define AN_SONG_ADC_NCMDS 5
+struct song_adc_config_s
+{
+  uint32_t  minor;
+  uint32_t  base;
+  uint32_t  ctl_off;
+  uint32_t  sta_off;
+  uint32_t  clk_off;
+};
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
-#ifdef __cplusplus
-#define EXTERN extern "C"
-extern "C"
-{
-#else
-#define EXTERN extern
-#endif
+/****************************************************************************
+ * Name: song_adc_register
+ *
+ * Description:
+ *   Register the song adc device as 'devpath'
+ *
+ * Input Parameters:
+ *   song_adc_config_s - adc config
+ *
+ * Returned Value:
+ *   Zero (OK) on success; a negated errno value on failure.
+ *
+ ****************************************************************************/
 
-#undef EXTERN
-#ifdef __cplusplus
-}
-#endif
+int song_adc_register(FAR const struct song_adc_config_s *cfg);
 
-#endif /* __INCLUDE_NUTTX_ANALOG_IOCTL_H */
+#endif /* CONFIG_ADC_SONG */
+#endif /* __INCLUDE_NUTTX_ANALOG_SONG_ADC_H */

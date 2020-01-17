@@ -102,6 +102,11 @@ endif
 ifeq ($(CONFIG_ADC_LTC1867L),y)
   CSRCS += ltc1867l.c
 endif
+
+ifeq ($(CONFIG_ADC_SONG),y)
+  CSRCS += song_adc.c
+endif
+
 endif
 
 ifeq ($(CONFIG_LMP92001),y)
