@@ -11,4 +11,12 @@ config OPENAMP
 
 if OPENAMP
 
+config OPENAMP_CEVA_LOADER
+	bool "OpenAMP ceva loader support"
+	default y
+
+config OPENAMP_ELF_LOADER
+	bool "OpenAMP elf loader support"
+	default y
+
 endif # OPENAMP
