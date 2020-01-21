@@ -1084,6 +1084,12 @@ static void up_ds_enter_work(void)
   cp_flash_save_finish();
 #endif
 
+#ifdef CONFIG_FS_TMPFS
+  /* Save ap data to internal flash */
+
+  up_folder_copy("/onchip/chipap", "/tmp");
+#endif
+
   /* Final work */
 
   up_ds_enter_final();
@@ -1137,6 +1143,12 @@ static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
 
 void up_finalinitialize(void)
 {
+#ifdef CONFIG_FS_TMPFS
+  /* Restore ap data from internal flash */
+
+  up_folder_copy("/tmp", "/onchip/chipap");
+#endif
+
 #ifdef CONFIG_SONG_RPTUN
   if (!up_is_warm_rstn())
     {

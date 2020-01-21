@@ -98,6 +98,7 @@ CHIP_CSRCS += banks_a7.c banks_a7_clk.c banks_sensor.c banks_sensor_clk.c banks_
 CHIP_CSRCS += fvp_mps2_m4.c
 CHIP_CSRCS += song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
+CHIP_CSRCS += u1_common.c
 CHIP_CSRCS += u1_ap.c u1_ap_clk.c
 CHIP_CSRCS += u1_cp.c u1_cp_clk.c
 CHIP_CSRCS += u1_recovery.c
