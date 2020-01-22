@@ -84,6 +84,36 @@
 #define SONG_AUDIO_PATH_D_ADC12_FS_384K             0x00005000
 #define SONG_AUDIO_PATH_D_ADC12_FS_768K             0x00006000
 
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC              0x0000000e
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC              0x000000e0
+
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC_0            0x00000000
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC_1            0x00000002
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC_2            0x00000004
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC_3            0x00000006
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC_4            0x00000008
+#define SONG_AUDIO_PATH_ANC_FF_MIC_SRC_5            0x00000010
+
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC_0            0x00000000
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC_1            0x00000020
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC_2            0x00000040
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC_3            0x00000060
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC_4            0x00000080
+#define SONG_AUDIO_PATH_ANC_FB_MIC_SRC_5            0x000000a0
+
+#define SONG_AUDIO_PATH_ANC_FF_MIC_MODE             0x00000300
+#define SONG_AUDIO_PATH_ANC_FB_MIC_MODE             0x00000c00
+
+#define SONG_AUDIO_PATH_ANC_FF_MIC_MODE_0           0x00000000
+#define SONG_AUDIO_PATH_ANC_FF_MIC_MODE_1           0x00000100
+#define SONG_AUDIO_PATH_ANC_FF_MIC_MODE_2           0x00000200
+#define SONG_AUDIO_PATH_ANC_FF_MIC_MODE_3           0x00000300
+
+#define SONG_AUDIO_PATH_ANC_FB_MIC_MODE_0           0x00000000
+#define SONG_AUDIO_PATH_ANC_FB_MIC_MODE_1           0x00000400
+#define SONG_AUDIO_PATH_ANC_FB_MIC_MODE_2           0x00000800
+#define SONG_AUDIO_PATH_ANC_FB_MIC_MODE_3           0x00000c00
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -268,6 +298,22 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
       audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
                            SONG_AUDIO_PATH_D_ADC12_EN,
                            SONG_AUDIO_PATH_D_ADC12_EN);
+    }
+  else
+    {
+      for (i = 0; i < dev->channels; ++i)
+        {
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                               SONG_AUDIO_PATH_ANC_FF_MIC_SRC |
+                               SONG_AUDIO_PATH_ANC_FB_MIC_SRC,
+                               SONG_AUDIO_PATH_ANC_FF_MIC_SRC_0 |
+                               SONG_AUDIO_PATH_ANC_FB_MIC_SRC_1);
+          audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                               SONG_AUDIO_PATH_ANC_FF_MIC_MODE |
+                               SONG_AUDIO_PATH_ANC_FB_MIC_MODE,
+                               SONG_AUDIO_PATH_ANC_FF_MIC_MODE_3 |
+                               SONG_AUDIO_PATH_ANC_FB_MIC_MODE_3);
+        }
     }
 
   return OK;
