@@ -333,6 +333,23 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   int i;
 
+  if (dev->i2s_en)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
+                           SONG_AUDIO_PATH_I2S_TRAN_EN, 0);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
+                           SONG_AUDIO_PATH_I2S_FLUSH_TBUF,
+                           SONG_AUDIO_PATH_I2S_FLUSH_TBUF);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
+                           SONG_AUDIO_PATH_I2S_FLUSH_TBUF, 0);
+    }
+
+  for (i = 0; i < dev->channels; i++)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
+                           SONG_AUDIO_PATH_ANC_ENABLE, 0);
+    }
+
   audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL1,
                        SONG_AUDIO_PATH_AKM_FIFO_RESET |
                        SONG_AUDIO_PATH_AUDIO_IN_RESET,
@@ -343,32 +360,17 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
                        SONG_AUDIO_PATH_AUDIO_IN_RESET, 0);
 
   for (i = 0; i < dev->channels; ++i)
-     {
+    {
        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET,
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET);
+       usleep(1);
        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET, 0);
     }
 
   if (dev->i2s_en)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
-                           SONG_AUDIO_PATH_I2S_TRAN_EN, 0);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
-                           SONG_AUDIO_PATH_I2S_FLUSH_TBUF,
-                           SONG_AUDIO_PATH_I2S_FLUSH_TBUF);
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
-                           SONG_AUDIO_PATH_I2S_FLUSH_TBUF, 0);
-
-      clk_disable(dev->i2s_sclk);
-    }
-
-  for (i = 0; i < dev->channels; i++)
-    {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
-                           SONG_AUDIO_PATH_ANC_ENABLE, 0);
-    }
+    clk_disable(dev->i2s_sclk);
 
   clk_disable(dev->sys_in_clk);
   clk_disable(clk_get(AUDIO_SYS_CLK3072K));
