@@ -554,6 +554,8 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_16K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC12,
                              ADCx_FILTER_MK, g_dp_adc_16k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
+                            ADC12_LP_MODE, ADC12_LP_MODE);
           }
         else
           {
@@ -561,6 +563,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_16K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC3,
                              ADCx_FILTER_MK, g_dp_adc_16k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, ADC3_LP_MODE);
           }
         break;
       case 48000:
@@ -570,6 +573,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_48K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC12,
                              ADCx_FILTER_MK, g_dp_adc_48k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
           }
         else
           {
@@ -577,6 +581,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_48K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC3,
                              ADCx_FILTER_MK, g_dp_adc_48k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
           }
         break;
       case 96000:
@@ -586,6 +591,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_96K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC12,
                              ADCx_FILTER_MK, g_dp_adc_96k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
           }
         else
           {
@@ -593,6 +599,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_96K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC3,
                              ADCx_FILTER_MK, g_dp_adc_96k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
           }
         break;
       case 192000:
@@ -602,6 +609,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_192K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC12,
                              ADCx_FILTER_MK, g_dp_adc_192k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
          }
        else
           {
@@ -609,6 +617,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_192K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC3,
                              ADCx_FILTER_MK, g_dp_adc_192k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
           }
         break;
       case 384000:
@@ -618,6 +627,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_384K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC12,
                              ADCx_FILTER_MK, g_dp_adc_384k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
           }
         else
           {
@@ -625,6 +635,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_384K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC3,
                              ADCx_FILTER_MK, g_dp_adc_384k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
           }
         break;
       case 768000:
@@ -634,6 +645,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_768K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC12,
                              ADCx_FILTER_MK, g_dp_adc_768k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_LP_MODE, 0);
           }
         else
           {
@@ -641,6 +653,7 @@ static uint32_t dp_adc_samplerate(struct dp_adc_s *dev,
                              ADC_FREQ_MASK, ADC_FREQ_768K);
             dp_adc_updatereg(dev, DP_ADC_CR_LTC3,
                              ADCx_FILTER_MK, g_dp_adc_768k[dev->filter]);
+            dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, 0);
           }
         break;
       default:
@@ -659,18 +672,13 @@ static int dp_adc_common_config(struct dp_adc_s *dev_)
     case 0:
       dp_adc_updatereg(dev, DP_ADC_CR_MIC1, SB_MICBIAS, SB_MICBIAS_EN);
       dp_adc_updatereg(dev, DP_ADC_GCR_MIC12, GIM1_MASK, GIM1_GAIN);
-      dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
-                            ADC12_LP_MODE, ADC12_LP_MODE);
       break;
     case 1:
       dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, SB_MICBIAS_EN);
       dp_adc_updatereg(dev, DP_ADC_GCR_MIC12, GIM2_MASK, GIM2_GAIN);
-      dp_adc_updatereg(dev, DP_ADC_CR_ADC12,
-                            ADC12_LP_MODE, ADC12_LP_MODE);
       break;
     case 2:
       dp_adc_updatereg(dev, DP_ADC_GCR_MIC3, GIM3_MASK, GIM3_GAIN);
-      dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_LP_MODE, ADC3_LP_MODE);
       break;
   }
 
