@@ -291,6 +291,11 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
                            SONG_AUDIO_PATH_ANC_FB_MIC_EN,
                            SONG_AUDIO_PATH_ANC_FF_MIC_EN |
                            SONG_AUDIO_PATH_ANC_FB_MIC_EN);
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                           SONG_AUDIO_PATH_ANC_FF_MIC_MODE |
+                           SONG_AUDIO_PATH_ANC_FB_MIC_MODE,
+                           SONG_AUDIO_PATH_ANC_FF_MIC_MODE_3 |
+                           SONG_AUDIO_PATH_ANC_FB_MIC_MODE_3);
     }
 
   if (dev->extern_adc)
@@ -308,11 +313,6 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
                                SONG_AUDIO_PATH_ANC_FB_MIC_SRC,
                                SONG_AUDIO_PATH_ANC_FF_MIC_SRC_0 |
                                SONG_AUDIO_PATH_ANC_FB_MIC_SRC_1);
-          audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
-                               SONG_AUDIO_PATH_ANC_FF_MIC_MODE |
-                               SONG_AUDIO_PATH_ANC_FB_MIC_MODE,
-                               SONG_AUDIO_PATH_ANC_FF_MIC_MODE_3 |
-                               SONG_AUDIO_PATH_ANC_FB_MIC_MODE_3);
         }
     }
 
