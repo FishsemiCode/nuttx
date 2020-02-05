@@ -597,6 +597,7 @@ static int cp_start(const struct song_rptun_config_s *config)
   if (up_is_warm_rstn())
     {
       MISC_RETENT_RESTORE(g_misc[1], CP_RVSD_FILE);
+      unlink(CP_RVSD_FILE);
     }
 #endif
 
