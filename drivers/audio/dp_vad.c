@@ -164,7 +164,10 @@ static int dp_vad_start(struct audio_lowerhalf_s *dev_)
 {
   struct dp_vad_s *dev = (struct dp_vad_s *)dev_;
 
+  clk_enable(clk_get("vad_bus_clk"));
+  clk_enable(clk_get("vad_mclk_pll0"));
   clk_enable(dev->mclk);
+
   dp_vad_updatereg(dev, DP_VAD_CR3, SB, 0);
   dp_vad_updatereg(dev, DP_VAD_CR3, SLEEP, 0);
 
@@ -182,7 +185,10 @@ static int dp_vad_stop(struct audio_lowerhalf_s *dev_)
 
   dp_vad_updatereg(dev, DP_VAD_CR3, SLEEP, SLEEP);
   dp_vad_updatereg(dev, DP_VAD_CR3, SB, SB);
+
   clk_disable(dev->mclk);
+  clk_disable(clk_get("vad_bus_clk"));
+  clk_disable(clk_get("vad_mclk_pll0"));
 
   return OK;
 }
@@ -224,6 +230,7 @@ static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
   uint32_t status;
 
   up_udelay(100);
+
   status = dp_vad_getreg(dev, DP_VAD_CR4) & IRQ_FLAG;
   if (status)
     {
@@ -264,6 +271,9 @@ struct audio_lowerhalf_s *dp_vad_initialize(const char *mclk, uint32_t base, int
 
   irq_attach(irq, dp_vad_irq_handler, dev);
   up_enable_irq(irq);
+
+  clk_disable(clk_get("vad_bus_clk"));
+  clk_disable(clk_get("vad_mclk_pll0"));
 
   return &dev->dev;
 }
