@@ -209,7 +209,7 @@ endef
 else
 define ARCHIVE
 	@echo "AR: $2"
-	$(Q) flock "$(TOPDIR)/make_ar.lock" $(AR) $1 $(2) || { echo "$(AR) $1 FAILED!" ; exit 1 ; }
+	$(Q) flock $1.lock $(AR) $1 $(2) || { echo "$(AR) $1 FAILED!" ; exit 1 ; }
 endef
 endif
 
