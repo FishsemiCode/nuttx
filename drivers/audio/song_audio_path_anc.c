@@ -278,8 +278,6 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
 
   for (i = 0; i < dev->channels; ++i)
     {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
-                           SONG_AUDIO_PATH_ANC_SDM_BYPASS, 0);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                            SONG_AUDIO_PATH_ANC_ENABLE,
                            SONG_AUDIO_PATH_ANC_ENABLE);
@@ -537,9 +535,6 @@ struct audio_lowerhalf_s *song_audio_path_anc_initialize(uintptr_t base, bool ex
   dev->dev.ops = &g_song_audio_path_ops;
   dev->base = base;
   dev->extern_adc = extern_adc;
-
-  song_audio_path_set_fmt(dev, AUDIO_HWFMT_CBS_CFS);
-  song_audio_path_channels(dev, 2);
 
   return &dev->dev;
 }
