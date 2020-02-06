@@ -432,7 +432,7 @@ static int dp_adc_stop(struct audio_lowerhalf_s *dev_)
         break;
     }
 
-  dp_adc_putreg(dev, DP_ADC_CR_VIC, ANALOG_SLEEP | ANALOG_SB | DIG_SB);
+  dp_adc_putreg(dev, DP_ADC_CR_VIC, DIG_SB);
 
   return OK;
 }
