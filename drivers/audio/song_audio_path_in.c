@@ -53,6 +53,7 @@
 
 #define SONG_AUDIO_PATH_ANC_CTL(x)                  (0x000 + (x) * 0x200)
 #define SONG_AUDIO_PATH_ANC_CFG(x)                  (0x004 + (x) * 0x200)
+#define SONG_AUDIO_PATH_ANC_CFG1(x)                 (0x008 + (x) * 0x200)
 
 #define SONG_AUDIO_PATH_I2S_SCLK_CFG                0x440
 #define SONG_AUDIO_PATH_I2S_FSYNC_CFG               0x444
@@ -143,6 +144,8 @@
 #define SONG_AUDIO_PATH_INTR_ANC(x)                 (1 << (x))
 #define SONG_AUDIO_PATH_MAX_REG                     0x4c4
 
+#define SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK          0x0000ffff
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -201,6 +204,11 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
                                            uint32_t rate);
 static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
                                    uint16_t fmt);
+static int song_audio_path_set_volume(struct song_audio_path_s *dev,
+                                      int32_t volume);
+static int song_audio_path_get_volume(struct song_audio_path_s *dev,
+                                      int32_t *volume);
+static int song_audio_path_get_gain_idx(uint32_t volume);
 
 /****************************************************************************
  * Private Data
@@ -218,6 +226,13 @@ static const struct audio_ops_s g_song_audio_path_ops =
   .resume = song_audio_path_resume,
 #endif
   .ioctl = song_audio_path_ioctl,
+};
+
+static const uint32_t gain[15] =
+{
+    0x8801, 0x8802, 0x8804, 0x8806, 0x880a, 0x8810,
+    0x881a, 0x8829, 0x8841, 0x8866, 0x88a2, 0x8901,
+    0x8998, 0x8a86, 0x8c00,
 };
 
 /****************************************************************************
@@ -277,20 +292,37 @@ static int song_audio_path_configure(struct audio_lowerhalf_s *dev_,
 
         ret = song_audio_path_channels(dev, nchannels);
         if (ret < 0)
-          return -EINVAL;
+          {
+            ret = -EINVAL;
+            goto done;
+          }
+
         ret = song_audio_path_datawidth(dev, bpsamp);
         if (ret < 0)
-          return -EINVAL;
-        return song_audio_path_samplerate(dev, samprate);
+          {
+            ret = -EINVAL;
+            goto done;
+          }
+        ret = song_audio_path_samplerate(dev, samprate);
+
+        break;
       case AUDIO_TYPE_EXTENSION:
         switch(caps->ac_format.hw)
           {
             case AUDIO_EU_HW_FORMAT:
-              return song_audio_path_set_fmt(dev, caps->ac_controls.hw[0]);
-           }
+              ret = song_audio_path_set_fmt(dev, caps->ac_controls.hw[0]);
+          }
+        break;
+      case AUDIO_TYPE_FEATURE:
+        if (caps->ac_format.hw == AUDIO_FU_VOLUME)
+          ret = song_audio_path_set_volume(dev, caps->ac_controls.hw[0]);
+        break;
       default:
-        return -ENOTTY;
+        ret = -ENOTTY;
     }
+
+done:
+  return ret;
 }
 
 #ifdef CONFIG_AUDIO_MULTI_SESSION
@@ -448,7 +480,7 @@ static int song_audio_path_ioctl(struct audio_lowerhalf_s *dev_, int cmd,
 {
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   struct regmap_arg_s *regmap_arg = (struct regmap_arg_s *)arg;
-  int i;
+  int i, ret = OK;
 
   switch (cmd)
     {
@@ -476,11 +508,14 @@ static int song_audio_path_ioctl(struct audio_lowerhalf_s *dev_, int cmd,
             audio_path_putreg(dev, regmap_arg->offsets[i], regmap_arg->values[i]);
           }
         break;
+      case AUDIOIOC_GETVOLUME:
+        ret =  song_audio_path_get_volume(dev, (int32_t *) arg);
+        break;
       default:
-        return -ENOTTY;
+        ret = -ENOTTY;
     }
 
-  return OK;
+  return ret;
 }
 
 static int song_audio_path_channels(struct song_audio_path_s *dev,
@@ -788,6 +823,57 @@ static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
         return -EINVAL;
     }
   return OK;
+}
+
+static int song_audio_path_set_volume(struct song_audio_path_s *dev,
+                                   int32_t volume)
+{
+  int32_t i = 0;
+
+  if (volume < 1 || volume > 15)
+    {
+      return -EINVAL;
+    }
+
+  for (i = 0; i < dev->channels; ++i)
+    {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG1(i),
+                           SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK,
+                           gain[volume - 1]);
+    }
+
+  return OK;
+}
+
+static int song_audio_path_get_volume(struct song_audio_path_s *dev,
+                                      int32_t *volume)
+{
+  uint32_t regval;
+
+  regval  = audio_path_getreg(dev, SONG_AUDIO_PATH_ANC_CFG1(0));
+  *volume = song_audio_path_get_gain_idx(regval);
+
+  return OK;
+}
+
+
+static int song_audio_path_get_gain_idx(uint32_t volume)
+{
+  int32_t i, cnt;
+  cnt = sizeof(gain) / sizeof(gain[1]);
+
+  for (i = 0; i < cnt; i++)
+    {
+      if (volume == gain[i])
+        break;
+    }
+
+  if (i == cnt)
+    {
+       return -1;
+    }
+
+  return (i + 1);
 }
 
 /****************************************************************************

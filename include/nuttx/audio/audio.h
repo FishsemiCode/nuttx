@@ -123,6 +123,7 @@
 #define AUDIOIOC_UNREGISTERMQ       _AUDIOIOC(15)
 #define AUDIOIOC_HWRESET            _AUDIOIOC(16)
 #define AUDIOIOC_SETBUFFERINFO      _AUDIOIOC(17)
+#define AUDIOIOC_GETVOLUME          _AUDIOIOC(18)
 
 /* Audio Device Types *******************************************************/
 /* The NuttX audio interface support different types of audio devices for
