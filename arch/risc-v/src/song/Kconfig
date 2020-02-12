@@ -99,6 +99,7 @@ config RISCV_MTIME
 
 config SONG_DCACHE_LINEBYTES
 	int "Data cache line bytes"
+	depends on ARCH_DCACHE
 
 config SONG_COPY_TABLE
 	bool
