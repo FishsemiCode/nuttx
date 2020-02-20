@@ -386,10 +386,14 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
       ts.tv_nsec = NSEC_PER_TICK;
     }
 
+  sched_lock();
+
   song_oneshot_gettime(lower, &now);
   clock_timespec_add(&now, &ts, &spec);
   song_oneshot_putspec(lower, &spec);
   song_oneshot_enableintr(lower);
+
+  sched_unlock();
 
 #ifdef CONFIG_PM
   ms = ts.tv_sec * 1000ull + ts.tv_nsec / 1000000;
