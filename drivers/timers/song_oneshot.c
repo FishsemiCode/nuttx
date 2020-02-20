@@ -370,7 +370,6 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   FAR struct song_oneshot_lowerhalf_s *lower
     = (FAR struct song_oneshot_lowerhalf_s *)lower_;
   struct timespec now, spec, ts;
-  irqstate_t flags;
 #ifdef CONFIG_PM
   uint32_t new_state;
   uint64_t ms;
@@ -384,17 +383,13 @@ static int song_oneshot_start(FAR struct oneshot_lowerhalf_s *lower_,
   memcpy(&ts, ts_, sizeof(struct timespec));
   if (ts.tv_sec == 0 && ts.tv_nsec < NSEC_PER_TICK)
     {
-      ts.tv_nsec = NSEC_PER_TICK * 10;
+      ts.tv_nsec = NSEC_PER_TICK;
     }
-
-  flags = enter_critical_section();
 
   song_oneshot_gettime(lower, &now);
   clock_timespec_add(&now, &ts, &spec);
   song_oneshot_putspec(lower, &spec);
   song_oneshot_enableintr(lower);
-
-  leave_critical_section(flags);
 
 #ifdef CONFIG_PM
   ms = ts.tv_sec * 1000ull + ts.tv_nsec / 1000000;
