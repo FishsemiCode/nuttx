@@ -379,7 +379,7 @@ void arm_timer_initialize(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_AP, "CP", 256, true);
-  uart_rpmsg_init(CPU_NAME_AP, "AT", 256, false);
+  uart_rpmsg_init(CPU_NAME_AP, "AT", 1024, false);
   uart_rpmsg_init(CPU_NAME_AP, "AT1", 256, false);
   uart_rpmsg_init(CPU_NAME_AP, "GPS", 256, false);
   uart_rpmsg_init(CPU_NAME_AP, "GPS1", 256, false);
