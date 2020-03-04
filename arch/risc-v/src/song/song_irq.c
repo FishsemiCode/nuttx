@@ -124,6 +124,22 @@ irqstate_t up_irq_enable(void)
 }
 
 /****************************************************************************
+ * Name: up_irq_disable
+ *
+ * Description:
+ *   Return the current interrupt state and enable interrupts
+ *
+ ****************************************************************************/
+
+irqstate_t up_irq_disable(void)
+{
+  irqstate_t flags;
+
+  __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
+  return flags & 0x8;
+}
+
+/****************************************************************************
  * Name: up_dispatch_irq
  *
  * Description:

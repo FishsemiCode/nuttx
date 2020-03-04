@@ -57,6 +57,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define MSTATUS_IRQ_DISABLE         (0x00007800)
+
 typedef uint32_t  irqstate_t;
 
 /****************************************************************************
@@ -73,6 +75,7 @@ typedef uint32_t  irqstate_t;
 
 irqstate_t up_irq_save(void);
 irqstate_t up_irq_enable(void);
+irqstate_t up_irq_disable(void);
 
 void up_irq_restore(irqstate_t);
 
