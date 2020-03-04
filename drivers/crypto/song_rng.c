@@ -47,6 +47,7 @@
 #include <nuttx/drivers/drivers.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/semaphore.h>
+#include <nuttx/clk/clk.h>
 
 #if defined(CONFIG_DEV_RANDOM) || defined(CONFIG_DEV_URANDOM_ARCH)
 
@@ -68,10 +69,17 @@ struct song_rng_s
   volatile uint32_t DATA[8];
 };
 
+struct song_rng_dev_s
+{
+    uint8_t open_count;    /* Number of times the device has been opened */
+};
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
+static int song_rng_open(FAR struct file *filep);
+static int song_rng_close(FAR struct file *filep);
 static ssize_t song_rng_read(FAR struct file *filep, FAR char *buffer,
                              size_t buflen);
 #ifndef CONFIG_DISABLE_POLL
@@ -90,8 +98,8 @@ static sem_t g_song_rng_sem = SEM_INITIALIZER(1);
 
 static const struct file_operations g_song_rng_fops =
 {
-  NULL,                         /* open */
-  NULL,                         /* close */
+  song_rng_open,                /* open */
+  song_rng_close,               /* close */
   song_rng_read,                /* read */
   NULL,                         /* write */
   NULL,                         /* seek */
@@ -104,9 +112,80 @@ static const struct file_operations g_song_rng_fops =
 #endif
 };
 
+static struct song_rng_dev_s g_song_rng_dev;
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
+/****************************************************************************
+ * Name: song_rng_open
+ ****************************************************************************/
+
+static int song_rng_open(FAR struct file *filep)
+{
+  FAR struct inode          *inode = filep->f_inode;
+  FAR struct song_rng_dev_s *dev   = inode->i_private;
+  uint8_t                   use_count;
+
+  /* Increment the count of references to the device. */
+
+  use_count = dev->open_count + 1;
+  if (use_count == 0)
+    {
+      /* More than 255 opens; uint8_t overflows to zero */
+
+      return -EMFILE;
+    }
+
+  /* Check if this is the first time that the driver has been opened. */
+
+  if (use_count == 1)
+    {
+      clk_enable(clk_get("security_clk32k"));
+    }
+
+  dev->open_count = use_count;
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: song_rng_close
+ ****************************************************************************/
+
+static int song_rng_close(FAR struct file *filep)
+{
+  FAR struct inode          *inode = filep->f_inode;
+  FAR struct song_rng_dev_s *dev   = inode->i_private;
+  uint8_t                   use_count;
+
+  use_count = dev->open_count - 1;
+
+  if (use_count > 1)
+    {
+      dev->open_count = use_count;
+      return OK;
+    }
+
+  /* Check if this is the last time that the driver has been closed. */
+
+  if (use_count == 0)
+    {
+      clk_disable(clk_get("security_clk32k"));
+    }
+
+  if (use_count < 0)
+    {
+      /* More close than open */
+
+      return -EMFILE;
+    }
+
+  dev->open_count = use_count;
+
+  return 0;
+}
 
 /****************************************************************************
  * Name: song_rng_read
@@ -179,7 +258,7 @@ static int song_rng_poll(FAR struct file *filep, FAR struct pollfd *fds,
 void devrandom_register(void)
 {
   g_song_rng->CTRL |= SONG_RNG_STOP; /* Ensure the hardware stop */
-  register_driver("/dev/random", &g_song_rng_fops, 0444, NULL);
+  register_driver("/dev/random", &g_song_rng_fops, 0444, &g_song_rng_dev);
 }
 #endif
 
@@ -197,7 +276,7 @@ void devurandom_register(void)
 #ifndef CONFIG_DEV_RANDOM
   g_song_rng->CTRL |= SONG_RNG_STOP; /* Ensure the hardware stop */
 #endif
-  register_driver("/dev/urandom", &g_song_rng_fops, 0444, NULL);
+  register_driver("/dev/urandom", &g_song_rng_fops, 0444, &g_song_rng_dev);
 }
 #endif
 
