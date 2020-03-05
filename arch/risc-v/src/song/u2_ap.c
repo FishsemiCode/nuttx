@@ -280,7 +280,7 @@ static void up_rptun_init(void)
   static const struct song_rptun_config_s rptun_cfg_audio =
   {
     .cpuname    = CPU_NAME_AUDIO,
-    .firmware   = "/system/firmware/audio.elf",
+    .firmware   = "/dev/audio.elf",
     .nautostart = true,
     .master     = true,
     .vringtx    = 1,
