@@ -88,6 +88,9 @@
 #define SONG_ADC_VBAT_MIN_CAL       750
 #define SONG_ADC_VBAT_MAX_CAL       1710
 
+#define SONG_ADC_VBAT_TIMEOUT       50
+#define SONG_ADC_VBAT_PER_INTERVAL  10
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -167,8 +170,17 @@ static void song_adc_update_bits(struct song_adc_dev_s *dev,
 static uint32_t song_adc_read_result(struct song_adc_dev_s *dev)
 {
   uint32_t adcval;
+  uint32_t cnt;
 
-  while (((adcval = song_adc_read(dev, dev->cfg->sta_off)) & SONG_ADC_EOC_OUT) == 0);
+  for (cnt = 0; cnt < SONG_ADC_VBAT_TIMEOUT; cnt += SONG_ADC_VBAT_PER_INTERVAL)
+    {
+      up_udelay(SONG_ADC_VBAT_PER_INTERVAL);
+      adcval = song_adc_read(dev, dev->cfg->sta_off);
+
+      if (adcval & SONG_ADC_EOC_OUT)
+        break;
+    }
+
   return adcval & SONG_ADC_OUT_MASK;
 }
 
