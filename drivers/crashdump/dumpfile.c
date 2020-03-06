@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 #include <nuttx/version.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/init.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,7 +211,7 @@ static int dumpfile_ram_write(struct dumpfile_s *priv, char *data, int len)
   file_head = (struct dumpfile_head_s *)priv->buffer;
 
   used_size = sizeof(struct dumpfile_head_s) + file_head->position;
-  left_size = priv->size - used_size;
+  left_size = (priv->size > used_size) ? (priv->size - used_size) : 0;
 
   data_ptr = (char*)file_head + used_size;
 
@@ -304,9 +305,11 @@ int dumpfile_initialize(const char *cpuname, char *buf, int size)
 int dumpfile_write(FAR const char *fmt, ...)
 {
   struct dumpfile_s *priv = &g_dump_priv;
+  struct timespec ts;
   char *string_buf;
   va_list ap;
-  int len;
+  int len1, len2;
+  int ret;
 
   if (priv->status == DUMPFILE_STATUS_NULL)
     {
@@ -327,11 +330,35 @@ int dumpfile_write(FAR const char *fmt, ...)
       return ERROR;
     }
 
+  if (OSINIT_HW_READY())
+    {
+#if defined(CONFIG_SYSLOG_TIMESTAMP_REALTIME)
+      ret = clock_gettime(CLOCK_REALTIME, &ts);
+#elif defined(CONFIG_CLOCK_MONOTONIC)
+      ret = clock_gettime(CLOCK_MONOTONIC, &ts);
+#else
+      ret = clock_systimespec(&ts);
+#endif
+    }
+  else
+    {
+      ret = -EAGAIN;
+    }
+
+  if (ret < 0)
+    {
+      ts.tv_sec  = 0;
+      ts.tv_nsec = 0;
+    }
+
+  len1 = snprintf(string_buf, MAX_DUMPFILE_STRING_LEN,
+                 "[%5d.%06d] ", ts.tv_sec, ts.tv_nsec/1000);
+
   va_start(ap, fmt);
-  len = vsnprintf(string_buf, MAX_DUMPFILE_STRING_LEN, fmt, ap);
+  len2 = vsnprintf(string_buf + len1, MAX_DUMPFILE_STRING_LEN - len1, fmt, ap);
   va_end(ap);
 
-  dumpfile_ram_write(priv, string_buf, len);
+  dumpfile_ram_write(priv, string_buf, len1 + len2);
 
   free(string_buf);
 
