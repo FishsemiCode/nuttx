@@ -74,13 +74,13 @@ else ifeq ($(CONFIG_ARCH_XM6),y)
   CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/xm6)/
   include ${TOPDIR}/arch/ceva/src/xm6/Toolchain.defs
   ifeq ($(SNCSDT_LICENSE_FILE),)
-    export SNCSDT_LICENSE_FILE=27000@10.235.240.121
+    export SNCSDT_LICENSE_FILE=27000@10.235.240.245
   endif
 else ifeq ($(CONFIG_ARCH_XC5),y)
   CROSSDEV ?= $(shell readlink -f ${TOPDIR}/../prebuilts/ceva/${HOST}/xc5)/
   include ${TOPDIR}/arch/ceva/src/xc5/Toolchain.defs
   ifeq ($(SNCSDT_LICENSE_FILE),)
-    export SNCSDT_LICENSE_FILE=27000@10.235.240.121
+    export SNCSDT_LICENSE_FILE=27000@10.235.240.245
   endif
   export CEVAXCTOOLS=$(CROSSDEV)
 endif
