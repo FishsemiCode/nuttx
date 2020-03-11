@@ -228,11 +228,11 @@ static const struct audio_ops_s g_song_audio_path_ops =
   .ioctl = song_audio_path_ioctl,
 };
 
-static const uint32_t gain[16] =
+static const uint32_t gain[15] =
 {
-    0x1100, 0x8801, 0x8802, 0x8804, 0x8806, 0x880a,
-    0x8810, 0x881a, 0x8829, 0x8841, 0x8866, 0x88a2,
-    0x8901, 0x8998, 0x8a86, 0x8c00,
+    0x8801, 0x8802, 0x8804, 0x8806, 0x880a, 0x8810,
+    0x881a, 0x8829, 0x8841, 0x8866, 0x88a2, 0x8901,
+    0x8998, 0x8a86, 0x8c00,
 };
 
 /****************************************************************************
@@ -364,8 +364,6 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
 {
   struct song_audio_path_s *dev = (struct song_audio_path_s *)dev_;
   int i;
-
-  song_audio_path_set_volume(dev, 0);
 
   if (dev->i2s_en)
     {
@@ -832,7 +830,7 @@ static int song_audio_path_set_volume(struct song_audio_path_s *dev,
 {
   int32_t i = 0;
 
-  if (volume < 0 || volume > 15)
+  if (volume < 1 || volume > 15)
     {
       return -EINVAL;
     }
@@ -841,7 +839,7 @@ static int song_audio_path_set_volume(struct song_audio_path_s *dev,
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG1(i),
                            SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK,
-                           gain[volume]);
+                           gain[volume - 1]);
     }
 
   return OK;
