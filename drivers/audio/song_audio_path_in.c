@@ -145,6 +145,7 @@
 #define SONG_AUDIO_PATH_MAX_REG                     0x4c4
 
 #define SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK          0x0000ffff
+#define SONG_AUDIO_PATH_ANC_CFG1_GAIN               0x00001100
 
 /****************************************************************************
  * Private Types
@@ -228,11 +229,11 @@ static const struct audio_ops_s g_song_audio_path_ops =
   .ioctl = song_audio_path_ioctl,
 };
 
-static const uint32_t gain[15] =
+static const uint32_t gain[16] =
 {
     0x8801, 0x8802, 0x8804, 0x8806, 0x880a, 0x8810,
     0x881a, 0x8829, 0x8841, 0x8866, 0x88a2, 0x8901,
-    0x8998, 0x8a86, 0x8c00,
+    0x896b, 0x8a01, 0x8ad5, 0x8bff
 };
 
 /****************************************************************************
@@ -378,6 +379,9 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
 
   for (i = 0; i < dev->channels; i++)
     {
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG1(i),
+                           SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK,
+                           SONG_AUDIO_PATH_ANC_CFG1_GAIN);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                            SONG_AUDIO_PATH_ANC_ENABLE, 0);
     }
@@ -830,7 +834,7 @@ static int song_audio_path_set_volume(struct song_audio_path_s *dev,
 {
   int32_t i = 0;
 
-  if (volume < 1 || volume > 15)
+  if (volume < 0 || volume > 15)
     {
       return -EINVAL;
     }
@@ -839,7 +843,7 @@ static int song_audio_path_set_volume(struct song_audio_path_s *dev,
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG1(i),
                            SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK,
-                           gain[volume - 1]);
+                           gain[volume]);
     }
 
   return OK;
@@ -860,7 +864,7 @@ static int song_audio_path_get_volume(struct song_audio_path_s *dev,
 static int song_audio_path_get_gain_idx(uint32_t volume)
 {
   int32_t i, cnt;
-  cnt = sizeof(gain) / sizeof(gain[1]);
+  cnt = sizeof(gain) / sizeof(gain[0]);
 
   for (i = 0; i < cnt; i++)
     {
@@ -873,7 +877,7 @@ static int song_audio_path_get_gain_idx(uint32_t volume)
        return -1;
     }
 
-  return (i + 1);
+  return i;
 }
 
 /****************************************************************************
