@@ -79,7 +79,7 @@
 {                                                       \
     register uint32_t rs1_ asm ("x0") = (uint32_t) rs1; \
     asm volatile (                                      \
-            ".word " STR(CFLUSH_D_L1_INST(11)) "\n\t"   \
+            ".word " STR(CFLUSH_D_L1_INST(0)) "\n\t"   \
             ::[_rs1] "r" (rs1_));                       \
 }
 
