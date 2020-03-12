@@ -38,6 +38,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <nuttx/cache.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 #include <nuttx/power/pm.h>
@@ -206,6 +207,7 @@ void up_cpu_save(void)
     {
       /* Enter wfi */
 
+      up_flush_dcache_all();
       up_cpu_wfi();
     }
 }

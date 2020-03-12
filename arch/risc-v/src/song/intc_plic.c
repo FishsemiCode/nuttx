@@ -40,6 +40,7 @@
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
+#include <nuttx/power/pm.h>
 
 #include "chip.h"
 #include "sched/sched.h"
@@ -60,17 +61,125 @@
 #define PLIC_ENABLE_SHIFT           5
 #define PLIC_PRIO_SHIFT             2
 
+#define PLIC_PRIORITY_ADDR(n)       (PLIC_PRIORITY + ((n) << PLIC_PRIO_SHIFT))
+#define PLIC_ENABLE_ADDR(n)         (PLIC_ENABLE + (((n) >> PLIC_ENABLE_SHIFT) * 4))
+
+#ifndef ARRAY_SIZE
+#  define ARRAY_SIZE(x)             (sizeof(x) / sizeof((x)[0]))
+#endif
+
+/****************************************************************************
+ * Private Function Prototypes
+ ****************************************************************************/
+
+static void up_plic_pm_notify(struct pm_callback_s *cb, int domain,
+                              enum pm_state_e pmstate);
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+#ifdef CONFIG_PM
+
+/* Saved PLIC registers. */
+
+static const uint32_t g_plic_regaddr[] =
+{
+  PLIC_THRESHOLD,
+};
+
+#define PLIC_REGSAVE_SCB_NUM    (ARRAY_SIZE(g_plic_regaddr))
+#define PLIC_REGSAVE_PRIO_NUM   (NR_IRQS)
+#define PLIC_REGSAVE_EN_NUM     ((NR_IRQS + 31) / 32)
+#define PLIC_REGSAVE_CSR_NUM    (1)
+
+static uint32_t g_plic_regsave[PLIC_REGSAVE_SCB_NUM + \
+                               PLIC_REGSAVE_PRIO_NUM + \
+                               PLIC_REGSAVE_EN_NUM + \
+                               PLIC_REGSAVE_CSR_NUM];
+
+static struct pm_callback_s g_plic_pm_cb =
+{
+  .notify  = up_plic_pm_notify,
+};
+
+#endif
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
+static void up_plic_backup(void)
+{
+  int i = 0;
+  int j;
+
+  for (j = 0; j < PLIC_REGSAVE_SCB_NUM; j++)
+    {
+      g_plic_regsave[i++] = getreg32(g_plic_regaddr[j]);
+    }
+
+  for (j = 0; j < NR_IRQS; j++)
+    {
+      g_plic_regsave[i++] = getreg32(PLIC_PRIORITY_ADDR(j));
+    }
+
+  for (j = 0; j < NR_IRQS; j += 32)
+    {
+      g_plic_regsave[i++] = getreg32(PLIC_ENABLE_ADDR(j));
+    }
+
+  g_plic_regsave[i] = READ_CSR(mie);
+}
+
+static void up_plic_restore(void)
+{
+  int i = 0;
+  int j;
+
+  for (j = 0; j < PLIC_REGSAVE_SCB_NUM; j++)
+    {
+      putreg32(g_plic_regsave[i++], g_plic_regaddr[j]);
+    }
+
+  for (j = 0; j < NR_IRQS; j++)
+    {
+      putreg32(g_plic_regsave[i++], PLIC_PRIORITY_ADDR(j));
+    }
+
+  for (j = 0; j < NR_IRQS; j += 32)
+    {
+      putreg32(g_plic_regsave[i++], PLIC_ENABLE_ADDR(j));
+    }
+
+  WRITE_CSR(mie, g_plic_regsave[i]);
+}
+
+static void up_plic_pm_notify(struct pm_callback_s *cb, int domain,
+                              enum pm_state_e pmstate)
+{
+  switch (pmstate)
+    {
+      case PM_STANDBY:
+      case PM_SLEEP:
+        up_plic_backup();
+        break;
+
+      case PM_RESTORE:
+        if (pm_querystate(PM_IDLE_DOMAIN) >= PM_STANDBY)
+          {
+            up_plic_restore();
+          }
+        break;
+
+      default:
+        break;
+    }
+}
+
 static inline void plic_set_enable(int irq, int enable)
 {
-  int addr = PLIC_ENABLE + ((irq >> PLIC_ENABLE_SHIFT) * 4);
+  int addr = PLIC_ENABLE_ADDR(irq);
 
   if (enable)
     {
@@ -113,7 +222,7 @@ void up_irqinitialize(void)
   for (irq = 0; irq < NR_IRQS; irq++)
     {
       plic_set_enable(irq, 0);
-      putreg32(1, (PLIC_PRIORITY + (irq << PLIC_PRIO_SHIFT)));
+      putreg32(1, PLIC_PRIORITY_ADDR(irq));
     }
 
   putreg32(0, PLIC_THRESHOLD);
@@ -122,6 +231,10 @@ void up_irqinitialize(void)
 
   up_wic_initialize();
   up_irq_enable();
+
+#ifdef CONFIG_PM
+  pm_register(&g_plic_pm_cb);
+#endif
 }
 
 #ifdef CONFIG_ARCH_IRQPRIO
@@ -135,7 +248,7 @@ void up_irqinitialize(void)
 
 int up_prioritize_irq(int irq, int priority)
 {
-  putreg32(priority, (PLIC_PRIORITY + (irq << PLIC_PRIO_SHIFT)));
+  putreg32(priority, PLIC_PRIORITY_ADDR(irq));
   return OK;
 }
 #endif
@@ -154,8 +267,7 @@ int up_dispatch_irq(int irq, FAR void *context)
   irq_dispatch(irq, context);
   putreg32(irq, PLIC_CLAIM);
 
-  return (getreg32(PLIC_PRIORITY + (irq << PLIC_PRIO_SHIFT))
-          > CONFIG_HIPRI_INTERRUPT_PRIORITY);
+  return (getreg32(PLIC_PRIORITY_ADDR(irq)) > CONFIG_HIPRI_INTERRUPT_PRIORITY);
 }
 
 /****************************************************************************
