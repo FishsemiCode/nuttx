@@ -77,8 +77,7 @@
 #define SONG_ADC_OUT_MASK           (SONG_ADC_MAX_OUT - 1)
 
 #define SONG_ADC_PORT_MASK          0x0007f800
-#define SONG_ADC_VBAT_PORT          (0x01 << SONG_ADC_PORT_SEL)
-#define SONG_ADC_TEMP_SENSOR_PROT   (0x20 << SONG_ADC_PORT_SEL)
+#define SONG_ADC_VBAT_PORT(port)    ((1 << port) << SONG_ADC_PORT_SEL)
 
 #define SONG_ADC_PGA_GAIN_MASK      0x00000003
 #define SONG_ADC_VBAT_GAIN          (0 << SONG_ADC_PGA_GAIN)
@@ -206,7 +205,7 @@ static int32_t song_adc_vbat_convert(struct song_adc_dev_s *dev, uint32_t val)
   return convert_vbat;
 }
 
-static int32_t song_get_vbat_value(struct song_adc_dev_s *dev)
+static int32_t song_get_vbat_value(struct song_adc_dev_s *dev, uint32_t port)
 {
   FAR uint32_t data;
   irqstate_t flags;
@@ -220,7 +219,7 @@ static int32_t song_get_vbat_value(struct song_adc_dev_s *dev)
                   (1 << SONG_ADC_PGA_PD) | (1 << SONG_ADC_MOD_SEL), 0);
 
   song_adc_update_bits(dev, dev->cfg->ctl_off, \
-                       SONG_ADC_PORT_MASK, SONG_ADC_VBAT_PORT);
+                       SONG_ADC_PORT_MASK, SONG_ADC_VBAT_PORT(port));
   song_adc_update_bits(dev, dev->cfg->ctl_off, \
                        SONG_ADC_PGA_GAIN_MASK, SONG_ADC_VBAT_GAIN);
   song_adc_modify(dev, dev->cfg->ctl_off, 0, 1 << SONG_ADC_START);
@@ -272,7 +271,7 @@ static int song_adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
     {
       while (nxsem_wait(&priv->sem) < 0);
 
-      *(int*)((uintptr_t)arg) = song_get_vbat_value(priv);
+      ret = song_get_vbat_value(priv, (uint32_t)arg);
 
       nxsem_post(&priv->sem);
     }

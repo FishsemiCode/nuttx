@@ -50,7 +50,16 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* Get PGADC vbat value
+ * IN: adc port
+ * OUT: vbat value */
+
 #define ANIOC_SONG_ADC_VBAT             _ANIOC(AN_SONG_ADC_FIRST + 0)
+
+/* Calibrate PGADC
+ * IN: calibration parameter
+ * OUT: calibration result */
+
 #define ANIOC_SONG_ADC_VBAT_CALIBRATE   _ANIOC(AN_SONG_ADC_FIRST + 1)
 
 /****************************************************************************
