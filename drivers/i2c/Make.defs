@@ -56,6 +56,10 @@ ifeq ($(CONFIG_I2C_DW),y)
 CSRCS += i2c_dw.c
 endif
 
+ifeq ($(CONFIG_I2C_TCA6424A),y)
+CSRCS += tca6424a.c
+endif
+
 DEPPATH += --dep-path i2c
 VPATH += :i2c
 CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)i2c}

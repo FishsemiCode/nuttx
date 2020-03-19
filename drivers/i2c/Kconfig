@@ -55,4 +55,11 @@ config I2CMULTIPLEXER_PCA9540BDP
 
 endmenu # I2C Multiplexer Support
 
+config I2C_TCA6424A
+	bool "TCA6424A I2C I/O Expander driver"
+	default n
+	depends on I2C && I2C_DW
+	---help---
+		Enable support for TCA6424A I2C I/O Expander driver
+
 endif # I2C
