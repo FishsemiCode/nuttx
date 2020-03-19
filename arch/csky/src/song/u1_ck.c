@@ -67,6 +67,7 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <stdint.h>
 
 #include "chip.h"
 #include "up_arch.h"
@@ -486,7 +487,21 @@ static void up_i2c_init(void)
 #ifdef CONFIG_SONG_PINCTRL
 static void up_pinctrl_init(void)
 {
-  g_pinctrl[0] = song_pinctrl_initialize(0xb0050000, 41);
+  static const struct pinctrl_mapping_s mapping[] =
+  {
+    { 4, 0x00}, { 5, 0x04}, { 6, 0x08}, { 7, 0x0C},
+    { 8, 0x10}, { 9, 0x14}, {10, 0x18}, {11, 0x1C},
+    {12, 0x20}, {13, 0x24}, {14, 0x28}, {15, 0x2C},
+    {16, 0x30}, {17, 0x34}, {18, 0x38}, {19, 0x3C},
+    {20, 0x40}, {21, 0x44}, {22, 0x48}, {23, 0x4C},
+    {24, 0x50}, {25, 0x54}, {26, 0x58}, {27, 0x5C},
+    {28, 0x60}, {29, 0x64}, {30, 0x68}, {31, 0x6C},
+    {32, 0x70}, {33, 0x74}, {34, 0x78}, {35, 0x7C},
+    {36, 0x80}, {37, 0x84}, {38, 0x88}, {39, 0x8C},
+    {40, 0x90}, {41, 0x94}, {.pin = UINT32_MAX,},
+  };
+
+  g_pinctrl[0] = song_pinctrl_initialize(0xb0050000, mapping);
   pinctrl_register(g_pinctrl[0], 0);
 }
 #endif
