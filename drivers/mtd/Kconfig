@@ -1012,6 +1012,10 @@ config MTD_GD25
 
 if MTD_GD25
 
+config GD25_LOWPOWER
+	bool "GD25 low power"
+	default n
+
 config GD25_SPIMODE
 	int "GD25 SPI Mode"
 	default 0
