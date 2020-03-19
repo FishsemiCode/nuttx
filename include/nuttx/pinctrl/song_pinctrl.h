@@ -44,6 +44,15 @@
 
 #ifdef CONFIG_SONG_PINCTRL
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+struct pinctrl_mapping_s
+{
+  uint32_t pin;
+  uint32_t offset;
+};
 
 /****************************************************************************
  * Public Function Prototypes
@@ -56,15 +65,16 @@
  *   Create pinctrl device driver instances for song platform.
  *
  * Input Parameters:
- *   base  - The base address of song pinctrl driver.
- *   num   - Number of pins contain in pinctrl controller.
+ *   base     - The base register address of song pinctrl.
+ *   mapping  - The pin number and its address offset of song pinctrl.
  *
  * Returned Value:
  *   an pinctrl_dev_s instance on success; NULL on failure.
  *
  ****************************************************************************/
 
-FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base, uint32_t num);
+FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base,
+                            const struct pinctrl_mapping_s *mapping);
 
 #endif
 #endif

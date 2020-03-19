@@ -42,15 +42,20 @@
 #include <nuttx/pinctrl/pinctrl.h>
 #include <nuttx/pinctrl/song_pinctrl.h>
 #include <nuttx/kmalloc.h>
+#include <stdint.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define SONG_PINCTRL_DT_SHIFT      2
+#define SONG_PINCTRL_DS_SHIFT      4
+#define SONG_PINCTRL_SLEW_SHIFT    8
+
 #define SONG_PINCTRL_MUX_MASK      0x3
-#define SONG_PINCTRL_DT_MASK       0xc
-#define SONG_PINCTRL_DS_MASK       0x30
-#define SONG_PINCTRL_SLEW_MASK     0x100
+#define SONG_PINCTRL_DT_MASK       (0x3 << SONG_PINCTRL_DT_SHIFT)
+#define SONG_PINCTRL_DS_MASK       (0x3 << SONG_PINCTRL_DS_SHIFT)
+#define SONG_PINCTRL_SLEW_MASK     (0x1 << SONG_PINCTRL_SLEW_SHIFT)
 
 #define SONG_PINCTRL_MUX_GPIO_FUNC 0x2
 
@@ -60,9 +65,9 @@
 
 struct song_pinctrl_dev_s
 {
-  FAR struct pinctrl_dev_s pinctrl;
-  uint32_t                 base;
-  uint32_t                 num;
+  FAR struct pinctrl_dev_s       pinctrl;
+  uint32_t                       base;
+  const struct pinctrl_mapping_s *mapping;
 };
 
 /****************************************************************************
@@ -73,6 +78,7 @@ static inline uint32_t readreg(struct song_pinctrl_dev_s *priv, uint32_t offset)
 static inline void writereg(struct song_pinctrl_dev_s *priv, uint32_t offset, uint32_t val);
 static inline void updatereg(struct song_pinctrl_dev_s *priv,
       uint32_t offset, uint32_t mask, uint32_t val);
+static int pinctrl_find_offset(struct song_pinctrl_dev_s *priv, uint32_t pin);
 
 static int song_set_mux(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t selector);
 static int song_set_ds(FAR struct pinctrl_dev_s *dev,  uint32_t pin, uint32_t level);
@@ -117,13 +123,31 @@ static inline void updatereg(struct song_pinctrl_dev_s *priv,
        (readreg(priv, offset) & ~mask));
 }
 
+static int pinctrl_find_offset(struct song_pinctrl_dev_s *priv, uint32_t pin)
+{
+  uint32_t i = 0;
+
+  while (UINT32_MAX != priv->mapping[i].pin)
+    {
+      if (priv->mapping[i].pin == pin)
+        {
+          return priv->mapping[i].offset;
+        }
+      i++;
+    }
+
+  return -EINVAL;
+}
+
 static int song_set_mux(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t selector)
 {
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
+  int offset;
 
-  if (pin < priv->num)
+  offset = pinctrl_find_offset(priv, pin);
+  if (offset >= 0)
     {
-      updatereg(priv, pin * 4, SONG_PINCTRL_MUX_MASK, selector);
+      updatereg(priv, offset, SONG_PINCTRL_MUX_MASK, selector);
       return 0;
     }
   return -EINVAL;
@@ -132,10 +156,12 @@ static int song_set_mux(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t se
 static int song_set_ds(FAR struct pinctrl_dev_s *dev,  uint32_t pin, uint32_t level)
 {
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
+  int offset;
 
-  if (pin < priv->num)
+  offset = pinctrl_find_offset(priv, pin);
+  if (offset >= 0)
     {
-      updatereg(priv, pin * 4, SONG_PINCTRL_DS_MASK, level);
+      updatereg(priv, offset, SONG_PINCTRL_DS_MASK, level << SONG_PINCTRL_DS_SHIFT);
       return 0;
     }
   return -EINVAL;
@@ -144,10 +170,12 @@ static int song_set_ds(FAR struct pinctrl_dev_s *dev,  uint32_t pin, uint32_t le
 static int song_set_dt(FAR struct pinctrl_dev_s *dev, uint32_t pin, enum pinctrl_drivertype_e type)
 {
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
+  int offset;
 
-  if (pin < priv->num)
+  offset = pinctrl_find_offset(priv, pin);
+  if (offset >= 0)
     {
-      updatereg(priv, pin * 4, SONG_PINCTRL_DT_MASK, type);
+      updatereg(priv, offset, SONG_PINCTRL_DT_MASK, type << SONG_PINCTRL_DT_SHIFT);
       return 0;
     }
   return -EINVAL;
@@ -156,10 +184,12 @@ static int song_set_dt(FAR struct pinctrl_dev_s *dev, uint32_t pin, enum pinctrl
 static int song_set_slew(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t state)
 {
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
+  int offset;
 
-  if (pin < priv->num)
+  offset = pinctrl_find_offset(priv, pin);
+  if (offset >= 0)
     {
-      updatereg(priv, pin * 4, SONG_PINCTRL_SLEW_MASK, state);
+      updatereg(priv, offset, SONG_PINCTRL_SLEW_MASK, state << SONG_PINCTRL_SLEW_SHIFT);
       return 0;
     }
   return -EINVAL;
@@ -168,10 +198,12 @@ static int song_set_slew(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t s
 static int song_sel_gpio(FAR struct pinctrl_dev_s *dev, uint32_t pin)
 {
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
+  int offset;
 
-  if (pin < priv->num)
+  offset = pinctrl_find_offset(priv, pin);
+  if (offset >= 0)
     {
-      updatereg(priv, pin * 4, SONG_PINCTRL_MUX_MASK, SONG_PINCTRL_MUX_GPIO_FUNC);
+      updatereg(priv, offset, SONG_PINCTRL_MUX_MASK, SONG_PINCTRL_MUX_GPIO_FUNC);
       return 0;
     }
   return -EINVAL;
@@ -188,17 +220,20 @@ static int song_sel_gpio(FAR struct pinctrl_dev_s *dev, uint32_t pin)
  *   Create pinctrl device driver instances for song platform.
  *
  * Input Parameters:
- *   base  - The base address of song pinctrl driver.
- *   num   - Number of pins contain in pinctrl controller.
+ *   base     - The base register address of song pinctrl.
+ *   mapping  - The pin number and its address offset of song pinctrl.
  *
  * Returned Value:
  *   an pinctrl_dev_s instance on success; NULL on failure.
  *
  ****************************************************************************/
 
-FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base, uint32_t num)
+FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base,
+                            const struct pinctrl_mapping_s *mapping)
 {
   FAR struct song_pinctrl_dev_s *priv;
+
+  DEBUGASSERT(base && mapping);
 
   priv = kmm_zalloc(sizeof(struct song_pinctrl_dev_s));
   if (priv == NULL)
@@ -207,7 +242,7 @@ FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base, uint32_t num)
     }
 
   priv->base = base;
-  priv->num  = num;
+  priv->mapping = mapping;
 
   priv->pinctrl.ops = &g_song_pinctrl_ops;
 
