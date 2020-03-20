@@ -123,6 +123,11 @@
 #define TOP_PWR_AP_M4_SLP_MK        (1 << 1)
 #define TOP_PWR_AP_M4_DS_SLP_EN     (1 << 2)
 
+#define MUX_PIN19                   (0xb005003c)
+#define MUX_PIN20                   (0xb0050040)
+#define MUX_PIN21                   (0xb0050044)
+#define MUX_PIN22                   (0xb0050048)
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
@@ -561,6 +566,10 @@ static void up_spi_init(void)
     .mclk = "spi0_mclk",
   };
 
+  putreg32(0x10, MUX_PIN19);
+  putreg32(0x10, MUX_PIN20);
+  putreg32(0x10, MUX_PIN21);
+  putreg32(0x12, MUX_PIN22);
   g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
 }
 #endif
