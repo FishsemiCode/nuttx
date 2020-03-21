@@ -167,6 +167,10 @@ ifeq ($(CONFIG_CXX_LIBSUPCXX),y)
   endif
 endif
 
+ifeq ($(CONFIG_SYSTEM_RECOVERY_CSKY),y)
+  EXTRA_LIBS += ${TOPDIR}/arch/arm/src/song/libs/libfota_diff.a
+endif
+
 HOSTCC = gcc
 HOSTINCLUDES = -I.
 HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe
