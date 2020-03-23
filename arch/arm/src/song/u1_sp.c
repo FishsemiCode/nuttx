@@ -44,6 +44,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/crypto/song_signature.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/drivers/ramdisk.h>
@@ -568,6 +569,8 @@ static void up_mbox_init(void)
 #ifdef CONFIG_SONG_RPTUN
 static int ap_start(const struct song_rptun_config_s *config)
 {
+  int ret;
+
   /* SP <--shram0--> AP
    * shram0 default enabled
    */
@@ -576,12 +579,30 @@ static int ap_start(const struct song_rptun_config_s *config)
     {
       /* Boot AP CK802 */
 
+#ifdef CONFIG_CRYPTO_SONG_SIGNATURE
+      ret = song_signature_verify("/dev/ck.bin", "/dev/onchip-info",
+                                  0x30, 0x100, 0x300);
+      if (ret)
+        {
+          return ret;
+        }
+#endif
+
       modifyreg32(TOP_PWR_CK802_CTL0, 0, TOP_PWR_CPUCLK_EN);
       modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_CPU_RSTCTL, 0);
     }
   else
     {
       /* Boot AP M4 */
+
+#ifdef CONFIG_CRYPTO_SONG_SIGNATURE
+      ret = song_signature_verify("/dev/ap.bin", "/dev/onchip-info",
+                                  0x30, 0x100, 0x300);
+      if (ret)
+        {
+          return ret;
+        }
+#endif
 
       putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
     }
@@ -591,6 +612,17 @@ static int ap_start(const struct song_rptun_config_s *config)
 
 static int cp_start(const struct song_rptun_config_s *config)
 {
+  int ret;
+
+#ifdef CONFIG_CRYPTO_SONG_SIGNATURE
+  ret = song_signature_verify("/dev/cp.bin", "/dev/onchip-info",
+                              0x30, 0x100, 0x300);
+  if (ret)
+    {
+      return ret;
+    }
+#endif
+
 #ifdef CONFIG_MISC_RPMSG
   /* Restore CP flash to ram */
 
