@@ -50,6 +50,27 @@ config CRYPTO_SW_AES
 		implemenations.  This needs to support up_aesinitialize() and
 		aes_cypher() per include/nuttx/crypto/crypto.h.
 
+config CRYPTO_SW_SHA256
+	bool "Software SHA256 library"
+	default n
+	---help---
+		Enable the software SHA256 library
+
+config CRYPTO_SW_RSA
+	bool "Software RSA library"
+	default n
+	depends on CRYPTO_SW_SHA256
+	---help---
+		Enable the software RSA library
+
+config CRYPTO_SONG_SIGNATURE
+	bool "Song signature verify"
+	default n
+	select CRYPTO_SW_SHA256
+	select CRYPTO_SW_RSA
+	---help---
+		Enable the song signature support
+
 config CRYPTO_BLAKE2S
 	bool "BLAKE2s hash algorithm"
 	default n

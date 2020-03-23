@@ -56,6 +56,24 @@ ifeq ($(CONFIG_CRYPTO_SW_AES),y)
   CRYPTO_CSRCS += aes.c
 endif
 
+# Software SHA256 hash algorithm
+
+ifeq ($(CONFIG_CRYPTO_SW_SHA256),y)
+  CRYPTO_CSRCS += sha256.c
+endif
+
+# Software RSA algorithm
+
+ifeq ($(CONFIG_CRYPTO_SW_RSA),y)
+  CRYPTO_CSRCS += rsa.c
+endif
+
+# Song signature support
+
+ifeq ($(CONFIG_CRYPTO_SONG_SIGNATURE),y)
+  CRYPTO_CSRCS += song/song_signature.c
+endif
+
 # BLAKE2s hash algorithm
 
 ifeq ($(CONFIG_CRYPTO_BLAKE2S),y)
