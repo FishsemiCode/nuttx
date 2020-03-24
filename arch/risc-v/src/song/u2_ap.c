@@ -229,6 +229,27 @@ void riscv_timer_initialize(void)
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
+#if defined(CONFIG_CPULOAD_ONESHOT) && defined(CONFIG_ONESHOT_SONG)
+  static const struct song_oneshot_config_s extconfig =
+  {
+    .minor      = -1,
+    .base       = TOP_PWR_BASE,
+    .irq        = 9,
+    .c1_max     = 600,
+    .c1_freq    = 6000000,
+    .ctl_off    = 0x290,
+    .calib_off  = 0x2b4,
+    .c1_off     = 0x294,
+    .c2_off     = 0x298,
+    .spec_off   = 0x2c4,
+    .intren_off = 0x214,
+    .intrst_off = 0x21c,
+    .intr_bit   = 0,
+  };
+
+  sched_oneshot_extclk(song_oneshot_initialize(&extconfig));
+#endif
+
 #ifdef CONFIG_SONG_CLK
   up_clk_initialize();
 #endif
