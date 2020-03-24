@@ -138,18 +138,6 @@ void ceva_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config0));
 #endif
-
-#if defined(CONFIG_CPULOAD_PERIOD) && defined(CONFIG_TIMER_DW)
-  static const struct dw_timer_config_s config =
-  {
-    .minor      = -1,
-    .base       = 0xb0080000,
-    .irq        = IRQ_VINT1,
-    .freq       = 1000000,
-  };
-
-  sched_period_extclk(dw_timer_initialize(&config));
-#endif
 }
 
 #ifdef CONFIG_RPMSG_UART
