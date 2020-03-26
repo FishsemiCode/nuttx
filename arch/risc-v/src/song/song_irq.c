@@ -226,6 +226,12 @@ uint32_t *up_dispatch_all(uint32_t *regs)
   (hirq);
 #endif
 
+  /* Record the new "running" task.  g_running_tasks[] is only used by
+   * assertion logic for reporting crashes.
+   */
+
+  g_running_tasks[this_cpu()] = this_task();
+
   /* Return the stack pointer */
 
   return regs;
