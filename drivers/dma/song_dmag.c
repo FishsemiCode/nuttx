@@ -172,9 +172,11 @@ static int song_dmag_start_cyclic(struct dma_chan_s *chan,
                                   void *arg, uintptr_t dst,
                                   uintptr_t src, size_t len,
                                   size_t period_len);
+#ifdef CONFIG_SONG_DMAG_LINK
 static int song_dmag_start_link(struct dma_chan_s *chan_,
                                 dma_callback_t callback, void *arg,
                                 unsigned int work_mode, struct dma_link_config_s *cfg);
+#endif
 static int song_dmag_stop(struct dma_chan_s *chan_);
 static int song_dmag_pause(struct dma_chan_s *chan_);
 static int song_dmag_resume(struct dma_chan_s *chan_);
@@ -452,7 +454,7 @@ static int song_dmag_irq_handler(int irq, void *context, void *args)
   for (i = 0; i < CONFIG_SONG_DMAG_CHANNEL_NUM; i++)
    {
      if (status & (1 << i))
-       song_dmag_chan_irq(&dev->channels[i]);
+       song_dmag_chan_irq(dev->channels[i]);
    }
   return OK;
 }
@@ -519,7 +521,6 @@ static void song_dmag_put_chan(struct dma_dev_s *dev_,
 struct dma_dev_s *song_dmag_initialize(int cpu, uintptr_t base, int irq, const char *clkname)
 {
   struct song_dmag_dev_s *dev;
-  int i;
 
   dev = kmm_zalloc(sizeof(struct song_dmag_dev_s));
   if (!dev)
