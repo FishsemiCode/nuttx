@@ -622,6 +622,12 @@ void up_reset(int status)
 
       putreg32(TOP_PWR_RESET_NORMAL, TOP_PWR_RES_REG2);
     }
+  else if (status == 3)
+    {
+      /* Keep the current state, for debugger check */
+
+      while(1);
+    }
   else
     {
       /* Reset board to romboot */
