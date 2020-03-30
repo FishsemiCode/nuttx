@@ -947,6 +947,11 @@ static void up_extra_init(void)
 #ifdef CONFIG_RAMDISK
   /* Register a RAMDISK device: /dev/ram1 */
 
+  if (!up_is_warm_rstn())
+    {
+      memset(U1_SP_RAMDISK_BASE, 0, U1_SP_RAMDISK_SECTOR * U1_RAMDISK_SECTOR_SZ);
+    }
+
   ramdisk_register(1, (uint8_t *)U1_SP_RAMDISK_BASE,
                    U1_SP_RAMDISK_SECTOR, U1_RAMDISK_SECTOR_SZ,
                    RDFLAG_WRENABLED | RDFLAG_FUNLINK);
