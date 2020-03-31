@@ -380,10 +380,11 @@ void up_earlyinitialize(void)
 
   modifyreg32(TOP_PMICFSM_CONFIG1, TOP_PMICFSM_DS_SLP_VALID, 0);
 
-  /* Set PMICFSM WAKEUP_ENABLE, now only support UART0 RTC wakeup DS */
+  /* Set PMICFSM WAKEUP_ENABLE, support UART0 RTC GPIO0 GPIO1 wakeup DS */
 
-  putreg32(TOP_PMICFSM_UART_ENABLE |
-           TOP_PMICFSM_RTC_ENABLE, TOP_PMICFSM_WAKEUP_ENABLE);
+  putreg32(TOP_PMICFSM_UART_ENABLE  | TOP_PMICFSM_RTC_ENABLE |
+           TOP_PMICFSM_GPIO0_ENABLE | TOP_PMICFSM_GPIO1_ENABLE,
+           TOP_PMICFSM_WAKEUP_ENABLE);
 
   /* Set CP & RF no effect to power */
 
