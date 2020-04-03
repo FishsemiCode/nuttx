@@ -149,7 +149,7 @@ void _exit(int status)
    * The IRQ state will be restored when the next task is started.
    */
 
-  (void)enter_critical_section();
+  up_irq_disable();
 
   sinfo("TCB=%p exiting\n", tcb);
 
