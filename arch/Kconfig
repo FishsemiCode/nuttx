@@ -28,7 +28,6 @@ config ARCH_AVR
 config ARCH_CEVA
 	bool "CEVA"
 	select ARCH_HAVE_CUSTOMOPT
-	select ARCH_HAVE_GARBAGE
 	select ARCH_HAVE_HEAPCHECK
 	select ARCH_HAVE_INTERRUPTSTACK
 	select ARCH_HAVE_STACKCHECK
@@ -275,10 +274,6 @@ config ARCH_HAVE_FETCHADD
 	default n
 
 config ARCH_HAVE_RTC_SUBSECONDS
-	bool
-	default n
-
-config ARCH_HAVE_GARBAGE
 	bool
 	default n
 

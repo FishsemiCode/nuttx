@@ -721,25 +721,6 @@ uintptr_t pgalloc(uintptr_t brkaddr, unsigned int npages);
 #endif
 
 /****************************************************************************
- * Name: up_sched_have_garbage and up_sched_garbage_collection
- *
- * Description:
- *   Some architectures may support unique memory allocators.  If
- *   CONFIG_ARCH_HAVE_GARBAGE is defined, those architectures must provide
- *   both up_sched_have_garbage and up_sched_garbage_collection.  These will
- *   be tied into the NuttX memory garbage collection logic.
- *
- ****************************************************************************/
-
-#ifdef CONFIG_ARCH_HAVE_GARBAGE
-bool up_sched_have_garbage(void);
-void up_sched_garbage_collection(void);
-#else
-#  define up_sched_have_garbage() false
-#  define up_sched_garbage_collection()
-#endif
-
-/****************************************************************************
  * Name: up_setpicbase and up_getpicbase
  *
  * Description:

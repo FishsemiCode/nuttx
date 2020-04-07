@@ -39,12 +39,13 @@
 
 #include <nuttx/config.h>
 
-#include <assert.h>
 #include <sched.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
+
+#include "up_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -58,97 +59,8 @@
 #endif
 
 /****************************************************************************
- * Private Data
- ****************************************************************************/
-
-#ifdef HAVE_KERNEL_HEAP
-static sq_queue_t g_delayed_kfree;
-#endif
-
-#ifndef CONFIG_BUILD_KERNEL
-static sq_queue_t g_delayed_ufree;
-#endif
-
-/****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-bool up_sched_have_garbage(void)
-{
-#ifdef HAVE_KERNEL_HEAP
-  if (g_delayed_kfree.head != NULL)
-    {
-      return true;
-    }
-#endif
-#ifndef CONFIG_BUILD_KERNEL
-  if (g_delayed_ufree.head != NULL)
-  {
-    return true;
-  }
-#endif
-  return false;
-}
-
-void up_sched_garbage_collection(void)
-{
-#ifdef HAVE_KERNEL_HEAP
-  while (g_delayed_kfree.head)
-    {
-      irqstate_t flags;
-      FAR void *address;
-
-      /* Remove the first delayed deallocation.  This is not atomic and so
-       * we must disable interrupts around the queue operation.
-       */
-
-      flags = spin_lock_irqsave();
-      address = sq_remfirst(&g_delayed_kfree);
-      spin_unlock_irqrestore(flags);
-
-      /* Return the memory to the kernel heap
-       * which may come from the default heap due to up_use_stack.
-       */
-
-      if (kmm_heapmember(address))
-        {
-          kmm_free(address);
-        }
-      else
-        {
-          mm_free(KMM_HEAP(CONFIG_ARCH_KERNEL_STACK_HEAP), address);
-        }
-    }
-#endif
-#ifndef CONFIG_BUILD_KERNEL
-  while (g_delayed_ufree.head)
-    {
-      irqstate_t flags;
-      FAR void *address;
-
-      /* Remove the first delayed deallocation.  This is not atomic and so
-       * we must disable interrupts around the queue operation.
-       */
-
-      flags = spin_lock_irqsave();
-      address = sq_remfirst(&g_delayed_ufree);
-      spin_unlock_irqrestore(flags);
-
-      /* Return the memory to the user heap
-       * which may come from the default heap due to up_use_stack.
-       */
-
-      if (umm_heapmember(address))
-        {
-          kumm_free(address);
-        }
-      else
-        {
-          mm_free(UMM_HEAP(CONFIG_ARCH_STACK_HEAP), address);
-        }
-    }
-#endif
-}
 
 /****************************************************************************
  * Name: up_release_stack
@@ -192,61 +104,20 @@ void up_release_stack(FAR struct tcb_s *dtcb, uint8_t ttype)
 
       if (ttype == TCB_FLAG_TTYPE_KERNEL)
         {
-          if (kmm_heapmember(dtcb->stack_alloc_ptr) ||
-              mm_heapmember(KMM_HEAP(CONFIG_ARCH_KERNEL_STACK_HEAP),
-                            dtcb->stack_alloc_ptr))
-          {
-            irqstate_t flags;
-
-            /* Delay the deallocation until a more appropriate time. */
-
-            flags = spin_lock_irqsave();
-            sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_kfree);
-            spin_unlock_irqrestore(flags);
-
-            sched_signal_free();
-          }
+          if (kmm_heapmember(dtcb->stack_alloc_ptr))
+            {
+              kmm_free(dtcb->stack_alloc_ptr);
+            }
         }
       else
 #endif
         {
           /* Use the user-space allocator if this is a task or pthread */
 
-#ifdef CONFIG_BUILD_KERNEL
-          /* REVISIT:  It is not safe to defer user allocation in the kernel mode
-           * build.  Why?  Because the correct user context is in place now but
-           * will not be in place when the deferred de-allocation is performed.  In
-           * order to make this work, we would need to do something like:  (1) move
-           * g_delayed_kufree into the group structure, then traverse the groups to
-           * collect garbage on a group-by-group basis.
-           */
-
-          DEBUGASSERT(!up_interrupt_context());
           if (umm_heapmember(dtcb->stack_alloc_ptr))
             {
               kumm_free(dtcb->stack_alloc_ptr);
             }
-          else if (mm_heapmember(UMM_HEAP(CONFIG_ARCH_STACK_HEAP),
-                                 dtcb->stack_alloc_ptr))
-            {
-              mm_free(UMM_HEAP(CONFIG_ARCH_STACK_HEAP), dtcb->stack_alloc_ptr);
-            }
-#else
-          if (umm_heapmember(dtcb->stack_alloc_ptr) ||
-              mm_heapmember(UMM_HEAP(CONFIG_ARCH_STACK_HEAP),
-                            dtcb->stack_alloc_ptr))
-          {
-            irqstate_t flags;
-
-            /* Delay the deallocation until a more appropriate time. */
-
-            flags = spin_lock_irqsave();
-            sq_addlast(dtcb->stack_alloc_ptr, &g_delayed_ufree);
-            spin_unlock_irqrestore(flags);
-
-            sched_signal_free();
-          }
-#endif
         }
 
       /* Mark the stack freed */

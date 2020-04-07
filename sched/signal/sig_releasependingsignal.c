@@ -106,6 +106,6 @@ void nxsig_release_pendingsignal(FAR sigpendq_t *sigpend)
 
   else if (sigpend->type == SIG_ALLOC_DYN)
     {
-      sched_kfree(sigpend);
+      kmm_free(sigpend);
     }
 }
