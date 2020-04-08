@@ -510,6 +510,10 @@ void arm_timer_initialize(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_AP, "SP", 256, true);
+#ifdef CONFIG_SERVICES_SOFTSIM
+  uart_rpmsg_init(CPU_NAME_AP, "AT2", 256, true);
+  uart_rpmsg_init(CPU_NAME_CP, "AT3", 256, true);
+#endif
 }
 #endif
 
