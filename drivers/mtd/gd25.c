@@ -105,7 +105,9 @@
 #define GD25_JEDEC_MANUFACTURER     0xc8  /* GigaDevice manufacturer ID */
 #define GD25L_JEDEC_MEMORY_TYPE     0x60  /* GD25L memory type, 1.8V */
 #define GD25Q_JEDEC_MEMORY_TYPE     0x40  /* GD25Q memory type, 3V */
+#define GD25W_JEDEC_MEMORY_TYPE     0x64  /* GD25W memory type, 1.65~3.6V */
 
+#define GD25_JEDEC_CAPACITY_2MBIT   0x12  /* 64x4096 = 2Mbit memory capacity */
 #define GD25_JEDEC_CAPACITY_8MBIT   0x14  /* 256x4096 = 8Mbit memory capacity */
 #define GD25_JEDEC_CAPACITY_16MBIT  0x15  /* 512x4096  = 16Mbit memory capacity */
 #define GD25_JEDEC_CAPACITY_32MBIT  0x16  /* 1024x4096 = 32Mbit memory capacity */
@@ -113,6 +115,7 @@
 #define GD25_JEDEC_CAPACITY_128MBIT 0x18  /* 4096x4096 = 128Mbit memory capacity */
 #define GD25_JEDEC_CAPACITY_256MBIT 0x19  /* 8192x4096 = 256Mbit memory capacity */
 
+#define GD25_NSECTORS_2MBIT         64    /* 64  sectors x 4096 bytes/sector = 256Kb */
 #define GD25_NSECTORS_8MBIT         256   /* 256 sectors x 4096 bytes/sector = 1Mb */
 #define GD25_NSECTORS_16MBIT        512   /* 512 sectors x 4096 bytes/sector = 2Mb */
 #define GD25_NSECTORS_32MBIT        1024  /* 1024 sectors x 4096 bytes/sector = 4Mb */
@@ -307,9 +310,14 @@ static inline int gd25_readid(FAR struct gd25_dev_s *priv)
        manufacturer == W25_JEDEC_MANUFACTURER ||
        manufacturer == P25_JEDEC_MANUFACTURER) &&
       (memory == GD25L_JEDEC_MEMORY_TYPE ||
-       memory == GD25Q_JEDEC_MEMORY_TYPE))
+       memory == GD25Q_JEDEC_MEMORY_TYPE ||
+       memory == GD25W_JEDEC_MEMORY_TYPE))
     {
-      if (capacity == GD25_JEDEC_CAPACITY_8MBIT)
+      if (capacity == GD25_JEDEC_CAPACITY_2MBIT)
+        {
+          priv->nsectors = GD25_NSECTORS_2MBIT;
+        }
+      else if (capacity == GD25_JEDEC_CAPACITY_8MBIT)
         {
           priv->nsectors = GD25_NSECTORS_8MBIT;
         }
