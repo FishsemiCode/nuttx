@@ -496,7 +496,41 @@ void up_wdtinit(void)
 #endif
 
 #ifdef CONFIG_SONG_IOE
-void up_ioe_init(void)
+static int up_ioe_pon_callback(FAR struct ioexpander_dev_s *dev,
+                               ioe_pinset_t pinset, FAR void *arg)
+{
+  const char *str = "at\r\nat+cfun=0\r\n";
+  struct file fp;
+  int ret;
+
+  ret = file_open(&fp, "/dev/ttyAT", O_WRONLY, 0);
+  if (ret)
+    {
+      return 0;
+    }
+
+  file_write(&fp, str, strlen(str));
+  file_close(&fp);
+
+  putreg32(TOP_PWR_AP_M4_SLP_EN << 16 | TOP_PWR_AP_M4_SLP_EN |
+           TOP_PWR_AP_M4_SLP_MK << 16 | TOP_PWR_AP_M4_SLP_MK |
+           TOP_PWR_AP_M4_DS_SLP_EN << 16 | TOP_PWR_AP_M4_DS_SLP_EN,
+           TOP_PWR_SLPCTL_AP_M4);
+
+  syslog(LOG_INFO, "PON BUTTON, FAST ENTER DS...\n");
+
+  return 0;
+}
+
+static void up_ioe_pon_setup(void)
+{
+  IOEXP_SETDIRECTION(g_ioe[0], 42, IOEXPANDER_DIRECTION_IN);
+  IOEXP_SETOPTION(g_ioe[0], 42, IOEXPANDER_OPTION_INTCFG,
+                  (void *)IOEXPANDER_VAL_RISING);
+  IOEP_ATTACH(g_ioe[0], (ioe_pinset_t)1 << 42, up_ioe_pon_callback, NULL);
+}
+
+static void up_ioe_init(void)
 {
   static const struct song_ioe_config_s cfg =
   {
@@ -506,6 +540,8 @@ void up_ioe_init(void)
   };
 
   g_ioe[0] = song_ioe_initialize(&cfg);
+
+  up_ioe_pon_setup();
 }
 #endif
 
