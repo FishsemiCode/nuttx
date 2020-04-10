@@ -62,10 +62,12 @@ struct song_ioe_cb_s
 struct song_ioe_dev_s
 {
   FAR struct ioexpander_dev_s ioe;
+  FAR struct work_s           work;
   FAR struct song_ioe_cb_s    cb[CONFIG_SONG_IOE_INTCALLBACKS];
   mutex_t                     lock;
   uint32_t                    cpu;
   uint32_t                    base;
+  uint32_t                    irq;
 };
 
 /****************************************************************************
@@ -99,6 +101,7 @@ static FAR void *song_ioe_attach(FAR struct ioexpander_dev_s *dev,
       ioe_pinset_t pinset, ioe_callback_t callback, FAR void *arg);
 static int song_ioe_detach(FAR struct ioexpander_dev_s *dev, FAR void *handle);
 
+static void song_ioe_irqworker(FAR void *arg);
 static int song_ioe_handler(int irq, FAR void *context, FAR void *arg);
 
 /****************************************************************************
@@ -149,7 +152,7 @@ static inline void writereg(struct song_ioe_dev_s *priv,
 }
 
 #if CONFIG_IOEXPANDER_NPINS <= 64
-static int song_ioe_handler(int irq, FAR void *context, FAR void *arg)
+static void song_ioe_irqworker(FAR void *arg)
 {
   FAR struct song_ioe_dev_s *priv = arg;
   ioe_pinset_t status = 0;
@@ -179,10 +182,12 @@ static int song_ioe_handler(int irq, FAR void *context, FAR void *arg)
   writereg(priv, SONG_IOE_INTR_CLR(32), status >> 32);
 #endif
 
-  return 0;
+  /* Re-enable interrupts */
+
+  up_enable_irq(priv->irq);
 }
 #else
-static int song_ioe_handler(int irq, FAR void *context, FAR void *arg)
+static void song_ioe_irqworker(FAR void *arg)
 {
   FAR struct song_ioe_dev_s *priv = arg;
   uint32_t status, i;
@@ -213,9 +218,40 @@ static int song_ioe_handler(int irq, FAR void *context, FAR void *arg)
         }
     }
 
-  return 0;
+  /* Re-enable interrupts */
+
+  up_enable_irq(priv->irq);
 }
 #endif
+
+static int song_ioe_handler(int irq, FAR void *context, FAR void *arg)
+{
+  FAR struct song_ioe_dev_s *priv = arg;
+
+  /* Defer interrupt processing to the worker thread.  This is not only
+   * much kinder in the use of system resources but is probably necessary
+   * to access the I/O expander device.
+   *
+   * Notice that further GPIO interrupts are disabled until the work is
+   * actually performed.  This is to prevent overrun of the worker thread.
+   * Interrupts are re-enabled in song_ioe_irqworker() when the work is
+   * completed.
+   */
+
+  if (work_available(&priv->work))
+    {
+      /* Disable interrupts */
+
+      up_disable_irq(priv->irq);
+
+      /* Schedule interrupt related work on the high priority worker thread. */
+
+      work_queue(HPWORK, &priv->work, song_ioe_irqworker,
+                 (FAR void *)priv, 0);
+    }
+
+  return 0;
+}
 
 static int song_ioe_direction(FAR struct ioexpander_dev_s *dev, uint8_t pin,
       int direction)
@@ -418,6 +454,7 @@ FAR struct ioexpander_dev_s *song_ioe_initialize(FAR const struct song_ioe_confi
 
   priv->cpu  = cfg->cpu;
   priv->base = cfg->base;
+  priv->irq  = cfg->irq;
 
   ret = irq_attach(cfg->irq, song_ioe_handler, priv);
   if (ret < 0)

@@ -177,6 +177,7 @@ config SONG_IOE
 	default n
 	depends on ARCH_CHIP_SONG
 	select IOEXPANDER_INT_ENABLE
+	select SCHED_WORKQUEUE
 	---help---
 		Enable Song platfrom IOE driver and Gpio driver. This will generate
 		gpio device follow the song configuration.
