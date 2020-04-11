@@ -55,6 +55,8 @@
 #define TOP_PMICFSM_WAKEUP_REASON       (TOP_PMICFSM_BASE + 0x18)
 #define TOP_PMICFSM_BUCK1               (TOP_PMICFSM_BASE + 0x24)
 #define TOP_PMICFSM_LDO0                (TOP_PMICFSM_BASE + 0x28)
+#define TOP_PMICFSM_LDO1                (TOP_PMICFSM_BASE + 0x2c)
+#define TOP_PMICFSM_IOMOD_CTL           (TOP_PMICFSM_BASE + 0xbc)
 #define TOP_PMICFSM_PLLTIME             (TOP_PMICFSM_BASE + 0xe8)
 #define TOP_PMICFSM_AP_M4_INT2SLP_MK0   (TOP_PMICFSM_BASE + 0xf4)
 #define TOP_PMICFSM_CP_M4_INT2SLP_MK0   (TOP_PMICFSM_BASE + 0xf8)
@@ -91,6 +93,12 @@
 #define TOP_PMICFSM_LDO0_DEFAULT        (TOP_PMICFSM_LDO0_ACTIVE_ON | \
                                          TOP_PMICFSM_LDO0_SLEEP_ON  | \
                                          TOP_PMICFSM_LDO0_VOLT_900mV)
+
+#define TOP_PMICFSM_LDO1_VOLT_MK        (0x3f << 8)
+#define TOP_PMICFSM_LDO1_VOLT_0x19      (0x19 << 8)
+
+#define TOP_PMICFSM_IOMOD_PUD_CTL_MK    (0x3 << 2)
+#define TOP_PMICFSM_IOMOD_PUD_CTL_NO    (0x0 << 2)
 
 #define TOP_PMICFSM_PLL_STABLE_TIME     (0xf << 8)
 #define TOP_PMICFSM_OSC_STABLE_TIME     (0x52 << 0)

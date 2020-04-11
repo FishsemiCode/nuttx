@@ -370,6 +370,16 @@ void up_earlyinitialize(void)
       putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
                TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
       modifyreg32(TOP_PMICFSM_CONFIG2, 0, TOP_PMICFSM_DS_RF_RST_MK);
+
+      /* Disable iomod up/pull when LDO1.VOLT is 0x19 */
+
+      if ((getreg32(TOP_PMICFSM_LDO1) & TOP_PMICFSM_LDO1_VOLT_MK)
+              == TOP_PMICFSM_LDO1_VOLT_0x19)
+        {
+          modifyreg32(TOP_PMICFSM_IOMOD_CTL,
+                      TOP_PMICFSM_IOMOD_PUD_CTL_MK,
+                      TOP_PMICFSM_IOMOD_PUD_CTL_NO);
+        }
     }
 
   /* Set flash no effort to PWR_SLEEP */
@@ -950,7 +960,7 @@ static void up_extra_init(void)
 
   if (!up_is_warm_rstn())
     {
-      memset(U1_SP_RAMDISK_BASE, 0, U1_SP_RAMDISK_SECTOR * U1_RAMDISK_SECTOR_SZ);
+      memset((void *)U1_SP_RAMDISK_BASE, 0, U1_SP_RAMDISK_SECTOR * U1_RAMDISK_SECTOR_SZ);
     }
 
   ramdisk_register(1, (uint8_t *)U1_SP_RAMDISK_BASE,
