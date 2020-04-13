@@ -51,6 +51,14 @@
 struct song_ioe_config_s
 {
   uint32_t        cpu;
+
+  /* mask: extra MASK pins for other cpus,
+   * (en | cpu0) | (en | cpu1) << 8 | (en | cpu2) << 16 | (en | cpu3) << 24
+   * en = 0x80, means active.
+   * en = 0x00, means inactive.
+   */
+
+  uint32_t        mask;
   uint32_t        base;
   uint32_t        irq;
   FAR const char *mclk;

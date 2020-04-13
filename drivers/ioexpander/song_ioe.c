@@ -437,7 +437,7 @@ FAR struct ioexpander_dev_s *song_ioe_initialize(FAR const struct song_ioe_confi
   FAR struct song_ioe_dev_s *priv;
   struct clk *mclk;
   int ret = 0;
-  int i;
+  int i, j;
 
   priv = kmm_zalloc(sizeof(struct song_ioe_dev_s));
   if (priv == NULL)
@@ -457,11 +457,29 @@ FAR struct ioexpander_dev_s *song_ioe_initialize(FAR const struct song_ioe_confi
   priv->base = cfg->base;
   priv->irq  = cfg->irq;
 
-  /* Set all the PIN to MASK */
+  /* Set current CPU all the PINs to MASK */
 
   for (i = 0; i < CONFIG_IOEXPANDER_NPINS; i += 16)
     {
       writereg(priv, SONG_IOE_INTR_MASK(priv->cpu, i), 0xffffffff);
+    }
+
+  /* Set extra CPUs all the PINs to MASK */
+
+  for (j = 0; j < 32; j += 8)
+    {
+      int cpu;
+
+      cpu = (cfg->mask >> j ) & 0xff;
+      if (cpu & 0x80)
+        {
+          cpu = cpu & 0x7f;
+
+          for (i = 0; i < CONFIG_IOEXPANDER_NPINS; i += 16)
+            {
+              writereg(priv, SONG_IOE_INTR_MASK(cpu, i), 0xffffffff);
+            }
+        }
     }
 
   ret = irq_attach(cfg->irq, song_ioe_handler, priv);
