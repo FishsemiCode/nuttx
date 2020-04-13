@@ -849,6 +849,7 @@ void up_ioe_init(void)
   static const struct song_ioe_config_s cfg =
   {
     .cpu  = 2,
+    .mask = 0x80 | (0x81 << 8),
     .base = 0xb0060000,
     .irq  = 19,
     .mclk = "gpio_clk32k",
