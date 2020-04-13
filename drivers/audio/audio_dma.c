@@ -60,6 +60,7 @@ struct audio_dma_s
   struct dq_queue_s pendq;
   apb_samp_t buffer_size;
   apb_samp_t buffer_num;
+  int xrun_times;
 };
 
 /****************************************************************************
@@ -297,6 +298,11 @@ static int audio_dma_start(struct audio_lowerhalf_s *dev)
 {
   struct audio_dma_s *audio_dma = (struct audio_dma_s *)dev;
 
+  if (audio_dma->playback)
+    {
+      audio_dma->xrun_times = 0;
+    }
+
   return DMA_START_CYCLIC(audio_dma->chan, audio_dma_callback, audio_dma,
                           audio_dma->dst_addr, audio_dma->src_addr,
                           audio_dma->buffer_num * audio_dma->buffer_size,
@@ -332,6 +338,12 @@ static int audio_dma_stop(struct audio_lowerhalf_s *dev)
   audio_dma->dev.upper(audio_dma->dev.priv, AUDIO_CALLBACK_COMPLETE, NULL, OK);
 #endif
   audio_dma->xrun = false;
+
+  if (audio_dma->playback)
+    {
+      audio_dma->xrun_times = 0;
+    }
+
   return OK;
 }
 #endif
@@ -448,6 +460,7 @@ static int audio_dma_ioctl(struct audio_lowerhalf_s *dev, int cmd,
 {
   struct audio_dma_s *audio_dma = (struct audio_dma_s *)dev;
   struct ap_buffer_info_s *bufinfo;
+  uint32_t *times;
 
   switch (cmd)
     {
@@ -467,6 +480,13 @@ static int audio_dma_ioctl(struct audio_lowerhalf_s *dev, int cmd,
         kumm_free(audio_dma->alloc_addr);
         audio_dma->alloc_addr = NULL;
         audio_dma->alloc_index = 0;
+        return OK;
+      case AUDIOIOC_GETUNDERFLOW:
+        times = (uint32_t *)arg;
+        if (audio_dma->playback)
+          {
+            *times = audio_dma->xrun_times;
+          }
         return OK;
     }
   return -ENOTTY;
@@ -530,6 +550,10 @@ static void audio_dma_callback(struct dma_chan_s *chan, void *arg, ssize_t len)
       /* xrun */
       DMA_PAUSE(audio_dma->chan);
       audio_dma->xrun = true;
+      if (audio_dma->playback)
+        {
+          audio_dma->xrun_times++;
+        }
     }
 }
 
