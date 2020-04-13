@@ -393,7 +393,8 @@ void up_earlyinitialize(void)
   /* Set PMICFSM WAKEUP_ENABLE, support UART0 RTC GPIO0 GPIO1 wakeup DS */
 
   putreg32(TOP_PMICFSM_UART_ENABLE  | TOP_PMICFSM_RTC_ENABLE |
-           TOP_PMICFSM_GPIO0_ENABLE | TOP_PMICFSM_GPIO1_ENABLE,
+           TOP_PMICFSM_GPIO0_ENABLE | TOP_PMICFSM_GPIO1_ENABLE |
+           TOP_PMICFSM_PON_ENABLE,
            TOP_PMICFSM_WAKEUP_ENABLE);
 
   /* Set CP & RF no effect to power */

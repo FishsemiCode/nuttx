@@ -65,7 +65,7 @@
 
 #define TOP_PMICFSM_DS_SLP_VALID        (1 << 0)
 
-#define TOP_PMICFSM_PON_ENABLE          (1 << 4)
+#define TOP_PMICFSM_PON_ENABLE          (5 << 4)
 #define TOP_PMICFSM_UART_ENABLE         (1 << 8)
 #define TOP_PMICFSM_RTC_ENABLE          (1 << 12)
 #define TOP_PMICFSM_GPIO0_ENABLE        (1 << 16)
@@ -141,6 +141,10 @@ static inline enum wakeup_reason_e up_get_wkreason(void)
     {
       return WAKEUP_REASON_FIRST_PON;
     }
+  else if (val & TOP_PMICFSM_PON)
+    {
+      return WAKEUP_REASON_PON_RSTN;
+    }
   else if (val & TOP_PMICFSM_UART)
     {
       return WAKEUP_REASON_UART_RSTN;
@@ -170,7 +174,7 @@ static inline enum wakeup_reason_e up_get_wkreason(void)
     }
   else
     {
-      return WAKEUP_REASON_PON_RSTN;
+      return WAKEUP_REASON_WDT_RSTN;
     }
 }
 
@@ -216,6 +220,7 @@ static inline bool up_is_warm_rstn(void)
 
   if (wakeup_reason == WAKEUP_REASON_GPIO_RSTN ||
       wakeup_reason == WAKEUP_REASON_UART_RSTN ||
+      wakeup_reason == WAKEUP_REASON_PON_RSTN ||
       wakeup_reason == WAKEUP_REASON_RTC_RSTN)
     {
       return true;
