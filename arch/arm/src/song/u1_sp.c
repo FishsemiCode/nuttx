@@ -283,6 +283,8 @@ static void udelay_coarse(useconds_t microseconds)
 
 void up_earlystart(void)
 {
+  uint32_t trim;
+
   if (up_is_u1v1())
     {
       int i;
@@ -325,6 +327,14 @@ void up_earlystart(void)
 
       putreg32(0x41403, TOP_PMICFSM_LDO0);
     }
+
+  /* Get trim value from info page, and update TOP_PMICFSM_TRIM0.
+   * This should do as early as possible, for some chip can't work
+   * well at un-trimed situation.
+   */
+
+  song_onchip_read_info(0xb0130000, 5, "pmic-trim", (uint8_t *)&trim);
+  putreg32(trim, TOP_PMICFSM_TRIM0);
 }
 
 void up_earlyinitialize(void)
