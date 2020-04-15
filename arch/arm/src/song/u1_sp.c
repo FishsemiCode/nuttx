@@ -511,8 +511,8 @@ void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_AP, "SP", 256, true);
 #ifdef CONFIG_SERVICES_SOFTSIM
-  uart_rpmsg_init(CPU_NAME_AP, "AT2", 256, true);
-  uart_rpmsg_init(CPU_NAME_CP, "AT3", 256, true);
+  uart_rpmsg_init(CPU_NAME_AP, "AT2", 256, false);
+  uart_rpmsg_init(CPU_NAME_CP, "AT3", 256, false);
 #endif
 }
 #endif
