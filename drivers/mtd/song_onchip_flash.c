@@ -121,11 +121,10 @@ struct song_onchip_info_s
  * Private Function Prototypes
  ************************************************************************************/
 
-static inline uint32_t flash_regread(FAR struct song_onchip_flash_dev_s *priv, uint32_t offset);
-static inline void flash_regwrite(FAR struct song_onchip_flash_dev_s *priv,
-                          uint32_t offset, uint32_t val);
-static inline void flash_regupdate(FAR struct song_onchip_flash_dev_s *priv,
-                          uint32_t offset, uint32_t mask, uint32_t val);
+static inline volatile uint32_t flash_regread(uint32_t base, uint32_t offset);
+static inline void flash_regwrite(uint32_t base, uint32_t offset, uint32_t val);
+static inline void flash_regupdate(uint32_t base, uint32_t offset,
+                                   uint32_t mask, uint32_t val);
 static void flash_timing_configure(FAR struct song_onchip_flash_dev_s *priv,
                           FAR const struct song_onchip_flash_timing_s *timing);
 static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv);
@@ -160,23 +159,21 @@ static const struct song_onchip_info_s g_info_map[] =
  * Private Functions
  ************************************************************************************/
 
-static inline volatile uint32_t flash_regread(FAR struct song_onchip_flash_dev_s *priv,
-                          uint32_t offset)
+static inline volatile uint32_t flash_regread(uint32_t base, uint32_t offset)
 {
-  return (*(volatile uint32_t *)(priv->cfg->base + B2C(offset)));
+  return (*(volatile uint32_t *)(base + B2C(offset)));
 }
 
-static inline void flash_regwrite(FAR struct song_onchip_flash_dev_s *priv,
-                          uint32_t offset, uint32_t val)
+static inline void flash_regwrite(uint32_t base, uint32_t offset, uint32_t val)
 {
-  *(volatile uint32_t *)(priv->cfg->base + B2C(offset)) = val;
+  *(volatile uint32_t *)(base + B2C(offset)) = val;
 }
 
-static inline void flash_regupdate(FAR struct song_onchip_flash_dev_s *priv,
-                          uint32_t offset, uint32_t mask, uint32_t val)
+static inline void flash_regupdate(uint32_t base, uint32_t offset,
+                                   uint32_t mask, uint32_t val)
 {
-  flash_regwrite(priv, offset, (val & mask) |
-            (flash_regread(priv, offset) & ~mask));
+  flash_regwrite(base, offset, (val & mask) |
+                 (flash_regread(base, offset) & ~mask));
 }
 
 static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv)
@@ -190,9 +187,9 @@ static void flash_int_configure(FAR struct song_onchip_flash_dev_s *priv)
           CMD_MAS_ERASE;
 
   /* enable write, erase interrupt */
-  flash_regwrite(priv, INT_EN, value);
+  flash_regwrite(priv->cfg->base, INT_EN, value);
   /* mask write, erase interrupt, use polling */
-  flash_regwrite(priv, INT_MASK, value);
+  flash_regwrite(priv->cfg->base, INT_MASK, value);
 }
 
 static void flash_timing_configure(FAR struct song_onchip_flash_dev_s *priv,
@@ -200,7 +197,7 @@ static void flash_timing_configure(FAR struct song_onchip_flash_dev_s *priv,
 {
   while (timing->offset != -1)
     {
-      flash_regwrite(priv, timing->offset, timing->value);
+      flash_regwrite(priv->cfg->base, timing->offset, timing->value);
       timing++;
     }
 }
@@ -209,10 +206,10 @@ __ramfunc__ static void flash_sendop_wait(FAR struct song_onchip_flash_dev_s *pr
                           uint32_t opt_cmd)
 {
   /* send operation cmd to flash controller */
-  flash_regwrite(priv, OP_START, opt_cmd);
+  flash_regwrite(priv->cfg->base, OP_START, opt_cmd);
 
-  while (!(flash_regread(priv, INT_RAW) & opt_cmd));
-  flash_regwrite(priv, INT_STATUS, opt_cmd);
+  while (!(flash_regread(priv->cfg->base, INT_RAW) & opt_cmd));
+  flash_regwrite(priv->cfg->base, INT_STATUS, opt_cmd);
 }
 
 #ifndef CONFIG_DISABLE_ENVIRON
@@ -268,8 +265,8 @@ __ramfunc__ static int song_onchip_flash_erase(FAR struct mtd_dev_s *dev,
   for (i = 0; i < nblocks; i++)
     {
       flags = enter_critical_section();
-      flash_regupdate(priv, ACCESS_CTRL, ACC_MASK, priv->type);
-      flash_regwrite(priv, XADDR, (startblock + i) << cfg->xaddr_shift);
+      flash_regupdate(priv->cfg->base, ACCESS_CTRL, ACC_MASK, priv->type);
+      flash_regwrite(priv->cfg->base, XADDR, (startblock + i) << cfg->xaddr_shift);
       flash_sendop_wait(priv, CMD_ERASE);
       leave_critical_section(flags);
     }
@@ -302,7 +299,7 @@ __ramfunc__ static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev,
       /* Read from AHB interface */
 
       irqstate_t flags = enter_critical_section();
-      flash_regupdate(priv, ACCESS_CTRL, ACC_MASK, priv->type);
+      flash_regupdate(priv->cfg->base, ACCESS_CTRL, ACC_MASK, priv->type);
 
       while (remain > 0)
         {
@@ -311,10 +308,10 @@ __ramfunc__ static ssize_t song_onchip_flash_read(FAR struct mtd_dev_s *dev,
 
           rdsize = remain < (rowsize - haddr) ?
                    remain : (rowsize - haddr);
-          flash_regwrite(priv, XADDR, xaddr);
+          flash_regwrite(priv->cfg->base, XADDR, xaddr);
           for (i = 0; i < rdsize; i++)
             {
-              *buffer++ = *(uint8_t *)(((haddr + i) | (1 << 15)) + cfg->base);
+              *buffer++ = *(volatile uint8_t *)(((haddr + i) | (1 << 15)) + cfg->base);
             }
 
           offset += rdsize;
@@ -350,23 +347,23 @@ __ramfunc__ static ssize_t song_onchip_flash_bwrite(FAR struct mtd_dev_s *dev, o
       yaddr = startblock & yaddr_mask;
 
       flags = enter_critical_section();
-      flash_regupdate(priv, ACCESS_CTRL, ACC_MASK, priv->type);
+      flash_regupdate(priv->cfg->base, ACCESS_CTRL, ACC_MASK, priv->type);
 
-      flash_regwrite(priv, DIN0, 0xffffffff);
-      flash_regwrite(priv, DIN1, 0xffffffff);
-      flash_regwrite(priv, DIN2, 0xffffffff);
-      flash_regwrite(priv, DIN3, 0xffffffff);
+      flash_regwrite(priv->cfg->base, DIN0, 0xffffffff);
+      flash_regwrite(priv->cfg->base, DIN1, 0xffffffff);
+      flash_regwrite(priv->cfg->base, DIN2, 0xffffffff);
+      flash_regwrite(priv->cfg->base, DIN3, 0xffffffff);
 
-      flash_regwrite(priv, XADDR, xaddr);
-      flash_regwrite(priv, YADDR, yaddr);
+      flash_regwrite(priv->cfg->base, XADDR, xaddr);
+      flash_regwrite(priv->cfg->base, YADDR, yaddr);
       flash_sendop_wait(priv, CMD_WRITE_PREPARE);
 
       for (i = 0; i < BLOCK_SIZE/4; i++)
         {
-          flash_regwrite(priv, DIN0 + i * 4, *ptr++);
+          flash_regwrite(priv->cfg->base, DIN0 + i * 4, *ptr++);
           flash_sendop_wait(priv, CMD_WRITE);
 
-          flash_regwrite(priv, DIN0 + i * 4, 0xffffffff);
+          flash_regwrite(priv->cfg->base, DIN0 + i * 4, 0xffffffff);
         }
 
       flash_sendop_wait(priv, CMD_WRITE_END);
@@ -508,7 +505,7 @@ __ramfunc__ static int song_onchip_flash_ioctl(FAR struct mtd_dev_s *dev, int cm
  ****************************************************************************/
 
 int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg,
-                          FAR struct mtd_dev_s *mtd[2])
+                                 FAR struct mtd_dev_s *mtd[2])
 {
   struct song_onchip_flash_dev_s *priv;
   struct clk *mclk;
@@ -549,17 +546,59 @@ int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cf
       priv->neraseblocks = cfg->neraseblocks[i];
       priv->cfg          = cfg;
       mtd[i] = (FAR struct mtd_dev_s *)priv;
-
-#ifndef CONFIG_DISABLE_ENVIRON
-    if (i == ACC_INFO)
-      {
-        song_onchip_initalize_env(mtd[i]);
-      }
-#endif
     }
 
   flash_timing_configure(priv, cfg->timing);
   flash_int_configure(priv);
 
+#ifndef CONFIG_DISABLE_ENVIRON
+  song_onchip_initalize_env(mtd[1]);
+#endif
   return OK;
+}
+
+int song_onchip_read_info(uint32_t base, uint32_t yaddr_shift,
+                          FAR const char *name, FAR uint8_t *buffer)
+{
+  uint32_t xaddr, haddr, rowsize = (1 << yaddr_shift) * BLOCK_SIZE;
+  const struct song_onchip_info_s *info = NULL;
+  size_t rdsize, i, remain;
+  uint32_t offset;
+
+  for (i = 0; i < sizeof(g_info_map)/sizeof(g_info_map[0]); i++)
+    {
+      if (!strcmp(name, g_info_map[i].name))
+        {
+          info = &g_info_map[i];
+          break;
+        }
+    }
+
+  if (!info)
+    {
+      return -EINVAL;
+    }
+
+  flash_regupdate(base, ACCESS_CTRL, ACC_MASK, ACC_INFO);
+
+  offset = info->offset;
+  remain = info->nbytes;
+  while (remain > 0)
+    {
+      haddr = offset & (rowsize - 1);
+      xaddr = offset >> (yaddr_shift + BLOCK_SHIFT);
+
+      rdsize = remain < (rowsize - haddr) ?
+               remain : (rowsize - haddr);
+      flash_regwrite(base, XADDR, xaddr);
+      for (i = 0; i < rdsize; i++)
+        {
+          *buffer++ = *(volatile uint8_t *)(((haddr + i) | (1 << 15)) + base);
+        }
+
+      offset += rdsize;
+      remain -= rdsize;
+    }
+
+  return 0;
 }

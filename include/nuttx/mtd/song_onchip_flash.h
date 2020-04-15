@@ -100,6 +100,18 @@ struct song_onchip_flash_config_s
  ****************************************************************************/
 
 int song_onchip_flash_initialize(FAR const struct song_onchip_flash_config_s *cfg,
-                          FAR struct mtd_dev_s *mtd[2]);
+                                 FAR struct mtd_dev_s *mtd[2]);
+
+/****************************************************************************
+ * Name: song_onchip_read_info
+ *
+ * Description:
+ *  Directly read info page, don't need context.
+ *  This always used on system beginning or somewhere can't get context.
+ *
+ ****************************************************************************/
+
+int song_onchip_read_info(uint32_t base, uint32_t yaddr_shift,
+                          FAR const char *name, FAR uint8_t *buffer);
 
 #endif /* __INCLUDE_NUTTX_MTD_SONG_ONCHIP_FLASH_H */
