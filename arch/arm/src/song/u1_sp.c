@@ -334,7 +334,10 @@ void up_earlystart(void)
    */
 
   song_onchip_read_info(0xb0130000, 5, "pmic-trim", (uint8_t *)&trim);
-  putreg32(trim, TOP_PMICFSM_TRIM0);
+  if (trim != 0xffffffff)
+    {
+      putreg32(trim, TOP_PMICFSM_TRIM0);
+    }
 }
 
 void up_earlyinitialize(void)
