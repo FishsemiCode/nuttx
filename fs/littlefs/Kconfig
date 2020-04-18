@@ -4,3 +4,15 @@ config FS_LITTLEFS
 	depends on !DISABLE_MOUNTPOINT
 	---help---
 		Build the LITTLEFS file system. https://github.com/ARMmbed/littlefs.
+
+if FS_LITTLEFS
+
+config LITTLEFS_WEARLEVEL_THRESTHOLD
+	int "number of blocks the littlefs start wear-leveling"
+	default 4096
+
+config LITTLEFS_MIGRATE
+	bool "enable migration(from a pervious version) when mount fail"
+	default n
+
+endif

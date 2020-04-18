@@ -32,6 +32,10 @@ extern "C"
 #define LFS_DISK_VERSION_MAJOR (0xffff & (LFS_DISK_VERSION >> 16))
 #define LFS_DISK_VERSION_MINOR (0xffff & (LFS_DISK_VERSION >>  0))
 
+#ifdef CONFIG_LITTLEFS_MIGRATE
+  #define LFS_MIGRATE
+#endif
+
 /// Definitions ///
 
 // Type definitions
