@@ -44,6 +44,15 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+#include <sys/stat.h>
+
+static inline int ls_specialdir(const char *dir)
+{
+  /* '.' and '..' directories are not listed like normal directories */
+
+  return (strcmp(dir, ".")  == 0 || strcmp(dir, "..") == 0);
+}
+
 int up_file_copy(char *dstfile, char *srcfile)
 {
   char *buf = NULL;
@@ -132,14 +141,23 @@ int up_folder_copy(char *dstdir, char *srcdir)
           break;
         }
 
-      if (DIRENT_ISDIRECTORY(entryp->d_type))
+      snprintf(dstfile, 64, "%s/%s", dstdir, entryp->d_name);
+      snprintf(srcfile, 64, "%s/%s", srcdir, entryp->d_name);
+
+      if (DIRENT_ISDIRECTORY(entryp->d_type) &&
+          ls_specialdir(entryp->d_name))
         {
           continue;
         }
-
-      snprintf(dstfile, 64, "%s/%s", dstdir, entryp->d_name);
-      snprintf(srcfile, 64, "%s/%s", srcdir, entryp->d_name);
-      up_file_copy(dstfile, srcfile);
+      else if (DIRENT_ISDIRECTORY(entryp->d_type))
+        {
+          mkdir(dstfile, 0777);
+          up_folder_copy(dstfile, srcfile);
+        }
+      else
+        {
+          up_file_copy(dstfile, srcfile);
+        }
     }
 
   closedir(dirp);
