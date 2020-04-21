@@ -1195,8 +1195,28 @@ static int u16550_ioctl(struct file *filep, int cmd, unsigned long arg)
         priv->flow      = (termiosp->c_cflag & CRTSCTS) != 0;
 #endif
 
+        priv->uartclk = priv->baud * 16;
+#ifdef TTYS0_DEV
+        if (u16550_serialin(priv, 0x8c) == 0x3)
+          {
+            priv->uartclk = priv->baud;
+          }
+#endif
+
         u16550_setup(dev);
+
         leave_critical_section(flags);
+
+#ifdef CONFIG_CLK
+        /* Clk enable */
+
+        priv->mclk = clk_get(priv->clk_name);
+        if (priv->mclk)
+          {
+            clk_set_rate(priv->mclk, priv->uartclk);
+          }
+#endif
+
       }
       break;
 #endif
