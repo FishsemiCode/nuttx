@@ -916,7 +916,7 @@ int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
       return -EPERM;
     }
 
-  if (ctx->blocksize == 0)
+  if (ctx->blocksize == 0 || len_in == 0)
     {
       /* NON-blcok mode, just call lower ops */
 
@@ -960,7 +960,7 @@ int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
 
   /* NON-blcok mode, just call lower ops */
 
-  if (ctx->blocksize == 0)
+  if (ctx->blocksize == 0 || (len_in == 0 && ctx->buflen == 0))
     {
       return ctx->module->ops->alg_finish(ctx->session,
                                           len_in, data_in,
@@ -1050,6 +1050,8 @@ int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
     {
       return ret;
     }
+
+  ctx->buflen = 0;
 
   done += ret;
   return done;

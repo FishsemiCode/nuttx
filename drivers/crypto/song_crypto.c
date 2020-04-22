@@ -341,6 +341,10 @@ static int song_crypto_sessionfree(FAR void* session)
 
   if (sess)
     {
+      if (sess->alg)
+      {
+        sess->algop->uninit(sess->alg);
+      }
       free(sess);
     }
 

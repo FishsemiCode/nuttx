@@ -528,7 +528,7 @@ int song_crypto_gcm_exe(FAR void *alg_, bool first, bool last,
   struct song_crypto_gcm_s *alg = alg_;
   int ret;
 
-  if (!indata || inlen == 0 || !outdata || outlen < inlen)
+  if (!indata || !outdata || outlen < inlen)
     {
       return -EINVAL;
     }
