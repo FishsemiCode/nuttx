@@ -12,8 +12,59 @@ config CRYPTO
 if CRYPTO
 
 config CRYPTO_AES
-	bool "AES cypher support"
+	bool "AES cipher support"
 	default n
+
+# =============================================================================
+config CRYPTO_MANAGER
+	bool "Cryptographic manager support"
+	default n
+
+if CRYPTO_MANAGER
+
+config CRYPTO_MANAGER_NMODULES
+	int "Number of preallocated modules"
+	default 2
+
+config CRYPTO_MANAGER_DYNMODULES
+	bool "Allow more dynamically allocated modules"
+	default n
+
+choice
+	prompt "Entropy source"
+	default CRYPTO_MANAGER_ENTROPY_DEVRANDOM if STM32_RNG || STM32L4_RNG
+
+config CRYPTO_MANAGER_ENTROPY_DEVRANDOM
+	bool "Use system hardware based /dev/random"
+
+config CRYPTO_MANAGER_ENTROPY_BOARD
+	bool "Use board level callback to generate entropy"
+
+endchoice
+
+config CRYPTO_SOFTMODULE
+	bool "Software cryptographic module"
+	default n
+	depends on CRYPTO_MANAGER
+
+if CRYPTO_SOFTMODULE
+
+config CRYPTO_SOFTMODULE_RAMKEYS
+	int "Maximum number of volatile keys per session"
+	default 4
+
+if CRYPTO_AES
+
+config CRYPTO_SOFTMODULE_AES
+	bool "Support for AES algorithms"
+	default n
+
+endif # AES
+
+endif # SOFTMODULE
+
+endif # MANAGER
+# =============================================================================
 
 config CRYPTO_ALGTEST
 	bool "Perform automatic crypto algorithms test on startup"

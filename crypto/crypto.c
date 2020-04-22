@@ -47,6 +47,11 @@
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/crypto/crypto.h>
+#include <nuttx/drivers/drivers.h>
+
+#if defined(CONFIG_CRYPTO_SOFTMODULE)
+#include <nuttx/crypto/module.h>
+#endif
 
 /****************************************************************************
  * Private Function Prototypes
@@ -66,10 +71,17 @@
 
 int up_cryptoinitialize(void)
 {
-#ifdef CONFIG_CRYPTO_ALGTEST
-  int ret;
+#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_CRYPTO_MANAGER)
+  (void)devcrypto_register(); // replace the previous /dev/crypto
+
+#if defined(CONFIG_CRYPTO_SOFTMODULE)
+  (void)softcrypto_register();
+#endif
+
+#endif
 
 #ifdef CONFIG_CRYPTO_ALGTEST
+  int ret;
   ret = crypto_test();
   if (ret)
     {
@@ -79,7 +91,6 @@ int up_cryptoinitialize(void)
     {
       cryptinfo("crypto test OK\n");
     }
-#endif
 
   return ret;
 #else

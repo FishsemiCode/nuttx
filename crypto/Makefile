@@ -44,6 +44,16 @@ ifeq ($(CONFIG_CRYPTO),y)
 
 CRYPTO_CSRCS += crypto.c testmngr.c
 
+# cryptomanager support
+
+ifeq ($(CONFIG_CRYPTO_MANAGER),y)
+  CRYPTO_CSRCS += manager.c libmanager.c secutils.c
+endif
+
+ifeq ($(CONFIG_CRYPTO_SOFTMODULE),y)
+  CRYPTO_CSRCS += softmodule.c
+endif
+
 # cryptodev support
 
 ifeq ($(CONFIG_CRYPTO_CRYPTODEV),y)
