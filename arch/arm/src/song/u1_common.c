@@ -53,12 +53,13 @@ static inline int ls_specialdir(const char *dir)
   return (strcmp(dir, ".")  == 0 || strcmp(dir, "..") == 0);
 }
 
-int up_file_copy(char *dstfile, char *srcfile)
+static int _up_file_copy(char *dstfile, char *srcfile, bool append)
 {
   char *buf = NULL;
   int ret = 0;
   int fdr = -1;
   int fdw = -1;
+  int oflags;
 
   fdr = open(srcfile, O_RDONLY);
   if (fdr < 0)
@@ -66,7 +67,9 @@ int up_file_copy(char *dstfile, char *srcfile)
       return fdr;
     }
 
-  fdw = open(dstfile, O_WRONLY | O_CREAT);
+  oflags  = append ? O_APPEND : 0;
+  oflags |= O_WRONLY | O_CREAT;
+  fdw = open(dstfile, oflags);
   if (fdw < 0)
     {
       goto out;
@@ -118,7 +121,17 @@ out:
   return ret;
 }
 
-int up_folder_copy(char *dstdir, char *srcdir)
+int up_file_copy(char *dstfile, char *srcfile)
+{
+  return _up_file_copy(dstfile, srcfile, false);
+}
+
+int up_file_copy_append(char *dstfile, char *srcfile)
+{
+  return _up_file_copy(dstfile, srcfile, true);
+}
+
+static int _up_folder_copy(char *dstdir, char *srcdir, bool skippatch)
 {
   DIR *dirp;
 
@@ -139,6 +152,11 @@ int up_folder_copy(char *dstdir, char *srcdir)
           /* Finished with this directory */
 
           break;
+        }
+
+      if (skippatch && strstr(entryp->d_name, ".patch"))
+        {
+          continue;
         }
 
       snprintf(dstfile, 64, "%s/%s", dstdir, entryp->d_name);
@@ -162,4 +180,14 @@ int up_folder_copy(char *dstdir, char *srcdir)
 
   closedir(dirp);
   return 0;
+}
+
+int up_folder_copy(char *dstdir, char *srcdir)
+{
+  return _up_folder_copy(dstdir, srcdir, false);
+}
+
+int up_folder_copy_skippatch(char *dstdir, char *srcdir)
+{
+  return _up_folder_copy(dstdir, srcdir, true);
 }

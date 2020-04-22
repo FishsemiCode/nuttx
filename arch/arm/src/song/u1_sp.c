@@ -1209,12 +1209,55 @@ static int up_ds_enter_exit_isr(int irq, FAR void *context, FAR void *arg)
   return 0;
 }
 
+#ifdef CONFIG_FS_TMPFS
+static int misc_ramflush_cb(char *fpath, int flags)
+{
+  struct stat buf;
+  char src[64];
+  char dst[64];
+  int ret;
+
+  if (!strcmp(fpath, "/data"))
+    {
+      return up_folder_copy("/onchip/chipap", "/tmp");
+    }
+  else if (strncmp(fpath, "/data/", 6))
+    {
+      /* We only support /data/xx */
+
+      return -EINVAL;
+    }
+
+  ret = stat(fpath, &buf);
+  if (ret || S_ISDIR(buf.st_mode))
+    {
+      return ret;
+    }
+
+  snprintf(src, 64, "/tmp/%s", fpath + 6);
+  snprintf(dst, 64, "/onchip/chipap/%s", fpath + 6);
+
+  if (flags == MISC_RAMFLUSH_APPEND)
+    {
+      return up_file_copy_append(dst, src);
+    }
+  else
+    {
+      return up_file_copy(dst, src);
+    }
+}
+#endif
+
 void up_finalinitialize(void)
 {
 #ifdef CONFIG_FS_TMPFS
   /* Restore ap data from internal flash */
 
-  up_folder_copy("/tmp", "/onchip/chipap");
+  up_folder_copy_skippatch("/tmp", "/onchip/chipap");
+
+  /* Register callback for force flush /data to /onchip */
+
+  MISC_RAMFLUSH_REGISTER(g_misc[0], misc_ramflush_cb);
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
