@@ -44,6 +44,8 @@
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/clk-provider.h>
+#include <nuttx/crypto/crypto.h>
+#include <nuttx/crypto/song_crypto.h>
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/drivers/ramdisk.h>
@@ -900,6 +902,24 @@ static int up_pmicfsm_isr(int irq, FAR void *context, FAR void *arg)
   return 0;
 }
 
+#ifdef CONFIG_SONG_CRYPTO
+static void up_crypto_init(void)
+{
+  static const struct song_crypto_config_s config =
+  {
+    .base = 0xb0140000,
+    .irq  = 29,
+    .clk  = "top_cipher_clk",
+  };
+
+  if (!up_is_u1v1())
+    {
+      up_cryptoinitialize();
+      song_crypto_initialize(&config);
+    }
+}
+#endif
+
 static void up_extra_init(void)
 {
   uint32_t wdtrst;
@@ -970,6 +990,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_PMIC_APB
   up_pmu_initialize();
+#endif
+
+#ifdef CONFIG_SONG_CRYPTO
+  up_crypto_init();
 #endif
 
   up_extra_init();
