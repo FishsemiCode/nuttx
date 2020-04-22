@@ -43,6 +43,13 @@ ifeq ($(CONFIG_SONG_RNG),y)
   CSRCS += song_rng.c
 endif
 
+ifeq ($(CONFIG_SONG_CRYPTO),y)
+  CSRCS += song_crypto.c song_crypto_utils.c
+  CSRCS += song_crypto_common.c song_crypto_gcm.c
+  CSRCS += song_crypto_sha.c song_crypto_sm3.c
+  CSRCS += song_crypto_cs.c
+endif
+
 # Include crypto device driver build support
 
 DEPPATH += --dep-path crypto
