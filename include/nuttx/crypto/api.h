@@ -146,8 +146,8 @@ int cryptoman_algstatus(FAR struct cryptoman_context_s *ctx,
  * ctx       : The crypto context
  * len_in    : number of bytes to be managed, arbitrary
  * data_in   : pointer to the data to be managed
- * len_outbuf: length of the buffer used to receive the result
- * buf_out   : buffer to receive the result
+ * len_out   : length of the buffer used to receive the result
+ * data_out  : buffer to receive the result
  * Return value: The number of bytes that were written in buf_out, or a negative
  * error
  ****************************************************************************/
@@ -155,8 +155,8 @@ int cryptoman_algstatus(FAR struct cryptoman_context_s *ctx,
 int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
                         uint32_t len_in,
                         FAR const uint8_t *data_in,
-                        uint32_t len_outbuf,
-                        FAR uint8_t *buf_out);
+                        uint32_t len_out,
+                        FAR uint8_t *data_out);
 
 /****************************************************************************
  * Name: cryptoman_algupdate
@@ -170,8 +170,8 @@ int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
  * ctx       : The crypto context
  * len_in    : number of bytes to be managed, arbitrary
  * data_in   : pointer to the data to be managed
- * len_outbuf: length of the buffer used to receive the result
- * buf_out   : buffer to receive the result
+ * len_out   : length of the buffer used to receive the result
+ * data_out  : buffer to receive the result
  * Return value: The number of bytes that were written in buf_out, or a negative
  * error
  ****************************************************************************/
@@ -179,8 +179,8 @@ int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
 int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
                         uint32_t len_in,
                         FAR const uint8_t *data_in,
-                        uint32_t len_outbuf,
-                        FAR uint8_t *buf_out);
+                        uint32_t len_out,
+                        FAR uint8_t *data_out);
 
 /****************************************************************************
  * Name: cryptomod_register

@@ -48,20 +48,21 @@
  * Public Type Definitions
  ****************************************************************************/
 
+struct cryptomodule_s;
 struct cryptomodule_ops_s
 {
     /* Name: sessioncreate
      * Description: Allocate memory for a new session.
      */
 
-    CODE FAR void* (*session_create)(void);
+    CODE FAR void* (*session_create)(FAR struct cryptomodule_s *module);
 
     /* Name: sessionfree
      * Description: Destroy a session and all volatile keys.
      */
 
     CODE int       (*session_free)(FAR void* session);
-                                   
+
     /* Name: authenticate
      * Description: Run authentication rounds to unlock the module.
      */
@@ -69,7 +70,7 @@ struct cryptomodule_ops_s
     CODE int       (*session_auth)(FAR void *session, uint32_t step,
                                    uint32_t cmdlen, FAR uint8_t *cmd,
                                    uint32_t rsplen, uint8_t *rsp);
-                                   
+
     /* Name: keycount
      * Description: Return the number of keys in the module, including all
      *              volatile and persistent.
@@ -91,13 +92,13 @@ struct cryptomodule_ops_s
 
     CODE int       (*key_create)(FAR void *session, uint32_t id, uint32_t flags,
                                  uint32_t length, FAR uint8_t *value);
-                                    
+
     /* Name: keydelete
      * Description: Remove the indicated key from the session.
      */
 
     CODE int       (*key_delete)(FAR void *session, uint32_t id);
-    
+
     /* Name: keygen
      * Description: Update the key with random values
      */
@@ -112,7 +113,7 @@ struct cryptomodule_ops_s
     CODE int       (*key_update)(FAR void *session, uint32_t id,
                                  uint32_t component, uint32_t unwrapalg,
                                  uint32_t len, FAR uint8_t *value);
-                                    
+
     /* Name: keyread
      * Description: Return the value of a key component. Only possible if the
      *              key was created with the proper flags.
@@ -134,14 +135,14 @@ struct cryptomodule_ops_s
      */
 
     CODE int       (*alg_supported)(FAR void *session, uint32_t algid);
-    
+
     /* Name: alg_init
      * Description: Prepare the module to use this algorithm, using this key
      */
 
     CODE int       (*alg_init)(FAR void *session, uint32_t algid, uint32_t mode,
                                uint32_t keyid);
-    
+
     /* Name: alg_ioctl
      * Description: Define or retrieve customized parameters for the currently
      * initialized algorithm. Used to implement alg_setup and alg_status.
@@ -152,7 +153,7 @@ struct cryptomodule_ops_s
 
     CODE int       (*alg_ioctl)(FAR void *session, uint32_t param,
                                 uint32_t length, FAR uint8_t *value);
-    
+
     /* Name: alg_update
      * Description: Process one or more data blocks. For block based algorithms,
      * inlen MUST be a multiple of the algorithm block size. For RNG indata and
@@ -183,9 +184,9 @@ struct cryptomodule_ops_s
 
 struct cryptomodule_s
 {
-    char                       name[32]; /* Module name */
-    uint32_t                   flags;    /* Moudle flags */
-    struct cryptomodule_ops_s *ops;      /* Module operations */
+    char                            name[32]; /* Module name */
+    uint32_t                        flags;    /* Moudle flags */
+    const struct cryptomodule_ops_s *ops;      /* Module operations */
 };
 
 /* Name: softcrypto_register

@@ -40,10 +40,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
-#include <assert.h>
-#include <errno.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
@@ -57,26 +54,271 @@
 
 struct cryptoman_context_s
 {
-  FAR struct cryptomodule_s *module; /* Pointer to the current module */
-  FAR void    *session;                 /* Session handle within the module */
+  FAR struct cryptomodule_s *module;        /* Pointer to the current module */
+  FAR void                  *session;       /* Session handle within the module */
 
-  int          current_module;       /* Used for module enumeration */
-  int          current_key;          /* Used for key enumeration */
+  int                       current_module; /* Used for module enumeration */
+  int                       current_key;    /* Used for key enumeration */
 
-  uint32_t     blocksize;            /* Selected ALG block length */
-  FAR uint8_t *buffer;               /* Buffer for ALG */
-  uint32_t     buflen;               /* Number of bytes used in the buffer */
-  uint32_t     opmode;               /* Opmode for the selected alg */
-  uint8_t      padding;              /* Padding method used with selected alg */
+  uint32_t                  blocksize;      /* Selected ALG block length,
+                                             * Zero means not BLOCK
+                                             */
+  FAR uint8_t               *buffer;        /* Buffer for ALG */
+  uint32_t                  buflen;         /* Number of bytes used in the buffer */
+  uint32_t                  opmode;         /* Opmode for the selected alg */
+  uint8_t                   padding;        /* Padding method used with selected alg.
+                                             * Padding must be ALG_PADDING_NONE when
+                                             * blocksize == 0;
+                                             */
 };
 
-static sem_t gUserSemaphore; /* Access protection to the list of modules */
+/*****************************************************************************
+ * Private Data
+ *****************************************************************************/
 
-FAR struct cryptomodule_s * gCryptoModules[CONFIG_CRYPTO_MANAGER_NMODULES];
+/* Access protection to the list of modules */
 
-#ifdef CONFIG_CRYPTO_MANAGER_DYNMODULES
-#error dynamically allocated modules not supported yet (TODO)!
-#endif
+static sem_t g_crypto_semaphore;
+
+static struct cryptomodule_s *g_crypto_modules[CONFIG_CRYPTO_MANAGER_NMODULES];
+
+/*****************************************************************************
+ * Private functions
+ *****************************************************************************/
+
+/****************************************************************************
+ * Name: cryptoman_padzero
+ * Description: Pad with zero bytes. CANNOT BE REMOVED BY DECRYPTION.
+ ****************************************************************************/
+
+static int cryptoman_padzero(FAR uint8_t *buf, uint32_t len, uint32_t opmode)
+{
+  if (ALGOP_CIPHER == opmode)
+    {
+      memset(buf, 0, len);
+    }
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: cryptoman_padx923
+ * Descriptin: ALGOP_CIPHER:zeros, with explicit length in last byte
+ *             ALGOP_DECIPHER:Helper to check padding validity
+ ****************************************************************************/
+
+static int cryptoman_padx923(FAR uint8_t *buf, uint32_t len, uint32_t opmode)
+{
+  if (ALGOP_CIPHER == opmode)
+    {
+      buf[len-1] = len;
+      memset(buf, 0, len - 1);
+    }
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: cryptoman_padiso78164
+ * Description: ALGOP_CIPHER:0x80, followed by zeros.
+ *              ALGOP_DECIPHER:Helper to check padding validity
+ ****************************************************************************/
+
+static int cryptoman_padiso78164(FAR uint8_t *buf, uint32_t len, uint32_t opmode)
+{
+  if (ALGOP_CIPHER == opmode)
+    {
+      /* Need at least one byte */
+
+      if (len < 1)
+        {
+          return -EINVAL; /* Should not happen */
+        }
+
+      buf[0] = 0x80;
+      memset(buf + 1, 0, len - 1);
+    }
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: cryptoman_padpkcs5
+ * Description: ALGOP_CIPHER:Use a byte that represents the length, repeated as required.
+ *              Name copied for javacard for ease of comparison.
+ *              ALGOP_DECIPHER:Helper to check padding validity
+ ****************************************************************************/
+
+static int cryptoman_padpkcs5(FAR uint8_t *buf, uint32_t len, uint32_t opmode)
+{
+  if (ALGOP_CIPHER == opmode)
+    {
+      memset(buf, len, len);
+    }
+
+  return 0;
+}
+
+/****************************************************************************
+ * Name: cryptoman_padiso10126
+ ****************************************************************************/
+
+static int cryptoman_padiso10126(FAR uint8_t *buf, uint32_t len, uint32_t opmode)
+{
+  return cryptoman_padx923(buf, len, opmode);
+}
+
+/****************************************************************************
+ * Name: cryptoman_processfullblocks
+ * Description: Process as many full blocks of data as possible, put the
+ *              remain which not enough for one full block to ctx->buffer
+ * Parameters :
+ * ctx        : The crypto context
+ * len_in     : Number of bytes available in the input buffer
+ * data_in    : Pointer to bytes that need to be managed
+ * len_out    : Number of bytes available in the output buffer
+ * data_out   : Pointer to the output buffer, where generated data is stored
+ * finishing  : The last frame data and no padding will be set true,
+ *                else will be set false.
+ * Returns    : The number of bytes WRITTEN in buf_out (obviously a
+ *              multiple of the block size), or a negative error
+ ****************************************************************************/
+
+static int cryptoman_processfullblocks(FAR struct cryptoman_context_s *ctx,
+                                       uint32_t len_in, FAR uint8_t *data_in,
+                                       uint32_t len_out, FAR uint8_t *data_out,
+                                       bool finishing)
+{
+  uint32_t blocklen;
+  uint32_t done = 0; /* How many bytes have been written to output (total)*/
+  int ret = 0;
+
+  /* First, look at the accumulation buffer */
+
+  if (ctx->buflen > 0)
+    {
+      /* Some bytes in the temp buffer require processing. First compute how
+       * many bytes are required to fill the block buffer.
+       */
+
+      uint32_t processlen = ctx->blocksize - ctx->buflen;
+
+      if (len_in >= processlen)
+        {
+          /* There is enough incoming data to fill the temp buf.
+           * Complete the buffer up to a block and process it,
+           */
+
+          memcpy(ctx->buffer + ctx->buflen, data_in, processlen);
+
+          /* We just call the algorithm update routine EXCEPT IF
+           * Padding is not used (or finishing would be false)
+           * We are called from alg_finish, AND
+           * The incoming data EXACTLY completes the temp block */
+
+          if (finishing && (len_in == processlen))
+            {
+              /* We are in the last steps, there was no padding, and the
+               * incoming data is just big enough to complete the pending block
+               */
+
+              ret = ctx->module->ops->alg_finish(ctx->session,
+                                                 ctx->blocksize, ctx->buffer,
+                                                 len_out, data_out);
+            }
+          else
+            {
+              /* Normal case: This is not the last crypto operation on this
+               * stream because there is padding, too many data to fit in this
+               * block, or called from alg_update
+               */
+              ret = ctx->module->ops->alg_update(ctx->session,
+                                                 ctx->blocksize, ctx->buffer,
+                                                 len_out, data_out);
+            }
+
+          if (ret < 0)
+            {
+              return ret; /* Something failed */
+            }
+
+          /* Update input variables to indicate how many have been consumed */
+
+          data_in += processlen;
+          len_in  -= processlen;
+
+          /* Update output variables to indicate what has been consumed */
+
+          data_out += ret; /* Update output position */
+          len_out  -= ret; /* Update output room */
+          done     += ret; /* Remember how many bytes we've done */
+
+          /* Now the temp buffer has been processed */
+
+          ctx->buflen = 0;
+        }
+      else
+        {
+          /* The incoming data is not long enough to full fill the temp buffer.
+           * So a full block cannot be processed, then save to temp buffer.
+           */
+
+          goto save_to_buffer;
+        }
+    }
+
+  /* The temp buffer has been potentially processed. Now process full blocks
+   * from incoming buffer.
+   */
+
+  blocklen = (len_in / ctx->blocksize) * ctx->blocksize;
+
+  if (blocklen)
+    {
+      /* Some full blocks are available */
+
+      if (finishing && blocklen == len_in)
+        {
+          /* We were called from alg_finish with no padding, this is the last
+           * call on this data stream
+           */
+
+          ret = ctx->module->ops->alg_finish(ctx->session,
+                                             blocklen, data_in,
+                                             len_out, data_out);
+        }
+      else
+        {
+          /* Not called from finish and/or padding is applied to this data stream */
+
+          ret = ctx->module->ops->alg_update(ctx->session,
+                                             blocklen, data_in,
+                                             len_out, data_out);
+        }
+
+      if (ret < 0)
+        {
+          return ret; /* Something failed */
+        }
+
+      /* Update variables so the caller knows what has been managed */
+
+      data_in += blocklen;
+      len_in  -= blocklen;
+      done    += ret;
+    }
+
+save_to_buffer:
+  if (len_in)
+    {
+      /* Save whatever bytes were not processed to the temp buffer */
+
+      memcpy(ctx->buffer + ctx->buflen, data_in, len_in);
+      ctx->buflen += len_in;
+    }
+
+  return done;
+}
 
 /****************************************************************************
  * Public Functions : Kernel crypto API usable by other parts of the system
@@ -91,7 +333,7 @@ FAR struct cryptoman_context_s *cryptoman_sessalloc(void)
   FAR struct cryptoman_context_s *context;
 
   context = kmm_zalloc(sizeof(struct cryptoman_context_s));
-  context->blocksize = 0;
+
   return context;
 }
 
@@ -101,17 +343,20 @@ FAR struct cryptoman_context_s *cryptoman_sessalloc(void)
 
 int cryptoman_sessfree(FAR struct cryptoman_context_s *ctx)
 {
-  if(ctx)
+  if (ctx)
     {
-      if(ctx->buffer)
+      if (ctx->buffer)
         {
           kmm_free(ctx->buffer); /* Free any allocated block buffer */
         }
+
       /* Start by closing the module's session if a module has been selected */
-      if(ctx->module)
+
+      if (ctx->module)
         {
-        ctx->module->ops->session_free(ctx->session);
+          ctx->module->ops->session_free(ctx->session);
         }
+
       kmm_free(ctx);
     }
 
@@ -129,20 +374,20 @@ int cryptoman_modinfo(FAR struct cryptoman_context_s *ctx,
                       uint32_t alg,
                       FAR uint32_t *flags)
 {
-  if(first)
+  if (first)
     {
       ctx->current_module = -1;
     }
 
   /* Find next module */
 
-  while(true)
+  while (true)
     {
       FAR struct cryptomodule_s *curmod;
 
       ctx->current_module += 1;
 
-      if(ctx->current_module >= CONFIG_CRYPTO_MANAGER_NMODULES)
+      if (ctx->current_module >= CONFIG_CRYPTO_MANAGER_NMODULES)
         {
           /* Reached end of list. In the future, browse the dynamic
            * list, too..
@@ -150,9 +395,9 @@ int cryptoman_modinfo(FAR struct cryptoman_context_s *ctx,
           break;
         }
 
-      curmod = gCryptoModules[ctx->current_module];
+      curmod = g_crypto_modules[ctx->current_module];
 
-      if(curmod == NULL)
+      if (curmod == NULL)
         {
           continue; /* No module in this slot */
         }
@@ -161,16 +406,16 @@ int cryptoman_modinfo(FAR struct cryptoman_context_s *ctx,
 
       /* If name was passed, check that the module name matches */
 
-      if(name[0] && strncmp(name, curmod->name, 32))
+      if (name[0] && strncmp(name, curmod->name, 32))
         {
           continue;
         }
 
       /* Check if alg supported by module. */
 
-      if(alg != ALG_NONE)
+      if (alg != ALG_NONE)
         {
-          if(curmod->ops->alg_supported(ctx->session, alg) < 0)
+          if (curmod->ops->alg_supported(ctx->session, alg) < 0)
             {
               continue; /* Requested alg not supported by module */
             }
@@ -180,10 +425,12 @@ int cryptoman_modinfo(FAR struct cryptoman_context_s *ctx,
 
       strncpy(name, curmod->name, 32);
       *flags = curmod->flags;
+
       return 0;
     }
 
   /* All modules checked and none can be returned */
+
   return -ENODEV;
 }
 
@@ -192,46 +439,46 @@ int cryptoman_modinfo(FAR struct cryptoman_context_s *ctx,
  * Description: see include/nuttx/crypto/api.h
  ****************************************************************************/
 
-int cryptoman_modselect(FAR struct cryptoman_context_s *ctx,
-                        char name[32])
+int cryptoman_modselect(FAR struct cryptoman_context_s *ctx, char name[32])
 {
+  FAR struct cryptomodule_s *tempmodule = NULL;
+  FAR void *tempsession;
   int i;
-  FAR struct cryptomodule_s *tempModule = NULL;
-  FAR void *tempSession;
 
   /* First of all check that the user is not reselecting the same module */
 
-  if(ctx->module && !strncmp(ctx->module->name, name, 32))
+  if (ctx->module && !strncmp(ctx->module->name, name, 32))
     {
       return 0;
     }
 
   /* Search for the required module. We iterate on ALL modules entries */
+
   for (i = 0; i < CONFIG_CRYPTO_MANAGER_NMODULES; i++)
     {
-      if(!gCryptoModules[i])
+      if (!g_crypto_modules[i])
         {
           continue;
         }
 
-      if (gCryptoModules[i]->name &&
-              strncmp(gCryptoModules[i]->name, name, 32) == 0)
+      if (g_crypto_modules[i]->name &&
+              strncmp(g_crypto_modules[i]->name, name, 32) == 0)
         {
-          tempModule = gCryptoModules[i];
+          tempmodule = g_crypto_modules[i];
         }
     }
 
   /* Required module not found: Exit without changing the current module */
 
-  if (!tempModule)
+  if (!tempmodule)
     {
       return -ENODEV;
     }
 
   /* Try to make a session in the new module */
 
-  tempSession = tempModule->ops->session_create();
-  if (!tempSession)
+  tempsession = tempmodule->ops->session_create(tempmodule);
+  if (!tempsession)
     {
       return -ENOMEM; /* Session creation failed */
     }
@@ -245,8 +492,8 @@ int cryptoman_modselect(FAR struct cryptoman_context_s *ctx,
 
   /* Now update the context with the new info and create a session */
 
-  ctx->module  = tempModule;
-  ctx->session = tempSession;
+  ctx->module  = tempmodule;
+  ctx->session = tempsession;
 
   return 0;
 }
@@ -323,7 +570,7 @@ int cryptoman_keyinfo(FAR struct cryptoman_context_s *ctx,
         }
 
       ret = ctx->module->ops->key_info(ctx->session, ctx->current_key,
-                                       &keyid, length, flags);
+                                       &keyid, flags, length);
       if (ret == -ENODEV)
         {
           continue;
@@ -463,9 +710,9 @@ int cryptoman_keyread(FAR struct cryptoman_context_s *ctx,
  ****************************************************************************/
 
 int cryptoman_keycopy(FAR struct cryptoman_context_s *ctx,
-                        uint32_t destid,
-                        uint32_t flags,
-                        uint32_t srcid)
+                      uint32_t destid,
+                      uint32_t flags,
+                      uint32_t srcid)
 {
   if (!ctx)
     {
@@ -505,7 +752,7 @@ int cryptoman_alginfo(FAR struct cryptoman_context_s *ctx,
   ret = ctx->module->ops->alg_supported(ctx->session, id);
   if (ret < 0)
     {
-      return -ENOTSUP;
+      return ret;
     }
 
   *blocklen = ret;
@@ -539,24 +786,30 @@ int cryptoman_alginit(FAR struct cryptoman_context_s *ctx,
    */
 
   ret = ctx->module->ops->alg_supported(ctx->session, algid);
-  if (ret <= 0)
+  if (ret < 0)
     {
-      return -ENOTSUP;
+      return ret;
     }
 
   /* Allocate new block buffer if size has changed */
-  if(ctx->blocksize != ret)
+
+  if (ctx->blocksize != ret)
     {
       /* Maybe we have a previous buffer? */
-      if(ctx->buffer)
+
+      if (ctx->buffer)
         {
           kmm_free(ctx->buffer);
         }
+
       ctx->blocksize = ret;
-      ctx->buffer = kmm_malloc(ctx->blocksize);
-      if (!ctx->buffer)
+      if (ctx->blocksize > 0)
         {
-          return -ENOMEM;
+          ctx->buffer = kmm_malloc(ctx->blocksize);
+          if (!ctx->buffer)
+            {
+              return -ENOMEM;
+            }
         }
     }
 
@@ -576,6 +829,8 @@ int cryptoman_algsetup(FAR struct cryptoman_context_s *ctx,
                        uint32_t length,
                        FAR uint8_t *value)
 {
+  int ret = -EINVAL;
+
   if (!ctx)
     {
       return -EINVAL;
@@ -592,21 +847,32 @@ int cryptoman_algsetup(FAR struct cryptoman_context_s *ctx,
     {
       case ALGPARAM_PADDING:
         {
-          if(length == 1)
+          if (length != 1)
             {
-              ctx->padding = value[0];
+              break;
+            }
+
+          if (ctx->blocksize == 0 && value[0] != ALG_PADDING_NONE)
+            {
+              /* NON block mode, padding must be zero */
+
+              break;
             }
           else
             {
-              return -EINVAL;
+              ctx->padding = value[0];
+              ret = 0;
             }
           break;
         }
       default:
-        return ctx->module->ops->alg_ioctl(ctx->session, id, length, value);
+        {
+          ret = ctx->module->ops->alg_ioctl(ctx->session, id, length, value);
+          break;
+        }
     }
 
-  return 0;
+  return ret;
 }
 
 /****************************************************************************
@@ -632,168 +898,15 @@ int cryptoman_algstatus(FAR struct cryptoman_context_s *ctx,
 }
 
 /****************************************************************************
- * Name: cryptoman_processfullblocks
- * Description: Process as many full blocks of data as possible.
- * Parameters:
- * ctx          : The crypto context
- * len_in_ptr   : Pointer to how many bytes have to be managed, updated here
- *                  to indicate the remaining number of bytes that were not
- *                  managed by this call. After the call this variable shall
- *                  be less than the block size.
- * data_in      : Pointer to bytes that need to be managed
- * len_outbuf_av: Number of bytes available in the output buffer
- * buf_out      : pointer to the output buffer, where generated data is stored
- * finishing    : TRUE if we know that this will be the LAST call to this func
- * Returns      : The number of bytes WRITTEN in buf_out (obviously a
- *                  multiple of the block size), or a negative error
- ****************************************************************************/
-
-int cryptoman_processfullblocks(FAR struct cryptoman_context_s *ctx,
-                                FAR uint32_t *len_in_ptr, FAR uint8_t *data_in,
-                                uint32_t len_outbuf_available,
-                                FAR uint8_t *buf_out, bool finishing)
-{
-  int ret;
-  uint32_t blocklen;
-  uint32_t done = 0; /* How many bytes have been written to output (total)*/
-
-  /* First, look at the accumulation buffer */
-
-  if(ctx->buflen > 0)
-    {
-      /* Some bytes in the temp buffer require processing. First compute how
-       * many bytes are required to fill the block buffer.
-       */
-
-      uint32_t processlen = ctx->blocksize - ctx->buflen;
-
-      if(*len_in_ptr >= processlen)
-        {
-
-          /* There is enough incoming data to fill the temp buf.
-           * Complete the buffer up to a block and process it,
-           */
-
-          memcpy(ctx->buffer + ctx->buflen, data_in, processlen);
-
-          /* We just call the algorithm update routine EXCEPT IF
-           * - Padding is not used (or finishing would be false)
-           * - We are called from alg_finish, AND
-           *   The incoming data EXACTLY completes the temp block */
-
-          if(finishing && (*len_in_ptr == processlen))
-            {
-              /* We are in the last steps, there was no padding, and the
-               * incoming data is just big enough to complete the pending block
-               */
-
-              ret = ctx->module->ops->alg_finish(ctx->session,
-                                                 ctx->blocksize, ctx->buffer,
-                                                 len_outbuf_available, buf_out);
-            }
-          else
-            {
-              /* Normal case: This is not the last crypto operation on this
-               * stream because there is padding, too many data to fit in this
-               * block, or called from alg_update
-               */
-
-              ret = ctx->module->ops->alg_update(ctx->session,
-                                                 ctx->blocksize, ctx->buffer,
-                                                 len_outbuf_available, buf_out);
-            }
-
-          if(ret < 0)
-            {
-              return ret; /* Something failed while calling the crypto module */
-            }
-
-          /* Now the temp buffer has been processed */
-
-          ctx->buflen = 0;
-
-          /* Update input variables to indicate how many have been consumed */
-
-          data_in              += processlen;
-          *len_in_ptr          -= processlen;
-
-          /* Update output variables to indicate what has been consumed */
-
-          done                 += ret; /* Remember how many bytes we've done */
-          buf_out              += ret; /* Update output position */
-          len_outbuf_available -= ret; /* Update output room */
-
-          /* We are now ready to process the normal case */
-
-          ctx->buflen = 0;
-        }
-      else
-        {
-          /* The incoming data is not long enough to fill the temp buffer.
-           * A full block cannot be processed.
-           */
-          return 0; /* No bytes produced here */
-        }
-    }
-
-  /* The temp buffer has been potentially processed. Now process full blocks
-   * from incoming buffer.
-   */
-
-  blocklen = ((*len_in_ptr) / ctx->blocksize) * ctx->blocksize;
-
-  if(blocklen)
-    {
-      /* Some full blocks are available */
-      if(finishing)
-        {
-          /* We were called from alg_finish with no padding, this is the last
-           * call on this data stream
-           */
-    
-          ret = ctx->module->ops->alg_finish(ctx->session,
-                                             blocklen, data_in,
-                                             len_outbuf_available, buf_out);
-        }
-      else
-        {
-          /* Not called from finish and/or padding is applied to this data
-           * stream
-           */
-    
-          ret = ctx->module->ops->alg_update(ctx->session,
-                                             blocklen, data_in,
-                                             len_outbuf_available, buf_out);
-        }
-    
-      if(ret < 0)
-        {
-          return ret; /* Something failed */
-        }
-  
-      /* Update variables so the caller knows what has been managed*/
-      *len_in_ptr -= blocklen;
-      done += ret;
-    }
-
-  return done;
-}
-
-/****************************************************************************
  * Name: cryptoman_algupdate
  * Description: see include/nuttx/crypto/api.h
  ****************************************************************************/
 
 int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
-                        uint32_t len_in,
-                        FAR uint8_t *data_in,
-                        uint32_t len_outbuf,
-                        FAR uint8_t *buf_out)
+                        uint32_t len_in, FAR uint8_t *data_in,
+                        uint32_t len_out, FAR uint8_t *data_out)
 {
-  int ret;
-  uint32_t remain = len_in;
-
-  if (!ctx || !data_in || !buf_out)
+  if (!ctx || !data_in || !data_out)
     {
       return -EINVAL;
     }
@@ -803,136 +916,23 @@ int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
       return -EPERM;
     }
 
-  /* Apply common processing to the temp buffer and full sized data blocks */
-
-  ret = cryptoman_processfullblocks(ctx, &remain, data_in,
-                                    len_outbuf, buf_out, false);
-
-  if(ret < 0)
+  if (ctx->blocksize == 0)
     {
-      return ret; /* Something failed */
+      /* NON-blcok mode, just call lower ops */
+
+      return ctx->module->ops->alg_update(ctx->session,
+                                          len_in, data_in,
+                                          len_out, data_out);
     }
-
-  /* Everything could not be managed by processfllblocks. Accumulate the
-   * remaining bytes, that will not produce any output NOW, but will be included
-   * in the next calculations.
-  */
-
-  if(remain > 0)
+  else
     {
-      assert(remain <= ctx->blocksize); /* Just make sure of that */
 
-      /* The process with full blocks processed some data bytes. Store whatever
-       * bytes were not processed in the temp buffer until next call. Guaranteed
-       * not to overflow since processfullblocks() will always leave less than
-       * one block unprocessed, and ctx->buflen will be zero at this point.
-       */
-      memcpy(ctx->buffer + ctx->buflen, data_in + len_in - remain, remain);
-      ctx->buflen += remain;
+      /* Block mode, prcess blocks and save the remain to buffer */
+
+      return cryptoman_processfullblocks(ctx,
+                                         len_in, data_in,
+                                         len_out, data_out, false);
     }
-
-  return ret;
-}
-
-/****************************************************************************
- * Name: cryptoman_padzero
- * Description: Pad with zero bytes. CANNOT BE REMOVED BY DECRYPTION.
- ****************************************************************************/
-
-static int cryptoman_padzero(FAR uint8_t *buf, uint32_t len)
-{
-  memset(buf, 0, len);
-  return 0;
-}
-
-/****************************************************************************
- * Name: cryptoman_padx923
- * Descriptin: zeros, with explicit length in last byte
- ****************************************************************************/
-
-static int cryptoman_padx923(FAR uint8_t *buf, uint32_t len)
-{
-  buf[len-1] = len;
-  memset(buf, 0, len - 1);
-  return 0;
-}
-
-/****************************************************************************
- * Name: cryptoman_padlenx923
- * Description: Helper to check padding validity
- ****************************************************************************/
-
-static int cryptoman_padlenx923(FAR uint8_t *buf, uint32_t len)
-{
-  return buf[len-1];
-}
-
-/****************************************************************************
- * Name: cryptoman_padiso78164
- * Description: 0x80, followed by zeros.
- ****************************************************************************/
-
-static int cryptoman_padiso78164(FAR uint8_t *buf, uint32_t len)
-{
-  buf[0] = 0x80;
-  memset(buf + 1, 0, len - 1);
-  return 0;
-}
-
-/****************************************************************************
- * Name: cryptoman_padleniso78164
- * Description: Helper to check padding validity
- ****************************************************************************/
-
-static int cryptoman_padleniso78164(FAR uint8_t *buf, uint32_t len)
-{
-#warning todo
-  return 0;
-}
-
-/****************************************************************************
- * Name: cryptoman_padpkcs5
- * Description: Use a byte that represents the length, repeated as required.
- * Name copied for javacard for ease of comparison.
- ****************************************************************************/
-
-static int cryptoman_padpkcs5(FAR uint8_t *buf, uint32_t len)
-{
-  memset(buf, len, len);
-  return 0;
-}
-
-/****************************************************************************
- * Name: cryptoman_padlenpkcs5
- * Description: Helper to check padding validity
- ****************************************************************************/
-
-static int cryptoman_padlenpkcs5(FAR uint8_t *buf, uint32_t len)
-{
-#warning todo check all bytes
-  return buf[len-1];
-  return 0;
-}
-
-/****************************************************************************
- * Name: cryptoman_padiso10126
- ****************************************************************************/
-
-static int cryptoman_padiso10126(FAR uint8_t *buf, uint32_t len)
-{
-#warning TODO
-  return cryptoman_padx923(buf, len);
-}
-
-/****************************************************************************
- * Name: cryptoman_padleniso10126
- * Description: Helper to check padding validity
- ****************************************************************************/
-
-static int cryptoman_padleniso10126(FAR uint8_t *buf, uint32_t len)
-{
-#warning TODO
-  return cryptoman_padlenx923(buf, len);
 }
 
 /****************************************************************************
@@ -941,16 +941,14 @@ static int cryptoman_padleniso10126(FAR uint8_t *buf, uint32_t len)
  ****************************************************************************/
 
 int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
-                        uint32_t len_in,
-                        FAR uint8_t *data_in,
-                        uint32_t len_outbuf,
-                        FAR uint8_t *buf_out)
+                        uint32_t len_in, FAR uint8_t *data_in,
+                        uint32_t len_out, FAR uint8_t *data_out)
 {
+  int (*padfunc)(FAR uint8_t *buf, uint32_t len, uint32_t opmode);
+  int done = 0; /* Total number of bytes written to output */
   int ret;
-  int done=0; /* Total number of bytes written */
-  uint32_t remain;
 
-  if (!ctx || !data_in || !buf_out)
+  if (!ctx || !data_in || !data_out)
     {
       return -EINVAL;
     }
@@ -960,70 +958,69 @@ int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
       return -EPERM;
     }
 
+  /* NON-blcok mode, just call lower ops */
+
+  if (ctx->blocksize == 0)
+    {
+      return ctx->module->ops->alg_finish(ctx->session,
+                                          len_in, data_in,
+                                          len_out, data_out);
+    }
+
+  /* Following are blcok mode */
+
+  switch(ctx->padding)
+    {
+      case ALG_PADDING_NONE:
+        padfunc = NULL;
+        break;
+      case ALG_PADDING_ZERO:
+        padfunc = cryptoman_padzero;
+        break;
+      case ALG_PADDING_X923:
+        padfunc = cryptoman_padx923;
+        break;
+      case ALG_PADDING_ISO78164:
+        padfunc = cryptoman_padiso78164;
+        break;
+      case ALG_PADDING_PKCS5:
+        padfunc = cryptoman_padpkcs5;
+        break;
+      case ALG_PADDING_ISO10126:
+        padfunc = cryptoman_padiso10126;
+        break;
+      default:
+        return -EINVAL;
+    }
+
   /* Apply common processing to the temp buffer and full sized data blocks.
    * This is NEVER the last step if some padding has to be applied.
    */
 
-  remain = len_in;
-  ret = cryptoman_processfullblocks(ctx, &remain, data_in,
-                                    len_outbuf, buf_out,
-                                    (ctx->padding == ALG_PADDING_NONE) );
-  if(ret < 0)
+  ret = cryptoman_processfullblocks(ctx, len_in, data_in,
+                                    len_out, data_out,
+                                    (ctx->padding == ALG_PADDING_NONE));
+  if (ret < 0)
     {
       return ret; /* Something failed */
     }
 
-  done = ret;
+  data_out += ret;
+  len_out  -= ret;
+  done     += ret;
 
-  /* When ciphering, manage the padding addition */
+  /* We are finishing the ciphering session. There are multiple situations:
+   * Algorithm has padding: It MUST be applied even if no data remains
+   * Algorithm has NO padding: if no data remains, then return
+   */
 
-  if(ctx->opmode == ALGOP_CIPHER)
+  if (!padfunc && ctx->buflen == 0)
     {
-      int (*padfunc)(FAR uint8_t *buf, uint32_t len);
+      return done; /* Nothing more to do */
+    }
 
-      switch(ctx->padding)
-        {
-          case ALG_PADDING_NONE    : padfunc = NULL;                  break;
-          case ALG_PADDING_ZERO    : padfunc = cryptoman_padzero;     break;
-          case ALG_PADDING_X923    : padfunc = cryptoman_padx923;     break;
-          case ALG_PADDING_ISO78164: padfunc = cryptoman_padiso78164; break;
-          case ALG_PADDING_PKCS5   : padfunc = cryptoman_padpkcs5;    break;
-          case ALG_PADDING_ISO10126: padfunc = cryptoman_padiso10126; break;
-          default: return -EINVAL;
-        }
-
-      /* We are finishing the ciphering session. There are multiple situations:
-       * Algorithm has padding: It MUST be applied even if no data remains
-       * Algorithm has NO padding: if data remains this is an error, else
-       * we're done.
-       */
-
-      if(!padfunc)
-        {
-          if(remain)
-            {
-              /* No padding but data could not be process in exact
-               * full blocks
-               */
-              return -EINVAL;
-            }
-          else
-            {
-              return done; /* Nothing more to do, processfullblock did
-                            * everything.
-                            */
-            }
-        }
-
-      /* We have some padding to do. Copy the last user bytes to the temp
-       * buffer.
-       */
-
-      assert(remain <= ctx->blocksize); /* Just make sure of that */
-      assert(ctx->buflen == 0);
-      memcpy(ctx->buffer, data_in + len_in - remain, remain);
-      ctx->buflen = remain;
-
+  if (padfunc)
+    {
       /* Do the padding in the temp buffer. At this point we are sure that at
        * least one byte is available in the buffer (len<blocksize) otherwise it
        * would have been processed before !
@@ -1035,52 +1032,24 @@ int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
        * is usually generated inside the hardware modules themselves.
        */
 
-      ret = padfunc(ctx->buffer + ctx->buflen, ctx->blocksize - ctx->buflen);
-      if(ret < 0)
+      ret = padfunc(ctx->buffer + ctx->buflen, ctx->blocksize - ctx->buflen, ctx->opmode);
+      if (ret < 0)
         {
           return ret; /* Something failed */
         }
 
-      ret = ctx->module->ops->alg_finish(ctx->session,
-                                         ctx->blocksize, ctx->buffer,
-                                         len_outbuf - done, buf_out + done);
-      if(ret < 0)
-        {
-          return ret;
-        }
+      ctx->buflen = ctx->blocksize;
     }
-
 
   /* Last crypto round on full padded block */
 
-  if(ctx->opmode == ALGOP_DECIPHER)
+  ret = ctx->module->ops->alg_finish(ctx->session,
+                                     ctx->buflen, ctx->buffer,
+                                     len_out, data_out);
+  if (ret < 0)
     {
-      int (*padfunc)(FAR uint8_t *buf, uint32_t len);
-
-      /* If we have padding, it must be verified after the last decryption */
-      switch(ctx->padding)
-        {
-          case ALG_PADDING_ZERO    : /* Zero padding is not removable */
-          case ALG_PADDING_NONE    : padfunc = NULL;                     break;
-          case ALG_PADDING_X923    : padfunc = cryptoman_padlenx923;     break;
-          case ALG_PADDING_ISO78164: padfunc = cryptoman_padleniso78164; break;
-          case ALG_PADDING_PKCS5   : padfunc = cryptoman_padlenpkcs5;    break;
-          case ALG_PADDING_ISO10126: padfunc = cryptoman_padleniso10126; break;
-          default: return -EINVAL;
-        }
-
-      /* Check padding */
-
-      ret = padfunc(buf_out + done, ctx->blocksize); /* Returns pad length */
-
-      if(ret < 0)
-        {
-          return ret; /* Incorrect padding */
-        }
-
-      done -= ret ;
+      return ret;
     }
-
 
   done += ret;
   return done;
@@ -1100,37 +1069,57 @@ int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
 
 int cryptoman_register(FAR struct cryptomodule_s *module)
 {
+  int ret = -EACCES;
   int i;
-  cryptinfo("Registering module -> %s\n", module->name);
 
-  nxsem_wait(&gUserSemaphore);
-  /* Find a slot in the list of module pointers */
-  for(i=0; i<CONFIG_CRYPTO_MANAGER_NMODULES; i++)
+  if (!module)
     {
-      if(gCryptoModules[i] == NULL)
+      return -EINVAL;
+    }
+
+  nxsem_wait(&g_crypto_semaphore);
+
+  /* Find a slot in the list of module pointers */
+
+  for (i = 0; i < CONFIG_CRYPTO_MANAGER_NMODULES; i++)
+    {
+      if (g_crypto_modules[i] &&
+          strncmp(g_crypto_modules[i]->name, module->name, 32) == 0)
         {
-#warning TODO check if module with this name already exists, and then reject.
-          /* Found a free slot */
-          gCryptoModules[i] = module;
-          nxsem_post(&gUserSemaphore);
-          cryptinfo("Registered at index %d\n", i);
-          return 0;
+          ret = -EADDRINUSE;
+          break;
+        }
+      else if (g_crypto_modules[i] == NULL)
+        {
+          g_crypto_modules[i] = module;
+          ret = 0;
+          break;
         }
     }
-  crypterr("Module registration failed\n");
-  nxsem_post(&gUserSemaphore);
-  return -EACCES;
+
+  nxsem_post(&g_crypto_semaphore);
+  return ret;
 }
+
+/****************************************************************************
+ * Name: cryptoman_libinit
+ *
+ * Description:
+ *   Init cryptographic module.
+ *
+ ****************************************************************************/
 
 int cryptoman_libinit(void)
 {
   int i;
-  cryptinfo("Called\n");
-  nxsem_init(&gUserSemaphore, 0, 1);
-  for(i=0; i<CONFIG_CRYPTO_MANAGER_NMODULES; i++)
+
+  nxsem_init(&g_crypto_semaphore, 0, 1);
+
+  for (i = 0; i < CONFIG_CRYPTO_MANAGER_NMODULES; i++)
     {
-      gCryptoModules[i] = NULL;
+      g_crypto_modules[i] = NULL;
     }
+
   return 0;
 }
 

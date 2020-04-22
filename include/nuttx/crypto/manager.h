@@ -97,7 +97,7 @@
  *   Generation and verification of Signatures
  *   Generation of random data
  */
- 
+
 /* Crypto module flags */
 
 #define CRYPTOMOD_FLAG_AUTHREQUIRED (1<<0)
@@ -192,9 +192,9 @@ enum algpadding_e
 enum alg_e
 {
     ALG_NONE, /* Not an algorithm, value 0 is reserved */
-    
+
     /* Ciphering */
-    
+
     ALG_AES_ECB, /* Any AES key length */
     ALG_AES_CBC,
     ALG_AES_CTR,
@@ -206,9 +206,9 @@ enum alg_e
     ALG_SM4_CBC,
     ALG_SM4_CTR,
     ALG_SM4_GCM,
-    
+
     /* Hashes */
-    
+
     ALG_SHA1,
     ALG_SHA256,
     ALG_SHA384,
@@ -217,20 +217,20 @@ enum alg_e
     ALG_BLAKE2S,
     ALG_SM3,
     ALG_IPV4HDR_CHECKSUM,
-    
+
     /* Signature */
-    
+
     ALG_HMAC_SHA1,
     ALG_HMAC_SHA256,
     ALG_HMAC_SHA384,
     ALG_HMAC_SHA512,
     ALG_RSA,         /* To be clarified, padding, etc */
-    
+
     /* Key wrapping */
     ALG_UNWRAP_NONE, /* Value is just copied in the key component */
-    ALG_UNWRAP_DEVICEDEPENDENT, /* Just provide a custom value with no 
+    ALG_UNWRAP_DEVICEDEPENDENT, /* Just provide a custom value with no
                                  * official definition */
-    
+
     /* Random generation */
 
     ALG_RND_BUILTIN, /* Random generator built into the module */

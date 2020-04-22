@@ -301,7 +301,7 @@ struct cryptoioc_alginit_s
     uint32_t algop; /* In - Operation mode */
     uint32_t keyid; /* In - Key to be used with this algorithm */
 };
- 
+
 struct cryptoioc_algsetup_s
 {
     uint32_t     id;     /* In - Type of parameter being defined */
