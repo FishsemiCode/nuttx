@@ -62,16 +62,22 @@
 
 #define ANIOC_SONG_ADC_VBAT_CALIBRATE   _ANIOC(AN_SONG_ADC_FIRST + 1)
 
+/* Get PGADC origin value
+ * IN: adc port
+ * OUT: origin value */
+
+#define ANIOC_SONG_ADC_VALUE            _ANIOC(AN_SONG_ADC_FIRST + 2)
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
+/* vbat value = (k * origin value + b) / 100 */
+
 struct song_adc_vbat_cal_s
 {
-  int32_t ref_vbat_low;
-  int32_t ref_vbat_high;
-  int32_t cal_vbat_low;
-  int32_t cal_vbat_high;
+  int32_t k;
+  int32_t b;
 };
 
 struct song_adc_config_s

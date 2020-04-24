@@ -42,6 +42,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <semaphore.h>
 
 #include <nuttx/arch.h>
@@ -82,10 +83,8 @@
 #define SONG_ADC_PGA_GAIN_MASK      0x00000003
 #define SONG_ADC_VBAT_GAIN          (0 << SONG_ADC_PGA_GAIN)
 
-#define SONG_ADC_VBAT_MIN_REF       0
-#define SONG_ADC_VBAT_MAX_REF       3300
-#define SONG_ADC_VBAT_MIN_CAL       750
-#define SONG_ADC_VBAT_MAX_CAL       1710
+#define SONG_ADC_VBAT_DEFAULT_K     100
+#define SONG_ADC_VBAT_DEFAULT_B     0
 
 #define SONG_ADC_VBAT_TIMEOUT       50
 #define SONG_ADC_VBAT_PER_INTERVAL  10
@@ -187,25 +186,12 @@ static int32_t song_adc_vbat_convert(struct song_adc_dev_s *dev, uint32_t val)
 {
   int32_t convert_vbat;
 
-  if (val >= dev->vbat_calibrate.cal_vbat_high)
-    {
-      return dev->vbat_calibrate.ref_vbat_high;
-    }
+  convert_vbat = dev->vbat_calibrate.k * val + dev->vbat_calibrate.b;
 
-  if (val <= dev->vbat_calibrate.cal_vbat_low)
-    {
-      return dev->vbat_calibrate.ref_vbat_low;
-    }
-
-  convert_vbat = (val - dev->vbat_calibrate.cal_vbat_low);
-  convert_vbat *= (dev->vbat_calibrate.ref_vbat_high - dev->vbat_calibrate.ref_vbat_low);
-  convert_vbat /= (dev->vbat_calibrate.cal_vbat_high - dev->vbat_calibrate.cal_vbat_low);
-  convert_vbat += dev->vbat_calibrate.ref_vbat_low;
-
-  return convert_vbat;
+  return (convert_vbat > 0) ? (convert_vbat / 100) : 0;
 }
 
-static int32_t song_get_vbat_value(struct song_adc_dev_s *dev, uint32_t port)
+static int32_t song_get_vbat_value(struct song_adc_dev_s *dev, uint32_t port, bool convert)
 {
   FAR uint32_t data;
   irqstate_t flags;
@@ -236,7 +222,7 @@ static int32_t song_get_vbat_value(struct song_adc_dev_s *dev, uint32_t port)
 
   leave_critical_section(flags);
 
-  return song_adc_vbat_convert(dev, data);
+  return convert ? song_adc_vbat_convert(dev, data) : data;
 }
 
 static int song_adc_bind(FAR struct adc_dev_s *dev,
@@ -271,7 +257,7 @@ static int song_adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
     {
       while (nxsem_wait(&priv->sem) < 0);
 
-      ret = song_get_vbat_value(priv, (uint32_t)arg);
+      ret = song_get_vbat_value(priv, (uint32_t)arg, true);
 
       nxsem_post(&priv->sem);
     }
@@ -280,6 +266,14 @@ static int song_adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
        while (nxsem_wait(&priv->sem) < 0);
 
        memcpy(&priv->vbat_calibrate, (void *)arg, sizeof(FAR struct song_adc_vbat_cal_s));
+
+       nxsem_post(&priv->sem);
+    }
+  else if (cmd == ANIOC_SONG_ADC_VALUE)
+    {
+       while (nxsem_wait(&priv->sem) < 0);
+
+       ret = song_get_vbat_value(priv, (uint32_t)arg, false);
 
        nxsem_post(&priv->sem);
     }
@@ -311,10 +305,8 @@ int song_adc_register(FAR const struct song_adc_config_s *cfg)
     }
 
   adcpriv->cfg = cfg;
-  adcpriv->vbat_calibrate.ref_vbat_low = SONG_ADC_VBAT_MIN_REF;
-  adcpriv->vbat_calibrate.ref_vbat_high = SONG_ADC_VBAT_MAX_REF;
-  adcpriv->vbat_calibrate.cal_vbat_low = SONG_ADC_VBAT_MIN_CAL;
-  adcpriv->vbat_calibrate.cal_vbat_high = SONG_ADC_VBAT_MAX_CAL;
+  adcpriv->vbat_calibrate.k = SONG_ADC_VBAT_DEFAULT_K;
+  adcpriv->vbat_calibrate.b = SONG_ADC_VBAT_DEFAULT_B;
 
   ret = nxsem_init(&adcpriv->sem, 1, 1);
   if (ret < 0)
