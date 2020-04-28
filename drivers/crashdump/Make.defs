@@ -39,6 +39,10 @@ ifeq ($(CONFIG_CRASH_DUMPFILE),y)
 CSRCS += dumpfile.c
 endif
 
+ifeq ($(CONFIG_CRASH_DUMPZMODEM),y)
+CSRCS += dumpzmodem.c
+endif
+
 DEPPATH += --dep-path crashdump
 VPATH += :crashdump
 

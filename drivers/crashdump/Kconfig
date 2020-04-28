@@ -19,3 +19,21 @@ config CRASH_DUMPFILE_NUM
 	default 10
 
 endif # CRASH_DUMPFILE
+
+config CRASH_DUMPZMODEM
+	bool "Enable crash dump zmodem"
+	default n
+	depends on SYSTEM_ZMODEM
+	select BOARD_CRASHDUMP
+
+if CRASH_DUMPZMODEM
+
+config CRASH_DUMPZMODEM_FILE
+	string "FILE NAME of the crash dump zmodem"
+	default "/data/crashdump.tcm"
+
+config CRASH_DUMPZMODEM_TTY
+	string "Which tty ZMODEM should use"
+	default "/dev/ttyS0"
+
+endif #CRASH_DUMPZMODEM
