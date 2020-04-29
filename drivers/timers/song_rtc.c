@@ -73,7 +73,7 @@ struct song_rtc_s
   volatile uint32_t RTC_CTL;
   volatile uint32_t USER_DEFINED;
   volatile uint32_t RESERVED1[6];
-  struct song_rtc_alarm_s ALARM[];
+  struct song_rtc_alarm_s ALARM[0];
 };
 
 /* This is the private type for the RTC state. It must be cast compatible
