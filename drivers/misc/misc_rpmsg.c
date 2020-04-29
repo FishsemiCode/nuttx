@@ -128,6 +128,7 @@ begin_packed_struct struct misc_rpmsg_remote_ramflush_s
 {
   uint32_t command;
   char     fpath[64];
+  int      flags;
 } end_packed_struct;
 
 struct misc_rpmsg_s
@@ -138,6 +139,7 @@ struct misc_rpmsg_s
   struct work_s         worker;
   misc_ramflush_cb_t    ramflush_cb;
   char                  fpath[64];
+  int                   flags;
   const char            *cpuname;
   bool                  server;
 };
@@ -445,6 +447,7 @@ static int misc_remote_ramflush_handler(struct rpmsg_endpoint *ept,
   struct misc_rpmsg_remote_ramflush_s *msg = data;
   struct misc_rpmsg_s *priv = priv_;
 
+  priv->flags = msg->flags;
   memcpy(priv->fpath, msg->fpath, sizeof(priv->fpath));
   work_queue(HPWORK, &priv->worker, misc_ramflush_work, priv, 0);
 
@@ -457,7 +460,7 @@ static void misc_ramflush_work(FAR void *arg)
 
   if (priv->ramflush_cb)
     {
-      priv->ramflush_cb(priv->fpath);
+      priv->ramflush_cb(priv->fpath, priv->flags);
     }
 }
 
@@ -789,6 +792,7 @@ static int misc_remote_ramflush(struct misc_rpmsg_s *priv, unsigned long arg)
   struct misc_rpmsg_remote_ramflush_s msg;
 
   msg.command = MISC_RPMSG_REMOTE_RAMFLUSH;
+  msg.flags  = flush->flags;
   ncstr2bstr(msg.fpath, flush->fpath, 64);
 
   return rpmsg_send(&priv->ept, &msg, sizeof(msg));

@@ -62,6 +62,9 @@
 #define MISC_REMOTE_INFOWRITE   _MISCIOC(6)
 #define MISC_REMOTE_RAMFLUSH    _MISCIOC(7)
 
+#define MISC_RAMFLUSH_NORMAL    (0)
+#define MISC_RAMFLUSH_APPEND    (1)
+
 /* Access macros ************************************************************/
 
 /****************************************************************************
@@ -119,7 +122,7 @@
  * Public Types
  ****************************************************************************/
 
-typedef int (*misc_ramflush_cb_t)(char *fpath);
+typedef int (*misc_ramflush_cb_t)(char *fpath, int flags);
 
 struct misc_dev_s;
 struct misc_ops_s
@@ -169,6 +172,7 @@ struct misc_remote_infowrite_s
 struct misc_remote_ramflush_s
 {
   const char *fpath;
+  int         flags;
 };
 
 /****************************************************************************
