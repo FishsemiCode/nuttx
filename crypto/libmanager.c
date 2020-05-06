@@ -906,7 +906,7 @@ int cryptoman_algupdate(FAR struct cryptoman_context_s *ctx,
                         uint32_t len_in, FAR uint8_t *data_in,
                         uint32_t len_out, FAR uint8_t *data_out)
 {
-  if (!ctx || !data_in || !data_out)
+  if (!ctx || !data_in)
     {
       return -EINVAL;
     }
@@ -948,7 +948,7 @@ int cryptoman_algfinish(FAR struct cryptoman_context_s *ctx,
   int done = 0; /* Total number of bytes written to output */
   int ret;
 
-  if (!ctx || !data_in || !data_out)
+  if (!ctx)
     {
       return -EINVAL;
     }

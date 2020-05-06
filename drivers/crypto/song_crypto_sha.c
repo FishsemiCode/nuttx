@@ -196,7 +196,7 @@ int song_crypto_sha_exe(FAR void *alg_, bool first, bool last,
   uint32_t *hash_tb;
   int i;
 
-  if (!indata || (!last && inlen & 0x3F))
+  if (!last && inlen & 0x3F)
     {
       return -EINVAL;
     }
