@@ -639,27 +639,119 @@ void up_reset(int status)
            TOP_PWR_SFRST_RESET, TOP_PWR_SFRST_CTL);
 }
 
+#ifdef CONFIG_ENABLE_TWS
+static struct timespec u2_pm_sum_time[4];
+static struct timespec u2_cpu_pm_sum_start;
+static struct timespec u2_pm_enter_time;
+
+void u2_cpu_pm_sum_clear(void)
+{
+  irqstate_t flags;
+  uint8_t i;
+
+  __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
+  for (i = 0; i < 4; i ++)  {
+    u2_pm_sum_time[i].tv_sec = 0;
+    u2_pm_sum_time[i].tv_nsec = 0;
+  }
+  clock_gettime(CLOCK_MONOTONIC, &u2_cpu_pm_sum_start);
+  __asm__ volatile("csrs mstatus, %0" :: "r"(flags & 0x8));
+}
+/* 0 - doze, 1 - idle 2-standby 3-sleep*/
+uint8_t u2_cpu_get_pm_percent(uint8_t index)
+{
+  uint8_t ret = 0;
+  uint32_t dsec;
+  struct timespec ct;
+  irqstate_t flags;
+
+  if (index >= 4) return ret;
+
+  clock_gettime(CLOCK_MONOTONIC, &ct);
+  __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(flags) : "i"(0x8));
+  dsec = ct.tv_sec - u2_cpu_pm_sum_start.tv_sec;
+  if (dsec != 0) {
+    ret = (uint8_t)((u2_pm_sum_time[index].tv_sec * 100) / dsec);
+  }
+  __asm__ volatile("csrs mstatus, %0" :: "r"(flags & 0x8));
+
+  return ret;
+}
+
+static void u2_set_time_start(uint8_t index)
+{
+  if (index >= 4) return;
+  clock_gettime(CLOCK_MONOTONIC, &u2_pm_enter_time);
+}
+
+static void u2_get_time_diff(uint8_t index)
+{
+  if (index >= 4) return;
+
+  struct timespec tend;
+  clock_gettime(CLOCK_MONOTONIC, &tend);
+  u2_pm_sum_time[index].tv_sec += (tend.tv_sec - u2_pm_enter_time.tv_sec);
+  u2_pm_sum_time[index].tv_nsec += (tend.tv_nsec - u2_pm_enter_time.tv_nsec);
+  if (u2_pm_sum_time[index].tv_nsec < 0) {
+    u2_pm_sum_time[index].tv_sec --;
+    u2_pm_sum_time[index].tv_nsec += 1000000000;
+  }
+
+  if (u2_pm_sum_time[index].tv_nsec >= 1000000000) {
+    u2_pm_sum_time[index].tv_sec ++;
+    u2_pm_sum_time[index].tv_nsec -= 1000000000;
+  }
+}
+#endif
+
 void up_cpu_doze(void)
 {
+#ifdef CONFIG_ENABLE_TWS
+  u2_set_time_start(0);
+#endif
   putreg32(TOP_PWR_RCPU0_SLP_EN << 16, TOP_PWR_SLPCTL_RCPU0);
   up_cpu_wfi();
+#ifdef CONFIG_ENABLE_TWS
+  u2_get_time_diff(0);
+#endif
 }
 
 void up_cpu_idle(void)
 {
-  up_cpu_doze();
+#ifdef CONFIG_ENABLE_TWS
+  u2_set_time_start(1);
+#endif
+  putreg32(TOP_PWR_RCPU0_SLP_EN << 16, TOP_PWR_SLPCTL_RCPU0);
+  up_cpu_wfi();
+#ifdef CONFIG_ENABLE_TWS
+  u2_get_time_diff(1);
+#endif
 }
 
 void up_cpu_standby(void)
 {
+#ifdef CONFIG_ENABLE_TWS
+  u2_set_time_start(2);
+#endif
   putreg32(TOP_PWR_RCPU0_SLP_EN << 16 |
            TOP_PWR_RCPU0_SLP_EN, TOP_PWR_SLPCTL_RCPU0);
   up_cpu_wfi();
+#ifdef CONFIG_ENABLE_TWS
+  u2_get_time_diff(2);
+#endif
 }
 
 void up_cpu_sleep(void)
 {
-  up_cpu_standby();
+#ifdef CONFIG_ENABLE_TWS
+  u2_set_time_start(3);
+#endif
+  putreg32(TOP_PWR_RCPU0_SLP_EN << 16 |
+           TOP_PWR_RCPU0_SLP_EN, TOP_PWR_SLPCTL_RCPU0);
+  up_cpu_wfi();
+#ifdef CONFIG_ENABLE_TWS
+  u2_get_time_diff(3);
+#endif
 }
 
 #endif /* CONFIG_ARCH_CHIP_U2_AP */
