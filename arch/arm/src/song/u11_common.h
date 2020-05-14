@@ -1,8 +1,8 @@
 /****************************************************************************
  * arch/arm/src/song/u11_common.h
  *
- *   Copyright (C) 2019 FishSemi Inc. All rights reserved.
- *   Author: Guiding Li<liguiding@pinecone.net>
+ *   Copyright (C) 2020 FishSemi Inc. All rights reserved.
+ *   Author: Guiding Li<liguiding@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -50,11 +50,15 @@
 #define TOP_PMICFSM_INT_STATUS          (TOP_PMICFSM_BASE + 0x04)
 #define TOP_PMICFSM_INT_MASK            (TOP_PMICFSM_BASE + 0x08)
 #define TOP_PMICFSM_CONFIG1             (TOP_PMICFSM_BASE + 0x0c)
+#define TOP_PMICFSM_CONFIG2             (TOP_PMICFSM_BASE + 0x10)
 #define TOP_PMICFSM_WAKEUP_ENABLE       (TOP_PMICFSM_BASE + 0x14)
 #define TOP_PMICFSM_WAKEUP_REASON       (TOP_PMICFSM_BASE + 0x18)
 #define TOP_PMICFSM_BUCK1               (TOP_PMICFSM_BASE + 0x24)
 #define TOP_PMICFSM_LDO0                (TOP_PMICFSM_BASE + 0x28)
+#define TOP_PMICFSM_LDO1                (TOP_PMICFSM_BASE + 0x2c)
+#define TOP_PMICFSM_IOMOD_CTL           (TOP_PMICFSM_BASE + 0xbc)
 #define TOP_PMICFSM_PLLTIME             (TOP_PMICFSM_BASE + 0xe8)
+#define TOP_PMICFSM_TRIM0               (TOP_PMICFSM_BASE + 0xf0)
 #define TOP_PMICFSM_AP_M4_INT2SLP_MK0   (TOP_PMICFSM_BASE + 0xf4)
 #define TOP_PMICFSM_CP_M4_INT2SLP_MK0   (TOP_PMICFSM_BASE + 0xf8)
 
@@ -62,7 +66,7 @@
 
 #define TOP_PMICFSM_DS_SLP_VALID        (1 << 0)
 
-#define TOP_PMICFSM_PON_ENABLE          (1 << 4)
+#define TOP_PMICFSM_PON_ENABLE          (5 << 4)
 #define TOP_PMICFSM_UART_ENABLE         (1 << 8)
 #define TOP_PMICFSM_RTC_ENABLE          (1 << 12)
 #define TOP_PMICFSM_GPIO0_ENABLE        (1 << 16)
@@ -82,12 +86,20 @@
 #define TOP_PMICFSM_SOFT_RSTN           (1 << 9)
 #define TOP_PMICFSM_BUTTON_RSTN         (1 << 10)
 
+#define TOP_PMICFSM_DS_RF_RST_MK        (1 << 6)
+
 #define TOP_PMICFSM_LDO0_ACTIVE_ON      (0x1 << 0)
 #define TOP_PMICFSM_LDO0_SLEEP_ON       (0x1 << 1)
 #define TOP_PMICFSM_LDO0_VOLT_900mV     (0x0 << 8)
 #define TOP_PMICFSM_LDO0_DEFAULT        (TOP_PMICFSM_LDO0_ACTIVE_ON | \
                                          TOP_PMICFSM_LDO0_SLEEP_ON  | \
                                          TOP_PMICFSM_LDO0_VOLT_900mV)
+
+#define TOP_PMICFSM_LDO1_VOLT_MK        (0x3f << 8)
+#define TOP_PMICFSM_LDO1_VOLT_0x19      (0x19 << 8)
+
+#define TOP_PMICFSM_IOMOD_PUD_CTL_MK    (0x3 << 2)
+#define TOP_PMICFSM_IOMOD_PUD_CTL_NO    (0x0 << 2)
 
 #define TOP_PMICFSM_PLL_STABLE_TIME     (0xf << 8)
 #define TOP_PMICFSM_OSC_STABLE_TIME     (0x52 << 0)
@@ -121,6 +133,10 @@ static inline enum wakeup_reason_e up_get_wkreason(void)
     {
       return WAKEUP_REASON_FIRST_PON;
     }
+  else if (val & TOP_PMICFSM_PON)
+    {
+      return WAKEUP_REASON_PON_RSTN;
+    }
   else if (val & TOP_PMICFSM_UART)
     {
       return WAKEUP_REASON_UART_RSTN;
@@ -150,7 +166,7 @@ static inline enum wakeup_reason_e up_get_wkreason(void)
     }
   else
     {
-      return WAKEUP_REASON_PON_RSTN;
+      return WAKEUP_REASON_WDT_RSTN;
     }
 }
 
@@ -196,6 +212,7 @@ static inline bool up_is_warm_rstn(void)
 
   if (wakeup_reason == WAKEUP_REASON_GPIO_RSTN ||
       wakeup_reason == WAKEUP_REASON_UART_RSTN ||
+      wakeup_reason == WAKEUP_REASON_PON_RSTN ||
       wakeup_reason == WAKEUP_REASON_RTC_RSTN)
     {
       return true;

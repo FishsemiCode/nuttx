@@ -1,7 +1,7 @@
 /****************************************************************************
- * arch/arm/src/song/u11_ap.c
+ * arch/arm/src/song/u11_ck.c
  *
- *   Copyright (C) 2019 FishSemi Inc. All rights reserved.
+ *   Copyright (C) 2020 FishSemi Inc. All rights reserved.
  *   Author: Guiding Li <liguiding@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_CHIP_U11_AP
+#ifdef CONFIG_ARCH_CHIP_U11_CK
 
 #include <nuttx/clk/clk-provider.h>
 #include <nuttx/dma/song_dmas.h>
@@ -64,18 +64,15 @@
 #include <nuttx/timers/dw_wdt.h>
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
-#include <nuttx/crashdump/dumpfile.h>
 
+#include <arch/irq.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
 
 #include "chip.h"
-#include "nvic.h"
-#include "systick.h"
 #include "up_arch.h"
 #include "up_internal.h"
-#include "u11_common.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -116,6 +113,9 @@
 #define TOP_PWR_AP_M4_SLP_EN        (1 << 0)
 #define TOP_PWR_AP_M4_SLP_MK        (1 << 1)
 #define TOP_PWR_AP_M4_DS_SLP_EN     (1 << 2)
+
+#define TOP_PMICFSM_BASE                (0xb2010000)
+#define TOP_PMICFSM_AP_M4_INT2SLP_MK0   (TOP_PMICFSM_BASE + 0xf4)
 
 /****************************************************************************
  * Private Data
@@ -216,24 +216,18 @@ void up_wic_initialize(void)
 
 void up_wic_enable_irq(int irq)
 {
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PMICFSM_AP_M4_INT2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-    }
+  modifyreg32(TOP_PMICFSM_AP_M4_INT2SLP_MK0, 1 << irq, 0);
 }
 
 void up_wic_disable_irq(int irq)
 {
-  if (irq >= NVIC_IRQ_FIRST)
-    {
-      modifyreg32(TOP_PMICFSM_AP_M4_INT2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-    }
+  modifyreg32(TOP_PMICFSM_AP_M4_INT2SLP_MK0, 0, 1 << irq);
 }
 
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(1, 0xb0020000, 28, NULL);
+  g_dma[0] = song_dmas_initialize(1, 0xb0020000, 12, NULL);
 #endif
 }
 
@@ -244,14 +238,14 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 }
 #endif
 
-void arm_timer_initialize(void)
+void csky_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
     {
       .minor      = -1,
       .base       = TOP_PWR_BASE,
-      .irq        = 18,
+      .irq        = 2,
       .c1_freq    = 8192000,
       .ctl_off    = 0x170,
       .calib_off  = 0x194,
@@ -290,7 +284,7 @@ static void up_mbox_init(void)
       .src_en_off = 0x14,
       .sta_off    = 0x18,
       .chnl_count = 16,
-      .irq        = 21,
+      .irq        = 5,
     },
     {
       .index      = CPU_INDEX_CP,
@@ -335,7 +329,7 @@ int up_rtc_initialize(void)
   {
     .minor   = 0,
     .base    = 0xb2020000,
-    .irq     = 16,
+    .irq     = 0,
     .index   = 1,
     .correct = 1,
   };
@@ -352,7 +346,7 @@ void up_wdtinit(void)
   {
     .path = CONFIG_WATCHDOG_DEVPATH,
     .base = 0xb0090000,
-    .irq  = 20,
+    .irq  = 4,
     .tclk = "apwdt_tclk",
   };
 
@@ -367,7 +361,7 @@ void up_ioe_init(void)
   {
     .cpu  = 1,
     .base = 0xb0060000,
-    .irq  = 19,
+    .irq  = 3,
   };
 
   g_ioe[0] = song_ioe_initialize(&cfg);
@@ -381,7 +375,7 @@ static void up_spi_init(void)
   {
     .bus = 0,
     .base = 0xb0110000,
-    .irq = 27,
+    .irq = 11,
     .tx_dma = 4,
     .rx_dma = 12,
     .cs_num = 1,
@@ -404,14 +398,14 @@ static void up_i2c_init(void)
       .base = 0xb00e0000,
       .mclk = "i2c0_mclk",
       .rate = 16000000,
-      .irq  = 25,
+      .irq  = 9,
     },
     {
       .bus  = 1,
       .base = 0xb00f0000,
       .mclk = "i2c1_mclk",
       .rate = 16000000,
-      .irq  = 26,
+      .irq  = 10,
     }
   };
   int config_num = sizeof(config) / sizeof(config[0]);
@@ -443,9 +437,6 @@ static void up_pinctrl_init(void)
 
 static void up_extra_init(void)
 {
-  /* Set start reason to env */
-
-  setenv("START_REASON", up_get_wkreason_env(), 1);
 }
 
 void up_lateinitialize(void)
@@ -528,15 +519,8 @@ void up_reset(int status)
     }
 }
 
-static void up_cpu_lp(bool deep_sleep, bool pwr_sleep)
+static void up_cpu_lp(bool pwr_sleep, bool ds_sleep)
 {
-  /* Allow ARM to enter deep sleep in WFI? */
-
-  if (deep_sleep)
-    putreg32(getreg32(NVIC_SYSCON) | NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-  else
-    putreg32(getreg32(NVIC_SYSCON) & ~NVIC_SYSCON_SLEEPDEEP, NVIC_SYSCON);
-
   /* Allow PWR_SLEEP (VDDMAIN ON)? */
 
   if (pwr_sleep)
@@ -544,10 +528,7 @@ static void up_cpu_lp(bool deep_sleep, bool pwr_sleep)
              TOP_PWR_AP_M4_SLP_EN, TOP_PWR_SLPCTL_AP_M4);
   else
     putreg32(TOP_PWR_AP_M4_SLP_EN << 16, TOP_PWR_SLPCTL_AP_M4);
-}
 
-static void up_cpu_ds(bool ds_sleep)
-{
   /* Allow DS_SLEEP (VDDMAIN OFF)? */
 
   if (ds_sleep)
@@ -560,29 +541,24 @@ static void up_cpu_ds(bool ds_sleep)
 void up_cpu_doze(void)
 {
   up_cpu_lp(false, false);
-  up_cpu_ds(false);
-  up_cpu_wfi();
+  __STOP();
 }
 
 void up_cpu_idle(void)
 {
-  up_cpu_lp(true, false);
-  up_cpu_ds(false);
-  up_cpu_wfi();
+  up_cpu_doze();
 }
 
 void up_cpu_standby(void)
 {
-  up_cpu_lp(true, true);
-  up_cpu_ds(false);
-  up_cpu_wfi();
+  up_cpu_lp(true, false);
+  __STOP();
 }
 
 void up_cpu_sleep(void)
 {
   up_cpu_lp(true, true);
-  up_cpu_ds(true);
-  up_cpu_wfi();
+  __STOP();
 }
 
-#endif /* CONFIG_ARCH_CHIP_U11_AP */
+#endif /* CONFIG_ARCH_CHIP_U11_CK */

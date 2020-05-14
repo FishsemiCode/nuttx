@@ -17,6 +17,11 @@ config ARCH_CHIP_U1_CK
 	select ARCH_CK802
 	select SONG_ICACHE
 
+config ARCH_CHIP_U11_CK
+	bool "U11 CK"
+	select ARCH_CK802
+	select SONG_ICACHE
+
 config ARCH_CHIP_U2_CK
 	bool "U2 CK"
 	select ARCH_CK803F
