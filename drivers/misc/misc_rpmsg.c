@@ -78,6 +78,12 @@
  * Private Types
  ****************************************************************************/
 
+struct misc_rpmsg_cookie_s
+{
+  sem_t sem;
+  int   result;
+};
+
 begin_packed_struct struct misc_rpmsg_head_s
 {
   uint32_t command;
@@ -127,6 +133,9 @@ begin_packed_struct struct misc_rpmsg_remote_infowrite_s
 begin_packed_struct struct misc_rpmsg_remote_ramflush_s
 {
   uint32_t command;
+  uint32_t response;
+  int      result;
+  uint32_t cookie;
   char     fpath[64];
   int      flags;
 } end_packed_struct;
@@ -138,8 +147,6 @@ struct misc_rpmsg_s
   struct metal_list     blks;
   struct work_s         worker;
   misc_ramflush_cb_t    ramflush_cb;
-  char                  fpath[64];
-  int                   flags;
   const char            *cpuname;
   bool                  server;
 };
@@ -154,6 +161,13 @@ struct misc_retent_blk_s
   uint32_t flush;
   uint32_t blkid;
   struct metal_list node;
+};
+
+struct misc_work_param_s
+{
+  struct misc_rpmsg_s   *priv;
+  struct rpmsg_endpoint *ept;
+  void                  *data;
 };
 
 /****************************************************************************
@@ -447,21 +461,55 @@ static int misc_remote_ramflush_handler(struct rpmsg_endpoint *ept,
   struct misc_rpmsg_remote_ramflush_s *msg = data;
   struct misc_rpmsg_s *priv = priv_;
 
-  priv->flags = msg->flags;
-  memcpy(priv->fpath, msg->fpath, sizeof(priv->fpath));
-  work_queue(HPWORK, &priv->worker, misc_ramflush_work, priv, 0);
+  if (msg->response)
+    {
+      struct misc_rpmsg_cookie_s *cookie =
+          (struct misc_rpmsg_cookie_s *)msg->cookie;
+
+      cookie->result = msg->result;
+      nxsem_post(&cookie->sem);
+    }
+  else
+    {
+      struct misc_work_param_s *param;
+
+      param = kmm_malloc(sizeof(struct misc_work_param_s));
+      if (!param)
+        {
+          return 0;
+        }
+
+      rpmsg_hold_rx_buffer(ept, data);
+
+      param->priv  = priv;
+      param->ept   = ept;
+      param->data  = data;
+
+      work_queue(HPWORK, &priv->worker, misc_ramflush_work, param, 0);
+    }
 
   return 0;
 }
 
 static void misc_ramflush_work(FAR void *arg)
 {
-  struct misc_rpmsg_s *priv = arg;
+  struct misc_work_param_s *param = arg;
+  struct misc_rpmsg_remote_ramflush_s *msg = param->data;
+  struct misc_rpmsg_s *priv = param->priv;
+  int ret = 0;
 
   if (priv->ramflush_cb)
     {
-      priv->ramflush_cb(priv->fpath, priv->flags);
+      ret = priv->ramflush_cb(msg->fpath, msg->flags);
     }
+
+  msg->result   = ret;
+  msg->response = 1;
+
+  rpmsg_send(param->ept, msg, sizeof(*msg));
+  rpmsg_release_rx_buffer(param->ept, param->data);
+
+  kmm_free(param);
 }
 
 static int misc_ramflush_register(struct misc_dev_s *dev,
@@ -789,13 +837,33 @@ static int misc_remote_infowrite(struct misc_rpmsg_s *priv, unsigned long arg)
 static int misc_remote_ramflush(struct misc_rpmsg_s *priv, unsigned long arg)
 {
   struct misc_remote_ramflush_s *flush = (struct misc_remote_ramflush_s *)arg;
-  struct misc_rpmsg_remote_ramflush_s msg;
+  struct misc_rpmsg_remote_ramflush_s msg = {0};
+  struct misc_rpmsg_cookie_s cookie;
+  int ret;
+
+  nxsem_init(&cookie.sem, 0, 0);
+  nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
 
   msg.command = MISC_RPMSG_REMOTE_RAMFLUSH;
-  msg.flags  = flush->flags;
+  msg.cookie  = (uint32_t)&cookie;
+  msg.flags   = flush->flags;
   ncstr2bstr(msg.fpath, flush->fpath, 64);
 
-  return rpmsg_send(&priv->ept, &msg, sizeof(msg));
+  ret = rpmsg_send(&priv->ept, &msg, sizeof(msg));
+  if (ret < 0)
+    {
+      goto end;
+    }
+
+  ret = nxsem_wait_uninterruptible(&cookie.sem);
+  if (!ret)
+    {
+      ret = cookie.result;
+    }
+
+end:
+  nxsem_destroy(&cookie.sem);
+  return ret;
 }
 
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
