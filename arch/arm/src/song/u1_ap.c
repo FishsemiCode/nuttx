@@ -205,6 +205,12 @@ static void up_misc_init(void)
         };
 
       ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
+
+      /* Get external-flash env from sp */
+
+      env.name = "external-flash";
+      ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
+
       close(fd);
     }
 }
