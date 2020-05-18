@@ -97,6 +97,7 @@
 #define _REGMAPIOCBASE  (0x2a00) /* Regmap ioctl commands */
 #define _MISCBASE       (0x2b00) /* Retention ioctl commands */
 #define _RPTUNBASE      (0x2c00) /* Remote processor tunnel ioctl commands */
+#define _CRYPTOIOCBASE  (0x2d00) /* Cryptography manager */
 
 /* boardctl() commands share the same number space */
 
@@ -494,6 +495,11 @@
 
 #define _MISCIOCVALID(c)   (_IOC_TYPE(c)==_MISCBASE)
 #define _MISCIOC(nr)       _IOC(_MISCBASE,nr)
+
+/* Cryptographic manager character driver ***********************************/
+
+#define _CRYPTOIOCVALID(c)   (_IOC_TYPE(c)==_CRYPTOIOCBASE)
+#define _CRYPTOIOC(nr)       _IOC(_CRYPTOIOCBASE,nr)
 
 /* boardctl() command definitions *******************************************/
 

@@ -91,3 +91,8 @@ config SONG_RNG_BASE
 	depends on SONG_RNG
 
 endif # SONG_RNG
+
+config SONG_CRYPTO
+	bool "Song crypto Driver"
+	default n
+	depends on CRYPTO_MANAGER

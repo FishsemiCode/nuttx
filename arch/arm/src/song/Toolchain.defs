@@ -171,6 +171,11 @@ ifeq ($(CONFIG_SYSTEM_RECOVERY_CSKY),y)
   EXTRA_LIBS += ${TOPDIR}/arch/arm/src/song/libs/libfota_diff.a
 endif
 
+ifeq ($(CONFIG_SERVICES_SOFTSIM),y)
+  EXTRA_LIBS += ${TOPDIR}/arch/arm/src/song/libs/libesim_ta.a
+  EXTRA_LIBS += ${TOPDIR}/arch/arm/src/song/libs/libesim_cos.a
+endif
+
 HOSTCC = gcc
 HOSTINCLUDES = -I.
 HOSTCFLAGS = -Wall -Wstrict-prototypes -Wshadow -Wundef -g -pipe

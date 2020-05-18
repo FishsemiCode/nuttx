@@ -1,8 +1,8 @@
 /****************************************************************************
- * crypto/crypto.c
+ * include/nuttx/crypto/song_crypto.h
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
- *   Author:  Max Nekludov <macscomp@gmail.com>
+ *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
+ *   Author: Guiding Li <liguiding@pinecone.net>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -15,7 +15,7 @@
  *    the documentation and/or other materials provided with the
  *    distribution.
  * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
+ *    used to endorse or promote products derived from this song_ware
  *    without specific prior written permission.
  *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -37,63 +37,42 @@
  * Included Files
  ****************************************************************************/
 
+#ifndef __INCLUDE_NUTTX_CRYPTO_SONG_CRYPTO_H
+#define __INCLUDE_NUTTX_CRYPTO_SONG_CRYPTO_H
+
+/****************************************************************************
+ * Included Files
+ ****************************************************************************/
+
 #include <nuttx/config.h>
 
-#include <sys/types.h>
-#include <stdbool.h>
-#include <string.h>
-#include <poll.h>
-#include <errno.h>
-
-#include <nuttx/fs/fs.h>
-#include <nuttx/crypto/crypto.h>
-#include <nuttx/drivers/drivers.h>
-
-#if defined(CONFIG_CRYPTO_SOFTMODULE)
-#include <nuttx/crypto/module.h>
-#endif
+#ifdef CONFIG_SONG_CRYPTO
 
 /****************************************************************************
- * Private Function Prototypes
+ * Public Types
  ****************************************************************************/
 
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
-
-int up_cryptoinitialize(void)
+struct song_crypto_config_s
 {
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_CRYPTO_MANAGER)
-  (void)devcrypto_register(); // replace the previous /dev/crypto
+  uintptr_t   base;
+  uint32_t    irq;
+  const char *clk;
+};
 
-#if defined(CONFIG_CRYPTO_SOFTMODULE)
-  (void)softcrypto_register();
-#endif
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
 
-#endif
-
-#ifdef CONFIG_CRYPTO_ALGTEST
-  int ret;
-  ret = crypto_test();
-  if (ret)
-    {
-      crypterr("ERROR: crypto test failed\n");
-    }
-  else
-    {
-      cryptinfo("crypto test OK\n");
-    }
-
-  return ret;
+#ifdef __cplusplus
+#define EXTERN extern "C"
+extern "C"
+{
 #else
-  return OK;
+#define EXTERN extern
 #endif
-}
+
+int song_crypto_initialize(const struct song_crypto_config_s *config);
+
+#endif
+
+#endif //__INCLUDE_NUTTX_CRYPTO_SONG_CRYPTO_H
