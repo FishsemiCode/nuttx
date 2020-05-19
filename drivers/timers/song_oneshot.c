@@ -112,6 +112,8 @@ static int song_oneshot_cancel(FAR struct oneshot_lowerhalf_s *lower_,
                                FAR struct timespec *ts);
 static int song_oneshot_current(FAR struct oneshot_lowerhalf_s *lower_,
                                 FAR struct timespec *ts);
+static int song_oneshot_udelay(FAR struct oneshot_lowerhalf_s *lower_,
+                               useconds_t us);
 
 /****************************************************************************
  * Private Data
@@ -125,6 +127,7 @@ static const struct oneshot_operations_s g_song_oneshot_ops =
   .start     = song_oneshot_start,
   .cancel    = song_oneshot_cancel,
   .current   = song_oneshot_current,
+  .udelay    = song_oneshot_udelay,
 };
 
 /****************************************************************************
@@ -255,12 +258,9 @@ static void song_oneshot_startcount(FAR struct song_oneshot_lowerhalf_s *lower)
     }
 }
 
-static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
-                                  FAR uint32_t *c2, FAR uint32_t *c1)
+static inline void _song_oneshot_getcount(FAR const struct song_oneshot_config_s *config,
+                                          FAR uint32_t *c2, FAR uint32_t *c1)
 {
-  FAR const struct song_oneshot_config_s *config = lower->config;
-
-  song_oneshot_startcount(lower);
   do
     {
       *c1 = song_oneshot_getreg(config->base, config->c1_off);
@@ -268,6 +268,15 @@ static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
       *c1 = song_oneshot_getreg(config->base, config->c1_off);
     }
   while (*c2 != song_oneshot_getreg(config->base, config->c2_off));
+}
+
+static void song_oneshot_getcount(FAR struct song_oneshot_lowerhalf_s *lower,
+                                  FAR uint32_t *c2, FAR uint32_t *c1)
+{
+  FAR const struct song_oneshot_config_s *config = lower->config;
+
+  song_oneshot_startcount(lower);
+  _song_oneshot_getcount(config, c2, c1);
 }
 
 static void song_oneshot_gettime(FAR struct song_oneshot_lowerhalf_s *lower,
@@ -444,6 +453,45 @@ static int song_oneshot_current(FAR struct oneshot_lowerhalf_s *lower_,
     (FAR struct song_oneshot_lowerhalf_s *)lower_;
 
   song_oneshot_gettime(lower, ts);
+  return 0;
+}
+
+static inline int song_oneshot_compare(uint32_t c1, uint32_t c2,
+                                       uint32_t e1, uint32_t e2)
+{
+  if (c2 != e2)
+    {
+      return e2 - c2;
+    }
+  else
+    {
+      return e1 - c1;
+    }
+}
+
+static int song_oneshot_udelay(FAR struct oneshot_lowerhalf_s *lower_,
+                               useconds_t us)
+{
+  FAR struct song_oneshot_lowerhalf_s *lower
+    = (FAR struct song_oneshot_lowerhalf_s *)lower_;
+  FAR const struct song_oneshot_config_s *config = lower->config;
+  uint32_t c1, c2;
+  uint32_t e1, e2;
+  uint64_t count;
+
+  _song_oneshot_getcount(config, &c2, &c1);
+
+  count  = (uint64_t)us * config->c1_freq / 1000000;
+  count += (uint64_t)c2 * lower->c1_max + c1;
+
+  e1 = count % lower->c1_max;
+  e2 = count / lower->c1_max;
+
+  while (song_oneshot_compare(c1, c2, e1, e2) > 0)
+    {
+      _song_oneshot_getcount(config, &c2, &c1);
+    }
+
   return 0;
 }
 

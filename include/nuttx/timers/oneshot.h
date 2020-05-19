@@ -176,6 +176,26 @@
 #define ONESHOT_CURRENT(l,t) ((l)->ops->current ? (l)->ops->current(l,t) : -ENOSYS)
 
 /****************************************************************************
+ * Name: ONESHOT_UDELAY
+ *
+ * Description:
+ *  Loop delay useconds.
+ *
+ * Input Parameters:
+ *   lower   Caller allocated instance of the oneshot state structure.  This
+ *           structure must have been previously initialized via a call to
+ *           oneshot_initialize();
+ *   us      The useconds to delay.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success, a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+#define ONESHOT_UDELAY(l,u) ((l)->ops->udelay ? (l)->ops->udelay(l,u) : -ENOSYS)
+
+/****************************************************************************
  * Public Types
  ****************************************************************************/
 
@@ -200,10 +220,12 @@ struct oneshot_operations_s
   CODE int (*start)(FAR struct oneshot_lowerhalf_s *lower,
                     oneshot_callback_t callback, FAR void *arg,
                     FAR const struct timespec *ts);
-  CODE int (*cancel)(struct oneshot_lowerhalf_s *lower,
+  CODE int (*cancel)(FAR struct oneshot_lowerhalf_s *lower,
                      FAR struct timespec *ts);
-  CODE int (*current)(struct oneshot_lowerhalf_s *lower,
+  CODE int (*current)(FAR struct oneshot_lowerhalf_s *lower,
                       FAR struct timespec *ts);
+  CODE int (*udelay)(FAR struct oneshot_lowerhalf_s *lower,
+                     useconds_t us);
 };
 
 /* This structure describes the state of the oneshot timer lower-half driver */

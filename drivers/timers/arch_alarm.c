@@ -468,3 +468,25 @@ void up_udelay(useconds_t microseconds)
       udelay_coarse(microseconds);
     }
 }
+
+/****************************************************************************
+ * Name: up_udelay_light
+ *
+ * Description:
+ *   Delay inline for the requested number of microseconds (light).
+ *
+ *   *** NOT multi-tasking friendly ***
+ *
+ ****************************************************************************/
+
+void up_udelay_light(useconds_t microseconds)
+{
+  if (g_oneshot_lower != NULL)
+    {
+      ONESHOT_UDELAY(g_oneshot_lower, microseconds);
+    }
+  else /* Oneshot timer hasn't been initialized yet */
+    {
+      udelay_coarse(microseconds);
+    }
+}
