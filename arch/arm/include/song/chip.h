@@ -74,6 +74,9 @@ extern FAR struct mbox_dev_s *g_mbox[];
 /* Song general gpio instance */
 extern FAR struct ioexpander_dev_s *g_ioe[];
 
+/* Song general pinctrl instance */
+extern FAR struct pinctrl_dev_s *g_pinctrl[];
+
 /* Designware SPI controller instances */
 extern FAR struct spi_dev_s *g_spi[];
 
