@@ -704,3 +704,10 @@ config XEN1210_REGDEBUG
 config SENSORS_ZEROCROSS
 	bool "Zero Cross Sensor"
 	default n
+
+config SENSORS_CS1237
+	bool "ChipSea CS1237 Temperature Sensor support"
+	default n
+	depends on IOEXPANDER
+	---help---
+		Enable driver support for the ChipSea CS1237 temperature sensor.

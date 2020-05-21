@@ -253,6 +253,12 @@ ifeq ($(CONFIG_SENSORS_ZEROCROSS),y)
   CSRCS += zerocross.c
 endif
 
+# ChipSea Cs1237 Temperature sensor
+
+ifeq ($(CONFIG_SENSORS_CS1237),y)
+  CSRCS += cs1237.c
+endif
+
 # Include sensor driver build support
 
 DEPPATH += --dep-path sensors
