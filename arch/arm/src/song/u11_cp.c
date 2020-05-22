@@ -394,6 +394,13 @@ static int ap_start(const struct song_rptun_config_s *config)
 {
   int ret;
 
+  /* Set ldo_ano to 1.1V for AP TCM */
+
+  putreg32(0xa1203, TOP_PMICFSM_LDO0);
+  usleep(500);
+
+  /* Relocate for AP WARM start */
+
   ret = ap_relocate(0x02089000, 0x00000000, 0xb1000000);
   if (ret)
     {
