@@ -388,7 +388,7 @@ static int song_audio_path_resume(struct audio_lowerhalf_s *dev_)
 static int song_audio_path_channels(struct song_audio_path_s *dev,
                                     uint8_t channels)
 {
-  int i;
+  int i, cnt;
 
   /* Set MIC data source */
 
@@ -397,22 +397,22 @@ static int song_audio_path_channels(struct song_audio_path_s *dev,
       if (!channels || channels > 2)
         return -EINVAL;
 
-      for (i = 0; i < 3; i++)
+      for (i = 0, cnt = 0; i < 3; i++)
         {
           uint8_t adc = (dev->adcs >> i * 8) & 0xff;
 
-          if (adc != 0xff)
+          if (adc != 0xff && cnt < channels)
             {
               audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
                                    SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(i),
                                    (adc + 1) << SONG_AUDIO_PATH_VOICE_DMA_SLOT_SHIFT(i));
+              cnt++;
             }
           else
             {
               audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
                                    SONG_AUDIO_PATH_VOICE_DMA_SLOT_MK(i),
                                    0);
-              break;
             }
         }
     }
