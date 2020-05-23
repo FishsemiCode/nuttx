@@ -398,7 +398,7 @@ static int ap_start(const struct song_rptun_config_s *config)
 
   /* Relocate for AP WARM start */
 
-  ret = ap_relocate(0x02089000, 0x00000000, 0xb1000000);
+  ret = ap_relocate(0x02124000, 0x00000000, 0xb1000000);
   if (ret)
     {
       return ret;
