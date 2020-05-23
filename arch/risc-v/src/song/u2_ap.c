@@ -486,9 +486,11 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *ak4332_1;
   struct audio_lowerhalf_s *audio_dma_in;
   struct audio_lowerhalf_s *audio_dma_voice;
+  struct audio_lowerhalf_s *audio_dma_vt;
   struct audio_lowerhalf_s *audio_path_anc;
   struct audio_lowerhalf_s *audio_path_in;
   struct audio_lowerhalf_s *audio_path_voice;
+  struct audio_lowerhalf_s *audio_path_vt;
   struct audio_lowerhalf_s *dma_playback;
   struct audio_lowerhalf_s *dma_capture;
   struct audio_lowerhalf_s *pcm_playback;
@@ -497,7 +499,7 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *dp_adc0;
   struct audio_lowerhalf_s *dp_adc1;
   struct audio_lowerhalf_s *dp_adc2;
-  uint32_t voice_adcs;
+  uint32_t voice_adcs, voice_vt;
 #endif
 
   /* audio_mclk_mx mux to audio_mclk */
@@ -526,6 +528,7 @@ static void up_audio_init(void)
 
   audio_dma_in    = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
   audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
+  audio_dma_vt    = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
 
 #ifdef CONFIG_AUDIO_DP_ADC
   dp_adc0 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 0);
@@ -533,7 +536,9 @@ static void up_audio_init(void)
   dp_adc2 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 2);
 
   voice_adcs       = 0 | (0x2 << 8) | (0xff << 16) | (0xff << 24);
+  voice_vt         = 0x2 | (0xff << 8) | (0xff << 16) | (0xff << 24);
   audio_path_voice = song_audio_path_voice_initialize(0xa0070000, true, voice_adcs);
+  audio_path_vt    = song_audio_path_voice_initialize(0xa0070000, true, voice_vt);
   audio_path_in    = song_audio_path_in_initialize(0xa0070000, "audio_sys_in_clk", "audio_i2s_mclk");
   audio_path_anc   = song_audio_path_anc_initialize(0xa0070000, true);
 
@@ -542,6 +547,7 @@ static void up_audio_init(void)
   audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
   audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
   audio_comp_initialize("pcm3p", ak4332_0, ak4332_1, audio_path_anc, dp_adc0, dp_adc1, NULL);
+  audio_comp_initialize("pcm2c", audio_dma_vt, audio_path_vt, dp_adc2, NULL);
 
   up_audio_thinker_init(dp_adc2);
 #else
