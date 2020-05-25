@@ -109,9 +109,6 @@
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)    //TOP_PWR_SFRST_CTL
 
-#define TOP_PWR_SLP_U1RXD_ACT       (1 << 21)   //TOP_PWR_INTR_EN_CP_M4
-                                                //TOP_PWR_INTR_ST_CP_M4
-
 #define TOP_PWR_SLPU_FLASH_S        (1 << 0)    //TOP_PWR_INTR_EN_CP_M4_1
 #define TOP_PWR_AP_DS_WAKEUP        (1 << 5)    //TOP_PWR_INTR_ST_CP_M4_1
 
@@ -604,15 +601,6 @@ static int up_top_pwr_isr(int irq, FAR void *context, FAR void *arg)
       putreg32(TOP_PWR_AP_DS_WAKEUP, TOP_PWR_INTR_ST_CP_M4_1);
     }
 
-  if (getreg32(TOP_PWR_INTR_ST_CP_M4) & TOP_PWR_SLP_U1RXD_ACT)
-    {
-      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_CP_M4);
-#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
-      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
-                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
-#endif
-    }
-
   return 0;
 }
 
@@ -627,10 +615,6 @@ void up_finalinitialize(void)
 
   modifyreg32(TOP_PWR_INTR_EN_CP_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
   modifyreg32(TOP_PWR_INTR_EN_CP_M4_1, 0, TOP_PWR_AP_DS_WAKEUP);
-
-  /* Enable SLP_U1RXD_ACT intr */
-
-  modifyreg32(TOP_PWR_INTR_EN_CP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
 
 #ifdef CONFIG_SONG_RPTUN
   rptun_boot(CPU_NAME_AP);

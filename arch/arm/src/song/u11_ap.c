@@ -493,8 +493,31 @@ void up_lateinitialize(void)
   up_extra_init();
 }
 
+static int up_top_pwr_isr(int irq, FAR void *context, FAR void *arg)
+{
+  if (getreg32(TOP_PWR_INTR_ST_AP_M4) & TOP_PWR_SLP_U1RXD_ACT)
+    {
+      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_AP_M4);
+#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
+                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+#endif
+    }
+
+  return 0;
+}
+
 void up_finalinitialize(void)
 {
+  /* Attach TOP_PWR intr */
+
+  irq_attach(18, up_top_pwr_isr, NULL);
+  up_enable_irq(18);
+
+  /* Enable SLP_U1RXD_ACT intr */
+
+  modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
+
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
