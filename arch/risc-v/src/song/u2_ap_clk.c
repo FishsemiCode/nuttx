@@ -871,11 +871,7 @@ static const struct clk_rate def_rates[] =
 {
   {
     .name = "clk_cpu_sys",
-#ifdef CONFIG_ENABLE_SCO_OVER_HCI
     .rate = 147456000,
-#else
-    .rate = 50000000,
-#endif
   },
   {},
 };
