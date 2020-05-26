@@ -318,6 +318,28 @@ static const struct cryptomodule_ops_s g_song_crypto_ops =
  * Private Functions
  ****************************************************************************/
 
+static bool song_crypto_is_dma_addr(FAR const struct song_crypto_config_s *config,
+                                    FAR void *addr)
+{
+  extern uintptr_t _srodata;
+  extern uintptr_t _erodata;
+  uintptr_t addrr = (uintptr_t)addr;
+
+  if (config->rodata_dma)
+    {
+      return true;
+    }
+
+  if ((addrr >= (uintptr_t)&_srodata) && (addrr <= (uintptr_t)&_erodata))
+    {
+      return false;
+    }
+  else
+    {
+      return true;
+    }
+}
+
 static FAR void* song_crypto_sessioncreate(FAR struct cryptomodule_s *module)
 {
   struct song_crypto_s *crypto = (struct song_crypto_s *)module;
@@ -649,6 +671,7 @@ static int song_crypto_algupdate(FAR void *session, uint32_t inlen,
                                  FAR uint8_t *outdata)
 {
   struct song_crypto_sess_s *sess = session;
+  uint8_t *in = indata;
   int ret;
 
   if (!sess)
@@ -661,10 +684,20 @@ static int song_crypto_algupdate(FAR void *session, uint32_t inlen,
       return -EPERM;
     }
 
+  if (inlen > 0 && !song_crypto_is_dma_addr(sess->crypto->config, indata))
+    {
+      in = kmm_malloc(inlen);
+      if (!in)
+        {
+          return -ENOMEM;
+        }
+      memcpy(in, indata, inlen);
+    }
+
   if (sess->algupdate)
     {
       ret = sess->algop->exe(sess->alg, false, false,
-                            inlen, indata,
+                            inlen, in,
                             outlen, outdata,
                             sess->keys[sess->algkey].keylen,
                             sess->keys[sess->algkey].key);
@@ -672,13 +705,18 @@ static int song_crypto_algupdate(FAR void *session, uint32_t inlen,
   else
     {
       ret = sess->algop->exe(sess->alg, true, false,
-                            inlen, indata,
+                            inlen, in,
                             outlen, outdata,
                             sess->keys[sess->algkey].keylen,
                             sess->keys[sess->algkey].key);
     }
 
   sess->algupdate = true;
+
+  if (in != indata)
+    {
+      free(in);
+    }
 
   return ret;
 }
@@ -688,6 +726,7 @@ static int song_crypto_algfinish(FAR void *session, uint32_t inlen,
                                  FAR uint8_t *outdata)
 {
   struct song_crypto_sess_s *sess = session;
+  uint8_t *in = indata;
   int ret;
 
   if (!sess)
@@ -700,10 +739,20 @@ static int song_crypto_algfinish(FAR void *session, uint32_t inlen,
       return -EPERM;
     }
 
+  if (inlen > 0 && !song_crypto_is_dma_addr(sess->crypto->config, indata))
+    {
+      in = kmm_malloc(inlen);
+      if (!in)
+        {
+          return -ENOMEM;
+        }
+      memcpy(in, indata, inlen);
+    }
+
   if (sess->algupdate)
     {
       ret = sess->algop->exe(sess->alg, false, true,
-                            inlen, indata,
+                            inlen, in,
                             outlen, outdata,
                             sess->keys[sess->algkey].keylen,
                             sess->keys[sess->algkey].key);
@@ -711,10 +760,15 @@ static int song_crypto_algfinish(FAR void *session, uint32_t inlen,
   else
     {
       ret = sess->algop->exe(sess->alg, true, true,
-                            inlen, indata,
+                            inlen, in,
                             outlen, outdata,
                             sess->keys[sess->algkey].keylen,
                             sess->keys[sess->algkey].key);
+    }
+
+  if (in != indata)
+    {
+      free(in);
     }
 
   return ret;

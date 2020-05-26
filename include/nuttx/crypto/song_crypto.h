@@ -57,6 +57,7 @@ struct song_crypto_config_s
   uintptr_t   base;
   uint32_t    irq;
   const char *clk;
+  bool        rodata_dma;
 };
 
 /****************************************************************************
