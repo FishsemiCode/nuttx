@@ -41,7 +41,7 @@
 
 #include "up_internal.h"
 
-	.section	.vectors
+	.section	.vectors, "aw"
 	.align		10
 	.globl		__Vectors
 	.type		__Vectors, @object

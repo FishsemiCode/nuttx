@@ -116,7 +116,10 @@
 #define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
 #define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
 
-#define TOP_PWR_AP_CPU_SEL          (1 << 22)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL_MOD_MK   (3 << 20)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL_MOD_M4   (0 << 20)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL_MOD_CK   (1 << 20)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL          (1 << 22)
 
 #define TOP_PWR_CPU_RSTCTL          (1 << 1)    //TOP_PWR_CK802_CTL0
 #define TOP_PWR_CPUCLK_EN           (1 << 0)
@@ -408,6 +411,8 @@ static int ap_start(const struct song_rptun_config_s *config)
     {
       /* Boot AP CK802 */
 
+      modifyreg32(TOP_PWR_AP_M4_CTL0, TOP_PWR_AP_CPU_SEL_MOD_MK,
+                  TOP_PWR_AP_CPU_SEL_MOD_CK);
       modifyreg32(TOP_PWR_CK802_CTL0, 0, TOP_PWR_CPUCLK_EN);
       modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_CPU_RSTCTL, 0);
     }
@@ -415,6 +420,8 @@ static int ap_start(const struct song_rptun_config_s *config)
     {
       /* Boot AP M4 */
 
+      modifyreg32(TOP_PWR_AP_M4_CTL0, TOP_PWR_AP_CPU_SEL_MOD_MK,
+                  TOP_PWR_AP_CPU_SEL_MOD_M4);
       putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
     }
 
