@@ -973,6 +973,7 @@ static void up_crypto_init(void)
     .base = 0xb0140000,
     .irq  = 29,
     .clk  = "top_cipher_clk",
+    .rodata_dma = false,
   };
 
   if (!up_is_u1v1())
