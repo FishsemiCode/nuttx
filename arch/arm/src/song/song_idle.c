@@ -238,6 +238,9 @@ void up_cpu_save(void)
     }
 }
 
+#ifdef CONFIG_SONG_WARM_START
+__attribute__((section(".warm_start")))
+#endif
 void up_cpu_restore(void)
 {
   /* Enable FPU first, because it will be accessed in exception
