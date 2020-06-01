@@ -497,6 +497,10 @@ static void up_rptun_init(void)
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
 #endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+  hostfs_rpmsg_server_init();
+#endif
 }
 #endif
 

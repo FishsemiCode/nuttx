@@ -333,6 +333,10 @@ static void up_rptun_init(void)
 #ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
 #endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_CP);
+#endif
 }
 #endif
 
