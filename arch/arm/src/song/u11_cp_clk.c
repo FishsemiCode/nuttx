@@ -783,13 +783,13 @@ static const struct song_gate_clk gate[] =
     .en_shift = 13,
   },
   {
-    .name = "rfif_def_tx_clk_en",
+    .name = "rfif_dfe_tx_clk",
     .parent_name = "dfe_tx_clk",
     .en_offset = 0x2d0,
     .en_shift = 1,
   },
   {
-    .name = "rfphy_tx_clk_en",
+    .name = "rfphy_tx_clk",
     .parent_name = "dfe_tx_clk",
     .en_offset = 0x2d0,
     .en_shift = 2,
