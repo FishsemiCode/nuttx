@@ -60,6 +60,12 @@
 #define SONG_DMAS_REG_INT_RAW1                  0x30c
 #define SONG_DMAS_REG_INT_CLR1                  0x328
 #define SONG_DMAS_REG_LP_CTL                    0x3fc
+#define SONG_DMAS_REG_CH2_BUF_LOW               0x080
+#define SONG_DMAS_REG_CH2_DAR                   0x084
+#define SONG_DMAS_REG_CH2_DST_PTR               0x088
+#define SONG_DMAS_REG_CH2_CTL                   0x08c
+#define SONG_DMAS_REG_CH2_CUR_PTR               0x090
+#define SONG_DMAS_REG_CH2_BUF_HIGH              0x094
 
 #define SONG_DMAS_REG_INT_EN0(x)                (((x) < 3 ? 0x010 : 0x324) + (x) * 0x04)
 #define SONG_DMAS_REG_INT0(x)                   (((x) < 3 ? 0x01c : 0x32c) + (x) * 0x04)
@@ -165,6 +171,15 @@ static int song_dmas_stop(struct dma_chan_s *chan_);
 static int song_dmas_pause(struct dma_chan_s *chan_);
 static int song_dmas_resume(struct dma_chan_s *chan_);
 static size_t song_dmas_residual(struct dma_chan_s *chan_);
+#ifdef CONFIG_SONG_DMAS_CYCBUF_TRANSMIT
+static int song_dmas_chan_cycbuf_config(struct dma_chan_s *chan_,
+                                        unsigned int buffer_low,
+                                        unsigned int buffer_high,
+                                        unsigned int dest);
+static int song_dmas_chan_cycbuf_setwp(struct dma_chan_s *chan_,
+                                       unsigned int dstptr);
+static unsigned int song_dmas_chan_cycbuf_getrp(struct dma_chan_s *chan_);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -182,6 +197,11 @@ static const struct dma_ops_s g_song_dmas_ops =
   .pause        = song_dmas_pause,
   .resume       = song_dmas_resume,
   .residual     = song_dmas_residual,
+#ifdef CONFIG_SONG_DMAS_CYCBUF_TRANSMIT
+  .cycbuf_config  = song_dmas_chan_cycbuf_config,
+  .cycbuf_setwp   = song_dmas_chan_cycbuf_setwp,
+  .cycbuf_getrp   = song_dmas_chan_cycbuf_getrp,
+#endif
 };
 
 /****************************************************************************
@@ -591,6 +611,65 @@ static size_t song_dmas_residual(struct dma_chan_s *chan_)
   struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
   return chan->period_len * chan->period_num - song_dmas_delivered(chan);
 }
+
+#ifdef CONFIG_SONG_DMAS_CYCBUF_TRANSMIT
+static int song_dmas_chan_cycbuf_config(struct dma_chan_s *chan_,
+                                        unsigned int buffer_low,
+                                        unsigned int buffer_high,
+                                        unsigned int dest)
+{
+  struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
+  struct song_dmas_dev_s *dev = chan->dev;
+
+  if (song_dmas_is_busy(dev, chan->index))
+    return -EBUSY;
+
+  if ((buffer_low & 0x1f) || (buffer_high & 0x1f))
+    return -EINVAL;
+
+  if (chan->index == 2)
+    {
+      song_dmas_write(dev, SONG_DMAS_REG_CH2_BUF_LOW, buffer_low);
+      song_dmas_write(dev, SONG_DMAS_REG_CH2_BUF_HIGH, buffer_high);
+      song_dmas_write(dev, SONG_DMAS_REG_CH2_DAR, dest);
+
+      song_dmas_update_bits(dev, SONG_DMAS_REG_CH2_CTL,
+                            SONG_DMAS_CTL1_BLKMOD_MASK,
+                            SONG_DMAS_CTL1_BLKMOD_MULTIPLE);
+
+      song_dmas_write(dev, SONG_DMAS_REG_EN, chan->index);
+    }
+
+  return OK;
+}
+
+static int song_dmas_chan_cycbuf_setwp(struct dma_chan_s *chan_,
+                                       unsigned int dstptr)
+{
+  struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
+  struct song_dmas_dev_s *dev = chan->dev;
+
+  if (chan->index == 2)
+    {
+      song_dmas_write(dev, SONG_DMAS_REG_CH2_DST_PTR, dstptr);
+    }
+
+  return OK;
+}
+
+static unsigned int song_dmas_chan_cycbuf_getrp(struct dma_chan_s *chan_)
+{
+  struct song_dmas_chan_s *chan = (struct song_dmas_chan_s *)chan_;
+  struct song_dmas_dev_s *dev = chan->dev;
+
+  if (chan->index == 2)
+    {
+      return song_dmas_read(dev, SONG_DMAS_REG_CH2_CUR_PTR);
+    }
+
+  return OK;
+}
+#endif
 
 static void song_dmas_next_transfer(struct song_dmas_chan_s *chan)
 {

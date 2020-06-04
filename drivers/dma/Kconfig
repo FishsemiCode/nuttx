@@ -69,6 +69,10 @@ config SONG_DMAS_DCACHE_WA
 	depends on ARCH_DCACHE
 	default n
 
+config SONG_DMAS_CYCBUF_TRANSMIT
+	bool "Use cycle buffer transmit mode"
+	default n
+
 endif
 
 endif

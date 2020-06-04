@@ -207,6 +207,39 @@
 
 #define DMA_RESIDUAL(chan) (chan)->ops->residual(chan)
 
+#ifdef CONFIG_SONG_DMAS_CYCBUF_TRANSMIT
+/****************************************************************************
+ * Name: DMA_CYCBUF_CONFIG
+ *
+ * Description:
+ *   Config TX channel as cycle buffer transmit.
+ *
+ ****************************************************************************/
+
+#define DMA_CYCBUF_CONFIG(chan, low, high, dst) \
+    (chan)->ops->cycbuf_config(chan, low, high, dst)
+
+/****************************************************************************
+ * Name: DMA_CYCBUF_DSTPTR
+ *
+ * Description:
+ *   Update cycle buffer transmit destination ptr.
+ *
+ ****************************************************************************/
+
+#define DMA_CYCBUF_DSTPTR(chan, dst) (chan)->ops->cycbuf_setwp(chan, dst)
+
+/****************************************************************************
+ * Name: DMA_CYCBUF_CURPTR
+ *
+ * Description:
+ *   Return cycle buffer transmit current ptr.
+ *
+ ****************************************************************************/
+
+#define DMA_CYCBUF_CURPTR(chan) (chan)->ops->cycbuf_getrp(chan)
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -302,6 +335,15 @@ struct dma_ops_s
   int (*pause)(FAR struct dma_chan_s *chan);
   int (*resume)(FAR struct dma_chan_s *chan);
   size_t (*residual)(FAR struct dma_chan_s *chan);
+#ifdef CONFIG_SONG_DMAS_CYCBUF_TRANSMIT
+  int (*cycbuf_config)(struct dma_chan_s *chan_,
+                       unsigned int buffer_low,
+                       unsigned int buffer_high,
+                       unsigned int dest);
+  int (*cycbuf_setwp)(struct dma_chan_s *chan_,
+                      unsigned int dstptr);
+  unsigned int (*cycbuf_getrp)(struct dma_chan_s *chan_);
+#endif
 };
 
 /* This structure only defines the initial fields of the structure
