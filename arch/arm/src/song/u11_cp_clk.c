@@ -835,6 +835,23 @@ static const struct song_mux_clk mux[] =
   {},
 };
 
+static const struct clk_rate def_rates[] =
+{
+  {
+    .name = "cp_bus_mclk0",
+    .rate = 192000000,
+  },
+  {
+    .name = "cp_bus_mclk1",
+    .rate = 96000000,
+  },
+  {
+    .name = "top_bus_mclk",
+    .rate = 96000000,
+  },
+  {},
+};
+
 static const struct song_clk_table u11_cp_clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -861,6 +878,7 @@ void up_clk_initialize(void)
 
 void up_clk_finalinitialize(void)
 {
+  clk_set_rates(def_rates);
   clk_disable_unused();
 }
 #endif /* defined(CONFIG_ARCH_CHIP_U11_CP) && defined(CONFIG_SONG_CLK) */
