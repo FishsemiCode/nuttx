@@ -73,7 +73,6 @@ include net$(DELIM)Make.defs
 include pinctrl$(DELIM)Make.defs
 include pipes$(DELIM)Make.defs
 include power$(DELIM)Make.defs
-include pwm$(DELIM)Make.defs
 include misc$(DELIM)Make.defs
 include rptun$(DELIM)Make.defs
 include sensors$(DELIM)Make.defs
@@ -90,6 +89,11 @@ include wireless$(DELIM)Make.defs
 include contactless$(DELIM)Make.defs
 include 1wire$(DELIM)Make.defs
 include crashdump$(DELIM)Make.defs
+include rf$(DELIM)Make.defs
+
+ifeq ($(CONFIG_SPECIFIC_DRIVERS),y)
+include platform$(DELIM)Make.defs
+endif
 
 ifeq ($(CONFIG_SIMPLE_ADDRENV),y)
   CSRCS += addrenv.c
@@ -99,6 +103,9 @@ CSRCS += dev_null.c dev_zero.c
 
 ifneq ($(CONFIG_DISABLE_MOUNTPOINT),y)
   CSRCS += ramdisk.c
+ifeq ($(CONFIG_DRVR_MKRD),y)
+  CSRCS += mkrd.c
+endif
 ifeq ($(CONFIG_DRVR_WRITEBUFFER),y)
   CSRCS += rwbuffer.c
 else

@@ -1,6 +1,7 @@
 /****************************************************************************
  * drivers/sensors/mcp9844.c
  * Character driver for the MCP9844 Temperature Sensor
+ * Also supports the MCP9808 Temperature Sensor
  *
  *   Copyright (C) 2015 DS-Automotion GmbH. All rights reserved.
  *   Author: Alexander Entinger <a.entinger@ds-automotion.com>
@@ -105,10 +106,8 @@ static const struct file_operations g_mcp9844_fops =
   mcp9844_read,
   mcp9844_write,
   NULL,
-  mcp9844_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  mcp9844_ioctl,
+  NULL
 };
 
 /****************************************************************************
@@ -156,7 +155,7 @@ static int mcp9844_read_u16(FAR struct mcp9844_dev_s *priv,
 
   /* Copy the content of the buffer to the location of the uint16_t pointer */
 
-  *value = (((uint16_t)(buffer[0]))<<8) + ((uint16_t)(buffer[1]));
+  *value = (((uint16_t)(buffer[0])) << 8) + ((uint16_t)(buffer[1]));
 
   sninfo("addr: %02x value: %08x ret: %d\n", regaddr, *value, ret);
   return OK;
@@ -269,8 +268,8 @@ static int mcp9844_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           uint16_t raw_temperature = 0;
           ret = mcp9844_read_u16(priv, MCP9844_TEMP_REG, &raw_temperature);
 
-          /* Convert from the proprietary sensor temperature data representation
-           * to a more user friendly version.
+          /* Convert from the proprietary sensor temperature data
+           * representation to a more user-friendly version.
            */
 
           if (ret == OK)
@@ -286,11 +285,11 @@ static int mcp9844_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
                * need to be masked out.
                */
 
-              raw_temperature &= 0x0FFF; /* 0x0FFF = 0b 0000 1111 1111 1111 */
+              raw_temperature &= 0x0fff; /* 0x0fff = 0b 0000 1111 1111 1111 */
 
               /* The post comma temperature value is encoded in BIT3 to BIT0 */
 
-              temp_result->temp_post_comma = (uint8_t)(raw_temperature & 0x000F);
+              temp_result->temp_post_comma = (uint8_t)(raw_temperature & 0x000f);
 
               /* The pre comma temperature value is encoded in BIT11 to BIT4 */
 
@@ -298,7 +297,8 @@ static int mcp9844_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             }
           else
             {
-              snerr("ERROR: ioctl::SNIOC_READTEMP - mcp9844_read_u16 failed - no temperature retrieved\n");
+              snerr("ERROR: ioctl::SNIOC_READTEMP - mcp9844_read_u16 failed"
+                    " - no temperature retrieved\n");
             }
         }
         break;
@@ -308,7 +308,58 @@ static int mcp9844_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           ret = mcp9844_write_u16(priv, MCP9844_RESO_REG, (uint16_t)(arg));
           if (ret != OK)
             {
-              snerr("ERROR: ioctl::SNIOC_SETRESOLUTION - mcp9844_write_u16 failed - no resolution set\n");
+              snerr("ERROR: ioctl::SNIOC_SETRESOLUTION - mcp9844_write_u16"
+                  "failed - no resolution set\n");
+            }
+        }
+        break;
+
+      case SNIOC_SHUTDOWN:
+        {
+          uint16_t config_reg;
+
+          /* Perform a read-modify-write cycle on the config register */
+
+          ret = mcp9844_read_u16(priv, MCP9844_CONF_REG, &config_reg);
+          if (ret == OK)
+            {
+              config_reg |= MCP9844_CONF_REG_SHDN;
+              ret = mcp9844_write_u16(priv, MCP9844_CONF_REG, config_reg);
+              if (ret != OK)
+                {
+                  snerr("ERROR: ioctl::SNIOC_SHUTDOWN - "
+                        "mcp9844_write_u16 failed\n");
+                }
+            }
+          else
+            {
+              snerr("ERROR: ioctl::SNIOC_SHUTDOWN - "
+                    "mcp9844_read_u16 failed\n");
+            }
+        }
+        break;
+
+      case SNIOC_POWERUP:
+        {
+          uint16_t config_reg;
+
+          /* Perform a read-modify-write cycle on the config register */
+
+          ret = mcp9844_read_u16(priv, MCP9844_CONF_REG, &config_reg);
+          if (ret == OK)
+            {
+              config_reg &= ~MCP9844_CONF_REG_SHDN;
+              ret = mcp9844_write_u16(priv, MCP9844_CONF_REG, config_reg);
+              if (ret != OK)
+                {
+                  snerr("ERROR: ioctl::SNIOC_POWERUP - "
+                        "mcp9844_write_u16 failed\n");
+                }
+            }
+          else
+            {
+              snerr("ERROR: ioctl::SNIOC_POWERUP - "
+                    "mcp9844_read_u16 failed\n");
             }
         }
         break;
@@ -349,7 +400,7 @@ int mcp9844_register(FAR const char *devpath, FAR struct i2c_master_s *i2c,
 
   DEBUGASSERT(i2c != NULL);
 
-  /* Initialize the LM-75 device structure */
+  /* Initialize the MCP9844 device structure */
 
   FAR struct mcp9844_dev_s *priv =
     (FAR struct mcp9844_dev_s *)kmm_malloc(sizeof(struct mcp9844_dev_s));

@@ -55,9 +55,9 @@
 #include "sched/sched.h"
 #include "init/init.h"
 #include "up_internal.h"
-#include "chip/sam_pmc.h"
-#include "chip/sam_rstc.h"
-#include "chip/sam4cm_ipc.h"
+#include "hardware/sam_pmc.h"
+#include "hardware/sam_rstc.h"
+#include "hardware/sam4cm_ipc.h"
 #include "sam4cm_periphclks.h"
 
 #ifdef CONFIG_SMP
@@ -72,8 +72,8 @@
 #  define DPRINTF(fmt, args...) do {} while (0)
 #endif
 
-#define CPU1_VECTOR_RESETV  (SAM_INTSRAM1_BASE)
-#define CPU1_VECTOR_ISTACK  (SAM_INTSRAM1_BASE + 4)
+#define CPU1_VECTOR_ISTACK  (SAM_INTSRAM1_BASE)
+#define CPU1_VECTOR_RESETV  (SAM_INTSRAM1_BASE + 4)
 
 /****************************************************************************
  * Public Data
@@ -134,7 +134,7 @@ static void cpu1_boot(void)
 
   /* Then transfer control to the IDLE task */
 
-  (void)nx_idle_task(0, NULL);
+  nx_idle_task(0, NULL);
 }
 
 /****************************************************************************
@@ -148,7 +148,7 @@ static void cpu1_boot(void)
  *
  *   Each CPU is provided the entry point to is IDLE task when started.  A
  *   TCB for each CPU's IDLE task has been initialized and placed in the
- *   CPU's g_assignedtasks[cpu] list.  Not stack has been alloced or
+ *   CPU's g_assignedtasks[cpu] list.  Not stack has been allocated or
  *   initialized.
  *
  *   The OS initialization logic calls this function repeatedly until each
@@ -215,8 +215,8 @@ int up_cpu_start(int cpu)
 
   /* Copy initial vectors for CPU1 */
 
-  putreg32((uint32_t)tcb->adj_stack_ptr, CPU1_VECTOR_RESETV);
-  putreg32((uint32_t)cpu1_boot, CPU1_VECTOR_ISTACK);
+  putreg32((uint32_t)tcb->adj_stack_ptr, CPU1_VECTOR_ISTACK);
+  putreg32((uint32_t)cpu1_boot, CPU1_VECTOR_RESETV);
 
   spin_lock(&g_cpu1_boot);
 

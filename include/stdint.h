@@ -134,7 +134,7 @@
 /* Limits of integer types capable of holding object pointers */
 
 #define INTPTR_MIN          PTR_MIN
-#define INTPTR_MAX          PTR_MIN
+#define INTPTR_MAX          PTR_MAX
 #define UINTPTR_MAX         UPTR_MAX
 
 /* Limits of greatest-width integer types */
@@ -200,8 +200,8 @@
  * architecture-specific logic with leading underscore character. This file
  * typedef's these to the final name without the underscore character.  This
  * roundabout way of doings things allows the stdint.h to be removed from the
- * include/ directory in the event that the user prefers to use the definitions
- * provided by their toolchain header files.
+ * include/ directory in the event that the user prefers to use the
+ * definitions provided by their toolchain header files.
  */
 
 typedef _int8_t             int8_t;
@@ -271,10 +271,14 @@ typedef _int64_t            int_fast64_t;
 typedef _uint64_t           uint_fast64_t;
 #endif
 
-/* Integer types capable of holding object pointers */
+/* Integer types capable of holding object pointers
+ * As a general rule, the size of size_t should be the same as the size of
+ * uintptr_t: 32-bits on a machine with 32-bit addressing but 64-bits on a
+ * machine with 64-bit addressing.
+ */
 
-typedef _intptr_t           intptr_t;
-typedef _uintptr_t          uintptr_t;
+typedef _ssize_t            intptr_t;
+typedef _size_t             uintptr_t;
 
 /* Some architectures support a FAR pointer which is larger then the normal
  * (near) pointer

@@ -85,7 +85,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -108,8 +107,9 @@
 #if defined(CONFIG_STM32_I2C1) || defined(CONFIG_STM32_I2C2) || \
     defined(CONFIG_STM32_I2C3)
 
-/* This implementation is for the STM32 F1, F2, and F4 only */
-/* Experimentally enabled for STM32L15XX */
+/* This implementation is for the STM32 F1, F2, and F4 only.
+ * Experimentally enabled for STM32L15XX.
+ */
 
 #if defined(CONFIG_STM32_STM32L15XX) || defined(CONFIG_STM32_STM32F10XX) || \
     defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
@@ -117,7 +117,9 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Configuration ********************************************************************/
+
 /* CONFIG_I2C_POLLED may be set so that I2C interrupts will not be used.  Instead,
  * CPU-intensive polling will be used.
  */
@@ -190,6 +192,7 @@
 /************************************************************************************
  * Private Types
  ************************************************************************************/
+
 /* Interrupt state */
 
 enum stm32_intstate_e
@@ -217,8 +220,8 @@ static const uint16_t I2CEVENT_ADDR_HDL_READ_2 = 52;       /* Read of length 2 a
 static const uint16_t I2CEVENT_EMPTY_MSG = 5000;           /* Empty message detected, param=0 */
 
 static const uint16_t I2CEVENT_ADDRESS_ACKED = 6;          /* Address has been ACKed(i.e. it's a valid address) param = address */
-static const uint16_t I2CEVENT_ADDRESS_ACKED_READ_1 = 63;  /* Event when reading single byte just after address is beeing ACKed, param = 0 */
-static const uint16_t I2CEVENT_ADDRESS_ACKED_READ_2 = 61;  /* Event when reading two bytes just after address is beeing ACKed, param = 0 */
+static const uint16_t I2CEVENT_ADDRESS_ACKED_READ_1 = 63;  /* Event when reading single byte just after address is being ACKed, param = 0 */
+static const uint16_t I2CEVENT_ADDRESS_ACKED_READ_2 = 61;  /* Event when reading two bytes just after address is being ACKed, param = 0 */
 static const uint16_t I2CEVENT_ADDRESS_ACKED_WRITE = 681;  /* Address has been ACKed(i.e. it's a valid address) in write mode and byte has been written */
 static const uint16_t I2CEVENT_ADDRESS_NACKED = 6000;      /* Address has been NACKed(i.e. it's an invalid address) param = address */
 
@@ -267,9 +270,15 @@ struct stm32_i2c_config_s
 
 struct stm32_i2c_priv_s
 {
-  const struct i2c_ops_s *ops; /* Standard I2C operations */
-  const struct stm32_i2c_config_s *config; /* Port configuration */
-  int refs;                    /* Referernce count */
+  /* Standard I2C operations */
+
+  const struct i2c_ops_s *ops;
+
+  /* Port configuration */
+
+  const struct stm32_i2c_config_s *config;
+
+  int refs;                    /* Reference count */
   sem_t sem_excl;              /* Mutual exclusion semaphore */
 #ifndef CONFIG_I2C_POLLED
   sem_t sem_isr;               /* Interrupt wait semaphore */
@@ -282,7 +291,7 @@ struct stm32_i2c_priv_s
   uint32_t frequency;          /* Current I2C frequency */
   int dcnt;                    /* Current message length */
   uint16_t flags;              /* Current message flags */
-  bool check_addr_ACK;         /* Flag to signal if on next interrupt address has ACKed */
+  bool check_addr_ack;         /* Flag to signal if on next interrupt address has ACKed */
   uint8_t total_msg_len;       /* Flag to signal a short read sequence */
 
   /* I2C trace support */
@@ -305,12 +314,11 @@ struct stm32_i2c_priv_s
 
 static inline uint16_t stm32_i2c_getreg(FAR struct stm32_i2c_priv_s *priv,
                                         uint8_t offset);
-static inline void stm32_i2c_putreg(FAR struct stm32_i2c_priv_s *priv, uint8_t offset,
-                                    uint16_t value);
+static inline void stm32_i2c_putreg(FAR struct stm32_i2c_priv_s *priv,
+                                    uint8_t offset, uint16_t value);
 static inline void stm32_i2c_modifyreg(FAR struct stm32_i2c_priv_s *priv,
                                        uint8_t offset, uint16_t clearbits,
                                        uint16_t setbits);
-static inline void stm32_i2c_sem_wait(FAR struct stm32_i2c_priv_s *priv);
 
 #ifdef CONFIG_STM32_I2C_DYNTIMEO
 static useconds_t stm32_i2c_tousecs(int msgc, FAR struct i2c_msg_s *msgs);
@@ -350,8 +358,8 @@ static int stm32_i2c_isr(int irq, void *context, FAR void *arg);
 
 static int stm32_i2c_init(FAR struct stm32_i2c_priv_s *priv);
 static int stm32_i2c_deinit(FAR struct stm32_i2c_priv_s *priv);
-static int stm32_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *msgs,
-                              int count);
+static int stm32_i2c_transfer(FAR struct i2c_master_s *dev,
+                              FAR struct i2c_msg_s *msgs, int count);
 #ifdef CONFIG_I2C_RESET
 static int stm32_i2c_reset(FAR struct i2c_master_s *dev);
 #endif
@@ -483,8 +491,8 @@ static inline uint16_t stm32_i2c_getreg(FAR struct stm32_i2c_priv_s *priv,
  *
  ************************************************************************************/
 
-static inline void stm32_i2c_putreg(FAR struct stm32_i2c_priv_s *priv, uint8_t offset,
-                                    uint16_t value)
+static inline void stm32_i2c_putreg(FAR struct stm32_i2c_priv_s *priv,
+                                    uint8_t offset, uint16_t value)
 {
   putreg16(value, priv->config->base + offset);
 }
@@ -502,33 +510,6 @@ static inline void stm32_i2c_modifyreg(FAR struct stm32_i2c_priv_s *priv,
                                        uint16_t setbits)
 {
   modifyreg16(priv->config->base + offset, clearbits, setbits);
-}
-
-/************************************************************************************
- * Name: stm32_i2c_sem_wait
- *
- * Description:
- *   Take the exclusive access, waiting as necessary
- *
- ************************************************************************************/
-
-static inline void stm32_i2c_sem_wait(FAR struct stm32_i2c_priv_s *priv)
-{
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->sem_excl);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
 }
 
 /************************************************************************************
@@ -594,7 +575,7 @@ static int stm32_i2c_sem_waitdone(FAR struct stm32_i2c_priv_s *priv)
     {
       /* Get the current time */
 
-      (void)clock_gettime(CLOCK_REALTIME, &abstime);
+      clock_gettime(CLOCK_REALTIME, &abstime);
 
       /* Calculate a time in the future */
 
@@ -623,12 +604,11 @@ static int stm32_i2c_sem_waitdone(FAR struct stm32_i2c_priv_s *priv)
 
       /* Wait until either the transfer is complete or the timeout expires */
 
-      ret = nxsem_timedwait(&priv->sem_isr, &abstime);
-      if (ret < 0 && ret != -EINTR)
+      ret = nxsem_timedwait_uninterruptible(&priv->sem_isr, &abstime);
+      if (ret < 0)
         {
           /* Break out of the loop on irrecoverable errors.  This would
            * include timeouts and mystery errors reported by nxsem_timedwait.
-           * NOTE that we try again if we are awakened by a signal (EINTR).
            */
 
           break;
@@ -863,7 +843,7 @@ static void stm32_i2c_tracenew(FAR struct stm32_i2c_priv_s *priv, uint16_t statu
         {
           /* Yes.. bump up the trace index (unless we are out of trace entries) */
 
-          if (priv->tndx >= (CONFIG_I2C_NTRACE-1))
+          if (priv->tndx >= (CONFIG_I2C_NTRACE - 1))
             {
               i2cerr("ERROR: Trace table overflow\n");
               return;
@@ -904,7 +884,7 @@ static void stm32_i2c_traceevent(FAR struct stm32_i2c_priv_s *priv,
 
       /* Bump up the trace index (unless we are out of trace entries) */
 
-      if (priv->tndx >= (CONFIG_I2C_NTRACE-1))
+      if (priv->tndx >= (CONFIG_I2C_NTRACE - 1))
         {
           i2cerr("ERROR: Trace table overflow\n");
           return;
@@ -928,7 +908,7 @@ static void stm32_i2c_tracedump(FAR struct stm32_i2c_priv_s *priv)
       trace = &priv->trace[i];
       syslog(LOG_DEBUG,
              "%2d. STATUS: %08x COUNT: %4d EVENT: %4d PARM: %08x TIME: %d\n",
-             i+1, trace->status, trace->count,  trace->event, trace->parm,
+             i + 1, trace->status, trace->count,  trace->event, trace->parm,
              trace->time - priv->start_time);
     }
 }
@@ -1368,14 +1348,15 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
 
           stm32_i2c_putreg(priv, STM32_I2C_DR_OFFSET,
                            (priv->flags & I2C_M_TEN) ?
-                           0 :((priv->msgv->addr << 1) | (priv->flags & I2C_M_READ)));
+                           0 : ((priv->msgv->addr << 1) |
+                           (priv->flags & I2C_M_READ)));
 
           i2cinfo("Address sent. Addr=%#02x Write/Read bit=%i\n",
                   priv->msgv->addr, (priv->flags & I2C_M_READ));
 
           /* Flag that address has just been sent */
 
-          priv->check_addr_ACK = true;
+          priv->check_addr_ack = true;
 
           stm32_i2c_traceevent(priv, I2CEVENT_SENDADDR, priv->msgv->addr);
         }
@@ -1383,7 +1364,8 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
         {
           /* TODO: untested!! */
 
-          i2cwarn("WARNING:  An empty message has been detected, ignoring and passing to next message.\n");
+          i2cwarn("WARNING:  An empty message has been detected, "
+                  "ignoring and passing to next message.\n");
 
           /* Trace event */
 
@@ -1427,7 +1409,7 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
    * Note: this commentary is found in both places.
    */
 
-  else if ((status & I2C_SR1_ADDR) == 0 && priv->check_addr_ACK)
+  else if ((status & I2C_SR1_ADDR) == 0 && priv->check_addr_ack)
     {
       i2cinfo("Invalid Address. Setting stop bit and clearing message\n");
       i2cinfo("status %i\n", status);
@@ -1441,7 +1423,7 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
 
       /* Reset flag to check for valid address */
 
-      priv->check_addr_ACK = false;
+      priv->check_addr_ack = false;
 
       /* Send stop bit to clear bus */
 
@@ -1456,11 +1438,11 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
   /* ACK in read mode, ACK in write mode is handled separately */
 
   else if ((priv->flags & I2C_M_READ) != 0 && (status & I2C_SR1_ADDR) != 0 &&
-           priv->check_addr_ACK)
+           priv->check_addr_ack)
     {
       /* Reset check addr flag as we are handling this event */
 
-      priv->check_addr_ACK = false;
+      priv->check_addr_ack = false;
 
       /* Clear ADDR flag by reading SR2 and adding it to status */
 
@@ -1540,7 +1522,7 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
 
       /* Address has cleared so don't check on next call */
 
-      priv->check_addr_ACK = false;
+      priv->check_addr_ack = false;
 
       /* Check if we have transmitted the whole message or we are after
        * the last byte where the stop condition or else(according to the
@@ -1557,7 +1539,6 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
 
           stm32_i2c_traceevent(priv, I2CEVENT_WRITE_TO_DR, priv->dcnt);
           priv->dcnt--;
-
         }
       else if (priv->dcnt == 0)
         {
@@ -1583,7 +1564,8 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
            */
 
           else if (priv->msgc > 0 &&
-                   (priv->msgv->flags == 0 || (priv->msgv[0].flags & I2C_M_READ) != 0))
+                   (priv->msgv->flags == 0 ||
+                    (priv->msgv[0].flags & I2C_M_READ) != 0))
             {
               stm32_i2c_sendstart(priv);
 
@@ -1611,9 +1593,9 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
           else
             {
               i2cerr("ERROR: Write mode: next message has an unrecognized flag.\n");
-              stm32_i2c_traceevent(priv, I2CEVENT_WRITE_FLAG_ERROR, priv->msgv->flags);
+              stm32_i2c_traceevent(priv, I2CEVENT_WRITE_FLAG_ERROR,
+                                   priv->msgv->flags);
             }
-
         }
       else
         {
@@ -1675,14 +1657,17 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
 
       /* Case total message length = 2 */
 
-      else if (priv->dcnt == 2 && priv->total_msg_len == 2 && !(status & I2C_SR1_BTF))
+      else if (priv->dcnt == 2 && priv->total_msg_len == 2 &&
+               !(status & I2C_SR1_BTF))
         {
           i2cinfo("short read N=2: DR full, SR empty. Waiting for more bytes.\n");
           stm32_i2c_traceevent(priv, I2CEVENT_READ_SR_EMPTY, 0);
         }
-      else if (priv->dcnt == 2 && priv->total_msg_len == 2 && (status & I2C_SR1_BTF))
+      else if (priv->dcnt == 2 && priv->total_msg_len == 2 &&
+               (status & I2C_SR1_BTF))
         {
-          i2cinfo("short read N=2: DR and SR full setting stop bit and reading twice\n");
+          i2cinfo("short read N=2: "
+                  "DR and SR full setting stop bit and reading twice\n");
 
           stm32_i2c_sendstop(priv);
           *priv->ptr++ = stm32_i2c_getreg(priv, STM32_I2C_DR_OFFSET);
@@ -1742,7 +1727,7 @@ static int stm32_i2c_isr_process(struct stm32_i2c_priv_s *priv)
 
           stm32_i2c_modifyreg(priv, STM32_I2C_CR1_OFFSET, I2C_CR1_ACK, 0);
 
-          /* Read dcnt = 3, to ensure a BTF event after having recieved
+          /* Read dcnt = 3, to ensure a BTF event after having received
            * in the shift register.
            */
 
@@ -2027,21 +2012,25 @@ static int stm32_i2c_deinit(FAR struct stm32_i2c_priv_s *priv)
  *
  ************************************************************************************/
 
-static int stm32_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *msgs,
-                              int count)
+static int stm32_i2c_transfer(FAR struct i2c_master_s *dev,
+                              FAR struct i2c_msg_s *msgs, int count)
 {
   FAR struct stm32_i2c_priv_s *priv = (FAR struct stm32_i2c_priv_s *)dev;
   uint32_t status = 0;
 #ifdef I2C1_FSMC_CONFLICT
   uint32_t ahbenr;
 #endif
-  int ret = 0;
+  int ret;
 
   DEBUGASSERT(dev != NULL && msgs != NULL && count > 0);
 
   /* Ensure that address or flags don't change meanwhile */
 
-  stm32_i2c_sem_wait(priv);
+  ret = nxsem_wait(&priv->sem_excl);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
 #ifdef I2C1_FSMC_CONFLICT
   /* Disable FSMC that shares a pin with I2C1 (LBAR) */
@@ -2264,7 +2253,7 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
   uint32_t scl_gpio;
   uint32_t sda_gpio;
   uint32_t frequency;
-  int ret = ERROR;
+  int ret;
 
   DEBUGASSERT(dev);
 
@@ -2274,7 +2263,13 @@ static int stm32_i2c_reset(FAR struct i2c_master_s * dev)
 
   /* Lock out other clients */
 
-  stm32_i2c_sem_wait(priv);
+  ret = nxsem_wait_uninterruptible(&priv->sem_excl);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  ret = -EIO;
 
   /* Save the current frequency */
 

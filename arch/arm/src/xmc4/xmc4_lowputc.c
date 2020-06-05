@@ -50,9 +50,9 @@
 #include <debug.h>
 
 #include "xmc4_config.h"
-#include "chip/xmc4_usic.h"
-#include "chip/xmc4_ports.h"
-#include "chip/xmc4_pinmux.h"
+#include "hardware/xmc4_usic.h"
+#include "hardware/xmc4_ports.h"
+#include "hardware/xmc4_pinmux.h"
 #include "xmc4_usic.h"
 #include "xmc4_gpio.h"
 #include "xmc4_lowputc.h"
@@ -201,28 +201,28 @@ void xmc4_lowsetup(void)
    */
 
 #ifdef HAVE_UART0
-  (void)xmc4_gpio_config(GPIO_UART0_RXD);
-  (void)xmc4_gpio_config(GPIO_UART0_TXD);
+  xmc4_gpio_config(GPIO_UART0_RXD);
+  xmc4_gpio_config(GPIO_UART0_TXD);
 #endif
 #ifdef HAVE_UART1
-  (void)xmc4_gpio_config(GPIO_UART1_RXD);
-  (void)xmc4_gpio_config(GPIO_UART1_TXD);
+  xmc4_gpio_config(GPIO_UART1_RXD);
+  xmc4_gpio_config(GPIO_UART1_TXD);
 #endif
 #ifdef HAVE_UART2
-  (void)xmc4_gpio_config(GPIO_UART2_RXD);
-  (void)xmc4_gpio_config(GPIO_UART2_TXD);
+  xmc4_gpio_config(GPIO_UART2_RXD);
+  xmc4_gpio_config(GPIO_UART2_TXD);
 #endif
 #ifdef HAVE_UART3
-  (void)xmc4_gpio_config(GPIO_UART3_RXD);
-  (void)xmc4_gpio_config(GPIO_UART3_TXD);
+  xmc4_gpio_config(GPIO_UART3_RXD);
+  xmc4_gpio_config(GPIO_UART3_TXD);
 #endif
 #ifdef HAVE_UART4
-  (void)xmc4_gpio_config(GPIO_UART4_RXD);
-  (void)xmc4_gpio_config(GPIO_UART4_TXD);
+  xmc4_gpio_config(GPIO_UART4_RXD);
+  xmc4_gpio_config(GPIO_UART4_TXD);
 #endif
 #ifdef HAVE_UART5
-  (void)xmc4_gpio_config(GPIO_UART5_RXD);
-  (void)xmc4_gpio_config(GPIO_UART5_TXD);
+  xmc4_gpio_config(GPIO_UART5_RXD);
+  xmc4_gpio_config(GPIO_UART5_TXD);
 #endif
 
 #ifdef HAVE_UART_CONSOLE
@@ -378,9 +378,10 @@ int xmc4_uart_configure(enum usic_channel_e channel,
    *     a data word
    */
 
-  regval &= ~(USIC_TBCTR_DPTR_MASK | USIC_TBCTR_LIMIT_MASK | USIC_TBCTR_STBTEN |
-              USIC_TBCTR_SIZE_MASK | USIC_TBCTR_LOF);
-  regval |=  (USIC_TBCTR_DPTR(16) | USIC_TBCTR_LIMIT(1) | USIC_TBCTR_SIZE_16);
+  regval &= ~(USIC_TBCTR_DPTR_MASK | USIC_TBCTR_LIMIT_MASK |
+              USIC_TBCTR_STBTEN | USIC_TBCTR_SIZE_MASK | USIC_TBCTR_LOF);
+  regval |=  (USIC_TBCTR_DPTR(16) | USIC_TBCTR_LIMIT(1) |
+              USIC_TBCTR_SIZE_16);
   putreg32(regval, base + XMC4_USIC_TBCTR_OFFSET);
 
   /* Disable the receive FIFO */
@@ -399,8 +400,10 @@ int xmc4_uart_configure(enum usic_channel_e channel,
    *     of a new data word
    */
 
-  regval &= ~(USIC_RBCTR_DPTR_MASK | USIC_RBCTR_LIMIT_MASK | USIC_RBCTR_SIZE_MASK);
-  regval |= (USIC_RBCTR_DPTR(0) | USIC_RBCTR_LIMIT(15) | USIC_RBCTR_SIZE_16 | USIC_RBCTR_LOF);
+  regval &= ~(USIC_RBCTR_DPTR_MASK | USIC_RBCTR_LIMIT_MASK |
+              USIC_RBCTR_SIZE_MASK);
+  regval |= (USIC_RBCTR_DPTR(0) | USIC_RBCTR_LIMIT(15) | USIC_RBCTR_SIZE_16 |
+             USIC_RBCTR_LOF);
   putreg32(regval, base + XMC4_USIC_RBCTR_OFFSET);
 
   /* Start UART */
@@ -412,8 +415,8 @@ int xmc4_uart_configure(enum usic_channel_e channel,
 
   /* Set service request for UART protocol, receiver, and transmitter events.
    *
-   *   Set channel 0 events on sevice request 0
-   *   Set channel 1 events on sevice request 1
+   *   Set channel 0 events on service request 0
+   *   Set channel 1 events on service request 1
    */
 
   regval  = getreg32(base + XMC4_USIC_INPR_OFFSET);

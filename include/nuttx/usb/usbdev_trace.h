@@ -50,9 +50,9 @@
 
 /* Event encoding/decoding macros *******************************************/
 
-#define TRACE_EVENT(id,data)     ((uint16_t)(id)|(data))
-#define TRACE_ID(event)          ((event)&0xff00)
-#define TRACE_DATA(event)        ((event)&0x00ff)
+#define TRACE_EVENT(id,data)     ((uint16_t)(id) | (data))
+#define TRACE_ID(event)          ((event) & 0xff00)
+#define TRACE_DATA(event)        ((event) & 0x00ff)
 
 /* Events ******************************************************************/
 
@@ -421,7 +421,7 @@ struct trace_msg_t
 
 /* Enumeration callback function signature */
 
-typedef int (*trace_callback_t)(struct usbtrace_s *trace, void *arg);
+typedef CODE int (*trace_callback_t)(struct usbtrace_s *trace, void *arg);
 
 /* Bit mask input type for usbtrace_enable().  If  TRACE_NIDS grows beyond
  * 16, then this will have to be changed to uint32_t
@@ -431,7 +431,7 @@ typedef uint16_t usbtrace_idset_t;
 
 /* Print routine to use for usbdev_trprint() output */
 
-typedef int (*trprintf_t)(const char *fmt, ...);
+typedef CODE int (*trprintf_t)(const char *fmt, ...);
 
 /****************************************************************************
  * Public Data

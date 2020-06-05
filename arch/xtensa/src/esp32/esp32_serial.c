@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -60,10 +59,10 @@
 #include <arch/board/board.h>
 
 #include "xtensa.h"
-#include "chip/esp32_soc.h"
-#include "chip/esp32_iomux.h"
-#include "chip/esp32_gpio_sigmap.h"
-#include "chip/esp32_uart.h"
+#include "hardware/esp32_soc.h"
+#include "hardware/esp32_iomux.h"
+#include "hardware/esp32_gpio_sigmap.h"
+#include "hardware/esp32_uart.h"
 #include "rom/esp32_gpio.h"
 #include "esp32_config.h"
 #include "esp32_gpio.h"
@@ -140,8 +139,9 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
 /* Constant properties of the UART.  Other configuration setting may be
- * changable via Termios IOCTL calls.
+ * changeable via Termios IOCTL calls.
  */
 
 struct esp32_config_s
@@ -166,14 +166,14 @@ struct esp32_config_s
 struct esp32_dev_s
 {
   const struct esp32_config_s *config; /* Constant configuration */
-  uint32_t baud;                /* Configured baud */
-  uint32_t status;              /* Saved status bits */
-  uint8_t  cpuint;              /* CPU interrupt assigned to this UART */
-  uint8_t  parity;              /* 0=none, 1=odd, 2=even */
-  uint8_t  bits;                /* Number of bits (5-9) */
-  bool     stopbits2;           /* true: Configure with 2 stop bits instead of 1 */
+  uint32_t baud;                       /* Configured baud */
+  uint32_t status;                     /* Saved status bits */
+  uint8_t  cpuint;                     /* CPU interrupt assigned to this UART */
+  uint8_t  parity;                     /* 0=none, 1=odd, 2=even */
+  uint8_t  bits;                       /* Number of bits (5-9) */
+  bool     stopbits2;                  /* true: Configure with 2 stop bits instead of 1 */
 #if defined(CONFIG_SERIAL_IFLOWCONTROL) || defined(CONFIG_SERIAL_OFLOWCONTROL)
-  bool     flowc;               /* Input flow control (RTS) enabled */
+  bool     flowc;                      /* Input flow control (RTS) enabled */
 #endif
 };
 
@@ -401,7 +401,9 @@ static inline void esp32_serialout(struct esp32_dev_s *priv, int offset,
 static inline void esp32_restoreuartint(struct esp32_dev_s *priv,
                                         uint32_t intena)
 {
-  /* Restore the previous interrupt state (assuming all interrupts disabled) */
+  /* Restore the previous interrupt state
+   * (assuming all interrupts disabled)
+   */
 
   esp32_serialout(priv, UART_INT_ENA_OFFSET, intena);
 }
@@ -475,7 +477,7 @@ static int esp32_setup(struct uart_dev_s *dev)
 
   if (priv->bits == 5)
     {
-                                       /* 0=5 bits */
+      /* 0=5 bits */
     }
   else if (priv->bits == 6)
     {
@@ -761,26 +763,27 @@ static int esp32_interrupt(int cpuint, void *context, FAR void *arg)
        * data, possibly resulting in an overrun error.
        */
 
-     if ((enabled & (UART_RXFIFO_FULL_INT_ENA |
+      if ((enabled & (UART_RXFIFO_FULL_INT_ENA |
                      UART_RXFIFO_TOUT_INT_ENA)) != 0)
-       {
-         /* Is there any data waiting in the Rx FIFO? */
+        {
+          /* Is there any data waiting in the Rx FIFO? */
 
-         nfifo = (status & UART_RXFIFO_CNT_M) >> UART_RXFIFO_CNT_S;
-         if (nfifo > 0)
+          nfifo = (status & UART_RXFIFO_CNT_M) >> UART_RXFIFO_CNT_S;
+          if (nfifo > 0)
             {
               /* Received data in the RXFIFO! ... Process incoming bytes */
 
               uart_recvchars(dev);
               handled = true;
             }
-       }
+        }
 
       /* Are Tx interrupts enabled?  The upper layer will disable Tx
        * interrupts when it has nothing to send.
        */
 
-      if ((enabled & (UART_TX_DONE_INT_ENA | UART_TXFIFO_EMPTY_INT_ENA)) != 0)
+      if ((enabled & (UART_TX_DONE_INT_ENA | UART_TXFIFO_EMPTY_INT_ENA))
+          != 0)
         {
           nfifo = (status & UART_TXFIFO_CNT_M) >> UART_TXFIFO_CNT_S;
           if (nfifo < 0x7f)
@@ -882,7 +885,7 @@ static int esp32_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
 
           case 9:
-            termiosp->c_cflag |= CS8 /* CS9 */;
+            termiosp->c_cflag |= CS8 /* CS9 */ ;
             break;
           }
       }
@@ -1076,7 +1079,8 @@ static bool esp32_rxavailable(struct uart_dev_s *dev)
 {
   struct esp32_dev_s *priv = (struct esp32_dev_s *)dev->priv;
 
-  return ((esp32_serialin(priv, UART_STATUS_OFFSET) & UART_RXFIFO_CNT_M) > 0);
+  return ((esp32_serialin(priv, UART_STATUS_OFFSET)
+          & UART_RXFIFO_CNT_M) > 0);
 }
 
 /****************************************************************************
@@ -1226,17 +1230,17 @@ void xtensa_serial_initialize(void)
   /* Register the console */
 
 #ifdef HAVE_SERIAL_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs */
 
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
+  uart_register("/dev/ttyS2", &TTYS2_DEV);
 #endif
 }
 

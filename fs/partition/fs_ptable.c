@@ -37,6 +37,8 @@
  * Included Files
  ****************************************************************************/
 
+#include <string.h>
+
 #include <nuttx/kmalloc.h>
 
 #include "partition.h"
@@ -71,6 +73,25 @@ struct ptable_s
   char version[PTABLE_VERSION_LEN];
   struct ptable_entry_s entries[];
 };
+
+/****************************************************************************
+ * Private Functions
+ ****************************************************************************/
+
+static int read_partition_block(FAR struct partition_state_s *state,
+                                FAR void *buffer, size_t startblock,
+                                size_t nblocks)
+{
+  if (state->blk)
+    {
+      return state->blk->u.i_bops->read(state->blk,
+                                        buffer, startblock, nblocks);
+    }
+  else
+    {
+      return state->mtd->bread(state->mtd, startblock, nblocks, buffer);
+    }
+}
 
 /****************************************************************************
  * Public Functions
@@ -165,4 +186,3 @@ out:
   kmm_free(ptable);
   return ret;
 }
-

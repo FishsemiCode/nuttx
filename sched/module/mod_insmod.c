@@ -106,7 +106,7 @@ static void mod_dumploadinfo(FAR struct mod_loadinfo_s *loadinfo)
     {
       for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
         {
-          FAR Elf32_Shdr *shdr = &loadinfo->shdr[i];
+          FAR Elf_Shdr *shdr = &loadinfo->shdr[i];
           binfo("Sections %d:\n", i);
           binfo("  sh_name:      %08x\n", shdr->sh_name);
           binfo("  sh_type:      %08x\n", shdr->sh_type);
@@ -237,7 +237,12 @@ FAR void *insmod(FAR const char *filename, FAR const char *modname)
 
   /* Save the load information */
 
+#if defined(CONFIG_ARCH_USE_MODULE_TEXT)
+  modp->textalloc   = (FAR void *)loadinfo.textalloc;
+  modp->dataalloc   = (FAR void *)loadinfo.datastart;
+#else
   modp->alloc       = (FAR void *)loadinfo.textalloc;
+#endif
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
   modp->textsize    = loadinfo.textsize;
   modp->datasize    = loadinfo.datasize;
@@ -245,7 +250,8 @@ FAR void *insmod(FAR const char *filename, FAR const char *modname)
 
   /* Get the module initializer entry point */
 
-  initializer = (mod_initializer_t)(loadinfo.textalloc + loadinfo.ehdr.e_entry);
+  initializer = (mod_initializer_t)(loadinfo.textalloc +
+                                    loadinfo.ehdr.e_entry);
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
   modp->initializer = initializer;
 #endif
@@ -270,7 +276,7 @@ FAR void *insmod(FAR const char *filename, FAR const char *modname)
 
 errout_with_load:
   modlib_unload(&loadinfo);
-  (void)modlib_undepend(modp);
+  modlib_undepend(modp);
 errout_with_registry_entry:
   kmm_free(modp);
 errout_with_loadinfo:

@@ -47,9 +47,9 @@
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 
-#include "chip/sam_pinmap.h"
+#include "hardware/sam_pinmap.h"
 #include <arch/board/board.h>
 
 #include "up_internal.h"
@@ -873,17 +873,17 @@ static int pwm_setup(FAR struct pwm_lowerhalf_s *dev)
 
   if (chan->ohpincfg)
     {
-      (void)sam_configpio(chan->ohpincfg);
+      sam_configpio(chan->ohpincfg);
     }
 
   if (chan->olpincfg)
     {
-      (void)sam_configpio(chan->olpincfg);
+      sam_configpio(chan->olpincfg);
     }
 
   if (chan->fipincfg)
     {
-      (void)sam_configpio(chan->fipincfg);
+      sam_configpio(chan->fipincfg);
     }
 
   return OK;
@@ -1185,7 +1185,7 @@ static unsigned int pwm_clk_prescaler_log2(uint32_t mck, uint32_t fclk)
  * Description:
  *   Given that we have already selected the prescaler value, select the
  *   divider in the range of 1 through 255.  The CLKA/B frequency is
- *   determined by both the prescaler and divider valuess:
+ *   determined by both the prescaler and divider values:
  *
  *   frequency = MCK / prescaler / div
  *
@@ -1226,7 +1226,7 @@ static unsigned int pwm_clk_divider(uint32_t mck, uint32_t fclk,
  * Name: pwm_clk_frequency
  *
  * Description:
- *   Given that we have already selected the prescaler value and cacluated
+ *   Given that we have already selected the prescaler value and calculated
  *   the corresponding divider, the result clock frequency is give by:
  *
  *   frequency = MCK / prescaler / div
@@ -1267,17 +1267,17 @@ static void pwm_resetpins(FAR struct sam_pwm_chan_s *chan)
 {
   if (chan->ohpincfg)
     {
-      (void)sam_configpio(PWM_MKINPUT(chan->ohpincfg));
+      sam_configpio(PWM_MKINPUT(chan->ohpincfg));
     }
 
   if (chan->olpincfg)
     {
-      (void)sam_configpio(PWM_MKINPUT(chan->olpincfg));
+      sam_configpio(PWM_MKINPUT(chan->olpincfg));
     }
 
   if (chan->fipincfg)
     {
-      (void)sam_configpio(PWM_MKINPUT(chan->fipincfg));
+      sam_configpio(PWM_MKINPUT(chan->fipincfg));
     }
 }
 
@@ -1404,8 +1404,8 @@ FAR struct pwm_lowerhalf_s *sam_pwminitialize(int channel)
 
       /* Clear any pending PWM interrupts */
 
-      (void)pwm_getreg(chan, SAM_PWM_ISR1_OFFSET);
-      (void)pwm_getreg(chan, SAM_PWM_ISR2_OFFSET);
+      pwm_getreg(chan, SAM_PWM_ISR1_OFFSET);
+      pwm_getreg(chan, SAM_PWM_ISR2_OFFSET);
 
       /* Enable PWM interrupts at the AIC */
 

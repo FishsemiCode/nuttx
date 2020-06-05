@@ -51,23 +51,13 @@
 /****************************************************************************
  * Public Type Definitions
  ****************************************************************************/
-/* Configuration ************************************************************/
-/* Prerequisites: CONFIG_DISABLE_SIGNALS must not be defined */
 
-#ifdef CONFIG_DISABLE_SIGNALS
-#  undef CONFIG_ARCH_PHY_INTERRUPT
-#endif
+/* Configuration ************************************************************/
 
 /* Maximum number of phy_notify clients */
 
 #ifndef CONFIG_PHY_NOTIFICATION_NCLIENTS
 #  define CONFIG_PHY_NOTIFICATION_NCLIENTS 1
-#endif
-
-/* Maximum length of on interface device name (excluding NULL termination) */
-
-#ifndef CONFIG_PHY_NOTIFICATION_MAXINTFLEN
-#  define CONFIG_PHY_NOTIFICATION_MAXINTFLEN 4
 #endif
 
 /****************************************************************************
@@ -100,8 +90,6 @@ extern "C"
  *
  * Input Parameters:
  *   intf  - Provides the name of the network interface, for example, "eth0".
- *           The length of intf must not exceed 4 bytes (excluding NULL
- *           terminator).  Configurable with CONFIG_PHY_NOTIFICATION_MAXINTFLEN.
  *   pid   - Identifies the task to receive the signal.  The special value
  *           of zero means to use the pid of the current task.
  *   event - Describe the way a task is to be notified
@@ -129,8 +117,6 @@ int phy_notify_subscribe(FAR const char *intf, pid_t pid,
  *
  * Input Parameters:
  *   intf  - Provides the name of the network interface, for example, "eth0".
- *           The length of 'intf' must not exceed 4 bytes (excluding NULL
- *           terminator).  Configurable with CONFIG_PHY_NOTIFICATION_MAXINTFLEN.
  *   pid   - Identifies the task that was receiving notifications.
  *
  * Returned Value:

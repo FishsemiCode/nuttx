@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -676,7 +675,7 @@ static int sam_setup(struct uart_dev_s *dev)
 #ifdef HAVE_RS485
   if (priv->rs485_dir_gpio != 0)
     {
-      (void)sam_configport(priv->rs485_dir_gpio);
+      sam_configport(priv->rs485_dir_gpio);
       sam_portwrite(priv->rs485_dir_gpio, !priv->rs485_dir_polarity);
     }
 #endif
@@ -956,6 +955,8 @@ static bool sam_txempty(struct uart_dev_s *dev)
  * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
  * Name: up_earlyserialinit
  *
@@ -997,6 +998,7 @@ void up_earlyserialinit(void)
   CONSOLE_DEV.isconsole = true;
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: up_serialinit
@@ -1012,26 +1014,26 @@ void up_serialinit(void)
   /* Register the console */
 
 #ifdef HAVE_SERIAL_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all USARTs */
 
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
+  uart_register("/dev/ttyS2", &TTYS2_DEV);
 #endif
 #ifdef TTYS3_DEV
-  (void)uart_register("/dev/ttyS3", &TTYS3_DEV);
+  uart_register("/dev/ttyS3", &TTYS3_DEV);
 #endif
 #ifdef TTYS4_DEV
-  (void)uart_register("/dev/ttyS4", &TTYS4_DEV);
+  uart_register("/dev/ttyS4", &TTYS4_DEV);
 #endif
 #ifdef TTYS5_DEV
-  (void)uart_register("/dev/ttyS5", &TTYS5_DEV);
+  uart_register("/dev/ttyS5", &TTYS5_DEV);
 #endif
 }
 

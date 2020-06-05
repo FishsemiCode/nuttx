@@ -46,7 +46,6 @@
 #include <sys/types.h>
 #include <stdarg.h>
 #include <sched.h>
-#include <semaphore.h>
 #include <time.h>
 
 #include <nuttx/fs/fs.h>
@@ -164,6 +163,9 @@ int    fsetpos(FAR FILE *stream, FAR fpos_t *pos);
 long   ftell(FAR FILE *stream);
 size_t fwrite(FAR const void *ptr, size_t size, size_t n_items,
          FAR FILE *stream);
+ssize_t getdelim(FAR char **lineptr, size_t *n, int delimiter,
+         FAR FILE *stream);
+ssize_t getline(FAR char **lineptr, size_t *n, FAR FILE *stream);
 FAR char *gets(FAR char *s);
 FAR char *gets_s(FAR char *s, rsize_t n);
 void   setbuf(FAR FILE *stream, FAR char *buf);
@@ -187,7 +189,7 @@ int    vasprintf(FAR char **ptr, FAR const IPTR char *fmt, va_list ap);
 int    vfprintf(FAR FILE *stream, FAR const IPTR char *fmt,
          va_list ap);
 int    vfscanf(FAR FILE *stream, FAR const IPTR char *fmt, va_list ap);
-int    vprintf(FAR const IPTR FAR char *fmt, va_list ap);
+int    vprintf(FAR const IPTR char *fmt, va_list ap);
 int    vsnprintf(FAR char *buf, size_t size, FAR const IPTR char *fmt,
          va_list ap);
 int    vsprintf(FAR char *buf, FAR const IPTR char *fmt, va_list ap);

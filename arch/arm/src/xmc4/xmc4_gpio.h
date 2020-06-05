@@ -42,7 +42,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "chip/xmc4_ports.h"
+#include "hardware/xmc4_ports.h"
 
 /****************************************************************************
  * Preprocessor Definitions
@@ -203,7 +203,7 @@
  * Public Types
  ****************************************************************************/
 
-/* This is a type large enought to hold all pin configuration bits. */
+/* This is a type large enough to hold all pin configuration bits. */
 
 typedef uint32_t gpioconfig_t;
 

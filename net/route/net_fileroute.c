@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/route/net_fileroute.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2020 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -56,7 +55,7 @@
 #if defined(CONFIG_ROUTE_IPv4_FILEROUTE) || defined(CONFIG_ROUTE_IPv6_FILEROUTE)
 
 /****************************************************************************
- * Pre-processor Defintions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 /* Special "impossible" PID value used to indicate that there is no holder
@@ -178,7 +177,8 @@ int net_routesize(FAR const char *path, size_t entrysize)
 #ifdef CONFIG_DEBUG_NET_WARN
       if (nentries * entrysize != buf.st_size)
         {
-          nwarn("WARNING: Size of routing table is not an even mutliple of entries\n");
+          nwarn("WARNING: Size of routing table is not an even multiple of "
+                "entries\n");
           nwarn("         %lu != %lu / %lu\n",
                 (unsigned long)nentries,
                 (unsigned long)buf.st_size,
@@ -269,7 +269,7 @@ int net_openroute_ipv4(int oflags, FAR struct file *filep)
         }
     }
 
-  (void)net_unlockroute_ipv4();
+  net_unlockroute_ipv4();
   return ret;
 }
 #endif
@@ -299,7 +299,7 @@ int net_openroute_ipv6(int oflags, FAR struct file *filep)
         }
     }
 
-  (void)net_unlockroute_ipv6();
+  net_unlockroute_ipv6();
   return ret;
 }
 #endif
@@ -316,7 +316,7 @@ int net_openroute_ipv6(int oflags, FAR struct file *filep)
  *
  * Returned Value:
  *   The number of bytes read on success.  The special return valud of zero
- *   indiates that the endof of file was encountered (and nothing was read).
+ *   indicates that the endof of file was encountered (and nothing was read).
  *   A negated errno value is returned on any failure.
  *
  ****************************************************************************/
@@ -364,7 +364,7 @@ ssize_t net_readroute_ipv4(FAR struct file *filep,
     }
   while (ntotal < sizeof(struct net_route_ipv4_s));
 
-  (void)net_unlockroute_ipv4();
+  net_unlockroute_ipv4();
   return ntotal;
 }
 #endif
@@ -412,7 +412,7 @@ ssize_t net_readroute_ipv6(FAR struct file *filep,
     }
   while (ntotal < sizeof(struct net_route_ipv6_s));
 
-  (void)net_unlockroute_ipv6();
+  net_unlockroute_ipv6();
   return ntotal;
 }
 #endif
@@ -476,7 +476,7 @@ ssize_t net_writeroute_ipv4(FAR struct file *filep,
     }
   while (ntotal < sizeof(struct net_route_ipv4_s));
 
-  (void)net_unlockroute_ipv4();
+  net_unlockroute_ipv4();
   return ntotal;
 }
 #endif
@@ -517,14 +517,14 @@ ssize_t net_writeroute_ipv6(FAR struct file *filep,
 
           ntotal = nwritten;
           break;
-       }
+        }
 
       ntotal += nwritten;
       src    += nwritten;
     }
   while (ntotal < sizeof(struct net_route_ipv6_s));
 
-  (void)net_unlockroute_ipv6();
+  net_unlockroute_ipv6();
   return ret;
 }
 #endif

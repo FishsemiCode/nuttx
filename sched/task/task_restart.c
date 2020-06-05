@@ -115,7 +115,8 @@ int task_restart(pid_t pid)
 
   tcb = (FAR struct task_tcb_s *)sched_gettcb(pid);
 #ifndef CONFIG_DISABLE_PTHREAD
-  if (!tcb || (tcb->cmn.flags & TCB_FLAG_TTYPE_MASK) == TCB_FLAG_TTYPE_PTHREAD)
+  if (!tcb || (tcb->cmn.flags & TCB_FLAG_TTYPE_MASK) ==
+      TCB_FLAG_TTYPE_PTHREAD)
 #else
   if (!tcb)
 #endif
@@ -142,7 +143,7 @@ int task_restart(pid_t pid)
   /* Kill any children of this thread */
 
 #ifdef HAVE_GROUP_MEMBERS
-  (void)group_killchildren(tcb);
+  group_killchildren(tcb);
 #endif
 
   /* Remove the TCB from whatever list it is in.  After this point, the TCB
@@ -158,12 +159,10 @@ int task_restart(pid_t pid)
   dq_rem((FAR dq_entry_t *)tcb, tasklist);
   tcb->cmn.task_state = TSTATE_TASK_INVALID;
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* Deallocate anything left in the TCB's signal queues */
 
   nxsig_cleanup((FAR struct tcb_s *)tcb);  /* Deallocate Signal lists */
   tcb->cmn.sigprocmask = NULL_SIGNAL_SET;  /* Reset sigprocmask */
-#endif
 
   /* Reset the current task priority  */
 
@@ -219,7 +218,7 @@ int task_restart(pid_t pid)
   ret = task_activate((FAR struct tcb_s *)tcb);
   if (ret != OK)
     {
-      (void)nxtask_terminate(pid, true);
+      nxtask_terminate(pid, true);
       errcode = -ret;
       goto errout_with_lock;
     }

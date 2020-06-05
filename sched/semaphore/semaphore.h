@@ -42,10 +42,10 @@
 
 #include <nuttx/config.h>
 #include <nuttx/compiler.h>
+#include <nuttx/semaphore.h>
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <sched.h>
 #include <queue.h>
 
@@ -75,7 +75,7 @@ void nxsem_wait_irq(FAR struct tcb_s *wtcb, int errcode);
 
 /* Handle semaphore timer expiration */
 
-void nxsem_timeout(int argc, wdparm_t pid);
+void nxsem_timeout(int argc, wdparm_t pid, ...);
 
 /* Recover semaphore resources with a task or thread is destroyed  */
 
@@ -93,11 +93,7 @@ void nxsem_addholder_tcb(FAR struct tcb_s *htcb, FAR sem_t *sem);
 void nxsem_boostpriority(FAR sem_t *sem);
 void nxsem_releaseholder(FAR sem_t *sem);
 void nxsem_restorebaseprio(FAR struct tcb_s *stcb, FAR sem_t *sem);
-#  ifndef CONFIG_DISABLE_SIGNALS
 void nxsem_canceled(FAR struct tcb_s *stcb, FAR sem_t *sem);
-#  else
-#    define nxsem_canceled(stcb, sem)
-#  endif
 #else
 #  define nxsem_initholders()
 #  define nxsem_destroyholder(sem)

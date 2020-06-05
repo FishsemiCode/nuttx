@@ -123,10 +123,8 @@ static const struct file_operations g_l3gd20_fops =
   l3gd20_read,
   l3gd20_write,
   NULL,
-  l3gd20_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  l3gd20_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL
 #endif
@@ -240,12 +238,12 @@ static void l3gd20_read_measurement_data(FAR struct l3gd20_dev_s *dev)
 
   l3gd20_read_temperature(dev, &temperature);
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   ret = nxsem_wait(&dev->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire dev->datasem: %d\n", ret);
+      snerr("ERROR: Could not acquire dev->datasem: %d\n", ret);
       return;
     }
 
@@ -310,8 +308,8 @@ static void l3gd20_read_gyroscope_data(FAR struct l3gd20_dev_s *dev,
  * Name: l3gd20_read_temperature
  ****************************************************************************/
 
-static void l3gd20_read_temperature(FAR struct l3gd20_dev_s* dev,
-                                    uint8_t* temperature)
+static void l3gd20_read_temperature(FAR struct l3gd20_dev_s *dev,
+                                    FAR uint8_t *temperature)
 {
   /* Lock the SPI bus so that only one device can access it at the same time */
 
@@ -344,7 +342,7 @@ static void l3gd20_read_temperature(FAR struct l3gd20_dev_s* dev,
  * Name: l3gd20_interrupt_handler
  ****************************************************************************/
 
-static int l3gd20_interrupt_handler(int irq, FAR void* context)
+static int l3gd20_interrupt_handler(int irq, FAR void *context)
 {
   /* This function should be called upon a rising edge on the L3GD20 new data
    * interrupt pin since it signals that new data has been measured.
@@ -510,8 +508,7 @@ static ssize_t l3gd20_read(FAR struct file *filep, FAR char *buffer,
   ret = nxsem_wait(&priv->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire priv->datasem: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
+      snerr("ERROR: Could not acquire priv->datasem: %d\n", ret);
       return ret;
     }
 
@@ -646,7 +643,8 @@ int l3gd20_register(FAR const char *devpath, FAR struct spi_dev_s *spi,
 
   /* Since we support multiple L3GD20 devices, we will need to add this new
    * instance to a list of device instances so that it can be found by the
-   * interrupt handler based on the received IRQ number. */
+   * interrupt handler based on the received IRQ number.
+   */
 
   priv->flink   = g_l3gd20_list;
   g_l3gd20_list = priv;

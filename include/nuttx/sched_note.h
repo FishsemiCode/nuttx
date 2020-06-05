@@ -245,7 +245,7 @@ struct note_spinlock_s
  *
  * Description:
  *   If instrumentation of the scheduler is enabled, then some outboard logic
- *   must provide the following interfaces.  These interfaces are not availalble
+ *   must provide the following interfaces.  These interfaces are not available
  *   to application code.
  *
  *   NOTE: if CONFIG_SCHED_INSTRUMENTATION_BUFFER, then these interfaces are
@@ -310,7 +310,7 @@ void sched_note_spinabort(FAR struct tcb_s *tcb, FAR volatile void *spinlock);
  *
  * Description:
  *   Remove the next note from the tail of the circular buffer.  The note
- *   is also removed from the circular buffer to make room for futher notes.
+ *   is also removed from the circular buffer to make room for further notes.
  *
  * Input Parameters:
  *   buffer - Location to return the next note
@@ -318,7 +318,7 @@ void sched_note_spinabort(FAR struct tcb_s *tcb, FAR volatile void *spinlock);
  *
  * Returned Value:
  *   On success, the positive, non-zero length of the return note is
- *   provided.  Zero is returned only if ther circular buffer is empty.  A
+ *   provided.  Zero is returned only if the circular buffer is empty.  A
  *   negated errno value is returned in the event of any failure.
  *
  ****************************************************************************/

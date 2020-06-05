@@ -39,12 +39,12 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/ioexpander/ioexpander.h>
 #include <nuttx/ioexpander/skeleton.h>
 
@@ -65,9 +65,8 @@
 
 struct skel_callback_s
 {
-   ioe_pinset_t pinset;                 /* Set of pin interrupts that will generate
-                                         * the callback. */
-   ioe_callback_t cbfunc;               /* The saved callback function pointer */
+  ioe_pinset_t pinset;          /* Set of pin interrupts that will generate the callback */
+  ioe_callback_t cbfunc;        /* The saved callback function pointer */
 };
 #endif
 
@@ -75,19 +74,18 @@ struct skel_callback_s
 
 struct skel_dev_s
 {
-  struct ioexpander_dev_s dev;          /* Nested structure to allow casting as public gpio
-                                         * expander. */
+  struct ioexpander_dev_s dev;  /* Nested structure to allow casting as public gpio expander */
 #ifdef CONFIG_skeleton_MULTIPLE
-  FAR struct skel_dev_s *flink;         /* Supports a singly linked list of drivers */
+  FAR struct skel_dev_s *flink; /* Supports a singly linked list of drivers */
 #endif
-  sem_t exclsem;                        /* Mutual exclusion */
+  sem_t exclsem;                /* Mutual exclusion */
 
 #ifdef CONFIG_IOEXPANDER_INT_ENABLE
-  struct work_s work;                   /* Supports the interrupt handling "bottom half" */
+  struct work_s work;           /* Supports the interrupt handling "bottom half" */
 
   /* Saved callback information for each I/O expander client */
 
-  struct skel_callback_s cb[CONFIG_skeleton_INT_NCALLBACKS];
+  struct skel_callback_s cb[CONFIG_SKELETON_INT_NCALLBACKS];
 #endif
 };
 
@@ -95,7 +93,7 @@ struct skel_dev_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static void skel_lock(FAR struct skel_dev_s *priv);
+static int skel_lock(FAR struct skel_dev_s *priv);
 
 static int skel_direction(FAR struct ioexpander_dev_s *dev, uint8_t pin,
              int dir);
@@ -166,23 +164,9 @@ static const struct ioexpander_ops_s g_skel_ops =
  *
  ****************************************************************************/
 
-static void skel_lock(FAR struct skel_dev_s *priv)
+static int skel_lock(FAR struct skel_dev_s *priv)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->exclsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&priv->exclsem);
 }
 
 #define skel_unlock(p) nxsem_post(&(p)->exclsem)
@@ -218,7 +202,11 @@ static int skel_direction(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Set the pin direction in the I/O Expander */
 #warning Missing logic
@@ -262,7 +250,11 @@ static int skel_option(FAR struct ioexpander_dev_s *dev, uint8_t pin,
     {
       /* Get exclusive access to the I/O Expander */
 
-      skel_lock(priv);
+      ret = skel_lock(priv);
+      if (ret < 0)
+        {
+          return ret;
+        }
 
       /* Set the pin option */
 #warning Missing logic
@@ -302,7 +294,11 @@ static int skel_writepin(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Write the pin value */
 #warning Missing logic
@@ -315,14 +311,15 @@ static int skel_writepin(FAR struct ioexpander_dev_s *dev, uint8_t pin,
  * Name: skel_readpin
  *
  * Description:
- *   Read the actual PIN level. This can be different from the last value written
- *      to this pin. Required.
+ *   Read the actual PIN level. This can be different from the last value
+ *   written to this pin. Required.
  *
  * Input Parameters:
  *   dev    - Device-specific state data
  *   pin    - The index of the pin
  *   valptr - Pointer to a buffer where the pin level is stored. Usually TRUE
- *            if the pin is high, except if OPTION_INVERT has been set on this pin.
+ *            if the pin is high, except if OPTION_INVERT has been set on
+ *            this pin.
  *
  * Returned Value:
  *   0 on success, else a negative error code
@@ -337,11 +334,16 @@ static int skel_readpin(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   gpioinfo("pin=%u\n", priv->addr);
 
-  DEBUGASSERT(priv != NULL && pin < CONFIG_IOEXPANDER_NPINS && value != NULL);
+  DEBUGASSERT(priv != NULL && pin < CONFIG_IOEXPANDER_NPINS &&
+              value != NULL);
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the pin value */
 #warning Missing logic
@@ -378,7 +380,11 @@ static int skel_readbuf(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the buffered pin level */
 #warning Missing logic
@@ -454,7 +460,11 @@ static int skel_multiwritepin(FAR struct ioexpander_dev_s *dev,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the pinset from the IO-Expander hardware */
 #warning Missing logic
@@ -519,7 +529,12 @@ static int skel_multireadpin(FAR struct ioexpander_dev_s *dev,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = skel_getmultibits(priv, pins, values, count);
   skel_unlock(priv);
   return ret;
@@ -530,8 +545,8 @@ static int skel_multireadpin(FAR struct ioexpander_dev_s *dev,
  * Name: skel_multireadbuf
  *
  * Description:
- *   Read the buffered level of multiple pins. This routine may be faster than
- *   individual pin accesses. Optional.
+ *   Read the buffered level of multiple pins. This routine may be faster
+ *   than individual pin accesses. Optional.
  *
  * Input Parameters:
  *   dev    - Device-specific state data
@@ -557,7 +572,12 @@ static int skel_multireadbuf(FAR struct ioexpander_dev_s *dev,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = skel_getmultibits(priv, pins, values, count);
   skel_unlock(priv);
   return ret;
@@ -591,23 +611,27 @@ static int skel_attach(FAR struct ioexpander_dev_s *dev, ioe_pinset_t pinset,
 
   /* Get exclusive access to the I/O Expander */
 
-  skel_lock(priv);
+  ret = skel_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Find and available in entry in the callback table */
 
   ret = -ENOSPC;
-  for (i = 0; i < CONFIG_skeleton_INT_NCALLBACKS; i++)
+  for (i = 0; i < CONFIG_SKELETON_INT_NCALLBACKS; i++)
     {
-       /* Is this entry available (i.e., no callback attached) */
+      /* Is this entry available (i.e., no callback attached) */
 
-       if (priv->cb[i].cbfunc == NULL)
-         {
-           /* Yes.. use this entry */
+      if (priv->cb[i].cbfunc == NULL)
+        {
+          /* Yes.. use this entry */
 
-           priv->cb[i].pinset = pinset;
-           priv->cb[i].cbfunc = callback;
-           ret = OK;
-         }
+          priv->cb[i].pinset = pinset;
+          priv->cb[i].cbfunc = callback;
+          ret = OK;
+        }
     }
 
   /* Add this callback to the table */
@@ -639,7 +663,7 @@ static void skel_irqworker(void *arg)
 
   /* Perform pin interrupt callbacks */
 
-  for (i = 0; i < CONFIG_skeleton_INT_NCALLBACKS; i++)
+  for (i = 0; i < CONFIG_SKELETON_INT_NCALLBACKS; i++)
     {
       /* Is this entry valid (i.e., callback attached)?  If so, did andy of
        * the requested pin interrupts occur?
@@ -654,7 +678,7 @@ static void skel_irqworker(void *arg)
             {
               /* Yes.. perform the callback */
 
-              (void)priv->cb[i].cbfunc(&priv->dev, match);
+              priv->cb[i].cbfunc(&priv->dev, match);
             }
         }
     }
@@ -687,7 +711,7 @@ static void skel_irqworker(void *arg)
 #ifdef CONFIG_skeleton_INT_ENABLE
 static void skel_interrupt(FAR void *arg)
 {
-  FAR struct skel_dev_s *priv = (FAR struct skel_dev_s )arg;
+  FAR struct skel_dev_s *priv = (FAR struct skel_dev_s *)arg;
 
   DEBUGASSERT(priv != NULL);
 
@@ -727,9 +751,9 @@ static void skel_interrupt(FAR void *arg)
  *   Initialize a I/O Expander device.
  *
  * NOTE: There are no arguments to the initialization function this
- * skelton example.  Typical implementations take two arguments:
+ * skeleton example.  Typical implementations take two arguments:
  *
- * 1) A reference to an I2C or SPI interface used to interace with the
+ * 1) A reference to an I2C or SPI interface used to interactive with the
  *    device, and
  * 2) A read-only configuration structure that provides things like:  I2C
  *    or SPI characteristics and callbacks to attache, enable, and disable
@@ -756,8 +780,8 @@ FAR struct ioexpander_dev_s *skel_initialize(void)
   priv = &g_skel;
 #endif
 
-  /* Initialize the device state structure */
-  /* NOTE: Normally you would also save the I2C/SPI device interface and
+  /* Initialize the device state structure
+   * NOTE: Normally you would also save the I2C/SPI device interface and
    * any configuration information here as well.
    */
 

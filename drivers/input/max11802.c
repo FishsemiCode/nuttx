@@ -51,7 +51,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include <poll.h>
 #include <errno.h>
 #include <assert.h>
@@ -66,7 +65,6 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/random.h>
 
-#include <nuttx/semaphore.h>
 #include <nuttx/input/touchscreen.h>
 #include <nuttx/input/max11802.h>
 
@@ -89,6 +87,7 @@
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* Low-level SPI helpers */
 
 static void max11802_lock(FAR struct spi_dev_s *spi);
@@ -114,10 +113,8 @@ static ssize_t max11802_read(FAR struct file *filep, FAR char *buffer,
                              size_t len);
 static int max11802_ioctl(FAR struct file *filep, int cmd,
                           unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int max11802_poll(FAR struct file *filep, struct pollfd *fds,
                          bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -132,10 +129,8 @@ static const struct file_operations max11802_fops =
   max11802_read,    /* read */
   0,                /* write */
   0,                /* seek */
-  max11802_ioctl    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , max11802_poll   /* poll */
-#endif
+  max11802_ioctl,   /* ioctl */
+  max11802_poll     /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , 0               /* unlink */
 #endif
@@ -182,7 +177,7 @@ static void max11802_lock(FAR struct spi_dev_s *spi)
    * SPI bus
    */
 
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
 
   /* We have the lock.  Now make sure that the SPI bus is configured for the
    * MAX11802 (it might have gotten configured for a different device while
@@ -191,8 +186,8 @@ static void max11802_lock(FAR struct spi_dev_s *spi)
 
   SPI_SETMODE(spi, CONFIG_MAX11802_SPIMODE);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, CONFIG_MAX11802_FREQUENCY);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_MAX11802_FREQUENCY);
 }
 
 /****************************************************************************
@@ -216,7 +211,7 @@ static void max11802_unlock(FAR struct spi_dev_s *spi)
 {
   /* Relinquish the SPI bus. */
 
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 /****************************************************************************
@@ -235,7 +230,7 @@ static uint16_t max11802_sendcmd(FAR struct max11802_dev_s *priv,
 
   /* Send the command */
 
-  (void)SPI_SEND(priv->spi, cmd);
+  SPI_SEND(priv->spi, cmd);
 
   /* Read the data */
 
@@ -243,7 +238,7 @@ static uint16_t max11802_sendcmd(FAR struct max11802_dev_s *priv,
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   result = ((uint16_t)buffer[0] << 8) | (uint16_t)buffer[1];
-  *tags = result & 0xF;
+  *tags = result & 0xf;
   result >>= 4; /* Get rid of tags */
 
   iinfo("cmd:%02x response:%04x\n", cmd, result);
@@ -256,9 +251,7 @@ static uint16_t max11802_sendcmd(FAR struct max11802_dev_s *priv,
 
 static void max11802_notify(FAR struct max11802_dev_s *priv)
 {
-#ifndef CONFIG_DISABLE_POLL
   int i;
-#endif
 
   /* If there are threads waiting for read data, then signal one of them
    * that the read data is available.
@@ -279,7 +272,6 @@ static void max11802_notify(FAR struct max11802_dev_s *priv)
    * all try to read the data, then some make end up blocking after all.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   for (i = 0; i < CONFIG_MAX11802_NPOLLWAITERS; i++)
     {
       struct pollfd *fds = priv->fds[i];
@@ -290,7 +282,6 @@ static void max11802_notify(FAR struct max11802_dev_s *priv)
           nxsem_post(fds->sem);
         }
     }
-#endif
 }
 
 /****************************************************************************
@@ -333,11 +324,11 @@ static int max11802_sample(FAR struct max11802_dev_s *priv,
           priv->id++;
         }
       else if (sample->contact == CONTACT_DOWN)
-       {
+        {
           /* First report -- next report will be a movement */
 
-         priv->sample.contact = CONTACT_MOVE;
-       }
+          priv->sample.contact = CONTACT_MOVE;
+        }
 
       priv->penchange = false;
       ret = OK;
@@ -390,12 +381,7 @@ static int max11802_waitsample(FAR struct max11802_dev_s *priv,
 
       if (ret < 0)
         {
-          /* If we are awakened by a signal, then we need to return
-           * the failure now.
-           */
-
           ierr("ERROR: nxsem_wait: %d\n", ret);
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
           goto errout;
         }
     }
@@ -476,8 +462,10 @@ static int max11802_schedule(FAR struct max11802_dev_s *priv)
 
 static void max11802_wdog(int argc, uint32_t arg1, ...)
 {
-  FAR struct max11802_dev_s *priv = (FAR struct max11802_dev_s *)((uintptr_t)arg1);
-  (void)max11802_schedule(priv);
+  FAR struct max11802_dev_s *priv =
+    (FAR struct max11802_dev_s *)((uintptr_t)arg1);
+
+  max11802_schedule(priv);
 }
 
 /****************************************************************************
@@ -493,8 +481,8 @@ static void max11802_worker(FAR void *arg)
   uint16_t                      xdiff;
   uint16_t                      ydiff;
   bool                          pendown;
-  int                           ret;
-  int                           tags, tags2;
+  int                           tags;
+  int                           tags2;
 
   DEBUGASSERT(priv != NULL);
 
@@ -517,21 +505,21 @@ static void max11802_worker(FAR void *arg)
 
   /* Start coordinate measurement */
 
-  (void)max11802_sendcmd(priv, MAX11802_CMD_MEASUREXY, &tags);
+  max11802_sendcmd(priv, MAX11802_CMD_MEASUREXY, &tags);
 
   /* Get exclusive access to the driver data structure */
 
   do
     {
-      ret = nxsem_wait(&priv->devsem);
+      ret = nxsem_wait_uninterruptible(&priv->devsem);
 
-      /* This should only fail if the wait was cancelled by an signal
-       * (and the worker thread will receive a lot of signals).
+      /* This would only fail if something canceled the worker thread?
+       * That is not expected.
        */
 
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      DEBUGASSERT(ret == OK || ret == -ECANCELED);
     }
-  while (ret == -EINTR);
+  while (ret < 0);
 
   /* Check for pen up or down by reading the PENIRQ GPIO. */
 
@@ -586,15 +574,15 @@ static void max11802_worker(FAR void *arg)
     {
       /* If we have not yet processed the last pen up event, then we
        * cannot handle this pen down event. We will have to discard it.
-       * That should be okay because we will set the timer to to sample
+       * That should be okay because we will set the timer to sample
        * again later.
        */
 
-       iinfo("Previous pen up event still in buffer\n");
-       max11802_notify(priv);
-       (void)wd_start(priv->wdog, MAX11802_WDOG_DELAY, max11802_wdog, 1,
-                      (uint32_t)priv);
-       goto ignored;
+      iinfo("Previous pen up event still in buffer\n");
+      max11802_notify(priv);
+      wd_start(priv->wdog, MAX11802_WDOG_DELAY, max11802_wdog, 1,
+               (uint32_t)priv);
+      goto ignored;
     }
   else
     {
@@ -621,7 +609,7 @@ static void max11802_worker(FAR void *arg)
           x = max11802_sendcmd(priv, MAX11802_CMD_XPOSITION, &tags);
           y = max11802_sendcmd(priv, MAX11802_CMD_YPOSITION, &tags2);
 #endif
-          if (tags != 0xF && tags2 != 0xF)
+          if (tags != 0xf && tags2 != 0xf)
             {
               readycount++;
             }
@@ -632,8 +620,8 @@ static void max11802_worker(FAR void *arg)
 
       /* Continue to sample the position while the pen is down */
 
-      (void)wd_start(priv->wdog, MAX11802_WDOG_DELAY, max11802_wdog, 1,
-                     (uint32_t)priv);
+      wd_start(priv->wdog, MAX11802_WDOG_DELAY, max11802_wdog, 1,
+               (uint32_t)priv);
 
       /* Check if data is valid */
 
@@ -771,9 +759,6 @@ static int max11802_open(FAR struct file *filep)
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -828,9 +813,6 @@ static int max11802_close(FAR struct file *filep)
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -889,10 +871,7 @@ static ssize_t max11802_read(FAR struct file *filep, FAR char *buffer,
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -911,7 +890,7 @@ static ssize_t max11802_read(FAR struct file *filep, FAR char *buffer,
         {
           ret = -EAGAIN;
           goto errout;
-       }
+        }
 
       /* Wait for sample data */
 
@@ -947,7 +926,8 @@ static ssize_t max11802_read(FAR struct file *filep, FAR char *buffer,
 
       if (sample.valid)
         {
-          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID | TOUCH_POS_VALID;
+          report->point[0].flags  = TOUCH_UP | TOUCH_ID_VALID |
+                                    TOUCH_POS_VALID;
         }
       else
         {
@@ -958,13 +938,15 @@ static ssize_t max11802_read(FAR struct file *filep, FAR char *buffer,
     {
       /* First contact */
 
-      report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID | TOUCH_POS_VALID;
+      report->point[0].flags  = TOUCH_DOWN | TOUCH_ID_VALID |
+                                TOUCH_POS_VALID;
     }
   else /* if (sample->contact == CONTACT_MOVE) */
     {
       /* Movement of the same contact */
 
-      report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID | TOUCH_POS_VALID;
+      report->point[0].flags  = TOUCH_MOVE | TOUCH_ID_VALID |
+                                TOUCH_POS_VALID;
     }
 
   iinfo("  id:      %d\n", report->point[0].id);
@@ -1002,9 +984,6 @@ static int max11802_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1041,7 +1020,6 @@ static int max11802_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Name: max11802_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int max11802_poll(FAR struct file *filep, FAR struct pollfd *fds,
                         bool setup)
 {
@@ -1062,9 +1040,6 @@ static int max11802_poll(FAR struct file *filep, FAR struct pollfd *fds,
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1127,7 +1102,6 @@ errout:
   nxsem_post(&priv->devsem);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -1173,7 +1147,8 @@ int max11802_register(FAR struct spi_dev_s *spi,
 #ifndef CONFIG_MAX11802_MULTIPLE
   priv = &g_max11802;
 #else
-  priv = (FAR struct max11802_dev_s *)kmm_malloc(sizeof(struct max11802_dev_s));
+  priv = (FAR struct max11802_dev_s *)
+    kmm_malloc(sizeof(struct max11802_dev_s));
   if (!priv)
     {
       ierr("ERROR: kmm_malloc(%d) failed\n", sizeof(struct max11802_dev_s));
@@ -1225,39 +1200,39 @@ int max11802_register(FAR struct spi_dev_s *spi,
   /* Configure MAX11802 registers */
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_MODE_WR);
-  (void)SPI_SEND(priv->spi, MAX11802_MODE);
+  SPI_SEND(priv->spi, MAX11802_CMD_MODE_WR);
+  SPI_SEND(priv->spi, MAX11802_MODE);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_AVG_WR);
-  (void)SPI_SEND(priv->spi, MAX11802_AVG);
+  SPI_SEND(priv->spi, MAX11802_CMD_AVG_WR);
+  SPI_SEND(priv->spi, MAX11802_AVG);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_SAMPLE_WR);
-  (void)SPI_SEND(priv->spi, MAX11802_SAMPLE);
+  SPI_SEND(priv->spi, MAX11802_CMD_SAMPLE_WR);
+  SPI_SEND(priv->spi, MAX11802_SAMPLE);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_TIMING_WR);
-  (void)SPI_SEND(priv->spi, MAX11802_TIMING);
+  SPI_SEND(priv->spi, MAX11802_CMD_TIMING_WR);
+  SPI_SEND(priv->spi, MAX11802_TIMING);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_DELAY_WR);
-  (void)SPI_SEND(priv->spi, MAX11802_DELAY);
+  SPI_SEND(priv->spi, MAX11802_CMD_DELAY_WR);
+  SPI_SEND(priv->spi, MAX11802_DELAY);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_PULL_WR);
-  (void)SPI_SEND(priv->spi, MAX11802_PULL);
+  SPI_SEND(priv->spi, MAX11802_CMD_PULL_WR);
+  SPI_SEND(priv->spi, MAX11802_PULL);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
   /* Test that the device access was successful. */
 
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), true);
-  (void)SPI_SEND(priv->spi, MAX11802_CMD_MODE_RD);
+  SPI_SEND(priv->spi, MAX11802_CMD_MODE_RD);
   ret = SPI_SEND(priv->spi, 0);
   SPI_SELECT(priv->spi, SPIDEV_TOUCHSCREEN(0), false);
 
@@ -1266,14 +1241,14 @@ int max11802_register(FAR struct spi_dev_s *spi,
   max11802_unlock(spi);
 
   if (ret != MAX11802_MODE)
-  {
-    ierr("ERROR: max11802 mode readback failed: %02x\n", ret);
-    goto errout_with_priv;
-  }
+    {
+      ierr("ERROR: max11802 mode readback failed: %02x\n", ret);
+      goto errout_with_priv;
+    }
 
   /* Register the device as an input device */
 
-  (void)snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
+  snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
   iinfo("Registering %s\n", devname);
 
   ret = register_driver(devname, &max11802_fops, 0666, priv);
@@ -1285,7 +1260,7 @@ int max11802_register(FAR struct spi_dev_s *spi,
 
   /* If multiple MAX11802 devices are supported, then we will need to add
    * this new instance to a list of device instances so that it can be
-   * found by the interrupt handler based on the recieved IRQ number.
+   * found by the interrupt handler based on the received IRQ number.
    */
 
 #ifdef CONFIG_MAX11802_MULTIPLE

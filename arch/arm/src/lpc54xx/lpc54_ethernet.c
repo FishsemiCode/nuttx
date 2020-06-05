@@ -88,9 +88,9 @@
 #endif
 
 #include "up_arch.h"
-#include "chip/lpc54_syscon.h"
-#include "chip/lpc54_pinmux.h"
-#include "chip/lpc54_ethernet.h"
+#include "hardware/lpc54_syscon.h"
+#include "hardware/lpc54_pinmux.h"
+#include "hardware/lpc54_ethernet.h"
 #include "lpc54_enableclk.h"
 #include "lpc54_reset.h"
 #include "lpc54_gpio.h"
@@ -684,8 +684,8 @@ static int lpc54_eth_transmit(struct lpc54_ethdriver_s *priv,
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->eth_txtimeout, LPC54_TXTIMEOUT,
-                 lpc54_eth_txtimeout_expiry, 1, (wdparm_t)priv);
+  wd_start(priv->eth_txtimeout, LPC54_TXTIMEOUT,
+           lpc54_eth_txtimeout_expiry, 1, (wdparm_t)priv);
   return OK;
 }
 
@@ -971,7 +971,7 @@ static void lpc54_eth_rxdispatch(struct lpc54_ethdriver_s *priv)
 #ifdef CONFIG_NET_IPv6
   if (ETHBUF->type == HTONS(ETHTYPE_IP6))
     {
-      ninfo("Iv6 packet\n");
+      ninfo("IPv6 packet\n");
       NETDEV_RXIPV6(&priv->eth_dev);
 
       /* Dispatch IPv6 packet to the network layer */
@@ -1633,8 +1633,8 @@ static void lpc54_eth_txtimeout_work(void *arg)
    * again.
    */
 
-  (void)lpc54_eth_ifdown(&priv->eth_dev);
-  (void)lpc54_eth_ifup(&priv->eth_dev);
+  lpc54_eth_ifdown(&priv->eth_dev);
+  lpc54_eth_ifup(&priv->eth_dev);
 
   /* Then poll the network for new XMIT data */
 
@@ -1731,7 +1731,7 @@ static void lpc54_eth_dotimer(struct lpc54_ethdriver_s *priv)
       priv->eth_dev.d_buf = (uint8_t *)lpc54_pktbuf_alloc(priv);
       if (priv->eth_dev.d_buf != NULL)
         {
-          (void)devif_timer(&priv->eth_dev, lpc54_eth_txpoll);
+          devif_timer(&priv->eth_dev, LPC54_WDDELAY, lpc54_eth_txpoll);
 
           /* Make sure that the Tx buffer remaining after the poll is
            * freed.
@@ -1798,7 +1798,7 @@ static void lpc54_eth_dopoll(struct lpc54_ethdriver_s *priv)
       priv->eth_dev.d_buf = (uint8_t *)lpc54_pktbuf_alloc(priv);
       if (priv->eth_dev.d_buf != NULL)
         {
-          (void)devif_poll(&priv->eth_dev, lpc54_eth_txpoll);
+          devif_poll(&priv->eth_dev, lpc54_eth_txpoll);
 
           /* Make sure that the Tx buffer remaining after the poll is
            * freed.
@@ -1848,8 +1848,8 @@ static void lpc54_eth_poll_work(void *arg)
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->eth_txpoll, LPC54_WDDELAY, lpc54_eth_poll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->eth_txpoll, LPC54_WDDELAY, lpc54_eth_poll_expiry, 1,
+           (wdparm_t)priv);
   net_unlock();
 }
 
@@ -2156,8 +2156,8 @@ static int lpc54_eth_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->eth_txpoll, LPC54_WDDELAY, lpc54_eth_poll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->eth_txpoll, LPC54_WDDELAY, lpc54_eth_poll_expiry, 1,
+           (wdparm_t)priv);
 
   /* Enable the Ethernet interrupt */
 
@@ -2482,7 +2482,7 @@ static void lpc54_pktbuf_initialize(struct lpc54_ethdriver_s *priv)
  *   priv - Reference to the driver state structure
  *
  * Returned Value:
- *   A pointer to the allocated packet buffer on succes; NULL is returned if
+ *   A pointer to the allocated packet buffer on success; NULL is returned if
  *   there are no available packet buffers.
  *
  * Assumptions:
@@ -2560,7 +2560,7 @@ static void lpc54_txring_initialize(struct lpc54_ethdriver_s *priv,
   regval = ETH_DMACH_TXDESC_RING_LENGTH(txring->tr_ndesc);
   lpc54_putreg(regval, LPC54_ETH_DMACH_TXDESC_RING_LENGTH(chan));
 
-  /* Inituialize the Tx desriptors . */
+  /* Inituialize the Tx descriptors . */
 
   for (i = 0; i < txring->tr_ndesc; i++, txdesc++)
     {

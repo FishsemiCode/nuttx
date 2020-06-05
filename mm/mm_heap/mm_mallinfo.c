@@ -61,7 +61,7 @@ int mm_mallinfo(FAR struct mm_heap_s *heap, FAR struct mallinfo *info)
 {
   FAR struct mm_allocnode_s *node;
 #ifdef CONFIG_DEBUG_ASSERTIONS
-  FAR struct mm_allocnode_s *prev = NULL;
+  FAR struct mm_allocnode_s *prev;
 #endif
   size_t mxordblk = 0;
   int    ordblks  = 0;  /* Number of non-inuse chunks */
@@ -81,6 +81,9 @@ int mm_mallinfo(FAR struct mm_heap_s *heap, FAR struct mallinfo *info)
   for (region = 0; region < heap->mm_nregions; region++)
 #endif
     {
+#ifdef CONFIG_DEBUG_ASSERTIONS
+      prev = NULL;
+#endif
       /* Visit each node in the region
        * Retake the semaphore for each region to reduce latencies
        */
@@ -92,8 +95,9 @@ int mm_mallinfo(FAR struct mm_heap_s *heap, FAR struct mallinfo *info)
            node = (FAR struct mm_allocnode_s *)
                   ((FAR char *)node + node->size))
         {
-          minfo("region=%d node=%p size=%p preceding=%p (%c)\n",
-                region, node, node->size, (node->preceding & ~MM_ALLOC_BIT),
+          minfo("region=%d node=%p size=%u preceding=%u (%c)\n",
+                region, node, (unsigned int)node->size,
+                (unsigned int)(node->preceding & ~MM_ALLOC_BIT),
                 (node->preceding & MM_ALLOC_BIT) ? 'A' : 'F');
 
           /* Check if the node corresponds to an allocated memory chunk */
@@ -123,11 +127,12 @@ int mm_mallinfo(FAR struct mm_heap_s *heap, FAR struct mallinfo *info)
                   mxordblk = node->size;
                 }
             }
+
+          DEBUGASSERT(prev == NULL ||
+                      prev->size == (node->preceding & ~MM_ALLOC_BIT));
 #ifdef CONFIG_DEBUG_ASSERTIONS
           prev = node;
 #endif
-          DEBUGASSERT(prev == NULL ||
-                      prev->size == (node->preceding & ~MM_ALLOC_BIT));
         }
 
       minfo("region=%d node=%p heapend=%p\n",

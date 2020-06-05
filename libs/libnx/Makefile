@@ -40,11 +40,7 @@ CREATEDIR := bin ubin kbin nxfonts
 # CFLAGS
 
 ifneq ($(CONFIG_BUILD_FLAT),y)
-ifeq ($(CONFIG_WINDOWS_NATIVE),y)
-  KDEFINE = ${shell $(TOPDIR)\tools\define.bat "$(CC)" __KERNEL__}
-else
-  KDEFINE = ${shell $(TOPDIR)/tools/define.sh "$(CC)" __KERNEL__}
-endif
+  KDEFINE = ${shell $(DEFINE) "$(CC)" __KERNEL__}
 endif
 
 # Sources and paths
@@ -242,11 +238,9 @@ gensources: gen1bppsources gen2bppsource gen4bppsource gen8bppsource gen16bppsou
 
 $(AOBJS): $(BINDIR)$(DELIM)%$(OBJEXT): %.S
 	$(call ASSEMBLE, $<, $@)
-	$(call MOVEOBJ,$(patsubst $(BINDIR)$(DELIM)%$(OBJEXT),%,$@),$(BINDIR))
 
 $(COBJS): $(BINDIR)$(DELIM)%$(OBJEXT): %.c
 	$(call COMPILE, $<, $@)
-	$(call MOVEOBJ,$(patsubst $(BINDIR)$(DELIM)%$(OBJEXT),%,$@),$(BINDIR))
 
 # NX library for the flat build
 
@@ -257,24 +251,24 @@ $(BIN): $(OBJS)
 
 ifneq ($(BIN),$(UBIN))
 $(UBIN):
-	$(Q) $(MAKE) $(UBIN) BIN=$(UBIN) BINDIR=ubin TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) $(UBIN) BIN=$(UBIN) BINDIR=ubin TOPDIR=$(TOPDIR) EXTRAFLAGS="$(EXTRAFLAGS)"
 endif
 
 # NX library for the kernel phase of the two-pass kernel build
 
 ifneq ($(BIN),$(KBIN))
 $(KBIN):
-	$(Q) $(MAKE) $(KBIN) BIN=$(KBIN) BINDIR=kbin TOPDIR=$(TOPDIR) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) $(KBIN) BIN=$(KBIN) BINDIR=kbin TOPDIR=$(TOPDIR) EXTRAFLAGS="$(EXTRAFLAGS)"
 endif
 
 # Dependencies
 
 .depend: Makefile gensources $(SRCS)
 ifeq ($(CONFIG_BUILD_FLAT),y)
-	$(Q) $(MKDEP) --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >bin/Make.dep
+	$(Q) $(MKDEP) --obj-path bin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >bin/Make.dep
 else
-	$(Q) $(MKDEP) --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >ubin/Make.dep
-	$(Q) $(MKDEP) --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $^ >kbin/Make.dep
+	$(Q) $(MKDEP) --obj-path ubin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $^ >ubin/Make.dep
+	$(Q) $(MKDEP) --obj-path kbin --obj-suffix $(OBJEXT) $(DEPPATH) "$(CC)" -- $(CFLAGS) $(KDEFINE) -- $^ >kbin/Make.dep
 endif
 	$(Q) touch $@
 

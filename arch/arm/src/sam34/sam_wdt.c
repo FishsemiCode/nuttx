@@ -177,7 +177,7 @@ static uint32_t sam34_getreg(uint32_t addr)
 
   uint32_t val = getreg32(addr);
 
-  /* Is this the same value that we read from the same registe last time?  Are
+  /* Is this the same value that we read from the same register last time?  Are
    * we polling the register?  If so, suppress some of the output.
    */
 
@@ -493,7 +493,7 @@ static int sam34_settimeout(FAR struct watchdog_lowerhalf_s *lower,
 
   priv->reload = reload;
 
-  wdinfo("fwdt=%d reload=%d timout=%d\n",
+  wdinfo("fwdt=%d reload=%d timeout=%d\n",
          WDT_FCLK, reload, priv->timeout);
 
   /* Don't commit to MR register until started! */
@@ -681,7 +681,7 @@ void sam_wdtinitialize(FAR const char *devpath)
 
   /* Attach our EWI interrupt handler (But don't enable it yet) */
 
-  (void)irq_attach(SAM_IRQ_WDT, sam34_interrupt, NULL);
+  irq_attach(SAM_IRQ_WDT, sam34_interrupt, NULL);
 
   /* Select an arbitrary initial timeout value.  But don't start the watchdog
    * yet. NOTE: If the "Hardware watchdog" feature is enabled through the
@@ -699,7 +699,7 @@ void sam_wdtinitialize(FAR const char *devpath)
    * (default /dev/watchdog0).
    */
 
-  (void)watchdog_register(devpath, (FAR struct watchdog_lowerhalf_s *)priv);
+  watchdog_register(devpath, (FAR struct watchdog_lowerhalf_s *)priv);
 
 }
 #endif /* CONFIG_WDT_DISABLE_ON_RESET */

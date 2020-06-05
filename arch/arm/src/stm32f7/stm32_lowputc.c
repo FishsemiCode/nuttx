@@ -46,7 +46,7 @@
 
 #include "chip.h"
 
-#include "chip/stm32_pinmap.h"
+#include "hardware/stm32_pinmap.h"
 #include "stm32_rcc.h"
 #include "stm32_gpio.h"
 #include "stm32_uart.h"
@@ -359,7 +359,7 @@ void up_lowputc(char ch)
  *
  * Description:
  *   This performs basic initialization of the USART used for the serial
- *   console.  Its purpose is to get the console output availabe as soon
+ *   console.  Its purpose is to get the console output available as soon
  *   as possible.
  *
  ****************************************************************************/

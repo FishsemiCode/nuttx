@@ -82,7 +82,7 @@
 /* System Timer
  *
  * Timer0 is dedicated as the system timer.  The rate of system timer
- * interrupts is assumed to to 10MS per tick / 100Hz. The following
+ * interrupts is assumed to be 10MS per tick / 100Hz. The following
  * register settings are used for timer 0
  *
  * System clock formula:
@@ -122,7 +122,7 @@ static int dm320_timerisr(int irq, uint32_t *regs, FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the timer
@@ -130,7 +130,7 @@ static int dm320_timerisr(int irq, uint32_t *regs, FAR void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   up_disable_irq(DM320_IRQ_SYSTIMER);
 
@@ -150,4 +150,3 @@ void arm_timer_initialize(void)
   irq_attach(DM320_IRQ_SYSTIMER, (xcpt_t)dm320_timerisr, NULL);
   up_enable_irq(DM320_IRQ_SYSTIMER);
 }
-

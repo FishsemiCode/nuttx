@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/net/net.h
  *
- *   Copyright (C) 2007, 2009-2014, 2016-2018 Gregory Nutt. All rights
+ *   Copyright (C) 2007, 2009-2014, 2016-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -49,6 +49,11 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <semaphore.h>
+#include <queue.h>
+
+#ifdef CONFIG_MM_IOB
+#  include <nuttx/mm/iob.h>
+#endif
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -56,13 +61,13 @@
 
 /* Most internal network OS interfaces are not available in the user space in
  * PROTECTED and KERNEL builds.  In that context, the corresponding
- * application network interfaces must be used.  The differences between the two
- * sets of interfaces are:  The internal OS interfaces (1) do not cause
+ * application network interfaces must be used.  The differences between the
+ * two sets of interfaces are:  The internal OS interfaces (1) do not cause
  * cancellation points and (2) they do not modify the errno variable.
  *
  * This is only important when compiling libraries (libc or libnx) that are
  * used both by the OS (libkc.a and libknx.a) or by the applications
- * (libuc.a and libunx.a).  The that case, the correct interface must be
+ * (libuc.a and libunx.a).  In that case, the correct interface must be
  * used for the build context.
  *
  * REVISIT:  In the flat build, the same functions must be used both by
@@ -103,6 +108,32 @@
 
 #define SOCKCAP_NONBLOCKING (1 << 0)  /* Bit 0: Socket supports non-blocking
                                        *        operation. */
+
+/* Definitions of 8-bit socket flags */
+
+#define _SF_CLOEXEC         0x04  /* Bit 2: Close on execute */
+#define _SF_NONBLOCK        0x08  /* Bit 3: Don't block if no data (TCP/READ only) */
+#define _SF_LISTENING       0x10  /* Bit 4: SOCK_STREAM is listening */
+#define _SF_BOUND           0x20  /* Bit 5: SOCK_STREAM is bound to an address */
+                                  /* Bits 6-7: Connection state */
+#define _SF_CONNECTED       0x40  /* Bit 6: SOCK_STREAM/SOCK_DGRAM is connected */
+#define _SF_CLOSED          0x80  /* Bit 7: SOCK_STREAM was gracefully disconnected */
+
+/* Connection state encoding:
+ *
+ *  _SF_CONNECTED==1 && _SF_CLOSED==0 - the socket is connected
+ *  _SF_CONNECTED==0 && _SF_CLOSED==1 - the socket was gracefully disconnected
+ *  _SF_CONNECTED==0 && _SF_CLOSED==0 - the socket was rudely disconnected
+ */
+
+/* Macro to manage the socket state and flags */
+
+#define _SS_ISCLOEXEC(s)    (((s) & _SF_CLOEXEC)   != 0)
+#define _SS_ISNONBLOCK(s)   (((s) & _SF_NONBLOCK)  != 0)
+#define _SS_ISLISTENING(s)  (((s) & _SF_LISTENING) != 0)
+#define _SS_ISBOUND(s)      (((s) & _SF_BOUND)     != 0)
+#define _SS_ISCONNECTED(s)  (((s) & _SF_CONNECTED) != 0)
+#define _SS_ISCLOSED(s)     (((s) & _SF_CLOSED)    != 0)
 
 /****************************************************************************
  * Public Types
@@ -162,12 +193,11 @@ struct sock_intf_s
   CODE int        (*si_listen)(FAR struct socket *psock, int backlog);
   CODE int        (*si_connect)(FAR struct socket *psock,
                     FAR const struct sockaddr *addr, socklen_t addrlen);
-  CODE int        (*si_accept)(FAR struct socket *psock, FAR struct sockaddr *addr,
-                    FAR socklen_t *addrlen, FAR struct socket *newsock);
-#ifndef CONFIG_DISABLE_POLL
+  CODE int        (*si_accept)(FAR struct socket *psock,
+                    FAR struct sockaddr *addr, FAR socklen_t *addrlen,
+                    FAR struct socket *newsock);
   CODE int        (*si_poll)(FAR struct socket *psock,
                     FAR struct pollfd *fds, bool setup);
-#endif
   CODE ssize_t    (*si_send)(FAR struct socket *psock, FAR const void *buf,
                     size_t len, int flags);
   CODE ssize_t    (*si_sendto)(FAR struct socket *psock, FAR const void *buf,
@@ -188,6 +218,31 @@ struct sock_intf_s
 #endif
 };
 
+/* Each socket refers to a connection structure of type FAR void *.  Each
+ * socket type will have a different connection structure type bound to its
+ * sockets.  The fields at the the beginning of each connection type must
+ * begin the same content prologue as struct socket_conn_s and must be cast
+ * compatible with struct socket_conn_s.  Connection-specific content may
+ * then follow the common prologue fields.
+ */
+
+struct devif_callback_s;  /* Forward reference */
+
+struct socket_conn_s
+{
+  /* Common prologue of all connection structures. */
+
+  dq_entry_t node;        /* Supports a doubly linked list */
+
+  /* This is a list of connection callbacks.  Each callback represents a
+   * thread that is stalled, waiting for a device-specific event.
+   */
+
+  FAR struct devif_callback_s *list;
+
+  /* Connection-specific content may follow */
+};
+
 /* This is the internal representation of a socket reference by a file
  * descriptor.
  */
@@ -198,12 +253,14 @@ struct socket
 {
   int16_t       s_crefs;     /* Reference count on the socket */
   uint8_t       s_domain;    /* IP domain: PF_INET, PF_INET6, or PF_PACKET */
-  uint8_t       s_type;      /* Protocol type: Only SOCK_STREAM or SOCK_DGRAM */
+  uint8_t       s_type;      /* Protocol type: Only SOCK_STREAM or
+                              * SOCK_DGRAM */
   uint8_t       s_flags;     /* See _SF_* definitions */
 
   /* Socket options */
 
 #ifdef CONFIG_NET_SOCKOPTS
+  int16_t       s_error;     /* Last error that occurred on this socket */
   sockopt_t     s_options;   /* Selected socket options */
   socktimeo_t   s_rcvtimeo;  /* Receive timeout value (in deciseconds) */
   socktimeo_t   s_sndtimeo;  /* Send timeout value (in deciseconds) */
@@ -212,13 +269,14 @@ struct socket
 #endif
 #endif
 
-  FAR void     *s_conn;      /* Connection: struct tcp_conn_s or udp_conn_s */
+  FAR void     *s_conn;      /* Connection inherits from struct socket_conn_s */
 
   /* Socket interface */
 
   FAR const struct sock_intf_s *s_sockif;
 
-#if defined(CONFIG_NET_TCP_WRITE_BUFFERS) || defined(CONFIG_NET_UDP_WRITE_BUFFERS)
+#if defined(CONFIG_NET_TCP_WRITE_BUFFERS) || \
+    defined(CONFIG_NET_UDP_WRITE_BUFFERS)
   /* Callback instance for TCP send() or UDP sendto() */
 
   FAR struct devif_callback_s *s_sndcb;
@@ -301,11 +359,12 @@ void net_initialize(void);
  *   None
  *
  * Returned Value:
- *   None
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   failured (probably -ECANCELED).
  *
  ****************************************************************************/
 
-void net_lock(void);
+int net_lock(void);
 
 /****************************************************************************
  * Name: net_unlock
@@ -337,7 +396,7 @@ void net_unlock(void);
  *
  * Input Parameters:
  *   sem     - A reference to the semaphore to be taken.
- *   abstime - The absolute time to wait until a timeout is declared.
+ *   timeout - The relative time to wait until a timeout is declared.
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -345,8 +404,7 @@ void net_unlock(void);
  *
  ****************************************************************************/
 
-struct timespec;
-int net_timedwait(sem_t *sem, FAR const struct timespec *abstime);
+int net_timedwait(sem_t *sem, unsigned int timeout);
 
 /****************************************************************************
  * Name: net_lockedwait
@@ -371,6 +429,43 @@ int net_timedwait(sem_t *sem, FAR const struct timespec *abstime);
 int net_lockedwait(sem_t *sem);
 
 /****************************************************************************
+ * Name: net_timedwait_uninterruptible
+ *
+ * Description:
+ *   This function is wrapped version of net_timedwait(), which is
+ *   uninterruptible and convenient for use.
+ *
+ * Input Parameters:
+ *   sem     - A reference to the semaphore to be taken.
+ *   timeout - The relative time to wait until a timeout is declared.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+int net_timedwait_uninterruptible(sem_t *sem, unsigned int timeout);
+
+/****************************************************************************
+ * Name: net_lockedwait_uninterruptible
+ *
+ * Description:
+ *   This function is wrapped version of net_lockedwait(), which is
+ *   uninterruptible and convenient for use.
+ *
+ * Input Parameters:
+ *   sem - A reference to the semaphore to be taken.
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
+ *
+ ****************************************************************************/
+
+int net_lockedwait_uninterruptible(sem_t *sem);
+
+/****************************************************************************
  * Name: net_ioballoc
  *
  * Description:
@@ -392,21 +487,8 @@ int net_lockedwait(sem_t *sem);
  ****************************************************************************/
 
 #ifdef CONFIG_MM_IOB
-struct iob_s;  /* Forward reference */
-FAR struct iob_s *net_ioballoc(bool throttled);
+FAR struct iob_s *net_ioballoc(bool throttled, enum iob_user_e consumerid);
 #endif
-
-/****************************************************************************
- * Name: net_setipid
- *
- * Description:
- *   This function may be used at boot time to set the initial ip_id.
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-void net_setipid(uint16_t id);
 
 /****************************************************************************
  * Name: net_checksd
@@ -445,7 +527,8 @@ void net_initlist(FAR struct socketlist *list);
  *   Release resources held by the socket list
  *
  * Input Parameters:
- *   list -- A reference to the pre-allocated socket list to be un-initialized.
+ *   list -- A reference to the pre-allocated socket list to be un-
+ *           initialized.
  *
  * Returned Value:
  *   None
@@ -461,7 +544,7 @@ void net_releaselist(FAR struct socketlist *list);
  *   Given a socket descriptor, return the underlying socket structure.
  *
  * Input Parameters:
- *   sockfd - The socket descriptor index o use.
+ *   sockfd - The socket descriptor index to use.
  *
  * Returned Value:
  *   On success, a reference to the socket structure associated with the
@@ -482,7 +565,8 @@ FAR struct socket *sockfd_socket(int sockfd);
  *   domain   (see sys/socket.h)
  *   type     (see sys/socket.h)
  *   protocol (see sys/socket.h)
- *   psock    A pointer to a user allocated socket structure to be initialized.
+ *   psock    A pointer to a user allocated socket structure to be
+ *            initialized.
  *
  * Returned Value:
  *  Returns zero (OK) on success.  On failure, it returns a negated errno
@@ -510,7 +594,8 @@ FAR struct socket *sockfd_socket(int sockfd);
  *
  ****************************************************************************/
 
-int psock_socket(int domain, int type, int protocol, FAR struct socket *psock);
+int psock_socket(int domain, int type, int protocol,
+                 FAR struct socket *psock);
 
 /****************************************************************************
  * Name: net_close
@@ -579,7 +664,7 @@ int psock_close(FAR struct socket *psock);
  *
  ****************************************************************************/
 
-struct sockaddr; /* Forward reference. Defined in nuttx/include/sys/socket.h */
+struct sockaddr; /* Forward reference. See nuttx/include/sys/socket.h */
 
 int psock_bind(FAR struct socket *psock, FAR const struct sockaddr *addr,
                socklen_t addrlen);
@@ -1013,7 +1098,8 @@ int psock_getsockopt(FAR struct socket *psock, int level, int option,
  * Description:
  *   psock_setsockopt() sets the option specified by the 'option' argument,
  *   at the protocol level specified by the 'level' argument, to the value
- *   pointed to by the 'value' argument for the socket on the 'psock' argument.
+ *   pointed to by the 'value' argument for the socket on the 'psock'
+ *   argument.
  *
  *   The 'level' argument specifies the protocol level of the option. To set
  *   options at the socket level, specify the level argument as SOL_SOCKET.
@@ -1062,9 +1148,9 @@ int psock_setsockopt(FAR struct socket *psock, int level, int option,
  *
  * Description:
  *   The psock_getsockname() function retrieves the locally-bound name of the
- *   the specified socket, stores this address in the sockaddr structure pointed
- *   to by the 'addr' argument, and stores the length of this address in the
- *   object pointed to by the 'addrlen' argument.
+ *   the specified socket, stores this address in the sockaddr structure
+ *   pointed to by the 'addr' argument, and stores the length of this
+ *   address in the object pointed to by the 'addrlen' argument.
  *
  *   If the actual length of the address is greater than the length of the
  *   supplied sockaddr structure, the stored address will be truncated.
@@ -1080,8 +1166,8 @@ int psock_setsockopt(FAR struct socket *psock, int level, int option,
  * Returned Value:
  *   On success, 0 is returned, the 'addr' argument points to the address
  *   of the socket, and the 'addrlen' argument points to the length of the
- *   address. Otherwise, -1 is returned and errno is set to indicate the error.
- *   Possible errno values that may be returned include:
+ *   address. Otherwise, -1 is returned and errno is set to indicate the
+ *   error.  Possible errno values that may be returned include:
  *
  *   EBADF      - The socket argument is not a valid file descriptor.
  *   ENOTSOCK   - The socket argument does not refer to a socket.
@@ -1120,8 +1206,8 @@ int psock_getsockname(FAR struct socket *psock, FAR struct sockaddr *addr,
  * Returned Value:
  *   On success, 0 is returned, the 'addr' argument points to the address
  *   of the socket, and the 'addrlen' argument points to the length of the
- *   address. Otherwise, -1 is returned and errno is set to indicate the error.
- *   Possible errno values that may be returned include:
+ *   address. Otherwise, -1 is returned and errno is set to indicate the
+ *   error.  Possible errno values that may be returned include:
  *
  *   EBADF      - The socket argument is not a valid file descriptor.
  *   ENOTSOCK   - The socket argument does not refer to a socket.
@@ -1221,11 +1307,9 @@ int netdev_ioctl(int sockfd, int cmd, unsigned long arg);
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 struct pollfd; /* Forward reference -- see poll.h */
 
 int psock_poll(FAR struct socket *psock, struct pollfd *fds, bool setup);
-#endif
 
 /****************************************************************************
  * Name: net_poll
@@ -1245,17 +1329,15 @@ int psock_poll(FAR struct socket *psock, struct pollfd *fds, bool setup);
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 struct pollfd; /* Forward reference -- see poll.h */
 
 int net_poll(int sockfd, struct pollfd *fds, bool setup);
-#endif
 
 /****************************************************************************
- * Name: psock_dupsd
+ * Name: psock_dup
  *
  * Description:
- *   Clone a socket descriptor to an arbitray descriptor number.  If file
+ *   Clone a socket descriptor to an arbitrary descriptor number.  If file
  *   descriptors are implemented, then this is called by dup() for the case
  *   of socket file descriptors.  If file descriptors are not implemented,
  *   then this function IS dup().
@@ -1266,13 +1348,13 @@ int net_poll(int sockfd, struct pollfd *fds, bool setup);
  *
  ****************************************************************************/
 
-int psock_dupsd(FAR struct socket *psock, int minsd);
+int psock_dup(FAR struct socket *psock, int minsd);
 
 /****************************************************************************
- * Name: net_dupsd
+ * Name: net_dup
  *
  * Description:
- *   Clone a socket descriptor to an arbitray descriptor number.  If file
+ *   Clone a socket descriptor to an arbitrary descriptor number.  If file
  *   descriptors are implemented, then this is called by dup() for the case
  *   of socket file descriptors.  If file descriptors are not implemented,
  *   then this function IS dup().
@@ -1283,13 +1365,23 @@ int psock_dupsd(FAR struct socket *psock, int minsd);
  *
  ****************************************************************************/
 
-int net_dupsd(int sockfd, int minsd);
+int net_dup(int sockfd, int minsd);
 
 /****************************************************************************
- * Name: net_dupsd2
+ * Name: psock_dup2
  *
  * Description:
- *   Clone a socket descriptor to an arbitray descriptor number.  If file
+ *   Performs the low level, common portion of net_dup() and net_dup2()
+ *
+ ****************************************************************************/
+
+int psock_dup2(FAR struct socket *psock1, FAR struct socket *psock2);
+
+/****************************************************************************
+ * Name: net_dup2
+ *
+ * Description:
+ *   Clone a socket descriptor to an arbitrary descriptor number.  If file
  *   descriptors are implemented, then this is called by dup2() for the case
  *   of socket file descriptors.  If file descriptors are not implemented,
  *   then this function IS dup2().
@@ -1300,7 +1392,7 @@ int net_dupsd(int sockfd, int minsd);
  *
  ****************************************************************************/
 
-int net_dupsd2(int sockfd1, int sockfd2);
+int net_dup2(int sockfd1, int sockfd2);
 
 /****************************************************************************
  * Name: net_fstat
@@ -1310,7 +1402,7 @@ int net_dupsd2(int sockfd1, int sockfd2);
  *
  * Input Parameters:
  *   sockfd - Socket descriptor of the socket to operate on
- *   bug    - Caller-provided location in which to return the fstat data
+ *   buf    - Caller-provided location in which to return the fstat data
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -1321,16 +1413,6 @@ int net_dupsd2(int sockfd1, int sockfd2);
 struct stat;  /* Forward reference.  See sys/stat.h */
 
 int net_fstat(int sockfd, FAR struct stat *buf);
-
-/****************************************************************************
- * Name: net_clone
- *
- * Description:
- *   Performs the low level, common portion of net_dupsd() and net_dupsd2()
- *
- ****************************************************************************/
-
-int net_clone(FAR struct socket *psock1, FAR struct socket *psock2);
 
 /****************************************************************************
  * Name: net_sendfile
@@ -1396,7 +1478,8 @@ int net_clone(FAR struct socket *psock1, FAR struct socket *psock2);
 
 #ifdef CONFIG_NET_SENDFILE
 struct file;
-ssize_t net_sendfile(int outfd, struct file *infile, off_t *offset, size_t count);
+ssize_t net_sendfile(int outfd, struct file *infile, off_t *offset,
+                     size_t count);
 #endif
 
 /****************************************************************************

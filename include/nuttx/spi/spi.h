@@ -51,7 +51,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* These SPI configuration options affect the form of the SPI interface:
  *
  * CONFIG_SPI_EXCHANGE - Driver supports a single exchange method
@@ -75,7 +77,7 @@
  *   transfers.  The bus should be locked before the chip is selected. After
  *   locking the SPI bus, the caller should then also call the setfrequency,
  *   setbits, and setmode methods to make sure that the SPI is properly
- *   configured for the device.  If the SPI buss is being shared, then it
+ *   configured for the device.  If the SPI bus is being shared, then it
  *   may have been left in an incompatible state.
  *
  * Input Parameters:
@@ -386,7 +388,7 @@
  * Name: SPI_EXCHANGE
  *
  * Description:
- *   Exahange a block of data from SPI. Required.
+ *   Exchange a block of data from SPI. Required.
  *
  * Input Parameters:
  *   dev      - Device-specific state data
@@ -486,6 +488,7 @@
 #define SPIDEV_CANBUS(n)        SPIDEV_ID(SPIDEVTYPE_CANBUS,        (n))
 #define SPIDEV_USBHOST(n)       SPIDEV_ID(SPIDEVTYPE_USBHOST,       (n))
 #define SPIDEV_LPWAN(n)         SPIDEV_ID(SPIDEVTYPE_LPWAN,         (n))
+#define SPIDEV_ADC(n)           SPIDEV_ID(SPIDEVTYPE_ADC,           (n))
 #define SPIDEV_USER(n)          SPIDEV_ID(SPIDEVTYPE_USER,          (n))
 
 /****************************************************************************
@@ -494,7 +497,7 @@
 
 /* The type of the media change callback function */
 
-typedef void (*spi_mediachange_t)(FAR void *arg);
+typedef CODE void (*spi_mediachange_t)(FAR void *arg);
 
 /* If the board supports multiple SPI devices types, this enumeration
  * identifies which is selected or de-selected.
@@ -524,6 +527,7 @@ enum spi_devtype_e
   SPIDEVTYPE_CANBUS,        /* Select SPI CAN bus controller over SPI */
   SPIDEVTYPE_USBHOST,       /* Select SPI USB host controller over SPI */
   SPIDEVTYPE_LPWAN,         /* Select SPI LPWAN controller over SPI */
+  SPIDEVTYPE_ADC,           /* Select SPI ADC device */
   SPIDEVTYPE_USER           /* Board-specific values start here
                              * This must always be the last definition. */
 };
@@ -535,7 +539,8 @@ enum spi_mode_e
   SPIDEV_MODE0 = 0,     /* CPOL=0 CHPHA=0 */
   SPIDEV_MODE1,         /* CPOL=0 CHPHA=1 */
   SPIDEV_MODE2,         /* CPOL=1 CHPHA=0 */
-  SPIDEV_MODE3          /* CPOL=1 CHPHA=1 */
+  SPIDEV_MODE3,         /* CPOL=1 CHPHA=1 */
+  SPIDEV_MODETI,        /* CPOL=0 CPHA=1 TI Synchronous Serial Frame Format */
 };
 
 #ifdef CONFIG_SPI_HWFEATURES
@@ -552,10 +557,11 @@ struct spi_ops_s
   CODE int      (*lock)(FAR struct spi_dev_s *dev, bool lock);
   CODE void     (*select)(FAR struct spi_dev_s *dev, uint32_t devid,
                   bool selected);
-  CODE uint32_t (*setfrequency)(FAR struct spi_dev_s *dev, uint32_t frequency);
+  CODE uint32_t (*setfrequency)(FAR struct spi_dev_s *dev,
+                  uint32_t frequency);
 #ifdef CONFIG_SPI_CS_DELAY_CONTROL
-  CODE int      (*setdelay)(FAR struct spi_dev_s *dev, uint32_t a, uint32_t b,
-                  uint32_t c);
+  CODE int      (*setdelay)(FAR struct spi_dev_s *dev, uint32_t a,
+                  uint32_t b, uint32_t c);
 #endif
   CODE void     (*setmode)(FAR struct spi_dev_s *dev, enum spi_mode_e mode);
   CODE void     (*setbits)(FAR struct spi_dev_s *dev, int nbits);
@@ -568,7 +574,7 @@ struct spi_ops_s
   CODE int      (*cmddata)(FAR struct spi_dev_s *dev, uint32_t devid,
                   bool cmd);
 #endif
-  CODE uint16_t (*send)(FAR struct spi_dev_s *dev, uint16_t wd);
+  CODE uint32_t (*send)(FAR struct spi_dev_s *dev, uint32_t wd);
 #ifdef CONFIG_SPI_EXCHANGE
   CODE void     (*exchange)(FAR struct spi_dev_s *dev,
                   FAR const void *txbuffer, FAR void *rxbuffer,
@@ -595,10 +601,6 @@ struct spi_dev_s
 {
   FAR const struct spi_ops_s *ops;
 };
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
 
 #undef EXTERN
 #if defined(__cplusplus)

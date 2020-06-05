@@ -119,7 +119,7 @@ static inline void xtensa_attach_fromcpu1_interrupt(void)
 
   /* Attach the inter-CPU interrupt. */
 
-  (void)irq_attach(ESP32_IRQ_CPU_CPU1, (xcpt_t)esp32_fromcpu1_interrupt, NULL);
+  irq_attach(ESP32_IRQ_CPU_CPU1, (xcpt_t)esp32_fromcpu1_interrupt, NULL);
 
   /* Enable the inter 0 CPU interrupt. */
 
@@ -132,14 +132,14 @@ static inline void xtensa_attach_fromcpu1_interrupt(void)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: xtensa_irq_initialize
+ * Name: up_irqinitialize
  ****************************************************************************/
 
-void xtensa_irq_initialize(void)
+void up_irqinitialize(void)
 {
   /* Initialize CPU interrupts */
 
-  (void)esp32_cpuint_initialize();
+  esp32_cpuint_initialize();
 
 #if defined(CONFIG_STACK_COLORATION) && defined(HAVE_INTERRUPTSTACK)
   /* Colorize the interrupt stack for debug purposes */
@@ -147,7 +147,7 @@ void xtensa_irq_initialize(void)
 #warning Missing logic
 #endif
 
-  /* Attach and emable internal interrupts */
+  /* Attach and enable internal interrupts */
 
 #ifdef CONFIG_SMP
   /* Attach and enable the inter-CPU interrupt */

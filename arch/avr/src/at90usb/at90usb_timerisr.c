@@ -127,7 +127,7 @@ static int at90usb_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  avr_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the timer
@@ -136,7 +136,7 @@ static int at90usb_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void avr_timer_initialize(void)
+void up_timer_initialize(void)
 {
   /* Setup timer 1 compare match A to generate a tick interrupt.
    *
@@ -168,7 +168,7 @@ void avr_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(AT90USB_IRQ_T1COMPA, (xcpt_t)at90usb_timerisr, NULL);
+  irq_attach(AT90USB_IRQ_T1COMPA, (xcpt_t)at90usb_timerisr, NULL);
 
   /* Enable the interrupt on compare match A */
 

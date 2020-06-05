@@ -79,7 +79,8 @@ struct mpl115a_dev_s
  ****************************************************************************/
 
 static inline void mpl115a_configspi(FAR struct spi_dev_s *spi);
-static uint8_t mpl115a_getreg8(FAR struct mpl115a_dev_s *priv, uint8_t regaddr);
+static uint8_t mpl115a_getreg8(FAR struct mpl115a_dev_s *priv,
+                               uint8_t regaddr);
 static void mpl115a_updatecaldata(FAR struct mpl115a_dev_s *priv);
 static void mpl115a_read_press_temp(FAR struct mpl115a_dev_s *priv);
 static int mpl115a_getpressure(FAR struct mpl115a_dev_s *priv);
@@ -90,7 +91,8 @@ static int     mpl115a_open(FAR struct file *filep);
 static int     mpl115a_close(FAR struct file *filep);
 static ssize_t mpl115a_read(FAR struct file *filep, FAR char *buffer,
                             size_t buflen);
-static ssize_t mpl115a_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
+static ssize_t mpl115a_write(FAR struct file *filep, FAR const char *buffer,
+                             size_t buflen);
 
 /****************************************************************************
  * Private Data
@@ -102,12 +104,12 @@ static const struct file_operations g_mpl115afops =
   mpl115a_close,  /* close */
   mpl115a_read,   /* read */
   mpl115a_write,  /* write */
-  0,              /* seek */
-  0,              /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  0,              /* poll */
+  NULL,           /* seek */
+  NULL,           /* ioctl */
+  NULL,           /* poll */
+#ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
+  NULL            /* unlink */
 #endif
-  0               /* unlink */
 };
 
 /****************************************************************************
@@ -120,8 +122,8 @@ static inline void mpl115a_configspi(FAR struct spi_dev_s *spi)
 
   SPI_SETMODE(spi, SPIDEV_MODE0);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, MPL115A_SPI_MAXFREQUENCY);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, MPL115A_SPI_MAXFREQUENCY);
 }
 
 /****************************************************************************
@@ -138,7 +140,7 @@ static uint8_t mpl115a_getreg8(FAR struct mpl115a_dev_s *priv, uint8_t regaddr)
 
   /* If SPI bus is shared then lock and configure it */
 
-  (void)SPI_LOCK(priv->spi, true);
+  SPI_LOCK(priv->spi, true);
   mpl115a_configspi(priv->spi);
 
   /* Select the MPL115A */
@@ -147,7 +149,7 @@ static uint8_t mpl115a_getreg8(FAR struct mpl115a_dev_s *priv, uint8_t regaddr)
 
   /* Send register to read and get the next byte */
 
-  (void)SPI_SEND(priv->spi, regaddr);
+  SPI_SEND(priv->spi, regaddr);
   SPI_RECVBLOCK(priv->spi, &regval, 1);
 
   /* Deselect the MPL115A */
@@ -156,7 +158,7 @@ static uint8_t mpl115a_getreg8(FAR struct mpl115a_dev_s *priv, uint8_t regaddr)
 
   /* Unlock bus */
 
-  (void)SPI_LOCK(priv->spi, false);
+  SPI_LOCK(priv->spi, false);
 
 #ifdef CONFIG_MPL115A_REGDEBUG
   _err("%02x->%02x\n", regaddr, regval);
@@ -176,26 +178,38 @@ static void mpl115a_updatecaldata(FAR struct mpl115a_dev_s *priv)
 {
   /* Get a0 coefficient */
 
-  priv->mpl115a_cal_a0 = mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_A0_MSB << 1)) << 8;
-  priv->mpl115a_cal_a0 |= mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_A0_LSB << 1));
+  priv->mpl115a_cal_a0 =
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_A0_MSB << 1)) << 8;
+  priv->mpl115a_cal_a0 |=
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_A0_LSB << 1));
+
   sninfo("a0 = %d\n", priv->mpl115a_cal_a0);
 
   /* Get b1 coefficient */
 
-  priv->mpl115a_cal_b1 = mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B1_MSB << 1)) << 8;
-  priv->mpl115a_cal_b1 |= mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B1_LSB << 1));
+  priv->mpl115a_cal_b1 =
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B1_MSB << 1)) << 8;
+  priv->mpl115a_cal_b1 |=
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B1_LSB << 1));
+
   sninfo("b1 = %d\n", priv->mpl115a_cal_b1);
 
   /* Get b2 coefficient */
 
-  priv->mpl115a_cal_b2 = mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B2_MSB << 1)) << 8;
-  priv->mpl115a_cal_b2 |= mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B2_LSB << 1));
+  priv->mpl115a_cal_b2 =
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B2_MSB << 1)) << 8;
+  priv->mpl115a_cal_b2 |=
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_B2_LSB << 1));
+
   sninfo("b2 = %d\n", priv->mpl115a_cal_b2);
 
   /* Get c12 coefficient */
 
-  priv->mpl115a_cal_c12 = mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_C12_MSB << 1)) << 8;
-  priv->mpl115a_cal_c12 |= mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_C12_LSB << 1));
+  priv->mpl115a_cal_c12 =
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_C12_MSB << 1)) << 8;
+  priv->mpl115a_cal_c12 |=
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_C12_LSB << 1));
+
   sninfo("c12 = %d\n", priv->mpl115a_cal_c12);
 }
 
@@ -218,14 +232,18 @@ static void mpl115a_read_press_temp(FAR struct mpl115a_dev_s *priv)
 
   nxsig_usleep(5000);
 
-  priv->mpl115a_pressure = mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_PADC_MSB << 1)) << 8;
-  priv->mpl115a_pressure |= mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_PADC_LSB << 1));
+  priv->mpl115a_pressure =
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_PADC_MSB << 1)) << 8;
+  priv->mpl115a_pressure |=
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_PADC_LSB << 1));
   priv->mpl115a_pressure >>= 6; /* Padc is 10bit unsigned */
 
   sninfo("Pressure = %d\n", priv->mpl115a_pressure);
 
-  priv->mpl115a_temperature = mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_TADC_MSB << 1)) << 8;
-  priv->mpl115a_temperature |= mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_TADC_LSB << 1));
+  priv->mpl115a_temperature =
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_TADC_MSB << 1)) << 8;
+  priv->mpl115a_temperature |=
+    mpl115a_getreg8(priv, MPL115A_BASE_CMD | (MPL115A_TADC_LSB << 1));
   priv->mpl115a_temperature >>= 6; /* Tadc is 10bit unsigned */
 
   sninfo("Temperature = %d\n", priv->mpl115a_temperature);
@@ -247,8 +265,15 @@ static void mpl115a_read_press_temp(FAR struct mpl115a_dev_s *priv)
 
 static int mpl115a_getpressure(FAR struct mpl115a_dev_s *priv)
 {
-  int32_t c12x2, a1, a1x1, y1, a2x2, pcomp;
-  uint16_t padc, tadc, pressure;
+  int32_t c12x2;
+  int32_t a1;
+  int32_t a1x1;
+  int32_t y1;
+  int32_t a2x2;
+  int32_t pcomp;
+  uint16_t padc;
+  uint16_t tadc;
+  uint16_t pressure;
 
   /* Check if coefficient data were read correctly */
 

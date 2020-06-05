@@ -9,7 +9,7 @@
  * Note: Network configuration options the netconfig.h should not be changed,
  * but rather the per-project defconfig file.
  *
- *   Copyright (C) 2007, 2011, 2014-2015, 2017-2018 Gregory Nutt. All rights
+ *   Copyright (C) 2007, 2011, 2014-2015, 2017-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -54,6 +54,7 @@
 
 #include <stdint.h>
 #include <nuttx/config.h>
+#include <nuttx/net/ethernet.h>
 
 /****************************************************************************
  * Public Definitions
@@ -76,7 +77,7 @@
  */
 
 #define __IPv4_HDRLEN 20  /* Must match IPv4_HDRLEN in include/nuttx/net/ip.h */
-#define __IPv6_HDRLEN 40  /* Must match IPv4_HDRLEN in include/nuttx/net/ip.h */
+#define __IPv6_HDRLEN 40  /* Must match IPv6_HDRLEN in include/nuttx/net/ip.h */
 #define __UDP_HDRLEN  8   /* Must match UDP_HDRLEN in include/nuttx/net/udp.h */
 #define __TCP_HDRLEN  20  /* Must match TCP_HDRLEN in include/nuttx/net/tcp.h */
                           /* REVISIT: Not really a constant */
@@ -150,8 +151,8 @@
 #endif
 
 #ifdef CONFIG_NET_LOOPBACK
-#  define _MIN_LO_PKTSIZE      MIN(_MIN_ETH_PKTSIZE,  1518)
-#  define _MAX_LO_PKTSIZE      MAX(_MAX_ETH_PKTSIZE, 574)
+#  define _MIN_LO_PKTSIZE      MIN(_MIN_ETH_PKTSIZE, 574)
+#  define _MAX_LO_PKTSIZE      MAX(_MAX_ETH_PKTSIZE, 1518)
 #else
 #  define _MIN_LO_PKTSIZE      _MIN_ETH_PKTSIZE
 #  define _MAX_LO_PKTSIZE      _MAX_ETH_PKTSIZE
@@ -184,9 +185,21 @@
 #define MIN_NETDEV_PKTSIZE      _MIN_6LOWPAN_PKTSIZE
 #define MAX_NETDEV_PKTSIZE      _MAX_6LOWPAN_PKTSIZE
 
-/* For the loopback device, we will use the largest MTU */
+/* The loopback driver packet buffer should be quite large.  The larger the
+ * loopback packet buffer, the better will be TCP performance of the loopback
+ * transfers.  The Linux loopback device historically used packet buffers of
+ * size 16Kb, but that was increased in recent Linux versions to 64Kb.  Those
+ * sizes may be excessive for resource constrained MCUs, however.
+ *
+ * For the loopback driver, we enforce a lower limit that is the maximum
+ * packet size of all enabled link layer protocols.
+ */
 
+#if CONFIG_NET_LOOPBACK_PKTSIZE < MAX_NETDEV_PKTSIZE
 #  define NET_LO_PKTSIZE        MAX_NETDEV_PKTSIZE
+#else
+#  define NET_LO_PKTSIZE        CONFIG_NET_LOOPBACK_PKTSIZE
+#endif
 
 /* Layer 3/4 Configuration Options ******************************************/
 
@@ -206,7 +219,7 @@
    * of the timer is 8-bits.
    */
 
-#    define CONFIG_NET_TCP_REASS_MAXAGE (20*10) /* 20 seconds */
+#    define CONFIG_NET_TCP_REASS_MAXAGE (20 * 10) /* 20 seconds */
 #  endif
 #endif
 
@@ -278,7 +291,7 @@
 
 #ifdef CONFIG_NET_6LOWPAN
 #  undef  __MIN_UDP_MSS
-#  undef  __MIN_UDP_MSS
+#  undef  __MAX_UDP_MSS
 #  define __MIN_UDP_MSS(h)         MIN(IEEE802154_UDP_MSS(h),__ETH_MIN_UDP_MSS(h))
 #  define __MAX_UDP_MSS(h)         MAX(IEEE802154_UDP_MSS(h),__ETH_MAX_UDP_MSS(h))
 #  define __6LOWPAN_MIN_UDP_MSS(h) MIN(IEEE802154_UDP_MSS(h),__ETH_MIN_UDP_MSS(h))
@@ -290,7 +303,7 @@
 
 #ifdef CONFIG_NET_LOOPBACK
 #  undef  __MIN_UDP_MSS
-#  undef  __MIN_UDP_MSS
+#  undef  __MAX_UDP_MSS
 #  define __MIN_UDP_MSS(h)        MIN(LO_UDP_MSS(h),__6LOWPAN_MIN_UDP_MSS(h))
 #  define __MAX_UDP_MSS(h)        MAX(LO_UDP_MSS(h),__6LOWPAN_MAX_UDP_MSS(h))
 #  define __LOOP_MIN_UDP_MSS(h)   MIN(LO_UDP_MSS(h),__6LOWPAN_MIN_UDP_MSS(h))
@@ -302,7 +315,7 @@
 
 #ifdef CONFIG_NET_SLIP
 #  undef  __MIN_UDP_MSS
-#  undef  __MIN_UDP_MSS
+#  undef  __MAX_UDP_MSS
 #  define __MIN_UDP_MSS(h)      MIN(SLIP_UDP_MSS(h),__LOOP_MIN_UDP_MSS(h))
 #  define __MAX_UDP_MSS(h)      MAX(SLIP_UDP_MSS(h),__LOOP_MAX_UDP_MSS(h))
 #  define __SLIP_MIN_UDP_MSS(h) MIN(SLIP_UDP_MSS(h),__LOOP_MIN_UDP_MSS(h))
@@ -314,7 +327,7 @@
 
 #ifdef CONFIG_NET_TUN
 #  undef  __MIN_UDP_MSS
-#  undef  __MIN_UDP_MSS
+#  undef  __MAX_UDP_MSS
 #  define __MIN_UDP_MSS(h)      MIN(TUN_UDP_MSS(h),__SLIP_MIN_UDP_MSS(h))
 #  define __MAX_UDP_MSS(h)      MAX(TUN_UDP_MSS(h),__SLIP_MAX_UDP_MSS(h))
 #  define __TUN_MIN_UDP_MSS(h)  MIN(TUN_UDP_MSS(h),__SLIP_MIN_UDP_MSS(h))
@@ -344,6 +357,9 @@
 #  undef  MIN_UDP_MSS
 #  define MIN_IPv6_UDP_MSS      __MIN_UDP_MSS(__IPv6_HDRLEN)
 #  define MIN_UDP_MSS           __MIN_UDP_MSS(__IPv6_HDRLEN)
+#  ifndef MAX_UDP_MSS
+#    define MAX_UDP_MSS         __MAX_UDP_MSS(__IPv6_HDRLEN)
+#  endif
 #endif
 
 /* TCP configuration options */
@@ -382,14 +398,17 @@
 #endif
 
 /* The initial retransmission timeout counted in timer pulses.
+ * REVISIT:  TCP RTO really should be calculated dynamically for each TCP
+ * connection:
  *
- * This should not be changed.
+ * https://unix.stackexchange.com/questions/210367/changing-the-tcp-rto-value-in-linux
+ * http://sgros.blogspot.com/2012/02/calculating-tcp-rto.html
  */
 
 #ifdef CONFIG_NET_TCP_RTO
-# define TCP_RTO CONFIG_NET_TCP_RTO
+#  define TCP_RTO CONFIG_NET_TCP_RTO
 #else
-# define TCP_RTO 3
+#  define TCP_RTO 3
 #endif
 
 /* The maximum number of times a segment should be retransmitted
@@ -530,16 +549,24 @@
 #  define MIN_TCP_MSS           __MIN_TCP_MSS(__IPv6_HDRLEN)
 #endif
 
-/* How long a connection should stay in the TIME_WAIT state.
+/* How long a connection should stay in the TIME_WAIT state (in units of
+ * seconds).
  *
- * This configuration option has no real implication, and it should be
- * left untouched. Units: half second.
+ * TIME_WAIT is often also known as the 2MSL wait state.  This is because
+ * the socket that transitions to TIME_WAIT stays there for a period that
+ * is 2 x Maximum Segment Lifetime in duration.  The MSL is the maximum
+ * amount of time that any segment can remain valid on the network before
+ * being discarded.  This time limit is ultimately bounded by the TTL field
+ * in the IP datagram that is used to transmit the TCP segment.  RFC 793
+ * specifies MSL as 2 minutes but most systems permit this value to be tuned.
+ * Here a default TIME_WAIT (2MSL) 2 minutes is used, half the value
+ * specified by RFC 793.
  */
 
 #ifdef CONFIG_NET_TCP_WAIT_TIMEOUT
-# define TCP_TIME_WAIT_TIMEOUT CONFIG_NET_TCP_WAIT_TIMEOUT
+#  define TCP_TIME_WAIT_TIMEOUT CONFIG_NET_TCP_WAIT_TIMEOUT
 #else
-# define TCP_TIME_WAIT_TIMEOUT (60*2)
+#  define TCP_TIME_WAIT_TIMEOUT (60*2)
 #endif
 
 /* ARP configuration options */
@@ -573,20 +600,6 @@
 #    define CONFIG_NET_USRSOCK_CONNS 6
 #  else
 #    define CONFIG_NET_USRSOCK_CONNS 0
-#  endif
-#endif
-
-/* General configuration options */
-
-/* Delay after receive to catch a following packet.  No delay should be
- * required if TCP/IP read-ahead buffering is enabled.
- */
-
-#ifndef CONFIG_NET_TCP_RECVDELAY
-#  ifdef CONFIG_NET_TCP_READAHEAD
-#    define CONFIG_NET_TCP_RECVDELAY 0
-#  else
-#    define CONFIG_NET_TCP_RECVDELAY 5
 #  endif
 #endif
 

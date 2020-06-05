@@ -47,9 +47,9 @@
 
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -73,9 +73,15 @@
 #define FLASH_OPTKEY2              0x4c5d6e7f
 #define FLASH_ERASEDVALUE          0xff
 
-#if !defined(STM32_FLASH_DUAL_BANK)
+#if defined(STM32_FLASH_DUAL_BANK)
+/* Bank 0 is 512Kb; Bank 1 is up to 512Kb */
+
+#  define STM32_FLASH_BANK0_NPAGES (512 * 1024 / STM32_FLASH_PAGESIZE)
+#  define STM32_FLASH_BANK1_NPAGES (STM32_FLASH_NPAGES - STM32_FLASH_BANK0_NPAGES)
+#else
+/* Bank 0 is up to 512Kb; Bank 1 is not present */
+
 #  define STM32_FLASH_BANK0_NPAGES STM32_FLASH_NPAGES
-#  define STM32_FLASH_BANK0_BASE   STM32_FLASH_BASE
 #endif
 
 /************************************************************************************
@@ -88,23 +94,9 @@ static sem_t g_sem = SEM_INITIALIZER(1);
  * Private Functions
  ************************************************************************************/
 
-static void sem_lock(void)
+static int sem_lock(void)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&g_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&g_sem);
 }
 
 static inline void sem_unlock(void)
@@ -137,24 +129,42 @@ static void flash_lock(uintptr_t base)
  * Public Functions
  ************************************************************************************/
 
-void stm32_flash_unlock(void)
+int stm32_flash_unlock(void)
 {
-  sem_lock();
-  flash_unlock(STM32_FLASH_BANK0_BASE);
+  int ret;
+
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  flash_unlock(STM32_FLASHIF_BASE);
 #if defined(STM32_FLASH_DUAL_BANK)
-  flash_unlock(STM32_FLASH_BANK1_BASE);
+  flash_unlock(STM32_FLASHIF1_BASE);
 #endif
   sem_unlock();
+
+  return ret;
 }
 
-void stm32_flash_lock(void)
+int stm32_flash_lock(void)
 {
-  sem_lock();
-  flash_lock(STM32_FLASH_BANK0_BASE);
+  int ret;
+
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  flash_lock(STM32_FLASHIF_BASE);
 #if defined(STM32_FLASH_DUAL_BANK)
-  flash_lock(STM32_FLASH_BANK1_BASE);
+  flash_lock(STM32_FLASHIF1_BASE);
 #endif
   sem_unlock();
+
+  return ret;
 }
 
 size_t up_progmem_pagesize(size_t page)
@@ -235,6 +245,7 @@ ssize_t up_progmem_eraseblock(size_t block)
 {
   uintptr_t base;
   size_t page_address;
+  int ret;
 
   if (block >= STM32_FLASH_NPAGES)
     {
@@ -246,17 +257,21 @@ ssize_t up_progmem_eraseblock(size_t block)
 
   if (block >= STM32_FLASH_BANK0_NPAGES)
     {
-      base = STM32_FLASH_BANK1_BASE;
+      base = STM32_FLASHIF1_BASE;
     }
   else
 #endif
     {
-      base = STM32_FLASH_BANK0_BASE;
+      base = STM32_FLASHIF_BASE;
     }
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
 
-  if ((getreg32(base + STM32_RCC_CR_OFFSET) & RCC_CR_HSION) == 0)
+  if ((getreg32(STM32_RCC_CR) & RCC_CR_HSION) == 0)
     {
       sem_unlock();
       return -EPERM;
@@ -300,18 +315,19 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
   uintptr_t base;
   uint16_t *hword = (uint16_t *)buf;
   size_t written = count;
+  int ret;
 
 #if defined(STM32_FLASH_DUAL_BANK)
   /* Handle paged FLASH */
 
   if (page >= STM32_FLASH_BANK0_NPAGES)
     {
-      base = STM32_FLASH_BANK1_BASE;
+      base = STM32_FLASHIF1_BASE;
     }
   else
 #endif
     {
-      base = STM32_FLASH_BANK0_BASE;
+      base = STM32_FLASHIF_BASE;
     }
 
   /* STM32 requires half-word access */
@@ -328,14 +344,18 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
       addr -= STM32_FLASH_BASE;
     }
 
-  if ((addr+count) > STM32_FLASH_SIZE)
+  if ((addr + count) > STM32_FLASH_SIZE)
     {
       return -EFAULT;
     }
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
 
-  if ((getreg32(base + STM32_RCC_CR_OFFSET) & RCC_CR_HSION) == 0)
+  if ((getreg32(STM32_RCC_CR) & RCC_CR_HSION) == 0)
     {
       sem_unlock();
       return -EPERM;

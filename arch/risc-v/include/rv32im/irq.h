@@ -35,7 +35,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -59,9 +59,20 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* In mstatus register */
+
+#define MSTATUS_MIE   (0x1 << 3)  /* Machine Interrupt Enable */
+#define MSTATUS_MPIE  (0x1 << 7)  /* Machine Previous Interrupt Enable */
+#define MSTATUS_MPPM  (0x3 << 11) /* Machine Previous Privilege (m-mode) */
+
+/* In mie (machine interrupt enable) register */
+
+#define MIE_MTIE      (0x1 << 7)  /* Machine Timer Interrupt Enable */
+#define MIE_MEIE      (0x1 << 11) /* Machine External Interrupt Enable */
+
 /* Configuration ************************************************************/
 
-/* If this is a kernel build, how many nested system calls should we support? */
+/* How many nested system calls should we support? */
 
 #ifndef CONFIG_SYS_NNEST
 #  define CONFIG_SYS_NNEST 2
@@ -72,8 +83,10 @@
 #define REG_EPC_NDX         0
 
 /* General pupose registers */
-/* $0: Zero register does not need to be saved */
-/* $1: ra (return address) */
+
+/* $0: Zero register does not need to be saved
+ * $1: ra (return address)
+ */
 
 #define REG_X1_NDX          1
 
@@ -435,7 +448,6 @@ struct xcpt_syscall_s
 
 struct xcptcontext
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-NULL if there are pending signals
    * to be processed.
    */
@@ -454,14 +466,12 @@ struct xcptcontext
   uint32_t saved_epc;     /* Trampoline PC */
   uint32_t saved_int_ctx; /* Interrupt context with interrupts disabled. */
 
-# ifdef CONFIG_BUILD_KERNEL
+#ifdef CONFIG_BUILD_KERNEL
   /* This is the saved address to use when returning from a user-space
    * signal handler.
    */
 
   uint32_t sigreturn;
-
-# endif
 #endif
 
 #ifdef CONFIG_BUILD_KERNEL
@@ -483,8 +493,6 @@ struct xcptcontext
   uint32_t regs[XCPTCONTEXT_REGS];
 };
 
-#endif  /* __ASSEMBLY__ */
-
 /****************************************************************************
  * Public Variables
  ****************************************************************************/
@@ -492,5 +500,13 @@ struct xcptcontext
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+irqstate_t up_irq_save(void);
+irqstate_t up_irq_enable(void);
+irqstate_t up_irq_disable(void);
+
+void up_irq_restore(irqstate_t);
+
+#endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_RISCV_INCLUDE_RV32IM_IRQ_H */

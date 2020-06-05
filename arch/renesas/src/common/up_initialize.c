@@ -44,13 +44,11 @@
 #include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <nuttx/sched_note.h>
-#include <nuttx/mm/iob.h>
 #include <nuttx/drivers/drivers.h>
 #include <nuttx/fs/loop.h>
 #include <nuttx/net/loopback.h>
 #include <nuttx/net/tun.h>
 #include <nuttx/net/telnet.h>
-#include <nuttx/syslog/syslog.h>
 #include <nuttx/syslog/syslog_console.h>
 #include <nuttx/serial/pty.h>
 #include <nuttx/crypto/crypto.h>
@@ -86,16 +84,6 @@ void up_initialize(void)
 
   g_current_regs = NULL;
 
-  /* Initialize the interrupt subsystem */
-
-  up_irqinitialize();
-
-#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS)
-  /* Initialize the system timer interrupt */
-
-  renesas_timer_initialize();
-#endif
-
 #ifdef CONFIG_PM
   /* Initialize the power management subsystem.  This MCU-specific function
    * must be called *very* early in the initialization sequence *before* any
@@ -104,12 +92,6 @@ void up_initialize(void)
    */
 
   up_pminitialize();
-#endif
-
-#ifdef CONFIG_MM_IOB
-  /* Initialize IO buffering */
-
-  iob_initialize();
 #endif
 
   /* Register devices */
@@ -145,33 +127,26 @@ void up_initialize(void)
   up_serialinit();
 #endif
 
+#ifdef CONFIG_RPMSG_UART
+  rpmsg_serialinit();
+#endif
+
   /* Initialize the console device driver (if it is other than the standard
    * serial driver). NOTE that the naming implies that the console is a serial
    * driver.  That is usually the case, however, if no UARTs are enabled, the
-   * console could als be provided through some other device, such as an LCD.
+   * console could also be provided through some other device, such as an LCD.
    * Architecture-specific logic will have to detect that case.
    */
 
-#if defined(CONFIG_DEV_LOWCONSOLE)
-  lowconsole_init();
-#elif defined(CONFIG_CONSOLE_SYSLOG)
+#if defined(CONFIG_CONSOLE_SYSLOG)
   syslog_console_init();
-#elif defined(CONFIG_RAMLOG_CONSOLE)
-  ramlog_consoleinit();
 #endif
 
 #ifdef CONFIG_PSEUDOTERM_SUSV1
   /* Register the master pseudo-terminal multiplexor device */
 
-  (void)ptmx_register();
+  ptmx_register();
 #endif
-
-  /* Early initialization of the system logging device.  Some SYSLOG channel
-   * can be initialized early in the initialization sequence because they
-   * depend on only minimal OS initialization.
-   */
-
-  syslog_initialize(SYSLOG_INIT_EARLY);
 
 #if defined(CONFIG_CRYPTO)
   /* Initialize the HW crypto and /dev/crypto */
@@ -189,22 +164,22 @@ void up_initialize(void)
   up_netinitialize();
 #endif
 
-#ifdef CONFIG_NETDEV_LOOPBACK
+#ifdef CONFIG_NET_LOOPBACK
   /* Initialize the local loopback device */
 
-  (void)localhost_initialize();
+  localhost_initialize();
 #endif
 
 #ifdef CONFIG_NET_TUN
   /* Initialize the TUN device */
 
-  (void)tun_initialize();
+  tun_initialize();
 #endif
 
 #ifdef CONFIG_NETDEV_TELNET
   /* Initialize the Telnet session factory */
 
-  (void)telnet_initialize();
+  telnet_initialize();
 #endif
 
   /* Initialize USB */

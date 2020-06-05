@@ -1,7 +1,8 @@
 /****************************************************************************
  * include/nuttx/net/mii.h
  *
- *   Copyright (C) 2008-2010, 2012-2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2010, 2012-2015, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -219,6 +220,7 @@
 #define MII_MSR_100BASET4            (1 << 15) /* Bit 15: 100BASE-T4 able */
 
 /* MII ID1 register bits: Bits 3-18 of the Organizationally Unique identifier (OUI) */
+
 /* MII ID2 register bits */
 
 #define MII_PHYID2_REV_SHIFT         (0)    /* Bits 0-3: Revision number mask */
@@ -249,7 +251,7 @@
 #define MII_ADVERTISE_1000XASYMPAU   (1 << 8)  /* Bit 8:  Try 1000BASE-X asym pause */
 #define MII_ADVERTISE_100BASET4      (1 << 9)  /* Bit 9:  Try 100BASE-T4 */
 #define MII_ADVERTISE_FDXPAUSE       (1 << 10) /* Bit 10: Try full duplex flow control */
-#define MII_ADVERTISE_ASYMPAUSE      (1 << 11) /* Bit 11: Try asymetric pause */
+#define MII_ADVERTISE_ASYMPAUSE      (1 << 11) /* Bit 11: Try asymmetric pause */
 #define MII_ADVERTISE_RFAULT         (1 << 13) /* Bit 13: Remote fault supported */
 #define MII_ADVERTISE_LPACK          (1 << 14) /* Bit 14: Ack link partners response */
 #define MII_ADVERTISE_NXTPAGE        (1 << 15) /* Bit 15: Next page enabled */
@@ -288,7 +290,7 @@
 
 /* MII Auto-negotiation expansion register bit definitions */
 
-#define MII_EXPANSION_ANEGABLE       (1 << 0)  /* Bit 0: Link partner is auto-negotion able */
+#define MII_EXPANSION_ANEGABLE       (1 << 0)  /* Bit 0: Link partner is auto-negotiation able */
 #define MII_EXPANSION_PAGERECVD      (1 << 1)  /* Bit 1: New link code word in LPA ability reg */
 #define MII_EXPANSION_ENABLENPAGE    (1 << 2)  /* Bit 2: This enables npage words */
 #define MII_EXPANSION_NXTPAGEABLE    (1 << 3)  /* Bit 3: Link partner supports next page */
@@ -328,6 +330,7 @@
 #define DP83840_PHYADDR_SPEED        (1 << 6)
 
 /* National Semiconductor DP83848C ******************************************/
+
 /* DP83848C MII ID1/2 register bits */
 
 #define MII_PHYID1_DP83848C          0x2000    /* ID1 value for DP83848C */
@@ -346,6 +349,7 @@
 #define MII_RBR_RMIIMODE             (1 << 5)  /* Bit 5: 0=MII mode 1=RMII mode */
 
 /* SMSC LAN8720 *************************************************************/
+
 /* SMSC LAN8720 MII ID1/2 register bits */
 
 #define MII_PHYID1_LAN8720           0x0007    /* ID1 value for LAN8720 */
@@ -369,6 +373,24 @@
 #define MII_LAN8720_SPSCR_ANEGDONE   (1 << 12) /* Bit 12: Autonegotiation complete */
                                                /* Bits 13-15: Reserved */
 
+/* SMSC LAN8720 MODES register bits */
+
+#define MII_LAN8720_MODES_PHYAD_SHIFT (0)      /* Bits 0-4: Phy Address */
+#define MII_LAN8720_MODES_PHYAD_MASK  (0x1f << MII_LAN8720_MODES_PHYAD_SHIFT)
+#define MII_LAN8720_MODES_PHYAD(n)    ((n<<MII_LAN8720_MODES_PHYAD_SHIFT) & MII_LAN8720_MODES_PHYAD_MASK)
+#define MII_LAN8720_MODES_MODE_SHIFT  (5)      /* Bits 5-7: Mode */
+#define MII_LAN8720_MODES_MODE_MASK   (7 << MII_LAN8720_MODES_MODE_SHIFT)
+#define MII_LAN8720_MODES_MODE(n)     (( n << MII_LAN8720_MODES_MODE_SHIFT) & MII_LAN8720_MODES_MODE_MASK)
+#define MII_LAN8720_MODES_10BTHD       MII_LAN8720_MODES_MODE(0)
+#define MII_LAN8720_MODES_10BTFD       MII_LAN8720_MODES_MODE(1)
+#define MII_LAN8720_MODES_100BTHD_TRC  MII_LAN8720_MODES_MODE(2)
+#define MII_LAN8720_MODES_100BTHD_TC   MII_LAN8720_MODES_MODE(3)
+#define MII_LAN8720_MODES_100BTHDA_TRC MII_LAN8720_MODES_MODE(4)
+#define MII_LAN8720_MODES_RPT          MII_LAN8720_MODES_MODE(5)
+#define MII_LAN8720_MODES_PDN          MII_LAN8720_MODES_MODE(6)
+#define MII_LAN8720_MODES_ALL          MII_LAN8720_MODES_MODE(7)
+#define MII_LAN8720_MODES_RESV        (1 << 14) /* Bit 14: Set to 1 */
+
 /* SMSC LAN8740 MII ID1/2 register bits */
 
 #define MII_PHYID1_LAN8740           0x0007    /* ID1 value for LAN8740 */
@@ -385,6 +407,7 @@
 #define MII_PHYID2_LAN8742A          0xc130    /* ID2 value for LAN8742A */
 
 /* Am79c874-specific register bit settings **********************************/
+
 /* Am79c874 MII ID1/2 register bits */
 
 #define MII_PHYID1_AM79C874          0x0022    /* ID1 value for Am79c874 */
@@ -398,6 +421,7 @@
 #define AM79C874_DIAG_FULLDPLX       (1 << 11) /* Bit 11: 1=ANEG result is full duplex */
 
 /* LM3S6918-specific register bit settings **********************************/
+
 /* LM3S6918 Vendor-Specific, address 0x10 */
 
 #define LM_VSPECIFIC_RXCC            (1 << 0)  /* Bit 0:  Receive Clock Control*/
@@ -475,6 +499,7 @@
 #define LM_MDICONTROL_PDMODE         (1 << 7)  /* Bit 7:  Parallel Detection Mode */
 
 /* KS8921-specific register bit settings ************************************/
+
 /* KS8921 MII Control register bit definitions (not in 802.3) */
 
 #define KS8721_MCR_DISABXMT          (1 << 0)  /* Bit 0:  Disable Transmitter */
@@ -491,7 +516,7 @@
 #define KS8721_INTCS_LINKUP          (1 << 0)  /* Bit 0:  Link up occurred */
 #define KS8721_INTCS_REMFAULT        (1 << 1)  /* Bit 1:  Remote fault occurred */
 #define KS8721_INTCS_LINKDOWN        (1 << 2)  /* Bit 2:  Link down occurred */
-#define KS8721_INTCS_LPACK           (1 << 3)  /* Bit 3:  Link partner acknowlege occurred */
+#define KS8721_INTCS_LPACK           (1 << 3)  /* Bit 3:  Link partner acknowledge occurred */
 #define KS8721_INTCS_PDFAULT         (1 << 4)  /* Bit 4:  Parallel detect fault occurred */
 #define KS8721_INTCS_PGRCVD          (1 << 5)  /* Bit 5:  Page received occurred */
 #define KS8721_INTCS_RXERR           (1 << 6)  /* Bit 6:  Receive error occurred */
@@ -529,6 +554,7 @@
 #define KS8721_10BTCR_PAIRSWAPD      (1 << 13) /* Bit 13: Pairswap disable */
 
 /* KSZ8051/81-specific register bit settings ********************************/
+
 /* KSZ8041/51/81 MII ID1/2 register bits */
 
 #define MII_PHYID1_KSZ8041           0x0022    /* ID1 value for Micrel KSZ8041 */
@@ -546,25 +572,26 @@
                                                /* Bits 0-3: Reserved */
 /* KSZ8041/51/81 Register 0x1b: Interrupt control/status */
 
-#define MII_KSZ80x1_INT_JEN          (1 << 15) /* Jabber interrupt enable */
-#define MII_KSZ80x1_INT_REEN         (1 << 14) /* Receive error interrupt enable */
-#define MII_KSZ80x1_INT_PREN         (1 << 13) /* Page received interrupt enable */
-#define MII_KSZ80x1_INT_PDFEN        (1 << 12) /* Parallel detect fault interrupt enable */
-#define MII_KSZ80x1_INT_LPAEN        (1 << 11) /* Link partner acknowledge interrupt enable */
-#define MII_KSZ80x1_INT_LDEN         (1 << 10) /* Link down fault interrupt enable */
-#define MII_KSZ80x1_INT_RFEN         (1 << 9)  /* Remote fault interrupt enable */
-#define MII_KSZ80x1_INT_LUEN         (1 << 8)  /* Link up interrupt enable */
+#define MII_KSZ80X1_INT_JEN          (1 << 15) /* Jabber interrupt enable */
+#define MII_KSZ80X1_INT_REEN         (1 << 14) /* Receive error interrupt enable */
+#define MII_KSZ80X1_INT_PREN         (1 << 13) /* Page received interrupt enable */
+#define MII_KSZ80X1_INT_PDFEN        (1 << 12) /* Parallel detect fault interrupt enable */
+#define MII_KSZ80X1_INT_LPAEN        (1 << 11) /* Link partner acknowledge interrupt enable */
+#define MII_KSZ80X1_INT_LDEN         (1 << 10) /* Link down fault interrupt enable */
+#define MII_KSZ80X1_INT_RFEN         (1 << 9)  /* Remote fault interrupt enable */
+#define MII_KSZ80X1_INT_LUEN         (1 << 8)  /* Link up interrupt enable */
 
-#define MII_KSZ80x1_INT_J            (1 << 7)  /* Jabber interrupt */
-#define MII_KSZ80x1_INT_RE           (1 << 6)  /* Receive error interrupt */
-#define MII_KSZ80x1_INT_PR           (1 << 5)  /* Page received interrupt */
-#define MII_KSZ80x1_INT_PDF          (1 << 4)  /* Parallel detect fault interrupt */
-#define MII_KSZ80x1_INT_LPA          (1 << 3)  /* Link partner acknowledge interrupt */
-#define MII_KSZ80x1_INT_LD           (1 << 2)  /* Link down fault interrupt */
-#define MII_KSZ80x1_INT_RF           (1 << 1)  /* Remote fault interrupt */
-#define MII_KSZ80x1_INT_LU           (1 << 0)  /* Link up interrupt */
+#define MII_KSZ80X1_INT_J            (1 << 7)  /* Jabber interrupt */
+#define MII_KSZ80X1_INT_RE           (1 << 6)  /* Receive error interrupt */
+#define MII_KSZ80X1_INT_PR           (1 << 5)  /* Page received interrupt */
+#define MII_KSZ80X1_INT_PDF          (1 << 4)  /* Parallel detect fault interrupt */
+#define MII_KSZ80X1_INT_LPA          (1 << 3)  /* Link partner acknowledge interrupt */
+#define MII_KSZ80X1_INT_LD           (1 << 2)  /* Link down fault interrupt */
+#define MII_KSZ80X1_INT_RF           (1 << 1)  /* Remote fault interrupt */
+#define MII_KSZ80X1_INT_LU           (1 << 0)  /* Link up interrupt */
 
 /* KSZ8041 Register 0x1e: PHY Control 1 -- To be provided */
+
 /* KSZ8041 Register 0x1f: PHY Control 2 */
 
 #define MII_PHYCTRL2_MDIX            (1 << 15) /* Bit 15: Micrel/HP MDI/MDI-X state */
@@ -606,6 +633,121 @@
 #  define MII_PHYCTRL1_MODE_DUPLEX   (4 << MII_PHYCTRL1_MODE_SHIFT) /* Full duplex */
 #  define MII_PHYCTRL1_MODE_10FDX    (5 << MII_PHYCTRL1_MODE_SHIFT) /* 10Base-T full-duplex */
 #  define MII_PHYCTRL1_MODE_100FDX   (6 << MII_PHYCTRL1_MODE_SHIFT) /* 100Base-T full-duplex */
+
+/* TJA110X register bit settings ********************************************/
+
+/* TJA110X MII ID1/2 register bits */
+
+#define MII_PHYID1_TJA1100                0x0180  /* ID1 value for NXP TJA1100 */
+#define MII_PHYID2_TJA1100                0xdc40  /* ID2 value for NXP TJA1100 */
+
+#define MII_PHYID1_TJA1101                0x0180  /* ID1 value for NXP TJA1101 */
+#define MII_PHYID2_TJA1101                0xdd00  /* ID2 value for NXP TJA1101 */
+
+#define MII_TJA110X_BCR                   0x0     /* Basic Control register */
+#define MII_TJA110X_BSR                   0x1     /* Basic Status register */
+#define MII_TJA110X_EXT_CNTRL             0x11    /* Extra control register */
+#define MII_TJA110X_CONFIG1               0x12    /* CONFIG 1 register */
+#define MII_TJA110X_CONFIG2               0x13    /* CONFIG 2 register */
+
+/* MII_TJA110X_EXT_CNTRL */
+
+#define MII_EXT_CNTRL_LINK_CNTRL          (1   << 15)
+#define MII_EXT_CNTRL_POWER_MODE_SHIFT    (11)
+#define MII_EXT_CNTRL_POWER_MODE_MASK     (0xf << MII_EXT_CNTRL_POWER_MODE_SHIFT)
+#  define MII_EXT_CNTRL_NOCHANGE          (0x0 << MII_EXT_CNTRL_POWER_MODE_SHIFT)
+#  define MII_EXT_CNTRL_NORMAL            (0x3 << MII_EXT_CNTRL_POWER_MODE_SHIFT)
+#  define MII_EXT_CNTRL_STBY              (0xc << MII_EXT_CNTRL_POWER_MODE_SHIFT)
+#  define MII_EXT_CNTRL_SLEEP_REQ         (0xb << MII_EXT_CNTRL_POWER_MODE_SHIFT)
+#  define MII_EXT_CNTRL_PWR_MASK          (0xf << MII_EXT_CNTRL_POWER_MODE_SHIFT)
+#define MII_EXT_CNTRL_SLAVE_JITTER_TEST   (1 << 10)
+#define MII_EXT_CNTRL_TRAIN               (1 << 9)
+
+#define MII_EXT_CNTRL_TEST_SHIFT          (6)
+#define MII_EXT_CNTRL_TEST_MASK           (7 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST1             (1 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST2             (2 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST3             (3 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST4             (4 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST5             (5 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST6             (6 << MII_EXT_CNTRL_TEST_SHIFT)
+#  define MII_EXT_CNTRL_TEST7             (7 << MII_EXT_CNTRL_TEST_SHIFT)
+#define MII_EXT_CNTRL_CABLE_TST           (1 <<  5)
+#define MII_EXT_CNTRL_LOOPBACK_MODE_SHIFT (3)
+#define MII_EXT_CNTRL_LOOPBACK_MODE_MASK  (3 << MII_EXT_CNTRL_LOOPBACK_MODE_SHIFT)
+#define MII_EXT_CNTRL_INT_LPB             (0 << MII_EXT_CNTRL_LOOPBACK_MODE_SHIFT)
+#define MII_EXT_CNTRL_EXT1_LPB            (1 << MII_EXT_CNTRL_LOOPBACK_MODE_SHIFT)
+#define MII_EXT_CNTRL_EXT2_LPB            (2 << MII_EXT_CNTRL_LOOPBACK_MODE_SHIFT)
+#define MII_EXT_CNTRL_REM_LPB             (3 << MII_EXT_CNTRL_LOOPBACK_MODE_SHIFT)
+#define MII_EXT_CNTRL_CONFIG_EN           (1 <<  2)
+#define MII_EXT_CNTRL_CONFIG_INH          (1 <<  1)
+#define MII_EXT_CNTRL_WAKE_REQ            (1 <<  0)  /* transmit idle symbols as bus wake-up request */
+
+/* MII_TJA110X_CONFIG1 */
+
+#define MII_CONFIG1_MASTER                (1 << 15)
+#define MII_CONFIG1_AUTO_OP               (1 << 14)
+#define MII_CONFIG1_LINK_15M              (1 << 13)  /* cable length > 15 m */
+#define MII_CONFIG1_TX_AMPLITUDE_SHIFT    (10)
+#define MII_CONFIG1_TX_AMPLITUDE_MASK     (3 << MII_CONFIG1_TX_AMPLITUDE_SHIFT)
+#  define MII_CONFIG1_TX_500MV            (0 << MII_CONFIG1_TX_AMPLITUDE_SHIFT)
+#  define MII_CONFIG1_TX_750MV            (1 << MII_CONFIG1_TX_AMPLITUDE_SHIFT)
+#  define MII_CONFIG1_TX_1000MV           (2 << MII_CONFIG1_TX_AMPLITUDE_SHIFT)
+#  define MII_CONFIG1_TX_1250MV           (3 << MII_CONFIG1_TX_AMPLITUDE_SHIFT)
+#define MII_CONFIG1_MII_MODE_SHIFT        (8)
+#define MII_CONFIG1_MII_MODE_MASK         (3 << MII_CONFIG1_MII_MODE_SHIFT)
+#  define MII_CONFIG1_MII_MODE            (0 << MII_CONFIG1_MII_MODE_SHIFT)
+#  define MII_CONFIG1_RMII_50MHZ          (1 << MII_CONFIG1_MII_MODE_SHIFT)
+#  define MII_CONFIG1_RMII_25MHZ          (2 << MII_CONFIG1_MII_MODE_SHIFT)
+#  define MII_CONFIG1_REV_MII             (3 << MII_CONFIG1_MII_MODE_SHIFT)
+#define MII_CONFIG1_MII_DRV_RED           (1 << 7)  /* reduced strength MII output driver */
+#define MII_CONFIG1_LEDLINK_SHIFT         (4)
+#define MII_CONFIG1_LEDLINK_MASK          (3 << MII_CONFIG1_LEDLINK_SHIFT)
+#  define MII_CONFIG1_LEDLINK             (0 << MII_CONFIG1_LEDLINK_SHIFT)
+#  define MII_CONFIG1_LEDFRAME            (1 << MII_CONFIG1_LEDLINK_SHIFT)
+#  define MII_CONFIG1_LEDSYMERR           (2 << MII_CONFIG1_LEDLINK_SHIFT)
+#  define MII_CONFIG1_LEDCRS              (3 << MII_CONFIG1_LEDLINK_SHIFT)
+#define MII_CONFIG1_LED_EN                (1 <<  3)
+#define MII_CONFIG1_CNFG_WAKE             (1 <<  2)  /* ratiometric input threshold, absolute if zero */
+#define MII_CONFIG1_AUTO_PWD              (1 <<  1)  /* autonomous power-down enabled */
+
+/* MII_TJA110X_CONFIG2 */
+
+#define MII_CONFIG2_PHYAD_SHIFT           (11)  /* readback of scrambler key */
+#define MII_CONFIG2_PHYAD_MASK            (0x1f << MII_CONFIG2_PHYAD_SHIFT)
+#define MII_CONFIG2_SNR_SHIFT             (9)  /* signal to noise ratio averaging */
+#define MII_CONFIG2_SNR_MASK              (3 << MII_CONFIG2_SNR_SHIFT)
+#  define MII_CONFIG2_SNR_AV32            (0 <<  MII_CONFIG2_SNR_SHIFT)  /* signal to noise ratio averaging over  32 symbols */
+#  define MII_CONFIG2_SNR_AV64            (1 <<  MII_CONFIG2_SNR_SHIFT)  /* signal to noise ratio averaging over  64 symbols */
+#  define MII_CONFIG2_SNR_AV128           (2 <<  MII_CONFIG2_SNR_SHIFT)  /* signal to noise ratio averaging over 128 symbols */
+#  define MII_CONFIG2_SNR_AV256           (3 <<  MII_CONFIG2_SNR_SHIFT)  /* signal to noise ratio averaging over 256 symbols */
+#define MII_CONFIG2_WLIM_SHIFT            (6)  /* SQI warning limit */
+#define MII_CONFIG2_WLIM_MASK             (7 << MII_CONFIG2_WLIM_SHIFT)
+#  define MII_CONFIG2_WLIM_NO             (0 << MII_CONFIG2_WLIM_SHIFT)  /* no warning */
+#  define MII_CONFIG2_WLIM_A              (1 << MII_CONFIG2_WLIM_SHIFT)  /* Class A SNR warning limit */
+#  define MII_CONFIG2_WLIM_B              (2 << MII_CONFIG2_WLIM_SHIFT)  /* Class B SNR warning limit */
+#  define MII_CONFIG2_WLIM_C              (3 << MII_CONFIG2_WLIM_SHIFT)  /* Class C SNR warning limit */
+#  define MII_CONFIG2_WLIM_D              (4 << MII_CONFIG2_WLIM_SHIFT)  /* Class D SNR warning limit */
+#  define MII_CONFIG2_WLIM_E              (5 << MII_CONFIG2_WLIM_SHIFT)  /* Class E SNR warning limit */
+#  define MII_CONFIG2_WLIM_F              (6 << MII_CONFIG2_WLIM_SHIFT)  /* Class F SNR warning limit */
+#  define MII_CONFIG2_WLIM_G              (7 << MII_CONFIG2_WLIM_SHIFT)  /* Class G SNR warning limit */
+#define MII_CONFIG2_SNR_F_SHIFT           (3)  /* signal to noise ratio fail limit */
+#define MII_CONFIG2_SNR_F_MASK            (7 << MII_CONFIG2_SNR_F_SHIFT)
+#  define MII_CONFIG2_SNR_F_NL            (0 << MII_CONFIG2_SNR_F_SHIFT)  /* no limit */
+#  define MII_CONFIG2_SNR_F_CLA           (1 << MII_CONFIG2_SNR_F_SHIFT)  /* Class A */
+#  define MII_CONFIG2_SNR_F_CLB           (2 << MII_CONFIG2_SNR_F_SHIFT)  /* Class B */
+#  define MII_CONFIG2_SNR_F_CLC           (3 << MII_CONFIG2_SNR_F_SHIFT)  /* Class C */
+#  define MII_CONFIG2_SNR_F_CLD           (4 << MII_CONFIG2_SNR_F_SHIFT)  /* Class D */
+#  define MII_CONFIG2_SNR_F_CLE           (5 << MII_CONFIG2_SNR_F_SHIFT)  /* Class E */
+#  define MII_CONFIG2_SNR_F_CLF           (6 << MII_CONFIG2_SNR_F_SHIFT)  /* Class F */
+#  define MII_CONFIG2_SNR_F_CLG           (7 << MII_CONFIG2_SNR_F_SHIFT)  /* Class G */
+#define MII_CONFIG2_JUMBO_EN              (1 << 2)  /* enable packets up to 16 kB instead of 4 kB */
+#define MII_CONFIG2_SLP_T_SHIFT           (0)  /* sleep request timeout */
+#define MII_CONFIG2_SLP_T_MASK            (3 << MII_CONFIG2_SLP_T_SHIFT)
+#  define MII_CONFIG2_SLP_T_04            (0 << MII_CONFIG2_SLP_T_SHIFT)  /* sleep request timeout 0.4 ms */
+#  define MII_CONFIG2_SLP_T_1             (1 << MII_CONFIG2_SLP_T_SHIFT)  /* sleep request timeout 1 ms */
+#  define MII_CONFIG2_SLP_T_4             (2 << MII_CONFIG2_SLP_T_SHIFT)  /* sleep request timeout 4 ms */
+#  define MII_CONFIG2_SLP_T_16            (3 << MII_CONFIG2_SLP_T_SHIFT)  /* sleep request timeout 16 ms */
 
 /****************************************************************************
  * Type Definitions

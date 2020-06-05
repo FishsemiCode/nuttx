@@ -45,7 +45,7 @@
 #include <nuttx/arch.h>
 #include <arch/board/board.h>
 
-#include "chip/chip.h"
+#include "chip.h"
 #include "clock/clock.h"
 #include "up_internal.h"
 
@@ -95,7 +95,7 @@ static int z16f_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  z16_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -103,7 +103,7 @@ static int z16f_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void z16_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t reload;
   uint32_t scaledfreq;
@@ -148,7 +148,7 @@ void z16_timer_initialize(void)
    *  scaledfreq   = 20,000,000 / 100
    *               = 200,000
    *  divisor      = ((18,432,000 / 100) >> 16) + 1
-   *               = 3 -> 4 (need to to up to next power of two)
+   *               = 3 -> 4 (need to go up to next power of two)
    *  reload_value = 20,000,000 / 100 / 4
    *               = 56,080
    */

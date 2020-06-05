@@ -58,6 +58,12 @@
 # define getreg32(a)          (*(volatile uint32_t *)(a))
 # define putreg32(v,a)        (*(volatile uint32_t *)(a) = (v))
 
+/* Non-atomic, but more effective modification of registers */
+
+# define modreg8(v,m,a)       putreg8((getreg8(a) & ~(m)) | ((v) & (m)), a)
+# define modreg16(v,m,a)      putreg16((getreg16(a) & ~(m)) | ((v) & (m)), a)
+# define modreg32(v,m,a)      putreg32((getreg32(a) & ~(m)) | ((v) & (m)), a)
+
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
@@ -83,4 +89,4 @@ void modifyreg32(unsigned int addr, uint32_t clearbits, uint32_t setbits);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* ___ARCH_ARM_SRC_COMMON_UP_ARCH_H */
+#endif /* ___ARCH_ARM_SRC_COMMON_UP_ARCH_H */

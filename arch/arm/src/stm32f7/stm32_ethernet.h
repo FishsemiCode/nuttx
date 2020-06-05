@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 
-#include "chip/stm32_ethernet.h"
+#include "hardware/stm32_ethernet.h"
 
 #if STM32F7_NETHERNET > 0
 #ifndef __ASSEMBLY__
@@ -115,4 +115,3 @@ int stm32_phy_boardinitialize(int intf);
 #endif /* __ASSEMBLY__ */
 #endif /* STM32F7_NETHERNET > 0 */
 #endif /* __ARCH_ARM_SRC_STM32F7_STM32_ETHERNET_H */
-

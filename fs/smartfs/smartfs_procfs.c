@@ -74,6 +74,7 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
 /* This enumeration identifies all of the thread attributes that can be
  * accessed via the procfs file system.
  */
@@ -524,7 +525,7 @@ static int smartfs_dup(FAR const struct file *oldp, FAR struct file *newp)
       return -ENOMEM;
     }
 
-  /* The copy the file attribtes from the old attributes to the new */
+  /* The copy the file attribute from the old attributes to the new */
 
   memcpy(newpriv, oldpriv, sizeof(struct smartfs_file_s));
 
@@ -826,9 +827,11 @@ static size_t smartfs_status_read(FAR struct file *filep, FAR char *buffer,
             }
           else
             {
-              utilization = 100 * (procfs_data.blockerases * procfs_data.sectorsperblk -
-                procfs_data.unusedsectors) / (procfs_data.blockerases *
-                procfs_data.sectorsperblk);
+              utilization = 100 * (procfs_data.blockerases *
+                            procfs_data.sectorsperblk -
+                            procfs_data.unusedsectors) /
+                            (procfs_data.blockerases *
+                            procfs_data.sectorsperblk);
             }
 
           /* Format and return data in the buffer */
@@ -857,7 +860,7 @@ static size_t smartfs_status_read(FAR struct file *filep, FAR char *buffer,
 
       /* Indicate we have already provided all the data */
 
-      priv->offset = 0xFF;
+      priv->offset = 0xff;
     }
 
   return len;
@@ -921,7 +924,7 @@ static size_t   smartfs_mem_read(FAR struct file *filep, FAR char *buffer,
 
       /* Indicate we have done the read */
 
-      priv->offset = 0xFF;
+      priv->offset = 0xff;
     }
 
   return len;
@@ -995,8 +998,11 @@ static size_t   smartfs_erasemap_read(FAR struct file *filep, FAR char *buffer,
                   priv->offset++;
 
                   if (len >= buflen)
-                    return len;
+                    {
+                      return len;
+                    }
                 }
+
               copylen++;
             }
 
@@ -1007,7 +1013,9 @@ static size_t   smartfs_erasemap_read(FAR struct file *filep, FAR char *buffer,
               buffer[len++] = '\n';
               priv->offset++;
               if (len >= buflen)
-                return len;
+                {
+                  return len;
+                }
             }
 
           /* Terminate the string */

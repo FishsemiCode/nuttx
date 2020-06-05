@@ -44,8 +44,8 @@
 #include "pgalloc.h"
 #include "up_internal.h"
 
-#if ((defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
-      defined(CONFIG_BUILD_KERNEL)) && !defined(CONFIG_DISABLE_SIGNALS)
+#if (defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
+     defined(CONFIG_BUILD_KERNEL)
 
 /****************************************************************************
  * Public Functions
@@ -61,9 +61,9 @@
  *   This kernel-mode stub will then be called transfer control to the user
  *   mode signal handler by calling this function.
  *
- *   Normally the a user-mode signalling handling stub will also execute
+ *   Normally the user-mode signalling handling stub will also execute
  *   before the ultimate signal handler is called.  See
- *   arch/arm/src/armv[6\7]/up_signal_handler.  This function is the
+ *   arch/arm/src/armv7-a/crt0.c.  This function is the
  *   user-space, signal handler trampoline function.  It is called from
  *   up_signal_dispatch() in user-mode.
  *
@@ -93,8 +93,8 @@ void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
     {
       /* Yes.. Let sys_call4() do all of the work to get us into user space */
 
-      (void)sys_call4(SYS_signal_handler, (uintptr_t)sighand, (uintptr_t)signo,
-                      (uintptr_t)info, (uintptr_t)ucontext);
+      sys_call4(SYS_signal_handler, (uintptr_t)sighand, (uintptr_t)signo,
+                (uintptr_t)info, (uintptr_t)ucontext);
     }
   else
     {
@@ -104,4 +104,4 @@ void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
     }
 }
 
-#endif /* (CONFIG_BUILD_PROTECTED || CONFIG_BUILD_KERNEL) && !CONFIG_DISABLE_SIGNALS */
+#endif /* CONFIG_BUILD_PROTECTED || CONFIG_BUILD_KERNEL */

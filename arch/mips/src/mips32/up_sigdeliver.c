@@ -53,8 +53,6 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#ifndef CONFIG_DISABLE_SIGNALS
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -110,7 +108,7 @@ void up_sigdeliver(void)
 
   sinfo("Resuming EPC: %08x STATUS: %08x\n", regs[REG_EPC], regs[REG_STATUS]);
 
-  (void)up_irq_save();
+  up_irq_save();
   rtcb->pterrno        = saved_errno;
 
   /* Modify the saved return state with the actual saved values in the
@@ -140,6 +138,3 @@ void up_sigdeliver(void)
 
   DEBUGPANIC();
 }
-
-#endif /* !CONFIG_DISABLE_SIGNALS */
-

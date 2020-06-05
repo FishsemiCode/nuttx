@@ -53,7 +53,7 @@ ASARCHCPUFLAGS += -march=RV32IMXcustom
 
 # Specify C code within the common directory to be included
 CMN_CSRCS  += up_initialize.c up_swint.c
-CMN_CSRCS  += up_allocateheap.c up_createstack.c up_dumpstate.c up_exit.c up_idle.c
+CMN_CSRCS  += up_allocateheap.c up_createstack.c up_exit.c up_idle.c
 CMN_CSRCS  += up_assert.c up_blocktask.c up_copystate.c up_initialstate.c
 CMN_CSRCS  += up_interruptcontext.c up_releasepending.c up_reprioritizertr.c
 CMN_CSRCS  += up_releasestack.c up_stackframe.c up_schedulesigaction.c up_sigdeliver.c
@@ -71,4 +71,3 @@ CHIP_CSRCS += nr5_timerisr.c nr5_irq.c nr5_irq_dispatch.c
 ifeq ($(CONFIG_TIMER),y)
 CHIP_CSRCS += nr5_tim_lowerhalf.c
 endif
-

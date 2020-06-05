@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -63,7 +62,7 @@
 #include "up_internal.h"
 
 #include "chip.h"
-#include "chip/nuc_uart.h"
+#include "hardware/nuc_uart.h"
 #include "nuc_lowputc.h"
 #include "nuc_serial.h"
 
@@ -151,7 +150,7 @@ static char g_uart2rxbuffer[CONFIG_UART2_RXBUFSIZE];
 static char g_uart2txbuffer[CONFIG_UART2_TXBUFSIZE];
 #endif
 
-/* This describes the state of the LPC17xx uart0 port. */
+/* This describes the state of the NUC1xx uart0 port. */
 
 #ifdef CONFIG_NUC_UART0
 static struct nuc_dev_s g_uart0priv =
@@ -182,7 +181,7 @@ static uart_dev_t g_uart0port =
 };
 #endif /* CONFIG_NUC_UART0 */
 
-/* This describes the state of the LPC17xx uart1 port. */
+/* This describes the state of the NUC1xx uart1 port. */
 
 #ifdef CONFIG_NUC_UART1
 static struct nuc_dev_s g_uart1priv =
@@ -213,7 +212,7 @@ static uart_dev_t g_uart1port =
 };
 #endif /* CONFIG_NUC_UART1 */
 
-/* This describes the state of the LPC17xx uart1 port. */
+/* This describes the state of the NUC1xx uart1 port. */
 
 #ifdef CONFIG_NUC_UART2
 static struct nuc_dev_s g_uart2priv =
@@ -372,7 +371,7 @@ static inline void up_restoreuartint(struct nuc_dev_s *priv, uint32_t ier)
 {
   uint32_t setbits = ier & UART_IER_ALLIE;
   uint32_t clrbits = (~ier) & UART_IER_ALLIE;
-  (void)up_setier(priv, clrbits, setbits);
+  up_setier(priv, clrbits, setbits);
 }
 
 /****************************************************************************
@@ -397,7 +396,7 @@ static void up_rxto_disable(struct nuc_dev_s *priv)
 
   /* Disable the RX timeout interrupt and disable the timeout */
 
-  (void)up_setier(priv, (UART_IER_RTO_IEN | UART_IER_TIME_OUT_EN), 0);
+  up_setier(priv, (UART_IER_RTO_IEN | UART_IER_TIME_OUT_EN), 0);
 }
 
 /****************************************************************************
@@ -430,7 +429,7 @@ static void up_rxto_enable(struct nuc_dev_s *priv)
 
   /* Enable the RX timeout interrupt and enable the timeout */
 
-  (void)up_setier(priv, 0, (UART_IER_RTO_IEN | UART_IER_TIME_OUT_EN));
+  up_setier(priv, 0, (UART_IER_RTO_IEN | UART_IER_TIME_OUT_EN));
 }
 
 /****************************************************************************
@@ -663,11 +662,11 @@ static int up_interrupt(int irq, void *context,  void *arg)
            * We need to read from the RBR to clear the interrupt.
            */
 
-          (void)up_serialin(priv, NUC_UART_RBR_OFFSET);
+          up_serialin(priv, NUC_UART_RBR_OFFSET);
 
           /* Disable, further RX timeout interrupts and set the RX FIFO
            * threshold so that an interrupt will be generated when the
-           * very next byte is recieved.
+           * very next byte is received.
            */
 
           up_rxto_disable(priv);
@@ -681,8 +680,8 @@ static int up_interrupt(int irq, void *context,  void *arg)
         {
           /* We are receiving data and the RX timeout is not enabled.
            * Set the RX FIFO threshold so that RX interrupts will only be
-           * generated after several bytes have been recevied and enable
-           * the RX timout.
+           * generated after several bytes have been received and enable
+           * the RX timeout.
            */
 
           up_rxto_enable(priv);
@@ -712,7 +711,7 @@ static int up_interrupt(int irq, void *context,  void *arg)
       if ((isr & UART_ISR_RLS_INT) != 0 ||
           (isr & UART_ISR_BUF_ERR_INT) != 0)
         {
-          /* Both errors are cleared by reseting the RX FIFO */
+          /* Both errors are cleared by resetting the RX FIFO */
 
           regval = up_serialin(priv, NUC_UART_FCR_OFFSET);
           up_serialout(priv, NUC_UART_FCR_OFFSET, regval | UART_FCR_RFR);
@@ -857,9 +856,9 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
       /* Enable receive data, line status and buffer error interrupts */
 
       irqstate_t flags = enter_critical_section();
-      (void)up_setier(priv, 0,
-                      (UART_IER_RDA_IEN | UART_IER_RLS_IEN |
-                       UART_IER_BUF_ERR_IEN));
+      up_setier(priv, 0,
+                (UART_IER_RDA_IEN | UART_IER_RLS_IEN |
+                UART_IER_BUF_ERR_IEN));
 
       /* Enable or disable timeouts based on the state of RX FIFO */
 
@@ -867,7 +866,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
         {
           /* The FIFO is empty.  Disable RX timeout interrupts and set the
            * RX FIFO threshold so that an interrupt will be generated when
-           * the very next byte is recieved.
+           * the very next byte is received.
            */
 
           up_rxto_disable(priv);
@@ -875,8 +874,8 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
       else
         {
           /* Otherwise, set the RX FIFO threshold so that RX interrupts will
-           * only be generated after several bytes have been recevied and
-           * enable* the RX timout.
+           * only be generated after several bytes have been received and
+           * enable* the RX timeout.
            */
 
           up_rxto_enable(priv);
@@ -891,9 +890,9 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
        * interrupts.  Also disables the RX timer.
        */
 
-      (void)up_setier(priv, 0,
-                      (UART_IER_RDA_IEN | UART_IER_RLS_IEN | UART_IER_RTO_IEN |
-                       UART_IER_BUF_ERR_IEN | UART_IER_TIME_OUT_EN));
+      up_setier(priv, 0,
+                (UART_IER_RDA_IEN | UART_IER_RLS_IEN | UART_IER_RTO_IEN |
+                UART_IER_BUF_ERR_IEN | UART_IER_TIME_OUT_EN));
     }
 }
 
@@ -943,7 +942,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
       /* Enable the THR empty interrupt */
 
       irqstate_t flags = enter_critical_section();
-      (void)up_setier(priv, 0, UART_IER_THRE_IEN);
+      up_setier(priv, 0, UART_IER_THRE_IEN);
 
       /* Fake a TX interrupt here by just calling uart_xmitchars() with
        * interrupts disabled (note this may recurse).
@@ -957,7 +956,7 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
     {
       /* Disable the THR empty interrupt */
 
-      (void)up_setier(priv, UART_IER_THRE_IEN, 0);
+      up_setier(priv, UART_IER_THRE_IEN, 0);
     }
 }
 
@@ -995,11 +994,13 @@ static bool up_txempty(struct uart_dev_s *dev)
 }
 
 /****************************************************************************
- * Public Funtions
+ * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
- * Name: up_serialinit
+ * Name: up_earlyserialinit
  *
  * Description:
  *   Performs the low level UART initialization early in debug so that the
@@ -1020,6 +1021,7 @@ void up_earlyserialinit(void)
   up_setup(&CONSOLE_DEV);
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: up_serialinit
@@ -1033,16 +1035,16 @@ void up_earlyserialinit(void)
 void up_serialinit(void)
 {
 #ifdef CONSOLE_DEV
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 #ifdef TTYS0_DEV
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #endif
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
+  uart_register("/dev/ttyS2", &TTYS2_DEV);
 #endif
 }
 

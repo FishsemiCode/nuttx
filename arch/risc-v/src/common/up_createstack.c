@@ -68,8 +68,8 @@
  * addresses.
  */
 
-#ifdef CONFIG_LIBC_FLOATINGPOINT
-#  define CONFIG_STACK_ALIGNMENT   8
+#if defined(CONFIG_LIBC_FLOATINGPOINT) || defined (CONFIG_ARCH_RV64GC)
+#  define STACK_ALIGNMENT   8
 #else
 #  define CONFIG_STACK_ALIGNMENT   4
 #endif
@@ -230,7 +230,7 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
        * on the stack are referenced as positive word offsets from sp.
        */
 
-      top_of_stack = (uint32_t)tcb->stack_alloc_ptr + stack_size - 4;
+      top_of_stack = (uintptr_t)tcb->stack_alloc_ptr + stack_size - 4;
 
       /* The RISC-V stack must be aligned to 8-byte alignment for EABI.
        * If necessary top_of_stack must be rounded down to the next
@@ -245,11 +245,11 @@ int up_create_stack(FAR struct tcb_s *tcb, size_t stack_size, uint8_t ttype)
        * The size need not be aligned.
        */
 
-      size_of_stack = top_of_stack - (uint32_t)tcb->stack_alloc_ptr + 4;
+      size_of_stack = top_of_stack - (uintptr_t)tcb->stack_alloc_ptr + 4;
 
       /* Save the adjusted stack values in the struct tcb_s */
 
-      tcb->adj_stack_ptr  = (uint32_t *)top_of_stack;
+      tcb->adj_stack_ptr  = (FAR uint32_t *)top_of_stack;
       tcb->adj_stack_size = size_of_stack;
 
 #ifdef CONFIG_TLS

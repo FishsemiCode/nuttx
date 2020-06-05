@@ -49,9 +49,9 @@
 #if defined(CONFIG_STM32_STM32F30XX)
 #  error "COMP support for STM32F30XX not implemented yet"
 #elif defined(CONFIG_STM32_STM32F33XX)
-#  include "chip/stm32f33xxx_comp.h"
+#  include "hardware/stm32f33xxx_comp.h"
 #elif defined(CONFIG_STM32_STM32F37XX)
-#  error "COMP support for STM32F37XX ot implemented yet"
+#  error "COMP support for STM32F37XX not implemented yet"
 #endif
 
 /************************************************************************************
@@ -197,7 +197,7 @@ extern "C"
 *   intf - The COMP interface number.
 *
 * Returned Value:
-*   Valid COMP device structure reference on succcess; a NULL on failure.
+*   Valid COMP device structure reference on success; a NULL on failure.
 *
 * Assumptions:
 *   1. Clock to the COMP block has enabled,

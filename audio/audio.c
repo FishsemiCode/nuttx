@@ -46,7 +46,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
+#include <mqueue.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
@@ -57,7 +57,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/audio/audio.h>
-#include <mqueue.h>
+#include <nuttx/semaphore.h>
 
 #include <arch/irq.h>
 
@@ -122,11 +122,9 @@ static const struct file_operations g_audioops =
   audio_close, /* close */
   audio_read,  /* read */
   audio_write, /* write */
-  0,           /* seek */
-  audio_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0          /* poll */
-#endif
+  NULL,        /* seek */
+  audio_ioctl, /* ioctl */
+  NULL         /* poll */
 };
 
 /****************************************************************************
@@ -470,7 +468,7 @@ static int audio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
             }
         }
         break;
-#endif  /* CONFIG_AUDIO_EXCLUDE_STOP */
+#endif /* CONFIG_AUDIO_EXCLUDE_STOP */
 
       /* AUDIOIOC_PAUSE - Pause the audio stream.
        *
@@ -518,7 +516,7 @@ static int audio_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
         }
         break;
 
-#endif  /* CONFIG_AUDIO_EXCLUDE_PAUSE_RESUME */
+#endif /* CONFIG_AUDIO_EXCLUDE_PAUSE_RESUME */
 
       /* AUDIOIOC_ALLOCBUFFER - Allocate an audio buffer
        *
@@ -722,8 +720,8 @@ static inline void audio_dequeuebuffer(FAR struct audio_upperhalf_s *upper,
       msg.session = session;
 #endif
       apb->flags |= AUDIO_APB_DEQUEUED;
-      (void)nxmq_send(upper->usermq, (FAR const char *)&msg, sizeof(msg),
-                      CONFIG_AUDIO_BUFFER_DEQUEUE_PRIO);
+      nxmq_send(upper->usermq, (FAR const char *)&msg, sizeof(msg),
+                CONFIG_AUDIO_BUFFER_DEQUEUE_PRIO);
     }
 }
 
@@ -760,8 +758,8 @@ static inline void audio_complete(FAR struct audio_upperhalf_s *upper,
 #ifdef CONFIG_AUDIO_MULTI_SESSION
       msg.session = session;
 #endif
-      (void)nxmq_send(upper->usermq, (FAR const char *)&msg, sizeof(msg),
-                      CONFIG_AUDIO_BUFFER_DEQUEUE_PRIO);
+      nxmq_send(upper->usermq, (FAR const char *)&msg, sizeof(msg),
+                CONFIG_AUDIO_BUFFER_DEQUEUE_PRIO);
     }
 }
 
@@ -770,7 +768,7 @@ static inline void audio_complete(FAR struct audio_upperhalf_s *upper,
  *
  * Description:
  *   Send an custom message to the client to indicate that the
- *   active message has deliveried.  The lower-half driver initiates this
+ *   active message has delivered.  The lower-half driver initiates this
  *   call via its callback pointer to our upper-half driver.
  *
  ****************************************************************************/
@@ -793,8 +791,8 @@ static inline void audio_message(FAR struct audio_upperhalf_s *upper,
 #ifdef CONFIG_AUDIO_MULTI_SESSION
       msg.session = session;
 #endif
-      (void)nxmq_send(upper->usermq, (FAR const char *)msg, sizeof(*msg),
-                      CONFIG_AUDIO_BUFFER_DEQUEUE_PRIO);
+      nxmq_send(upper->usermq, (FAR const char *)msg, sizeof(*msg),
+                CONFIG_AUDIO_BUFFER_DEQUEUE_PRIO);
     }
 }
 
@@ -871,7 +869,6 @@ static void audio_callback(FAR void *handle, uint16_t reason,
 
       case AUDIO_CALLBACK_MESSAGE:
         {
-
 #ifdef CONFIG_AUDIO_MULTI_SESSION
           audio_message(upper, apb, status, session);
 #else

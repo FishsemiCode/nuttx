@@ -473,7 +473,7 @@ int up_rtc_getdatetime(FAR struct tm *tp)
    *   tm_min    0-59  MIN    (0-59)
    *   tm_hour   0-23  HOUR   (0-23)
    *
-   *  *To allow for leap seconds.  But these never actuall happen.
+   *  *To allow for leap seconds.  But these never actually happen.
    */
 
   tmp = (timr & RTC_TIMR_SEC_MASK) >> RTC_TIMR_SEC_SHIFT;
@@ -540,7 +540,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
 
   /* Break out the time values (note that the time is set only to units of seconds) */
 
-  (void)gmtime_r(&tp->tv_sec, &newtime);
+  gmtime_r(&tp->tv_sec, &newtime);
   rtc_dumptime(&newtime, "Setting time");
 
   /* Then write the broken out values to the RTC */
@@ -552,7 +552,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
    *   tm_min    0-59  MIN    (0-59)
    *   tm_hour   0-23  HOUR   (0-23)
    *
-   *  *To allow for leap seconds.  But these never actuall happen.
+   *  *To allow for leap seconds.  But these never actually happen.
    */
 
   timr  = (rtc_bin2bcd(newtime.tm_sec)  << RTC_TIMR_SEC_SHIFT)  & RTC_TIMR_SEC_MASK;
@@ -666,7 +666,7 @@ int sam_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
        * of seconds)
        */
 
-      (void)gmtime_r(&tp->tv_sec, &newalarm);
+      gmtime_r(&tp->tv_sec, &newalarm);
       rtc_dumptime(&newalarm, "Setting alarm");
 
       /* Then write the broken out values to the RTC */
@@ -678,7 +678,7 @@ int sam_rtc_setalarm(FAR const struct timespec *tp, alarmcb_t callback)
        *   tm_min    0-59  MIN    (0-59)
        *   tm_hour   0-23  HOUR   (0-23)
        *
-       *  *To allow for leap seconds.  But these never actuall happen.
+       *  *To allow for leap seconds.  But these never actually happen.
        */
 
       timalr  = (rtc_bin2bcd(newalarm.tm_sec)  << RTC_TIMALR_SEC_SHIFT)  & RTC_TIMALR_SEC_MASK;

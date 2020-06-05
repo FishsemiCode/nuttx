@@ -53,9 +53,11 @@
 #include <nuttx/irq.h>
 #include <nuttx/wdog.h>
 #include <nuttx/wqueue.h>
+#include <nuttx/signal.h>
 #include <nuttx/net/mii.h>
 #include <nuttx/net/arp.h>
 #include <nuttx/net/netdev.h>
+#include <crc64.h>
 
 #if defined(CONFIG_NET_PKT)
 #  include <nuttx/net/pkt.h>
@@ -64,11 +66,12 @@
 #include "up_internal.h"
 #include "barriers.h"
 
-#include "chip/stm32_syscfg.h"
-#include "chip/stm32_pinmap.h"
+#include "hardware/stm32_syscfg.h"
+#include "hardware/stm32_pinmap.h"
 #include "stm32_gpio.h"
 #include "stm32_rcc.h"
 #include "stm32_ethernet.h"
+#include "stm32_uid.h"
 
 #include <arch/board/board.h>
 
@@ -88,8 +91,9 @@
 #define MEMORY_SYNC() do { ARM_DSB(); ARM_ISB(); } while (0)
 
 /* Configuration ************************************************************/
-/* See configs/stm3240g-eval/README.txt for an explanation of the configuration
- * settings.
+
+/* See boards/arm/stm32/stm3240g-eval/README.txt for an explanation of the
+ * configuration settings.
  */
 
 #if STM32F7_NETHERNET > 1
@@ -232,7 +236,7 @@
 
 #define STM32_ETH_NFREEBUFFERS (CONFIG_STM32F7_ETH_NTXDESC+1)
 
-/* Buffers use fro DMA access must begin on an address aligned with the
+/* Buffers use for DMA access must begin on an address aligned with the
  * D-Cache line and must be an even multiple of the D-Cache line size.
  * These size/alignment requirements are necessary so that D-Cache flush
  * and invalidate operations will not have any additional effects.
@@ -275,6 +279,7 @@
 #endif
 
 /* Clocking *****************************************************************/
+
 /* Set MACMIIAR CR bits depending on HCLK setting */
 
 #if STM32_HCLK_FREQUENCY >= 20000000 && STM32_HCLK_FREQUENCY < 35000000
@@ -292,6 +297,7 @@
 #endif
 
 /* Timing *******************************************************************/
+
 /* TX poll delay = 1 seconds. CLK_TCK is the number of clock ticks per
  * second
  */
@@ -311,7 +317,11 @@
 
 #define PHY_READ_TIMEOUT  (0x0004ffff)
 #define PHY_WRITE_TIMEOUT (0x0004ffff)
-#define PHY_RETRY_TIMEOUT (0x0004ffff)
+#define PHY_RETRY_TIMEOUT (0x00000ccc)
+
+/* MAC reset ready delays in loop counts */
+
+#define MAC_READY_USTIMEOUT (100)
 
 /* Register values **********************************************************/
 
@@ -549,6 +559,7 @@
 #endif
 
 /* Interrupt bit sets *******************************************************/
+
 /* All interrupts in the normal and abnormal interrupt summary.  Early transmit
  * interrupt (ETI) is excluded from the abnormal set because it causes too
  * many interrupts and is not interesting.
@@ -575,6 +586,7 @@
 #endif
 
 /* Helpers ******************************************************************/
+
 /* This is a helper pointer for accessing the contents of the Ethernet
  * header
  */
@@ -584,6 +596,7 @@
 /****************************************************************************
  * Private Types
  ****************************************************************************/
+
 /* This union type forces the allocated size of RX descriptors to be the
  * padded to a exact multiple of the Cortex-M7 D-Cache line size.
  */
@@ -668,6 +681,7 @@ static struct stm32_ethmac_s g_stm32ethmac[STM32F7_NETHERNET];
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* Register operations ******************************************************/
 
 #ifdef CONFIG_STM32F7_ETHMAC_REGDEBUG
@@ -779,6 +793,7 @@ static int  stm32_ethconfig(struct stm32_ethmac_s *priv);
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: stm32_getreg
  *
@@ -833,7 +848,7 @@ static uint32_t stm32_getreg(uint32_t addr)
         {
           /* Yes.. then show how many times the value repeated */
 
-          ninfo("[repeats %d more times]\n", count-3);
+          ninfo("[repeats %d more times]\n", count - 3);
         }
 
       /* Save the new address, value, and count */
@@ -986,7 +1001,7 @@ static inline uint8_t *stm32_allocbuffer(struct stm32_ethmac_s *priv)
 
 static inline void stm32_freebuffer(struct stm32_ethmac_s *priv, uint8_t *buffer)
 {
-  /* Free the buffer by adding it to to the end of the free buffer list */
+  /* Free the buffer by adding it to the end of the free buffer list */
 
   sq_addlast((sq_entry_t *)buffer, &priv->freeb);
 }
@@ -1079,7 +1094,7 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
     {
       /* Yes... how many buffers will be need to send the packet? */
 
-      bufcount = (priv->dev.d_len + (ALIGNED_BUFSIZE-1)) / ALIGNED_BUFSIZE;
+      bufcount = (priv->dev.d_len + (ALIGNED_BUFSIZE - 1)) / ALIGNED_BUFSIZE;
       lastsize = priv->dev.d_len - (bufcount - 1) * ALIGNED_BUFSIZE;
 
       ninfo("bufcount: %d lastsize: %d\n", bufcount, lastsize);
@@ -1104,7 +1119,7 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
 
           /* Set the buffer size in all TX descriptors */
 
-          if (i == (bufcount-1))
+          if (i == (bufcount - 1))
             {
               /* This is the last segment.  Set the last segment bit in the
                * last TX descriptor and ask for an interrupt when this
@@ -1113,7 +1128,7 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
 
               txdesc->tdes0 |= (ETH_TDES0_LS | ETH_TDES0_IC);
 
-              /* This segement is, most likely, of fractional buffersize */
+              /* This segment is, most likely, of fractional buffersize */
 
               txdesc->tdes1  = lastsize;
               buffer        += lastsize;
@@ -1243,7 +1258,7 @@ static int stm32_transmit(struct stm32_ethmac_s *priv)
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->txtimeout, STM32_TXTIMEOUT, stm32_txtimeout_expiry, 1, (uint32_t)priv);
+  wd_start(priv->txtimeout, STM32_TXTIMEOUT, stm32_txtimeout_expiry, 1, (uint32_t)priv);
   return OK;
 }
 
@@ -1407,7 +1422,7 @@ static void stm32_dopoll(struct stm32_ethmac_s *priv)
 
       if (dev->d_buf)
         {
-          (void)devif_poll(dev, stm32_txpoll);
+          devif_poll(dev, stm32_txpoll);
 
           /* We will, most likely end up with a buffer to be freed.  But it
            * might not be the same one that we allocated above.
@@ -1790,6 +1805,16 @@ static void stm32_receive(struct stm32_ethmac_s *priv)
       if (dev->d_len > CONFIG_NET_ETH_PKTSIZE)
         {
           nwarn("WARNING: DROPPED Too big: %d\n", dev->d_len);
+
+          /* Free dropped packet buffer */
+
+          if (dev->d_buf)
+            {
+              stm32_freebuffer(priv, dev->d_buf);
+              dev->d_buf = NULL;
+              dev->d_len = 0;
+            }
+
           continue;
         }
 
@@ -1838,7 +1863,7 @@ static void stm32_receive(struct stm32_ethmac_s *priv)
 #ifdef CONFIG_NET_IPv6
       if (BUF->type == HTONS(ETHTYPE_IP6))
         {
-          ninfo("Iv6 frame\n");
+          ninfo("IPv6 frame\n");
 
           /* Give the IPv6 packet to the network layer */
 
@@ -2355,7 +2380,7 @@ static void stm32_poll_work(void *arg)
           /* Update TCP timing states and poll the network for new XMIT data.
            */
 
-          (void)devif_timer(dev, stm32_txpoll);
+          devif_timer(dev, STM32_WDDELAY, stm32_txpoll);
 
           /* We will, most likely end up with a buffer to be freed.  But it
            * might not be the same one that we allocated above.
@@ -2372,7 +2397,7 @@ static void stm32_poll_work(void *arg)
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->txpoll, STM32_WDDELAY, stm32_poll_expiry, 1, priv);
+  wd_start(priv->txpoll, STM32_WDDELAY, stm32_poll_expiry, 1, priv);
   net_unlock();
 }
 
@@ -2406,7 +2431,7 @@ static void stm32_poll_expiry(int argc, uint32_t arg, ...)
     }
   else
     {
-      (void)wd_start(priv->txpoll, STM32_WDDELAY, stm32_poll_expiry, 1, priv);
+      wd_start(priv->txpoll, STM32_WDDELAY, stm32_poll_expiry, 1, priv);
     }
 }
 
@@ -2454,7 +2479,7 @@ static int stm32_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->txpoll, STM32_WDDELAY, stm32_poll_expiry, 1, (uint32_t)priv);
+  wd_start(priv->txpoll, STM32_WDDELAY, stm32_poll_expiry, 1, (uint32_t)priv);
 
   /* Enable the Ethernet interrupt */
 
@@ -2617,6 +2642,7 @@ static uint32_t stm32_calcethcrc(const uint8_t *data, size_t length)
           if (((crc >> 31) ^ (data[i] >> j)) & 0x01)
             {
               /* x^26+x^23+x^22+x^16+x^12+x^11+x^10+x^8+x^7+x^5+x^4+x^2+x+1 */
+
               crc = (crc << 1) ^ 0x04c11db7;
             }
           else
@@ -2663,7 +2689,7 @@ static int stm32_addmac(struct net_driver_s *dev, const uint8_t *mac)
 
   crc = stm32_calcethcrc(mac, 6);
 
-  hashindex = (crc >> 26) & 0x3F;
+  hashindex = (crc >> 26) & 0x3f;
 
   if (hashindex > 31)
     {
@@ -2720,7 +2746,7 @@ static int stm32_rmmac(struct net_driver_s *dev, const uint8_t *mac)
 
   crc = stm32_calcethcrc(mac, 6);
 
-  hashindex = (crc >> 26) & 0x3F;
+  hashindex = (crc >> 26) & 0x3f;
 
   if (hashindex > 31)
     {
@@ -2786,8 +2812,8 @@ static void stm32_txdescinit(struct stm32_ethmac_s *priv,
    * transfers.
    */
 
-   priv->txtail   = NULL;
-   priv->inflight = 0;
+  priv->txtail   = NULL;
+  priv->inflight = 0;
 
   /* Initialize each TX descriptor */
 
@@ -2813,13 +2839,13 @@ static void stm32_txdescinit(struct stm32_ethmac_s *priv,
 
       /* Initialize the next descriptor with the Next Descriptor Polling Enable */
 
-      if (i < (CONFIG_STM32F7_ETH_NTXDESC-1))
+      if (i < (CONFIG_STM32F7_ETH_NTXDESC - 1))
         {
           /* Set next descriptor address register with next descriptor base
            * address
            */
 
-          txdesc->tdes3 = (uint32_t)&txtable[i+1].txdesc;
+          txdesc->tdes3 = (uint32_t)&txtable[i + 1].txdesc;
         }
       else
         {
@@ -2903,13 +2929,13 @@ static void stm32_rxdescinit(struct stm32_ethmac_s *priv,
 
       /* Initialize the next descriptor with the Next Descriptor Polling Enable */
 
-      if (i < (CONFIG_STM32F7_ETH_NRXDESC-1))
+      if (i < (CONFIG_STM32F7_ETH_NRXDESC - 1))
         {
           /* Set next descriptor address register with next descriptor base
            * address
            */
 
-          rxdesc->rdes3 = (uint32_t)&rxtable[i+1].rxdesc;
+          rxdesc->rdes3 = (uint32_t)&rxtable[i + 1].rxdesc;
         }
       else
         {
@@ -3270,6 +3296,7 @@ static int stm32_phyinit(struct stm32_ethmac_s *priv)
       nerr("ERROR: Failed to reset the PHY: %d\n", ret);
       return ret;
     }
+
   up_mdelay(PHY_RESET_DELAY);
 
   /* Perform any necessary, board-specific PHY initialization */
@@ -3310,6 +3337,8 @@ static int stm32_phyinit(struct stm32_ethmac_s *priv)
         {
           break;
         }
+
+      nxsig_usleep(100);
     }
 
   if (timeout >= PHY_RETRY_TIMEOUT)
@@ -3341,6 +3370,8 @@ static int stm32_phyinit(struct stm32_ethmac_s *priv)
         {
           break;
         }
+
+      nxsig_usleep(100);
     }
 
   if (timeout >= PHY_RETRY_TIMEOUT)
@@ -3415,7 +3446,7 @@ static int stm32_phyinit(struct stm32_ethmac_s *priv)
     }
 #endif
 
-#else /* Auto-negotion not selected */
+#else /* Auto-negotiation not selected */
 
   phyval = 0;
 #ifdef CONFIG_STM32F7_ETHFD
@@ -3455,7 +3486,7 @@ static int stm32_phyinit(struct stm32_ethmac_s *priv)
  * Name: stm32_selectmii
  *
  * Description:
- *   Selects the MII inteface.
+ *   Selects the MII interface.
  *
  * Input Parameters:
  *   None
@@ -3480,7 +3511,7 @@ static inline void stm32_selectmii(void)
  * Name: stm32_selectrmii
  *
  * Description:
- *   Selects the RMII inteface.
+ *   Selects the RMII interface.
  *
  * Input Parameters:
  *   None
@@ -3528,7 +3559,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
 
   /* Set up the MII interface */
 
-#if defined(CONFIG_STM32F7_MII)
+#  if defined(CONFIG_STM32F7_MII)
 
   /* Select the MII interface */
 
@@ -3543,7 +3574,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
    *  PLLI2S clock (through a configurable prescaler) on PC9 pin."
    */
 
-# if defined(CONFIG_STM32F7_MII_MCO1)
+#    if defined(CONFIG_STM32F7_MII_MCO1)
   /* Configure MC01 to drive the PHY.  Board logic must provide MC01 clocking
    * info.
    */
@@ -3551,7 +3582,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_MCO1);
   stm32_mco1config(BOARD_CFGR_MC01_SOURCE, BOARD_CFGR_MC01_DIVIDER);
 
-# elif defined(CONFIG_STM32F7_MII_MCO2)
+#    elif defined(CONFIG_STM32F7_MII_MCO2)
   /* Configure MC02 to drive the PHY.  Board logic must provide MC02 clocking
    * info.
    */
@@ -3559,12 +3590,12 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_MCO2);
   stm32_mco2config(BOARD_CFGR_MC02_SOURCE, BOARD_CFGR_MC02_DIVIDER);
 
-# elif defined(CONFIG_STM32F7_MII_MCO)
+#    elif defined(CONFIG_STM32F7_MII_MCO)
   /* Setup MCO pin for alternative usage */
 
   stm32_configgpio(GPIO_MCO);
   stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
-# endif
+#    endif
 
   /* MII interface pins (17):
    *
@@ -3590,7 +3621,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
 
   /* Set up the RMII interface. */
 
-#elif defined(CONFIG_STM32F7_RMII)
+#  elif defined(CONFIG_STM32F7_RMII)
 
   /* Select the RMII interface */
 
@@ -3605,7 +3636,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
    *  PLLI2S clock (through a configurable prescaler) on PC9 pin."
    */
 
-# if defined(CONFIG_STM32F7_RMII_MCO1)
+#    if defined(CONFIG_STM32F7_RMII_MCO1)
   /* Configure MC01 to drive the PHY.  Board logic must provide MC01 clocking
    * info.
    */
@@ -3613,7 +3644,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_MCO1);
   stm32_mco1config(BOARD_CFGR_MC01_SOURCE, BOARD_CFGR_MC01_DIVIDER);
 
-# elif defined(CONFIG_STM32F7_RMII_MCO2)
+#    elif defined(CONFIG_STM32F7_RMII_MCO2)
   /* Configure MC02 to drive the PHY.  Board logic must provide MC02 clocking
    * info.
    */
@@ -3621,12 +3652,12 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_MCO2);
   stm32_mco2config(BOARD_CFGR_MC02_SOURCE, BOARD_CFGR_MC02_DIVIDER);
 
-# elif defined(CONFIG_STM32F7_RMII_MCO)
+#    elif defined(CONFIG_STM32F7_RMII_MCO)
   /* Setup MCO pin for alternative usage */
 
   stm32_configgpio(GPIO_MCO);
   stm32_mcoconfig(BOARD_CFGR_MCO_SOURCE);
-# endif
+#    endif
 
   /* RMII interface pins (7):
    *
@@ -3642,7 +3673,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
   stm32_configgpio(GPIO_ETH_RMII_TXD1);
   stm32_configgpio(GPIO_ETH_RMII_TX_EN);
 
-#endif
+#  endif
 #endif
 
 #ifdef CONFIG_STM32F7_ETH_PTP
@@ -3671,6 +3702,7 @@ static inline void stm32_ethgpioconfig(struct stm32_ethmac_s *priv)
 static void stm32_ethreset(struct stm32_ethmac_s *priv)
 {
   uint32_t regval;
+  volatile uint32_t timeout;
 
   /* Reset the Ethernet on the AHB bus (F1 Connectivity Line) or AHB1 bus (F2
    * and F4)
@@ -3696,7 +3728,11 @@ static void stm32_ethreset(struct stm32_ethmac_s *priv)
    * after the reset operation has completed in all of the core clock domains.
    */
 
-  while ((stm32_getreg(STM32_ETH_DMABMR) & ETH_DMABMR_SR) != 0);
+  timeout = MAC_READY_USTIMEOUT;
+  while (timeout-- && (stm32_getreg(STM32_ETH_DMABMR) & ETH_DMABMR_SR) != 0)
+    {
+      up_udelay(1);
+    }
 }
 
 /****************************************************************************
@@ -3765,6 +3801,7 @@ static int stm32_macconfig(struct stm32_ethmac_s *priv)
   stm32_putreg(0, STM32_ETH_MACVLANTR);
 
   /* DMA Configuration */
+
   /* Set up the DMAOMR register */
 
   regval  = stm32_getreg(STM32_ETH_DMAOMR);
@@ -3874,7 +3911,7 @@ static void stm32_ipv6multicast(struct stm32_ethmac_s *priv)
   ninfo("IPv6 Multicast: %02x:%02x:%02x:%02x:%02x:%02x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  (void)stm32_addmac(dev, mac);
+  stm32_addmac(dev, mac);
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
   /* Add the IPv6 all link-local nodes Ethernet address.  This is the
@@ -3882,7 +3919,7 @@ static void stm32_ipv6multicast(struct stm32_ethmac_s *priv)
    * packets.
    */
 
-  (void)stm32_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
+  stm32_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
 #ifdef CONFIG_NET_ICMPv6_ROUTER
@@ -3891,7 +3928,7 @@ static void stm32_ipv6multicast(struct stm32_ethmac_s *priv)
    * packets.
    */
 
-  (void)stm32_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
+  stm32_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_ROUTER */
 }
@@ -4081,6 +4118,8 @@ static inline
 int stm32_ethinitialize(int intf)
 {
   struct stm32_ethmac_s *priv;
+  uint8_t uid[12];
+  uint64_t crc;
 
   ninfo("intf: %d\n", intf);
 
@@ -4110,6 +4149,20 @@ int stm32_ethinitialize(int intf)
   priv->txpoll       = wd_create();     /* Create periodic poll timer */
   priv->txtimeout    = wd_create();     /* Create TX timeout timer */
 
+  stm32_get_uniqueid(uid);
+  crc = crc64(uid, 12);
+
+  /* Specify as localy administrated address */
+
+  priv->dev.d_mac.ether.ether_addr_octet[0]  = (crc >> 0) | 0x02;
+  priv->dev.d_mac.ether.ether_addr_octet[0] &= ~0x1;
+
+  priv->dev.d_mac.ether.ether_addr_octet[1]  = crc >> 8;
+  priv->dev.d_mac.ether.ether_addr_octet[2]  = crc >> 16;
+  priv->dev.d_mac.ether.ether_addr_octet[3]  = crc >> 24;
+  priv->dev.d_mac.ether.ether_addr_octet[4]  = crc >> 32;
+  priv->dev.d_mac.ether.ether_addr_octet[5]  = crc >> 40;
+
   /* Configure GPIO pins to support Ethernet */
 
   stm32_ethgpioconfig(priv);
@@ -4129,7 +4182,7 @@ int stm32_ethinitialize(int intf)
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->dev, NET_LL_ETHERNET);
+  netdev_register(&priv->dev, NET_LL_ETHERNET);
   return OK;
 }
 
@@ -4156,7 +4209,7 @@ int stm32_ethinitialize(int intf)
 #if STM32F7_NETHERNET == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
-  (void)stm32_ethinitialize(0);
+  stm32_ethinitialize(0);
 }
 #endif
 

@@ -42,7 +42,6 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -51,6 +50,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/irq.h>
 #include <nuttx/clock.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/signal.h>
 
 #include "up_arch.h"
@@ -62,7 +62,6 @@
 #include "lc823450_timer.h"
 
 #ifdef CONFIG_LC823450_SDC_DMA
-#  include <semaphore.h>
 #  include "lc823450_dma.h"
 #endif /* CONFIG_LC823450_SDC_DMA */
 
@@ -132,23 +131,9 @@ static void dma_callback(DMA_HANDLE hdma, void *arg, int result)
  * Name: _sddep_semtake
  ****************************************************************************/
 
-static void _sddep_semtake(FAR sem_t *sem)
+static int _sddep_semtake(FAR sem_t *sem)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(sem);
 }
 
 /****************************************************************************
@@ -390,7 +375,7 @@ SINT_T sddep_wait_status(UI_32 req_status, UI_32 *status,
           ret = -100;
           break;
         }
-      (void)sched_yield();
+      sched_yield();
     }
 
   return ret;
@@ -436,8 +421,7 @@ SINT_T sddep_read(void *src, void *dst, UI_32 size, SINT_T type,
     }
 
   lc823450_dmastart(_hrdma[ch], dma_callback, &_sem_rwait[ch]);
-  _sddep_semtake(&_sem_rwait[ch]);
-  return 0;
+  return _sddep_semtake(&_sem_rwait[ch]);
 #else
   SINT_T i;
   UI_32 *p = (UI_32 *)src;
@@ -525,8 +509,7 @@ SINT_T sddep_write(void *src, void *dst, UI_32 size, SINT_T type,
     }
 
   lc823450_dmastart(_hwdma[ch], dma_callback, &_sem_wwait[ch]);
-  _sddep_semtake(&_sem_wwait[ch]);
-  return 0;
+  return _sddep_semtake(&_sem_wwait[ch]);
 
 #else
   SINT_T i;

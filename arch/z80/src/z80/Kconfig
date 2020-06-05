@@ -11,7 +11,7 @@ choice
 	default Z80_TOOLCHAIN_SDCCL if !TOOLCHAIN_WINDOWS
 
 config Z80_TOOLCHAIN_SDCCL
-        bool "SDCC for Linux, macOS, or Cygwin"
+	bool "SDCC for Linux, macOS, or Cygwin"
 	depends on !WINDOWS_NATIVE
 
 config Z80_TOOLCHAIN_SDCCW
@@ -50,6 +50,6 @@ config ARCH_HAVEHEAD
 	default n
 	---help---
 		Use a board-specific version of the "head" file in the
-		configs/<board-name>/src directory
+		boards/z80/z80/<board-name>/src directory
 
 endif

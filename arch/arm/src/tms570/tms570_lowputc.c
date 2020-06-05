@@ -4,7 +4,7 @@
  *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Includes some logic from TI sample which has a compatibile three-clause
+ * Includes some logic from TI sample which has a compatible three-clause
  * BSD license and:
  *
  *   Copyright (c) 2012, Texas Instruments Incorporated
@@ -54,8 +54,8 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "chip/tms570_sci.h"
-#include "chip/tms570_iomm.h"
+#include "hardware/tms570_sci.h"
+#include "hardware/tms570_iomm.h"
 #include "tms570_lowputc.h"
 
 /****************************************************************************
@@ -246,7 +246,7 @@ int up_putc(int ch)
  *
  * Description:
  *   This performs basic initialization of the SCI used for the serial
- *   console.  Its purpose is to get the console output availabe as soon
+ *   console.  Its purpose is to get the console output available as soon
  *   as possible.
  *
  ****************************************************************************/

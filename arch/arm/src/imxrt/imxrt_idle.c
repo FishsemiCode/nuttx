@@ -108,7 +108,7 @@ static void up_idlepm(void)
         {
           /* The new state change failed, revert to the preceding state */
 
-          (void)pm_changestate(PM_IDLE_DOMAIN, oldstate);
+          pm_changestate(PM_IDLE_DOMAIN, oldstate);
         }
       else
         {
@@ -132,7 +132,7 @@ static void up_idlepm(void)
           break;
 
         case PM_SLEEP:
-          (void)imxrt_pmstandby();
+          imxrt_pmstandby();
           break;
 
         default:
@@ -177,12 +177,18 @@ void up_idle(void)
 
   up_idlepm();
 
-#if 0 /* REVISIT */
+/* This code is disabled due to fact CPU cannot recover from low
+ * power mode via SYSTICK according to:
+ *
+ *   https://github.com/zephyrproject-rtos/zephyr/pull/8535/commits
+ *
+ * For further investigation post release of 8.2.
+ */
+
   /* Sleep until an interrupt occurs to save power. */
 
   BEGIN_IDLE();
   asm("WFI");
   END_IDLE();
-#endif
 #endif
 }

@@ -49,14 +49,13 @@
 #include <stdbool.h>
 #include <string.h>
 #include <poll.h>
-#include <semaphore.h>
 #include <errno.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/drivers/drivers.h>
-#include <nuttx/lcd/edid.h>
+#include <nuttx/video/edid.h>
 #include <nuttx/lcd/tda19988.h>
 
 #include "tda19988.h"
@@ -162,10 +161,8 @@ static ssize_t tda19988_write(FAR struct file *filep, FAR const char *buffer,
                  size_t buflen);
 static off_t   tda19988_seek(FAR struct file *filep, off_t offset, int whence);
 static int     tda19988_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int     tda19988_poll(FAR struct file *filep, FAR struct pollfd *fds,
                  bool setup);
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
 static int     tda19988_unlink(FAR struct inode *inode);
 #endif
@@ -174,7 +171,7 @@ static int     tda19988_unlink(FAR struct inode *inode);
 
 static int     tda19988_hwinitialize(FAR struct tda1988_dev_s *priv);
 static int     tda19988_videomode_internal(FAR struct tda1988_dev_s *priv,
-                 FAR const struct tda19988_videomode_s *mode);
+                 FAR const struct videomode_s *mode);
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
 static void    tda19988_shutdown(FAR struct tda1988_dev_s *priv);
 #endif
@@ -190,10 +187,8 @@ static const struct file_operations tda19988_fops =
   tda19988_read,     /* read */
   tda19988_write,    /* write */
   tda19988_seek,     /* seek */
-  tda19988_ioctl     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , tda19988_poll    /* poll */
-#endif
+  tda19988_ioctl,    /* ioctl */
+  tda19988_poll      /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , tda19988_unlink  /* unlink */
 #endif
@@ -233,7 +228,8 @@ static int tda19988_getregs(FAR const struct tda19988_i2c_s *dev,
       return -1;
     }
 
-  lcdinfo("Read: %02x:%02x->%02x\n", page, regaddr, *regval);
+  lcdinfo("Write: %02x<-%02x\n", regaddr, *regval);
+  lcderrdumpbuffer("Read:", regval, nregs);
   return OK;
 }
 
@@ -267,7 +263,7 @@ static int tda19988_putreg(FAR const struct tda19988_i2c_s *dev,
       return ret;
     }
 
-  lcdinfo("Wrote: %02x:%02x<-%02x\n", page, regaddr, regval);
+  lcdinfo("Wrote: %02x<-%02x\n", regaddr, regval);
   return OK;
 }
 
@@ -302,7 +298,7 @@ static int tda19988_putreg16(FAR const struct tda19988_i2c_s *dev,
       return ret;
     }
 
-  lcdinfo("Wrote: %02x:%02x<-%02x\n", page, regaddr, regval);
+  lcdinfo("Wrote: 02x<-%04x\n", regaddr, regval);
   return OK;
 }
 
@@ -733,7 +729,7 @@ static int tda19988_fetch_edid(struct tda1988_dev_s *priv)
       goto done;
     }
 
-  blocks = priv->edid[EDID_TRAILER_NEXTENSIONS];
+  blocks = priv->edid[EDID_TRAILER_NEXTENSIONS_OFFSET];
   if (blocks > 0)
     {
       FAR uint8_t *edid;
@@ -772,8 +768,8 @@ static int tda19988_fetch_edid(struct tda1988_dev_s *priv)
 done:
   if (priv->version == HDMI_CTRL_REV_TDA19988)
     {
-      (void)tda19988_hdmi_modifyreg(priv, HDMI_HDCPOTP_TX4_REG,
-                                    0, HDMI_HDCPOTP_TX4_PDRAM);
+      tda19988_hdmi_modifyreg(priv, HDMI_HDCPOTP_TX4_REG,
+                              0, HDMI_HDCPOTP_TX4_PDRAM);
     }
 
   return ret;
@@ -1129,15 +1125,15 @@ static int tda19988_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
        *                 of the initialization of the driver.  This is
        *                 equivalent to calling tda18899_videomode() within
        *                 the OS.
-       *   Argument:     A reference to a tda19988_videomode_s structure
+       *   Argument:     A reference to a videomode_s structure
        *                 instance.
        *   Returns:      None
        */
 
       case TDA19988_IOC_VIDEOMODE:
         {
-          FAR const struct tda19988_videomode_s *mode =
-            (FAR const struct tda19988_videomode_s *)((uintptr_t)arg);
+          FAR const struct videomode_s *mode =
+            (FAR const struct videomode_s *)((uintptr_t)arg);
 
           if (mode == NULL)
             {
@@ -1176,7 +1172,6 @@ static int tda19988_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int tda19988_poll(FAR struct file *filep, FAR struct pollfd *fds,
                          bool setup)
 {
@@ -1212,7 +1207,6 @@ static int tda19988_poll(FAR struct file *filep, FAR struct pollfd *fds,
   nxsem_post(&priv->exclsem);
   return OK;
 }
-#endif
 
 /****************************************************************************
  * Name: tda19988_unlink
@@ -1391,7 +1385,7 @@ done:
 
 static int
   tda19988_videomode_internal(FAR struct tda1988_dev_s *priv,
-                              FAR const struct tda19988_videomode_s *mode)
+                              FAR const struct videomode_s *mode)
 {
   uint16_t ref_pix;
   uint16_t ref_line;
@@ -1468,7 +1462,7 @@ static int
                          (mode->vsync_end - mode->vsync_start) / 2;
     }
 
-  div = 148500 / mode->dot_clock;
+  div = 148500 / mode->dotclock;
   if (div != 0)
     {
       if (--div > 3)
@@ -1486,7 +1480,7 @@ static int
   tda19988_hdmi_putreg(priv, HDMI_AUDIO_ENC_CTRL_REG,
                        HDMI_AUDIO_ENC_CNTRL_DVI_MODE);
 
-  /* No pre-filter or interpretor */
+  /* No pre-filter or interpreter */
 
   tda19988_hdmi_putreg(priv, HDMI_CTRL_HVF_CNTRL_0_REG,
                        HDMI_CTRL_HVF_CNTRL_0_INTPOL_BYPASS |
@@ -1615,8 +1609,8 @@ static void tda19988_shutdown(FAR struct tda1988_dev_s *priv)
       DEBUGASSERT(priv->lower->attach != NULL &&
                   priv->lower->enable != NULL);
 
-      (void)priv->lower->attach(priv->lower, NULL, NULL);
-      (void)priv->lower->enable(priv->lower, false);
+      priv->lower->attach(priv->lower, NULL, NULL);
+      priv->lower->enable(priv->lower, false);
     }
 
   /* Release resources */
@@ -1689,7 +1683,7 @@ TDA19988_HANDLE tda19988_register(FAR const char *devpath,
   priv->lower = lower;
   priv->page  = HDMI_NO_PAGE;
 
-  sem_init(&priv->exclsem, 0, 1);
+  nxsem_init(&priv->exclsem, 0, 1);
 
   /* Initialize the TDA19988 */
 
@@ -1738,7 +1732,7 @@ TDA19988_HANDLE tda19988_register(FAR const char *devpath,
  ****************************************************************************/
 
 int tda19988_videomode(TDA19988_HANDLE handle,
-                       FAR const struct tda19988_videomode_s *mode)
+                       FAR const struct videomode_s *mode)
 {
   FAR struct tda1988_dev_s *priv = (FAR struct tda1988_dev_s *)handle;
   int ret;

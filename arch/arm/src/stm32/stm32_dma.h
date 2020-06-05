@@ -45,7 +45,7 @@
 
 #include "chip.h"
 
-#include "chip/stm32_dma.h"
+#include "hardware/stm32_dma.h"
 
 /* These definitions provide the bit encoding of the 'status' parameter passed to the
  * DMA callback function (see dma_callback_t).
@@ -348,7 +348,7 @@ uint32_t stm32_dma_intget(unsigned int chndx);
 uint8_t  stm32_dma_intget(unsigned int controller, uint8_t stream);
 #endif
 
-#endif  /* CONFIG_ARCH_HIPRI_INTERRUPT */
+#endif /* CONFIG_ARCH_HIPRI_INTERRUPT */
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -51,13 +51,9 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/binfmt/binfmt.h>
-#include <nuttx/binfmt/builtin.h>
+#include <nuttx/lib/builtin.h>
 
-#ifdef CONFIG_BUILTIN
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+#ifdef HAVE_BUILTIN_CONTEXT
 
 /****************************************************************************
  * Private Function Prototypes
@@ -127,11 +123,9 @@ static int builtin_loadbinary(struct binary_s *binp)
   index = builtin_isavail(filename);
   if (index < 0)
     {
-      int errval = get_errno();
       berr("ERROR: %s is not a builtin application\n", filename);
       close(fd);
-      return -errval;
-
+      return index;
     }
 
   /* Return the load information.  NOTE: that there is no way to configure
@@ -194,8 +188,7 @@ int builtin_initialize(void)
 
 void builtin_uninitialize(void)
 {
-  (void)unregister_binfmt(&g_builtin_binfmt);
+  unregister_binfmt(&g_builtin_binfmt);
 }
 
-#endif /* CONFIG_BUILTIN */
-
+#endif /* HAVE_BUILTIN_CONTEXT */

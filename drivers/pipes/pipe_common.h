@@ -135,7 +135,6 @@ struct pipe_dev_s
   pipe_ndx_t d_wrndx;       /* Index in d_buffer to save next byte written */
   pipe_ndx_t d_rdndx;       /* Index in d_buffer to return the next byte read */
   pipe_ndx_t d_bufsize;     /* allocated size of d_buffer in bytes */
-  uint8_t    d_refs;        /* References counts on pipe (limited to 255) */
   uint8_t    d_nwriters;    /* Number of reference counts for write access */
   uint8_t    d_nreaders;    /* Number of reference counts for read access */
   uint8_t    d_pipeno;      /* Pipe minor number */
@@ -147,9 +146,7 @@ struct pipe_dev_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *d_fds[CONFIG_DEV_PIPE_NPOLLWAITERS];
-#endif
 };
 
 /****************************************************************************
@@ -174,10 +171,8 @@ int     pipecommon_close(FAR struct file *filep);
 ssize_t pipecommon_read(FAR struct file *, FAR char *, size_t);
 ssize_t pipecommon_write(FAR struct file *, FAR const char *, size_t);
 int     pipecommon_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 int     pipecommon_poll(FAR struct file *filep, FAR struct pollfd *fds,
                                bool setup);
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
 int     pipecommon_unlink(FAR struct inode *priv);
 #endif

@@ -135,8 +135,13 @@ static void tiva_dumpnvic(const char *msg, int irq)
   irqinfo("  IRQ ENABLE: %08x %08x %08x %08x\n",
           getreg32(NVIC_IRQ0_31_ENABLE), getreg32(NVIC_IRQ32_63_ENABLE),
           getreg32(NVIC_IRQ64_95_ENABLE), getreg32(NVIC_IRQ96_127_ENABLE));
+#elif TIVA_IRQ_NEXTINT < 160
+  irqinfo("  IRQ ENABLE: %08x %08x %08x %08x %08x\n",
+          getreg32(NVIC_IRQ0_31_ENABLE), getreg32(NVIC_IRQ32_63_ENABLE),
+          getreg32(NVIC_IRQ64_95_ENABLE), getreg32(NVIC_IRQ96_127_ENABLE),
+          getreg32(NVIC_IRQ128_159_ENABLE));
 #endif
-#if TIVA_IRQ_NEXTINT > 127
+#if TIVA_IRQ_NEXTINT > 159
 #  warning Missing output
 #endif
 
@@ -178,6 +183,16 @@ static void tiva_dumpnvic(const char *msg, int irq)
         getreg32(NVIC_IRQ120_123_PRIORITY), getreg32(NVIC_IRQ124_127_PRIORITY));
 #endif
 #if TIVA_IRQ_NEXTINT > 127
+  irqinfo("              %08x %08x %08x %08x\n",
+        getreg32(NVIC_IRQ128_131_PRIORITY), getreg32(NVIC_IRQ132_135_PRIORITY),
+        getreg32(NVIC_IRQ136_139_PRIORITY), getreg32(NVIC_IRQ140_143_PRIORITY));
+#endif
+#if TIVA_IRQ_NEXTINT > 143
+  irqinfo("              %08x %08x %08x %08x\n",
+        getreg32(NVIC_IRQ144_147_PRIORITY), getreg32(NVIC_IRQ148_151_PRIORITY),
+        getreg32(NVIC_IRQ152_155_PRIORITY), getreg32(NVIC_IRQ156_159_PRIORITY));
+#endif
+#if TIVA_IRQ_NEXTINT > 159
 #  warning Missing output
 #endif
   leave_critical_section(flags);
@@ -191,7 +206,7 @@ static void tiva_dumpnvic(const char *msg, int irq)
  *       tiva_dbgmonitor, tiva_pendsv, tiva_reserved
  *
  * Description:
- *   Handlers for various execptions.  None are handled and all are fatal
+ *   Handlers for various exceptions.  None are handled and all are fatal
  *   error conditions.  The only advantage these provided over the default
  *   unexpected interrupt handler is that they provide a diagnostic output.
  *
@@ -200,7 +215,7 @@ static void tiva_dumpnvic(const char *msg, int irq)
 #ifdef CONFIG_DEBUG_FEATURES
 static int tiva_nmi(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! NMI received\n");
   PANIC();
   return 0;
@@ -208,15 +223,15 @@ static int tiva_nmi(int irq, FAR void *context, FAR void *arg)
 
 static int tiva_busfault(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
-  _err("PANIC!!! Bus fault recived\n");
+  up_irq_save();
+  _err("PANIC!!! Bus fault received\n");
   PANIC();
   return 0;
 }
 
 static int tiva_usagefault(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Usage fault received\n");
   PANIC();
   return 0;
@@ -224,7 +239,7 @@ static int tiva_usagefault(int irq, FAR void *context, FAR void *arg)
 
 static int tiva_pendsv(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! PendSV received\n");
   PANIC();
   return 0;
@@ -232,7 +247,7 @@ static int tiva_pendsv(int irq, FAR void *context, FAR void *arg)
 
 static int tiva_dbgmonitor(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Debug Monitor received\n");
   PANIC();
   return 0;
@@ -240,7 +255,7 @@ static int tiva_dbgmonitor(int irq, FAR void *context, FAR void *arg)
 
 static int tiva_reserved(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Reserved interrupt\n");
   PANIC();
   return 0;
@@ -316,10 +331,17 @@ static int tiva_irqinfo(int irq, uintptr_t *regaddr, uint32_t *bit,
            *bit     = 1 << (irq - TIVA_IRQ_INTERRUPTS - 96);
         }
 #if TIVA_IRQ_NEXTINT > 127
+      else if (irq < TIVA_IRQ_INTERRUPTS + 160)
+        {
+           *regaddr = (NVIC_IRQ128_159_ENABLE + offset);
+           *bit     = 1 << (irq - TIVA_IRQ_INTERRUPTS - 128);
+        }
+#if TIVA_IRQ_NEXTINT > 159
 #  warning Missing logic
-#endif
-#endif
-#endif
+#endif /* TIVA_IRQ_NEXTINT > 159 */
+#endif /* TIVA_IRQ_NEXTINT > 127 */
+#endif /* TIVA_IRQ_NEXTINT > 95 */
+#endif /* TIVA_IRQ_NEXTINT > 63 */
       else
         {
           return ERROR; /* Internal confusion */
@@ -371,13 +393,13 @@ void up_irqinitialize(void)
   int nintlines;
   int i;
 
-  /* The NVIC ICTR register (bits 0-4) holds the number of of interrupt
+  /* The NVIC ICTR register (bits 0-4) holds the number of interrupt
    * lines that the NVIC supports, defined in groups of 32. That is,
    * the total number of interrupt lines is up to (32*(INTLINESNUM+1)).
    *
    *  0 -> 32 interrupt lines, 1 enable register,   8 priority registers
    *  1 -> 64 "       " "   ", 2 enable registers, 16 priority registers
-   *  2 -> 96 "       " "   ", 3 enable regsiters, 24 priority registers
+   *  2 -> 96 "       " "   ", 3 enable registers, 24 priority registers
    *  ...
    */
 

@@ -51,7 +51,6 @@
 
 #include <arch/irq.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/mm/iob.h>
 #include <nuttx/net/radiodev.h>
@@ -171,7 +170,7 @@ static inline bool ieee802154_eaddrnull(FAR const uint8_t *eaddr)
  *   paylen  - The size of the data payload to be sent.
  *
  * Returned Value:
- *   Ok is returned on success; Othewise a negated errno value is returned.
+ *   Ok is returned on success; Otherwise a negated errno value is returned.
  *
  * Assumptions:
  *   Called with the network locked.
@@ -265,7 +264,7 @@ static void ieee802154_meta_data(FAR struct radio_driver_s *radio,
     }
 
   /* Handle associated with MSDU.  Will increment once per packet, not
-   * necesarily per frame:  The same MSDU handle will be used for each
+   * necessarily per frame:  The same MSDU handle will be used for each
    * fragment of a disassembled packet.
    */
 
@@ -308,6 +307,7 @@ static uint16_t ieee802154_sendto_eventhandler(FAR struct net_driver_s *dev,
     }
 
   /* Make sure that this is the driver to which the socket is connected. */
+
 #warning Missing logic
 
   pstate = (FAR struct ieee802154_sendto_s *)pvpriv;
@@ -347,7 +347,7 @@ static uint16_t ieee802154_sendto_eventhandler(FAR struct net_driver_s *dev,
 
       /* Allocate an IOB to hold the frame data */
 
-      iob = net_ioballoc(false);
+      iob = net_ioballoc(false, IOBUSER_NET_SOCK_IEEE802154);
       if (iob == NULL)
         {
           nwarn("WARNING: Failed to allocate IOB\n");
@@ -391,6 +391,7 @@ static uint16_t ieee802154_sendto_eventhandler(FAR struct net_driver_s *dev,
   return flags;
 
 errout:
+
   /* Don't allow any further call backs. */
 
   pstate->is_cb->flags    = 0;
@@ -469,10 +470,6 @@ ssize_t psock_ieee802154_sendto(FAR struct socket *psock, FAR const void *buf,
       return -ENODEV;
     }
 
-  /* Set the socket state to sending */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_SEND);
-
   /* Perform the send operation */
 
   /* Initialize the state structure. This is done with the network
@@ -487,8 +484,8 @@ ssize_t psock_ieee802154_sendto(FAR struct socket *psock, FAR const void *buf,
    * priority inheritance enabled.
    */
 
-  (void)nxsem_init(&state.is_sem, 0, 0); /* Doesn't really fail */
-  (void)nxsem_setprotocol(&state.is_sem, SEM_PRIO_NONE);
+  nxsem_init(&state.is_sem, 0, 0); /* Doesn't really fail */
+  nxsem_setprotocol(&state.is_sem, SEM_PRIO_NONE);
 
   state.is_sock   = psock;          /* Socket descriptor to use */
   state.is_buflen = len;            /* Number of bytes to send */
@@ -531,10 +528,6 @@ ssize_t psock_ieee802154_sendto(FAR struct socket *psock, FAR const void *buf,
 
   nxsem_destroy(&state.is_sem);
   net_unlock();
-
-  /* Set the socket state to idle */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
 
   /* Check for a errors, Errors are signaled by negative errno values
    * for the send length

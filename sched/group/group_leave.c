@@ -1,7 +1,7 @@
 /****************************************************************************
  *  sched/group/group_leave.c
  *
- *   Copyright (C) 2013-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -142,17 +142,15 @@ static void group_remove(FAR struct task_group_s *group)
 
 static inline void group_release(FAR struct task_group_s *group)
 {
+#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
   /* Free all un-reaped child exit status */
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && defined(CONFIG_SCHED_CHILD_STATUS)
   group_removechildren(group);
 #endif
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* Release pending signals */
 
   nxsig_release(group);
-#endif
 
 #ifndef CONFIG_DISABLE_PTHREAD
   /* Release pthread resources */
@@ -172,7 +170,6 @@ static inline void group_release(FAR struct task_group_s *group)
   /* Free resource held by the stream list */
 
   lib_stream_release(group);
-
 #endif /* CONFIG_NFILE_STREAMS */
 
 #ifdef CONFIG_NET
@@ -196,17 +193,17 @@ static inline void group_release(FAR struct task_group_s *group)
 #if defined(CONFIG_BUILD_KERNEL) && defined(CONFIG_MM_SHM)
   /* Release any resource held by shared memory virtual page allocator */
 
-  (void)shm_group_release(group);
+  shm_group_release(group);
 #endif
 
 #ifdef CONFIG_ARCH_ADDRENV
   /* Destroy the group address environment */
 
-  (void)up_addrenv_destroy(&group->tg_addrenv);
+  up_addrenv_destroy(&group->tg_addrenv);
 
   /* Mark no address environment */
 
-  g_gid_current = 0;
+  g_grpid_current = 0;
 #endif
 
 #if defined(HAVE_GROUP_MEMBERS) || defined(CONFIG_ARCH_ADDRENV)
@@ -240,11 +237,11 @@ static inline void group_release(FAR struct task_group_s *group)
   kumm_free(group->tg_streamlist);
 
 #  elif defined(CONFIG_BUILD_KERNEL)
-  /* In the kernel build, the unprivileged process' stream list will be
+  /* In the kernel build, the unprivileged process's stream list will be
    * allocated from with its per-process, private user heap. But in that
    * case, there is no reason to do anything here:  That allocation resides
    * in the user heap which which be completely freed when we destroy the
-   * process' address environment.
+   * process's address environment.
    */
 
   if ((group->tg_flags & GROUP_FLAG_PRIVILEGED) != 0)
@@ -314,7 +311,8 @@ static inline void group_release(FAR struct task_group_s *group)
  ****************************************************************************/
 
 #ifdef HAVE_GROUP_MEMBERS
-static inline void group_removemember(FAR struct task_group_s *group, pid_t pid)
+static inline void group_removemember(FAR struct task_group_s *group,
+                                      pid_t pid)
 {
   irqstate_t flags;
   int i;
@@ -445,4 +443,3 @@ void group_leave(FAR struct tcb_s *tcb)
 }
 
 #endif /* HAVE_GROUP_MEMBERS */
-

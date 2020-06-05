@@ -42,13 +42,13 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <arch/board/board.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/spi/spi.h>
 
 #include "up_internal.h"
@@ -68,7 +68,7 @@
  * Private Types
  ****************************************************************************/
 
-/* This structure descibes the state of the SSP driver */
+/* This structure describes the state of the SSP driver */
 
 struct lpc43_sspdev_s
 {
@@ -91,22 +91,27 @@ struct lpc43_sspdev_s
 
 /* Helpers */
 
-static inline uint32_t ssp_getreg(FAR struct lpc43_sspdev_s *priv, uint8_t offset);
-static inline void ssp_putreg(FAR struct lpc43_sspdev_s *priv, uint8_t offset,
-                                 uint32_t value);
+static inline uint32_t ssp_getreg(FAR struct lpc43_sspdev_s *priv,
+                                  uint8_t offset);
+static inline void ssp_putreg(FAR struct lpc43_sspdev_s *priv,
+                              uint8_t offset, uint32_t value);
 
 /* SPI methods */
 
 static int      ssp_lock(FAR struct spi_dev_s *dev, bool lock);
-static uint32_t ssp_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency);
+static uint32_t ssp_setfrequency(FAR struct spi_dev_s *dev,
+                                 uint32_t frequency);
 static void     ssp_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode);
 static void     ssp_setbits(FAR struct spi_dev_s *dev, int nbits);
-static uint16_t ssp_send(FAR struct spi_dev_s *dev, uint16_t ch);
-static void     ssp_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
-                         FAR void *rxbuffer, size_t nwords);
+static uint32_t ssp_send(FAR struct spi_dev_s *dev, uint32_t wd);
+static void     ssp_exchange(FAR struct spi_dev_s *dev,
+                             FAR const void *txbuffer, FAR void *rxbuffer,
+                             size_t nwords);
 #ifndef CONFIG_SPI_EXCHANGE
-static void     ssp_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size_t nwords);
-static void     ssp_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nwords);
+static void     ssp_sndblock(FAR struct spi_dev_s *dev,
+                             FAR const void *buffer, size_t nwords);
+static void     ssp_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer,
+                              size_t nwords);
 #endif
 
 /* Initialization */
@@ -153,7 +158,10 @@ static const struct spi_ops_s g_spi0ops =
 
 static struct lpc43_sspdev_s g_ssp0dev =
 {
-  .spidev            = { &g_spi0ops },
+  .spidev            =
+    {
+      &g_spi0ops
+    },
   .sspbase           = LPC43_SSP0_BASE,
   .sspbasefreq       = BOARD_SSP0_BASEFREQ
 #ifdef CONFIG_LPC43_SSP_INTERRUPTS
@@ -190,7 +198,10 @@ static const struct spi_ops_s g_spi1ops =
 
 static struct lpc43_sspdev_s g_ssp1dev =
 {
-  .spidev            = { &g_spi1ops },
+  .spidev            =
+    {
+      &g_spi1ops
+    },
   .sspbase           = LPC43_SSP1_BASE,
   .sspbasefreq       = BOARD_SSP1_BASEFREQ
 #ifdef CONFIG_LPC43_SSP_INTERRUPTS
@@ -222,7 +233,8 @@ static struct lpc43_sspdev_s g_ssp1dev =
  *
  ****************************************************************************/
 
-static inline uint32_t ssp_getreg(FAR struct lpc43_sspdev_s *priv, uint8_t offset)
+static inline uint32_t ssp_getreg(FAR struct lpc43_sspdev_s *priv,
+                                  uint8_t offset)
 {
   return getreg32(priv->sspbase + (uint32_t)offset);
 }
@@ -243,7 +255,8 @@ static inline uint32_t ssp_getreg(FAR struct lpc43_sspdev_s *priv, uint8_t offse
  *
  ****************************************************************************/
 
-static inline void ssp_putreg(FAR struct lpc43_sspdev_s *priv, uint8_t offset, uint32_t value)
+static inline void ssp_putreg(FAR struct lpc43_sspdev_s *priv,
+                              uint8_t offset, uint32_t value)
 {
   putreg32(value, priv->sspbase + (uint32_t)offset);
 }
@@ -252,12 +265,12 @@ static inline void ssp_putreg(FAR struct lpc43_sspdev_s *priv, uint8_t offset, u
  * Name: ssp_lock
  *
  * Description:
- *   On SPI busses where there are multiple devices, it will be necessary to
- *   lock SPI to have exclusive access to the busses for a sequence of
+ *   On SPI buses where there are multiple devices, it will be necessary to
+ *   lock SPI to have exclusive access to the buses for a sequence of
  *   transfers.  The bus should be locked before the chip is selected. After
  *   locking the SPI bus, the caller should then also call the setfrequency,
  *   setbits, and setmode methods to make sure that the SPI is properly
- *   configured for the device.  If the SPI buss is being shared, then it
+ *   configured for the device.  If the SPI bus is being shared, then it
  *   may have been left in an incompatible state.
  *
  * Input Parameters:
@@ -276,24 +289,11 @@ static int ssp_lock(FAR struct spi_dev_s *dev, bool lock)
 
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          ret = nxsem_wait(&priv->exclsem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&priv->exclsem);
     }
   else
     {
-      (void)nxsem_post(&priv->exclsem);
-      ret = OK;
+      ret = nxsem_post(&priv->exclsem);
     }
 
   return ret;
@@ -314,7 +314,8 @@ static int ssp_lock(FAR struct spi_dev_s *dev, bool lock)
  *
  ****************************************************************************/
 
-static uint32_t ssp_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
+static uint32_t ssp_setfrequency(FAR struct spi_dev_s *dev,
+                                 uint32_t frequency)
 {
   FAR struct lpc43_sspdev_s *priv = (FAR struct lpc43_sspdev_s *)dev;
   uint32_t divisor;
@@ -457,7 +458,8 @@ static void ssp_setbits(FAR struct spi_dev_s *dev, int nbits)
       regval &= ~SSP_CR0_DSS_MASK;
       regval |= ((nbits - 1) << SSP_CR0_DSS_SHIFT);
       ssp_putreg(priv, LPC43_SSP_CR0_OFFSET, regval);
-      spiinfo("SSP Control Register 0 (CR0) after setting DSS: 0x%08X.\n", regval);
+      spiinfo("SSP Control Register 0 (CR0) after setting"
+              "DSS: 0x%08X.\n", regval);
 
       /* Save the selection so the subsequence re-configurations will be faster */
 
@@ -481,7 +483,7 @@ static void ssp_setbits(FAR struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static uint16_t ssp_send(FAR struct spi_dev_s *dev, uint16_t wd)
+static uint32_t ssp_send(FAR struct spi_dev_s *dev, uint32_t wd)
 {
   FAR struct lpc43_sspdev_s *priv = (FAR struct lpc43_sspdev_s *)dev;
   register uint32_t regval;
@@ -492,7 +494,7 @@ static uint16_t ssp_send(FAR struct spi_dev_s *dev, uint16_t wd)
 
   /* Write the byte to the TX FIFO */
 
-  ssp_putreg(priv, LPC43_SSP_DR_OFFSET, (uint32_t)wd);
+  ssp_putreg(priv, LPC43_SSP_DR_OFFSET, wd);
 
   /* Wait for the RX FIFO not empty */
 
@@ -502,7 +504,7 @@ static uint16_t ssp_send(FAR struct spi_dev_s *dev, uint16_t wd)
 
   regval = ssp_getreg(priv, LPC43_SSP_DR_OFFSET);
   spiinfo("%04x->%04x\n", wd, regval);
-  return (uint16_t)regval;
+  return regval;
 }
 
 /****************************************************************************
@@ -536,12 +538,14 @@ static void ssp_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
     FAR const uint16_t *p16;
     FAR const void *pv;
   } tx;
+
   union
   {
     FAR uint8_t *p8;
     FAR uint16_t *p16;
     FAR void *pv;
   } rx;
+
   uint32_t data;
   uint32_t datadummy = (priv->nbits > 8) ? 0xffff : 0xff;
   uint32_t rxpending = 0;
@@ -639,12 +643,12 @@ static void ssp_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer,
  *
  * Input Parameters:
  *   dev -    Device-specific state data
- *   buffer - A pointer to the buffer in which to recieve data
+ *   buffer - A pointer to the buffer in which to receive data
  *   nwords - the length of data that can be received in the buffer in number
- *            of words.  The wordsize is determined by the number of bits-per-word
- *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into
- *            uint16_t's
+ *            of words.  The wordsize is determined by the number of
+ *            bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *            the data is packed into uint8_t's; if nbits >8, the data is
+ *            packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -668,7 +672,7 @@ static void ssp_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer,
  *   None
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -721,7 +725,7 @@ static inline FAR struct lpc43_sspdev_s *lpc43_ssp0initialize(void)
  *   None
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -781,7 +785,7 @@ static inline FAR struct lpc43_sspdev_s *lpc43_ssp1initialize(void)
  *   port - Port number (0=SSP0, 1=SSP1)
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -840,7 +844,7 @@ FAR struct spi_dev_s *lpc43_sspbus_initialize(int port)
   ssp_putreg(priv, LPC43_SSP_CR1_OFFSET, regval | SSP_CR1_SSE);
   for (i = 0; i < LPC43_SSP_FIFOSZ; i++)
     {
-      (void)ssp_getreg(priv, LPC43_SSP_DR_OFFSET);
+      ssp_getreg(priv, LPC43_SSP_DR_OFFSET);
     }
 
   return &priv->spidev;
@@ -882,7 +886,7 @@ void ssp_flush(FAR struct spi_dev_s *dev)
 
   do
     {
-      (void)ssp_getreg(priv, LPC43_SSP_DR_OFFSET);
+      ssp_getreg(priv, LPC43_SSP_DR_OFFSET);
     }
   while (ssp_getreg(priv, LPC43_SSP_SR_OFFSET) & SSP_SR_RNE);
 }

@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -245,8 +244,8 @@ static int usart1_attach(struct uart_dev_s *dev)
    *      written.
    */
 
-  (void)irq_attach(AT90USB_IRQ_U1RX, usart1_rxinterrupt, NULL);
-  (void)irq_attach(AT90USB_IRQ_U1DRE, usart1_txinterrupt, NULL);
+  irq_attach(AT90USB_IRQ_U1RX, usart1_rxinterrupt, NULL);
+  irq_attach(AT90USB_IRQ_U1DRE, usart1_txinterrupt, NULL);
 //(void)irq_attach(AT90USB_IRQ_U1TX, usart1_txinterrupt, NULL);
   return OK;
 }
@@ -269,8 +268,8 @@ static void usart1_detach(struct uart_dev_s *dev)
 
   /* Detach USART1 interrupts */
 
-  (void)irq_detach(AT90USB_IRQ_U1RX);
-  (void)irq_detach(AT90USB_IRQ_U1DRE);
+  irq_detach(AT90USB_IRQ_U1RX);
+  irq_detach(AT90USB_IRQ_U1DRE);
 //(void)irq_detach(AT90USB_IRQ_U1TX);
 }
 
@@ -320,7 +319,7 @@ static int usart1_txinterrupt(int irq, void *context, FAR void *arg)
 
   if ((ucsr1a & (1 << UDRE1)) != 0)
     {
-      /* Transmit data regiser empty ... process outgoing bytes */
+      /* Transmit data register empty ... process outgoing bytes */
 
       uart_xmitchars(&g_usart1port);
     }
@@ -514,6 +513,8 @@ static bool usart1_txempty(struct uart_dev_s *dev)
  * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
  * Name: up_earlyserialinit
  *
@@ -537,6 +538,7 @@ void up_earlyserialinit(void)
   usart1_setup(&g_usart1port);
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: up_serialinit
@@ -552,12 +554,12 @@ void up_serialinit(void)
   /* Register the console */
 
 #ifdef HAVE_SERIAL_CONSOLE
-  (void)uart_register("/dev/console", &g_usart1port);
+  uart_register("/dev/console", &g_usart1port);
 #endif
 
   /* Register all USARTs */
 
-  (void)uart_register("/dev/ttyS0", &g_usart1port);
+  uart_register("/dev/ttyS0", &g_usart1port);
 }
 
 /****************************************************************************
@@ -618,4 +620,3 @@ int up_putc(int ch)
 }
 
 #endif /* USE_SERIALDRIVER */
-

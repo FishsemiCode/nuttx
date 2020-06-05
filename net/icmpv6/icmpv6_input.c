@@ -122,7 +122,7 @@ static uint16_t icmpv6_datahandler(FAR struct net_driver_s *dev,
    * packet.
    */
 
-  iob = iob_tryalloc(true);
+  iob = iob_tryalloc(true, IOBUSER_NET_SOCK_ICMPv6);
   if (iob == NULL)
     {
       nerr("ERROR: Failed to create new I/O buffer chain\n");
@@ -142,7 +142,8 @@ static uint16_t icmpv6_datahandler(FAR struct net_driver_s *dev,
    */
 
   addrsize = sizeof(struct sockaddr_in6);
-  ret      = iob_trycopyin(iob, &addrsize, sizeof(uint8_t), 0, true);
+  ret      = iob_trycopyin(iob, &addrsize, sizeof(uint8_t), 0, true,
+                           IOBUSER_NET_SOCK_ICMPv6);
   if (ret < 0)
     {
       /* On a failure, iob_trycopyin return a negated error value but does
@@ -156,7 +157,8 @@ static uint16_t icmpv6_datahandler(FAR struct net_driver_s *dev,
   offset = sizeof(uint8_t);
 
   ret = iob_trycopyin(iob, (FAR const uint8_t *)&inaddr,
-                      sizeof(struct sockaddr_in6), offset, true);
+                      sizeof(struct sockaddr_in6), offset, true,
+                      IOBUSER_NET_SOCK_ICMPv6);
   if (ret < 0)
     {
       /* On a failure, iob_trycopyin return a negated error value but does
@@ -174,7 +176,8 @@ static uint16_t icmpv6_datahandler(FAR struct net_driver_s *dev,
   buflen = ICMPv6SIZE;
   icmpv6 = ICMPv6BUF;
 
-  ret = iob_trycopyin(iob, (FAR uint8_t *)ICMPv6REPLY, buflen, offset, true);
+  ret = iob_trycopyin(iob, (FAR uint8_t *)ICMPv6REPLY, buflen, offset, true,
+                      IOBUSER_NET_SOCK_ICMPv6);
   if (ret < 0)
     {
       /* On a failure, iob_copyin return a negated error value but does
@@ -201,7 +204,7 @@ static uint16_t icmpv6_datahandler(FAR struct net_driver_s *dev,
   return buflen;
 
 drop_with_chain:
-  (void)iob_free_chain(iob);
+  iob_free_chain(iob, IOBUSER_NET_SOCK_ICMPv6);
 
 drop:
   dev->d_len = 0;
@@ -452,7 +455,7 @@ void icmpv6_input(FAR struct net_driver_s *dev, unsigned int iplen)
       {
         FAR struct icmpv6_echo_reply_s *reply;
         FAR struct icmpv6_conn_s *conn;
-        uint16_t flags = ICMPv6_ECHOREPLY;
+        uint16_t flags = ICMPv6_NEWDATA;
 
         /* Nothing consumed the ICMP reply.  That might be because this is
          * an old, invalid reply or simply because the ping application
@@ -476,7 +479,7 @@ void icmpv6_input(FAR struct net_driver_s *dev, unsigned int iplen)
 
         /* Was the ECHO reply consumed by any waiting thread? */
 
-        if ((flags & ICMPv6_ECHOREPLY) != 0)
+        if ((flags & ICMPv6_NEWDATA) != 0)
           {
             uint16_t nbuffered;
 

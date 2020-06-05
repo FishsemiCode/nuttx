@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/i2c/i2c_master.h>
-#include "chip/sam_twihs.h"
+#include "hardware/sam_twihs.h"
 
 /****************************************************************************
  * Public Function Prototypes
@@ -61,7 +61,7 @@
  *   Port number (for hardware that has multiple I2C interfaces)
  *
  * Returned Value:
- *   Valid I2C device structure reference on succcess; a NULL on failure
+ *   Valid I2C device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

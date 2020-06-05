@@ -98,7 +98,7 @@ static void dldump_loadinfo(FAR struct mod_loadinfo_s *loadinfo)
     {
       for (i = 0; i < loadinfo->ehdr.e_shnum; i++)
         {
-          FAR Elf32_Shdr *shdr = &loadinfo->shdr[i];
+          FAR Elf_Shdr *shdr = &loadinfo->shdr[i];
           binfo("Sections %d:\n", i);
           binfo("  sh_name:      %08x\n", shdr->sh_name);
           binfo("  sh_type:      %08x\n", shdr->sh_type);
@@ -231,7 +231,8 @@ static inline FAR void *dlinsert(FAR const char *filename)
 
   /* Get the module initializer entry point */
 
-  initializer = (mod_initializer_t)(loadinfo.textalloc + loadinfo.ehdr.e_entry);
+  initializer = (mod_initializer_t)(loadinfo.textalloc +
+                                    loadinfo.ehdr.e_entry);
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
   modp->initializer = initializer;
 #endif
@@ -256,7 +257,7 @@ static inline FAR void *dlinsert(FAR const char *filename)
 
 errout_with_load:
   modlib_unload(&loadinfo);
-  (void)modlib_undepend(modp);
+  modlib_undepend(modp);
 errout_with_registry_entry:
   lib_free(modp);
 errout_with_loadinfo:

@@ -44,7 +44,7 @@
 #include <nuttx/irq.h>
 #include <arch/irq.h>
 
-#include "chip/chip.h"
+#include "chip.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -128,7 +128,7 @@ void up_enable_irq(int irq)
     {
       /* Enable the interrupt by setting the corresponding bit in the
        * appropriate IRQ enable register.  The enable low
-       * register is assumed to be zero, resulting in "nomimal" interrupt
+       * register is assumed to be zero, resulting in "nominal" interrupt
        * priority.
        */
 

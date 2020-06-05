@@ -59,8 +59,8 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "chip/sam_lcdc.h"
-#include "chip/sam_pinmap.h"
+#include "hardware/sam_lcdc.h"
+#include "hardware/sam_pinmap.h"
 #include "sam_pio.h"
 #include "sam_periphclks.h"
 #include "sam_memories.h"
@@ -705,7 +705,7 @@ static int sam_base_putcmap(struct fb_vtable_s *vtable,
 static int sam_hcr_getcursor(struct fb_vtable_s *vtable,
               struct fb_cursorattrib_s *attrib);
 static int sam_hcr_setcursor(struct fb_vtable_s *vtable,
-              struct fb_setcursor_s *setttings);
+              struct fb_setcursor_s *settings);
 #endif
 
 /* Initialization ***********************************************************/
@@ -1199,10 +1199,10 @@ static int sam_hcr_getcursor(struct fb_vtable_s *vtable,
 
 #ifdef CONFIG_FB_HWCURSOR
 static int sam_hcr_setcursor(struct fb_vtable_s *vtable,
-                             struct fb_setcursor_s *setttings)
+                             struct fb_setcursor_s *settings)
 {
-  lcdinfo("vtable=%p setttings=%p\n", vtable, setttings);
-  if (vtable && setttings)
+  lcdinfo("vtable=%p settings=%p\n", vtable, settings);
+  if (vtable && settings)
     {
       lcdinfo("flags: %02x\n", settings->flags);
       if ((flags & FB_CUR_SETPOSITION) != 0)

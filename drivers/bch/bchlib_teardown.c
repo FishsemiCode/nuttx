@@ -81,7 +81,7 @@ int bchlib_teardown(FAR void *handle)
 
   /* Close the block driver */
 
-  (void)close_blockdriver(bch->inode);
+  close_blockdriver(bch->inode);
 
   /* Free the BCH state structure */
 
@@ -94,4 +94,3 @@ int bchlib_teardown(FAR void *handle)
   kmm_free(bch);
   return OK;
 }
-

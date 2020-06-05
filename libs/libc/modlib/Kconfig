@@ -7,6 +7,7 @@ config LIBC_MODLIB
 	bool
 	default n
 	select LIBC_ARCH_ELF
+	select ARCH_USE_MODULE_TEXT if ARCH_HAVE_MODULE_TEXT
 
 menu "Module library configuration"
 	depends on LIBC_MODLIB
@@ -59,7 +60,7 @@ config MODLIB_DUMPBUFFER
 
 config MODLIB_HAVE_SYMTAB
 	bool "Have symbol table"
-	default n if BUILD_KERNEL
+	default n
 	---help---
 		If you have a module library symbol table, then you may select this
 		option in order to use it.  Symbol tables are required in most
@@ -90,6 +91,10 @@ config MODLIB_NSYMBOLS_VAR
 	string "Name of variable holding the number of symbols"
 	default "g_mod_nsymbols" if !EXECFUNCS_HAVE_SYMTAB
 	default EXECFUNCS_NSYMBOLS_VAR if EXECFUNCS_HAVE_SYMTAB
+
+config MODLIB_SYSTEM_SYMTAB
+	bool "Generate the system symbol table"
+	default n
 
 endif # MODLIB_HAVE_SYMTAB
 

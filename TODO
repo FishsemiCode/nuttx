@@ -1,10 +1,10 @@
-NuttX TODO List (Last updated March 18, 2019)
+NuttX TODO List (Last updated April 18, 2020)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This file summarizes known NuttX bugs, limitations, inconsistencies with
 standards, things that could be improved, and ideas for enhancements.  This
 TODO list does not include issues associated with individual board ports. See
-also the individual README.txt files in the configs/ sub-directories for
+also the individual README.txt files in the boards/ sub-directories for
 issues related to each board port.
 
 nuttx/:
@@ -16,27 +16,27 @@ nuttx/:
   (5)  Signals (sched/signal, arch/)
   (2)  pthreads (sched/pthread, libs/libc/pthread)
   (0)  Message Queues (sched/mqueue)
-  (9)  Kernel/Protected Build
+  (1)  Work Queues (sched/wqueue)
+  (8)  Kernel/Protected Build
   (3)  C++ Support
   (5)  Binary loaders (binfmt/)
- (18)  Network (net/, drivers/net)
+ (17)  Network (net/, drivers/net)
   (4)  USB (drivers/usbdev, drivers/usbhost)
   (2)  Other drivers (drivers/)
   (9)  Libraries (libs/libc/, libs/libm/)
  (12)  File system/Generic drivers (fs/, drivers/)
  (10)  Graphics Subsystem (graphics/)
   (1)  Build system / Toolchains
-  (3)  Linux/Cywgin simulation (arch/sim)
+  (2)  Linux/Cygwin simulation (arch/sim)
   (5)  ARM (arch/arm/)
 
 apps/ and other Add-Ons:
 
-  (2)  Network Utilities (apps/netutils/)
+  (1)  Network Utilities (apps/netutils/)
   (1)  NuttShell (NSH) (apps/nshlib)
   (1)  System libraries apps/system (apps/system)
   (1)  Modbus (apps/modbus)
-  (1)  Pascal add-on (pcode/)
-  (4)  Other Applications & Tests (apps/examples/)
+  (5)  Other Applications & Tests (apps/examples/)
 
 o Task/Scheduler (sched/)
   ^^^^^^^^^^^^^^^^^^^^^^^
@@ -81,9 +81,9 @@ o Task/Scheduler (sched/)
                As of this writing, the basic feature implementation is
                complete and much of the logic has been verified.  The test
                harness for the feature exists only for the NXP LPC3131 (see
-               configs/ea3131/pgnsh and locked directories).  There are
-               some limitations of this testing so I still cannot say that
-               the feature is fully functional.
+               boards/arm/lpc31xx/ea3131/configs/pgnsh and locked
+               directories).  There are some limitations of this testing so
+               I still cannot say that the feature is fully functional.
   Status:      Open.  This has been put on the shelf for some time.
   Priority:    Medium-Low
 
@@ -283,8 +283,9 @@ o Task/Scheduler (sched/)
                  and sched_setaffinity(),
                2018-09-15:  This change has been completed for the case of
                  open() used within the OS.  There are places under libs/ and
-                 configs/ that have not been converted.  I also note cases
+                 boards/ that have not been converted.  I also note cases
                  where fopen() is called under libs/libc/netdb/.
+               2019-09-11:  built_isavail() no longer sets the errno variable.
 
   Status:      Open
   Priority:    Low.  Things are working OK the way they are.  But the design
@@ -472,7 +473,7 @@ o Task/Scheduler (sched/)
                2. Then when either the ELF program task or the created task
                   in the same address environment exits, it would decrement
                   the reference count.  When the last task exits, the reference
-                  count would go to zero and the address environement could be
+                  count would go to zero and the address environment could be
                   destroyed.
 
                This is complex work and would take some effort and probably
@@ -560,7 +561,7 @@ o SMP
                This would also be an essential part of a high priority,
                nested interrupt implementation (unrelated).
   Status:      Open
-  Priority:    Low.  There are no know issues with the current non-maskable
+  Priority:    Low.  There are no known issues with the current non-maskable
                SGI implementation.  This change would, however, lead to
                simplification in the design and permit commonality with
                other, non-GIC implementations.
@@ -570,7 +571,7 @@ o SMP
                The returned CPU number is then used for various things,
                typically as an array index.  However, if pre-emption is
                not disabled,then it is possible that a context switch
-               could occur and that logic could run on anothe CPU with
+               could occur and that logic could run on another CPU with
                possible fatal consequences.
 
                We need to evaluate all use of this_cpu() and assure that
@@ -578,7 +579,7 @@ o SMP
                to execute on the same CPU.
 
   Status:      Open
-  Prioity:     Medium.  This is a logical problem but I have nevers seen
+  Prioity:     Medium.  This is a logical problem but I have never seen
                an bugs caused by this.  But I believe that failures are
                possible.
 
@@ -588,32 +589,58 @@ o SMP
                can that occur?  I think it can occur in the following
                situation:
 
-               CPU0 - Task A is running.
-                    - The CPU0 IDLE task is the only other task in the
-                      CPU0 ready-to-run list.
-               CPU1 - Task B is running.
-                    - Task C is blocked but remains in the g_assignedtasks[]
-                      list because of a CPU affinity selection.  Task C
-                      also holds the critical section which is temporarily
-                      relinquished because Task C is blocked by Task B.
-                    - The CPU1 IDLE task is at the end of the list.
+               The log below was reported is Nuttx running on two cores
+               Cortex-A7 architecture in SMP mode.  You can notice see that
+               when sched_addreadytorun() was called, the g_cpu_irqset is 3.
 
-               Actions:
-               1. Task A/CPU 0 takes the critical section.
-               2. Task B/CPU 1 suspends waiting for an event
-               3. Task C is restarted.
+                 sched_addreadytorun: irqset cpu 1, me 0 btcbname init, irqset 1 irqcount 2.
+                 sched_addreadytorun: sched_addreadytorun line 338 g_cpu_irqset = 3.
 
-               Now both Task A and Task C hold the critical section.
+               This can happen, but only under a very certain condition.
+               g_cpu_irqset only exists to support this certain condition:
 
-               This problem has never been observed, but seems to be a
-               possibility.  I believe it could only occur if CPU affinity
-               is used (otherwise, tasks will pend must as when pre-
-               emption is disabled).
+                 a. A task running on CPU 0 takes the critical section.  So
+                    g_cpu_irqset == 0x1.
 
-               A proper solution would probably involve re-designing how
-               CPU affinity is implemented.  The CPU1 IDLE thread should
-               more appropriately run, but cannot because the Task C TCB
-               is in the g_assignedtasks[] list.
+                 b. A task exits on CPU 1 and a waiting, ready-to-run task
+                    is re-started on CPU 1.  This new task also holds the
+                    critical section.  So when the task is re-restarted on
+                    CPU 1, we than have g_cpu_irqset == 0x3
+
+               So we are in a very perverse state!  There are two tasks
+               running on two different CPUs and both hold the critical
+               section.  I believe that is a dangerous situation and there
+               could be undiscovered bugs that could happen in that case.
+               However, as of this moment, I have not heard of any specific
+               problems caused by this weird behavior.
+
+               A possible solution would be to add a new task state that
+               would exist only for SMP.
+
+               - Add a new SMP-only task list and state.  Say,
+                 g_csection_wait[].  It should be prioritized.
+               - When a task acquires the critical section, all tasks in
+                 g_readytorun[] that need the critical section would be
+                 moved to g_csection_wait[].
+               - When any task is unblocked for any reason and moved to the
+                 g_readytorun[] list, if that unblocked task needs the
+                 critical section, it would also be moved to the
+                 g_csection_wait[] list.  No task that needs the critical
+                 section can be in the ready-to-run list if the critical
+                 section is not available.
+               - When the task releases the critical section, all tasks in
+                 the g_csection_wait[] needs to be moved back to
+                 g_readytorun[].
+              - This may result in a context switch.  The tasks should be
+                 moved back to g_readytorun[] highest priority first.  If a
+                 context switch occurs and the critical section to re-taken
+                 by the re-started task, the lower priority tasks in
+                 g_csection_wait[] must stay in that list.
+
+               That is really not as much work as it sounds.  It is
+               something that could be done in 2-3 days of work if you know
+               what you are doing.  Getting the proper test setup and
+               verifying the change would be the more difficult task.
 
 Status:        Open
 Priority:      Unknown.  Might be high, but first we would need to confirm
@@ -764,7 +791,7 @@ o Signals (sched/signal, arch/)
   Priority:    Low. Even if there are only 31 usable signals, that is still a lot.
 
   Title:       NO QUEUING of SIGNAL ACTIONS
-  Description: In the architecture specific implemenation of struct xcptcontext,
+  Description: In the architecture specific implementation of struct xcptcontext,
                there are fields used by signal handling logic to pass the state
                information needed to dispatch signal actions to the appropriate
                handler.
@@ -780,19 +807,19 @@ o Signals (sched/signal, arch/)
                very low.
 
   Title:       QUEUED SIGNAL ACTIONS ARE INAPPROPRIATELY DEFERRED
-  Descirption: The implement of nxsig_deliver() does the followin in a loop:
+  Description: The implement of nxsig_deliver() does the following in a loop:
                - It takes the next next queued signal action from a list
                - Calls the architecture-specific up_sigdeliver() to perform
                  the signal action (through some sleight of hand in
                  up_schedule_sigaction())
                - up_sigdeliver() is a trampoline function that performs the
                  actual signal action as well as some housekeeping functions
-                 then 
+                 then
                - up_sigdeliver() performs a context switch back to the normal,
                  uninterrupted thread instead of returning to nxsig_deliver().
 
                The loop in nxsig_deliver() then will have the opportunity to
-               run until when that normal, uniterrupted thread is suspended.
+               run until when that normal, uninterrupted thread is suspended.
                Then the loop will continue with the next queued signal
                action.
 
@@ -899,26 +926,30 @@ o pthreads (sched/pthreads libs/libc/pthread)
 o Message Queues (sched/mqueue)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+o Work Queues (sched/wqueue)
+  ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  Title:       WORK QUEUE DELAY INACCURACIES
+  Description: Each queued work may have an optional delay value associated
+               with it.  That delay should be respect to the time that the
+               work is queued.  However, since we do not know the time the
+               work is queue, the actual delay will be respect to the time
+               that the work is processed.  Under certain conditions, the
+               work may sit in the queue for some time before it is
+               processed, leading to an inaccuracy in the delay.
+
+               One solution might involved saving the time when in the work
+               structure when the work is queued.  Then the delay logic can
+               take the difference between the processing time and the
+               queued time to get a more accurate delay.
+  Status:      Open
+  Priority:    In all known use cased, the priority is low.  A problem is
+               would only occur if the work queue is overload or if work in
+               the work queue suspends waiting for a resource (both of which
+               are much bigger problems).
+
 o Kernel/Protected Build
   ^^^^^^^^^^^^^^^^^^^^^^
-
-  Title:       NSH PARTITIONING.
-  Description: There are issues with several NSH commands in the NuttX kernel
-               and protected build modes (where NuttX is built as a monolithic
-               kernel and user code must trap into the protected kernel via
-               syscalls). The current NSH implementation has several commands
-               that call  directly into kernel internal functions for which
-               there is no syscall available.  The commands cause link failures
-               in the kernel/protected build mode and must currently be disabled.
-               Here are known problems that must be fixed:
-
-               COMMAND  KERNEL INTERFACE(s)
-               -------- ----------------------------------------------
-               mkrd     ramdisk_register()
-
-  Status:      Open
-  Priority:    Medium/High -- the kernel build configuration is not fully fielded
-               yet.
 
   Title:       apps/system PARTITIONING
   Description: Several of the USB device helper applications in apps/system
@@ -987,7 +1018,7 @@ o Kernel/Protected Build
                 by simply reading this variable.
 
                "This one would be easy: Just a change to include/nuttx/userspace.h,
-                configs/*/kernel/up_userspace.c, libs/libc/,
+                boards/<arch>/<chip>/<board>/kernel/up_userspace.c, libs/libc/,
                 sched/sched_addreadytorun.c, and sched/sched_removereadytorun.c.
                 That would eliminate 59% of the syscalls."
 
@@ -1002,7 +1033,7 @@ o Kernel/Protected Build
                tls_info_s.  Then the PID could be obtained without a system call.
                TLS is not very useful in the FLAT build, however.  TLS works by
                putting per-thread data at the bottom of an aligned stack.  The
-               current stack pointer is the ANDed with the alignment mask to
+               current stack pointer is then ANDed with the alignment mask to
                obtain the per-thread data address.
 
                There are problems with this in the FLAT and PROTECTED builds:
@@ -1093,7 +1124,7 @@ o Kernel/Protected Build
                via a system call at high rates.
 
   Title:       SIGNAL ACTION VULNERABILITY
-  Description: When a signal action is peformed, the user stack is used.
+  Description: When a signal action is performed, the user stack is used.
                Unlike Linux, applications do not have separate user and
                supervisor stacks; everything is done on the user stack.
 
@@ -1133,11 +1164,12 @@ o C++ Support
                that size_t is of a different type resulting in compilation errors
                in the operator.  Using the underlying integer type Instead of
                size_t seems to resolve the compilation issues.
-  Status:      Kind of open.  There is a workaround.  Setting CONFIG_CXX_NEWLONG=y
-               will define the operators with argument of type unsigned long;
-               Setting CONFIG_CXX_NEWLONG=n will define the operators with argument
-               of type unsigned int.  But this is pretty ugly!  A better solution
-               would be to get a hold of the compilers definition of size_t.
+  Status:      Kind of open. There is a workaround. Setting CONFIG_ARCH_SIZET_LONG
+               =y will define the operators with argument of type unsigned long;
+               Setting CONFIG_ARCH_SIZET_LONG=n will define the operators with
+               argument of type unsigned int. But this is pretty ugly!  A better
+               solution would be to get a hold of the compilers definition of
+               size_t.
   Priority:    Low.
 
   Title:       STATIC CONSTRUCTORS AND MULTITASKING
@@ -1192,7 +1224,7 @@ o C++ Support
                   one task can effect another task. There can only one
                   uClibc++ state and it will be shared by all tasks. uClibc++
                   apparently relies on global instances (at least for cin and
-                  cout) there is no way to to have any unique state for any
+                  cout) there is no way to have any unique state for any
                   "task group".
 
                   [NuttX does not support processes because in order to have
@@ -1653,23 +1685,6 @@ o Network (net/, drivers/net)
                before, so I suspect it might not be so prevalent as one
                might expect.
 
-  Title:       TCP SOCKETS CLOSED TOO QUICKLY
-  Description: When a socket is closed, the resources are torn down
-               immediately (unless the SO_LINGER option is selected).  As a
-               result, the socket does not send the FIN and this looks like
-               an unexpected, abnormal loss of connection to the remote peer.
-
-               Actually, it is worse than this:  The is NO logic to send
-               FIN in when the file is close.  This is pretty easy to do,
-               however:
-
-                 - Wait for a TCP poll, then
-                 - Call tcp_append with TCP_CLOSE in the flags.  There is
-                   already logic in tcp_appsend to send the FIN in this case,
-                   it is just not being use.
-  Status:      Open
-  Priority:    Medium-Low.
-
   Title:       LOCAL DATAGRAM RECVFROM RETURNS WRONG SENDER ADDRESS
   Description: The recvfrom logic for local datagram sockets returns the
                incorrect sender "from" address.  Instead, it returns the
@@ -1805,7 +1820,8 @@ o USB (drivers/usbdev, drivers/usbhost)
   Title:       USB CDC/ACM HOST CLASS DRIVER
   Description: A CDC/ACM host class driver has been added.  This has been
                testing by running the USB CDC/ACM host on an Olimex
-               LPC1766STK and using the configs/stm3210e-eval/usbserial
+               LPC1766STK and using the
+               boards/arm/stm32/stm3210e-eval/configs/usbserial
                configuration (using the CDC/ACM device side driver).  There
                are several unresolved issues that prevent the host driver
                from being usable:
@@ -2101,13 +2117,6 @@ o File system / Generic drivers (fs/, drivers/)
   Status:      Open
   Priority:    Medium-Low
 
-  Title:       CONFIG_RAMLOG_CONSOLE DOES NOT WORK
-  Description: When I enable CONFIG_RAMLOG_CONSOLE, the system does not come up
-               properly (using configuration stm3240g-eval/nsh2).  The problem
-               may be an assertion that is occurring before we have a console.
-  Status:      Open
-  Priority:    Medium
-
   Title:       UNIFIED DESCRIPTOR REPRESENTATION
   Description: There are two separate ranges of descriptors for file and
                socket descriptors: if a descriptor is in one range then it is
@@ -2247,7 +2256,8 @@ o File system / Generic drivers (fs/, drivers/)
                file being read is smaller than number bytes written to the
                file.  That test does write small files continuously until
                file system is full and even the the error is rare.  The
-               configs/sim/spiffs test can used to demonstrate the error.
+               boards/sim/sim/sim/configs/spiffs test can used to
+               demonstrate the error.
   Status:      Open
   Priority:    Medium.  It is certain a file system failure, but I think that
                the exposure in real world uses cases is very small.
@@ -2461,7 +2471,7 @@ o Graphics Subsystem (graphics/)
                incomplete.  In fact, many recent changes explicitly assume a
                single color plane:  Planar colors are specified by a array
                of components; some recent logic uses only component [0],
-               ignoring the possible existence of other color componet frames.
+               ignoring the possible existence of other color component frames.
 
                Completely removing planar color support is one reasonable
                options; it is not likely that NuttX will encounter planar
@@ -2518,7 +2528,7 @@ o Other drivers (drivers/)
   Priority:    Low, provided that the application can handle these characters
                in the data stream.
 
-o Linux/Cywgin simulation (arch/sim)
+o Linux/Cygwin simulation (arch/sim)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       SIMULATOR HAS NO INTERRUPTS (NON-PREMPTIBLE)
@@ -2545,69 +2555,6 @@ o Linux/Cywgin simulation (arch/sim)
                up_irq_restore() to block and (conditionally) unblock the signal.
   Status:      Open
   Priority:    Low
-
-  Title:       SMP SIMULATION ISSUES
-  Description: The configuration has basic support SMP testing.  The simulation
-               supports the emulation of multiple CPUs by creating multiple
-               pthreads, each run a copy of the simulation in the same process
-               address space.
-
-               At present, the SMP simulation is not fully functional:  It does
-               operate on the simulated CPU threads for a few context switches
-               then fails during a setjmp() operation.  I suspect that this is
-               not an issue with the NuttX SMP logic but more likely some chaos
-               in the pthread controls. I have seen similar such strange behavior
-               other times that I have tried to use setjmp/longmp from a signal
-               handler! Like when I tried to implement simulated interrupts
-               using signals.
-
-               Apparently, if longjmp is invoked from the context of a signal
-               handler, the result is undefined:
-               http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1318.htm
-
-               You can enable SMP for ostest configuration by enabling:
-
-                 -# CONFIG_EXPERIMENTAL is not set
-                 +CONFIG_EXPERIMENTAL=y
-
-                 +CONFIG_SPINLOCK=y
-                 +CONFIG_SMP=y
-                 +CONFIG_SMP_NCPUS=2
-                 +CONFIG_SMP_IDLETHREAD_STACKSIZE=2048
-
-               You also must enable near-realtime-performance otherwise even long
-               timeouts will expire before a CPU thread even has a chance to
-               execute.
-
-                 -# CONFIG_SIM_WALLTIME is not set
-                 +CONFIG_SIM_WALLTIME=y
-
-               And you can enable some additional debug output with:
-
-                 -# CONFIG_DEBUG_SCHED is not set
-                 +CONFIG_DEBUG_SCHED=y
-
-                 -# CONFIG_SCHED_INSTRUMENTATION is not set
-                 +CONFIG_SCHED_INSTRUMENTATION=y
-
-               The NSH configuration can also be forced to run SMP, but
-               suffers from the same quirky behavior.  I can be made
-               reliable if you modify arch/sim/src/up_idle.c so that
-               the IDLE loop only runs for CPU0.  Otherwise, often
-               simuart_post() will be called from CPU1 and it will try
-               to restart NSH on CPU0 and, again, the same quirkiness
-               occurs.
-
-               But for example, this command:
-
-                 nsh> sleep 1 &
-
-               will execute the sleep command on CPU1 which has worked
-               every time that I have tried it (which is not too many
-               times).
-
-  Status:      Open
-  Priority:    Low, SMP is important, but SMP on the simulator is not
 
 o ARM (arch/arm/)
   ^^^^^^^^^^^^^^^
@@ -2699,7 +2646,7 @@ o ARM (arch/arm/)
   Title:       USE COMMON VECTOR LOGIC IN ALL ARM ARCHITECTURES.
   Description: Originally, each ARMv7-M MCU architecture had its own
                private implementation for interrupt vectors and interrupt
-               handling logic.  This was superceded by common interrupt
+               handling logic.  This was superseded by common interrupt
                vector logic but these private implementations were never
                removed from older MCU architectures.  This is turning into
                a maintenance issue because any improvements to the common
@@ -2720,16 +2667,10 @@ o Network Utilities (apps/netutils/)
   Status:      Open
   Priority:    Medium
 
-  Title:       NETWORK MONITOR NOT GENERALLY AVAILABLE
-  Description: The NSH network management logic has general applicability
-               but is currently useful only because it is embedded in the NSH
-               module.  It should be moved to apps/system or, better,
-               apps/netutils.
-  Status:      Open
-  Priority:    Low
-
 o NuttShell (NSH) (apps/nshlib)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  See some NHS issues under "Kernel/Protected Build" as well.
 
   Title:       IFCONFIG AND MULTIPLE NETWORK INTERFACES
   Description: The ifconfig command will not behave correctly if an interface
@@ -2775,33 +2716,12 @@ o Modbus (apps/modbus)
   Status:      Open
   Priority:    Low.  This is really an enhancement request:  Modbus was never
                designed to work with removable serial devices.
-
-o Pascal Add-On (pcode/)
-  ^^^^^^^^^^^^^^^^^^^^^^
-
-  Title:       P-CODES IN MEMORY UNTESTED
-  Description: Need APIs to verify execution of P-Code from memory buffer.
-  Status:      Open
-  Priority:    Low
-
-  Title:       SMALLER LOADER AND OBJECT FORMAT
-  Description: Loader and object format may be too large for some small
-               memory systems.  Consider ways to reduce memory footprint.
-  Status:      Open
-  Priority:    Medium
-
-  Title:       PDBG
-  Description: Move the pascal p-code debugger into the NuttX apps/ tree
-               where it can be used from the NSH command line.
-  Status:      Open
-  Priority:    Low
-
 o Other Applications & Tests (apps/examples/)
   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
   Title:       EXAMPLES/PIPE ON CYGWIN
   Description: The redirection test (part of examples/pipe) terminates
-               incorrectly on the Cywgin-based simulation platform (but works
+               incorrectly on the Cygwin-based simulation platform (but works
                fine on the Linux-based simulation platform).
   Status:      Open
   Priority:    Low
@@ -2835,5 +2755,28 @@ o Other Applications & Tests (apps/examples/)
                tiny artifact would not be surprising (the initial window
                should like at (0,0) and be of size (1,1)), but sometimes
                the artifact is larger.
+  Status:      Open
+  Priority:    Medium.
+
+  Title:       ILLEGAL CALLS TO romdisk_register()
+  Description: Several examples (and other things under apps/) make illegal
+               calls to romdisk_register().  This both violates the portable
+               POSIX OS interface and makes these applications un-usable in
+               PROTECTED and KERNEL build modes.
+
+               Non-compliant examples include:
+
+                 examples/bastest, examples/elf, examples/module,
+                 examples/nxflat, examples/posix_spawn, examples/romfs,
+                 examples/sotest, examples/thttpd, examples/unionfs
+
+               These examples are simple demos and, hence, you could argue that
+               it is not so bad that they violate the interface for the purpose
+               of demonstration (although they do set a bad example because of
+               this).
+
+               These examples should, of course, use boardctl(BOARDIOC_ROMDISK)
+               to create the ROM disk instead of calling romdisk_register()
+               directly.
   Status:      Open
   Priority:    Medium.

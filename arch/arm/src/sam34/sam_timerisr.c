@@ -125,7 +125,7 @@ static int sam_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the timer
@@ -133,7 +133,7 @@ static int sam_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
 
@@ -163,7 +163,7 @@ void arm_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(SAM_IRQ_SYSTICK, (xcpt_t)sam_timerisr, NULL);
+  irq_attach(SAM_IRQ_SYSTICK, (xcpt_t)sam_timerisr, NULL);
 
   /* Enable SysTick interrupts */
 

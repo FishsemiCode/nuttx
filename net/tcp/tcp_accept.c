@@ -43,7 +43,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
@@ -118,6 +117,7 @@ static inline void accept_tcpsender(FAR struct socket *psock,
           inaddr->sin_family = AF_INET;
           inaddr->sin_port   = conn->rport;
           net_ipv4addr_copy(inaddr->sin_addr.s_addr, conn->u.ipv4.raddr);
+          memset(inaddr->sin_zero, 0, sizeof(inaddr->sin_zero));
 
           *addrlen = sizeof(struct sockaddr_in);
         }
@@ -193,7 +193,7 @@ static int accept_eventhandler(FAR struct tcp_conn_s *listener,
       listener->accept_private = NULL;
       listener->accept         = NULL;
       ret                      = OK;
-  }
+    }
 
   return ret;
 }
@@ -264,10 +264,6 @@ int psock_tcp_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
   else
 #endif
     {
-      /* Set the socket state to accepting */
-
-      psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_ACCEPT);
-
       /* Perform the TCP accept operation */
 
       /* Initialize the state structure.  This is done with the network
@@ -305,10 +301,6 @@ int psock_tcp_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
       conn->accept         = NULL;
 
       nxsem_destroy(&state. acpt_sem);
-
-      /* Set the socket state to idle */
-
-      psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
 
       /* Check for a errors.  Errors are signalled by negative errno values
        * for the send length.

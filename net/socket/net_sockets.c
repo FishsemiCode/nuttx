@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <sched.h>
 #include <errno.h>
@@ -48,6 +47,7 @@
 
 #include <nuttx/net/net.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/semaphore.h>
 
 #include "socket/socket.h"
 
@@ -57,20 +57,7 @@
 
 static void _net_semtake(FAR struct socketlist *list)
 {
-  int ret;
-
-  /* Take the semaphore (perhaps waiting) */
-
-  while ((ret = net_lockedwait(&list->sl_sem)) < 0)
-    {
-      /* The only case that an error should occr here is if
-       * the wait was awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-    }
-
-  UNUSED(ret);
+  net_lockedwait_uninterruptible(&list->sl_sem);
 }
 
 #define _net_semgive(list) nxsem_post(&list->sl_sem)
@@ -97,7 +84,7 @@ void net_initlist(FAR struct socketlist *list)
 {
   /* Initialize the list access mutex */
 
-  (void)nxsem_init(&list->sl_sem, 0, 1);
+  nxsem_init(&list->sl_sem, 0, 1);
 }
 
 /****************************************************************************
@@ -127,13 +114,13 @@ void net_releaselist(FAR struct socketlist *list)
       FAR struct socket *psock = &list->sl_sockets[ndx];
       if (psock->s_crefs > 0)
         {
-          (void)psock_close(psock);
+          psock_close(psock);
         }
     }
 
   /* Destroy the semaphore */
 
-  (void)nxsem_destroy(&list->sl_sem);
+  nxsem_destroy(&list->sl_sem);
 }
 
 /****************************************************************************
@@ -174,10 +161,10 @@ int sockfd_allocate(int minsd)
                * as the socket descriptor.
                */
 
-               memset(&list->sl_sockets[i], 0, sizeof(struct socket));
-               list->sl_sockets[i].s_crefs = 1;
-               _net_semgive(list);
-               return i + __SOCKFD_OFFSET;
+              memset(&list->sl_sockets[i], 0, sizeof(struct socket));
+              list->sl_sockets[i].s_crefs = 1;
+              _net_semgive(list);
+              return i + __SOCKFD_OFFSET;
             }
         }
 
@@ -205,30 +192,19 @@ void psock_release(FAR struct socket *psock)
 {
   if (psock != NULL)
     {
-      /* Take the list semaphore so that there will be no accesses
-       * to this socket structure.
+      /* Decrement the count if there the socket will persist
+       * after this.
        */
 
-      FAR struct socketlist *list = sched_getsockets();
-      if (list)
+      if (psock->s_crefs > 1)
         {
-          /* Decrement the count if there the socket will persist
-           * after this.
-           */
+          psock->s_crefs--;
+        }
+      else
+        {
+          /* The socket will not persist... reset it */
 
-          _net_semtake(list);
-          if (psock->s_crefs > 1)
-            {
-              psock->s_crefs--;
-            }
-          else
-            {
-              /* The socket will not persist... reset it */
-
-              memset(psock, 0, sizeof(struct socket));
-            }
-
-          _net_semgive(list);
+          memset(psock, 0, sizeof(struct socket));
         }
     }
 }
@@ -253,11 +229,19 @@ void sockfd_release(int sockfd)
 
   FAR struct socket *psock = sockfd_socket(sockfd);
 
-  /* Get the socket structure for this sockfd */
-
   if (psock)
     {
-      psock_release(psock);
+      /* Take the list semaphore so that there will be no accesses
+       * to this socket structure.
+       */
+
+      FAR struct socketlist *list = sched_getsockets();
+      if (list)
+        {
+          _net_semtake(list);
+          psock_release(psock);
+          _net_semgive(list);
+        }
     }
 }
 
@@ -268,7 +252,7 @@ void sockfd_release(int sockfd)
  *   Given a socket descriptor, return the underlying socket structure.
  *
  * Input Parameters:
- *   sockfd - The socket descriptor index o use.
+ *   sockfd - The socket descriptor index to use.
  *
  * Returned Value:
  *   On success, a reference to the socket structure associated with the
@@ -292,4 +276,3 @@ FAR struct socket *sockfd_socket(int sockfd)
 
   return NULL;
 }
-

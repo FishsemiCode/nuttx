@@ -48,7 +48,6 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/mtd/mtd.h>
 
@@ -63,7 +62,7 @@
  *
  * Description:
  *   Seek to the file position before read or write access.  Note that the
- *   simplier nxffs_ioseek() cannot be used for this purpose.  File offsets
+ *   simpler nxffs_ioseek() cannot be used for this purpose.  File offsets
  *   are not easily mapped to FLASH offsets due to intervening block and
  *   data headers.
  *
@@ -132,6 +131,7 @@ static ssize_t nxffs_rdseek(FAR struct nxffs_volume_s *volume,
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: nxffs_read
  *

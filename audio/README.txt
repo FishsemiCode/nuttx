@@ -49,7 +49,7 @@ General Audio Settings
 CONFIG_AUDIO
   Enables overall support for audio subsystem
 CONFIG_AUDIO_MULTI_SESSION
-  Enables support for the audio subystem to track mutliple open sessions
+  Enables support for the audio subsystem to track multiple open sessions
   with lower-level audio devices.
 CONFIG_AUDIO_LARGE_BUFFERS
   Specifies that buffer size variables should be 32-bit vs. the normal 16-bit
@@ -127,4 +127,3 @@ Related Subdirectories
 
 drivers/audio           -- Contains the lower-level device specific drivers.
 apps/system/nxplayer    -- User-mode audio subsystem interface library.
-

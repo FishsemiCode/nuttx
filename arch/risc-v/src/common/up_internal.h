@@ -57,6 +57,26 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* This is the value used to mark the stack for subsequent stack monitoring
+ * logic.
+ */
+
+#define STACK_COLOR    0xdeadbeef
+#define INTSTACK_COLOR 0xdeadbeef
+#define HEAP_COLOR     'h'
+
+/* In the RISC_V model, the state is copied from the stack to the TCB, but
+ * only a referenced is passed to get the state from the TCB.
+ */
+
+#ifdef CONFIG_ARCH_RV64GC
+#define up_savestate(regs)    up_copystate(regs, (uint64_t*)CURRENT_REGS)
+#define up_restorestate(regs) (CURRENT_REGS = regs)
+#else
+#define up_savestate(regs)    up_copystate(regs, (uint32_t*)g_current_regs)
+#define up_restorestate(regs) (g_current_regs = regs)
+#endif
+
 /* Determine which (if any) console driver to use.  If a console is enabled
  * and no other console device is specified, then a serial console is
  * assumed.
@@ -65,14 +85,8 @@
 #ifndef CONFIG_DEV_CONSOLE
 #  undef  USE_SERIALDRIVER
 #  undef  USE_EARLYSERIALINIT
-#  undef  CONFIG_DEV_LOWCONSOLE
-#  undef  CONFIG_RAMLOG_CONSOLE
 #else
-#  if defined(CONFIG_RAMLOG_CONSOLE)
-#    undef  USE_SERIALDRIVER
-#    undef  USE_EARLYSERIALINIT
-#    undef  CONFIG_DEV_LOWCONSOLE
-#  elif defined(CONFIG_DEV_LOWCONSOLE)
+#  if defined(CONFIG_CONSOLE_SYSLOG)
 #    undef  USE_SERIALDRIVER
 #    undef  USE_EARLYSERIALINIT
 #  else
@@ -81,22 +95,6 @@
 #  endif
 #endif
 
-/* If some other device is used as the console, then the serial driver may
- * still be needed.  Let's assume that if the upper half serial driver is
- * built, then the lower half will also be needed.  There is no need for
- * the early serial initialization in this case.
- */
-
-#if !defined(USE_SERIALDRIVER) && defined(CONFIG_STANDARD_SERIAL)
-#  define USE_SERIALDRIVER 1
-#endif
-
-/* In the RISC_V model, the state is copied from the stack to the TCB, but
- * only a referenced is passed to get the state from the TCB.
- */
-
-#define up_savestate(regs)    up_copystate(regs, (uint32_t*)g_current_regs)
-#define up_restorestate(regs) (g_current_regs = regs)
 
 #define _START_TEXT  &_stext
 #define _END_TEXT    &_etext
@@ -106,24 +104,19 @@
 #define _START_DATA  &_sdata
 #define _END_DATA    &_edata
 
-/* This is the value used to mark the stack for subsequent stack monitoring
- * logic.
- */
 
-#define STACK_COLOR    0xdeadbeef
-#define INTSTACK_COLOR 0xdeadbeef
-#define HEAP_COLOR     'h'
+#ifndef __ASSEMBLY__
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
 /****************************************************************************
- * Public Data
+ * Public Variables
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
+#undef EXTERN
+#if defined(__cplusplus)
 #define EXTERN extern "C"
 extern "C"
 {
@@ -131,15 +124,26 @@ extern "C"
 #define EXTERN extern
 #endif
 
+#ifdef CONFIG_ARCH_RV64GC
+#ifdef CONFIG_SMP
+EXTERN volatile uint64_t *g_current_regs[CONFIG_SMP_NCPUS];
+#  define CURRENT_REGS (g_current_regs[up_cpu_index()])
+#else
+EXTERN volatile uint64_t *g_current_regs[1];
+#  define CURRENT_REGS (g_current_regs[0])
+#endif
+EXTERN uintptr_t g_idle_topstack;
+#else
 EXTERN volatile uint32_t *g_current_regs;
+EXTERN uint32_t g_idle_topstack;
+#endif
 
-/* This is the beginning of heap as provided from up_head.S.
- * This is the first address in DRAM after the loaded
- * program+bss+idle stack.  The end of the heap is
- * CONFIG_RAM_END
- */
+/* Address of the saved user stack pointer */
 
-EXTERN const uint32_t g_idle_topstack;
+#if CONFIG_ARCH_INTERRUPTSTACK > 3
+EXTERN uint32_t g_intstackalloc; /* Allocated stack base */
+EXTERN uint32_t g_intstackbase;  /* Initial top of interrupt stack */
+#endif
 
 /* These 'addresses' of these values are setup by the linker script.  They are
  * not actual uint32_t storage locations! They are only used meaningfully in the
@@ -161,76 +165,43 @@ EXTERN uint32_t _edata;           /* End+1 of .data */
 EXTERN uint32_t _sbss;            /* Start of .bss */
 EXTERN uint32_t _ebss;            /* End+1 of .bss */
 
-#endif /* __ASSEMBLY__ */
-
-/****************************************************************************
- * Inline Functions
- ****************************************************************************/
-
-#ifndef __ASSEMBLY__
-
-static inline uint32_t up_getsp(void)
-{
-  register uint32_t sp;
-  __asm__
-  (
-    "\tadd  %0, x0, x2\n"
-    : "=r"(sp)
-  );
-  return sp;
-}
-
-#endif
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
-
-#ifndef __ASSEMBLY__
 
 /* Low level initialization provided by board-level logic ******************/
 
 void up_boot(void);
 
-/* Context switching */
+/* Memory allocation ********************************************************/
 
+void up_addregion(void);
+void up_allocate_heap(FAR void **heap_start, size_t *heap_size);
+
+/* IRQ initialization *******************************************************/
+
+void up_ack_irq(int irq);
+
+#ifdef CONFIG_ARCH_RV64GC
+void up_copystate(uint64_t *dest, uint64_t *src);
+void up_copyfullstate(uint64_t *dest, uint64_t *src);
+#else
 void up_copystate(uint32_t *dest, uint32_t *src);
 void up_copyfullstate(uint32_t *dest, uint32_t *src);
-
-/* Signal handling **********************************************************/
-
-void up_sigdeliver(void);
-
-/* Power management *********************************************************/
-
-#ifdef CONFIG_PM
-void up_pminitialize(void);
-#else
-#  define up_pminitialize()
 #endif
 
-/* Interrupt handling *******************************************************/
-
-void up_irqinitialize(void);
-
-/* Exception Handlers */
-
+void up_sigdeliver(void);
 int up_swint(int irq, FAR void *context, FAR void *arg);
 uint32_t up_get_newintctx(void);
 
+/* Power management *********************************************************/
+
+void up_pminitialize(void);
+
 /* Floating point unit ******************************************************/
 
-#ifdef CONFIG_ARCH_FPU
 void up_savefpu(uint32_t *regs);
 void up_restorefpu(const uint32_t *regs);
-#else
-#  define up_savefpu(regs)
-#  define up_restorefpu(regs)
-#endif
-
-/* System timer *************************************************************/
-
-void riscv_timer_initialize(void);
 
 /* Low level serial output **************************************************/
 
@@ -240,29 +211,23 @@ void up_lowputs(const char *str);
 
 #ifdef USE_SERIALDRIVER
 void up_serialinit(void);
-#else
-#  define up_serialinit()
 #endif
 
 #ifdef USE_EARLYSERIALINIT
 void up_earlyserialinit(void);
-#else
-#  define up_earlyserialinit()
 #endif
 
 #ifdef CONFIG_RPMSG_UART
 void rpmsg_serialinit(void);
-#else
-#  define rpmsg_serialinit()
 #endif
 
 /* Defined in drivers/lowconsole.c */
 
-#ifdef CONFIG_DEV_LOWCONSOLE
 void lowconsole_init(void);
-#else
-# define lowconsole_init()
-#endif
+
+/* The OS start routine    **************************************************/
+
+void nx_start(void);
 
 /* DMA **********************************************************************/
 
@@ -272,19 +237,7 @@ void weak_function up_dma_initialize(void);
 
 /* Cache control ************************************************************/
 
-#ifdef CONFIG_ARCH_L2CACHE
 void up_l2ccinitialize(void);
-#else
-#  define up_l2ccinitialize()
-#endif
-
-/* Memory management ********************************************************/
-
-#if CONFIG_MM_REGIONS > 1
-void up_addregion(void);
-#else
-# define up_addregion()
-#endif
 
 /* Watchdog timer ***********************************************************/
 
@@ -302,36 +255,13 @@ void up_wdtinit(void);
  * up_initialize().  Then this stub would not be needed.
  */
 
-#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void);
-#else
-# define up_netinitialize()
-#endif
-
-/* USB **********************************************************************/
-
-#ifdef CONFIG_USBDEV
-void up_usbinitialize(void);
-void up_usbuninitialize(void);
-#else
-# define up_usbinitialize()
-# define up_usbuninitialize()
-#endif
 
 /* Debug ********************************************************************/
+
 #ifdef CONFIG_STACK_COLORATION
 void up_stack_color(FAR void *stackbase, size_t nbytes);
 #endif
-
-#ifdef CONFIG_ARCH_STACKDUMP
-void up_dumpstate(void);
-#else
-#  define up_dumpstate()
-#endif
-
-/* The OS start routine    **************************************************/
-
-void nx_start(void);
 
 #undef EXTERN
 #ifdef __cplusplus

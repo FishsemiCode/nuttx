@@ -244,7 +244,7 @@ static int _inode_search(FAR struct inode_search_s *desc)
   int ret = -ENOENT;
 
   /* Get the search path, skipping over the leading '/'.  The leading '/' is
-   * mandatory because only absolte paths are expected in this context.
+   * mandatory because only absolute paths are expected in this context.
    */
 
   DEBUGASSERT(desc != NULL && desc->path != NULL);
@@ -396,6 +396,7 @@ static int _inode_search(FAR struct inode_search_s *desc)
                     }
                 }
 #endif
+
               /* Keep looking at the next level "down" */
 
               above = node;
@@ -517,7 +518,7 @@ int inode_search(FAR struct inode_search_s *desc)
 
           if (INODE_IS_MOUNTPT(node))
             {
-               /* Yes... set up for the MOUNTPOINT logic below. */
+              /* Yes... set up for the MOUNTPOINT logic below. */
 
               desc->relpath = relpath;
             }
@@ -552,8 +553,8 @@ int inode_search(FAR struct inode_search_s *desc)
 
           if (desc->relpath != NULL && *desc->relpath != '\0')
             {
-              (void)asprintf(&buffer, "%s/%s",
-                             desc->linktgt, desc->relpath);
+              asprintf(&buffer, "%s/%s",
+                       desc->linktgt, desc->relpath);
             }
           else
             {

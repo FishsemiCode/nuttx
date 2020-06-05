@@ -54,9 +54,13 @@
 #include <nuttx/syslog/syslog_console.h>
 #include <nuttx/serial/pty.h>
 #include <nuttx/crypto/crypto.h>
+#include <nuttx/power/pm.h>
+
+#include <arch/board/board.h>
 
 #include "up_arch.h"
 #include "up_internal.h"
+#include "chip.h"
 
 #include "sched/sched.h"
 
@@ -130,16 +134,6 @@ void up_initialize(void)
 
   up_addregion();
 
-  /* Initialize the interrupt subsystem */
-
-  up_irqinitialize();
-
-  /* Initialize the system timer interrupt */
-
-#ifndef CONFIG_SYSTEMTICK_EXTCLK
-  ceva_timer_initialize();
-#endif
-
 #ifdef CONFIG_PM
   /* Initialize the power management subsystem.  This MCU-specific function
    * must be called *very* early in the initialization sequence *before* any
@@ -151,20 +145,13 @@ void up_initialize(void)
 #endif
 
 #ifdef CONFIG_ARCH_DMA
-  /* Initialize the DMA subsystem if the weak function up_dma_initialize has been
-   * brought into the build
+  /* Initialize the DMA subsystem if the weak function up_dma_initialize has
+   * been brought into the build
    */
 
   up_dma_initialize();
 #endif
 
-#ifdef CONFIG_MM_IOB
-  /* Initialize IO buffering */
-
-  iob_initialize();
-#endif
-
-#if CONFIG_NFILE_DESCRIPTORS > 0
   /* Register devices */
 
 #if defined(CONFIG_DEV_NULL)
@@ -186,7 +173,6 @@ void up_initialize(void)
 #if defined(CONFIG_DEV_LOOP)
   loop_register();      /* Standard /dev/loop */
 #endif
-#endif /* CONFIG_NFILE_DESCRIPTORS */
 
 #if defined(CONFIG_SCHED_INSTRUMENTATION_BUFFER) && \
     defined(CONFIG_DRIVER_NOTE)
@@ -207,26 +193,17 @@ void up_initialize(void)
    * serial driver).
    */
 
-#if defined(CONFIG_DEV_LOWCONSOLE)
-  lowconsole_init();
+#if defined (CONFIG_ARM_LWL_CONSOLE)
+  lwlconsole_init();
 #elif defined(CONFIG_CONSOLE_SYSLOG)
   syslog_console_init();
-#elif defined(CONFIG_RAMLOG_CONSOLE)
-  ramlog_consoleinit();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_PSEUDOTERM_SUSV1)
+#ifdef CONFIG_PSEUDOTERM_SUSV1
   /* Register the master pseudo-terminal multiplexor device */
 
   ptmx_register();
 #endif
-
-  /* Early initialization of the system logging device.  Some SYSLOG channel
-   * can be initialized early in the initialization sequence because they
-   * depend on only minimal OS initialization.
-   */
-
-  syslog_initialize(SYSLOG_INIT_EARLY);
 
 #if defined(CONFIG_CRYPTO)
   /* Initialize the HW crypto and /dev/crypto */
@@ -234,7 +211,7 @@ void up_initialize(void)
   up_cryptoinitialize();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_CRYPTO_CRYPTODEV)
+#ifdef CONFIG_CRYPTO_CRYPTODEV
   devcrypto_register();
 #endif
 
@@ -244,7 +221,7 @@ void up_initialize(void)
   up_netinitialize();
 #endif
 
-#ifdef CONFIG_NETDEV_LOOPBACK
+#ifdef CONFIG_NET_LOOPBACK
   /* Initialize the local loopback device */
 
   localhost_initialize();
@@ -262,7 +239,10 @@ void up_initialize(void)
   telnet_initialize();
 #endif
 
+#if defined(CONFIG_USBDEV) || defined(CONFIG_USBHOST)
   /* Initialize USB -- device and/or host */
 
   up_usbinitialize();
+#endif
+
 }

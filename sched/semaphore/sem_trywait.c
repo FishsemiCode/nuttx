@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 #include <sched.h>
 #include <errno.h>
 
@@ -59,8 +58,8 @@
  *
  * Description:
  *   This function locks the specified semaphore only if the semaphore is
- *   currently not locked.  Otherwise, it locks the semaphore.  In either
- *   case, the call returns without blocking.
+ *   currently not locked.  In either case, the call returns without
+ *   blocking.
  *
  * Input Parameters:
  *   sem - the semaphore descriptor
@@ -130,8 +129,8 @@ int nxsem_trywait(FAR sem_t *sem)
  *
  * Description:
  *   This function locks the specified semaphore only if the semaphore is
- *   currently not locked.  Otherwise, it locks the semaphore.  In either
- *   case, the call returns without blocking.
+ *   currently not locked.  In either case, the call returns without
+ *   blocking.
  *
  * Input Parameters:
  *   sem - the semaphore descriptor

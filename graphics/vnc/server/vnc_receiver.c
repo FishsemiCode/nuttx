@@ -97,7 +97,7 @@ int vnc_read_remainder(FAR struct vnc_session_s *session, size_t msglen,
   ssize_t nrecvd;
   size_t ntotal;
 
-  /* Loop until the rest of the message is recieved. */
+  /* Loop until the rest of the message is received. */
 
   for (ntotal = 0; ntotal < msglen; offset += nrecvd, ntotal += nrecvd)
     {
@@ -280,7 +280,7 @@ int vnc_receiver(FAR struct vnc_session_s *session)
 
               ginfo("Received FramebufferUpdateRequest\n");
 
-              /* Read the rest of the SetPixelFormat message */
+              /* Read the rest of the FramebufferUpdateRequest message */
 
               ret = vnc_read_remainder(session,
                                        sizeof(struct rfb_fbupdatereq_s) - 1,
@@ -480,7 +480,7 @@ int vnc_client_encodings(FAR struct vnc_session_s *session,
 
       encoding = rfb_getbe32(&encodings->encodings[i << 2]);
 
-      /* Only a limited support for of RRE is vailable now. */
+      /* Only a limited support for of RRE is available now. */
 
       if (encoding == RFB_ENCODING_RRE)
         {
@@ -516,6 +516,6 @@ void vnc_mouseout(FAR void *arg, nxgl_coord_t x, nxgl_coord_t y,
                   uint8_t buttons)
 {
   DEBUGASSERT(arg != NULL);
-  (void)nx_mousein((NXHANDLE)arg, x, y, buttons);
+  nx_mousein((NXHANDLE)arg, x, y, buttons);
 }
 #endif

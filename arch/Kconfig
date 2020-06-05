@@ -14,6 +14,7 @@ config ARCH_ARM
 	select ARCH_HAVE_VFORK
 	select ARCH_HAVE_STACKCHECK
 	select ARCH_HAVE_CUSTOMOPT
+	select ARCH_HAVE_STDARG_H
 	---help---
 		The ARM architectures
 
@@ -30,7 +31,9 @@ config ARCH_CEVA
 	select ARCH_HAVE_CUSTOMOPT
 	select ARCH_HAVE_HEAPCHECK
 	select ARCH_HAVE_INTERRUPTSTACK
+	select ARCH_HAVE_MATH_H
 	select ARCH_HAVE_STACKCHECK
+	select ARCH_HAVE_STDARG_H
 	select ARCH_HAVE_TLS
 	select ARCH_HAVE_VFORK
 	select ARCH_GNU_NO_WEAKFUNCTIONS
@@ -58,6 +61,7 @@ config ARCH_MISOC
 	bool "MISOC"
 	select ARCH_HAVE_INTERRUPTSTACK
 	select ARCH_HAVE_CUSTOMOPT
+	select ARCH_HAVE_STDARG_H
 	---help---
 		MISOC
 
@@ -72,7 +76,9 @@ config ARCH_RISCV
 	bool "RISC-V"
 	select ARCH_HAVE_CUSTOMOPT
 	select ARCH_HAVE_INTERRUPTSTACK
+	select ARCH_HAVE_STACKCHECK
 	select ARCH_HAVE_TLS
+	select ARCH_HAVE_STDARG_H
 	---help---
 		RISC-V 32 and 64-bit RV32 / RV64 architectures.
 
@@ -86,18 +92,27 @@ config ARCH_CSKY
 config ARCH_SIM
 	bool "Simulation"
 	select ARCH_HAVE_MULTICPU
+	select ARCH_HAVE_RTC_SUBSECONDS
 	select ARCH_HAVE_TLS
 	select ARCH_HAVE_TICKLESS
 	select ARCH_HAVE_POWEROFF
 	select ARCH_HAVE_TESTSET
+	select ARCH_NOINTC
+	select ALARM_ARCH
+	select ONESHOT
 	select SERIAL_CONSOLE
 	---help---
-		Linux/Cywgin user-mode simulation.
+		Linux/Cygwin user-mode simulation.
 
 config ARCH_X86
 	bool "x86"
 	---help---
 		Intel x86 architectures.
+
+config ARCH_X86_64
+	bool "x86_64"
+	---help---
+		x86-64 architectures.
 
 config ARCH_XTENSA
 	bool "Xtensa"
@@ -155,6 +170,7 @@ source arch/risc-v/Kconfig
 source arch/csky/Kconfig
 source arch/sim/Kconfig
 source arch/x86/Kconfig
+source arch/x86_64/Kconfig
 source arch/xtensa/Kconfig
 source arch/z16/Kconfig
 source arch/z80/Kconfig
@@ -174,6 +190,14 @@ config ARCH_GNU_NO_WEAKFUNCTIONS
 	default n
 	---help---
 		Disable support for weak functions.
+
+config ARCH_SIZET_LONG
+	bool "size_t is type long"
+	default n
+	---help---
+		size_t may be type long or type int.  This matters for some
+		C++ library routines because the NuttX size_t might not have
+		the same underlying type as your toolchain's size_t.
 
 comment "Architecture Options"
 
@@ -216,6 +240,10 @@ config ARCH_HAVE_ADDRENV
 
 config ARCH_NEED_ADDRENV_MAPPING
 	bool
+	default n
+
+config ARCH_HAVE_MODULE_TEXT
+	bool "Special memory region for dynamic code loading"
 	default n
 
 config ARCH_HAVE_MULTICPU
@@ -321,6 +349,16 @@ config ARCH_USE_MPU
 		order to enable use of the MPU.  For most architectures, this option
 		is enabled by other, platform-specific logic.  In those cases, this
 		selection will always be forced.
+
+config ARCH_USE_MODULE_TEXT
+	bool "Enable module text allocator"
+	default n
+	depends on ARCH_HAVE_MODULE_TEXT
+	---help---
+		This option enable architecture-sepecific memory allocator
+		for dynamic code loading. For example, ESP32 has a separate memory
+		regions for instruction and data and the memory region used for
+		usual malloc doesn't work for instruction.
 
 menuconfig ARCH_ADDRENV
 	bool "Address environments"
@@ -469,7 +507,7 @@ config ARCH_KERNEL_STACKSIZE
 	int "Kernel stack size"
 	default 1568
 	---help---
-		The common size of each process' kernel stack
+		The common size of each process's kernel stack
 
 endif # ARCH_KERNEL_STACK
 
@@ -860,7 +898,7 @@ config ARCH_HIPRI_INTERRUPT
 	---help---
 		NOTE: This description is currently unique to the Cortex-M family
 		which is the only family that currently supports this feature.  The
-		general feature is not conceptually unique to the Cortex-M but it
+		general feature is not conceptually unique to the Cortex-M but if it
 		is extended to any other family, then this discussion will have to
 		be generalized.
 
@@ -921,44 +959,6 @@ config ARCH_HIPRI_INTERRUPT
 		the nested interrupt, the interrupt stack if no privileged task has
 		run
 
-config ARCH_INT_DISABLEALL
-	bool "Disable high priority interrupts"
-	default y
-	depends on ARCH_HIPRI_INTERRUPT && EXPERIMENTAL
-	---help---
-		If ARCH_HIPRI_INTERRUPT is defined, then special high priority
-		interrupts are supported.  These are not "nested" in the normal
-		sense of the word.  These high priority interrupts can interrupt
-		normal processing but execute outside of OS (although they can "get
-		back into the game" via a PendSV interrupt).
-
-		In the normal course of things, interrupts must occasionally be
-		disabled using the up_irq_save() inline function to prevent contention
-		in use of resources that may be shared between interrupt level and
-		non-interrupt level logic.  Now the question arises, if
-		ARCH_HIPRI_INTERRUPT, do we disable all interrupts (except SVCall),
-		or do we only disable the "normal" interrupts.  Since the high
-		priority interrupts cannot interact with the OS, you may want to
-		permit the high priority interrupts even if interrupts are
-		disabled.  The setting ARCH_INT_DISABLEALL can be used to select
-		either behavior:
-
-		----------------------------+--------------+----------------------------
-		CONFIG_ARCH_HIPRI_INTERRUPT |      NO      |             YES
-		----------------------------+--------------+--------------+-------------
-		CONFIG_ARCH_INT_DISABLEALL  |     N/A      |     YES      |      NO
-		----------------------------+--------------+--------------+-------------
-		                            |              |              |    SVCall
-		                            |    SVCall    |    SVCall    |    HIGH
-		Disable here and below --------> MAXNORMAL ---> HIGH --------> MAXNORMAL
-		                            |              |    MAXNORMAL |
-		----------------------------+--------------+--------------+-------------
-
-		NOTE: This does not work now because interrupts get disabled in the
-		standard interrupt handling, prohibiting nesting.  Fix is simple:  Need
-		to used more priority levels so that we can make a cleaner distinction
-		with the standard interrupt handler.
-
 comment "Boot options"
 
 choice
@@ -999,7 +999,7 @@ menu "Boot Memory Configuration"
 config RAM_START
 	hex "Primary RAM start address (physical)"
 	default 0x0
-	help
+	---help---
 		The physical start address of primary installed RAM.  "Primary" RAM
 		refers to the RAM that you link program code into.  If program code
 		does not execute out of RAM but from FLASH, then you may designate
@@ -1009,7 +1009,7 @@ config RAM_VSTART
 	hex "Primary RAM start address (virtual)"
 	default 0x0
 	depends on ARCH_USE_MMU
-	help
+	---help---
 		The virtual start address of installed primary RAM. "Primary" RAM
 		refers to the RAM that you link program code into.  If program code
 		does not execute out of RAM but from FLASH, then you may designate
@@ -1018,7 +1018,7 @@ config RAM_VSTART
 config RAM_SIZE
 	int "Primary RAM size"
 	default 0
-	help
+	---help---
 		The size in bytes of the installed primary RAM. "Primary" RAM
 		refers to the RAM that you link program code into.  If program code
 		does not execute out of RAM but from FLASH, then you may designate
@@ -1029,21 +1029,21 @@ if BOOT_RUNFROMFLASH && ARCH_USE_MMU
 config FLASH_START
 	hex "Boot FLASH start address (physical)"
 	default 0x0
-	help
+	---help---
 		The physical start address of installed boot FLASH.  "Boot" FLASH
 		refers to the FLASH that you link program code into.
 
 config FLASH_VSTART
 	hex "Boot FLASH start address (virtual)"
 	default 0x0
-	help
+	---help---
 		The virtual start address of installed boot FLASH.  "Boot" FLASH
 		refers to the FLASH that you link program code into.
 
 config FLASH_SIZE
 	int "Boot FLASH size"
 	default 0
-	help
+	---help---
 		The size in bytes of the installed boot FLASH.  "Boot" FLASH
 		refers to the FLASH that you link program code into.
 

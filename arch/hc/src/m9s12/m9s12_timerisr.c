@@ -148,7 +148,7 @@ static int m9s12_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  hc_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the system timer
@@ -156,7 +156,7 @@ static int m9s12_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void hc_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t tmp;
   uint8_t  regval;
@@ -171,7 +171,7 @@ void hc_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(HCS12_IRQ_VRTI, (xcpt_t)m9s12_timerisr, NULL);
+  irq_attach(HCS12_IRQ_VRTI, (xcpt_t)m9s12_timerisr, NULL);
 
   /* Enable RTI interrupt by setting the RTIE bit */
 

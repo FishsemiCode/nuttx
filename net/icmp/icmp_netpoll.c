@@ -43,27 +43,12 @@
 #include <poll.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 
-#include <devif/devif.h>
+#include "devif/devif.h"
 #include "netdev/netdev.h"
 #include "icmp/icmp.h"
-
-#ifdef CONFIG_MM_IOB
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/* This is an allocated container that holds the poll-related information */
-
-struct icmp_poll_s
-{
-  FAR struct socket *psock;        /* IPPROTO_ICMP socket structure */
-  FAR struct pollfd *fds;          /* Needed to handle poll events */
-  FAR struct devif_callback_s *cb; /* Needed to teardown the poll */
-};
 
 /****************************************************************************
  * Private Functions
@@ -125,23 +110,16 @@ static uint16_t icmp_poll_eventhandler(FAR struct net_driver_s *dev,
       /* Check for data or connection availability events. */
 
       eventset = 0;
-      if ((flags & ICMP_ECHOREPLY) != 0)
+      if ((flags & ICMP_NEWDATA) != 0)
         {
           eventset |= (POLLIN & info->fds->events);
-        }
-
-      /*  ICMP_POLL is a sign that we are free to send data. */
-
-      if ((flags & DEVPOLL_MASK) == ICMP_POLL)
-        {
-          eventset |= (POLLOUT & info->fds->events);
         }
 
       /* Check for loss of connection events. */
 
       if ((flags & NETDEV_DOWN) != 0)
         {
-          eventset |= ((POLLHUP | POLLERR) & info->fds->events);
+          eventset |= (POLLHUP | POLLERR);
         }
 
       /* Awaken the caller of poll() is requested event occurred. */
@@ -181,21 +159,25 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
   FAR struct icmp_conn_s *conn = psock->s_conn;
   FAR struct icmp_poll_s *info;
   FAR struct devif_callback_s *cb;
-  int ret;
+  int ret = OK;
 
   DEBUGASSERT(conn != NULL && fds != NULL);
-
-  /* Allocate a container to hold the poll information */
-
-  info = (FAR struct icmp_poll_s *)kmm_malloc(sizeof(struct icmp_poll_s));
-  if (!info)
-    {
-      return -ENOMEM;
-    }
 
   /* Some of the  following must be atomic */
 
   net_lock();
+
+  /* Find a container to hold the poll information */
+
+  info = conn->pollinfo;
+  while (info->psock != NULL)
+    {
+      if (++info >= &conn->pollinfo[CONFIG_NET_ICMP_NPOLLWAITERS])
+        {
+          ret = -ENOMEM;
+          goto errout_with_lock;
+        }
+    }
 
   /* Allocate a ICMP callback structure */
 
@@ -217,23 +199,13 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
    * callback processing.
    */
 
-  cb->flags = 0;
+  cb->flags = NETDEV_DOWN;
   cb->priv  = (FAR void *)info;
   cb->event = icmp_poll_eventhandler;
 
-  if ((info->fds->events & POLLOUT) != 0)
-    {
-      cb->flags |= ICMP_POLL;
-    }
-
-  if ((info->fds->events & POLLIN) != 0)
+  if ((fds->events & POLLIN) != 0)
     {
       cb->flags |= ICMP_NEWDATA;
-    }
-
-  if ((info->fds->events & (POLLHUP | POLLERR)) != 0)
-    {
-      cb->flags |= NETDEV_DOWN;
     }
 
   /* Save the reference in the poll info structure as fds private as well
@@ -251,6 +223,12 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
       fds->revents |= (POLLRDNORM & fds->events);
     }
 
+  /* Always report POLLWRNORM if caller request it because we don't utilize
+   * IOB buffer for sending.
+   */
+
+  fds->revents |= (POLLWRNORM & fds->events);
+
   /* Check if any requested events are already in effect */
 
   if (fds->revents != 0)
@@ -260,11 +238,7 @@ int icmp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
       nxsem_post(fds->sem);
     }
 
-  net_unlock();
-  return OK;
-
 errout_with_lock:
-  kmm_free(info);
   net_unlock();
   return ret;
 }
@@ -304,9 +278,7 @@ int icmp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
     {
       /* Release the callback */
 
-      net_lock();
       icmp_callback_free(conn->dev, conn, info->cb);
-      net_unlock();
 
       /* Release the poll/select data slot */
 
@@ -314,10 +286,8 @@ int icmp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
 
       /* Then free the poll info container */
 
-      kmm_free(info);
+      info->psock = NULL;
     }
 
   return OK;
 }
-
-#endif /* !CONFIG_MM_IOB */

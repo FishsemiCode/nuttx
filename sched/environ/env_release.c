@@ -86,7 +86,7 @@ void env_release(FAR struct task_group_s *group)
       kumm_free(group->tg_envp);
     }
 
-  /* In any event, make sure that all environment-related varialbles in the
+  /* In any event, make sure that all environment-related variables in the
    * task group structure are reset to initial values.
    */
 

@@ -171,9 +171,9 @@ int16_t romfs_devcacheread(struct romfs_mountpt_s *rm, uint32_t offset)
   uint32_t sector;
   int      ret;
 
-  /* rm->rm_cachesector holds the current sector that is buffer in or referenced
-   * by rm->tm_buffer. If the requested sector is the same as this sector,
-   * then we do nothing.
+  /* rm->rm_cachesector holds the current sector that is buffer in or
+   * referenced by rm->tm_buffer. If the requested sector is the same as this
+   * this then we do nothing.
    */
 
   sector = SEC_NSECTORS(rm, offset);
@@ -196,7 +196,7 @@ int16_t romfs_devcacheread(struct romfs_mountpt_s *rm, uint32_t offset)
           ret = romfs_hwread(rm, rm->rm_buffer, sector, 1);
           if (ret < 0)
             {
-               return (int16_t)ret;
+              return (int16_t)ret;
             }
         }
 
@@ -306,20 +306,20 @@ static inline int romfs_searchdir(struct romfs_mountpt_s *rm,
       ret = romfs_checkentry(rm, offset, entryname, entrylen, dirinfo);
       if (ret == OK)
         {
-           /* Its a match! Return success */
+          /* Its a match! Return success */
 
-           return OK;
+          return OK;
         }
 
       /* No match... select the offset to the next entry */
 
       offset = next;
     }
-   while (next != 0);
+  while (next != 0);
 
-   /* There is nothing in this directory with that name */
+  /* There is nothing in this directory with that name */
 
-   return -ENOENT;
+  return -ENOENT;
 }
 
 /****************************************************************************
@@ -330,23 +330,9 @@ static inline int romfs_searchdir(struct romfs_mountpt_s *rm,
  * Name: romfs_semtake
  ****************************************************************************/
 
-void romfs_semtake(struct romfs_mountpt_s *rm)
+int romfs_semtake(struct romfs_mountpt_s *rm)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&rm->rm_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&rm->rm_sem);
 }
 
 /****************************************************************************
@@ -355,7 +341,7 @@ void romfs_semtake(struct romfs_mountpt_s *rm)
 
 void romfs_semgive(struct romfs_mountpt_s *rm)
 {
-   nxsem_post(&rm->rm_sem);
+  nxsem_post(&rm->rm_sem);
 }
 
 /****************************************************************************
@@ -365,8 +351,8 @@ void romfs_semgive(struct romfs_mountpt_s *rm)
  *
  ****************************************************************************/
 
-int romfs_hwread(struct romfs_mountpt_s *rm, uint8_t *buffer, uint32_t sector,
-                 unsigned int nsectors)
+int romfs_hwread(struct romfs_mountpt_s *rm, uint8_t *buffer,
+                 uint32_t sector, unsigned int nsectors)
 {
   int ret = OK;
 
@@ -429,9 +415,9 @@ int romfs_filecacheread(struct romfs_mountpt_s *rm, struct romfs_file_s *rf,
         sector, rf->rf_cachesector, rm->rm_hwsectorsize,
         rm->rm_xipbase, rf->rf_buffer);
 
-  /* rf->rf_cachesector holds the current sector that is buffer in or referenced
-   * by rf->rf_buffer. If the requested sector is the same as this sector,
-   * then we do nothing.
+  /* rf->rf_cachesector holds the current sector that is buffer in or
+   * referenced by rf->rf_buffer. If the requested sector is the same as this
+   * sector then we do nothing.
    */
 
   if (rf->rf_cachesector != sector)
@@ -472,10 +458,10 @@ int romfs_filecacheread(struct romfs_mountpt_s *rm, struct romfs_file_s *rf,
  * Name: romfs_hwconfigure
  *
  * Description:
- *   This function is called as part of the ROMFS mount operation   It
- *   configures the ROMFS filestem for use on this block driver.  This includes
- *   the accounting for the geometry of the device, setting up any XIP modes
- *   of operation, and/or allocating any cache buffers.
+ *   This function is called as part of the ROMFS mount operation.
+ *   It configures the ROMFS filestem for use on this block driver.  This
+ *   include the accounting for the geometry of the device, setting up any
+ *   XIP modes of operation, and/or allocating any cache buffers.
  *
  ****************************************************************************/
 
@@ -577,9 +563,9 @@ int romfs_hwconfigure(struct romfs_mountpt_s *rm)
  *
  * Description:
  *   This function is called as part of the ROMFS mount operation   It
- *   sets up the mount structure to include configuration information contained
- *   in the ROMFS header.  This is the place where we actually determine if
- *   the media contains a ROMFS filesystem.
+ *   sets up the mount structure to include configuration information
+ *   contained in the ROMFS header.  This is the place where we actually
+ *   determine if the media contains a ROMFS filesystem.
  *
  ****************************************************************************/
 
@@ -589,7 +575,7 @@ int romfs_fsconfigure(struct romfs_mountpt_s *rm)
   int16_t     ndx;
 
   /* Then get information about the ROMFS filesystem on the devices managed
-   * by this block driver.  Read sector zero which contains the volume header.
+   * by this block driver. Read sector zero which contains the volume header.
    */
 
   ndx = romfs_devcacheread(rm, 0);
@@ -786,9 +772,9 @@ int romfs_finddirentry(struct romfs_mountpt_s *rm,
 
       if (!terminator)
         {
-           /* Yes.. return success */
+          /* Yes.. return success */
 
-           return OK;
+          return OK;
         }
 
       /* No... If that was not the last path component, then it had
@@ -843,7 +829,7 @@ int romfs_parsedirentry(struct romfs_mountpt_s *rm, uint32_t offset,
 
   save = romfs_devread32(rm, ndx + ROMFS_FHDR_NEXT);
 
-  /* Traverse hardlinks as necesssary to get to the real file header */
+  /* Traverse hardlinks as necessary to get to the real file header */
 
   ret = romfs_followhardlinks(rm, offset, poffset);
   if (ret < 0)
@@ -856,7 +842,7 @@ int romfs_parsedirentry(struct romfs_mountpt_s *rm, uint32_t offset,
    * associated name may not, however.
    */
 
-   next  = romfs_devread32(rm, ndx + ROMFS_FHDR_NEXT);
+  next   = romfs_devread32(rm, ndx + ROMFS_FHDR_NEXT);
   *pnext = (save & RFNEXT_OFFSETMASK) | (next & RFNEXT_ALLMODEMASK);
   *pinfo = romfs_devread32(rm, ndx + ROMFS_FHDR_INFO);
   *psize = romfs_devread32(rm, ndx + ROMFS_FHDR_SIZE);
@@ -946,7 +932,7 @@ int romfs_datastart(struct romfs_mountpt_s *rm, uint32_t offset,
   int16_t ndx;
   int     ret;
 
-  /* Traverse hardlinks as necesssary to get to the real file header */
+  /* Traverse hardlinks as necessary to get to the real file header */
 
   ret = romfs_followhardlinks(rm, offset, &offset);
   if (ret < 0)

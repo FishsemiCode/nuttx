@@ -63,7 +63,7 @@
  * Public Functions
  ****************************************************************************/
 
-void riscv_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_RISCV_MTIME
   static const struct riscv_mtimer_config_s config =

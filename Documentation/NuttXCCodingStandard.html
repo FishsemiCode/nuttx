@@ -2,22 +2,12 @@
 <head>
 <title>NuttX C Coding Standard</title>
 <meta name="author" content="Gregory Nutt">
+<link rel="stylesheet" href="style.css">
 </head>
 
-<body background="backgd.gif">
-<hr><hr>
-<table width ="100%">
-  <tr align="center" bgcolor="#e4e4e4">
-    <td>
-      <h1><big><font color="#3c34ec">
-        <i>NuttX C Coding Standard</i>
-      </font></big></h1>
-      <p>Last Updated: February 5, 2019</p>
-    </td>
-  </tr>
-</table>
-<hr><hr>
-
+<body>
+<div class="container">
+<div class="toc">
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
     <td>
@@ -27,7 +17,9 @@
 </table>
 
 <ul>
-  <b>1.0 <a href="#general">General Conventions</a></b>
+  <p>
+    <b>1.0 <a href="#general">General Conventions</a></b>
+  </p>
   <ul>
     1.1 <a href="#fileorganization">File Organization</a></br>
     1.2 <a href="#lines">Lines</a><br>
@@ -36,7 +28,9 @@
     1.5 <a href="#indentation">Indentation</a><br>
     1.6 <a href="#parentheses">Parentheses</a><br>
   </ul>
-  <b>2.0 <a href="#datatypes">Data and Type Definitions</a></b>
+  <p>
+    <b>2.0 <a href="#datatypes">Data and Type Definitions</a></b>
+  </p>
   <ul>
     2.1 <a href="#onedatperline">One Definition/Declaration Per Line</a><br>
     2.2 <a href="#globalvariable">Global Variables</a><br>
@@ -49,7 +43,9 @@
     2.9 <a href="#pointers">Pointer Variables</a><br>
     2.10 <a href="#initializers">Initializers</a>
   </ul>
-  <b>3.0 <a href="#functions">Functions</a></b>
+  <p>
+    <b>3.0 <a href="#functions">Functions</a></b>
+  </p>
   <ul>
     3.1 <a href="#funcheaders">Function Headers</a><br>
     3.2 <a href="#funcname">Function Names</a><br>
@@ -57,7 +53,9 @@
     3.4 <a href="#funcbody">Function Body</a><br>
     3.5 <a href="#retvalues">Returned Values</a>
   </ul>
-  <b>4.0 <a href="#statements">Statements</a></b>
+  <p>
+    <b>4.0 <a href="#statements">Statements</a></b>
+  </p>
   <ul>
     4.1 <a href="#onestatement">One Statement Per Line</a><br>
     4.2 <a href="#casts">Casts</a><br>
@@ -68,12 +66,32 @@
     4.7 <a href="#dowhile"><code>do while</code> Statement</a><br>
     4.8 <a href="#goto">Use of <code>goto</code></a>
   </ul>
-  <b><a href="#appndxa">Appendix A</a></b>
+  <p>
+    <b>5.0 <a href="#cplusplus">C++</a></b>
+  </p>
+  <p>
+    <b><a href="#appndxa">Appendix A</a></b>
+  </p>
   <ul>
     <a href="#cfilestructure">A.1 C Source File Structure</a><br>
     <a href="#hfilestructure">A.2 C Header File Structure</a>
   </ul>
 </ul>
+</div>
+
+<div class="main">
+<hr><hr>
+<table width ="100%">
+  <tr align="center" bgcolor="#e4e4e4">
+    <td>
+      <h1><big><font color="#3c34ec">
+        <i>NuttX C Coding Standard</i>
+      </font></big></h1>
+      <p>Last Updated: February 2, 2020</p>
+    </td>
+  </tr>
+</table>
+<hr><hr>
 
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
@@ -114,15 +132,15 @@
   <li>
     A blank line</li>
   <li>
-    Standard (modified) BSD licensing information.
+    NuttX standard Apache 2.0 licensing information as provided in the <a href="#appndxa">appendix</a>.
   </li>
 </ul>
 <p>
   <b>Sample File Headers</b>.
   Sample file headers are provided in an <a href="#appndxa">Appendix</a> to this document.
-  No software may be included in the NuttX source tree that does not have licensing information included in the file.
-  No software may be included in the NuttX source tree that does not have a (modified) BSD license or compatible license (such as the MIT license).
-  If the file does not following BSD licensing, then the appropriate license information should be provided in the header rather than the (modified) BSD licensing information and a NOTE should be included in the top-level <code>COPYING</code> file to indicate any variations from (modified) BSD licensing.
+  No new software may be included in the NuttX source tree that does not have licensing information included in the file.
+  No new software may be included in the NuttX source tree that does not have a Apache 2.0 license or license (or, in the case of 3rd party file, a compatible license such as the BSD or MIT licenses).
+  If the file does not follow Apache 2.0 licensing, then the appropriate license information should be provided in the header rather than the Apache 2.0 licensing information and a NOTE should be included in the top-level <code>COPYING</code> file to indicate any variations from Apache 2.0 licensing.
 </p>
 <p>
   <b>Grouping</b>.
@@ -242,7 +260,7 @@
 <p>
   <b>Forming Guard Names</b>.
   Then pre-processor macro name used in the guard is formed from the full, relative path to the header for from the top-level, controlled directory.
-  That pat is preceded by <code>__</code> and <code>_</code> replaces each character that would otherwise be invalid in a macro name.
+  That path is preceded by <code>__</code> and <code>_</code> replaces each character that would otherwise be invalid in a macro name.
   So, for example, __INCLUDE_NUTTX_ARCH_H corresponds to the header file <code>include/nuttx/arch.h</code>
 </p>
 
@@ -399,7 +417,7 @@
   </li>
   <li>
     Text following '.' or ':' begins with an upper-case character;
-    text folowing ',' or ';' begins with a lower-case character.
+    text following ',' or ';' begins with a lower-case character.
   </li>
 </ul>
 <p>
@@ -488,7 +506,7 @@
 <p>
   <b>Indentation</b>
   Comments should, typically, be placed before the code section to which they apply.
-  The comment identation should be the same as the follow identation rules as the following code (if applicable).
+  The comment indentation should be the same as the follow indentation rules as the following code (if applicable).
 </p>
 
 <p>
@@ -590,7 +608,7 @@
 <p>
   <b>Comments to the Right of Data Definitions</b>.
   Comments to the right of a declaration with an enumeration or structure, on the other hand, are encouraged, provided that the comments are short and do not exceed the maximum line width (usually 78 characters).
-  Columnar alignment of comments is very desireable (but often cannot be achieved without violating the line width).
+  Columnar alignment of comments is very desirable (but often cannot be achieved without violating the line width).
 </p>
 <center><table width="60%" border=1>
 <tr><td bgcolor="white">
@@ -678,7 +696,7 @@ struct animals_s
 
 <p>
   <b>C Style Comments</b>.
-  C99/C11/C++ style comments (beginning wih <code>//</code>) should not be used with NuttX.
+  C99/C11/C++ style comments (beginning with <code>//</code>) should not be used with NuttX.
   NuttX generally follows C89 and all code outside of architecture specific directories must be compatible with C89.
 </p>
 <center><table width="60%" border=1>
@@ -785,7 +803,7 @@ void some_function(void)
   </li>
   <li>
     <b>Compound Statements</b>.
-    Within this document, an opening left brace followed by a sequence of statments, and ending with a closing right brace is refered to as a <i>compound statement</i>.
+    Within this document, an opening left brace followed by a sequence of statements, and ending with a closing right brace is referred to as a <i>compound statement</i>.
   </li>
   <li>
     <b>Nested Compound Statements</b>.
@@ -966,7 +984,7 @@ int animals(int animal)
 
 <p>
   <b>Indentation Unit</b>.
-  Indentation is in units of two spaces; Each indentation level is twos spaces further to the right than the preceding identation levels.
+  Indentation is in units of two spaces; Each indentation level is twos spaces further to the right than the preceding indentation levels.
   TAB characters may not be used for indentation.
 </p>
 <center><table width="60%" border=1>
@@ -1020,6 +1038,16 @@ int animals(int animal)
 <p>
   <b>Indentation of Pre-Processor Lines</b>.
   C Pre-processor commands following any conditional computation are also indented following basically the indentation same rules, differing in that the <code>#</code> always remains in column 1.
+</p>
+<p>
+  When C pre-processor statements are indented, they should be should be indented by 2 spaces per level-of-indentation following the <code>#</code>.
+  C pre-processor statements should be indented when they are enclosed within C pre-processor conditional logic (<code>#if</code>..<code>#endif</code>).  The level of indentation increases with each level of such nested conditional logic.
+</p>
+<p>
+  C pre-processor statements should always be indented in this way in the <code>Pre-processor Definitions</code> <a href="#cfilestructure">section</a> of each file.
+  C pre-processor statements may be indented in the <code>Public/Private Data</code> and <code>Public/Private Functions</code> sections of the file.
+  However, often the indentation of C pre-processor statements conflicts with the indentation of the C code and makes the code more difficult to read.
+  In such cases, indentation of C pre-processor statements should be omitted in those sections (only).
 </p>
 
 <center><table width="60%" border=1>
@@ -1105,7 +1133,7 @@ int animals(int animal)
     Otherwise, there should be no space before the left parentheses
   </li>
   <li>
-    <b>No space betwen function name and argument list</b>.
+    <b>No space between function name and argument list</b>.
     There should be no space between a function name and an argument list.
   </li>
   <li>
@@ -1427,7 +1455,7 @@ typedef int myinteger_t;
         First for structures that are defined within another union or structure (discouraged).  In those cases, the structure name should always be omitted.
       </li>
       <li>
-        Second for structures as the type of a local variable.  In this case, again, the structure name should always be ommitted.
+        Second for structures as the type of a local variable.  In this case, again, the structure name should always be omitted.
       </li>
     </ol>
   </li>
@@ -1763,7 +1791,7 @@ enum xyz_state_e
   </li>
   <li>
     <b>Prefix</b>.
-    Each related macro value should begin with an upper-case prefix that identifies the value as part of a set of values (and also to mimimize the likelihood of naming collisions).
+    Each related macro value should begin with an upper-case prefix that identifies the value as part of a set of values (and also to minimize the likelihood of naming collisions).
   </li>
   <li>
     <b>Single space after <code>#define</code></b>.
@@ -1796,6 +1824,10 @@ enum xyz_state_e
   <li>
      <b>Side effects</b>.
      Be careful of side effects.
+  </li>
+  <li>
+     <b>Indentation</b>.
+     See the <a href="#indentation">Indentation of Pre-Processor Lines</a> requirements above.
   </li>
 </ul>
 <p>
@@ -2045,7 +2077,7 @@ ptr = (FAR struct somestruct_s *)value;
   <li>
     <b>First definition or statement in column 3</b>.
     The first data definitions or statements in the function body are idented by two spaces.
-    Standards for statements are covered in the <a href="#statements">following paragaraph</a>
+    Standards for statements are covered in the <a href="#statements">following paragraph</a>
   </li>
   <li>
     <b>Local variables first</b>.
@@ -2060,7 +2092,14 @@ ptr = (FAR struct somestruct_s *)value;
     As a rule of thumb, the length of a function should be limited so that it would fit on a single page (if you were to print the source code).
   </li>
   <li>
-    <b>Space after the function body</b>
+    <b>Return Statement</b>.
+    The argument of the <code>return</code> statement should <i>not</i> be enclosed in parentheses.
+    A reasonable exception is the case where the returned value argument is a complex expression and where the parentheses improve the readability of the code.
+    Such complex expressions might be Boolean expressions or expressions containing conditions.
+    Simple arithmetic computations would not be considered <i>complex</i> expressions.
+  </li>
+  <li>
+    <b>Space after the function body</b>.
     A one (and only one) blank line must follow the closing right brace of the function body.
   </li>
 </ul>
@@ -2089,7 +2128,7 @@ ptr = (FAR struct somestruct_s *)value;
             }
         }
 
-      return e / a;
+      return (e / a);
     }
 </ul></pre></font>
 </td></tr>
@@ -2097,28 +2136,28 @@ ptr = (FAR struct somestruct_s *)value;
 <p><font color="green"><b>Correct</b></p>
 <ul><pre>
   int myfunction(int a, int b)
-    {
-      int c;
-      int d;
-      int e;
-      int i;
+  {
+    int c;
+    int d;
+    int e;
+    int i;
 
-      c = a
-      d = b;
-      e = c + d;
+    c = a
+    d = b;
+    e = c + d;
 
-      for (i = 0; i &lt; a; i++)
-        {
-          int j;
+    for (i = 0; i &lt; a; i++)
+      {
+        int j;
 
-          for (j = 0; j &lt; b; j++)
-            {
-              e += j * d;
-            }
-        }
+        for (j = 0; j &lt; b; j++)
+          {
+            e += j * d;
+          }
+      }
 
-      return e / a;
-    }
+    return e / a;
+  }
 </ul></pre></font>
 </td></tr>
 </table></center>
@@ -2143,9 +2182,8 @@ ptr = (FAR struct somestruct_s *)value;
   <b>Checking Return Values</b>.
   Callers of internal OS functions should always check return values for an error.
   At a minimum, a debug statement should indicate that an error has occurred.
-  The calling logic intentionally ignores the returned value, then the function return value should be explicitly cast to <code>(void)</code> to indicate that the return value is intentionally ignored.
-  An exception of for standard functions for which  people have historically ignored the returned values, such as <code>printf()</code> or <code>close</code>.
-  All calls to <code>malloc</code> or <code>realloc</code> must be checked for failures to allocate memory.
+  Ignored return values are always suspicious.
+  All calls to <code>malloc</code> or <code>realloc</code>, in particular, must be checked for failures to allocate memory to avoid use of NULL pointers.
 </p>
 
 <table width ="100%">
@@ -2532,7 +2570,7 @@ x++;
   </li>
   <li>
     <b>Followed by a single blank line</b>.
-    The final right brace that closes the <code>while &lt;condition&gt;</code> statment must be followed by a single blank line.
+    The final right brace that closes the <code>while &lt;condition&gt;</code> statement must be followed by a single blank line.
   </li>
   <li>
     <b>Exception</b>.
@@ -2654,7 +2692,7 @@ x++;
   <li>
     <b>Error Exit Labels</b>.
     The error exit label is normally called <code>errout</code>.
-    Multiple error labels are often to required to <i>unwind</i> to recover resources committe in logic prior to the error to otherwise <i>undo</i> preceding operations.
+    Multiple error labels are often to required to <i>unwind</i> to recover resources committed in logic prior to the error to otherwise <i>undo</i> preceding operations.
     Naming for these other labels would be some like <code>errout_with_allocation</code>, <code>errout_with_openfile</code>, etc.
   </li>
   <li>
@@ -2718,6 +2756,127 @@ error:
 <table width ="100%">
   <tr bgcolor="#e4e4e4">
     <td>
+      <h1>5.0 <a name="cplusplus">C++</a></h1>
+    </td>
+  </tr>
+</table>
+
+<p>
+  There is no existing document that provides a complete coding standard for NuttX C++ files.
+  This section is included here to provide some minimal guidance in C++ code development.
+  In most details like indentation, spacing, and file organization, it is identical to the C coding standard.
+  But there are significant differences in the acceptable standard beyond that.
+  The primary differences are as follows:
+</p>
+<ol>
+  <li>
+    <p>
+      C++ style comments are not only permissible but are required (other than for the following exception).
+      This includes the block comments of in the <i>Source File Structure</i> described in an <a href="#appndxa">Appendix</a> to this standard.
+    </p>
+  </li>
+  <li>
+    <p>
+      Deoxygen tags are acceptable.  As are C style comments when needed to provide DOxygen tags.
+    </p>
+  </li>
+  <li>
+    <p>
+      There is currently no requirement to conform any specific C++ version.
+      However, for portability reasons, conformance to older, pre-C++11 standards is encouraged where reasonable.
+    </p>
+  <li>
+    <p>
+      C++ file name extensions:  The extension <code>.cxx</code> is used for C++ source files; the extension <code>.hxx</code> is used for C++ header files.
+    </p>
+  <li>
+    <p>
+      All naming must use <i>CamelCase</i>.
+      Use of the underbar character, '_' is discouraged.
+      This includes variables, classes, structures, ..., etc.:  All user-nameable C++ elements.
+      Pre-processor definitions are still required to be all upper case.
+    </p>
+  </li>
+  <li>
+    <p>
+      Local variable, method names, and function names must all begin with a lower case letter.
+      As examples, <code>myLocalVariable</code> would be a compliant name for a local variable;
+      <code>myMethod</code> would be a compliant name for a method;
+    </p>
+  <li>
+    <p>
+      Namespaces, global variable, class, structure, template, and enumeration names begin with a capital letter identifying what is being named:
+    </p>
+  </li>
+  <p><ul>
+    <dl>
+      <dt>
+        <i>Namespace Names</i>
+      </dt>
+      <dd>
+        Namespaces begin with an upper case character but no particular character is specified.
+        As an example, <code>MyNamespace</code> is fully compliant.
+      </dd>
+      <dt>
+        <i>Global Variable Names</i>
+      </dt>
+      <dd>
+        Global variables and singletons begin with an upper case '<b>G</b>'.
+        For example, <code>GMyGlobalVariable</code>.
+        The prefix <code>g_</code> is never used.
+      </dd>
+      <dt>
+        <i>Implementation Class Names</i>
+      </dt>
+      <dd>
+        Classes that implement methods begin with an upper case '<b>C</b>'.
+        For example, <code>CMyClass</code>.
+        A fully qualified method of <code>CMyClass</code> could be <code>MyNamespace::CMyClass::myMethod</code>
+      </dd>
+      <dt>
+        <i>Pure Virtual Base Class Names</i>
+      </dt>
+      <dd>
+        Such base classes begin with an upper case '<b>I</b>'.
+        For example, <code>IMyInterface</code>.
+      </dd>
+      <dt>
+        <i>Template Class Names</i>
+      </dt>
+      <dd>
+        Template classes begin with an upper case '<b>T</b>'.
+        For example, <code>TMyTemplate</code>.
+      </dd>
+      <dt>
+        <i><code>typedef</code>'d Type Names</i>
+      </dt>
+      <dd>
+        Currently all such types also begin with an upper case '<b>T</b>'.
+        That probably needs some resolution to distinguish for template names.
+        The suffix <code>_t</code> is never used.
+      </dd>
+      <dt>
+        <i>Structure Names</i>
+      </dt>
+      <dd>
+        Structures begin with an upper case '<b>S</b>'.
+        For example, <code>SMyStructure</code>.
+        The suffix <code>_s</code> is never used.
+      </dd>
+      <dt>
+        <i>Enumerations Names</i>
+      </dt>
+      <dd>
+        Enumerations begin with an upper case '<b>E</b>'.
+        For example, <code>EMyEnumeration</code>.
+        The suffix <code>_e</code> is never used.
+    </ul></p>
+  </dl>
+</ol>
+
+<table width ="100%">
+  <tr bgcolor="#e4e4e4">
+    <td>
       <h1><a name="appndxa">Appendix A</a></h1>
     </td>
   </tr>
@@ -2729,35 +2888,20 @@ error:
  * <i>&lt;Relative path to the file&gt;</i>
  * <i>&lt;Optional one line file description&gt;</i>
  *
- *   Copyright (C) <i>&lt;Year&gt;</i> <i>&lt;Copyright holder's name&gt;</i>. All rights reserved.
- *   Author: <i>&lt;Author's name&gt;</i> <i>&lt;Contact e-mail&gt;</i>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -2855,35 +2999,20 @@ Each is preceded by a function header similar to the above.</i></p>
  * <i>&lt;Relative path to the file&gt;</i>
  * <i>&lt;Optional one line file description&gt;</i>
  *
- *   Copyright (C) <i>&lt;Year&gt;</i> <i>&lt;Copyright holder's name&gt;</i>. All rights reserved.
- *   Author: <i>&lt;Author's name&gt;</i> <i>&lt;Contact e-mail&gt;</i>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 </pre>
@@ -2983,6 +3112,9 @@ Each is preceded by a function header similar to the above.</i></p>
 #endif /* __INCLUDE_ASSERT_H */
 </pre>
 <p><i>Ending with the header file <a href="#idempotence">idempotence</a> <code>#endif</code>.</i></p>
+
+</div>
+</div>
 
 </body>
 </html>

@@ -41,6 +41,12 @@ CMN_UCSRCS =
 CMN_ASRCS  = up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
 CMN_ASRCS += up_testset.S up_fetchadd.S vfork.S
 
+ifeq ($(CONFIG_ARCH_SETJMP_H),y)
+ifeq ($(CONFIG_ARCH_TOOLCHAIN_GNU),y)
+CMN_ASRCS += up_setjmp.S
+endif
+endif
+
 CMN_CSRCS  = up_assert.c up_blocktask.c up_copyfullstate.c up_createstack.c
 CMN_CSRCS += up_exit.c up_hardfault.c up_initialize.c up_initialstate.c
 CMN_CSRCS += up_interruptcontext.c up_mdelay.c up_memfault.c up_modifyreg8.c
@@ -54,6 +60,10 @@ ifeq ($(CONFIG_ARMV7M_STACKCHECK),y)
 CMN_CSRCS += up_stackcheck.c
 endif
 
+ifeq ($(CONFIG_ARM_LWL_CONSOLE),y)
+CMN_CSRCS += up_lwl_console.c
+endif
+
 ifeq ($(CONFIG_ARMV7M_LAZYFPU),y)
 CMN_ASRCS += up_lazyexception.S
 else
@@ -65,12 +75,14 @@ ifeq ($(CONFIG_ARCH_RAMVECTORS),y)
 CMN_CSRCS += up_ramvec_initialize.c up_ramvec_attach.c
 endif
 
+ifeq ($(CONFIG_ARM_MPU),y)
+CMN_CSRCS += up_mpu.c
+endif
+
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
-CMN_CSRCS += up_mpu.c up_task_start.c up_pthread_start.c
-ifneq ($(CONFIG_DISABLE_SIGNALS),y)
+CMN_CSRCS += up_task_start.c up_pthread_start.c
 CMN_CSRCS += up_signal_dispatch.c
 CMN_UASRCS += up_signal_handler.S
-endif
 endif
 
 ifeq ($(CONFIG_STACK_COLORATION),y)
@@ -121,16 +133,16 @@ ifeq ($(CONFIG_STM32_CCM_PROCFS),y)
 CHIP_CSRCS += stm32_procfs_ccm.c
 endif
 
+ifeq ($(CONFIG_STM32_HAVE_IP_I2C_V1),y)
 ifeq ($(CONFIG_STM32_I2C_ALT),y)
 CHIP_CSRCS += stm32_i2c_alt.c
-else ifeq ($(CONFIG_STM32_STM32F30XX),y)
-CHIP_CSRCS += stm32f30xxx_i2c.c
-else ifeq ($(CONFIG_STM32_STM32F37XX),y)
-CHIP_CSRCS += stm32f30xxx_i2c.c
 else ifeq ($(CONFIG_STM32_STM32F4XXX),y)
 CHIP_CSRCS += stm32f40xxx_i2c.c
 else
 CHIP_CSRCS += stm32_i2c.c
+endif
+else ifeq ($(CONFIG_STM32_HAVE_IP_I2C_V2),y)
+CHIP_CSRCS += stm32_i2c_v2.c
 endif
 
 ifeq ($(CONFIG_USBDEV),y)
@@ -266,4 +278,12 @@ endif
 
 ifeq ($(CONFIG_STM32_BBSRAM),y)
 CHIP_CSRCS += stm32_bbsram.c
+endif
+
+ifeq ($(CONFIG_STM32_FMC),y)
+CHIP_CSRCS += stm32_fmc.c
+endif
+
+ifeq ($(CONFIG_STM32_FSMC),y)
+CHIP_CSRCS += stm32_fsmc.c
 endif

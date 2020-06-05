@@ -66,10 +66,10 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/lpc54_pinmux.h"
-#include "chip/lpc54_syscon.h"
-#include "chip/lpc54_flexcomm.h"
-#include "chip/lpc54_i2c.h"
+#include "hardware/lpc54_pinmux.h"
+#include "hardware/lpc54_syscon.h"
+#include "hardware/lpc54_flexcomm.h"
+#include "hardware/lpc54_i2c.h"
 #include "lpc54_config.h"
 #include "lpc54_clockconfig.h"
 #include "lpc54_enableclk.h"
@@ -393,7 +393,7 @@ static void lpc54_i2c_xfrsetup(struct lpc54_i2cdev_s *priv)
 
   if ((msg->flags & I2C_M_NOSTART) != 0)
     {
-      /* Start condition will be ommited.  Begin the tranfer in the data
+      /* Start condition will be omitted.  Begin the transfer in the data
        * phase.
        */
 
@@ -421,7 +421,7 @@ static void lpc54_i2c_xfrsetup(struct lpc54_i2cdev_s *priv)
 
   if (msg->frequency > 0)
     {
-      (void)lpc54_i2c_setfrequency(priv, msg->frequency);
+      lpc54_i2c_setfrequency(priv, msg->frequency);
     }
 
   /* Clear error status bits */
@@ -766,8 +766,8 @@ static int lpc54_i2c_transfer(FAR struct i2c_master_s *dev,
 
   /* Set up the transfer timeout */
 
-  (void)wd_start(priv->timeout, priv->nmsgs * I2C_WDOG_TIMEOUT,
-                 lpc54_i2c_timeout, 1, (uint32_t)priv);
+  wd_start(priv->timeout, priv->nmsgs * I2C_WDOG_TIMEOUT,
+           lpc54_i2c_timeout, 1, (uint32_t)priv);
 
   /* Initiate the transfer */
 
@@ -780,7 +780,7 @@ static int lpc54_i2c_transfer(FAR struct i2c_master_s *dev,
 #ifndef CONFIG_I2C_POLLED
        nxsem_wait(&priv->waitsem);
 #else
-       (void)lpc54_i2c_statemachine(priv);
+       lpc54_i2c_statemachine(priv);
 #endif
     }
   while (priv->state != I2CSTATE_IDLE);

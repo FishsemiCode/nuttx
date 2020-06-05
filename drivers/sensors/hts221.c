@@ -37,16 +37,19 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
 #include <sys/types.h>
 #include <debug.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <errno.h>
+
 #include <nuttx/arch.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
+#include <nuttx/signal.h>
 #include <nuttx/random.h>
 
 #include <nuttx/sensors/hts221.h>
@@ -116,8 +119,8 @@
 #define HTS221_I2C_RETRIES          10
 
 /****************************************************************************
-* Private Function Prototypes
-*****************************************************************************/
+ * Private Function Prototypes
+ ****************************************************************************/
 
 static int hts221_open(FAR struct file *filep);
 static int hts221_close(FAR struct file *filep);
@@ -126,14 +129,12 @@ static ssize_t hts221_read(FAR struct file *filep, FAR char *buffer,
 static ssize_t hts221_write(FAR struct file *filep, FAR const char *buffer,
                             size_t buflen);
 static int hts221_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int hts221_poll(FAR struct file *filep, FAR struct pollfd *fds,
                        bool setup);
-#endif
 
 /****************************************************************************
-* Private Types
-****************************************************************************/
+ * Private Types
+ ****************************************************************************/
 
 struct hts221_dev_s
 {
@@ -142,9 +143,7 @@ struct hts221_dev_s
   hts221_config_t *config;
   sem_t devsem;
   volatile bool int_pending;
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_HTS221_NPOLLWAITERS];
-#endif
   struct
   {
     int16_t t0_out;
@@ -159,8 +158,8 @@ struct hts221_dev_s
 };
 
 /****************************************************************************
-* Private Data
-****************************************************************************/
+ * Private Data
+ ****************************************************************************/
 
 static const struct file_operations g_humidityops =
 {
@@ -169,18 +168,16 @@ static const struct file_operations g_humidityops =
   hts221_read,   /* read */
   hts221_write,  /* write */
   NULL,          /* seek */
-  hts221_ioctl   /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , hts221_poll  /* poll */
-#endif
+  hts221_ioctl,  /* ioctl */
+  hts221_poll    /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL         /* unlink */
 #endif
 };
 
 /****************************************************************************
-* Private Functions
-****************************************************************************/
+ * Private Functions
+ ****************************************************************************/
 
 static int hts221_do_transfer(FAR struct hts221_dev_s *priv,
                               FAR struct i2c_msg_s *msgv,
@@ -199,6 +196,7 @@ static int hts221_do_transfer(FAR struct hts221_dev_s *priv,
       else
         {
           /* Some error. Try to reset I2C bus and keep trying. */
+
 #ifdef CONFIG_I2C_RESET
           if (retries == HTS221_I2C_RETRIES - 1)
             {
@@ -286,7 +284,11 @@ static int hts221_cfgr_resolution(FAR struct hts221_dev_s *priv,
   uint8_t value;
   const uint8_t addr = HTS221_AV_CONF;
   uint8_t regval = 0;
-  uint8_t cmd[2] = { 0 };
+  uint8_t cmd[2] =
+  {
+    0
+  };
+
   const uint8_t mask = 0x3f;
 
   ret = hts221_read_reg(priv, &addr, &regval);
@@ -318,7 +320,10 @@ static int hts221_config_ctrl_reg3(FAR struct hts221_dev_s *priv,
   uint8_t regval = 0;
   uint8_t addr = HTS221_CTRL_REG3;
   const uint8_t mask = 0xc4;
-  uint8_t data_to_write[2] = { 0 };
+  uint8_t data_to_write[2] =
+  {
+    0
+  };
 
   ret = hts221_read_reg(priv, &addr, &regval);
   hts221_dbg("CTRL_REG%d: 0x%02X\n", 3, regval);
@@ -328,7 +333,8 @@ static int hts221_config_ctrl_reg3(FAR struct hts221_dev_s *priv,
     }
 
   regval &= ~mask;
-  regval |= (uint8_t)(settings->is_high_edge ? 0 : HTS221_CTRL_REG3_DRDY_L_H);
+  regval |= (uint8_t)(settings->is_high_edge ?
+                      0 : HTS221_CTRL_REG3_DRDY_L_H);
   regval |= (uint8_t)(settings->is_open_drain ? HTS221_CTRL_REG3_PP_OD : 0);
   regval |= (uint8_t)(settings->is_data_rdy ? HTS221_CTRL_REG3_DRDY_EN : 0);
 
@@ -356,7 +362,11 @@ static int hts221_config_ctrl_reg2(FAR struct hts221_dev_s *priv,
   uint8_t regval = 0;
   uint8_t addr = HTS221_CTRL_REG2;
   const uint8_t mask = 0x80;
-  uint8_t data_to_write[2] = { 0 };
+  uint8_t data_to_write[2] =
+  {
+    0
+  };
+
   int retries = 5;
 
   if (!settings->is_boot)
@@ -406,7 +416,7 @@ static int hts221_config_ctrl_reg2(FAR struct hts221_dev_s *priv,
               break;
             }
 
-          usleep(10 * 1000);
+          nxsig_usleep(10 * 1000);
           retries--;
         }
       while (retries);
@@ -427,7 +437,10 @@ static int hts221_config_ctrl_reg1(FAR struct hts221_dev_s *priv,
   uint8_t regval = 0;
   uint8_t addr = HTS221_CTRL_REG1;
   const uint8_t mask = 0x87;
-  uint8_t data_to_write[2] = { 0 };
+  uint8_t data_to_write[2] =
+  {
+    0
+  };
 
   ret = hts221_read_reg(priv, &addr, &regval);
   hts221_dbg("CTRL_REG%d: 0x%02X\n", 1, regval);
@@ -437,8 +450,8 @@ static int hts221_config_ctrl_reg1(FAR struct hts221_dev_s *priv,
     }
 
   regval &= ~mask;
-  regval |= (uint8_t) (settings->odr & 0xFF);
-  regval |= (uint8_t) (settings->is_bdu ? HTS221_CTRL_REG1_BDU : 0);
+  regval |= (uint8_t)(settings->odr & 0xff);
+  regval |= (uint8_t)(settings->is_bdu ? HTS221_CTRL_REG1_BDU : 0);
 
   data_to_write[0] = addr;
   data_to_write[1] = regval;
@@ -479,6 +492,7 @@ static int hts221_power_on_off(FAR struct hts221_dev_s *priv, bool on)
     {
       regval &= ~HTS221_CTRL_REG1_PD;
     }
+
   data_to_write[0] = addr;
   data_to_write[1] = regval;
 
@@ -610,7 +624,8 @@ static int hts221_read_raw_data(FAR struct hts221_dev_s *priv,
 
   /* Add low-order bytes to entropy pool. */
 
-  add_sensor_randomness(((uint32_t)data->humid_low_bits << 8) | data->temp_low_bits);
+  add_sensor_randomness(((uint32_t)data->humid_low_bits << 8) |
+                        data->temp_low_bits);
 
   flags = enter_critical_section();
   priv->int_pending = false;
@@ -790,18 +805,20 @@ static int hts221_calculate_humidity(FAR struct hts221_dev_s *priv,
                                      FAR unsigned int *humidity,
                                      FAR hts221_raw_data_t *raw_data)
 {
-  int16_t h_out = (raw_data->humid_high_bits << 8) | raw_data->humid_low_bits;
+  int16_t h_out;
   int x0 = priv->calib.h0_t0_out;
   int x1 = priv->calib.h1_t0_out;
   int y0 = priv->calib.h0_x2;
   int y1 = priv->calib.h1_x2;
-  int x = h_out;
+  int x;
   int64_t y;
   int x1_x0_diff;
 
+  h_out = (raw_data->humid_high_bits << 8) | raw_data->humid_low_bits;
+  x = h_out;
   x1_x0_diff = x1 - x0;
 
-  y = (y0 * x1_x0_diff + (y1 - y0) * (x - x0));
+  y  = (y0 * x1_x0_diff + (y1 - y0) * (x - x0));
   y *= HTS221_HUMIDITY_PRECISION;
   y /= x1_x0_diff * 2;
 
@@ -895,17 +912,11 @@ static int hts221_open(FAR struct file *filep)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   priv->config->set_power(priv->config, true);
   priv->config->irq_enable(priv->config, true);
@@ -923,17 +934,11 @@ static int hts221_close(FAR struct file *filep)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   priv->config->irq_enable(priv->config, false);
   ret = hts221_power_on_off(priv, false);
@@ -955,17 +960,11 @@ static ssize_t hts221_read(FAR struct file *filep, FAR char *buffer,
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return (ssize_t)ret;
     }
-  while (ret == -EINTR);
 
   ret = hts221_read_convert_data(priv, &data);
   if (ret < 0)
@@ -1003,17 +1002,11 @@ static int hts221_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   switch (cmd)
     {
@@ -1056,21 +1049,20 @@ static int hts221_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   return ret;
 }
 
-#ifndef CONFIG_DISABLE_POLL
 static bool hts221_sample(FAR struct hts221_dev_s *priv)
 {
   int ret;
   hts221_status_t status =
-  {
-    .is_humid_ready = false,
-    .is_temp_ready = false
-  };
+    {
+      .is_humid_ready = false,
+      .is_temp_ready = false
+    };
 
   ret = hts221_check_status(priv, &status);
   if (ret < 0)
-  {
-    return false;
-  }
+    {
+      return false;
+    }
 
   return status.is_humid_ready || status.is_temp_ready;
 }
@@ -1083,8 +1075,8 @@ static void hts221_notify(FAR struct hts221_dev_s *priv)
 
   /* If there are threads waiting on poll() for data to become available,
    * then wake them up now.  NOTE: we wake up all waiting threads because we
-   * do not know that they are going to do.  If they all try to read the data,
-   * then some make end up blocking after all.
+   * do not know that they are going to do.  If they all try to read the
+   * data, then some make end up blocking after all.
    */
 
   for (i = 0; i < CONFIG_HTS221_NPOLLWAITERS; i++)
@@ -1105,7 +1097,7 @@ static int hts221_poll(FAR struct file *filep, FAR struct pollfd *fds,
   FAR struct inode *inode;
   FAR struct hts221_dev_s *priv;
   irqstate_t flags;
-  int ret;
+  int ret = OK;
   int i;
 
   DEBUGASSERT(filep && fds);
@@ -1116,17 +1108,11 @@ static int hts221_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   if (setup)
     {
@@ -1188,7 +1174,6 @@ out:
   nxsem_post(&priv->devsem);
   return ret;
 }
-#endif /* !CONFIG_DISABLE_POLL */
 
 static int hts221_int_handler(int irq, FAR void *context, FAR void *arg)
 {
@@ -1198,9 +1183,7 @@ static int hts221_int_handler(int irq, FAR void *context, FAR void *arg)
 
   priv->int_pending = true;
   hts221_dbg("Hts221 interrupt\n");
-#ifndef CONFIG_DISABLE_POLL
   hts221_notify(priv);
-#endif
 
   return OK;
 }

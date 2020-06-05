@@ -50,18 +50,19 @@
 
 #include "up_arch.h"
 
-#include "chip/stm32_syscfg.h"
+#include "hardware/stm32_syscfg.h"
 #include "stm32_gpio.h"
 
 /* Content of this file requires verification before it is used with other
  * families
  */
 
-#if defined(CONFIG_STM32H7_STM32H7X3XX)
+#if defined(CONFIG_STM32H7_STM32H7X3XX) || defined(CONFIG_STM32H7_STM32H7X7XX)
 
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
 /* Base addresses for each GPIO block */
 
 const uint32_t g_gpiobase[STM32H7_NGPIO] =
@@ -135,7 +136,7 @@ void stm32_gpioinit(void)
  *
  * Returned Value:
  *   OK on success
- *   A negated errono value on invalid port, or when pin is locked as ALT
+ *   A negated errno value on invalid port, or when pin is locked as ALT
  *   function.
  *
  * To-Do: Auto Power Enable
@@ -436,7 +437,8 @@ bool stm32_gpioread(uint32_t pinset)
       pin = (pinset & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
       return ((getreg32(base + STM32_GPIO_IDR_OFFSET) & (1 << pin)) != 0);
     }
+
   return 0;
 }
 
-#endif /* CONFIG_STM32H7_STM32H7X3XX */
+#endif /* CONFIG_STM32H7_STM32H7X3XX || CONFIG_STM32H7_STM32H7X7XX */

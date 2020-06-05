@@ -234,7 +234,7 @@ void up_svcall_handler(void);
 
 /* System timer *************************************************************/
 
-void ceva_timer_initialize(void);
+void up_timer_initialize(void);
 
 /* Low level serial output **************************************************/
 

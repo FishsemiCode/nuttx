@@ -41,8 +41,8 @@ CSRCS =
 VPATH := $(SRCDIR)
 DEPPATH = --dep-path .
 
-include libmetal/Make.defs
-include open-amp/Make.defs
+include libmetal.defs
+include open-amp.defs
 
 AOBJS = $(ASRCS:.S=$(OBJEXT))
 COBJS = $(CSRCS:.c=$(OBJEXT))

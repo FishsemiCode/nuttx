@@ -103,7 +103,7 @@ static int psock_fifo_read(FAR struct socket *psock, FAR void *buf,
             {
               /* No.. return the ECONNRESET error now.  Otherwise,
                * process the received data and return ENOTCONN the
-               * next time that psock_recvfrom() is calle.
+               * next time that psock_recvfrom() is called.
                */
 
               return ret;
@@ -279,7 +279,8 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
   /* Open the receiving side of the transfer */
 
-  ret = local_open_receiver(conn, _SS_ISNONBLOCK(psock->s_flags));
+  ret = local_open_receiver(conn, _SS_ISNONBLOCK(psock->s_flags) ||
+                            (flags & MSG_DONTWAIT) != 0);
   if (ret < 0)
     {
       nerr("ERROR: Failed to open FIFO for %s: %d\n",
@@ -353,7 +354,7 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
 
   /* Release our reference to the half duplex FIFO */
 
-  (void)local_release_halfduplex(conn);
+  local_release_halfduplex(conn);
 
   /* Return the address family */
 
@@ -369,15 +370,17 @@ psock_dgram_recvfrom(FAR struct socket *psock, FAR void *buf, size_t len,
   return readlen;
 
 errout_with_infd:
+
   /* Close the read-only file descriptor */
 
   file_close(&conn->lc_infile);
   conn->lc_infile.f_inode = NULL;
 
 errout_with_halfduplex:
+
   /* Release our reference to the half duplex FIFO */
 
-  (void)local_release_halfduplex(conn);
+  local_release_halfduplex(conn);
   return ret;
 }
 #endif /* CONFIG_NET_LOCAL_STREAM */

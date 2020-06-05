@@ -90,15 +90,15 @@ int net_addroute_ipv4(in_addr_t target, in_addr_t netmask, in_addr_t router)
   ret = net_openroute_ipv4(O_WRONLY | O_APPEND | O_CREAT, &fshandle);
   if (ret < 0)
     {
-       nerr("ERROR: Could not open IPv4 routing table: %d\n", ret);
-       return ret;
+      nerr("ERROR: Could not open IPv4 routing table: %d\n", ret);
+      return ret;
     }
 
   /* Then append the new entry to the end of the routing table */
 
   nwritten = net_writeroute_ipv4(&fshandle, &route);
 
-  (void)net_closeroute_ipv4(&fshandle);
+  net_closeroute_ipv4(&fshandle);
   return nwritten >= 0 ? 0 : (int)nwritten;
 }
 #endif
@@ -124,15 +124,15 @@ int net_addroute_ipv6(net_ipv6addr_t target, net_ipv6addr_t netmask,
   ret = net_openroute_ipv6(O_WRONLY | O_APPEND | O_CREAT, &fshandle);
   if (ret < 0)
     {
-       nerr("ERROR: Could not open IPv6 routing table: %d\n", ret);
-       return ret;
+      nerr("ERROR: Could not open IPv6 routing table: %d\n", ret);
+      return ret;
     }
 
   /* Then append the new entry to the end of the routing table */
 
   nwritten = net_writeroute_ipv6(&fshandle, &route);
 
-  (void)net_closeroute_ipv6(&fshandle);
+  net_closeroute_ipv6(&fshandle);
   return nwritten >= 0 ? 0 : (int)nwritten;
 }
 #endif

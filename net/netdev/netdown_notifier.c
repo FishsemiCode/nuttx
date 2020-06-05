@@ -58,9 +58,9 @@
  * Name: netdown_notifier_setup
  *
  * Description:
- *   Set up to perform a callback to the worker function the network goes
- *   down.  The worker function will execute on the low priority worker
- *   thread.
+ *   Set up to perform a callback to the worker function when the network
+ *   goes down.  The worker function will execute on the high priority
+ *   worker thread.
  *
  * Input Parameters:
  *   worker - The worker function to execute on the low priority work
@@ -151,7 +151,7 @@ void netdown_notifier_signal(FAR struct net_driver_s *dev)
 {
   /* This is just a simple wrapper around work_notifier_signal(). */
 
-  return work_notifier_signal(WORK_NET_DOWN, dev);
+  work_notifier_signal(WORK_NET_DOWN, dev);
 }
 
 #endif /* CONFIG_NETDOWN_NOTIFIER */

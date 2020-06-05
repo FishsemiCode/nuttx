@@ -116,15 +116,12 @@ struct mac802154_chardevice_s
   sem_t readsem;                        /* Signaling semaphore for waiting read */
   sq_queue_t dataind_queue;
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* MAC Service notification information */
 
   bool    md_notify_registered;
   pid_t   md_notify_pid;
   struct sigevent md_notify_event;
   struct sigwork_s md_notify_work;
-
-#endif
 };
 
 /****************************************************************************
@@ -161,10 +158,8 @@ static const struct file_operations mac802154dev_fops =
   mac802154dev_read , /* read */
   mac802154dev_write, /* write */
   NULL,               /* seek */
-  mac802154dev_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL              /* poll */
-#endif
+  mac802154dev_ioctl, /* ioctl */
+  NULL                /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL               /* unlink */
 #endif
@@ -184,18 +179,7 @@ static const struct file_operations mac802154dev_fops =
 
 static inline int mac802154dev_takesem(sem_t *sem)
 {
-  int ret;
-
-  /* Take the semaphore (perhaps waiting) */
-
-  ret = nxsem_wait(sem);
-
-  /* The only case that an error should occur here is if the wait were
-   * awakened by a signal.
-   */
-
-  DEBUGASSERT(ret == OK || ret == -EINTR);
-  return ret;
+  return nxsem_wait(sem);
 }
 
 /****************************************************************************
@@ -445,7 +429,6 @@ static ssize_t mac802154dev_read(FAR struct file *filep, FAR char *buffer,
       ret = nxsem_wait(&dev->readsem);
       if (ret < 0)
         {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
           dev->readpending = false;
           return ret;
         }
@@ -455,11 +438,7 @@ static ssize_t mac802154dev_read(FAR struct file *filep, FAR char *buffer,
        */
     }
 
-  /* Check if the MAC layer is in promiscuous mode. If it is, pass the entire
-   * frame, including IEEE 802.15.4 header and checksum by assuming the frame
-   * starts at the beginning of the IOB and goes 2 past the length to account
-   * for the FCS that the radio driver "removes"
-   */
+  /* Check if the MAC layer is in promiscuous mode. */
 
   req.attr = IEEE802154_ATTR_MAC_PROMISCUOUS_MODE;
 
@@ -468,8 +447,18 @@ static ssize_t mac802154dev_read(FAR struct file *filep, FAR char *buffer,
 
   if (ret == 0 && req.attrval.mac.promisc_mode)
     {
-      rx->length = ind->frame->io_len + 2;
-      rx->offset = ind->frame->io_offset;
+      /* If it is, add the FCS back into the frame by increasing the length
+       * by the PHY layer's FCS length.
+       */
+
+      req.attr = IEEE802154_ATTR_PHY_FCS_LEN;
+      ret = mac802154_ioctl(dev->md_mac, MAC802154IOC_MLME_GET_REQUEST,
+                            (unsigned long)&req);
+      if (ret == OK)
+        {
+          rx->length = ind->frame->io_len + req.attrval.phy.fcslen;
+          rx->offset = ind->frame->io_offset;
+        }
 
       /* Copy the entire frame from the IOB to the user supplied struct */
 
@@ -495,7 +484,7 @@ static ssize_t mac802154dev_read(FAR struct file *filep, FAR char *buffer,
 
  /* Free the IOB */
 
- iob_free(ind->frame);
+ iob_free(ind->frame, IOBUSER_WIRELESS_MAC802154_CHARDEV);
 
  /* Deallocate the data indication */
 
@@ -541,7 +530,7 @@ static ssize_t mac802154dev_write(FAR struct file *filep,
 
   /* Allocate an IOB to put the frame in */
 
-  iob = iob_alloc(false);
+  iob = iob_alloc(false, IOBUSER_WIRELESS_MAC802154_CHARDEV);
   DEBUGASSERT(iob != NULL);
 
   iob->io_flink  = NULL;
@@ -567,10 +556,10 @@ static ssize_t mac802154dev_write(FAR struct file *filep,
 
   /* Pass the request to the MAC layer */
 
-  ret = mac802154_req_data(dev->md_mac, &tx->meta, iob);
+  ret = mac802154_req_data(dev->md_mac, &tx->meta, iob, true);
   if (ret < 0)
     {
-      iob_free(iob);
+      iob_free(iob, IOBUSER_WIRELESS_MAC802154_CHARDEV);
       wlerr("ERROR: req_data failed %d\n", ret);
       return ret;
     }
@@ -612,7 +601,6 @@ static int mac802154dev_ioctl(FAR struct file *filep, int cmd,
 
   switch (cmd)
     {
-#ifndef CONFIG_DISABLE_SIGNALS
       /* Command:     MAC802154IOC_NOTIFY_REGISTER
        * Description: Register to receive a signal whenever there is a
        *              event primitive sent from the MAC layer.
@@ -632,7 +620,6 @@ static int mac802154dev_ioctl(FAR struct file *filep, int cmd,
           ret = OK;
         }
         break;
-#endif
 
       case MAC802154IOC_GET_EVENT:
         {
@@ -682,7 +669,6 @@ static int mac802154dev_ioctl(FAR struct file *filep, int cmd,
               ret = nxsem_wait(&dev->geteventsem);
               if (ret < 0)
                 {
-                  DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
                   dev->geteventpending = false;
                   return ret;
                 }
@@ -764,14 +750,12 @@ static int mac802154dev_notify(FAR struct mac802154_maccb_s *maccb,
           nxsem_post(&dev->geteventsem);
         }
 
-#ifndef CONFIG_DISABLE_SIGNALS
       if (dev->md_notify_registered)
         {
           dev->md_notify_event.sigev_value.sival_int = primitive->type;
           nxsig_notification(dev->md_notify_pid, &dev->md_notify_event,
                              SI_QUEUE, &dev->md_notify_work);
         }
-#endif
 
       mac802154dev_givesem(&dev->md_exclsem);
       return OK;
@@ -836,7 +820,7 @@ static int mac802154dev_rxframe(FAR struct mac802154_chardevice_s *dev,
  *   user-space
  *
  * Input Parameters:
- *   mac - Pointer to the mac layer struct to be registerd.
+ *   mac - Pointer to the mac layer struct to be registered.
  *   minor - The device minor number.  The IEEE802.15.4 MAC character device
  *     will be registered as /dev/ieeeN where N is the minor number
  *

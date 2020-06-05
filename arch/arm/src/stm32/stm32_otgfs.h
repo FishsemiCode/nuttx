@@ -46,7 +46,7 @@
 
 #include "stm32.h"
 
-#include "chip/stm32fxxxxx_otgfs.h"
+#include "hardware/stm32fxxxxx_otgfs.h"
 
 #if defined(CONFIG_STM32_OTGFS)
 
@@ -90,7 +90,7 @@ extern "C"
  *
  ****************************************************************************/
 
-#ifdef CONFIG_USBHOST
+#ifdef CONFIG_STM32_USBHOST
 struct usbhost_connection_s;
 FAR struct usbhost_connection_s *stm32_otgfshost_initialize(int controller);
 #endif
@@ -116,4 +116,3 @@ void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume);
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_STM32_OTGFS */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_OTGFS_H */
-

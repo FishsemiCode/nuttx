@@ -49,7 +49,7 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "chip/a1x_timer.h"
+#include "hardware/a1x_timer.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -103,7 +103,7 @@ static int a1x_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -111,7 +111,7 @@ static int a1x_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
 
@@ -138,7 +138,7 @@ void arm_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(A1X_IRQ_TIMER0, (xcpt_t)a1x_timerisr, NULL);
+  irq_attach(A1X_IRQ_TIMER0, (xcpt_t)a1x_timerisr, NULL);
 
   /* Enable interrupts from the TIMER 0 port */
 

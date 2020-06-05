@@ -53,8 +53,6 @@
  *
  * CONFIG_SCHED_WORKQUEUE - Work queue support is required
  *
- * Settings that effect the driver: CONFIG_DISABLE_POLL
- *
  * CONFIG_SENSORS_ADXL345
  *   Enables support for the ADXL345 driver
  * CONFIG_ADXL345_SPI
@@ -68,10 +66,6 @@
  * CONFIG_ADXL345_REGDEBUG
  *   Enable very low register-level debug output.  Requires CONFIG_DEBUG_FEATURES.
  */
-
-#ifdef CONFIG_DISABLE_SIGNALS
-#  error "Signals are required.  CONFIG_DISABLE_SIGNALS must not be selected."
-#endif
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 #  error "Work queue support required.  CONFIG_SCHED_WORKQUEUE must be selected."
@@ -141,7 +135,7 @@
 #define ADXL345_TIME_INACT          0x26  /* Inactivity time */
 #define ADXL345_ATC_INACT_CTL       0x27  /* Axis enable control for activity and inactivity detection */
 #define ADXL345_THRESH_FF           0x28  /* Free-fall threshold */
-#define ADXL345_TIME_FF             0x29  /* Free-fall fime */
+#define ADXL345_TIME_FF             0x29  /* Free-fall time */
 #define ADXL345_TAP_AXES            0x2a  /* Axis control for tap/double tap */
 #define ADXL345_ACT_TAP_STATUS      0x2b  /* Source of tap/double tap */
 #define ADXL345_BW_RATE             0x2c  /* Data rate and power mode control */
@@ -181,7 +175,7 @@
 #define TAP_Z_ENABLE                (1 << 0)  /* Bit 0: Enable/disable Z-axis in tap detection */
 #define TAP_Y_ENABLE                (1 << 1)  /* Bit 1: Enable/disable Y-axis in tap detection */
 #define TAP_X_ENABLE                (1 << 2)  /* Bit 2: Enable/disable X-axis in tap detection */
-#define TAP_SUPRESS                 (1 << 3)  /* Bit 3: Supress double tap detection */
+#define TAP_SUPRESS                 (1 << 3)  /* Bit 3: Suppress double tap detection */
 
 /* Register 0x2b - ACT_TAP_STATUS */
 
@@ -208,7 +202,7 @@
 #define POWER_CTL_WAKEUP_2HZ        (2 << POWER_CTL_WAKEUP_SHIFT)
 #define POWER_CTL_WAKEUP_1HZ        (3 << POWER_CTL_WAKEUP_SHIFT)
 #define POWER_CTL_SLEEP             (1 << 2)  /* Bit 2: Sleep mode, only activity function can be used */
-#define POWER_CTL_MEASURE           (1 << 3)  /* Bit 3: Writing 0 put part in standy mode, 1 measurement mode */
+#define POWER_CTL_MEASURE           (1 << 3)  /* Bit 3: Writing 0 put part in standby mode, 1 measurement mode */
 #define POWER_CTL_AUTO_SLEEP        (1 << 4)  /* Bit 4: If set and link bit is set then device sleep if no activity */
 #define POWER_CTL_LINK              (1 << 5)  /* Bit 5: Wait an inactivity before detecting an activity */
 
@@ -261,7 +255,7 @@
 
 /* Register 0x38 - FIFO_CTL */
 
-#define FIFO_CTL_SAMPLES_SHIFT      0         /* Bit 0-4: Numbers of samples needed to trigger a watermask event */
+#define FIFO_CTL_SAMPLES_SHIFT      0         /* Bit 0-4: Numbers of samples needed to trigger a watermark event */
 #define FIFO_CTL_SAMPLES_MASK       (31 << FIFO_CTL_SAMPLES_SHIFT)
 #define FIFO_CTL_TRIGGER            (1 << 5)  /* Bit 5: Value 0 links trigger event to INT1, value 1 to INT2 */
 #define FIFO_CTL_MODE_SHIFT         6         /* Bit 6-7: FIFO Mode */
@@ -285,7 +279,7 @@
  * handler but rather from the context of the worker thread with interrupts enabled.
  */
 
-typedef void (*adxl345_handler_t)(FAR struct adxl345_config_s *config, FAR void *arg);
+typedef CODE void (*adxl345_handler_t)(FAR struct adxl345_config_s *config, FAR void *arg);
 
 /* A reference to a structure of this type must be passed to the ADXL345 driver when the
  * driver is instantiated. This structure provides information about the configuration of the

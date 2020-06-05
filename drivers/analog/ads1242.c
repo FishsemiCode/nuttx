@@ -75,11 +75,11 @@ struct ads1242_dev_s
 static void    ads1242_lock(FAR struct spi_dev_s *spi);
 static void    ads1242_unlock(FAR struct spi_dev_s *spi);
 static void    ads1242_reset(FAR struct ads1242_dev_s *dev);
-static void    ads1242_performSelfGainCalibration(
+static void    ads1242_perform_selfgain_calibration(
                  FAR struct ads1242_dev_s *dev);
-static void    ads1242_performSelfOffsetCalibration(
+static void    ads1242_perform_selfoffset_calibration(
                  FAR struct ads1242_dev_s *dev);
-static void    ads1242_performSystemOffsetCalibration(
+static void    ads1242_perform_systemoffset_calibration(
                  FAR struct ads1242_dev_s *dev);
 static void    ads1242_read_conversion_result(FAR struct ads1242_dev_s *dev,
                  FAR uint32_t *conversion_result);
@@ -98,7 +98,8 @@ static void    ads1242_set_negative_input(FAR struct ads1242_dev_s *dev,
 static bool    ads1242_is_data_ready(FAR struct ads1242_dev_s *dev);
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_DEBUG_INFO)
-static void    ads1242_print_regs(FAR struct ads1242_dev_s *dev, char const *msg);
+static void    ads1242_print_regs(FAR struct ads1242_dev_s *dev,
+                 char const *msg);
 #endif /* CONFIG_DEBUG_FEATURES && CONFIG_DEBUG_INFO */
 
 /* Character driver methods */
@@ -122,10 +123,8 @@ static const struct file_operations g_ads1242_fops =
   ads1242_read,
   ads1242_write,
   NULL,
-  ads1242_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  ads1242_ioctl,
+  NULL
 };
 
 /****************************************************************************
@@ -142,10 +141,10 @@ static const struct file_operations g_ads1242_fops =
 
 static void ads1242_lock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
   SPI_SETMODE(spi, ADS1242_SPI_MODE);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
+  SPI_HWFEATURES(spi, 0);
   SPI_SETFREQUENCY(spi, ADS1242_SPI_FREQUENCY);
 }
 
@@ -159,7 +158,7 @@ static void ads1242_lock(FAR struct spi_dev_s *spi)
 
 static void ads1242_unlock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 /****************************************************************************
@@ -170,19 +169,23 @@ static void ads1242_reset(FAR struct ads1242_dev_s *dev)
 {
   ads1242_lock(dev->spi);
 
-  SPI_SELECT(dev->spi, 0, true);        /* Set nADC_SPI_CS to low which selects the ADS1242 */
-  SPI_SEND(dev->spi, ADS1242_CMD_RESET);/* Issue reset command */
-  SPI_SELECT(dev->spi, 0, false);       /* Set nADC_SPI_CS to high which deselects the ADS1242 */
-  up_mdelay(100);                       /* Wait a little so the device has time to perform a proper reset */
+  SPI_SELECT(dev->spi, 0, true);         /* Set nADC_SPI_CS to low which
+                                          * selects the ADS1242 */
+  SPI_SEND(dev->spi, ADS1242_CMD_RESET); /* Issue reset command */
+  SPI_SELECT(dev->spi, 0, false);        /* Set nADC_SPI_CS to high which
+                                          * deselects the ADS1242 */
+  up_mdelay(100);                        /* Wait a little so the device has
+                                          * time to perform a proper reset */
 
   ads1242_unlock(dev->spi);
 }
 
 /****************************************************************************
- * Name: ads1242_performSelfGainCalibration
+ * Name: ads1242_perform_selfgain_calibration
  ****************************************************************************/
 
-static void ads1242_performSelfGainCalibration(FAR struct ads1242_dev_s *dev)
+static void ads1242_perform_selfgain_calibration(FAR struct ads1242_dev_s
+              *dev)
 {
   ads1242_lock(dev->spi);
 
@@ -194,10 +197,11 @@ static void ads1242_performSelfGainCalibration(FAR struct ads1242_dev_s *dev)
 }
 
 /****************************************************************************
- * Name: ads1242_performSelfOffsetCalibration
+ * Name: ads1242_perform_selfoffset_calibration
  ****************************************************************************/
 
-static void ads1242_performSelfOffsetCalibration(FAR struct ads1242_dev_s *dev)
+static void ads1242_perform_selfoffset_calibration(FAR struct ads1242_dev_s
+              *dev)
 {
   ads1242_lock(dev->spi);
 
@@ -209,11 +213,11 @@ static void ads1242_performSelfOffsetCalibration(FAR struct ads1242_dev_s *dev)
 }
 
 /****************************************************************************
- * Name: ads1242_performSystemOffsetCalibration
+ * Name: ads1242_perform_systemoffset_calibration
  ****************************************************************************/
 
 static void
-ads1242_performSystemOffsetCalibration(FAR struct ads1242_dev_s *dev)
+  ads1242_perform_systemoffset_calibration(FAR struct ads1242_dev_s *dev)
 {
   ads1242_lock(dev->spi);
 
@@ -249,9 +253,9 @@ static void ads1242_read_conversion_result(FAR struct ads1242_dev_s *dev,
    * 3rd Byte = LSB
    */
 
-   *conversion_result |= ((uint32_t)(SPI_SEND(dev->spi, 0xFF))) << 16;
-   *conversion_result |= ((uint32_t)(SPI_SEND(dev->spi, 0xFF))) << 8;
-   *conversion_result |= ((uint32_t)(SPI_SEND(dev->spi, 0xFF))) << 0;
+  *conversion_result |= ((uint32_t)(SPI_SEND(dev->spi, 0xff))) << 16;
+  *conversion_result |= ((uint32_t)(SPI_SEND(dev->spi, 0xff))) << 8;
+  *conversion_result |= ((uint32_t)(SPI_SEND(dev->spi, 0xff))) << 0;
 
   SPI_SELECT(dev->spi, 0, false);
 
@@ -269,7 +273,8 @@ static void ads1242_read_conversion_result(FAR struct ads1242_dev_s *dev,
  ****************************************************************************/
 
 static void ads1242_write_reg(FAR struct ads1242_dev_s *dev,
-                              uint8_t const reg_addr, uint8_t const reg_value)
+                              uint8_t const reg_addr,
+                              uint8_t const reg_value)
 {
   ads1242_lock(dev->spi);
 
@@ -308,7 +313,7 @@ static void ads1242_read_reg(FAR struct ads1242_dev_s *dev,
 
   up_udelay(50 * dev->osc_period_us);
 
-  *reg_value = SPI_SEND(dev->spi, 0xFF);
+  *reg_value = SPI_SEND(dev->spi, 0xff);
 
   SPI_SELECT(dev->spi, 0, false);
 
@@ -337,7 +342,7 @@ static void ads1242_set_gain(FAR struct ads1242_dev_s *dev,
 
   /* It is necessary to perform a offset calibration after setting the gain */
 
-  ads1242_performSelfOffsetCalibration(dev);
+  ads1242_perform_selfoffset_calibration(dev);
 }
 
 /****************************************************************************
@@ -345,7 +350,7 @@ static void ads1242_set_gain(FAR struct ads1242_dev_s *dev,
  ****************************************************************************/
 
 static void ads1242_set_positive_input(FAR struct ads1242_dev_s *dev,
-                                       ADS1242_POSITIVE_INPUT_SELECTION const pos_in_sel)
+              ADS1242_POSITIVE_INPUT_SELECTION const pos_in_sel)
 {
   uint8_t mux_reg_value = 0;
 
@@ -365,7 +370,7 @@ static void ads1242_set_positive_input(FAR struct ads1242_dev_s *dev,
  ****************************************************************************/
 
 static void ads1242_set_negative_input(FAR struct ads1242_dev_s *dev,
-                                       ADS1242_NEGATIVE_INPUT_SELECTION const neg_in_sel)
+              ADS1242_NEGATIVE_INPUT_SELECTION const neg_in_sel)
 {
   uint8_t mux_reg_value = 0;
 
@@ -386,10 +391,10 @@ static void ads1242_set_negative_input(FAR struct ads1242_dev_s *dev,
 
 static bool ads1242_is_data_ready(FAR struct ads1242_dev_s *dev)
 {
-  uint8_t acr_reg_value = 0xFF;
+  uint8_t acr_reg_value = 0xff;
 
   ads1242_read_reg(dev, ADS1242_REG_ACR, &acr_reg_value);
-  return (acr_reg_value & ADS1242_REG_ACR_BIT_nDRDY) == 0;
+  return (acr_reg_value & ADS1242_REG_ACR_BIT_NDRDY) == 0;
 }
 
 /****************************************************************************
@@ -397,21 +402,22 @@ static bool ads1242_is_data_ready(FAR struct ads1242_dev_s *dev)
  ****************************************************************************/
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_DEBUG_INFO)
-static void ads1242_print_regs(FAR struct ads1242_dev_s *dev, char const *msg)
+static void ads1242_print_regs(FAR struct ads1242_dev_s *dev,
+                               char const *msg)
 {
- uint8_t setup_reg_value = 0;
- uint8_t mux_reg_value   = 0;
- uint8_t acr_reg_value   = 0;
+  uint8_t setup_reg_value = 0;
+  uint8_t mux_reg_value   = 0;
+  uint8_t acr_reg_value   = 0;
 
- ainfo("%s\n", msg);
+  ainfo("%s\n", msg);
 
- ads1242_read_reg(dev, ADS1242_REG_SETUP, &setup_reg_value);
- ads1242_read_reg(dev, ADS1242_REG_MUX, &mux_reg_value);
- ads1242_read_reg(dev, ADS1242_REG_ACR, &acr_reg_value);
+  ads1242_read_reg(dev, ADS1242_REG_SETUP, &setup_reg_value);
+  ads1242_read_reg(dev, ADS1242_REG_MUX, &mux_reg_value);
+  ads1242_read_reg(dev, ADS1242_REG_ACR, &acr_reg_value);
 
- ainfo("SETUP  %02X\n", setup_reg_value);
- ainfo("MUX    %02X\n", mux_reg_value);
- ainfo("ACR    %02X\n", acr_reg_value);
+  ainfo("SETUP  %02X\n", setup_reg_value);
+  ainfo("MUX    %02X\n", mux_reg_value);
+  ainfo("ACR    %02X\n", acr_reg_value);
 }
 #endif /* CONFIG_DEBUG_FEATURES && CONFIG_DEBUG_INFO */
 
@@ -427,7 +433,7 @@ static int ads1242_open(FAR struct file *filep)
   ads1242_reset(priv);
   up_mdelay(100);
 
-  ads1242_performSelfGainCalibration(priv);
+  ads1242_perform_selfgain_calibration(priv);
   up_mdelay(100);
 
   /* SPEED = 1 -> fMod = fOsc / 256 (fMod = Modulator Clock Speed)
@@ -438,7 +444,7 @@ static int ads1242_open(FAR struct file *filep)
   ads1242_write_reg(priv, ADS1242_REG_ACR,
                     ADS1242_REG_ACR_BIT_SPEED | ADS1242_REG_ACR_BIT_BUFEN);
 
-  ads1242_performSelfOffsetCalibration(priv);
+  ads1242_perform_selfoffset_calibration(priv);
   up_mdelay(100);
 
 #if defined(CONFIG_DEBUG_FEATURES) && defined(CONFIG_DEBUG_INFO)
@@ -447,6 +453,7 @@ static int ads1242_open(FAR struct file *filep)
 
   return OK;
 }
+
 /****************************************************************************
  * Name: ads1242_close
  ****************************************************************************/
@@ -545,7 +552,7 @@ static int ads1242_ioctl (FAR struct file *filep, int cmd, unsigned long arg)
 
     case ANIOC_ADS2142_DO_SYSTEM_OFFSET_CALIB:
       {
-        ads1242_performSystemOffsetCalibration(priv);
+        ads1242_perform_systemoffset_calibration(priv);
       }
       break;
 
@@ -572,9 +579,11 @@ static int ads1242_ioctl (FAR struct file *filep, int cmd, unsigned long arg)
  *
  * Input Parameters:
  *   devpath - The full path to the driver to register. E.g., "/dev/ads1242"
- *   spi - An instance of the SPI interface to use to communicate with ADS1242
- *   osc_freq_hz - The frequency of the ADS1242 oscillator in Hz. Required for
- *   calculating the minimum delay periods when accessing the device via SPI.
+ *   spi - An instance of the SPI interface to use to communicate with
+ *         ADS1242
+ *   osc_freq_hz - The frequency of the ADS1242 oscillator in Hz. Required
+ *                 for calculating the minimum delay periods when accessing
+ *                 the device via SPI.
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on failure.
@@ -593,7 +602,8 @@ int ads1242_register(FAR const char *devpath, FAR struct spi_dev_s *spi,
 
   /* Initialize the ADS1242 device structure */
 
-  priv = (FAR struct ads1242_dev_s *)kmm_malloc(sizeof(struct ads1242_dev_s));
+  priv =
+    (FAR struct ads1242_dev_s *)kmm_malloc(sizeof(struct ads1242_dev_s));
   if (priv == NULL)
     {
        _err("ERROR: Failed to allocate instance\n");

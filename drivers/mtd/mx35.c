@@ -2,7 +2,7 @@
  * drivers/mtd/mx35.c
  * Driver for SPI-based MX35LFxGE4AB parts of 1 or 2GBit.
  *
- *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016, 2019 Gregory Nutt. All rights reserved.
  *   Author: Ekaterina Kovylova <fomalhaut.hm@gmail.com>
  *
  *   Copied from / based on mx25lx.c driver written by
@@ -52,6 +52,7 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/signal.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/mtd/mtd.h>
@@ -89,7 +90,7 @@
 # define mx35info(x...)
 #endif
 
-/* Indentification register values **************************************************/
+/* Identification register values **************************************************/
 
 #define MX35_MANUFACTURER              CONFIG_MX35_MANUFACTURER
 #define MX35_MX35LF1GE4AB_CAPACITY     0x12  /* 1 Gb */
@@ -255,26 +256,26 @@ static inline void mx35_unlockblocks(struct mx35_dev_s *priv);
 
 static inline void mx35_lock(FAR struct spi_dev_s *dev)
 {
-  /* On SPI busses where there are multiple devices, it will be necessary to
-   * lock SPI to have exclusive access to the busses for a sequence of
+  /* On SPI buses where there are multiple devices, it will be necessary to
+   * lock SPI to have exclusive access to the buses for a sequence of
    * transfers.  The bus should be locked before the chip is selected.
    *
    * This is a blocking call and will not return until we have exclusive access to
-   * the SPI buss.  We will retain that exclusive access until the bus is unlocked.
+   * the SPI bus.  We will retain that exclusive access until the bus is unlocked.
    */
 
-  (void)SPI_LOCK(dev, true);
+  SPI_LOCK(dev, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency, setbits, and
    * setmode methods to make sure that the SPI is properly configured for the device.
-   * If the SPI buss is being shared, then it may have been left in an incompatible
+   * If the SPI bus is being shared, then it may have been left in an incompatible
    * state.
    */
 
   SPI_SETMODE(dev, CONFIG_MX35_SPIMODE);
   SPI_SETBITS(dev, 8);
-  (void)SPI_HWFEATURES(dev, 0);
-  (void)SPI_SETFREQUENCY(dev, CONFIG_MX35_SPIFREQUENCY);
+  SPI_HWFEATURES(dev, 0);
+  SPI_SETFREQUENCY(dev, CONFIG_MX35_SPIFREQUENCY);
 }
 
 /************************************************************************************
@@ -283,7 +284,7 @@ static inline void mx35_lock(FAR struct spi_dev_s *dev)
 
 static inline void mx35_unlock(FAR struct spi_dev_s *dev)
 {
-  (void)SPI_LOCK(dev, false);
+  SPI_LOCK(dev, false);
 }
 
 /************************************************************************************
@@ -304,8 +305,8 @@ static int mx35_readid(struct mx35_dev_s *priv)
 
   /* Send the "Read ID" command and read two ID bytes */
 
-  (void)SPI_SEND(priv->dev, MX35_READ_ID);
-  (void)SPI_SEND(priv->dev, MX35_DUMMY);
+  SPI_SEND(priv->dev, MX35_READ_ID);
+  SPI_SEND(priv->dev, MX35_DUMMY);
   manufacturer = SPI_SEND(priv->dev, MX35_DUMMY);
   capacity     = SPI_SEND(priv->dev, MX35_DUMMY);
 
@@ -366,8 +367,8 @@ static bool mx35_waitstatus(FAR struct mx35_dev_s *priv, uint8_t mask, bool succ
 
       /* Get feature command */
 
-      (void)SPI_SEND(priv->dev, MX35_GET_FEATURE);
-      (void)SPI_SEND(priv->dev, MX35_STATUS);
+      SPI_SEND(priv->dev, MX35_GET_FEATURE);
+      SPI_SEND(priv->dev, MX35_STATUS);
       status = SPI_SEND(priv->dev, MX35_DUMMY);
 
       /* Deselect the FLASH */
@@ -379,7 +380,7 @@ static bool mx35_waitstatus(FAR struct mx35_dev_s *priv, uint8_t mask, bool succ
        * other peripherals to access the SPI bus.
        */
     }
-  while (((status & MX35_SR_OIP) != 0) && (!usleep(1000)));
+  while (((status & MX35_SR_OIP) != 0) && (!nxsig_usleep(1000)));
 
   mx35info("Complete\n");
   return successif ? ((status & mask) != 0) : ((status & mask) == 0);
@@ -397,7 +398,7 @@ static inline void mx35_writeenable(struct mx35_dev_s *priv)
 
   /* Send Write Enable command */
 
-  (void)SPI_SEND(priv->dev, MX35_WRITE_ENABLE);
+  SPI_SEND(priv->dev, MX35_WRITE_ENABLE);
 
   /* Deselect the FLASH */
 
@@ -416,7 +417,7 @@ static inline void mx35_writedisable(struct mx35_dev_s *priv)
 
   /* Send Write Enable command */
 
-  (void)SPI_SEND(priv->dev, MX35_WRITE_DISABLE);
+  SPI_SEND(priv->dev, MX35_WRITE_DISABLE);
 
   /* Deselect the FLASH */
 
@@ -500,10 +501,10 @@ static bool mx35_sectorerase(FAR struct mx35_dev_s *priv, off_t startsector)
 
   /* Send the Block Erase instruction */
 
-  (void)SPI_SEND(priv->dev, MX35_BLOCK_ERASE);
-  (void)SPI_SEND(priv->dev, (block >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (block >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, block & 0xff);
+  SPI_SEND(priv->dev, MX35_BLOCK_ERASE);
+  SPI_SEND(priv->dev, (block >> 16) & 0xff);
+  SPI_SEND(priv->dev, (block >> 8) & 0xff);
+  SPI_SEND(priv->dev, block & 0xff);
 
   /* Deselect the FLASH */
 
@@ -555,16 +556,16 @@ static void mx35_readbuffer(FAR struct mx35_dev_s *priv, uint32_t address,
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
 
-  (void)SPI_SEND(priv->dev, MX35_READ_FROM_CACHE);
+  SPI_SEND(priv->dev, MX35_READ_FROM_CACHE);
 
   /* Send the address high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, (offset) & 0xff);
 
   /* Send a dummy byte */
 
-  (void)SPI_SEND(priv->dev, MX35_DUMMY);
+  SPI_SEND(priv->dev, MX35_DUMMY);
 
   /* Then read all of the requested bytes */
 
@@ -589,10 +590,10 @@ static bool mx35_read_page(FAR struct mx35_dev_s *priv, uint32_t pageaddress)
 
   /* Send the Read Page instruction */
 
-  (void)SPI_SEND(priv->dev, MX35_PAGE_READ);
-  (void)SPI_SEND(priv->dev, (row >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (row >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, row & 0xff);
+  SPI_SEND(priv->dev, MX35_PAGE_READ);
+  SPI_SEND(priv->dev, (row >> 16) & 0xff);
+  SPI_SEND(priv->dev, (row >> 8) & 0xff);
+  SPI_SEND(priv->dev, row & 0xff);
 
   /* Deselect the FLASH */
 
@@ -669,12 +670,12 @@ static void mx35_write_to_cache(FAR struct mx35_dev_s *priv, uint32_t address,
 
   /* Send the Program Load command */
 
-  (void)SPI_SEND(priv->dev, MX35_PROGRAM_LOAD);
+  SPI_SEND(priv->dev, MX35_PROGRAM_LOAD);
 
   /* Send the address high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, (offset) & 0xff);
 
   /* Send block of bytes */
 
@@ -699,10 +700,10 @@ static bool mx35_execute_write(FAR struct mx35_dev_s *priv, uint32_t pageaddress
 
   /* Send the Pragram Execute instruction */
 
-  (void)SPI_SEND(priv->dev, MX35_PROGRAM_EXECUTE);
-  (void)SPI_SEND(priv->dev, (row >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (row >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, row & 0xff);
+  SPI_SEND(priv->dev, MX35_PROGRAM_EXECUTE);
+  SPI_SEND(priv->dev, (row >> 16) & 0xff);
+  SPI_SEND(priv->dev, (row >> 8) & 0xff);
+  SPI_SEND(priv->dev, row & 0xff);
 
   /* Deselect the FLASH */
 
@@ -825,8 +826,8 @@ static int mx35_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 static inline void mx35_eccstatusread(struct mx35_dev_s *priv)
 {
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
-  (void)SPI_SEND(priv->dev, MX35_GET_FEATURE);
-  (void)SPI_SEND(priv->dev, MX35_STATUS);
+  SPI_SEND(priv->dev, MX35_GET_FEATURE);
+  SPI_SEND(priv->dev, MX35_STATUS);
   priv->eccstatus = SPI_SEND(priv->dev, MX35_DUMMY);
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), false);
 }
@@ -843,9 +844,9 @@ static inline void mx35_enableECC(struct mx35_dev_s *priv)
   mx35_writeenable(priv);
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
-  (void)SPI_SEND(priv->dev, MX35_SET_FEATURE);
-  (void)SPI_SEND(priv->dev, MX35_SECURE_OTP);
-  (void)SPI_SEND(priv->dev, secureOTP);
+  SPI_SEND(priv->dev, MX35_SET_FEATURE);
+  SPI_SEND(priv->dev, MX35_SECURE_OTP);
+  SPI_SEND(priv->dev, secureOTP);
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), false);
 
   mx35_writedisable(priv);
@@ -864,9 +865,9 @@ static inline void mx35_unlockblocks(struct mx35_dev_s *priv)
   mx35_writeenable(priv);
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
-  (void)SPI_SEND(priv->dev, MX35_SET_FEATURE);
-  (void)SPI_SEND(priv->dev, MX35_BLOCK_PROTECTION);
-  (void)SPI_SEND(priv->dev, blockprotection);
+  SPI_SEND(priv->dev, MX35_SET_FEATURE);
+  SPI_SEND(priv->dev, MX35_BLOCK_PROTECTION);
+  SPI_SEND(priv->dev, blockprotection);
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), false);
 
   mx35_writedisable(priv);
@@ -922,7 +923,7 @@ FAR struct mtd_dev_s *mx35_initialize(FAR struct spi_dev_s *dev)
       /* Reset the flash */
 
       SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
-      (void)SPI_SEND(priv->dev, MX35_RESET);
+      SPI_SEND(priv->dev, MX35_RESET);
       SPI_SELECT(priv->dev, SPIDEV_FLASH(0), false);
 
       /* Wait reset complete */

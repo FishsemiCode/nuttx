@@ -21,17 +21,17 @@ at the present, but here is the longer term roadmap:
   NxWidgets - NxWidgets is a higher level, C++, object-oriented library for object-
               oriented access to graphics "widgets."  NxWidgets is provided as a separate
               package.  NxWidgets is built on top of the core NuttX graphics subsystem,
-              but is not a part of the core graphics subystems.
+              but is not a part of the core graphics subsystems.
   NXTOOLKIT - A set of C graphics tools that provide higher-level window drawing
               operations.  The toolkit can be used for window-oriented graphics
               without NxWidgets and is built on top of NX.
   NXFONTS   - A set of C graphics tools for presenting (bitmap) font images.
   NX        - The tiny NuttX windowing system.  This includes the small-footprint
-              multi-user implentation (NXMU as described below).  NX can be used
+              multi-user implementation (NXMU as described below).  NX can be used
               without NxWidgets and without NXTOOLKIT for raw access to window memory.
   NXGLIB    - Low level graphics utilities and direct framebuffer rendering logic.
               NX is built on top of NXGLIB.
-  NxTerm - NxTerm is a write-only character device that is built on top of
+  NxTerm    - NxTerm is a write-only character device that is built on top of
               an NX window.  This character device can be used to provide stdout
               and stderr and, hence, can provide the output side of NuttX console.
 
@@ -71,13 +71,15 @@ graphics/nxbe
   This is the "back-end" of a tiny windowing system.  It contains most
   of the important window management logic:  clipping, window controls,
   window drawing, etc.  Currently, the NXserver is the only "front-end"
+  (Historically, there was a single user front-end, NXSU, but that front-
+  end no longer exists).
 
 graphics/nxmu
 libnx/nxmu
   This is the NX multi user "front end".  When combined with the generic
   "back-end" (nxbe), it implements a multi-threaded, multi-user windowing
   system.  The files in this directory present the window APIs described in
-  include/nuttx/nx/nx.h.  The multi-user front end includes the NX graphics
+  include/nuttx/nx/nx.h.  The multi-user front-end includes the NX graphics
   server that executes on its own thread;  multiple graphics clients then
   communicate with the server via a POSIX message queue to serialize window
   operations from many threads. The multi-user front-end is selected
@@ -136,7 +138,7 @@ CONFIG_NX_XYINPUT
 CONFIG_NX_KBD
   Build in support of keypad/keyboard input.
 CONFIG_NXTK_BORDERWIDTH
-  Specifies with with of the border (in pixels) used with framed windows.
+  Specifies the width of the border (in pixels) used with framed windows.
   The default is 4.
 CONFIG_NXTK_BORDERCOLOR1, CONFIG_NXTK_BORDERCOLOR2, CONFIG_NXTK_BORDERCOLOR3
   Specify the colors of the border used with framed windows.

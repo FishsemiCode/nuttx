@@ -62,7 +62,7 @@
 #include "usrsock/usrsock.h"
 
 /****************************************************************************
- * Definitions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 #ifndef CONFIG_NET_USRSOCKDEV_NPOLLWAITERS
@@ -93,10 +93,7 @@ struct usrsockdev_s
 
   FAR struct usrsock_conn_s *datain_conn; /* Connection instance to receive
                                            * data buffers. */
-
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *pollfds[CONFIG_NET_USRSOCKDEV_NPOLLWAITERS];
-#endif
 };
 
 /****************************************************************************
@@ -118,10 +115,8 @@ static int usrsockdev_open(FAR struct file *filep);
 
 static int usrsockdev_close(FAR struct file *filep);
 
-#ifndef CONFIG_DISABLE_POLL
 static int usrsockdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
                            bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -134,10 +129,8 @@ static const struct file_operations g_usrsockdevops =
   usrsockdev_read,    /* read */
   usrsockdev_write,   /* write */
   usrsockdev_seek,    /* seek */
-  NULL                /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , usrsockdev_poll   /* poll */
-#endif
+  NULL,               /* ioctl */
+  usrsockdev_poll     /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL              /* unlink */
 #endif
@@ -298,28 +291,14 @@ static uint8_t usrsockdev_get_xid(FAR struct usrsock_conn_s *conn)
  *
  ****************************************************************************/
 
-static void usrsockdev_semtake(FAR sem_t *sem)
+static int usrsockdev_semtake(FAR sem_t *sem)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(sem);
 }
 
 static void usrsockdev_semgive(FAR sem_t *sem)
 {
-  (void)nxsem_post(sem);
+  nxsem_post(sem);
 }
 
 /****************************************************************************
@@ -345,7 +324,6 @@ static bool usrsockdev_is_opened(FAR struct usrsockdev_s *dev)
 static void usrsockdev_pollnotify(FAR struct usrsockdev_s *dev,
                                   pollevent_t eventset)
 {
-#ifndef CONFIG_DISABLE_POLL
   int i;
   for (i = 0; i < ARRAY_SIZE(dev->pollfds); i++)
     {
@@ -360,7 +338,6 @@ static void usrsockdev_pollnotify(FAR struct usrsockdev_s *dev,
             }
         }
     }
-#endif
 }
 
 /****************************************************************************
@@ -372,6 +349,7 @@ static ssize_t usrsockdev_read(FAR struct file *filep, FAR char *buffer,
 {
   FAR struct inode        *inode = filep->f_inode;
   FAR struct usrsockdev_s *dev;
+  int                      ret;
 
   if (len == 0)
     {
@@ -389,7 +367,12 @@ static ssize_t usrsockdev_read(FAR struct file *filep, FAR char *buffer,
 
   DEBUGASSERT(dev);
 
-  usrsockdev_semtake(&dev->devsem);
+  ret = usrsockdev_semtake(&dev->devsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   net_lock();
 
   /* Is request available? */
@@ -429,11 +412,13 @@ static ssize_t usrsockdev_read(FAR struct file *filep, FAR char *buffer,
  * Name: usrsockdev_seek
  ****************************************************************************/
 
-static off_t usrsockdev_seek(FAR struct file *filep, off_t offset, int whence)
+static off_t usrsockdev_seek(FAR struct file *filep, off_t offset,
+                             int whence)
 {
   FAR struct inode        *inode = filep->f_inode;
   FAR struct usrsockdev_s *dev;
   off_t pos;
+  int ret;
 
   if (whence != SEEK_CUR && whence != SEEK_SET)
     {
@@ -446,7 +431,12 @@ static off_t usrsockdev_seek(FAR struct file *filep, off_t offset, int whence)
 
   DEBUGASSERT(dev);
 
-  usrsockdev_semtake(&dev->devsem);
+  ret = usrsockdev_semtake(&dev->devsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   net_lock();
 
   /* Is request available? */
@@ -532,7 +522,8 @@ static ssize_t usrsockdev_handle_event(FAR struct usrsockdev_s *dev,
 
         /* Handle event. */
 
-        ret = usrsock_event(conn, hdr->events & ~USRSOCK_EVENT_INTERNAL_MASK);
+        ret = usrsock_event(conn,
+                            hdr->events & ~USRSOCK_EVENT_INTERNAL_MASK);
         if (ret < 0)
           {
             return ret;
@@ -579,7 +570,7 @@ static ssize_t usrsockdev_handle_response(FAR struct usrsockdev_s *dev,
 
       /* Done with request/response. */
 
-      (void)usrsock_event(conn, USRSOCK_EVENT_REQ_COMPLETE);
+      usrsock_event(conn, USRSOCK_EVENT_REQ_COMPLETE);
     }
 
   return sizeof(*hdr);
@@ -649,7 +640,7 @@ usrsockdev_handle_datareq_response(FAR struct usrsockdev_s *dev,
 
       /* Done with request/response. */
 
-      (void)usrsock_event(conn, USRSOCK_EVENT_REQ_COMPLETE);
+      usrsock_event(conn, USRSOCK_EVENT_REQ_COMPLETE);
 
       ret = sizeof(*datahdr);
       goto unlock_out;
@@ -862,7 +853,11 @@ static ssize_t usrsockdev_write(FAR struct file *filep,
 
   DEBUGASSERT(dev);
 
-  usrsockdev_semtake(&dev->devsem);
+  ret = (ssize_t)usrsockdev_semtake(&dev->devsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   if (!dev->datain_conn)
     {
@@ -923,7 +918,7 @@ static ssize_t usrsockdev_write(FAR struct file *filep,
 
           /* Done with data response. */
 
-          (void)usrsock_event(conn, USRSOCK_EVENT_REQ_COMPLETE);
+          usrsock_event(conn, USRSOCK_EVENT_REQ_COMPLETE);
         }
     }
 
@@ -949,9 +944,13 @@ static int usrsockdev_open(FAR struct file *filep)
 
   DEBUGASSERT(dev);
 
-  usrsockdev_semtake(&dev->devsem);
+  ret = usrsockdev_semtake(&dev->devsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
-  ninfo("opening /usr/usrsock\n");
+  ninfo("opening /dev/usrsock\n");
 
   /* Increment the count of references to the device. */
 
@@ -984,7 +983,6 @@ static int usrsockdev_close(FAR struct file *filep)
   FAR struct inode *inode = filep->f_inode;
   FAR struct usrsockdev_s *dev;
   FAR struct usrsock_conn_s *conn;
-  struct timespec abstime;
   int ret;
 
   DEBUGASSERT(inode);
@@ -993,7 +991,11 @@ static int usrsockdev_close(FAR struct file *filep)
 
   DEBUGASSERT(dev);
 
-  usrsockdev_semtake(&dev->devsem);
+  ret = usrsockdev_semtake(&dev->devsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   ninfo("closing /dev/usrsock\n");
 
@@ -1027,17 +1029,7 @@ static int usrsockdev_close(FAR struct file *filep)
        * requests.
        */
 
-      DEBUGVERIFY(clock_gettime(CLOCK_REALTIME, &abstime));
-
-      abstime.tv_sec += 0;
-      abstime.tv_nsec += 10 * NSEC_PER_MSEC;
-      if (abstime.tv_nsec >= NSEC_PER_SEC)
-        {
-          abstime.tv_sec++;
-          abstime.tv_nsec -= NSEC_PER_SEC;
-        }
-
-      ret = net_timedwait(&dev->req.sem, &abstime);
+      ret = net_timedwait(&dev->req.sem, 10);
       if (ret < 0)
         {
           if (ret != -ETIMEDOUT && ret != -EINTR)
@@ -1081,14 +1073,13 @@ static int usrsockdev_close(FAR struct file *filep)
  * Name: usrsockdev_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int usrsockdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
                            bool setup)
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct usrsockdev_s *dev;
   pollevent_t eventset;
-  int ret = OK;
+  int ret;
   int i;
 
   DEBUGASSERT(inode);
@@ -1106,7 +1097,12 @@ static int usrsockdev_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
   /* Are we setting up the poll?  Or tearing it down? */
 
-  usrsockdev_semtake(&dev->devsem);
+  ret = usrsockdev_semtake(&dev->devsem);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   net_lock();
   if (setup)
     {
@@ -1176,7 +1172,6 @@ errout:
   usrsockdev_semgive(&dev->devsem);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -1191,20 +1186,18 @@ int usrsockdev_do_request(FAR struct usrsock_conn_s *conn,
 {
   FAR struct usrsockdev_s *dev = conn->dev;
   FAR struct usrsock_request_common_s *req_head = iov[0].iov_base;
-  int ret;
 
   if (!dev)
     {
       /* Setup conn for new usrsock device. */
 
-      DEBUGASSERT(req_head->reqid == USRSOCK_REQUEST_SOCKET);
       dev = &g_usrsockdev;
       conn->dev = dev;
     }
 
   if (!usrsockdev_is_opened(dev))
     {
-      ninfo("usockid=%d; daemon has closed /usr/usrsock.\n", conn->usockid);
+      ninfo("usockid=%d; daemon has closed /dev/usrsock.\n", conn->usockid);
 
       return -ENETDOWN;
     }
@@ -1222,10 +1215,7 @@ int usrsockdev_do_request(FAR struct usrsock_conn_s *conn,
 
   /* Set outstanding request for daemon to handle. */
 
-  while ((ret = net_lockedwait(&dev->req.sem)) < 0)
-    {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-    }
+  net_lockedwait_uninterruptible(&dev->req.sem);
 
   if (usrsockdev_is_opened(dev))
     {
@@ -1241,16 +1231,12 @@ int usrsockdev_do_request(FAR struct usrsock_conn_s *conn,
 
       /* Wait ack for request. */
 
-      while ((ret = net_lockedwait(&dev->req.acksem)) < 0)
-        {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
+      net_lockedwait_uninterruptible(&dev->req.acksem);
     }
   else
     {
-      ninfo("usockid=%d; daemon abruptly closed /usr/usrsock.\n",
+      ninfo("usockid=%d; daemon abruptly closed /dev/usrsock.\n",
             conn->usockid);
-      ret = -ESHUTDOWN;
     }
 
   /* Free request line for next command. */
@@ -1259,7 +1245,7 @@ int usrsockdev_do_request(FAR struct usrsock_conn_s *conn,
 
   --dev->req.nbusy; /* net_lock held. */
 
-  return ret;
+  return OK;
 }
 
 /****************************************************************************
@@ -1281,8 +1267,8 @@ void usrsockdev_register(void)
   nxsem_init(&g_usrsockdev.req.acksem, 0, 0);
   nxsem_setprotocol(&g_usrsockdev.req.acksem, SEM_PRIO_NONE);
 
-  (void)register_driver("/dev/usrsock", &g_usrsockdevops, 0666,
-                        &g_usrsockdev);
+  register_driver("/dev/usrsock", &g_usrsockdevops, 0666,
+                  &g_usrsockdev);
 }
 
 #endif /* CONFIG_NET && CONFIG_NET_USRSOCK */

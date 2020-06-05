@@ -46,7 +46,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -1176,7 +1175,7 @@ static int stm32can_remoterequest(FAR struct can_dev_s *dev, uint16_t id)
  *
  *    Byte 0:      Bits 0-7: Bits 3-10 of the 11-bit CAN identifier
  *    Byte 1:      Bits 5-7: Bits 0-2 of the 11-bit CAN identifier
- *                 Bit 4:    Remote Tranmission Request (RTR)
+ *                 Bit 4:    Remote Transmission Request (RTR)
  *                 Bits 0-3: Data Length Code (DLC)
  *    Bytes 2-10: CAN data
  *
@@ -1593,7 +1592,7 @@ static int stm32can_txinterrupt(int irq, FAR void *context, FAR void *arg)
 
       /* Tell the upper half that the transfer is finished. */
 
-      (void)can_txdone(dev);
+      can_txdone(dev);
     }
 
   /* Check for RQCP1: Request completed mailbox 1 */
@@ -1608,7 +1607,7 @@ static int stm32can_txinterrupt(int irq, FAR void *context, FAR void *arg)
 
       /* Tell the upper half that the transfer is finished. */
 
-      (void)can_txdone(dev);
+      can_txdone(dev);
     }
 
   /* Check for RQCP2: Request completed mailbox 2 */
@@ -1623,7 +1622,7 @@ static int stm32can_txinterrupt(int irq, FAR void *context, FAR void *arg)
 
       /* Tell the upper half that the transfer is finished. */
 
-      (void)can_txdone(dev);
+      can_txdone(dev);
     }
 
   return OK;
@@ -1957,7 +1956,7 @@ static int stm32can_cellinit(FAR struct stm32_can_s *priv)
  *   (but reserves CAN_NFILTERS/2 through CAN_NFILTERS-1).
  *
  *   32-bit IdMask mode is configured.  However, both the ID and the MASK
- *   are set to zero thus supressing all filtering because anything masked
+ *   are set to zero thus suppressing all filtering because anything masked
  *   with zero matches zero.
  *
  * Input Parameters:
@@ -1987,14 +1986,10 @@ static int stm32can_filterinit(FAR struct stm32_can_s *priv)
 
   /* Assign half the filters to CAN1, half to CAN2 */
 
-#if defined(CONFIG_STM32_CONNECTIVITYLINE) || \
-    defined(CONFIG_STM32_STM32F20XX) || \
-    defined(CONFIG_STM32_STM32F4XXX)
   regval  = stm32can_getfreg(priv, STM32_CAN_FMR_OFFSET);
   regval &= CAN_FMR_CAN2SB_MASK;
   regval |= (CAN_NFILTERS / 2) << CAN_FMR_CAN2SB_SHIFT;
   stm32can_putfreg(priv, STM32_CAN_FMR_OFFSET, regval);
-#endif
 
   /* Disable the filter */
 
@@ -2199,10 +2194,10 @@ static bool stm32can_txmb2empty(uint32_t tsr_regval)
  *   Initialize the selected CAN port
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple CAN interfaces)
+ *   Port number (for hardware that has multiple CAN interfaces)
  *
  * Returned Value:
- *   Valid CAN device structure reference on succcess; a NULL on failure
+ *   Valid CAN device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

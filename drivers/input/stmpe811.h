@@ -46,8 +46,7 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
-
+#include <nuttx/semaphore.h>
 #include <nuttx/wdog.h>
 #include <nuttx/clock.h>
 #include <nuttx/wqueue.h>
@@ -169,9 +168,7 @@ struct stmpe811_dev_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_STMPE811_NPOLLWAITERS];
-#endif
 #endif
 
   /* Fields that may be disabled to save size of GPIO support is not used */

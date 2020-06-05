@@ -133,10 +133,8 @@ static const struct file_operations nunchuck_fops =
   nunchuck_read,  /* read */
   NULL,           /* write */
   NULL,           /* seek */
-  nunchuck_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL          /* poll */
-#endif
+  nunchuck_ioctl, /* ioctl */
+  NULL            /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL          /* unlink */
 #endif
@@ -291,18 +289,7 @@ static int nunchuck_sample(FAR struct nunchuck_dev_s *priv,
 
 static inline int nunchuck_takesem(sem_t *sem)
 {
-  int ret;
-
-  /* Take a count from the semaphore, possibly waiting */
-
-  ret = nxsem_wait(sem);
-
-  /* The only case that an error should occur here is if the wait
-   * was awakened by a signal
-   */
-
-  DEBUGASSERT(ret == OK || ret == -EINTR);
-  return ret;
+  return nxsem_wait(sem);
 }
 
 /****************************************************************************
@@ -335,7 +322,7 @@ static int nunchuck_open(FAR struct file *filep)
   opriv = (FAR struct nunchuck_open_s *)kmm_zalloc(sizeof(struct nunchuck_open_s));
   if (!opriv)
     {
-      ierr("ERROR: Failled to allocate open structure\n");
+      ierr("ERROR: Failed to allocate open structure\n");
       ret = -ENOMEM;
       goto errout_with_sem;
     }

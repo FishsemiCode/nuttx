@@ -343,7 +343,7 @@
      *   usartdiv32 = 32 * usartdiv = fCK / (baud/2)
      *
      * (NOTE: all standard baud values are even so dividing by two does not
-     * lose precision).  Eg. (same fCK and buad), usartdiv32 = 1250
+     * lose precision).  Eg. (same fCK and baud), usartdiv32 = 1250
      */
 
 #    define STM32_USARTDIV32 (STM32_APBCLOCK / (STM32_CONSOLE_BAUD >> 1))
@@ -435,7 +435,7 @@ void up_lowputc(char ch)
  *
  * Description:
  *   This performs basic initialization of the USART used for the serial
- *   console.  Its purpose is to get the console output availabe as soon
+ *   console.  Its purpose is to get the console output available as soon
  *   as possible.
  *
  ****************************************************************************/

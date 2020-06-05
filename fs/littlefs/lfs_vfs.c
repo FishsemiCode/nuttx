@@ -69,9 +69,9 @@
  * Private Types
  ****************************************************************************/
 
-/* This structure represents the overall mountpoint state. An instance of this
- * structure is retained as inode private data on each mountpoint that is
- * mounted with a littlefs filesystem.
+/* This structure represents the overall mountpoint state. An instance of
+ * this structure is retained as inode private data on each mountpoint that
+ * is mounted with a littlefs filesystem.
  */
 
 struct littlefs_mountpt_s
@@ -88,7 +88,7 @@ struct littlefs_mountpt_s
  ****************************************************************************/
 
 static void    littlefs_semgive(FAR struct littlefs_mountpt_s *fs);
-static void    littlefs_semtake(FAR struct littlefs_mountpt_s *fs);
+static int     littlefs_semtake(FAR struct littlefs_mountpt_s *fs);
 
 static int     littlefs_open(FAR struct file *filep, FAR const char *relpath,
                              int oflags, mode_t mode);
@@ -186,23 +186,9 @@ const struct mountpt_operations littlefs_operations =
  * Name: littlefs_semtake
  ****************************************************************************/
 
-static void littlefs_semtake(FAR struct littlefs_mountpt_s *fs)
+static int littlefs_semtake(FAR struct littlefs_mountpt_s *fs)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&fs->sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&fs->sem);
 }
 
 /****************************************************************************
@@ -284,7 +270,11 @@ static int littlefs_open(FAR struct file *filep, FAR const char *relpath,
 
   /* Take the semaphore */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      goto errsem;
+    }
 
   /* Try to open the file */
 
@@ -325,6 +315,7 @@ errout_with_file:
   lfs_file_close(&fs->lfs, priv);
 errout:
   littlefs_semgive(fs);
+errsem:
   kmm_free(priv);
   return ret;
 }
@@ -338,6 +329,7 @@ static int littlefs_close(FAR struct file *filep)
   FAR struct littlefs_mountpt_s *fs;
   FAR struct lfs_file_s *priv;
   FAR struct inode *inode;
+  int ret;
 
   /* Recover our private data from the struct file instance */
 
@@ -347,12 +339,18 @@ static int littlefs_close(FAR struct file *filep)
 
   /* Close the file */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      goto errsem;
+    }
+
   lfs_file_close(&fs->lfs, priv);
   littlefs_semgive(fs);
 
   /* Now free the pointer */
 
+errsem:
   kmm_free(priv);
   return OK;
 }
@@ -368,6 +366,7 @@ static ssize_t littlefs_read(FAR struct file *filep, FAR char *buffer,
   FAR struct lfs_file_s *priv;
   FAR struct inode *inode;
   ssize_t ret;
+  int semret;
 
   /* Recover our private data from the struct file instance */
 
@@ -377,12 +376,18 @@ static ssize_t littlefs_read(FAR struct file *filep, FAR char *buffer,
 
   /* Call LFS to perform the read */
 
-  littlefs_semtake(fs);
+  semret = littlefs_semtake(fs);
+  if (semret < 0)
+    {
+      return (ssize_t)semret;
+    }
+
   ret = lfs_file_read(&fs->lfs, priv, buffer, buflen);
   if (ret > 0)
     {
       filep->f_pos += ret;
     }
+
   littlefs_semgive(fs);
 
   return ret;
@@ -399,6 +404,7 @@ static ssize_t littlefs_write(FAR struct file *filep, const char *buffer,
   FAR struct lfs_file_s *priv;
   FAR struct inode *inode;
   ssize_t ret;
+  int semret;
 
   /* Recover our private data from the struct file instance */
 
@@ -408,12 +414,18 @@ static ssize_t littlefs_write(FAR struct file *filep, const char *buffer,
 
   /* Call LFS to perform the write */
 
-  littlefs_semtake(fs);
+  semret = littlefs_semtake(fs);
+  if (semret < 0)
+    {
+      return semret;
+    }
+
   ret = lfs_file_write(&fs->lfs, priv, buffer, buflen);
   if (ret > 0)
     {
       filep->f_pos += ret;
     }
+
   littlefs_semgive(fs);
 
   return ret;
@@ -429,6 +441,7 @@ static off_t littlefs_seek(FAR struct file *filep, off_t offset, int whence)
   FAR struct lfs_file_s *priv;
   FAR struct inode *inode;
   off_t ret;
+  int semret;
 
   /* Recover our private data from the struct file instance */
 
@@ -438,12 +451,18 @@ static off_t littlefs_seek(FAR struct file *filep, off_t offset, int whence)
 
   /* Call LFS to perform the seek */
 
-  littlefs_semtake(fs);
+  semret = littlefs_semtake(fs);
+  if (semret < 0)
+    {
+      return (off_t)semret;
+    }
+
   ret = lfs_file_seek(&fs->lfs, priv, offset, whence);
   if (ret >= 0)
     {
       filep->f_pos = ret;
     }
+
   littlefs_semgive(fs);
 
   return ret;
@@ -496,7 +515,12 @@ static int littlefs_sync(FAR struct file *filep)
   inode = filep->f_inode;
   fs    = inode->i_private;
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_file_sync(&fs->lfs, priv);
   littlefs_semgive(fs);
 
@@ -529,6 +553,7 @@ static int littlefs_fstat(FAR const struct file *filep, FAR struct stat *buf)
   FAR struct littlefs_mountpt_s *fs;
   FAR struct lfs_file_s *priv;
   FAR struct inode *inode;
+  int ret;
 
   memset(buf, 0, sizeof(*buf));
 
@@ -540,7 +565,12 @@ static int littlefs_fstat(FAR const struct file *filep, FAR struct stat *buf)
 
   /* Call LFS to get file size */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   buf->st_size = lfs_file_size(&fs->lfs, priv);
   littlefs_semgive(fs);
 
@@ -580,7 +610,12 @@ static int littlefs_truncate(FAR struct file *filep, off_t length)
 
   /* Call LFS to perform the truncate */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_file_truncate(&fs->lfs, priv, length);
   littlefs_semgive(fs);
 
@@ -616,7 +651,11 @@ static int littlefs_opendir(FAR struct inode *mountpt,
 
   /* Take the semaphore */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      goto errsem;
+    }
 
   /* Call the LFS's opendir function */
 
@@ -634,6 +673,7 @@ static int littlefs_opendir(FAR struct inode *mountpt,
 
 errout:
   littlefs_semgive(fs);
+errsem:
   kmm_free(priv);
   return ret;
 }
@@ -650,6 +690,7 @@ static int littlefs_closedir(FAR struct inode *mountpt,
 {
   struct littlefs_mountpt_s *fs;
   FAR struct lfs_dir_s *priv;
+  int ret;
 
   /* Recover our private data from the inode instance */
 
@@ -658,10 +699,16 @@ static int littlefs_closedir(FAR struct inode *mountpt,
 
   /* Call the LFS's closedir function */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      goto errsem;
+    }
+
   lfs_dir_close(&fs->lfs, priv);
   littlefs_semgive(fs);
 
+errsem:
   kmm_free(priv);
   return OK;
 }
@@ -688,7 +735,12 @@ static int littlefs_readdir(FAR struct inode *mountpt,
 
   /* Call the LFS's readdir function */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_dir_read(&fs->lfs, priv, &info);
   if (ret > 0)
     {
@@ -735,7 +787,12 @@ static int littlefs_rewinddir(FAR struct inode *mountpt,
 
   /* Call the LFS's rewinddir function */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_dir_rewind(&fs->lfs, priv);
   if (ret >= 0)
     {
@@ -890,7 +947,7 @@ static int littlefs_bind(FAR struct inode *driver, FAR const void *data,
    * have to addref() here (but does have to release in unbind().
    */
 
-  fs->drv = driver; /* Save the driver reference */
+  fs->drv = driver;           /* Save the driver reference */
   nxsem_init(&fs->sem, 0, 0); /* Initialize the access control semaphore */
 
   if (INODE_IS_MTD(driver))
@@ -1021,7 +1078,12 @@ static int littlefs_unbind(FAR void *handle, FAR struct inode **driver,
 
   /* Unmount */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_unmount(&fs->lfs);
   littlefs_semgive(fs);
 
@@ -1060,12 +1122,12 @@ static int littlefs_unbind(FAR void *handle, FAR struct inode **driver,
 
 static int littlefs_used_block(void *arg, lfs_block_t block)
 {
-   FAR struct statfs *buf = arg;
+  FAR struct statfs *buf = arg;
 
-   buf->f_bfree--;
-   buf->f_bavail--;
+  buf->f_bfree--;
+  buf->f_bavail--;
 
-   return 0;
+  return 0;
 }
 
 /****************************************************************************
@@ -1094,7 +1156,12 @@ static int littlefs_statfs(FAR struct inode *mountpt, FAR struct statfs *buf)
   buf->f_bfree   = fs->cfg.block_count;
   buf->f_bavail  = fs->cfg.block_count;
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_traverse(&fs->lfs, littlefs_used_block, buf);
   littlefs_semgive(fs);
 
@@ -1120,7 +1187,12 @@ static int littlefs_unlink(FAR struct inode *mountpt,
 
   /* Call the LFS to perform the unlink */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_remove(&fs->lfs, relpath);
   littlefs_semgive(fs);
 
@@ -1146,7 +1218,12 @@ static int littlefs_mkdir(FAR struct inode *mountpt, FAR const char *relpath,
 
   /* Call LFS to do the mkdir */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_mkdir(&fs->lfs, relpath);
   littlefs_semgive(fs);
 
@@ -1185,7 +1262,12 @@ static int littlefs_rename(FAR struct inode *mountpt,
 
   /* Call LFS to do the rename */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_rename(&fs->lfs, oldrelpath, newrelpath);
   littlefs_semgive(fs);
 
@@ -1214,7 +1296,12 @@ static int littlefs_stat(FAR struct inode *mountpt, FAR const char *relpath,
 
   /* Call the LFS to do the stat operation */
 
-  littlefs_semtake(fs);
+  ret = littlefs_semtake(fs);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = lfs_stat(&fs->lfs, relpath, &info);
   littlefs_semgive(fs);
 

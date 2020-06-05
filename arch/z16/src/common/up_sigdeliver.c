@@ -52,8 +52,6 @@
 #include "sched/sched.h"
 #include "up_internal.h"
 
-#ifndef CONFIG_DISABLE_SIGNALS
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -70,7 +68,6 @@
 
 void up_sigdeliver(void)
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   FAR struct tcb_s *rtcb = this_task();
   chipreg_t regs[XCPTCONTEXT_REGS];
   FAR uint32_t *regs32 = (FAR uint32_t*)regs;
@@ -110,7 +107,7 @@ void up_sigdeliver(void)
    */
 
   sinfo("Resuming\n");
-  (void)up_irq_save();
+  up_irq_save();
   rtcb->pterrno        = saved_errno;
 
   /* Modify the saved return state with the actual saved values in the
@@ -131,7 +128,4 @@ void up_sigdeliver(void)
 
   board_autoled_off(LED_SIGNAL);
   SIGNAL_RETURN(regs);
-#endif
 }
-
-#endif /* CONFIG_DISABLE_SIGNALS */

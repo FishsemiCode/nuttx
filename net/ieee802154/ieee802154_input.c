@@ -154,8 +154,8 @@ static int ieee802154_queue_frame(FAR struct ieee802154_conn_s *conn,
    * delete the oldest frame from the head of the RX queue.
    */
 
-   if (conn->backlog >= CONFIG_NET_IEEE802154_BACKLOG)
-     {
+  if (conn->backlog >= CONFIG_NET_IEEE802154_BACKLOG)
+    {
       DEBUGASSERT(conn->backlog == CONFIG_NET_IEEE802154_BACKLOG);
 
       /* Remove the container from the tail RX input queue. */
@@ -176,17 +176,17 @@ static int ieee802154_queue_frame(FAR struct ieee802154_conn_s *conn,
 
       /* Free both the IOB and the container */
 
-      iob_free(container->ic_iob);
+      iob_free(container->ic_iob, IOBUSER_NET_SOCK_IEEE802154);
       ieee802154_container_free(container);
-     }
-   else
-     {
-       /* Increment the count of frames in the queue. */
+    }
+  else
+    {
+      /* Increment the count of frames in the queue. */
 
-       conn->backlog++;
-     }
+      conn->backlog++;
+    }
 
-   DEBUGASSERT((int)conn->backlog == ieee802154_count_frames(conn));
+  DEBUGASSERT((int)conn->backlog == ieee802154_count_frames(conn));
 #endif
 
   return OK;
@@ -277,7 +277,7 @@ int ieee802154_input(FAR struct radio_driver_s *radio,
           if (ret < 0)
             {
               nerr("ERROR: Failed to queue frame: %d\n", ret);
-              iob_free(frame);
+              iob_free(frame, IOBUSER_NET_SOCK_IEEE802154);
             }
         }
 
@@ -289,7 +289,7 @@ int ieee802154_input(FAR struct radio_driver_s *radio,
        * was not consumed.
        */
 
-      (void)ieee802154_callback(radio, conn, IEEE802154_NEWDATA);
+      ieee802154_callback(radio, conn, IEEE802154_NEWDATA);
     }
   else
     {

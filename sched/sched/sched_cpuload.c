@@ -52,6 +52,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Are we using the system timer, or an external clock?  Get the rate
  * of the sampling in ticks per second for the selected timer.
  */
@@ -66,7 +67,7 @@
 #endif
 
 /* When g_cpuload_total exceeds the following time constant, the load and
- * the counds will be scaled back by two.  In the CONFIG_SMP, g_cpuload_total
+ * the counts will be scaled back by two.  In the CONFIG_SMP, g_cpuload_total
  * will be incremented multiple times per tick.
  */
 
@@ -228,7 +229,8 @@ void weak_function nxsched_process_cpuload(void)
  *   Return load measurement data for the select PID.
  *
  * Input Parameters:
- *   pid - The task ID of the thread of interest.  pid == 0 is the IDLE thread.
+ *   pid - The task ID of the thread of interest.  pid == 0 is the IDLE
+ *         thread.
  *   cpuload - The location to return the CPU load
  *
  * Returned Value:

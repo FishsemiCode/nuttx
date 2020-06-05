@@ -136,7 +136,7 @@ static inline void rcc_resetbkp(void)
         * backup data registers and backup SRAM).
         */
 
-      (void)stm32l4_pwr_enablebkp(true);
+      stm32l4_pwr_enablebkp(true);
 
       /* We might be changing RTCSEL - to ensure such changes work, we must
        * reset the backup domain (having backed up the RTC_MAGIC token)
@@ -157,7 +157,7 @@ static inline void rcc_resetbkp(void)
            putreg32(bkregs[i], STM32L4_RTC_BKR(i));
          }
 
-       (void)stm32l4_pwr_enablebkp(false);
+       stm32l4_pwr_enablebkp(false);
     }
 }
 #else
@@ -229,7 +229,7 @@ void stm32l4_clockconfig(void)
  *
  *   This functional performs a subset of the operations performed by
  *   stm32l4_clockconfig():  It does not reset any devices, and it does not reset the
- *   currenlty enabled peripheral clocks.
+ *   currently enabled peripheral clocks.
  *
  *   If CONFIG_ARCH_BOARD_STM32L4_CUSTOM_CLOCKCONFIG is defined, then clocking will
  *   be enabled by an externally provided, board-specific function called
@@ -261,4 +261,3 @@ void stm32l4_clockenable(void)
 #endif
 }
 #endif
-

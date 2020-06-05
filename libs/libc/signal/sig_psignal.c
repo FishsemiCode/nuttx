@@ -73,18 +73,31 @@
 
 void psignal(int signum, FAR const char *message)
 {
+#if CONFIG_NFILE_STREAMS > 0
   /* For now, just a brainless write to stderr (fd == 2).  C buffered I/O is
    * used!
    */
 
   if (message != NULL)
     {
-      (void)fprintf(stderr, "%s: %s\n", message, strsignal(signum));
+      fprintf(stderr, "%s: %s\n", message, strsignal(signum));
     }
   else
     {
-      (void)fprintf(stderr, "%s\n", strsignal(signum));
+      fprintf(stderr, "%s\n", strsignal(signum));
     }
+#else
+  /* No stderr!  Write to whatever alternative console is available */
+
+  if (message != NULL)
+    {
+      printf("%s: %s\n", message, strsignal(signum));
+    }
+  else
+    {
+      printf("%s\n", strsignal(signum));
+    }
+#endif
 }
 
 /****************************************************************************

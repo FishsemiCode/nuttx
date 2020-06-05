@@ -46,7 +46,7 @@
 #include "mpu.h"
 #include "barriers.h"
 
-#include "chip/sam_memorymap.h"
+#include "hardware/sam_memorymap.h"
 
 #include "sam_mpuinit.h"
 
@@ -148,4 +148,3 @@ void sam_mpu_uheap(uintptr_t start, size_t size)
 #endif
 
 #endif /* CONFIG_ARM_MPU */
-

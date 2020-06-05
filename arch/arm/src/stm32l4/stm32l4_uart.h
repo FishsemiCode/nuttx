@@ -47,7 +47,7 @@
 
 #if defined(CONFIG_STM32L4_STM32L4X3) || defined(CONFIG_STM32L4_STM32L4X5) || \
     defined(CONFIG_STM32L4_STM32L4X6) || defined(CONFIG_STM32L4_STM32L4XR)
-#  include "chip/stm32l4_uart.h"
+#  include "hardware/stm32l4_uart.h"
 #else
 #  error "Unsupported STM32L4 chip"
 #endif
@@ -187,11 +187,11 @@
 
 /* Is DMA available on any (enabled) USART? */
 
-#undef SERIAL_HAVE_DMA
+#undef SERIAL_HAVE_RXDMA
 #if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART2_RXDMA) || \
     defined(CONFIG_USART3_RXDMA) || defined(CONFIG_UART4_RXDMA)  || \
     defined(CONFIG_UART5_RXDMA)
-#  define SERIAL_HAVE_DMA 1
+#  define SERIAL_HAVE_RXDMA 1
 #endif
 
 /* Is DMA used on the console UART? */
@@ -274,7 +274,7 @@ extern "C"
  *
  ************************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 void stm32l4_serial_dma_poll(void);
 #endif
 
@@ -285,4 +285,3 @@ void stm32l4_serial_dma_poll(void);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_STC_STM32L4_STM32L4_UART_H */
-

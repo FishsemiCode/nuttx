@@ -68,7 +68,7 @@
 #define DELAY_US_NYBBLE0    20
 #define DELAY_US_NYBBLE1    10
 #define DELAY_US_WRITE      40
-#define DELAY_US_HOMECLEAR  1500
+#define DELAY_US_HOMECLEAR  2000
 
 /* HD44780 commands */
 
@@ -88,12 +88,13 @@
 
 struct pcf8574_lcd_dev_s
 {
-  FAR struct i2c_master_s *i2c; /* I2C interface */
+  FAR struct i2c_master_s *i2c;              /* I2C interface */
   struct pcf8574_lcd_backpack_config_s cfg;  /* gpio configuration */
-  uint8_t bl_bit;               /* current backlight bit */
-  uint8_t refs;                 /* Number of references */
-  uint8_t unlinked;             /* We are unlinked, so teardown on last close */
-  sem_t sem_excl;               /* mutex */
+  uint8_t bl_bit;                            /* current backlight bit */
+  uint8_t refs;                              /* Number of references */
+  uint8_t unlinked;                          /* We are unlinked, so teardown
+                                              * on last close */
+  sem_t sem_excl;                            /* mutex */
 };
 
 struct lcd_instream_s
@@ -119,10 +120,8 @@ static off_t pcf8574_lcd_seek(FAR struct file *filep, off_t offset,
                               int whence);
 static int pcf8574_lcd_ioctl(FAR struct file *filep, int cmd,
                              unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int pcf8574lcd_poll(FAR struct file *filep, FAR struct pollfd *fds,
                            bool setup);
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
 static int pcf8574_lcd_unlink(FAR struct inode *inode);
 #endif
@@ -139,9 +138,7 @@ static const struct file_operations g_pcf8574_lcd_fops =
   pcf8574_lcd_write,            /* write */
   pcf8574_lcd_seek,             /* seek */
   pcf8574_lcd_ioctl,            /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
   pcf8574lcd_poll,              /* poll */
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   pcf8574_lcd_unlink            /* unlink */
 #endif
@@ -260,7 +257,7 @@ static inline uint8_t rc2addr(FAR struct pcf8574_lcd_dev_s *priv,
     }
   else
     {
-      /* 4 line displays are intersting; third line really is a continuation
+      /* 4 line displays are interesting; third line really is a continuation
        * of first line, and fourth line is a continuation of second.
        */
 
@@ -284,8 +281,8 @@ static inline void addr2rc(FAR struct pcf8574_lcd_dev_s *priv, uint8_t addr,
 
   if (*col >= priv->cfg.cols)
     {
-      /* 4 line displays have third and fourth lines really as continuation of
-       * first and second.
+      /* 4 line displays have third and fourth lines really as continuation
+       * of the first and second.
        */
 
       *row += 2;
@@ -558,10 +555,10 @@ static void lcd_init(FAR struct pcf8574_lcd_dev_s *priv)
 
   /* Perform the init sequence.  This sequence of commands is constructed so
    * that it will get the device into nybble mode irrespective of what state
-   * the device is currently in (could be 8 bit, 4 bit nyb 0, 4 bit nyb 1). By
-   * sending the 'set 8-bit mode' three times, we will definitely end up in 8
-   * bit mode, and then we can reliably transition to 4 bit mode for the
-   * remainder of operations.
+   * the device is currently in (could be 8 bit, 4 bit nyb 0, 4 bit nyb 1).
+   * By sending the 'set 8-bit mode' three times, we will definitely end up
+   * in 8 bit mode, and then we can reliably transition to 4 bit mode for
+   * the remainder of operations.
    */
 
   /* Send Command 0x30, set 8-bit mode, and wait > 4.1 ms */
@@ -579,8 +576,8 @@ static void lcd_init(FAR struct pcf8574_lcd_dev_s *priv)
   latch_nybble(priv, 0x30 >> 4, false);
   nxsig_usleep(200);
 
-  /* now Function set: Set interface to be 4 bits long (only 1 cycle write for
-   * the first time).
+  /* now Function set: Set interface to be 4 bits long (only 1 cycle write
+   * for the first time).
    */
 
   latch_nybble(priv, 0x20 >> 4, false);
@@ -607,23 +604,23 @@ static void lcd_init(FAR struct pcf8574_lcd_dev_s *priv)
 
   /* Display On, Cursor Off */
 
-  lcd_putcmd(priv, 0x0C);
+  lcd_putcmd(priv, 0x0c);
 }
 
 /****************************************************************************
  * Name: lcd_create_char
  *
  * Description:
- *  This creates a custom character pattern.  There can be 8 5x8 patterns.
- *  The bitmap proceeds top to bottom, msb-lsb, and is right justified (i.e.
- *  only bits 4-0 are used).  By convention, you are meant to always leave the
- *  last line (byte) zero so that the cursor can use this line, but this is
- *  not strictly required.
+ *   This creates a custom character pattern.  There can be 8 5x8 patterns.
+ *   The bitmap proceeds top to bottom, msb-lsb, and is right justified (i.e.
+ *   only bits 4-0 are used).  By convention, you are meant to always leave
+ *   the last line (byte) zero so that the cursor can use this line, but this
+ *   is not strictly required.
  *
  * Input Parameters:
- *  priv - device instance
- *  idxchar - which character is being imaged; 0 - 7
- *  chardata - the character image bitmap; must be 8 bytes always
+ *   priv     - device instance
+ *   idxchar  - which character is being imaged; 0 - 7
+ *   chardata - the character image bitmap; must be 8 bytes always
  *
  ****************************************************************************/
 
@@ -633,7 +630,7 @@ static void lcd_create_char(FAR struct pcf8574_lcd_dev_s *priv,
   int nidx;
   uint8_t addr;
 
-  (void)lcd_read_busy_addr(priv, &addr);
+  lcd_read_busy_addr(priv, &addr);
   lcd_putcmd(priv, CMD_SET_CGADDR | (idxchar << 3));    /* set CGRAM address */
 
   for (nidx = 0; nidx < 8; ++nidx)
@@ -684,7 +681,7 @@ static void lcd_get_curpos(FAR struct pcf8574_lcd_dev_s *priv,
 {
   uint8_t addr;
 
-  (void)lcd_read_busy_addr(priv, &addr);
+  lcd_read_busy_addr(priv, &addr);
   addr2rc(priv, addr, row, col);
 }
 
@@ -1024,8 +1021,8 @@ static int lcd_getstream(FAR struct lib_instream_s *instream)
  ****************************************************************************/
 
 static void lcd_fpos_to_curpos(FAR struct pcf8574_lcd_dev_s *priv,
-                               off_t fpos, FAR uint8_t *row, FAR uint8_t *col,
-                               FAR bool *onlf)
+                               off_t fpos, FAR uint8_t *row,
+                               FAR uint8_t *col, FAR bool *onlf)
 {
   int virtcols;
 
@@ -1127,6 +1124,7 @@ static int pcf8574_lcd_close(FAR struct file *filep)
         {
           /* We have no real teardown at present */
         }
+
       ret = OK;
     }
 
@@ -1160,7 +1158,7 @@ static ssize_t pcf8574_lcd_read(FAR struct file *filep, FAR char *buffer,
 
   /* Get current cursor position so we can restore it */
 
-  (void)lcd_read_busy_addr(priv, &addr);
+  lcd_read_busy_addr(priv, &addr);
 
   /* Convert file position to row/col address and position DDADDR there */
 
@@ -1358,8 +1356,8 @@ static ssize_t pcf8574_lcd_write(FAR struct file *filep,
         {
           lcd_codec_action(priv, (enum slcdcode_e)ch, count);
 
-          /* we can't know what happened, so it's easier just to re-inquire as
-           * to where we are.
+          /* we can't know what happened, so it's easier just to re-inquire
+           * as to where we are.
            */
 
           lcd_get_curpos(priv, &row, &col);
@@ -1445,6 +1443,7 @@ static off_t pcf8574_lcd_seek(FAR struct file *filep, off_t offset,
       break;
 
     default:
+
       /* Return EINVAL if the whence argument is invalid */
 
       pos = (off_t) - EINVAL;
@@ -1567,7 +1566,6 @@ static int pcf8574_lcd_ioctl(FAR struct file *filep, int cmd,
  * Name: pcf8574lcd_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int pcf8574lcd_poll(FAR struct file *filep, FAR struct pollfd *fds,
                            bool setup)
 {
@@ -1584,7 +1582,6 @@ static int pcf8574lcd_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
   return OK;
 }
-#endif
 
 /****************************************************************************
  * Name: pcf8574_lcd_unlink
@@ -1630,7 +1627,8 @@ static int pcf8574_lcd_unlink(FAR struct inode *inode)
 
 int pcf8574_lcd_backpack_register(FAR const char *devpath,
                                   FAR struct i2c_master_s *i2c,
-                                  FAR struct pcf8574_lcd_backpack_config_s *cfg)
+                                  FAR struct pcf8574_lcd_backpack_config_s
+                                  *cfg)
 {
   FAR struct pcf8574_lcd_dev_s *priv;
   int ret;
@@ -1643,7 +1641,8 @@ int pcf8574_lcd_backpack_register(FAR const char *devpath,
       return -EINVAL;
     }
 
-  if ((cfg->cols < 1 || cfg->cols > 64) || (cfg->rows == 4 && cfg->cols > 32))
+  if ((cfg->cols < 1 || cfg->cols > 64) ||
+      (cfg->rows == 4 && cfg->cols > 32))
     {
       lcdinfo("Display cols must be 1-64, and may not be part of a 4x40 "
               "configuration\n");

@@ -45,13 +45,12 @@
 #include <errno.h>
 #include <debug.h>
 #include <string.h>
-#include <semaphore.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/random.h>
-
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/sensors/lis3dsh.h>
 
 #if defined(CONFIG_SPI) && defined(CONFIG_LIS3DSH)
@@ -119,10 +118,8 @@ static const struct file_operations g_lis3dsh_fops =
   lis3dsh_read,
   lis3dsh_write,
   NULL,
-  lis3dsh_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  lis3dsh_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL
 #endif
@@ -229,12 +226,12 @@ static void lis3dsh_read_measurement_data(FAR struct lis3dsh_dev_s *dev)
 
   lis3dsh_read_acclerometer_data(dev, &x_acc, &y_acc, &z_acc);
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   ret = nxsem_wait(&dev->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire dev->datasem: %d\n", ret);
+      snerr("ERROR: Could not acquire dev->datasem: %d\n", ret);
       return;
     }
 
@@ -377,7 +374,8 @@ static int lis3dsh_open(FAR struct file *filep)
 
   /* Enable - Measurement of X-, Y-, and Z-axis - Block data update for
    * accelerating data This should prevent race conditions when reading sensor
-   * data - fastest output data rate (ODR = 1600 Hz) */
+   * data - fastest output data rate (ODR = 1600 Hz).
+   */
 
   lis3dsh_write_register(priv,
                          LIS3DSH_CTRL_REG_4,
@@ -458,12 +456,12 @@ static ssize_t lis3dsh_read(FAR struct file *filep, FAR char *buffer,
       return -ENOSYS;
     }
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   ret = nxsem_wait(&priv->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire priv->datasem: %d\n", ret);
+      snerr("ERROR: Could not acquire priv->datasem: %d\n", ret);
       return ret;
     }
 

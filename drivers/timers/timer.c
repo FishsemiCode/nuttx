@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
@@ -54,6 +53,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/signal.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/timers/timer.h>
 
 #ifdef CONFIG_TIMER
@@ -105,10 +105,8 @@ static const struct file_operations g_timerops =
   timer_read,  /* read */
   timer_write, /* write */
   NULL,        /* seek */
-  timer_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL       /* poll */
-#endif
+  timer_ioctl, /* ioctl */
+  NULL         /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL       /* unlink */
 #endif
@@ -569,12 +567,12 @@ void timer_unregister(FAR void *handle)
   /* Disable the timer */
 
   DEBUGASSERT(lower->ops->stop); /* Required */
-  (void)lower->ops->stop(lower);
+  lower->ops->stop(lower);
   nxsig_cancel_notification(&upper->work);
 
   /* Unregister the timer device */
 
-  (void)unregister_driver(upper->path);
+  unregister_driver(upper->path);
 
   /* Then free all of the driver resources */
 
@@ -589,7 +587,7 @@ void timer_unregister(FAR void *handle)
  * Description:
  *   This function can be called to add a callback into driver-related code
  *   to handle timer expirations.  This is a strictly OS internal interface
- *   and may NOT be used by appliction code.
+ *   and may NOT be used by application code.
  *
  * Input Parameters:
  *   handle   - This is the handle that was returned by timer_register()
@@ -597,7 +595,8 @@ void timer_unregister(FAR void *handle)
  *   arg      - Argument to be provided with the callback
  *
  * Returned Value:
- *   None
+ *   Zero (OK), if the callback was successfully set, or -ENOSYS if the lower
+ *   half driver does not support the operation.
  *
  ****************************************************************************/
 
@@ -617,7 +616,7 @@ int timer_setcallback(FAR void *handle, tccb_t callback, FAR void *arg)
 
   if (lower->ops->setcallback != NULL) /* Optional */
     {
-      /* Yes.. Defer the hander attachment to the lower half driver */
+      /* Yes.. Defer the handler attachment to the lower half driver */
 
       lower->ops->setcallback(lower, callback, arg);
       return OK;

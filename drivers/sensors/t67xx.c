@@ -178,10 +178,8 @@ static const struct file_operations g_t67xxfops =
   t67xx_read,     /* read */
   t67xx_write,    /* write */
   NULL,           /* seek */
-  t67xx_ioctl     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL          /* poll */
-#endif
+  t67xx_ioctl,    /* ioctl */
+  NULL            /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL          /* unlink */
 #endif
@@ -204,7 +202,11 @@ static int t67xx_read16(FAR struct t67xx_dev_s *priv, uint16_t regaddr,
 {
   struct i2c_config_s config;
   uint8_t buf[5];
-  uint8_t rxbuf[4] = { 0 };
+  uint8_t rxbuf[4] =
+  {
+    0
+  };
+
   int ret;
 
   DEBUGASSERT(priv != NULL);
@@ -223,8 +225,6 @@ static int t67xx_read16(FAR struct t67xx_dev_s *priv, uint16_t regaddr,
   buf[2] =  regaddr       & 0xff;
   buf[3] = 0;
   buf[4] = 1;
-
-  //sninfo("->[%d %d %d %d %d]\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
 
   /* Write the Modbus read request. */
 
@@ -245,8 +245,6 @@ static int t67xx_read16(FAR struct t67xx_dev_s *priv, uint16_t regaddr,
       snerr("ERROR: i2c_read failed: %d\n", ret);
       return ret;
     }
-
-  //sninfo("<-[%d %d %d %d]\n", rxbuf[0], rxbuf[1], rxbuf[2], rxbuf[3]);
 
   if (rxbuf[0] != 4 || rxbuf[1] != 2)
     {
@@ -274,7 +272,11 @@ static int t67xx_write16(FAR struct t67xx_dev_s *priv, uint16_t regaddr,
 {
   struct i2c_config_s config;
   uint8_t buf[5];
-  uint8_t rxbuf[5] = { 0 };
+  uint8_t rxbuf[5] =
+  {
+    0
+  };
+
   int ret;
 
   DEBUGASSERT(priv != NULL);
@@ -292,8 +294,6 @@ static int t67xx_write16(FAR struct t67xx_dev_s *priv, uint16_t regaddr,
   buf[2] =  regaddr        & 0xff;
   buf[3] = (regvalue >> 8) & 0xff;
   buf[4] =  regvalue       & 0xff;
-
-  //sninfo("->[%d %d %d %d %d]\n", buf[0], buf[1], buf[2], buf[3], buf[4]);
 
   /* Write the Modbus write request. */
 
@@ -321,8 +321,6 @@ static int t67xx_write16(FAR struct t67xx_dev_s *priv, uint16_t regaddr,
       snerr("ERROR: i2c_read failed: %d\n", ret);
       return ret;
     }
-
-  //sninfo("<-[%d %d %d %d %d]\n", rxbuf[0], rxbuf[1], rxbuf[2], rxbuf[3], rxbuf[4]);
 
   if (memcmp(rxbuf, buf, sizeof(rxbuf)) != 0)
     {
@@ -428,7 +426,6 @@ static bool has_time_passed(struct timespec curr,
   return (long)((start.tv_sec + secs_since_start) - curr.tv_sec) <= 0;
 }
 
-
 /****************************************************************************
  * Name: t67xx_read_gas_ppm
  *
@@ -441,7 +438,8 @@ static int t67xx_read_gas_ppm(FAR struct t67xx_dev_s *priv,
                               FAR struct t67xx_value_s *buffer)
 {
   uint16_t ppm;
-  bool warming_up, calibrating;
+  bool warming_up;
+  bool calibrating;
   struct timespec ts;
   int ret;
 
@@ -473,7 +471,8 @@ static int t67xx_read_gas_ppm(FAR struct t67xx_dev_s *priv,
     }
   else if (warming_up)
     {
-      snwarn("WARN: sensor still warming up after %d secs\n", T67XX_UPTIME_FULL_SEC);
+      snwarn("WARN: sensor still warming up after %d secs\n",
+              T67XX_UPTIME_FULL_SEC);
     }
 
   /* Read the CO2 level. */
@@ -637,17 +636,11 @@ static ssize_t t67xx_read(FAR struct file *filep, FAR char *buffer,
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* How many samples were requested to get? */
 
@@ -703,17 +696,11 @@ static int t67xx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   switch (cmd)
     {

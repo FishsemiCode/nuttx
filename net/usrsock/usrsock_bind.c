@@ -49,7 +49,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -112,6 +111,7 @@ static int do_bind_request(FAR struct usrsock_conn_s *conn,
   struct usrsock_request_bind_s req =
   {
   };
+
   struct iovec bufs[2];
 
   /* Prepare request for daemon to read. */
@@ -170,6 +170,7 @@ int usrsock_bind(FAR struct socket *psock,
   struct usrsock_reqstate_s state =
   {
   };
+
   ssize_t ret;
 
   DEBUGASSERT(conn);
@@ -207,11 +208,7 @@ int usrsock_bind(FAR struct socket *psock,
     {
       /* Wait for completion of request. */
 
-      while ((ret = net_lockedwait(&state.recvsem)) < 0)
-        {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
-
+      net_lockedwait_uninterruptible(&state.recvsem);
       ret = state.result;
     }
 

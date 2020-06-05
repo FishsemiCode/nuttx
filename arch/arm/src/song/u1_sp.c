@@ -92,7 +92,7 @@
 #define CONFIG_BOARD_LOOPSPER10USEC  ((CONFIG_BOARD_LOOPSPERMSEC+50)/100)
 #define CONFIG_BOARD_LOOPSPERUSEC    ((CONFIG_BOARD_LOOPSPERMSEC+500)/1000)
 
-#ifdef CONFIG_RAMDISK
+#ifdef CONFIG_SONG_RAMDISK
 #define CP_RVSD_FILE                "/disksp/retent/cpram1.rsvd"
 #else
 #define CP_RVSD_FILE                "/persist/cpram1.rsvd"
@@ -478,7 +478,7 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 }
 #endif
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
 
@@ -975,7 +975,7 @@ static void up_extra_init(void)
       modifyreg32(TOP_PMICFSM_INT_MASK, TOP_PMICFSM_SLP_U0RXD_ACT, 0);
     }
 
-#ifdef CONFIG_RAMDISK
+#ifdef CONFIG_SONG_RAMDISK
   /* Register a RAMDISK device: /dev/ram1 */
 
   if (!up_is_warm_rstn())

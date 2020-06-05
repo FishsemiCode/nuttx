@@ -79,10 +79,8 @@ static int        local_accept(FAR struct socket *psock,
                     FAR struct sockaddr *addr, FAR socklen_t *addrlen,
                     FAR struct socket *newsock);
 #endif
-#ifndef CONFIG_DISABLE_POLL
 static int        local_poll(FAR struct socket *psock,
                     FAR struct pollfd *fds, bool setup);
-#endif
 static ssize_t    local_send(FAR struct socket *psock, FAR const void *buf,
                     size_t len, int flags);
 static ssize_t    local_sendto(FAR struct socket *psock, FAR const void *buf,
@@ -105,9 +103,7 @@ const struct sock_intf_s g_local_sockif =
   local_listen,      /* si_listen */
   local_connect,     /* si_connect */
   local_accept,      /* si_accept */
-#ifndef CONFIG_DISABLE_POLL
   local_poll,        /* si_poll */
-#endif
   local_send,        /* si_send */
   local_sendto,      /* si_sendto */
 #ifdef CONFIG_NET_SENDFILE
@@ -239,7 +235,7 @@ static sockcaps_t local_sockcaps(FAR struct socket *psock)
  * Name: local_addref
  *
  * Description:
- *   Increment the refernce count on the underlying connection structure.
+ *   Increment the reference count on the underlying connection structure.
  *
  * Input Parameters:
  *   psock - Socket structure of the socket whose reference count will be
@@ -313,13 +309,6 @@ static int local_bind(FAR struct socket *psock,
           /* Bind the Unix domain connection structure */
 
           ret = psock_local_bind(psock, addr, addrlen);
-
-          /* Mark the socket bound */
-
-          if (ret >= 0)
-            {
-              psock->s_flags |= _SF_BOUND;
-            }
         }
         break;
 #endif /* CONFIG_NET_LOCAL_STREAM || CONFIG_NET_LOCAL_DGRAM */
@@ -413,7 +402,7 @@ static int local_getsockname(FAR struct socket *psock,
 
           /* Copy the path into the user address structure */
 
-          (void)strncpy(unaddr->sun_path, conn->lc_path, namelen);
+          strncpy(unaddr->sun_path, conn->lc_path, namelen);
           unaddr->sun_path[pathlen - 1] = '\0';
 
           *addrlen = sizeof(sa_family_t) + namelen;
@@ -517,7 +506,7 @@ int local_listen(FAR struct socket *psock, int backlog)
  *   addrlen   Length of actual 'addr'
  *
  * Returned Value:
- *   0 on success; a negated errno value on failue.  See connect() for the
+ *   0 on success; a negated errno value on failure.  See connect() for the
  *   list of appropriate errno values to be returned.
  *
  ****************************************************************************/
@@ -557,6 +546,7 @@ static int local_connect(FAR struct socket *psock,
       case SOCK_DGRAM:
         {
           /* Perform the datagram connection logic */
+
 #warning Missing logic
 
           return -ENOSYS;
@@ -605,7 +595,7 @@ static int local_connect(FAR struct socket *psock,
  *
  * Returned Value:
  *   Returns 0 (OK) on success.  On failure, it returns a negated errno
- *   value.  See accept() for a desrciption of the approriate error value.
+ *   value.  See accept() for a desrciption of the appropriate error value.
  *
  * Assumptions:
  *   The network is locked.
@@ -638,7 +628,6 @@ static int local_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int local_poll(FAR struct socket *psock, FAR struct pollfd *fds,
                       bool setup)
 {
@@ -661,7 +650,6 @@ static int local_poll(FAR struct socket *psock, FAR struct pollfd *fds,
     }
 #endif /* HAVE_LOCAL_POLL */
 }
-#endif /* !CONFIG_DISABLE_POLL */
 
 /****************************************************************************
  * Name: local_send
@@ -703,6 +691,7 @@ static ssize_t local_send(FAR struct socket *psock, FAR const void *buf,
       case SOCK_DGRAM:
         {
           /* Local UDP packet send */
+
 #warning Missing logic
 
           ret = -ENOSYS;

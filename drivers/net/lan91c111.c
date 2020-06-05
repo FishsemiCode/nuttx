@@ -420,6 +420,7 @@ static int lan91c111_transmit(FAR struct net_driver_s *dev)
    *
    * If odd size then last byte is included in ctl word.
    */
+
   pages = ((dev->d_len & ~1) + 6) >> 8;
 
   while (1)
@@ -536,6 +537,7 @@ static int lan91c111_txpoll(FAR struct net_driver_s *dev)
           arp_out(dev);
         }
 #endif /* CONFIG_NET_IPv4 */
+
 #ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv6(dev->d_flags))
         {
@@ -599,6 +601,7 @@ static void lan91c111_reply(FAR struct net_driver_s *dev)
           arp_out(dev);
         }
 #endif
+
 #ifdef CONFIG_NET_IPv6
       if (IFF_IS_IPv6(dev->d_flags))
         {
@@ -717,7 +720,7 @@ static void lan91c111_receive(FAR struct net_driver_s *dev)
 #ifdef CONFIG_NET_IPv6
   if (eth->type == HTONS(ETHTYPE_IP6))
     {
-      ninfo("Iv6 frame\n");
+      ninfo("IPv6 frame\n");
       NETDEV_RXIPV6(dev);
 
       /* Dispatch IPv6 packet to the network layer */
@@ -1024,7 +1027,7 @@ static void lan91c111_poll_work(FAR void *arg)
        * transmit in progress, we will missing TCP time state updates?
        */
 
-      devif_timer(dev, lan91c111_txpoll);
+      devif_timer(dev, LAN91C111_WDDELAY, lan91c111_txpoll);
     }
 
   /* Setup the watchdog poll timer again */
@@ -1321,7 +1324,7 @@ static uint32_t lan91c111_crc32(FAR const uint8_t *src, size_t len)
         }
     }
 
-    return crc;
+  return crc;
 }
 
 static int lan91c111_addmac(FAR struct net_driver_s *dev,
@@ -1581,7 +1584,7 @@ int lan91c111_initialize(uintptr_t base, int irq)
 
   if ((macrev >> 4 & 0x0f) != CHIP_91111FD || phyid != PHY_LAN83C183)
     {
-      nerr("ERROR: Unsupport LAN91C111's MAC/PHY\n");
+      nerr("ERROR: Unsupported LAN91C111's MAC/PHY\n");
       ret = -ENODEV;
       goto err;
     }

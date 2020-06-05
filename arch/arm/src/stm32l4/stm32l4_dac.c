@@ -44,7 +44,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -133,7 +132,11 @@
 
 #undef HAVE_DMA
 #ifdef CONFIG_STM32L4_DAC1_DMA
-#  if defined(CONFIG_STM32L4_DMA1)
+#  if defined(CONFIG_STM32L4_DMAMUX1) && defined(CONFIG_STM32L4_DMA1)
+#    define DAC1_DMA_CHAN   DMAMAP_DAC1_0
+#  elif defined(CONFIG_STM32L4_DMAMUX1) && defined(CONFIG_STM32L4_DMA2)
+#    define DAC1_DMA_CHAN   DMAMAP_DAC1_1
+#  elif defined(CONFIG_STM32L4_DMA1)
 #    define DAC1_DMA_CHAN   DMACHAN_DAC1_1
 #  elif defined(CONFIG_STM32L4_DMA2)
 #    define DAC1_DMA_CHAN   DMACHAN_DAC1_2
@@ -143,7 +146,11 @@
 #  define HAVE_DMA
 #endif
 #ifdef CONFIG_STM32L4_DAC2_DMA
-#  if defined(CONFIG_STM32L4_DMA1)
+#  if defined(CONFIG_STM32L4_DMAMUX1) && defined(CONFIG_STM32L4_DMA1)
+#    define DAC2_DMA_CHAN   DMAMAP_DAC2_0
+#  elif defined(CONFIG_STM32L4_DMAMUX1) && defined(CONFIG_STM32L4_DMA2)
+#    define DAC2_DMA_CHAN   DMAMAP_DAC2_1
+#  elif defined(CONFIG_STM32L4_DMA1)
 #    define DAC2_DMA_CHAN   DMACHAN_DAC2_1
 #  elif defined(CONFIG_STM32L4_DMA2)
 #    define DAC2_DMA_CHAN   DMACHAN_DAC2_2
@@ -739,7 +746,7 @@ static int dac_send(FAR struct dac_dev_s *dev, FAR struct dac_msg_s *msg)
   if (chan->hasdma)
     {
       /* Copy the value to circular buffer. Since dmabuffer is initialized to zero,
-       * writing e.g. monotonously increasing values creates a continuosly repeating
+       * writing e.g. monotonously increasing values creates a continuously repeating
        * ramp-effect, alternating with periods of zero output.
        *
        * In real use it the dmabuffer should be initialized with a desired pattern

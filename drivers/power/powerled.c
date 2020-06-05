@@ -43,13 +43,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/power/powerled.h>
 
@@ -74,10 +72,8 @@ static const struct file_operations powerled_fops =
   NULL,                         /* read */
   NULL,                         /* write */
   NULL,                         /* seek */
-  powerled_ioctl                /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL                        /* poll */
-#endif
+  powerled_ioctl,               /* ioctl */
+  NULL                          /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL                        /* unlink */
 #endif
@@ -195,7 +191,7 @@ static int powerled_close(FAR struct file *filep)
 
 /****************************************************************************
  * Name: powerled_ioctl
-****************************************************************************/
+ ****************************************************************************/
 
 static int powerled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
@@ -208,7 +204,6 @@ static int powerled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
       case PWRIOC_START:
         {
-
           /* Allow powerled start only when limits set and structure is locked */
 
           if (powerled->limits.lock == false ||
@@ -314,7 +309,7 @@ static int powerled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case PWRIOC_GET_FAULT:
         {
-          uint8_t *fault = ((uint8_t*)arg);
+          FAR uint8_t *fault = ((FAR uint8_t *)arg);
 
           ret = dev->ops->fault_get(dev, fault);
           if (ret != OK)
@@ -387,7 +382,8 @@ errout:
  * Name: powerled_register
  ****************************************************************************/
 
-int powerled_register(FAR const char *path, FAR struct powerled_dev_s *dev, FAR void *lower)
+int powerled_register(FAR const char *path, FAR struct powerled_dev_s *dev,
+                      FAR void *lower)
 {
   int ret;
 

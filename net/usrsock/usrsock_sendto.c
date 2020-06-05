@@ -49,7 +49,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -156,6 +155,7 @@ static int do_sendto_request(FAR struct usrsock_conn_s *conn,
   struct usrsock_request_sendto_s req =
   {
   };
+
   struct iovec bufs[3];
 
   if (addrlen > UINT16_MAX)
@@ -216,11 +216,8 @@ ssize_t usrsock_sendto(FAR struct socket *psock, FAR const void *buf,
   struct usrsock_reqstate_s state =
   {
   };
+
   ssize_t ret;
-#ifdef CONFIG_NET_SOCKOPTS
-  struct timespec abstime;
-#endif
-  struct timespec *ptimeo = NULL;
 
   DEBUGASSERT(conn);
 
@@ -281,25 +278,6 @@ ssize_t usrsock_sendto(FAR struct socket *psock, FAR const void *buf,
       goto errout_unlock;
     }
 
-#ifdef CONFIG_NET_SOCKOPTS
-  if (psock->s_sndtimeo != 0)
-    {
-      DEBUGVERIFY(clock_gettime(CLOCK_REALTIME, &abstime));
-
-      /* Prepare timeout value for sendto. */
-
-      abstime.tv_sec += psock->s_sndtimeo / DSEC_PER_SEC;
-      abstime.tv_nsec += (psock->s_sndtimeo % DSEC_PER_SEC) * NSEC_PER_DSEC;
-      if (abstime.tv_nsec >= NSEC_PER_SEC)
-        {
-          abstime.tv_sec++;
-          abstime.tv_nsec -= NSEC_PER_SEC;
-        }
-
-      ptimeo = &abstime;
-    }
-#endif
-
   do
     {
       /* Check if remote end has closed connection. */
@@ -316,7 +294,7 @@ ssize_t usrsock_sendto(FAR struct socket *psock, FAR const void *buf,
 
       if (!(conn->flags & USRSOCK_EVENT_SENDTO_READY))
         {
-          if (_SS_ISNONBLOCK(psock->s_flags))
+          if (_SS_ISNONBLOCK(psock->s_flags) || (flags & MSG_DONTWAIT) != 0)
             {
               /* Send busy at daemon side. */
 
@@ -338,7 +316,8 @@ ssize_t usrsock_sendto(FAR struct socket *psock, FAR const void *buf,
 
           /* Wait for send-ready (or abort, or timeout, or signal). */
 
-          ret = net_timedwait(&state.recvsem, ptimeo);
+          ret = net_timedwait(&state.recvsem,
+                              _SO_TIMEOUT(psock->s_sndtimeo));
           if (ret < 0)
             {
               if (ret == -ETIMEDOUT)
@@ -404,11 +383,7 @@ ssize_t usrsock_sendto(FAR struct socket *psock, FAR const void *buf,
         {
           /* Wait for completion of request. */
 
-          while ((ret = net_lockedwait(&state.recvsem)) < 0)
-            {
-              DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-            }
-
+          net_lockedwait_uninterruptible(&state.recvsem);
           ret = state.result;
 
           DEBUGASSERT(ret <= (ssize_t)len);

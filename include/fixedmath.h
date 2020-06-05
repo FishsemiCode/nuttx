@@ -53,8 +53,8 @@
 #define b8TEN           0x0a00                   /* 10 */
 #define b8ONE           0x0100                   /* 1 */
 #define b8HALF          0x0080                   /* 0.5 */
-#define b8ONETENTH      0x001a                   /* 0.1 (acutally 0.1015625) */
-#define b8ONEHUNDRTH    0x0003                   /* 0.01 (actualy 0.0117198765) */
+#define b8ONETENTH      0x001a                   /* 0.1 (actually 0.1015625) */
+#define b8ONEHUNDRTH    0x0003                   /* 0.01 (actually 0.0117198765) */
 #define b8HALFPI        0x0192                   /* 1.5703125 */
 #define b8PI            0x0324                   /* 3.1406250 */
 #define b8TWOPI         0x0648                   /* 6.2812500 */
@@ -125,8 +125,8 @@
 #define ub8toi(a)       ((a) >> 8)               /* Conversion to unsigned integer */
 #define itob8(i)        (((b8_t)(i)) << 8)       /* Conversion from integer */
 #define uitoub8(i)      (((ub8_t)(i)) << 8)      /* Conversion from unsigned integer */
-#define b8tof(b)        (((float)(b))/256.0)     /* Conversion to float */
-#define ftob8(f)        (b8_t)(((f)*256.0))      /* Conversion from float */
+#define b8tof(b)        (((float)(b))/256.0f)    /* Conversion to float */
+#define ftob8(f)        (b8_t)(((f)*256.0f))     /* Conversion from float */
 #define b8trunc(a)      ((a) & 0xff00)           /* Truncate to integer b8 */
 #define b8round(a)      (((a)+0x0080) & 0xff00)  /* Round to integer b8 */
 #define b8frac(a)       ((a) & 0x00ff)           /* Take fractional part */
@@ -157,9 +157,9 @@
 #define ub16toi(a)      ((a) >> 16)              /* Conversion to unsgined integer */
 #define itob16(i)       (((b16_t)(i)) << 16)     /* Conversion from integer */
 #define uitoub16(i)     (((ub16_t)(i)) << 16)    /* Conversion from unsigned integer */
-#define b16tof(b)       (((float)(b))/65536.0)   /* Conversion to float */
-#define ftob16(f)       (b16_t)(((f)*65536.0))   /* Conversion from float */
-#define b16tod(b)       (((double)(b))/65536.0)) /* Conversion to double */
+#define b16tof(b)       (((float)(b))/65536.0f)  /* Conversion to float */
+#define ftob16(f)       (b16_t)(((f)*65536.0f))  /* Conversion from float */
+#define b16tod(b)       (((double)(b))/65536.0)  /* Conversion to double */
 #define dtob16(f)       (b16_t)(((f)*65536.0))   /* Conversion from double */
 #define b16trunc(a)     ((a) & 0xffff0000)       /* Truncate to integer */
 #define b16round(a)     (((a)+0x00008000) & 0xffff0000)

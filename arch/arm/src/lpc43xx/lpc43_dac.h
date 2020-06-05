@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/analog/dac.h>
-#include "chip/lpc43_dac.h"
+#include "hardware/lpc43_dac.h"
 
 #ifdef CONFIG_LPC43_DAC
 
@@ -80,7 +80,7 @@ extern "C"
  *   Initialize the DAC
  *
  * Returned Value:
- *   Valid dac device structure reference on succcess; a NULL on failure
+ *   Valid dac device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

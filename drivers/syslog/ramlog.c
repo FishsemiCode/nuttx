@@ -86,27 +86,20 @@ struct ramlog_dev_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   FAR struct pollfd *rl_fds[CONFIG_RAMLOG_NPOLLWAITERS];
-#endif
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-/* Syslog channel methods */
-
-#ifdef CONFIG_RAMLOG_SYSLOG
-static int ramlog_flush(void);
-#endif
-
 /* Helper functions */
 
-#ifndef CONFIG_DISABLE_POLL
-static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
-                              pollevent_t eventset);
+#ifndef CONFIG_RAMLOG_NONBLOCKING
+static int     ramlog_readnotify(FAR struct ramlog_dev_s *priv);
 #endif
+static void    ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
+                                 pollevent_t eventset);
 static ssize_t ramlog_addchar(FAR struct ramlog_dev_s *priv, char ch);
 
 /* Character driver methods */
@@ -115,23 +108,8 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer,
                            size_t buflen);
 static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer,
                             size_t buflen);
-#ifndef CONFIG_DISABLE_POLL
 static int     ramlog_poll(FAR struct file *filep, FAR struct pollfd *fds,
                            bool setup);
-#endif
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-#ifdef CONFIG_RAMLOG_SYSLOG
-static const struct syslog_channel_s g_ramlog_syslog_channel =
-{
-  ramlog_putc,
-  ramlog_putc,
-  ramlog_flush
-};
-#endif
 
 /****************************************************************************
  * Private Data
@@ -144,10 +122,8 @@ static const struct file_operations g_ramlogfops =
   ramlog_read,  /* read */
   ramlog_write, /* write */
   NULL,         /* seek */
-  NULL          /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , ramlog_poll /* poll */
-#endif
+  NULL,         /* ioctl */
+  ramlog_poll   /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL        /* unlink */
 #endif
@@ -157,7 +133,7 @@ static const struct file_operations g_ramlogfops =
  * for the syslogging function.
  */
 
-#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
+#ifdef CONFIG_RAMLOG_SYSLOG
 static char g_sysbuffer[CONFIG_RAMLOG_BUFSIZE];
 
 /* This is the device structure for the console or syslogging function.  It
@@ -186,13 +162,28 @@ static struct ramlog_dev_s g_sysdev =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: ramlog_flush
+ * Name: ramlog_readnotify
  ****************************************************************************/
 
-#ifdef CONFIG_RAMLOG_SYSLOG
-static int ramlog_flush(void)
+#ifndef CONFIG_RAMLOG_NONBLOCKING
+static int ramlog_readnotify(FAR struct ramlog_dev_s *priv)
 {
-  return OK;
+  irqstate_t flags;
+  int i;
+
+  /* Notify all waiting readers that they can read from the FIFO */
+
+  flags = enter_critical_section();
+  for (i = 0; i < priv->rl_nwaiters; i++)
+    {
+      nxsem_post(&priv->rl_waitsem);
+    }
+
+  leave_critical_section(flags);
+
+  /* Return number of notified readers. */
+
+  return i;
 }
 #endif
 
@@ -200,7 +191,6 @@ static int ramlog_flush(void)
  * Name: ramlog_pollnotify
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
                               pollevent_t eventset)
 {
@@ -225,9 +215,6 @@ static void ramlog_pollnotify(FAR struct ramlog_dev_s *priv,
       leave_critical_section(flags);
     }
 }
-#else
-#  define ramlog_pollnotify(priv,event)
-#endif
 
 /****************************************************************************
  * Name: ramlog_addchar
@@ -318,16 +305,12 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
           if (nread > 0)
             {
-              /* Yes.. re-enable interrupts and the break out to return what
-               * we have.
-               */
+              /* Yes.. break out to return what we have. */
 
               break;
             }
 
-          /* If the driver was opened with O_NONBLOCK option, then don't wait.
-           * Re-enable interrupts and return EGAIN.
-           */
+          /* If the driver was opened with O_NONBLOCK option, then don't wait. */
 
           if (filep->f_oflags & O_NONBLOCK)
             {
@@ -337,7 +320,7 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
           /* Otherwise, wait for something to be written to the circular
            * buffer. Increment the number of waiters so that the ramlog_write()
-           * will not that it needs to post the semaphore to wake us up.
+           * will note that it needs to post the semaphore to wake us up.
            */
 
           sched_lock();
@@ -374,16 +357,12 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
           if (ret < 0)
             {
               /* No.. One of the two nxsem_wait's failed. */
-              /* Were we awakened by a signal?  Did we read anything before
-               * we received the signal?
+
+              /* Return the error. We did handle the case where we read
+               * anything already before waiting.
                */
 
-              if (ret != -EINTR || nread >= 0)
-                {
-                  /* Yes.. return the error. */
-
-                  nread = ret;
-                }
+              nread = ret;
 
               /* Break out to return what we have.  Note, we can't exactly
                * "break" out because whichever error occurred, we do not hold
@@ -402,14 +381,14 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 
           ch = priv->rl_buffer[priv->rl_tail];
 
-          /* Increment the tail index and re-enable interrupts */
+          /* Increment the tail index. */
 
           if (++priv->rl_tail >= priv->rl_bufsize)
             {
               priv->rl_tail = 0;
             }
 
-          /* Add the character to the user buffer */
+          /* Add the character to the user buffer. */
 
           buffer[nread] = ch;
           nread++;
@@ -426,12 +405,10 @@ static ssize_t ramlog_read(FAR struct file *filep, FAR char *buffer, size_t len)
 errout_without_sem:
 #endif
 
-#ifndef CONFIG_DISABLE_POLL
   if (nread > 0)
     {
       ramlog_pollnotify(priv, POLLOUT);
     }
-#endif
 
   /* Return the number of characters actually read */
 
@@ -446,6 +423,7 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct ramlog_dev_s *priv;
+  int readers_waken;
   ssize_t nwritten;
   char ch;
   int ret;
@@ -460,7 +438,7 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
    *
    * The write logic only needs to modify the rl_head index.  Therefore,
    * there is a difference in the way that rl_head and rl_tail are protected:
-   * rl_tail is protected with a semaphore; rl_tail is protected by disabling
+   * rl_tail is protected with a semaphore; rl_head is protected by disabling
    * interrupts.
    */
 
@@ -485,9 +463,8 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
           ret = ramlog_addchar(priv, '\r');
           if (ret < 0)
             {
-              /* The buffer is full and nothing was saved. Break out of the
-               * loop to return the number of bytes written up to this point.
-               * The data to be written is dropped on the floor.
+              /* The buffer is full and nothing was saved.  The remaining
+               * data to be written is dropped on the floor.
                */
 
               break;
@@ -500,9 +477,8 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
       ret = ramlog_addchar(priv, ch);
       if (ret < 0)
         {
-          /* The buffer is full and nothing was saved. Break out of the
-           * loop to return the number of bytes written up to this point.
-           * The data to be written is dropped on the floor.
+          /* The buffer is full and nothing was saved.  The remaining
+           * data to be written is dropped on the floor.
            */
 
           break;
@@ -511,36 +487,36 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
 
   /* Was anything written? */
 
-#if !defined(CONFIG_RAMLOG_NONBLOCKING) || !defined(CONFIG_DISABLE_POLL)
   if (nwritten > 0)
     {
-      irqstate_t flags;
-#ifndef CONFIG_RAMLOG_NONBLOCKING
-      int i;
-#endif
+      readers_waken = 0;
 
+#ifndef CONFIG_RAMLOG_NONBLOCKING
       /* Are there threads waiting for read data? */
 
-      flags = enter_critical_section();
-#ifndef CONFIG_RAMLOG_NONBLOCKING
-      for (i = 0; i < priv->rl_nwaiters; i++)
+      readers_waken = ramlog_readnotify(priv);
+#endif
+
+      /* If there are multiple readers, some of them might block despite
+       * POLLIN because first reader might read all data. Favor readers
+       * and notify poll waiters only if no reader was awaken, even if the
+       * latter may starve.
+       *
+       * This also implies we do not have to make these two notify
+       * operations a critical section.
+       */
+
+      if (readers_waken == 0)
         {
-          /* Yes.. Notify all of the waiting readers that more data is available */
+          /* Notify all poll/select waiters that they can read from the FIFO */
 
-          nxsem_post(&priv->rl_waitsem);
+          ramlog_pollnotify(priv, POLLIN);
         }
-#endif
-
-      /* Notify all poll/select waiters that they can write to the FIFO */
-
-      ramlog_pollnotify(priv, POLLIN);
-      leave_critical_section(flags);
     }
-#endif
 
   /* We always have to return the number of bytes requested and NOT the
    * number of bytes that were actually written.  Otherwise, callers
-   * will think that this is a short write and probably retry (causing
+   * probably retry, causing same error condition again.
    */
 
   return len;
@@ -550,13 +526,13 @@ static ssize_t ramlog_write(FAR struct file *filep, FAR const char *buffer, size
  * Name: ramlog_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 int ramlog_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct ramlog_dev_s *priv;
   pollevent_t eventset;
-  size_t ndx;
+  irqstate_t flags;
+  size_t next_head;
   int ret;
   int i;
 
@@ -578,7 +554,7 @@ int ramlog_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
   if (setup)
     {
       /* This is a request to set up the poll.  Find an available
-       * slot for the poll structure reference
+       * slot for the poll structure reference.
        */
 
       for (i = 0; i < CONFIG_RAMLOG_NPOLLWAITERS; i++)
@@ -602,29 +578,31 @@ int ramlog_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
           goto errout;
         }
 
-      /* Should immediately notify on any of the requested events?
-       * First, check if the xmit buffer is full.
-       */
+      /* Should immediately notify on any of the requested events? */
 
       eventset = 0;
 
-      ndx = priv->rl_head + 1;
-      if (ndx >= priv->rl_bufsize)
+      flags = enter_critical_section();
+      next_head = priv->rl_head + 1;
+      if (next_head >= priv->rl_bufsize)
         {
-          ndx = 0;
+          next_head = 0;
         }
 
-      if (ndx != priv->rl_tail)
+      /* First, check if the receive buffer is not full. */
+
+      if (next_head != priv->rl_tail)
        {
          eventset |= POLLOUT;
        }
 
-      /* Check if the receive buffer is empty */
+      /* Check if the receive buffer is not empty. */
 
       if (priv->rl_head != priv->rl_tail)
        {
          eventset |= POLLIN;
        }
+      leave_critical_section(flags);
 
       if (eventset)
         {
@@ -656,7 +634,6 @@ errout:
   nxsem_post(&priv->rl_exclsem);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -670,7 +647,6 @@ errout:
  *
  ****************************************************************************/
 
-#if !defined(CONFIG_RAMLOG_CONSOLE) && !defined(CONFIG_RAMLOG_SYSLOG)
 int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
 {
   FAR struct ramlog_dev_s *priv;
@@ -712,55 +688,22 @@ int ramlog_register(FAR const char *devpath, FAR char *buffer, size_t buflen)
 
   return ret;
 }
-#endif
 
 /****************************************************************************
- * Name: ramlog_consoleinit
- *
- * Description:
- *   Use a pre-allocated RAM logging device and register it at /dev/console
- *
- ****************************************************************************/
-
-#ifdef CONFIG_RAMLOG_CONSOLE
-int ramlog_consoleinit(void)
-{
-  FAR struct ramlog_dev_s *priv = &g_sysdev;
-
-  /* Register the console character driver */
-
-  return register_driver("/dev/console", &g_ramlogfops, 0666, priv);
-}
-#endif
-
-/****************************************************************************
- * Name: ramlog_syslog_channel
+ * Name: ramlog_syslog_register
  *
  * Description:
  *   Use a pre-allocated RAM logging device and register it at the path
  *   specified by CONFIG_RAMLOG_SYSLOG
  *
- *   If CONFIG_RAMLOG_CONSOLE is also defined, then this functionality is
- *   performed when ramlog_consoleinit() is called.
- *
  ****************************************************************************/
 
 #ifdef CONFIG_RAMLOG_SYSLOG
-int ramlog_syslog_channel(void)
+void ramlog_syslog_register(void)
 {
-  int ret;
-
   /* Register the syslog character driver */
 
-  ret = register_driver(CONFIG_SYSLOG_DEVPATH, &g_ramlogfops, 0666, &g_sysdev);
-  if (ret < 0)
-    {
-      return ret;
-    }
-
-  /* Use the RAMLOG as the SYSLOG channel */
-
-  return syslog_channel(&g_ramlog_syslog_channel);
+  register_driver(CONFIG_SYSLOG_DEVPATH, &g_ramlogfops, 0666, &g_sysdev);
 }
 #endif
 
@@ -772,10 +715,11 @@ int ramlog_syslog_channel(void)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_RAMLOG_CONSOLE) || defined(CONFIG_RAMLOG_SYSLOG)
+#ifdef CONFIG_RAMLOG_SYSLOG
 int ramlog_putc(int ch)
 {
   FAR struct ramlog_dev_s *priv = &g_sysdev;
+  int readers_waken = 0;
   int ret;
 
 #ifdef CONFIG_RAMLOG_CRLF
@@ -805,9 +749,31 @@ int ramlog_putc(int ch)
   ret = ramlog_addchar(priv, ch);
   if (ret < 0)
     {
-      /* ramlog_addchar() failed */
+      /* The buffer is full and 'ch' was not saved. */
 
       return ret;
+    }
+
+#ifndef CONFIG_RAMLOG_NONBLOCKING
+  /* Are there threads waiting for read data? */
+
+  readers_waken = ramlog_readnotify(priv);
+#endif
+
+  /* If there are multiple readers, some of them might block despite
+   * POLLIN because first reader might read all data. Favor readers
+   * and notify poll waiters only if no reader was awaken, even if the
+   * latter may starve.
+   *
+   * This also implies we do not have to make these two notify
+   * operations a critical section.
+   */
+
+  if (readers_waken == 0)
+    {
+      /* Notify all poll/select waiters that they can read from the FIFO */
+
+      ramlog_pollnotify(priv, POLLIN);
     }
 
   /* Return the character added on success */

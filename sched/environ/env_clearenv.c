@@ -110,4 +110,3 @@ int clearenv_global(void)
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */
-

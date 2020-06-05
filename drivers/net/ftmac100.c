@@ -68,6 +68,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* If processing is not done at the interrupt level, then work queue support
  * is required.
  */
@@ -316,14 +317,15 @@ static int ftmac100_transmit(FAR struct ftmac100_driver_s *priv)
   priv->tx_pending++;
 
   /* Enable Tx polling */
+
   /* FIXME: enable interrupts */
 
   putreg32(1, &iobase->txpd);
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->ft_txtimeout, FTMAC100_TXTIMEOUT,
-                 ftmac100_txtimeout_expiry, 1, (wdparm_t)priv);
+  wd_start(priv->ft_txtimeout, FTMAC100_TXTIMEOUT,
+           ftmac100_txtimeout_expiry, 1, (wdparm_t)priv);
 
   return OK;
 }
@@ -738,7 +740,7 @@ static void ftmac100_receive(FAR struct ftmac100_driver_s *priv)
 #ifdef CONFIG_NET_IPv6
       if (BUF->type == HTONS(ETHTYPE_IP6))
         {
-          ninfo("Iv6 frame\n");
+          ninfo("IPv6 frame\n");
 
           /* Give the IPv6 packet to the network layer */
 
@@ -750,7 +752,7 @@ static void ftmac100_receive(FAR struct ftmac100_driver_s *priv)
            */
 
           if (priv->ft_dev.d_len > 0)
-           {
+            {
               /* Update the Ethernet header with the correct MAC address */
 
 #ifdef CONFIG_NET_IPv4
@@ -789,6 +791,7 @@ static void ftmac100_receive(FAR struct ftmac100_driver_s *priv)
             }
         }
 #endif
+
       priv->rx_pointer = (priv->rx_pointer + 1) &
                          (CONFIG_FTMAC100_RX_DESC - 1);
 
@@ -859,7 +862,7 @@ static void ftmac100_txdone(FAR struct ftmac100_driver_s *priv)
 
   /* Then poll the network for new XMIT data */
 
-  (void)devif_poll(&priv->ft_dev, ftmac100_txpoll);
+  devif_poll(&priv->ft_dev, ftmac100_txpoll);
 }
 
 /****************************************************************************
@@ -1054,7 +1057,7 @@ static void ftmac100_txtimeout_work(FAR void *arg)
 
   /* Then poll the network for new XMIT data */
 
-  (void)devif_poll(&priv->ft_dev, ftmac100_txpoll);
+  devif_poll(&priv->ft_dev, ftmac100_txpoll);
   net_unlock();
 }
 
@@ -1127,12 +1130,12 @@ static void ftmac100_poll_work(FAR void *arg)
    * progress, we will missing TCP time state updates?
    */
 
-  (void)devif_timer(&priv->ft_dev, ftmac100_txpoll);
+  devif_timer(&priv->ft_dev, FTMAC100_WDDELAY, ftmac100_txpoll);
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->ft_txpoll, FTMAC100_WDDELAY, ftmac100_poll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->ft_txpoll, FTMAC100_WDDELAY, ftmac100_poll_expiry, 1,
+           (wdparm_t)priv);
   net_unlock();
 }
 
@@ -1215,8 +1218,8 @@ static int ftmac100_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->ft_txpoll, FTMAC100_WDDELAY, ftmac100_poll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->ft_txpoll, FTMAC100_WDDELAY, ftmac100_poll_expiry, 1,
+           (wdparm_t)priv);
 
   /* Enable the Ethernet interrupt */
 
@@ -1306,7 +1309,7 @@ static void ftmac100_txavail_work(FAR void *arg)
 
       /* If so, then poll the network for new XMIT data */
 
-      (void)devif_poll(&priv->ft_dev, ftmac100_txpoll);
+      devif_poll(&priv->ft_dev, ftmac100_txpoll);
     }
 
   net_unlock();
@@ -1509,7 +1512,7 @@ static void ftmac100_ipv6multicast(FAR struct ftmac100_driver_s *priv)
   ninfo("IPv6 Multicast: %02x:%02x:%02x:%02x:%02x:%02x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  (void)ftmac100_addmac(dev, mac);
+  ftmac100_addmac(dev, mac);
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
   /* Add the IPv6 all link-local nodes Ethernet address.  This is the
@@ -1517,7 +1520,7 @@ static void ftmac100_ipv6multicast(FAR struct ftmac100_driver_s *priv)
    * packets.
    */
 
-  (void)ftmac100_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
+  ftmac100_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
 #ifdef CONFIG_NET_ICMPv6_ROUTER
@@ -1526,7 +1529,7 @@ static void ftmac100_ipv6multicast(FAR struct ftmac100_driver_s *priv)
    * packets.
    */
 
-  (void)ftmac100_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
+  ftmac100_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_ROUTER */
 }
@@ -1594,6 +1597,7 @@ int ftmac100_initialize(int intf)
   /* Put the interface in the down state.  This usually amounts to resetting
    * the device and/or calling ftmac100_ifdown().
    */
+
   ftmac100_reset(priv);
 
   /* Read the MAC address from the hardware into priv->ft_dev.d_mac.ether.ether_addr_octet */
@@ -1603,7 +1607,7 @@ int ftmac100_initialize(int intf)
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->ft_dev, NET_LL_ETHERNET);
+  netdev_register(&priv->ft_dev, NET_LL_ETHERNET);
   return OK;
 }
 

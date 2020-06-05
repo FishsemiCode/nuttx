@@ -41,37 +41,17 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
+#include <assert.h>
 #include <poll.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
-#include <nuttx/wqueue.h>
-#include <nuttx/mm/iob.h>
 #include <nuttx/net/net.h>
+#include <nuttx/semaphore.h>
 
 #include "devif/devif.h"
 #include "netdev/netdev.h"
 #include "socket/socket.h"
 #include "udp/udp.h"
-
-#ifdef HAVE_UDP_POLL
-
-/****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/* This is an allocated container that holds the poll-related information */
-
-struct udp_poll_s
-{
-  FAR struct socket *psock;        /* Needed to handle loss of connection */
-  FAR struct net_driver_s *dev;    /* Needed to free the callback structure */
-  struct pollfd *fds;              /* Needed to handle poll events */
-  FAR struct devif_callback_s *cb; /* Needed to teardown the poll */
-#if defined(CONFIG_NET_UDP_WRITE_BUFFERS) && defined(CONFIG_IOB_NOTIFIER)
-  int16_t key;                     /* Needed to cancel pending notification */
-#endif
-};
 
 /****************************************************************************
  * Private Functions
@@ -120,22 +100,18 @@ static uint16_t udp_poll_eventhandler(FAR struct net_driver_s *dev,
           eventset |= (POLLIN & info->fds->events);
         }
 
-      /* A poll is a sign that we are free to send data.
-       * REVISIT: This is bogus:  If CONFIG_UDP_WRITE_BUFFERS=y then
-       * we never have to wait to send; otherwise, we always have to
-       * wait to send.  Receiving a poll is irrelevant.
-       */
-
-      if ((flags & UDP_POLL) != 0)
-        {
-          eventset |= (POLLOUT & info->fds->events);
-        }
-
       /* Check for loss of connection events. */
 
       if ((flags & NETDEV_DOWN) != 0)
         {
-          eventset |= ((POLLHUP | POLLERR) & info->fds->events);
+          eventset |= (POLLHUP | POLLERR);
+        }
+
+      /* A poll is a sign that we are free to send data. */
+
+      else if ((flags & UDP_POLL) != 0 && psock_udp_cansend(info->psock) >= 0)
+        {
+          eventset |= (POLLOUT & info->fds->events);
         }
 
       /* Awaken the caller of poll() is requested event occurred. */
@@ -167,19 +143,11 @@ static uint16_t udp_poll_eventhandler(FAR struct net_driver_s *dev,
 #if defined(CONFIG_NET_UDP_WRITE_BUFFERS) && defined(CONFIG_IOB_NOTIFIER)
 static inline void udp_iob_work(FAR void *arg)
 {
-  FAR struct work_notifier_entry_s *entry;
-  FAR struct work_notifier_s *ninfo;
   FAR struct udp_poll_s *pinfo;
   FAR struct socket *psock;
   FAR struct pollfd *fds;
 
-  entry = (FAR struct work_notifier_entry_s *)arg;
-  DEBUGASSERT(entry != NULL);
-
-  ninfo = &entry->info;
-  DEBUGASSERT(ninfo->arg != NULL);
-
-  pinfo = (FAR struct udp_poll_s *)ninfo->arg;
+  pinfo = (FAR struct udp_poll_s *)arg;
   DEBUGASSERT(pinfo->psock != NULL && pinfo->fds != NULL);
 
   psock = pinfo->psock;
@@ -189,8 +157,8 @@ static inline void udp_iob_work(FAR void *arg)
    * event.  If so, don't do it again.
    */
 
-  if ((fds->events && POLLWRNORM) == 0 ||
-      (fds->revents && POLLWRNORM) != 0)
+  if ((fds->events & POLLWRNORM) != 0 &&
+      (fds->revents & POLLWRNORM) == 0)
     {
       /* Check if we are now able to send */
 
@@ -208,61 +176,6 @@ static inline void udp_iob_work(FAR void *arg)
           pinfo->key = iob_notifier_setup(LPWORK, udp_iob_work, pinfo);
         }
     }
-
-  /* Protocol for the use of the IOB notifier is that we free the argument
-   * after the notification has been processed.
-   */
-
-  kmm_free(arg);
-}
-#endif
-
-/****************************************************************************
- * Name: udp_poll_txnotify
- *
- * Description:
- *   Notify the appropriate device driver that we are have data ready to
- *   be sent (UDP)
- *
- * Input Parameters:
- *   psock - Socket state structure
- *
- * Returned Value:
- *   None
- *
- ****************************************************************************/
-
-#if !defined(CONFIG_NET_UDP_WRITE_BUFFERS) || !defined(CONFIG_IOB_NOTIFIER)
-static inline void udp_poll_txnotify(FAR struct socket *psock)
-{
-  FAR struct udp_conn_s *conn = psock->s_conn;
-
-#ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
-  /* If both IPv4 and IPv6 support are enabled, then we will need to select
-   * the device driver using the appropriate IP domain.
-   */
-
-  if (psock->s_domain == PF_INET)
-#endif
-    {
-      /* Notify the device driver that send data is available */
-
-      netdev_ipv4_txnotify(conn->u.ipv4.laddr, conn->u.ipv4.raddr);
-    }
-#endif /* CONFIG_NET_IPv4 */
-
-#ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-  else /* if (psock->s_domain == PF_INET6) */
-#endif /* CONFIG_NET_IPv4 */
-    {
-      /* Notify the device driver that send data is available */
-
-      DEBUGASSERT(psock->s_domain == PF_INET6);
-      netdev_ipv6_txnotify(conn->u.ipv6.laddr, conn->u.ipv6.raddr);
-    }
-#endif /* CONFIG_NET_IPv6 */
 }
 #endif
 
@@ -291,7 +204,7 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
   FAR struct udp_conn_s *conn = psock->s_conn;
   FAR struct udp_poll_s *info;
   FAR struct devif_callback_s *cb;
-  int ret;
+  int ret = OK;
 
   /* Sanity check */
 
@@ -302,17 +215,21 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
     }
 #endif
 
-  /* Allocate a container to hold the poll information */
-
-  info = (FAR struct udp_poll_s *)kmm_malloc(sizeof(struct udp_poll_s));
-  if (!info)
-    {
-      return -ENOMEM;
-    }
-
   /* Some of the  following must be atomic */
 
   net_lock();
+
+  /* Find a container to hold the poll information */
+
+  info = conn->pollinfo;
+  while (info->psock != NULL)
+    {
+      if (++info >= &conn->pollinfo[CONFIG_NET_UDP_NPOLLWAITERS])
+        {
+          ret = -ENOMEM;
+          goto errout_with_lock;
+        }
+    }
 
   /* Get the device that will provide the provide the NETDEV_DOWN event.
    * NOTE: in the event that the local socket is bound to INADDR_ANY, the
@@ -344,23 +261,18 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
    * callback processing.
    */
 
-  cb->flags    = 0;
+  cb->flags    = NETDEV_DOWN;
   cb->priv     = (FAR void *)info;
   cb->event    = udp_poll_eventhandler;
 
-  if ((info->fds->events & POLLOUT) != 0)
+  if ((fds->events & POLLOUT) != 0)
     {
       cb->flags |= UDP_POLL;
     }
 
-  if ((info->fds->events & POLLIN) != 0)
+  if ((fds->events & POLLIN) != 0)
     {
       cb->flags |= UDP_NEWDATA;
-    }
-
-  if ((info->fds->events & (POLLHUP | POLLERR)) != 0)
-    {
-      cb->flags |= NETDEV_DOWN;
     }
 
   /* Save the reference in the poll info structure as fds private as well
@@ -378,7 +290,7 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
       fds->revents |= (POLLRDNORM & fds->events);
     }
 
-   if (psock_udp_cansend(psock) >= 0)
+  if (psock_udp_cansend(psock) >= 0)
     {
       /* Normal data may be sent without blocking (at least one byte). */
 
@@ -406,53 +318,9 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
 
       info->key = iob_notifier_setup(LPWORK, udp_iob_work, info);
     }
-
-#else
-  /* If (1) the socket is in a bound state via bind() or via the
-   * UDP_BINDTODEVICE socket options, (2) revents == 0, (3) write buffering
-   * is not enabled (determined by a configuration setting), and (3) the
-   * POLLOUT event is needed then request an immediate Tx poll from the
-   * device associated with the binding.
-   */
-
-  else if ((fds->events & POLLOUT) != 0)
-    {
-      /* Check if the socket has been bound to a local address (might be
-       * INADDR_ANY or the IPv6 unspecified address!  In that case the
-       * notification will fail)
-       */
-
-      if (_SS_ISBOUND(psock->s_flags))
-        {
-          udp_poll_txnotify(psock);
-        }
-
-#ifdef CONFIG_NET_UDP_BINDTODEVICE
-      /* Check if the socket has been bound to a device interface index via
-       * the UDP_BINDTODEVICE socket option.
-       */
-
-      else if (conn->boundto > 0)
-        {
-          /* Yes, find the device associated with the interface index */
-
-          FAR struct net_driver_s *dev = netdev_findbyindex(conn->boundto);
-          if (dev != NULL)
-            {
-              /* And request a poll from the device */
-
-              netdev_txnotify_dev(dev);
-            }
-        }
 #endif
-    }
-#endif
-
-  net_unlock();
-  return OK;
 
 errout_with_lock:
-  kmm_free(info);
   net_unlock();
   return ret;
 }
@@ -506,9 +374,7 @@ int udp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
 
       /* Release the callback */
 
-      net_lock();
       udp_callback_free(info->dev, conn, info->cb);
-      net_unlock();
 
       /* Release the poll/select data slot */
 
@@ -516,10 +382,8 @@ int udp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
 
       /* Then free the poll info container */
 
-      kmm_free(info);
+      info->psock = NULL;
     }
 
   return OK;
 }
-
-#endif /* !HAVE_UDP_POLL */

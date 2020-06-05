@@ -100,13 +100,13 @@
 #  undef CONFIG_TIVA_GPIOQ_IRQS
 #endif
 #if TIVA_NPORTS < 16
-#  undef CONFIG_TIVA_GPIOQ_IRQS
+#  undef CONFIG_TIVA_GPIOR_IRQS
 #endif
 #if TIVA_NPORTS < 17
-#  undef CONFIG_TIVA_GPIOQ_IRQS
+#  undef CONFIG_TIVA_GPIOS_IRQS
 #endif
 #if TIVA_NPORTS < 18
-#  undef CONFIG_TIVA_GPIOQ_IRQS
+#  undef CONFIG_TIVA_GPIOT_IRQS
 #endif
 
 /* Bit-encoded input to tiva_configgpio() ***********************************/
@@ -204,7 +204,7 @@
  *    .... .... .... .... .... ...V .... ....
  */
 
-#define GPIO_VALUE_SHIFT              8                          /* Bit 8: If output, inital value of output */
+#define GPIO_VALUE_SHIFT              8                          /* Bit 8: If output, initial value of output */
 #define GPIO_VALUE_MASK               (1 << GPIO_VALUE_SHIFT)
 #  define GPIO_VALUE_ZERO             (0 << GPIO_VALUE_SHIFT)    /*   Initial value is zero */
 #  define GPIO_VALUE_ONE              (1 << GPIO_VALUE_SHIFT)    /*   Initial value is one */

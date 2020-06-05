@@ -149,7 +149,7 @@ void _exit(int status)
    * The IRQ state will be restored when the next task is started.
    */
 
-  (void)enter_critical_section();
+  enter_critical_section();
 
   sinfo("TCB=%p exiting\n", tcb);
 
@@ -164,7 +164,7 @@ void _exit(int status)
 
   /* Destroy the task at the head of the ready to run list. */
 
-  (void)nxtask_exit();
+  nxtask_exit();
 
   /* Now, perform the context switch to the new ready-to-run task at the
    * head of the list.
@@ -179,7 +179,7 @@ void _exit(int status)
    * the ready-to-run list.
    */
 
-  (void)group_addrenv(tcb);
+  group_addrenv(tcb);
 #endif
 
   /* Reset scheduler parameters */
@@ -190,10 +190,11 @@ void _exit(int status)
 
   up_fullcontextrestore(tcb->xcp.regs);
 
-  /* up_fullcontextrestore() should not return but could if the software
-   * interrupts are disabled.
+  /* up_fullcontextrestore() should not return but could if software
+   * interrupts are disabled.  NOTE:  Can't use DEBUGPANIC here because
+   * that results in a GCC compilation warning: "No return function does
+   * return"
    */
 
-  DEBUGPANIC();
+  PANIC();
 }
-

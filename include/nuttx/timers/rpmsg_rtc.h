@@ -57,7 +57,8 @@ extern "C"
 
 #ifdef CONFIG_RTC_RPMSG
 
-FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(const char *cpu_name, int minor);
+FAR struct rtc_lowerhalf_s *rpmsg_rtc_initialize(FAR const char *cpu_name,
+                                                 int minor);
 
 #endif /* CONFIG_RTC_RPMSG */
 

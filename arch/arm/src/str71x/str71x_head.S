@@ -260,7 +260,7 @@
  * Description:
  *   The EIC is initialized for use with NuttX.  This initialization does not
  *   take advantage of the high performance capabilities of the EIC.  Instead,
- *   The EIC is only used to to provide NuttX IRQ numbers.  Here is what is
+ *   The EIC is only used to provide NuttX IRQ numbers.  Here is what is
  *   done:
  *
  *     IRQs and FIQs are disabled
@@ -340,7 +340,7 @@ eicloop:
 	 */
 
 	cmp		\irqno, #STR71X_EIC_NCHANNELS
-	blt		eicloop	
+	blt		eicloop
 	.endm
 
 /*****************************************************************************
@@ -418,10 +418,10 @@ eicloop:
  * Name: _vector_table
  *
  * Description:
- *   Interrrupt vector table.  This must be located at the beginning
+ *   Interrupt vector table.  This must be located at the beginning
  *   of the memory space (at the beginning FLASH which will be mapped to
  *   address 0x00000000).  The first entry in the vector table is the reset
- *   vector and this is the code that will execute whn the processor is reset.
+ *   vector and this is the code that will execute when the processor is reset.
  *
  *****************************************************************************/
 
@@ -598,7 +598,7 @@ dtor_end:
 
 	/* Variables:
 	 * _sbss is the start of the BSS region (see ld.script)
-	 * _ebss is the end of the BSS regsion (see ld.script)
+	 * _ebss is the end of the BSS region (see ld.script)
 	 * The idle task stack starts at the end of BSS and is
 	 * of size CONFIG_IDLETHREAD_STACKSIZE.  The heap continues
 	 * from there until the end of memory.  See g_idle_topstack

@@ -56,7 +56,7 @@
 #include <nuttx/fs/binfs.h>
 #include <nuttx/fs/dirent.h>
 #include <nuttx/fs/ioctl.h>
-#include <nuttx/binfmt/builtin.h>
+#include <nuttx/lib/builtin.h>
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_BINFS)
 
@@ -154,7 +154,7 @@ static int binfs_open(FAR struct file *filep, FAR const char *relpath,
       return -EACCES;
     }
 
-  /* Check if the an entry exists with this name in the root directory.
+  /* Check if the entry exists with this name in the root directory.
    * so the 'relpath' must be the name of the builtin function.
    */
 
@@ -466,4 +466,3 @@ static int binfs_stat(struct inode *mountpt, const char *relpath, struct stat *b
  ****************************************************************************/
 
 #endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_FS_BINFS */
-

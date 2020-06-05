@@ -48,12 +48,12 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <semaphore.h>
 #include <poll.h>
 #include <nuttx/wqueue.h>
 
 #include <nuttx/wdog.h>
 #include <nuttx/clock.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/spi/spi.h>
 #include <nuttx/input/max11802.h>
 
@@ -148,9 +148,7 @@ struct max11802_dev_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_MAX11802_NPOLLWAITERS];
-#endif
 };
 
 /********************************************************************************************
@@ -170,4 +168,3 @@ extern "C" {
 #endif
 
 #endif /* __DRIVERS_INPUT_ADS7843E_H */
-

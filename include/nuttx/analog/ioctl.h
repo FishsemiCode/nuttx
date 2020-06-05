@@ -69,8 +69,8 @@
 #define AN_NCMDS          3               /* Number of common commands */
 
 /* User defined ioctl commands are also supported. These will be forwarded
- * by the upper-half QE driver to the lower-half QE driver via the ioctl()
- * method fo the QE lower-half interface.  However, the lower-half driver
+ * by the upper-half driver to the lower-half driver via the ioctl()
+ * method of the lower-half interface.  However, the lower-half driver
  * must reserve a block of commands as follows in order prevent IOCTL
  * command numbers from overlapping.
  */
@@ -89,6 +89,12 @@
 
 #define AN_SONG_ADC_FIRST (AN_LMP92001_FIRST + AN_LMP92001_NCMDS)
 #define AN_SONG_ADC_NCMDS 5
+
+/* See include/nuttx/analog/ads7828.h */
+
+#define AN_ADS7828_FIRST (AN_FIRST + AN_NCMDS + AN_ADS2142_NCMDS + \
+                          AN_LMP92001_NCMDS)
+#define AN_ADS7828_NCMDS 6
 
 /****************************************************************************
  * Public Function Prototypes

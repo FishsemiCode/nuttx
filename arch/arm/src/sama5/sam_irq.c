@@ -57,10 +57,10 @@
 #include "mmu.h"
 #include "cp15_cacheops.h"
 #include "sctlr.h"
-#include "chip/sam_aic.h"
-#include "chip/sam_matrix.h"
-#include "chip/sam_aximx.h"
-#include "chip/sam_sfr.h"
+#include "hardware/sam_aic.h"
+#include "hardware/sam_matrix.h"
+#include "hardware/sam_aximx.h"
+#include "hardware/sam_sfr.h"
 
 #include "sam_irq.h"
 
@@ -100,7 +100,7 @@ static const uint8_t g_srctype[SCRTYPE_NTYPES] =
   0, 0, 1, 1, 2, 3
 };
 
-/* This is an arry of bit maps that can be used to quickly determine is the
+/* This is an array of bit maps that can be used to quickly determine is the
  * peripheral identified by its PID is served by H64MX or H32MX.  Then the
  * appropriate MATRIX SPSELR register can be consulted to determine if the
  * peripheral interrupts are secured or not.
@@ -392,6 +392,10 @@ static void sam_aic_initialize(uintptr_t base)
 
   putreg32((uint32_t)sam_spurious, base + SAM_AIC_SPU_OFFSET);
 
+  /* Configure debug register */
+
+  putreg32(AIC_DCR_PROT, base + SAM_AIC_DCR_OFFSET);
+
   /* Perform 8 interrupt acknowledgements by writing any value to the
    * EOICR register.
    */
@@ -562,7 +566,7 @@ void up_irqinitialize(void)
 
   /* And finally, enable interrupts */
 
-  (void)up_irq_enable();
+  up_irq_enable();
 #endif
 }
 
@@ -841,6 +845,8 @@ int up_prioritize_irq(int irq, int priority)
     {
       sam_prioritize_irq(SAM_AIC_VBASE, irq, priority);
     }
+
+  return OK;
 }
 #endif
 

@@ -52,7 +52,7 @@
 #include <nuttx/drivers/drivers.h>
 
 #include "up_arch.h"
-#include "chip/stm32l4_rng.h"
+#include "hardware/stm32l4_rng.h"
 #include "up_internal.h"
 
 #if defined(CONFIG_STM32L4_RNG)
@@ -90,15 +90,13 @@ static struct rng_dev_s g_rngdev;
 
 static const struct file_operations g_rngops =
 {
-  0,               /* open */
-  0,               /* close */
+  NULL,            /* open */
+  NULL,            /* close */
   stm32l4_rngread, /* read */
-  0,               /* write */
-  0,               /* seek */
-  0                /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0              /* poll */
-#endif
+  NULL,            /* write */
+  NULL,            /* seek */
+  NULL,            /* ioctl */
+  NULL             /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , 0              /* unlink */
 #endif
@@ -315,7 +313,7 @@ static ssize_t stm32l4_rngread(struct file *filep, char *buffer, size_t buflen)
 void devrandom_register(void)
 {
   stm32l4_rng_initialize();
-  (void)register_driver("/dev/random", &g_rngops, 0444, NULL);
+  register_driver("/dev/random", &g_rngops, 0444, NULL);
 }
 #endif
 
@@ -339,7 +337,7 @@ void devurandom_register(void)
 #ifndef CONFIG_DEV_RANDOM
   stm32l4_rng_initialize();
 #endif
-  (void)register_driver("/dev/urandom", &g_rngops, 0444, NULL);
+  register_driver("/dev/urandom", &g_rngops, 0444, NULL);
 }
 #endif
 

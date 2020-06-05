@@ -95,6 +95,7 @@ config ARCH_CHIP_STM32F723RE
 config ARCH_CHIP_STM32F723VC
 	bool "STM32F723VC"
 	select STM32F7_STM32F723XX
+	select STM32F7_HAVE_INTERNAL_ULPI
 	select STM32F7_FLASH_CONFIG_C
 	select STM32F7_IO_CONFIG_V
 	---help---
@@ -103,6 +104,7 @@ config ARCH_CHIP_STM32F723VC
 config ARCH_CHIP_STM32F723VE
 	bool "STM32F723VE"
 	select STM32F7_STM32F723XX
+	select STM32F7_HAVE_INTERNAL_ULPI
 	select STM32F7_FLASH_CONFIG_E
 	select STM32F7_IO_CONFIG_V
 	---help---
@@ -111,6 +113,7 @@ config ARCH_CHIP_STM32F723VE
 config ARCH_CHIP_STM32F723ZC
 	bool "STM32F723ZC"
 	select STM32F7_STM32F723XX
+	select STM32F7_HAVE_INTERNAL_ULPI
 	select STM32F7_FLASH_CONFIG_C
 	select STM32F7_IO_CONFIG_Z
 	---help---
@@ -119,6 +122,7 @@ config ARCH_CHIP_STM32F723ZC
 config ARCH_CHIP_STM32F723ZE
 	bool "STM32F723ZE"
 	select STM32F7_STM32F723XX
+	select STM32F7_HAVE_INTERNAL_ULPI
 	select STM32F7_FLASH_CONFIG_E
 	select STM32F7_IO_CONFIG_Z
 	---help---
@@ -127,6 +131,7 @@ config ARCH_CHIP_STM32F723ZE
 config ARCH_CHIP_STM32F723IC
 	bool "STM32F723IC"
 	select STM32F7_STM32F723XX
+	select STM32F7_HAVE_INTERNAL_ULPI
 	select STM32F7_FLASH_CONFIG_C
 	select STM32F7_IO_CONFIG_I
 	---help---
@@ -135,6 +140,7 @@ config ARCH_CHIP_STM32F723IC
 config ARCH_CHIP_STM32F723IE
 	bool "STM32F723IE"
 	select STM32F7_STM32F723XX
+	select STM32F7_HAVE_INTERNAL_ULPI
 	select STM32F7_FLASH_CONFIG_E
 	select STM32F7_IO_CONFIG_I
 	---help---
@@ -666,6 +672,7 @@ config STM32F7_STM32F722XX
 	select STM32F7_HAVE_SPI5 if !(STM32F7_IO_CONFIG_R || STM32F7_IO_CONFIG_V)
 	select STM32F7_HAVE_CRYP
 	select STM32F7_HAVE_SDMMC2 if !STM32F7_IO_CONFIG_R
+	select STM32F7_HAVE_EXTERNAL_ULPI
 
 config STM32F7_STM32F723XX
 	bool
@@ -724,6 +731,9 @@ config STM32F7_STM32F746XX
 	select STM32F7_HAVE_DMA2D
 	select STM32F7_HAVE_CAN2
 	select STM32F7_HAVE_SPI4
+	select STM32F7_HAVE_EXTERNAL_ULPI
+	select STM32F7_HAVE_SAI1
+	select STM32F7_HAVE_SAI2
 
 config STM32F7_STM32F756XX
 	bool
@@ -759,7 +769,7 @@ config STM32F7_STM32F765XX
 	select ARMV7M_HAVE_DTCM
 	select STM32F7_HAVE_FMC
 	select STM32F7_HAVE_ETHRNET
-	select STM32F7_HAVE_RNG # data sheet says yes, Product matix says no
+	select STM32F7_HAVE_RNG # data sheet says yes, Product matrix says no
 	select STM32F7_HAVE_SPI5 if !STM32F7_IO_CONFIG_V
 	select STM32F7_HAVE_SPI6 if !STM32F7_IO_CONFIG_V
 	select STM32F7_HAVE_SDMMC2 if !STM32F7_IO_CONFIG_V
@@ -796,7 +806,7 @@ config STM32F7_STM32F767XX
 	select STM32F7_HAVE_CAN2
 	select STM32F7_HAVE_SPI4
 
-config STM32F7_STM32F768XX # Revisit Wehn parts released
+config STM32F7_STM32F768XX # Revisit When parts released
 	bool
 	default n
 	select STM32F7_STM32F76XX
@@ -1110,10 +1120,17 @@ config STM32F7_FLASH_ART_ACCELERATOR
 		Enable if code and/or read-only data is accessed through ITCM bus instead of
 		AXIM bus.
 
+config STM32F7_PROGMEM
+	bool "Flash progmem support"
+	default n
+	---help---
+		Add progmem support, start block and end block options are provided to
+		obtain an uniform flash memory mapping.
+
 menu "STM32 Peripheral Support"
 
-# These "hidden" settings determine is a peripheral option is available for the
-# selection MCU
+# These "hidden" settings determine whether a peripheral option is available
+# for the selected MCU
 
 config STM32F7_HAVE_LTDC
 	bool
@@ -1198,6 +1215,23 @@ config STM32F7_HAVE_HASH
 config STM32F7_HAVE_DFSDM1
 	bool
 	default n
+
+config STM32F7_HAVE_INTERNAL_ULPI
+	bool
+	default n
+
+config STM32F7_HAVE_EXTERNAL_ULPI
+	bool
+	default n
+
+config STM32F7_HAVE_SAI1
+	bool
+	default n
+
+config STM32F7_HAVE_SAI2
+	bool
+	default n
+
 
 # These "hidden" settings are the OR of individual peripheral selections
 # indicating that the general capability is required.
@@ -1334,7 +1368,7 @@ config STM32F7_DCMI
 	---help---
 		The devices embed a camera interface that can connect with camera
 		modules and CMOS sensors through an 8-bit to 14-bit parallel interface,
-		 to receive video data.
+		to receive video data.
 
 config STM32F7_DSIHOST
 	bool "DSIHOST"
@@ -1342,7 +1376,7 @@ config STM32F7_DSIHOST
 	depends on STM32F7_HAVE_DSIHOST
 	---help---
 		The DSI Host is a dedicated peripheral for interfacing with MIPI® DSI
-		 compliant displays.
+		compliant displays.
 
 config STM32F7_DMA2D
 	bool "DMA2D"
@@ -1360,7 +1394,7 @@ config STM32F7_JPEG
 	depends on STM32F7_HAVE_JPEG
 	---help---
 		The JPEG codec provides an fast and simple hardware compressor and
-		 decompressor of JPEG images with full management of JPEG headers.
+		decompressor of JPEG images with full management of JPEG headers.
 
 config STM32F7_ETHMAC
 	bool "Ethernet MAC"
@@ -1427,8 +1461,8 @@ config STM32F7_OTGFS
 	default n
 	select USBHOST_HAVE_ASYNCH if USBHOST
 
-config STM32F7_OTGHS
-	bool "OTG HS"
+config STM32F7_OTGFSHS
+	bool "OTG FS/HS"
 	default n
 	select USBHOST_HAVE_ASYNCH if USBHOST
 
@@ -1454,12 +1488,48 @@ config STM32F7_RNG
 config STM32F7_SAI1
 	bool "SAI1"
 	default n
+	depends on STM32F7_HAVE_SAI1
+
+config STM32F7_SAI1_A
+	bool "SAI1 Block A"
+	default n
+	select AUDIO
+	select I2S
+	select SCHED_HPWORK
 	select STM32F7_SAI
+	depends on STM32F7_SAI1
+
+config STM32F7_SAI1_B
+	bool "SAI1 Block B"
+	default n
+	select AUDIO
+	select I2S
+	select SCHED_HPWORK
+	select STM32F7_SAI
+	depends on STM32F7_SAI1
 
 config STM32F7_SAI2
 	bool "SAI2"
 	default n
+	select STM32F7_HAVE_SAI2
+
+config STM32F7_SAI2_A
+	bool "SAI2 Block A"
+	default n
+	select AUDIO
+	select I2S
+	select SCHED_HPWORK
 	select STM32F7_SAI
+	depends on STM32F7_SAI2
+
+config STM32F7_SAI2_B
+	bool "SAI2 Block B"
+	default n
+	select AUDIO
+	select I2S
+	select SCHED_HPWORK
+	select STM32F7_SAI
+	depends on STM32F7_SAI2
 
 config STM32F7_SDMMC1
 	bool "SDMMC1"
@@ -1697,9 +1767,16 @@ config USART1_RS485_DIR_POLARITY
 config USART1_RXDMA
 	bool "USART1 Rx DMA"
 	default n
-	depends on STM32F7_USART1 && STM32F7_DMA1
+	depends on STM32F7_USART1 && STM32F7_DMA2
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config USART1_TXDMA
+	bool "USART1 Tx DMA"
+	default n
+	depends on STM32F7_USART1 && STM32F7_DMA2
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
 
 config USART2_RS485
 	bool "RS-485 on USART2"
@@ -1726,6 +1803,13 @@ config USART2_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
+config USART2_TXDMA
+	bool "USART2 Tx DMA"
+	default n
+	depends on STM32F7_USART2 && STM32F7_DMA1
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
+
 config USART3_RS485
 	bool "RS-485 on USART3"
 	default n
@@ -1750,6 +1834,13 @@ config USART3_RXDMA
 	depends on STM32F7_USART3 && STM32F7_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config USART3_TXDMA
+	bool "USART3 Tx DMA"
+	default n
+	depends on STM32F7_USART3 && STM32F7_DMA1
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
 
 config UART4_RS485
 	bool "RS-485 on UART4"
@@ -1776,6 +1867,13 @@ config UART4_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
+config UART4_TXDMA
+	bool "UART4 Tx DMA"
+	default n
+	depends on STM32F7_UART4 && STM32F7_DMA1
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
+
 config UART5_RS485
 	bool "RS-485 on UART5"
 	default n
@@ -1800,6 +1898,13 @@ config UART5_RXDMA
 	depends on STM32F7_UART5 && STM32F7_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config UART5_TXDMA
+	bool "UART5 Tx DMA"
+	default n
+	depends on STM32F7_UART5 && STM32F7_DMA1
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
 
 config USART6_RS485
 	bool "RS-485 on USART6"
@@ -1826,6 +1931,13 @@ config USART6_RXDMA
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
 
+config USART6_TXDMA
+	bool "USART6 Tx DMA"
+	default n
+	depends on STM32F7_USART6 && STM32F7_DMA2
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
+
 config UART7_RS485
 	bool "RS-485 on UART7"
 	default n
@@ -1847,9 +1959,16 @@ config UART7_RS485_DIR_POLARITY
 config UART7_RXDMA
 	bool "UART7 Rx DMA"
 	default n
-	depends on STM32F7_UART7 && STM32F7_DMA2
+	depends on STM32F7_UART7 && STM32F7_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config UART7_TXDMA
+	bool "UART7 Tx DMA"
+	default n
+	depends on STM32F7_UART7 && STM32F7_DMA1
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
 
 config UART8_RS485
 	bool "RS-485 on UART8"
@@ -1872,9 +1991,16 @@ config UART8_RS485_DIR_POLARITY
 config UART8_RXDMA
 	bool "UART8 Rx DMA"
 	default n
-	depends on STM32F7_UART8 && STM32F7_DMA2
+	depends on STM32F7_UART8 && STM32F7_DMA1
 	---help---
 		In high data rate usage, Rx DMA may eliminate Rx overrun errors
+
+config UART8_TXDMA
+	bool "UART8 Tx DMA"
+	default n
+	depends on STM32F7_UART8 && STM32F7_DMA1
+	---help---
+		In high data rate usage, Rx DMA may reduce CPU Load
 
 config STM32F7_SERIAL_RXDMA_BUFFER_SIZE
 	int "Rx DMA buffer size"
@@ -1898,7 +2024,7 @@ config STM32F7_SERIAL_DISABLE_REORDERING
 		can, however, have the side-effect that all port mappings
 		(hardware USART1 -> /dev/ttyS0) change if the console is moved to another
 		UART. This is in particular relevant if a project uses the USB console
-		in some configs and a serial console in other configs, but does not
+		in some boards and a serial console in other boards, but does not
 		want the side effect of having all serial port names change when just
 		the console is moved from serial to USB.
 
@@ -1910,7 +2036,7 @@ config STM32F7_FLOWCONTROL_BROKEN
 		Enable UART RTS flow control using Software. Because STM
 		Current STM32 have broken HW based RTS behavior (they assert
 		nRTS after every byte received)  Enable this setting workaround
-		this issue by useing software based management of RTS
+		this issue by using software based management of RTS
 
 config STM32F7_USART_BREAKS
 	bool "Add TIOxSBRK to support sending Breaks"
@@ -1940,6 +2066,22 @@ config STM32F7_USART_SINGLEWIRE
 		Enable single wire UART support.  The option enables support for the
 		TIOCSSINGLEWIRE ioctl in the STM32F7 serial driver.
 
+config STM32F7_USART_INVERT
+	bool "Signal Invert Support"
+	default n
+	depends on STM32F7_USART
+	---help---
+		Enable signal inversion UART support. The option enables support for the
+		TIOCSINVERT ioctl in the STM32F7 serial driver.
+
+config STM32F7_USART_SWAP
+	bool "Swap RX/TX pins support"
+	default n
+	depends on STM32F7_USART
+	---help---
+		Enable RX/TX pin swapping support. The option enables support for the
+		TIOCSSWAP ioctl in the STM32F7 serial driver.
+
 if PM
 
 config STM32F7_PM_SERIAL_ACTIVITY
@@ -1952,6 +2094,41 @@ config STM32F7_PM_SERIAL_ACTIVITY
 endif
 
 endmenu # U[S]ART Configuration
+
+menu "STM32F7_OTG_HS Configuration"
+	depends on STM32F7_OTGFSHS
+
+choice
+	prompt "ULPI Selection"
+	default STM32F7_NO_ULPI
+
+config STM32F7_NO_ULPI
+	bool "No External ULPI"
+	---help---
+	Select to enable the presence of an external ULPI PHY
+
+config STM32F7_EXTERNAL_ULPI
+	bool "External ULPI"
+	depends on STM32F7_HAVE_EXTERNAL_ULPI
+	---help---
+		Select to enable the presence of an external ULPI PHY
+
+config STM32F7_INTERNAL_ULPI
+	bool "Internal ULPI PHY"
+	depends on STM32F7_HAVE_INTERNAL_ULPI
+	---help---
+		Select to enable the internal ULPI for USB HS
+endchoice #"ULPI Selection"
+
+endmenu # OTG_HS Config
+
+config STM32F7_EXTERNAL_RAM
+	bool "External RAM on FMC"
+	default n
+	depends on STM32F7_FMC
+	select ARCH_HAVE_HEAP2
+	---help---
+		In addition to internal SDRAM, external RAM may be available through the FMC.
 
 menu "QuadSPI Configuration"
 	depends on STM32F7_QUADSPI
@@ -2103,13 +2280,29 @@ config STM32F7_SPI_DMA
 	default n
 	---help---
 		Use DMA to improve SPI transfer performance.  Cannot be used with STM32F7_SPI_INTERRUPT.
-		
+
+config STM32F7_SPI_DMATHRESHOLD
+	int "SPI DMA threshold"
+	default 4
+	depends on STM32F7_SPI_DMA
+	---help---
+		When SPI DMA is enabled, small DMA transfers will still be performed
+		by polling logic.  But we need a threshold value to determine what
+		is small.
+
 config STM32F7_SPI1_DMA
 	bool "SPI1 DMA"
 	default n
 	depends on STM32F7_SPI1 && STM32F7_SPI_DMA
 	---help---
 		Use DMA to improve SPI1 transfer performance.
+
+config STM32F7_SPI1_DMA_BUFFER
+	int "SPI1 DMA buffer size"
+	default 0
+	depends on STM32F7_SPI1_DMA
+	---help---
+		Add a properly aligned DMA buffer for RX and TX DMA for SPI1.
 
 config STM32F7_SPI2_DMA
 	bool "SPI2 DMA"
@@ -2118,12 +2311,26 @@ config STM32F7_SPI2_DMA
 	---help---
 		Use DMA to improve SPI2 transfer performance.
 
+config STM32F7_SPI2_DMA_BUFFER
+	int "SPI2 DMA buffer size"
+	default 0
+	depends on STM32F7_SPI2_DMA
+	---help---
+		Add a properly aligned DMA buffer for RX and TX DMA for SPI2.
+
 config STM32F7_SPI3_DMA
 	bool "SPI3 DMA"
 	default n
 	depends on STM32F7_SPI3 && STM32F7_SPI_DMA
 	---help---
 		Use DMA to improve SPI3 transfer performance.
+
+config STM32F7_SPI3_DMA_BUFFER
+	int "SPI3 DMA buffer size"
+	default 0
+	depends on STM32F7_SPI3_DMA
+	---help---
+		Add a properly aligned DMA buffer for RX and TX DMA for SPI3.
 
 config STM32F7_SPI4_DMA
 	bool "SPI4 DMA"
@@ -2132,6 +2339,13 @@ config STM32F7_SPI4_DMA
 	---help---
 		Use DMA to improve SPI4 transfer performance.
 
+config STM32F7_SPI4_DMA_BUFFER
+	int "SPI4 DMA buffer size"
+	default 0
+	depends on STM32F7_SPI4_DMA
+	---help---
+		Add a properly aligned DMA buffer for RX and TX DMA for SPI4.
+
 config STM32F7_SPI5_DMA
 	bool "SPI5 DMA"
 	default n
@@ -2139,12 +2353,26 @@ config STM32F7_SPI5_DMA
 	---help---
 		Use DMA to improve SPI5 transfer performance.
 
+config STM32F7_SPI5_DMA_BUFFER
+	int "SPI5 DMA buffer size"
+	default 0
+	depends on STM32F7_SPI5_DMA
+	---help---
+		Add a properly aligned DMA buffer for RX and TX DMA for SPI5.
+
 config STM32F7_SPI6_DMA
 	bool "SPI6 DMA"
 	default n
 	depends on STM32F7_SPI6 && STM32F7_SPI_DMA
 	---help---
 		Use DMA to improve SPI6 transfer performance.
+
+config STM32F7_SPI6_DMA_BUFFER
+	int "SPI6 DMA buffer size"
+	default 0
+	depends on STM32F7_SPI6_DMA
+	---help---
+		Add a properly aligned DMA buffer for RX and TX DMA for SPI6.
 
 endmenu # "SPI Configuration"
 
@@ -2213,7 +2441,7 @@ config STM32F7_SDMMC1_DMAPRIO
 	hex "SDMMC1 DMA priority"
 	default 0x00010000
 	---help---
-		Select SDMMC1 DMA prority.
+		Select SDMMC1 DMA priority.
 
 		Options are: 0x00000000 low, 0x00010000 medium,
 		0x00020000 high, 0x00030000 very high.  Default: medium.
@@ -2249,7 +2477,7 @@ config STM32F7_SDMMC2_DMAPRIO
 	hex "SDMMC2 DMA priority"
 	default 0x00010000
 	---help---
-		Select SDMMC1 DMA prority.
+		Select SDMMC2 DMA priority.
 
 		Options are: 0x00000000 low, 0x00010000 medium,
 		0x00020000 high, 0x00030000 very high.  Default: medium.
@@ -2288,10 +2516,12 @@ config STM32F7_BBSRAM
 config STM32F7_BBSRAM_FILES
 	int "Max Files to support in BBSRAM"
 	default 4
+	depends on STM32F7_BBSRAM
 
 config STM32F7_SAVE_CRASHDUMP
 	bool "Enable Saving Panic to BBSRAM"
 	default n
+	depends on STM32F7_BBSRAM
 
 endif # STM32F7_BKPSRAM
 
@@ -2405,6 +2635,27 @@ config STM32F7_DMACAPABLE
 		attempt the DMA or fall back to a different transfer method.
 
 menu "Timer Configuration"
+
+if SCHED_TICKLESS
+
+config STM32F7_TICKLESS_TIMER
+	int "Tickless hardware timer"
+	default 2
+	range 1 14
+	---help---
+		If the Tickless OS feature is enabled, then one clock must be
+		assigned to provided the timer needed by the OS.
+
+config STM32F7_TICKLESS_CHANNEL
+	int "Tickless timer channel"
+	default 1
+	range 1 4
+	---help---
+		If the Tickless OS feature is enabled, the one clock must be
+		assigned to provided the free-running timer needed by the OS
+		and one channel on that clock is needed to handle intervals.
+
+endif # SCHED_TICKLESS
 
 config STM32F7_TIM1_PWM
 	bool "TIM1 PWM"
@@ -5250,7 +5501,7 @@ config STM32F7_LTDC_FB_BASE
 config STM32F7_LTDC_FB_SIZE
 	int "Framebuffer memory size (bytes)"
 	default 0
-	 ---help---
+	---help---
 		Must be the whole size of the active LTDC layer.
 
 config STM32F7_LTDC_L1_CHROMAKEYEN
@@ -5657,6 +5908,70 @@ config STM32F7_QENCODER_SAMPLE_EVENT_8
 	bool "8"
 
 endchoice
+
+endmenu
+
+menu "SAI Configuration"
+	depends on STM32F7_SAI
+
+choice
+	prompt "Operation mode"
+	default STM32F7_SAI_DMA
+	---help---
+		Select the operation mode the SAI driver should use.
+
+config STM32F7_SAI_POLLING
+	bool "Polling"
+	---help---
+		The SAI registers are polled for events.
+
+config STM32F7_SAI_INTERRUPTS
+	bool "Interrupt"
+	---help---
+		Select to enable interrupt driven SAI support.
+
+config STM32F7_SAI_DMA
+	bool "DMA"
+	---help---
+		Use DMA to improve SAI transfer performance.
+
+endchoice # Operation mode
+
+choice
+	prompt "SAI1 synchronization enable"
+	default STM32F7_SAI1_BOTH_ASYNC
+	depends on STM32F7_SAI1_A && STM32F7_SAI1_B
+	---help---
+		Select the synchronization mode of the SAI sub-blocks
+
+config STM32F7_SAI1_BOTH_ASYNC
+	bool "Both asynchronous"
+
+config STM32F7_SAI1_A_SYNC_WITH_B
+	bool "Block A is synchronous with Block B"
+
+config STM32F7_SAI1_B_SYNC_WITH_A
+	bool "Block B is synchronous with Block A"
+
+endchoice # SAI1 synchronization enable
+
+choice
+	prompt "SAI2 synchronization enable"
+	default STM32F7_SAI2_BOTH_ASYNC
+	depends on STM32F7_SAI2_A && STM32F7_SAI2_B
+	---help---
+		Select the synchronization mode of the SAI sub-blocks
+
+config STM32F7_SAI2_BOTH_ASYNC
+	bool "Both asynchronous"
+
+config STM32F7_SAI2_A_SYNC_WITH_B
+	bool "Block A is synchronous with Block B"
+
+config STM32F7_SAI2_B_SYNC_WITH_A
+	bool "Block B is synchronous with Block A"
+
+endchoice # SAI2 synchronization enable
 
 endmenu
 

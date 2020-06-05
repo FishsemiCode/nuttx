@@ -48,9 +48,7 @@
 
 #include "chip/switch.h"
 #include "sched/sched.h"
-#include "up_internal.h"
-
-#ifndef CONFIG_DISABLE_SIGNALS
+#include "z80_internal.h"
 
 /****************************************************************************
  * Private Functions
@@ -73,7 +71,7 @@ static void z8_sigsetup(FAR struct tcb_s *tcb, sig_deliver_t sigdeliver,
 
   /* Then set up to vector to the trampoline with interrupts disabled */
 
-  regs[XCPT_PC]          = (chipreg_t)up_sigdeliver;
+  regs[XCPT_PC]          = (chipreg_t)z80_sigdeliver;
   regs[XCPT_IRQCTL]      = 0;
 }
 
@@ -180,6 +178,3 @@ void up_schedule_sigaction(FAR struct tcb_s *tcb, sig_deliver_t sigdeliver)
 
   leave_critical_section(flags);
 }
-
-#endif /* CONFIG_DISABLE_SIGNALS */
-

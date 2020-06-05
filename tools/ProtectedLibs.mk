@@ -1,7 +1,7 @@
 ############################################################################
 # tools/ProtectedLibs.mk
 #
-#   Copyright (C) 2007-2012, 2014, 2016-2018 Gregory Nutt. All rights
+#   Copyright (C) 2007-2012, 2014, 2016-2019 Gregory Nutt. All rights
 #     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
@@ -36,8 +36,6 @@
 
 # NUTTXLIBS is the list of NuttX libraries that is passed to the
 #   processor-specific Makefile to build the final NuttX target.
-#   Libraries in FSDIRS are excluded if file descriptor support
-#   is disabled.
 # USERLIBS is the list of libraries used to build the final user-space
 #   application
 # EXPORTLIBS is the list of libraries that should be exported by
@@ -46,19 +44,16 @@
 NUTTXLIBS = staging$(DELIM)libsched$(LIBEXT)
 USERLIBS =
 
-# Driver support.  Generally depends on file descriptor support but there
-# are some components in the drivers directory that are needed even if file
-# descriptors are not supported.
+# Driver support.
 
 NUTTXLIBS += staging$(DELIM)libdrivers$(LIBEXT)
 
 # Add libraries for board support
 
-NUTTXLIBS += staging$(DELIM)libconfigs$(LIBEXT)
+NUTTXLIBS += staging$(DELIM)libboards$(LIBEXT)
 
 # Add libraries for syscall support.  The C library will be needed by
-# both the kernel- and user-space builds.  For now, the memory manager (mm)
-# is placed in user space (only).
+# both the kernel- and user-space builds.
 
 NUTTXLIBS += staging$(DELIM)libstubs$(LIBEXT) staging$(DELIM)libkc$(LIBEXT)
 NUTTXLIBS += staging$(DELIM)libkmm$(LIBEXT) staging$(DELIM)libkarch$(LIBEXT)
@@ -77,7 +72,7 @@ endif
 # be defined in Make.defs for this to work!
 
 ifeq ($(CONFIG_HAVE_CXX),y)
-USERLIBS += staging$(DELIM)$(LIBXX)$(LIBEXT)
+USERLIBS += staging$(DELIM)libxx$(LIBEXT)
 endif
 
 # Add library for application support.
@@ -119,16 +114,16 @@ ifeq ($(CONFIG_AUDIO),y)
 NUTTXLIBS += staging$(DELIM)libaudio$(LIBEXT)
 endif
 
+# Add libraries for the Video sub-system
+
+ifeq ($(CONFIG_VIDEO),y)
+NUTTXLIBS += staging$(DELIM)libvideo$(LIBEXT)
+endif
+
 # Add libraries for the Wireless sub-system
 
 ifeq ($(CONFIG_WIRELESS),y)
 NUTTXLIBS += staging$(DELIM)libwireless$(LIBEXT)
-endif
-
-# Add C++ library
-
-ifeq ($(CONFIG_HAVE_CXX),y)
-NUTTXLIBS += staging$(DELIM)$(LIBXX)$(LIBEXT)
 endif
 
 # Add DSP library

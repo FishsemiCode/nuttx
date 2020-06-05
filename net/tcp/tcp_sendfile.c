@@ -55,7 +55,6 @@
 #include <debug.h>
 
 #include <arch/irq.h>
-#include <nuttx/clock.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
@@ -105,54 +104,11 @@ struct sendfile_s
   ssize_t            snd_sent;    /* The number of bytes sent */
   uint32_t           snd_isn;     /* Initial sequence number */
   uint32_t           snd_acked;   /* The number of bytes acked */
-#ifdef CONFIG_NET_SOCKOPTS
-  clock_t            snd_time;    /* Last send time for determining timeout */
-#endif
 };
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-/****************************************************************************
- * Name: sendfile_timeout
- *
- * Description:
- *   Check for send timeout.
- *
- * Input Parameters:
- *   pstate - send state structure
- *
- * Returned Value:
- *   TRUE:timeout FALSE:no timeout
- *
- * Assumptions:
- *   The network is locked
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_SOCKOPTS
-static inline int sendfile_timeout(FAR struct sendfile_s *pstate)
-{
-  FAR struct socket *psock = 0;
-
-  /* Check for a timeout configured via setsockopts(SO_SNDTIMEO).
-   * If none... we well let the send wait forever.
-   */
-
-  psock = pstate->snd_sock;
-  if (psock && psock->s_sndtimeo != 0)
-    {
-      /* Check if the configured timeout has elapsed */
-
-      return net_timeo(pstate->snd_time, psock->s_sndtimeo);
-    }
-
-  /* No timeout */
-
-  return FALSE;
-}
-#endif /* CONFIG_NET_SOCKOPTS */
 
 static uint16_t ack_eventhandler(FAR struct net_driver_s *dev,
                                  FAR void *pvconn,
@@ -166,12 +122,6 @@ static uint16_t ack_eventhandler(FAR struct net_driver_s *dev,
     {
       FAR struct tcp_hdr_s *tcp;
 
-#ifdef CONFIG_NET_SOCKOPTS
-      /* Update the timeout */
-
-      pstate->snd_time = clock_systimer();
-#endif
-
       /* Get the offset address of the TCP header */
 
 #ifdef CONFIG_NET_IPv6
@@ -179,7 +129,7 @@ static uint16_t ack_eventhandler(FAR struct net_driver_s *dev,
       if (IFF_IS_IPv6(dev->d_flags))
 #endif
         {
-          DEBUGASSERT(pstate->snd_sock == PF_INET6);
+          DEBUGASSERT(pstate->snd_sock->s_domain == PF_INET6);
           tcp = TCPIPv6BUF;
         }
 #endif /* CONFIG_NET_IPv6 */
@@ -189,7 +139,7 @@ static uint16_t ack_eventhandler(FAR struct net_driver_s *dev,
       else
 #endif
         {
-          DEBUGASSERT(pstate->snd_sock == PF_INET);
+          DEBUGASSERT(pstate->snd_sock->s_domain == PF_INET);
           tcp = TCPIPv4BUF;
         }
 #endif /* CONFIG_NET_IPv4 */
@@ -234,11 +184,11 @@ static uint16_t ack_eventhandler(FAR struct net_driver_s *dev,
 
       DEBUGASSERT(psock != NULL);
       if (_SS_ISCONNECTED(psock->s_flags))
-         {
-           /* Report not connected */
+        {
+          /* Report not connected */
 
-           tcp_lost_connection(psock, pstate->snd_ackcb, flags);
-         }
+          tcp_lost_connection(psock, pstate->snd_ackcb, flags);
+        }
 
       /* Report not connected */
 
@@ -257,69 +207,6 @@ static uint16_t ack_eventhandler(FAR struct net_driver_s *dev,
 
   return flags;
 }
-
-/****************************************************************************
- * Name: sendfile_addrcheck
- *
- * Description:
- *   Check if the destination IP address is in the IPv4 ARP or IPv6 Neighbor
- *   tables.  If not, then the send won't actually make it out... it will be
- *   replaced with an ARP request (IPv4) or a Neighbor Solicitation (IPv6).
- *
- *   NOTE 1: This could be an expensive check if there are a lot of
- *   entries in the ARP or Neighbor tables.
- *
- *   NOTE 2: If we are actually harvesting IP addresses on incoming IP
- *   packets, then this check should not be necessary; the MAC mapping
- *   should already be in the ARP table in many cases (IPv4 only).
- *
- *   NOTE 3: If CONFIG_NET_ARP_SEND then we can be assured that the IP
- *   address mapping is already in the ARP table.
- *
- * Input Parameters:
- *   conn  - The TCP connection structure
- *
- * Returned Value:
- *   None
- *
- * Assumptions:
- *   The network is locked
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_ETHERNET
-static inline bool sendfile_addrcheck(FAR struct tcp_conn_s *conn)
-{
-#ifdef CONFIG_NET_IPv4
-#ifdef CONFIG_NET_IPv6
-  if (conn->domain == PF_INET)
-#endif
-    {
-#if !defined(CONFIG_NET_ARP_IPIN) && !defined(CONFIG_NET_ARP_SEND)
-      return (arp_find(conn->u.ipv4.raddr, NULL) >= 0);
-#else
-      return true;
-#endif
-    }
-#endif /* CONFIG_NET_IPv4 */
-
-#ifdef CONFIG_NET_IPv6
-#ifdef CONFIG_NET_IPv4
-  else
-#endif
-    {
-#if !defined(CONFIG_NET_ICMPv6_NEIGHBOR)
-      return (neighbor_lookup(conn->u.ipv6.raddr, NULL) >= 0);
-#else
-      return true;
-#endif
-    }
-#endif /* CONFIG_NET_IPv6 */
-}
-
-#else /* CONFIG_NET_ETHERNET */
-#  sendfile_addrcheck(r) (true)
-#endif /* CONFIG_NET_ETHERNET */
 
 /****************************************************************************
  * Name: sendfile_eventhandler
@@ -377,11 +264,11 @@ static uint16_t sendfile_eventhandler(FAR struct net_driver_s *dev,
 
       DEBUGASSERT(psock != NULL);
       if (_SS_ISCONNECTED(psock->s_flags))
-         {
-           /* Report not connected */
+        {
+          /* Report not connected */
 
-           tcp_lost_connection(psock, pstate->snd_datacb, flags);
-         }
+          tcp_lost_connection(psock, pstate->snd_datacb, flags);
+        }
 
       /* Report not connected */
 
@@ -451,19 +338,11 @@ static uint16_t sendfile_eventhandler(FAR struct net_driver_s *dev,
 
           tcp_setsequence(conn->sndseq, seqno);
 
-          /* Check if the destination IP address is in the ARP  or Neighbor
-           * table.  If not, then the send won't actually make it out... it
-           * will be replaced with an ARP request or Neighbor Solicitation.
-           */
+          /* Update the amount of data sent (but not necessarily ACKed) */
 
-          if (pstate->snd_sent != 0 || sendfile_addrcheck(conn))
-            {
-              /* Update the amount of data sent (but not necessarily ACKed) */
-
-              pstate->snd_sent += sndlen;
-              ninfo("pid: %d SEND: acked=%d sent=%d flen=%d\n", getpid(),
-                    pstate->snd_acked, pstate->snd_sent, pstate->snd_flen);
-            }
+          pstate->snd_sent += sndlen;
+          ninfo("pid: %d SEND: acked=%d sent=%d flen=%d\n", getpid(),
+                pstate->snd_acked, pstate->snd_sent, pstate->snd_flen);
         }
       else
         {
@@ -471,21 +350,6 @@ static uint16_t sendfile_eventhandler(FAR struct net_driver_s *dev,
           goto wait;
         }
     }
-
-#ifdef CONFIG_NET_SOCKOPTS
-  /* All data has been send and we are just waiting for ACK or re-transmit
-   * indications to complete the send.  Check for a timeout.
-   */
-
-  if (sendfile_timeout(pstate))
-    {
-      /* Yes.. report the timeout */
-
-      nwarn("WARNING: SEND timeout\n");
-      pstate->snd_sent = -ETIMEDOUT;
-      goto end_wait;
-    }
-#endif /* CONFIG_NET_SOCKOPTS */
 
   if (pstate->snd_sent >= pstate->snd_flen
       && pstate->snd_acked < pstate->snd_flen)
@@ -633,10 +497,6 @@ ssize_t tcp_sendfile(FAR struct socket *psock, FAR struct file *infile,
     }
 #endif /* CONFIG_NET_ARP_SEND || CONFIG_NET_ICMPv6_NEIGHBOR */
 
-  /* Set the socket state to sending */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_SEND);
-
   /* Initialize the state structure.  This is done with the network
    * locked because we don't want anything to happen until we are
    * ready.
@@ -685,13 +545,7 @@ ssize_t tcp_sendfile(FAR struct socket *psock, FAR struct file *infile,
    * initial sequence number.
    */
 
-  conn->unacked          = 0;
-
-#ifdef CONFIG_NET_SOCKOPTS
-  /* Set the initial time for calculating timeouts */
-
-  state.snd_time         = clock_systimer();
-#endif
+  conn->tx_unacked       = 0;
 
   /* Set up the ACK callback in the connection */
 
@@ -701,22 +555,25 @@ ssize_t tcp_sendfile(FAR struct socket *psock, FAR struct file *infile,
 
   /* Perform the TCP send operation */
 
-  do
+  state.snd_datacb->flags = TCP_POLL;
+  state.snd_datacb->priv  = (FAR void *)&state;
+  state.snd_datacb->event = sendfile_eventhandler;
+
+  /* Notify the device driver of the availability of TX data */
+
+  sendfile_txnotify(psock, conn);
+
+  for (; ; )
     {
-      state.snd_datacb->flags = TCP_POLL;
-      state.snd_datacb->priv  = (FAR void *)&state;
-      state.snd_datacb->event = sendfile_eventhandler;
+      uint32_t acked = state.snd_acked;
 
-      /* Notify the device driver of the availability of TX data */
-
-      sendfile_txnotify(psock, conn);
-      net_lockedwait(&state.snd_sem);
+      ret = net_timedwait_uninterruptible(&state.snd_sem,
+                                          _SO_TIMEOUT(psock->s_sndtimeo));
+      if (ret != -ETIMEDOUT || acked == state.snd_acked)
+        {
+          break; /* Timeout without any progress */
+        }
     }
-  while (state.snd_sent >= 0 && state.snd_acked < state.snd_flen);
-
-  /* Set the socket state to idle */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
 
   tcp_callback_free(conn, state.snd_ackcb);
 
@@ -725,7 +582,7 @@ errout_datacb:
 
 errout_locked:
 
-  nxsem_destroy(&state. snd_sem);
+  nxsem_destroy(&state.snd_sem);
   net_unlock();
 
   if (ret < 0)

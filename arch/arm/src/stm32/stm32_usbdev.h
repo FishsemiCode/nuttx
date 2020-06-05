@@ -45,7 +45,7 @@
 #include <stdint.h>
 
 #include "chip.h"
-#include "chip/stm32_usbdev.h"
+#include "hardware/stm32_usbdev.h"
 
 /************************************************************************************
  * Public Functions
@@ -94,4 +94,3 @@ void stm32_usbsuspend(FAR struct usbdev_s *dev, bool resume);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_USBDEV_H */
-

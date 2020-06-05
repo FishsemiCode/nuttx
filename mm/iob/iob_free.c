@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <debug.h>
 
@@ -54,20 +53,22 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#if !defined(CONFIG_IOB_NOTIFIER_DIV) || CONFIG_IOB_NOTIFIER_DIV < 2
-#  define IOB_DIVIDER 1
-#elif CONFIG_IOB_NOTIFIER_DIV < 4
-#  define IOB_DIVIDER 2
-#elif CONFIG_IOB_NOTIFIER_DIV < 8
-#  define IOB_DIVIDER 4
-#elif CONFIG_IOB_NOTIFIER_DIV < 16
-#  define IOB_DIVIDER 8
-#elif CONFIG_IOB_NOTIFIER_DIV < 32
-#  define IOB_DIVIDER 16
-#elif CONFIG_IOB_NOTIFIER_DIV < 64
-#  define IOB_DIVIDER 32
-#else
-#  define IOB_DIVIDER 64
+#ifdef CONFIG_IOB_NOTIFIER
+#  if !defined(CONFIG_IOB_NOTIFIER_DIV) || CONFIG_IOB_NOTIFIER_DIV < 2
+#    define IOB_DIVIDER 1
+#  elif CONFIG_IOB_NOTIFIER_DIV < 4
+#    define IOB_DIVIDER 2
+#  elif CONFIG_IOB_NOTIFIER_DIV < 8
+#    define IOB_DIVIDER 4
+#  elif CONFIG_IOB_NOTIFIER_DIV < 16
+#    define IOB_DIVIDER 8
+#  elif CONFIG_IOB_NOTIFIER_DIV < 32
+#    define IOB_DIVIDER 16
+#  elif CONFIG_IOB_NOTIFIER_DIV < 64
+#    define IOB_DIVIDER 32
+#  else
+#    define IOB_DIVIDER 64
+#  endif
 #endif
 
 #define IOB_MASK      (IOB_DIVIDER - 1)
@@ -85,7 +86,8 @@
  *
  ****************************************************************************/
 
-FAR struct iob_s *iob_free(FAR struct iob_s *iob)
+FAR struct iob_s *iob_free(FAR struct iob_s *iob,
+                           enum iob_user_e producerid)
 {
   FAR struct iob_s *next = iob->io_flink;
   irqstate_t flags;
@@ -160,9 +162,15 @@ FAR struct iob_s *iob_free(FAR struct iob_s *iob)
   nxsem_post(&g_iob_sem);
   DEBUGASSERT(g_iob_sem.semcount <= CONFIG_IOB_NBUFFERS);
 
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_PROCFS) && \
+    defined(CONFIG_MM_IOB) && !defined(CONFIG_FS_PROCFS_EXCLUDE_IOBINFO)
+  iob_stats_onfree(producerid);
+#endif
+
 #if CONFIG_IOB_THROTTLE > 0
   nxsem_post(&g_throttle_sem);
-  DEBUGASSERT(g_throttle_sem.semcount <= (CONFIG_IOB_NBUFFERS - CONFIG_IOB_THROTTLE));
+  DEBUGASSERT(g_throttle_sem.semcount <=
+              (CONFIG_IOB_NBUFFERS - CONFIG_IOB_THROTTLE));
 #endif
 
 #ifdef CONFIG_IOB_NOTIFIER

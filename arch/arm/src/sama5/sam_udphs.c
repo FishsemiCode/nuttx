@@ -69,7 +69,7 @@
 
 #include "sam_periphclks.h"
 #include "sam_memories.h"
-#include "chip/sam_udphs.h"
+#include "hardware/sam_udphs.h"
 #include "sam_udphs.h"
 
 #if defined(CONFIG_USBDEV) && defined(CONFIG_SAMA5_UDPHS)
@@ -912,7 +912,7 @@ static void sam_dma_single(uint8_t epno, struct sam_req_s *privreq,
 
   /* Clear any pending interrupts then enable the DMA interrupt */
 
-  (void)sam_getreg(SAM_UDPHS_DMASTATUS(epno));
+  sam_getreg(SAM_UDPHS_DMASTATUS(epno));
   regval  = sam_getreg(SAM_UDPHS_IEN);
   regval |= UDPHS_INT_DMA(epno);
   sam_putreg(regval, SAM_UDPHS_IEN);
@@ -971,7 +971,7 @@ static void sam_dma_wrsetup(struct sam_usbdev_s *priv, struct sam_ep_s *privep,
         {
           privreq->inflight = remaining;
 
-          /* If the size is an exact multple of full packets, then note if
+          /* If the size is an exact multiple of full packets, then note if
            * we need to send a zero length packet next.
            */
 
@@ -1248,7 +1248,7 @@ static void sam_req_wrsetup(struct sam_usbdev_s *priv,
   usbtrace(TRACE_WRITE(USB_EPNO(privep->ep.eplog)), nbytes);
 
   /* The new buffer pointer is the started of the buffer plus the number
-   * of bytes successfully transfered plus the number of bytes previously
+   * of bytes successfully transferred plus the number of bytes previously
    * "in-flight".
    */
 
@@ -1808,7 +1808,7 @@ static void sam_ep0_dispatch(struct sam_usbdev_s *priv)
           /* Stall on failure */
 
           usbtrace(TRACE_DEVERROR(SAM_TRACEERR_DISPATCHSTALL), 0);
-          (void)sam_ep_stall(&priv->eplist[EP0].ep, false);
+          sam_ep_stall(&priv->eplist[EP0].ep, false);
         }
     }
 }
@@ -2298,7 +2298,7 @@ static void sam_ep0_setup(struct sam_usbdev_s *priv)
           usbtrace(TRACE_DEVERROR(SAM_TRACEERR_EP0SETUPSTALLED),
                    priv->ctrl.req);
 
-          (void)sam_ep_stall(&priv->eplist[EP0].ep, false);
+          sam_ep_stall(&priv->eplist[EP0].ep, false);
         }
         break;
 
@@ -2368,7 +2368,7 @@ static void sam_dma_interrupt(struct sam_usbdev_s *priv, int epno)
        */
 
       /* This is just debug logic that only does any if USB debug or tracing
-       * are enabled.  This just verifies taht BUFF_COUNT is zero.
+       * are enabled.  This just verifies that BUFF_COUNT is zero.
        */
 
       bufcnt = (dmastatus & UDPHS_DMASTATUS_BUFCNT_MASK)
@@ -2397,7 +2397,7 @@ static void sam_dma_interrupt(struct sam_usbdev_s *priv, int epno)
 
           DEBUGASSERT(USB_ISEPIN(privep->ep.eplog));
           privep->epstate = UDPHS_EPSTATE_IDLE;
-          (void)sam_req_write(priv, privep);
+          sam_req_write(priv, privep);
         }
       else if (privep->epstate == UDPHS_EPSTATE_RECEIVING)
         {
@@ -2423,7 +2423,7 @@ static void sam_dma_interrupt(struct sam_usbdev_s *priv, int epno)
            */
 
           privep->epstate = UDPHS_EPSTATE_IDLE;
-          (void)sam_req_read(priv, privep, xfrsize);
+          sam_req_read(priv, privep, xfrsize);
         }
       else
         {
@@ -2432,8 +2432,8 @@ static void sam_dma_interrupt(struct sam_usbdev_s *priv, int epno)
     }
 
   /* Check for end of channel transfer. END_TR_ST is set by hardware when
-   * the last packet transfer is complete iff END_TR_EN is set in the
-   * DMACONTROL rgister.  The request is complete.
+   * the last packet transfer is complete if END_TR_EN is set in the
+   * DMACONTROL register.  The request is complete.
    *
    * "Used for OUT transfers only.
    *
@@ -2476,7 +2476,7 @@ static void sam_dma_interrupt(struct sam_usbdev_s *priv, int epno)
        */
 
       privep->epstate = UDPHS_EPSTATE_IDLE;
-      (void)sam_req_read(priv, privep, xfrsize);
+      sam_req_read(priv, privep, xfrsize);
     }
   else
     {
@@ -2541,7 +2541,7 @@ static void sam_ep_interrupt(struct sam_usbdev_s *priv, int epno)
            */
 
           privep->epstate = UDPHS_EPSTATE_IDLE;
-          (void)sam_req_write(priv, privep);
+          sam_req_write(priv, privep);
         }
 
       /* Setting of the device address is a special case.  The address was
@@ -2635,7 +2635,7 @@ static void sam_ep_interrupt(struct sam_usbdev_s *priv, int epno)
 
               /* STALL and discard received data. */
 
-              (void)sam_ep_stall(&privep->ep, false);
+              sam_ep_stall(&privep->ep, false);
               sam_putreg(UDPHS_EPTSTA_RXRDYTXKL, SAM_UDPHS_EPTCLRSTA(epno));
             }
         }
@@ -3392,7 +3392,7 @@ static int sam_ep_configure(struct usbdev_ep_s *ep,
 
   /* Verify parameters.  Endpoint 0 is not available at this interface */
 
-#if defined(CONFIG_DEBUG_FEATURES) || defined(CONFIG_USBDEV_TRACE)
+#if defined(CONFIG_DEBUG_ASSERTIONS) || defined(CONFIG_USBDEV_TRACE)
   uint8_t epno = USB_EPNO(desc->addr);
   usbtrace(TRACE_EPCONFIGURE, (uint16_t)epno);
 
@@ -3737,13 +3737,13 @@ static int sam_ep_stall(struct usbdev_ep_s *ep, bool resume)
             {
               /* IN endpoint (or EP0).  Restart any queued write requests */
 
-              (void)sam_req_write(priv, privep);
+              sam_req_write(priv, privep);
             }
           else
             {
               /* OUT endpoint.  Restart any queued read requests. */
 
-              (void)sam_req_read(priv, privep, 0);
+              sam_req_read(priv, privep, 0);
             }
         }
     }

@@ -130,7 +130,7 @@
 #  error "CONFIG_PAGING_NPPAGED must be less than CONFIG_PAGING_NVPAGED"
 #endif
 
-/* The size of physical and virutal paged address regions will then be: */
+/* The size of physical and virtual paged address regions will then be: */
 
 #define PG_PAGED_PSIZE             (CONFIG_PAGING_NPPAGED << PAGESHIFT)
 #define PG_PAGED_VSIZE             (CONFIG_PAGING_NVPAGED << PAGESHIFT)
@@ -454,7 +454,7 @@ int up_allocpage(FAR struct tcb_s *tcb, FAR void **vpage);
 #ifdef CONFIG_PAGING_BLOCKINGFILL
 int up_fillpage(FAR struct tcb_s *tcb, FAR void *vpage);
 #else
-typedef void (*up_pgcallback_t)(FAR struct tcb_s *tcb, int result);
+typedef CODE void (*up_pgcallback_t)(FAR struct tcb_s *tcb, int result);
 int up_fillpage(FAR struct tcb_s *tcb, FAR void *vpage,
                 up_pgcallback_t pg_callback);
 #endif

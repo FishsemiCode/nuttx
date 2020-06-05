@@ -73,7 +73,7 @@ static int unsetenv_by_pid(pid_t pid, FAR const char *name)
     {
       /* It does!  Remove the name=value pair from the environment. */
 
-      (void)env_removevar(group, pvar);
+      env_removevar(group, pvar);
 
       /* Reallocate the new environment buffer */
 

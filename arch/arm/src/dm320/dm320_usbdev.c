@@ -67,7 +67,7 @@
 
 /* Configuration ************************************************************/
 
-#ifndef  CONFIG_USBDEV_MAXPOWER
+#ifndef CONFIG_USBDEV_MAXPOWER
 #  define CONFIG_USBDEV_MAXPOWER 100  /* mA */
 #endif
 
@@ -433,7 +433,7 @@ static uint8_t dm320_getreg8(uint32_t addr)
 
   uint8_t val = getreg8(addr);
 
-  /* Is this the same value that we read from the same registe last time?  Are
+  /* Is this the same value that we read from the same register last time?  Are
    * we polling the register?  If so, suppress some of the output.
    */
 
@@ -496,7 +496,7 @@ static uint32_t dm320_getreg16(uint32_t addr)
 
   uint16_t val = getreg16(addr);
 
-  /* Is this the same value that we read from the same registe last time?  Are
+  /* Is this the same value that we read from the same register last time?  Are
    * we polling the register?  If so, suppress some of the output.
    */
 
@@ -559,7 +559,7 @@ static uint32_t dm320_getreg32(uint32_t addr)
 
   uint32_t val = getreg32(addr);
 
-  /* Is this the same value that we read from the same registe last time?  Are
+  /* Is this the same value that we read from the same register last time?  Are
    * we polling the register?  If so, suppress some of the output.
    */
 
@@ -1304,7 +1304,7 @@ static inline void dm320_ep0setup(struct dm320_usbdev_s *priv)
 
             /* Restart the write queue */
 
-            (void)dm320_wrrequest(privep);
+            dm320_wrrequest(privep);
           }
         else
           {
@@ -1581,7 +1581,7 @@ static int dm320_ctlrinterrupt(int irq, FAR void *context, FAR void *arg)
             if ((csr0 & USB_PERCSR0_RXPKTRDY) != 0)
               {
                 usbtrace(TRACE_INTENTRY(DM320_TRACEINTID_RXPKTRDY), csr0);
-                (void)dm320_getreg8(DM320_USB_COUNT0);
+                dm320_getreg8(DM320_USB_COUNT0);
                 dm320_ep0setup(priv);
               }
             else if ((csr0 & USB_PERCSR0_SENTST) != 0)
@@ -1643,7 +1643,7 @@ static int dm320_ctlrinterrupt(int irq, FAR void *context, FAR void *arg)
 
             if (!dm320_rqempty(privep))
               {
-                (void)dm320_wrrequest(privep);
+                dm320_wrrequest(privep);
               }
           }
           break;
@@ -1753,7 +1753,7 @@ static void dm320_epreset(unsigned int index)
 static inline void dm320_epinitialize(struct dm320_usbdev_s *priv)
 {
   uint16_t  offset;     /* Full USB buffer offset */
-  uint8_t addrhi;     /* MS bytes of ofset */
+  uint8_t addrhi;     /* MS bytes of offset */
   uint8_t addrlo;     /* LS bytes of offset */
   int     i;
 
@@ -1765,7 +1765,7 @@ static inline void dm320_epinitialize(struct dm320_usbdev_s *priv)
   dm320_putreg8(USB_CSR2_FLFIFO, DM320_USB_CSR2);
   dm320_putreg8(USB_CSR2_FLFIFO, DM320_USB_CSR2);
 
-  /* EP0 Fifo size/address (ofset == 0) */
+  /* EP0 Fifo size/address (offset == 0) */
 
   dm320_putreg8(0x00, DM320_USB_TXFIFO1);
   dm320_putreg8(0x00, DM320_USB_RXFIFO1);
@@ -2624,5 +2624,3 @@ int usbdev_unregister(FAR struct usbdevclass_driver_s *driver)
   g_usbdev.driver = NULL;
   return OK;
 }
-
-

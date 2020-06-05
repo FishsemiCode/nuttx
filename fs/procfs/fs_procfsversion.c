@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/procfs/fs_procfsversion.c
  *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -320,4 +320,3 @@ static int version_stat(FAR const char *relpath, FAR struct stat *buf)
 
 #endif /* CONFIG_FS_PROCFS_EXCLUDE_PROCESS */
 #endif /* !CONFIG_DISABLE_MOUNTPOINT && CONFIG_FS_PROCFS */
-

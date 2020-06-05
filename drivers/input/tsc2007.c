@@ -56,7 +56,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include <poll.h>
 #include <errno.h>
 #include <assert.h>
@@ -67,6 +66,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/i2c/i2c_master.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/random.h>
 
@@ -177,9 +177,7 @@ struct tsc2007_dev_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_TSC2007_NPOLLWAITERS];
-#endif
 };
 
 /****************************************************************************
@@ -204,9 +202,7 @@ static int tsc2007_open(FAR struct file *filep);
 static int tsc2007_close(FAR struct file *filep);
 static ssize_t tsc2007_read(FAR struct file *filep, FAR char *buffer, size_t len);
 static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int tsc2007_poll(FAR struct file *filep, struct pollfd *fds, bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -221,10 +217,8 @@ static const struct file_operations tsc2007_fops =
   tsc2007_read,    /* read */
   0,               /* write */
   0,               /* seek */
-  tsc2007_ioctl    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , tsc2007_poll   /* poll */
-#endif
+  tsc2007_ioctl,   /* ioctl */
+  tsc2007_poll     /* poll */
 };
 
 /* If only a single TSC2007 device is supported, then the driver state
@@ -250,9 +244,7 @@ static struct tsc2007_dev_s *g_tsc2007list;
 
 static void tsc2007_notify(FAR struct tsc2007_dev_s *priv)
 {
-#ifndef CONFIG_DISABLE_POLL
   int i;
-#endif
 
   /* If there are threads waiting for read data, then signal one of them
    * that the read data is available.
@@ -273,7 +265,6 @@ static void tsc2007_notify(FAR struct tsc2007_dev_s *priv)
    * then some make end up blocking after all.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   for (i = 0; i < CONFIG_TSC2007_NPOLLWAITERS; i++)
     {
       struct pollfd *fds = priv->fds[i];
@@ -284,7 +275,6 @@ static void tsc2007_notify(FAR struct tsc2007_dev_s *priv)
           nxsem_post(fds->sem);
         }
     }
-#endif
 }
 
 /****************************************************************************
@@ -383,12 +373,7 @@ static int tsc2007_waitsample(FAR struct tsc2007_dev_s *priv,
 
       if (ret < 0)
         {
-          /* If we are awakened by a signal, then we need to return
-           * the failure now.
-           */
-
           ierr("ERROR: nxsem_wait failed: %d\n", ret);
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
           goto errout;
         }
     }
@@ -443,7 +428,7 @@ static int tsc2007_activate(FAR struct tsc2007_dev_s *priv, uint8_t cmd)
 
    /* Ignore errors from the setup command (because it is not ACKed) */
 
-   (void)I2C_TRANSFER(priv->i2c, &msg, 1);
+   I2C_TRANSFER(priv->i2c, &msg, 1);
 
    /* Now activate the A/D converter */
 
@@ -630,7 +615,7 @@ static void tsc2007_worker(FAR void *arg)
        *  in the cases previously listed."
        */
 
-      (void)tsc2007_activate(priv, TSC2007_ACTIVATE_X);
+      tsc2007_activate(priv, TSC2007_ACTIVATE_X);
       y = tsc2007_transfer(priv, TSC2007_MEASURE_Y);
 
 
@@ -639,7 +624,7 @@ static void tsc2007_worker(FAR void *arg)
        *  process provides the X and Y coordinates to the associated processor."
        */
 
-      (void)tsc2007_activate(priv, TSC2007_ACTIVATE_Y);
+      tsc2007_activate(priv, TSC2007_ACTIVATE_Y);
       x = tsc2007_transfer(priv, TSC2007_MEASURE_X);
 
       /* "... To determine pen or finger touch, the pressure of the touch must be
@@ -658,14 +643,14 @@ static void tsc2007_worker(FAR void *arg)
        * Read Z1 and Z2 values.
        */
 
-      (void)tsc2007_activate(priv, TSC2007_ACTIVATE_Z);
+      tsc2007_activate(priv, TSC2007_ACTIVATE_Z);
       z1 = tsc2007_transfer(priv, TSC2007_MEASURE_Z1);
-      (void)tsc2007_activate(priv, TSC2007_ACTIVATE_Z);
+      tsc2007_activate(priv, TSC2007_ACTIVATE_Z);
       z2 = tsc2007_transfer(priv, TSC2007_MEASURE_Z2);
 
       /* Power down ADC and enable PENIRQ */
 
-     (void)tsc2007_transfer(priv, TSC2007_ENABLE_PENIRQ);
+     tsc2007_transfer(priv, TSC2007_ENABLE_PENIRQ);
 
       /* Now calculate the pressure using the first method, reduced to:
        *
@@ -819,10 +804,7 @@ static int tsc2007_open(FAR struct file *filep)
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -875,10 +857,7 @@ static int tsc2007_close(FAR struct file *filep)
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -933,10 +912,7 @@ static ssize_t tsc2007_read(FAR struct file *filep, FAR char *buffer, size_t len
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1050,10 +1026,7 @@ static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1106,7 +1079,6 @@ static int tsc2007_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Name: tsc2007_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int tsc2007_poll(FAR struct file *filep, FAR struct pollfd *fds,
                         bool setup)
 {
@@ -1127,10 +1099,7 @@ static int tsc2007_poll(FAR struct file *filep, FAR struct pollfd *fds,
   ret = nxsem_wait(&priv->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -1195,11 +1164,6 @@ errout:
   nxsem_post(&priv->devsem);
   return ret;
 }
-#endif
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
 
 /****************************************************************************
  * Public Functions
@@ -1215,7 +1179,7 @@ errout:
  *
  * Input Parameters:
  *   dev     - An I2C driver instance
- *   config  - Persistant board configuration data
+ *   config  - Persistent board configuration data
  *   minor   - The input device minor number
  *
  * Returned Value:
@@ -1298,7 +1262,7 @@ int tsc2007_register(FAR struct i2c_master_s *dev,
 
   /* Register the device as an input device */
 
-  (void)snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
+  snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
   iinfo("Registering %s\n", devname);
 
   ret = register_driver(devname, &tsc2007_fops, 0666, priv);
@@ -1310,7 +1274,7 @@ int tsc2007_register(FAR struct i2c_master_s *dev,
 
   /* If multiple TSC2007 devices are supported, then we will need to add
    * this new instance to a list of device instances so that it can be
-   * found by the interrupt handler based on the recieved IRQ number.
+   * found by the interrupt handler based on the received IRQ number.
    */
 
 #ifdef CONFIG_TSC2007_MULTIPLE

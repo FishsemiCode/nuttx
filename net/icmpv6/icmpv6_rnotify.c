@@ -1,35 +1,20 @@
 /****************************************************************************
  * net/icmpv6/icmpv6_rnotify.c
  *
- *   Copyright (C) 2015-2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -40,15 +25,12 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <time.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <netinet/in.h>
 
 #include <nuttx/irq.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/netdev.h>
 
@@ -120,9 +102,10 @@ static void icmpv6_setaddresses(FAR struct net_driver_s *dev,
   net_ipv6_pref2mask(preflen, dev->d_ipv6netmask);
 
   ninfo("preflen=%d netmask=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x\n",
-        preflen, dev->d_ipv6netmask[0], dev->d_ipv6netmask[1],
-        dev->d_ipv6netmask[2], dev->d_ipv6netmask[3], dev->d_ipv6netmask[4],
-        dev->d_ipv6netmask[5], dev->d_ipv6netmask[6], dev->d_ipv6netmask[7]);
+        preflen, ntohs(dev->d_ipv6netmask[0]), ntohs(dev->d_ipv6netmask[1]),
+        ntohs(dev->d_ipv6netmask[2]), ntohs(dev->d_ipv6netmask[3]),
+        ntohs(dev->d_ipv6netmask[4]), ntohs(dev->d_ipv6netmask[5]),
+        ntohs(dev->d_ipv6netmask[6]), ntohs(dev->d_ipv6netmask[7]));
 
   /* Copy prefix to the current IPv6 address, applying the mask */
 
@@ -133,21 +116,24 @@ static void icmpv6_setaddresses(FAR struct net_driver_s *dev,
     }
 
   ninfo("prefix=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x\n",
-        prefix[0], prefix[1], prefix[2], prefix[3],
-        prefix[4], prefix[6], prefix[6], prefix[7]);
+        ntohs(prefix[0]), ntohs(prefix[1]), ntohs(prefix[2]),
+        ntohs(prefix[3]), ntohs(prefix[4]), ntohs(prefix[5]),
+        ntohs(prefix[6]), ntohs(prefix[7]));
   ninfo("IP address=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x\n",
-        dev->d_ipv6addr[0], dev->d_ipv6addr[1], dev->d_ipv6addr[2],
-        dev->d_ipv6addr[3], dev->d_ipv6addr[4], dev->d_ipv6addr[6],
-        dev->d_ipv6addr[6], dev->d_ipv6addr[7]);
+        ntohs(dev->d_ipv6addr[0]), ntohs(dev->d_ipv6addr[1]),
+        ntohs(dev->d_ipv6addr[2]), ntohs(dev->d_ipv6addr[3]),
+        ntohs(dev->d_ipv6addr[4]), ntohs(dev->d_ipv6addr[5]),
+        ntohs(dev->d_ipv6addr[6]), ntohs(dev->d_ipv6addr[7]));
 
   /* Finally, copy the router address */
 
   net_ipv6addr_copy(dev->d_ipv6draddr, draddr);
 
   ninfo("DR address=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x\n",
-        dev->d_ipv6draddr[0], dev->d_ipv6draddr[1], dev->d_ipv6draddr[2],
-        dev->d_ipv6draddr[3], dev->d_ipv6draddr[4], dev->d_ipv6draddr[6],
-        dev->d_ipv6draddr[6], dev->d_ipv6draddr[7]);
+        ntohs(dev->d_ipv6draddr[0]), ntohs(dev->d_ipv6draddr[1]),
+        ntohs(dev->d_ipv6draddr[2]), ntohs(dev->d_ipv6draddr[3]),
+        ntohs(dev->d_ipv6draddr[4]), ntohs(dev->d_ipv6draddr[5]),
+        ntohs(dev->d_ipv6draddr[6]), ntohs(dev->d_ipv6draddr[7]));
 
   net_unlock();
 }
@@ -185,7 +171,7 @@ void icmpv6_rwait_setup(FAR struct net_driver_s *dev,
    * priority inheritance enabled.
    */
 
-  (void)nxsem_init(&notify->rn_sem, 0, 0);
+  nxsem_init(&notify->rn_sem, 0, 0);
   nxsem_setprotocol(&notify->rn_sem, SEM_PRIO_NONE);
 
   /* Add the wait structure to the list with interrupts disabled */
@@ -226,7 +212,9 @@ int icmpv6_rwait_cancel(FAR struct icmpv6_rnotify_s *notify)
   flags = enter_critical_section();
   for (prev = NULL, curr = g_icmpv6_rwaiters;
        curr && curr != notify;
-       prev = curr, curr = curr->rn_flink);
+       prev = curr, curr = curr->rn_flink)
+    {
+    }
 
   DEBUGASSERT(curr && curr == notify);
   if (curr)
@@ -244,7 +232,7 @@ int icmpv6_rwait_cancel(FAR struct icmpv6_rnotify_s *notify)
     }
 
   leave_critical_section(flags);
-  (void)nxsem_destroy(&notify->rn_sem);
+  nxsem_destroy(&notify->rn_sem);
   return ret;
 }
 
@@ -262,46 +250,25 @@ int icmpv6_rwait_cancel(FAR struct icmpv6_rnotify_s *notify)
  *
  ****************************************************************************/
 
-int icmpv6_rwait(FAR struct icmpv6_rnotify_s *notify,
-                 FAR struct timespec *timeout)
+int icmpv6_rwait(FAR struct icmpv6_rnotify_s *notify, unsigned int timeout)
 {
-  struct timespec abstime;
-  irqstate_t flags;
   int ret;
 
   ninfo("Waiting...\n");
 
-  /* And wait for the Neighbor Advertisement (or a timeout).  Interrupts will
-   * be re-enabled while we wait.
-   */
+  /* And wait for the Neighbor Advertisement (or a timeout). */
 
-  flags = enter_critical_section();
-  DEBUGVERIFY(clock_gettime(CLOCK_REALTIME, &abstime));
-
-  abstime.tv_sec  += timeout->tv_sec;
-  abstime.tv_nsec += timeout->tv_nsec;
-  if (abstime.tv_nsec >= 1000000000)
+  ret = net_timedwait(&notify->rn_sem, timeout);
+  if (ret >= 0)
     {
-      abstime.tv_sec++;
-      abstime.tv_nsec -= 1000000000;
+      ret = notify->rn_result;
     }
-
-  /* REVISIT:  If net_timedwait() is awakened with  signal, we will return
-   * the wrong error code.
-   */
-
-  (void)net_timedwait(&notify->rn_sem, &abstime);
-  ret = notify->rn_result;
 
   /* Remove our wait structure from the list (we may no longer be at the
    * head of the list).
    */
 
-  (void)icmpv6_rwait_cancel(notify);
-
-  /* Re-enable interrupts and return the result of the wait */
-
-  leave_critical_section(flags);
+  icmpv6_rwait_cancel(notify);
   return ret;
 }
 
@@ -319,8 +286,9 @@ int icmpv6_rwait(FAR struct icmpv6_rnotify_s *notify,
  *
  ****************************************************************************/
 
-void icmpv6_rnotify(FAR struct net_driver_s *dev, const net_ipv6addr_t draddr,
-                    const net_ipv6addr_t prefix, unsigned int preflen)
+void icmpv6_rnotify(FAR struct net_driver_s *dev,
+                    const net_ipv6addr_t draddr, const net_ipv6addr_t prefix,
+                    unsigned int preflen)
 {
   FAR struct icmpv6_rnotify_s *curr;
 

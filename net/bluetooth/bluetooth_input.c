@@ -95,7 +95,7 @@ static int bluetooth_count_frames(FAR struct bluetooth_conn_s *conn)
  * Input Parameters:
  *   conn   - The socket connection structure.
  *   framel - A single frame to add to the RX queue.
- *   meta   - Meta data characterizing the received frane.
+ *   meta   - Meta data characterizing the received frame.
  *
  * Returned Value:
  *   Zero (OK) is returned on success; A negated errno value is returned on
@@ -146,28 +146,28 @@ static int bluetooth_queue_frame(FAR struct bluetooth_conn_s *conn,
 
   if (conn->bc_backlog >= CONFIG_NET_BLUETOOTH_BACKLOG)
     {
-     DEBUGASSERT(conn->bc_backlog == CONFIG_NET_BLUETOOTH_BACKLOG);
+      DEBUGASSERT(conn->bc_backlog == CONFIG_NET_BLUETOOTH_BACKLOG);
 
-     /* Remove the container from the tail RX input queue. */
+      /* Remove the container from the tail RX input queue. */
 
-     container           = conn->bc_rxhead;
-     DEBUGASSERT(container != NULL);
-     conn->bc_rxhead     = container->bn_flink;
-     container->bn_flink = NULL;
+      container           = conn->bc_rxhead;
+      DEBUGASSERT(container != NULL);
+      conn->bc_rxhead     = container->bn_flink;
+      container->bn_flink = NULL;
 
-     /* Did the RX queue become empty? */
+      /* Did the RX queue become empty? */
 
-     if (conn->bc_rxhead == NULL)
-       {
-         conn->bc_rxtail = NULL;
-       }
+      if (conn->bc_rxhead == NULL)
+        {
+          conn->bc_rxtail = NULL;
+        }
 
-     DEBUGASSERT(container != NULL && container->bn_iob != NULL);
+      DEBUGASSERT(container != NULL && container->bn_iob != NULL);
 
-     /* Free both the IOB and the container */
+      /* Free both the IOB and the container */
 
-     iob_free(container->bn_iob);
-     bluetooth_container_free(container);
+      iob_free(container->bn_iob, IOBUSER_NET_SOCK_BLUETOOTH);
+      bluetooth_container_free(container);
     }
   else
     {
@@ -267,7 +267,7 @@ int bluetooth_input(FAR struct radio_driver_s *radio,
           if (ret < 0)
             {
               nerr("ERROR: Failed to queue frame: %d\n", ret);
-              iob_free(frame);
+              iob_free(frame, IOBUSER_NET_SOCK_BLUETOOTH);
             }
         }
 
@@ -279,7 +279,7 @@ int bluetooth_input(FAR struct radio_driver_s *radio,
        * was not consumed.
        */
 
-      (void)bluetooth_callback(radio, conn, BLUETOOTH_NEWDATA);
+      bluetooth_callback(radio, conn, BLUETOOTH_NEWDATA);
     }
   else
     {

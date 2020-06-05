@@ -52,7 +52,7 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "chip/_sama5d2x_pio.h"
+#include "hardware/_sama5d2x_pio.h"
 
 #include "chip.h"
 #include "sam_periphclks.h"
@@ -89,9 +89,6 @@ const uintptr_t g_piobase[SAM_NPIO] =
 #if SAM_NPIO > 3
   , SAM_PIO_IOGROUPD_VBASE
 #endif
-#if SAM_NPIO > 4
-  , SAM_PIO_IOGROUPE_VBASE
-#endif
 };
 
 /* Lookup for non-secure PIOs */
@@ -107,9 +104,6 @@ const uintptr_t g_spiobase[SAM_NPIO] =
 #endif
 #if SAM_NPIO > 3
   , SAM_SPIO_IOGROUPD_VBASE
-#endif
-#if SAM_NPIO > 4
-  , SAM_SPIO_IOGROUPE_VBASE
 #endif
 };
 
@@ -130,9 +124,6 @@ static const char g_portchar[SAM_NPIO] =
 #endif
 #if SAM_NPIO > 3
   , 'D'
-#endif
-#if SAM_NPIO > 4
-  , 'E'
 #endif
 };
 #endif
@@ -267,7 +258,7 @@ static uint32_t sam_configcommon(pio_pinset_t cfgset)
     }
 
   /* Select I/O drive.
-   * REVISIT: Does't rive strength apply only to output and peripheral
+   * REVISIT: Doesn't rive strength apply only to output and peripheral
    * pins as well?
    */
 
@@ -388,7 +379,7 @@ static inline int sam_configperiph(uintptr_t base, uint32_t pin,
    */
 
   regval  = sam_configcommon(cfgset);
-  periph  = ((cfgset & PIO_CFGR_FUNC_MASK) - PIO_CFGR_FUNC_PERIPHA) >> PIO_CFGR_FUNC_SHIFT;
+  periph  = ((cfgset & PIO_MODE_MASK) - PIO_ANALOG) >> PIO_MODE_SHIFT;
   regval |= PIO_CFGR_FUNC_PERIPH(periph);
 
   /* Clear some output only bits.  Mostly this just simplifies debug. */
@@ -463,22 +454,23 @@ int sam_configpio(pio_pinset_t cfgset)
 
   /* Select the secure or un-secured PIO operation */
 
+#if 0
   if (sam_issecure(cfgset))
     {
       putreg32(pin, base + SAM_SPIO_SIOSR_OFFSET);
     }
   else
+#endif
     {
       putreg32(pin, base + SAM_SPIO_SIONR_OFFSET);
     }
-
   /* Set the mask register to modify only the specific pin being configured. */
 
   putreg32(pin, base + SAM_PIO_MSKR_OFFSET);
 
   /* Put the pin in an initial state -- a vanilla input pin */
 
-  (void)sam_configinput(base, pin, MK_INPUT(cfgset));
+  sam_configinput(base, pin, MK_INPUT(cfgset));
 
   /* Then handle the real pin configuration according to pin type */
 

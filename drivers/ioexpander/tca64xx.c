@@ -12,29 +12,28 @@
  *   All rights reserved.
  *   Author:  Patrick Titiano, Jean Pihet
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
+ *    without specific prior written permission.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- * this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- * this list of conditions and the following disclaimer in the documentation
- * and/or other materials provided with the distribution.
- * 3. Neither the name of the copyright holder nor the names of its
- * contributors may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
- * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
- * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
- * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
- * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
- * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
 
@@ -44,7 +43,6 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -76,8 +74,9 @@
 
 /* TCA64xx Helpers */
 
-static void tca64_lock(FAR struct tca64_dev_s *priv);
-static FAR const struct tca64_part_s *tca64_getpart(FAR struct tca64_dev_s *priv);
+static int tca64_lock(FAR struct tca64_dev_s *priv);
+static FAR const struct tca64_part_s *tca64_getpart(
+                          FAR struct tca64_dev_s *priv);
 static uint8_t tca64_ngpios(FAR struct tca64_dev_s *priv);
 static uint8_t tca64_input_reg(FAR struct tca64_dev_s *priv, uint8_t pin);
 static uint8_t tca64_output_reg(FAR struct tca64_dev_s *priv, uint8_t pin);
@@ -195,23 +194,9 @@ static const struct tca64_part_s g_tca64_parts[TCA64_NPARTS] =
  *
  ****************************************************************************/
 
-static void tca64_lock(FAR struct tca64_dev_s *priv)
+static int tca64_lock(FAR struct tca64_dev_s *priv)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->exclsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&priv->exclsem);
 }
 
 #define tca64_unlock(p) nxsem_post(&(p)->exclsem)
@@ -224,7 +209,8 @@ static void tca64_lock(FAR struct tca64_dev_s *priv)
  *
  ****************************************************************************/
 
-static FAR const struct tca64_part_s *tca64_getpart(FAR struct tca64_dev_s *priv)
+static FAR const struct tca64_part_s *tca64_getpart(
+                          FAR struct tca64_dev_s *priv)
 {
   DEBUGASSERT(priv != NULL && priv->config != NULL &&
               priv->config->part < TCA64_NPARTS);
@@ -385,7 +371,7 @@ static int tca64_putreg(struct tca64_dev_s *priv, uint8_t regaddr,
 
   for (i = 0; i < count; i++)
     {
-      cmd[i+1] = regval[i];
+      cmd[i + 1] = regval[i];
     }
 
   msg[0].frequency = TCA64XX_I2C_MAXFREQUENCY,
@@ -444,7 +430,11 @@ static int tca64_direction(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   /* Get exclusive access to the I/O Expander */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the Configuration Register associated with this pin.  The
    * Configuration Register configures the direction of the I/O pins.
@@ -542,7 +532,11 @@ static int tca64_option(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
       /* Get exclusive access to the I/O Expander */
 
-      tca64_lock(priv);
+      ret = tca64_lock(priv);
+      if (ret < 0)
+        {
+          return ret;
+        }
 
       /* Read the polarity register */
 
@@ -587,8 +581,12 @@ static int tca64_option(FAR struct ioexpander_dev_s *dev, uint8_t pin,
       unsigned int ival = (unsigned int)((uintptr_t)value);
       ioe_pinset_t bit = ((ioe_pinset_t)1 << pin);
 
-      ret = OK;
-      tca64_lock(priv);
+      ret = tca64_lock(priv);
+      if (ret < 0)
+        {
+          return ret;
+        }
+
       switch (ival)
         {
           case IOEXPANDER_VAL_HIGH:    /* Interrupt on high level */
@@ -668,7 +666,11 @@ static int tca64_writepin(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   /* Get exclusive access to the I/O Expander */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the output register. */
 
@@ -713,14 +715,15 @@ errout_with_lock:
  * Name: tca64_readpin
  *
  * Description:
- *   Read the actual PIN level. This can be different from the last value written
- *   to this pin. Required.
+ *   Read the actual PIN level. This can be different from the last value
+ *   written to this pin. Required.
  *
  * Input Parameters:
  *   dev    - Device-specific state data
  *   pin    - The index of the pin
  *   valptr - Pointer to a buffer where the pin level is stored. Usually TRUE
- *            if the pin is high, except if OPTION_INVERT has been set on this pin.
+ *            if the pin is high, except if OPTION_INVERT has been set on
+ *            this pin.
  *
  * Returned Value:
  *   0 on success, else a negative error code
@@ -742,7 +745,11 @@ static int tca64_readpin(FAR struct ioexpander_dev_s *dev, uint8_t pin,
 
   /* Get exclusive access to the I/O Expander */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the input register for this pin
    *
@@ -810,7 +817,11 @@ static int tca64_multiwritepin(FAR struct ioexpander_dev_s *dev,
 
   /* Get exclusive access to the I/O Expander */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the output registers for pin 0 through the number of supported
    * pins.
@@ -824,7 +835,7 @@ static int tca64_multiwritepin(FAR struct ioexpander_dev_s *dev,
   ret = tca64_getreg(priv, regaddr, (FAR uint8_t *)&pinset, nregs);
   if (ret < 0)
     {
-      gpioerr("ERROR: Failed to read %u ouput registers at %u: %d\n",
+      gpioerr("ERROR: Failed to read %u output registers at %u: %d\n",
               nregs, regaddr, ret);
       goto errout_with_lock;
     }
@@ -899,7 +910,11 @@ static int tca64_multireadpin(FAR struct ioexpander_dev_s *dev,
 
   /* Get exclusive access to the I/O Expander */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the input register for pin 0 through the number of supported pins.
    *
@@ -970,27 +985,32 @@ static FAR void *tca64_attach(FAR struct ioexpander_dev_s *dev,
   FAR struct tca64_dev_s *priv = (FAR struct tca64_dev_s *)dev;
   FAR void *handle = NULL;
   int i;
+  int ret;
 
   /* Get exclusive access to the I/O Expander */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Find and available in entry in the callback table */
 
   for (i = 0; i < CONFIG_TCA64XX_INT_NCALLBACKS; i++)
     {
-       /* Is this entry available (i.e., no callback attached) */
+      /* Is this entry available (i.e., no callback attached) */
 
-       if (priv->cb[i].cbfunc == NULL)
-         {
-           /* Yes.. use this entry */
+      if (priv->cb[i].cbfunc == NULL)
+        {
+          /* Yes.. use this entry */
 
-           priv->cb[i].pinset = pinset;
-           priv->cb[i].cbfunc = callback;
-           priv->cb[i].cbarg  = arg;
-           handle             = &priv->cb[i];
-           break;
-         }
+          priv->cb[i].pinset = pinset;
+          priv->cb[i].cbfunc = callback;
+          priv->cb[i].cbarg  = arg;
+          handle             = &priv->cb[i];
+          break;
+        }
     }
 
   tca64_unlock(priv);
@@ -1019,7 +1039,8 @@ static int tca64_detach(FAR struct ioexpander_dev_s *dev, FAR void *handle)
 
   DEBUGASSERT(priv != NULL && cb != NULL);
   DEBUGASSERT((uintptr_t)cb >= (uintptr_t)&priv->cb[0] &&
-              (uintptr_t)cb <= (uintptr_t)&priv->cb[CONFIG_TCA64XX_INT_NCALLBACKS-1]);
+              (uintptr_t)cb <=
+              (uintptr_t)&priv->cb[CONFIG_TCA64XX_INT_NCALLBACKS - 1]);
   UNUSED(priv);
 
   cb->pinset = 0;
@@ -1038,7 +1059,8 @@ static int tca64_detach(FAR struct ioexpander_dev_s *dev, FAR void *handle)
  ****************************************************************************/
 
 #ifdef CONFIG_TCA64XX_INT_ENABLE
-static void tca64_int_update(FAR struct tca64_dev_s *priv, ioe_pinset_t input,
+static void tca64_int_update(FAR struct tca64_dev_s *priv,
+                             ioe_pinset_t input,
                              ioe_pinset_t mask)
 {
   ioe_pinset_t diff;
@@ -1167,7 +1189,11 @@ static void tca64_irqworker(void *arg)
 
   /* Get exclusive access to read inputs and assess pending interrupts. */
 
-  tca64_lock(priv);
+  ret = tca64_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the input register for pin 0 through the number of supported pins.
    *
@@ -1215,8 +1241,8 @@ static void tca64_irqworker(void *arg)
             {
               /* Yes.. perform the callback */
 
-              (void)priv->cb[i].cbfunc(&priv->dev, match,
-                                       priv->cb[i].cbarg);
+              priv->cb[i].cbfunc(&priv->dev, match,
+                                 priv->cb[i].cbarg);
             }
         }
     }
@@ -1231,7 +1257,7 @@ errout_with_restart:
   /* Re-start the poll timer */
 
   sched_lock();
-  ret = wd_start(priv->wdog, TCA64XX_POLLDELAY, (wdentry_t)tca64_poll_expiry,
+  ret = wd_start(priv->wdog, TCA64XX_POLLDELAY, tca64_poll_expiry,
                  1, (wdparm_t)priv);
   if (ret < 0)
     {
@@ -1280,14 +1306,16 @@ static void tca64_interrupt(FAR void *arg)
 #ifdef CONFIG_TCA64XX_INT_POLL
       /* Cancel the poll timer */
 
-      (void)wd_cancel(priv->wdog);
+      wd_cancel(priv->wdog);
 #endif
 
       /* Disable interrupts */
 
       priv->config->enable(priv->config, false);
 
-      /* Schedule interrupt related work on the high priority worker thread. */
+      /* Schedule interrupt related work on the high priority worker
+       * thread.
+       */
 
       work_queue(HPWORK, &priv->work, tca64_irqworker,
                  (FAR void *)priv, 0);
@@ -1331,7 +1359,9 @@ static void tca64_poll_expiry(int argc, wdparm_t arg1, ...)
 
       priv->config->enable(priv->config, false);
 
-      /* Schedule interrupt related work on the high priority worker thread. */
+      /* Schedule interrupt related work on the high priority worker
+       * thread.
+       */
 
       work_queue(HPWORK, &priv->work, tca64_irqworker,
                  (FAR void *)priv, 0);
@@ -1361,7 +1391,7 @@ static void tca64_poll_expiry(int argc, wdparm_t arg1, ...)
  ****************************************************************************/
 
 FAR struct ioexpander_dev_s *tca64_initialize(FAR struct i2c_master_s *i2c,
-                                              FAR struct tca64_config_s *config)
+                               FAR struct tca64_config_s *config)
 {
   FAR struct tca64_dev_s *priv;
   int ret;
@@ -1400,7 +1430,7 @@ FAR struct ioexpander_dev_s *tca64_initialize(FAR struct i2c_master_s *i2c,
   priv->wdog    = wd_create();
   DEBUGASSERT(priv->wdog != NULL);
 
-  ret = wd_start(priv->wdog, TCA64XX_POLLDELAY, (wdentry_t)tca64_poll_expiry,
+  ret = wd_start(priv->wdog, TCA64XX_POLLDELAY, tca64_poll_expiry,
                  1, (wdparm_t)priv);
   if (ret < 0)
     {

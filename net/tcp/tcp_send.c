@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/tcp/tcp_send.c
  *
- *   Copyright (C) 2007-2010, 2012, 2015, 2018 Gregory Nutt. All rights
+ *   Copyright (C) 2007-2010, 2012, 2015, 2018-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
@@ -138,6 +138,7 @@ static inline void tcp_ipv4_sendcomplete(FAR struct net_driver_s *dev,
 
   ipv4->proto       = IP_PROTO_TCP;
   ipv4->ttl         = IP_TTL;
+  ipv4->vhl         = 0x45;
 
   /* At this point the TCP header holds the size of the payload, the
    * TCP header, and the IP header.
@@ -428,14 +429,10 @@ void tcp_send(FAR struct net_driver_s *dev, FAR struct tcp_conn_s *conn,
 void tcp_reset(FAR struct net_driver_s *dev)
 {
   FAR struct tcp_hdr_s *tcp = tcp_header(dev);
-  uint16_t tmp16;
-  uint8_t seqbyte;
-  uint16_t acklen = 0;
   uint32_t ackno;
-
-#if defined(CONFIG_NET_IPv4) && defined(CONFIG_NET_IPv6)
-  bool ipv6 = IFF_IS_IPv6(dev->d_flags);
-#endif
+  uint16_t tmp16;
+  uint16_t acklen = 0;
+  uint8_t seqbyte;
 
 #ifdef CONFIG_NET_STATISTICS
   g_netstats.tcp.rst++;
@@ -450,7 +447,7 @@ void tcp_reset(FAR struct net_driver_s *dev)
 
 #ifdef CONFIG_NET_IPv6
 #ifdef CONFIG_NET_IPv4
-  if (ipv6)
+  if (IFF_IS_IPv6(dev->d_flags))
 #endif
     {
       FAR struct ipv6_hdr_s *ip = IPv6BUF;
@@ -468,7 +465,7 @@ void tcp_reset(FAR struct net_driver_s *dev)
     }
 #endif /* CONFIG_NET_IPv4 */
 
-  acklen -= (tcp->tcpoffset >> 4) << 2;
+  acklen        -= (tcp->tcpoffset >> 4) << 2;
 
   tcp->flags     = TCP_RST | TCP_ACK;
   tcp->tcpoffset = 5 << 4;
@@ -495,6 +492,7 @@ void tcp_reset(FAR struct net_driver_s *dev)
    * acknowledging. If the least significant byte overflowed, we need
    * to propagate the carry to the other bytes as well.
    */
+
   ackno = tcp_addsequence(tcp->ackno, acklen);
 
   tcp_setsequence(tcp->ackno, ackno);
@@ -512,7 +510,7 @@ void tcp_reset(FAR struct net_driver_s *dev)
   if (IFF_IS_IPv6(dev->d_flags))
 #endif
     {
-      FAR struct ipv6_hdr_s *ipv6_hdr = IPv6BUF;
+      FAR struct ipv6_hdr_s *ipv6 = IPv6BUF;
 
       /* Set the packet length to the size of the IPv6 + TCP headers */
 
@@ -520,8 +518,8 @@ void tcp_reset(FAR struct net_driver_s *dev)
 
       /* Swap IPv6 addresses */
 
-      net_ipv6addr_hdrcopy(ipv6_hdr->destipaddr, ipv6_hdr->srcipaddr);
-      net_ipv6addr_hdrcopy(ipv6_hdr->srcipaddr, dev->d_ipv6addr);
+      net_ipv6addr_hdrcopy(ipv6->destipaddr, ipv6->srcipaddr);
+      net_ipv6addr_hdrcopy(ipv6->srcipaddr, dev->d_ipv6addr);
     }
 #endif /* CONFIG_NET_IPv6 */
 
@@ -549,10 +547,14 @@ void tcp_reset(FAR struct net_driver_s *dev)
 }
 
 /****************************************************************************
- * Name: tcp_ack
+ * Name: tcp_synack
  *
  * Description:
- *   Send the SYN or SYNACK response.
+ *   Send the SYN, ACK, or SYNACK response.
+ *
+ *   - SYN and SYNACK are sent only from the TCP state machine.
+ *   - ACK may be sent alone only if delayed ACKs are enabled and the ACK
+ *     delay timeout occurs.
  *
  * Input Parameters:
  *   dev  - The device driver structure to use in the send operation
@@ -567,8 +569,8 @@ void tcp_reset(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-void tcp_ack(FAR struct net_driver_s *dev, FAR struct tcp_conn_s *conn,
-             uint8_t ack)
+void tcp_synack(FAR struct net_driver_s *dev, FAR struct tcp_conn_s *conn,
+                uint8_t ack)
 {
   struct tcp_hdr_s *tcp;
   uint16_t tcp_mss;
@@ -611,7 +613,7 @@ void tcp_ack(FAR struct net_driver_s *dev, FAR struct tcp_conn_s *conn,
 
   tcp->flags      = ack;
 
-  /* We send out the TCP Maximum Segment Size option with our ack. */
+  /* We send out the TCP Maximum Segment Size option with our ACK. */
 
   tcp->optdata[0] = TCP_OPT_MSS;
   tcp->optdata[1] = TCP_OPT_MSS_LEN;

@@ -111,7 +111,7 @@ static int lpc214x_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -119,7 +119,7 @@ static int lpc214x_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint16_t mcr;
 
@@ -140,7 +140,7 @@ void arm_timer_initialize(void)
 
   tmr_putreg32(LPC214X_PCLKFREQ/TICK_PER_SEC, LPC214X_TMR_MR0_OFFSET);
 
-  /* Reset timer counter regiser and interrupt on match */
+  /* Reset timer counter register and interrupt on match */
 
   mcr = tmr_getreg16(LPC214X_TMR_MCR_OFFSET);
   mcr &= ~LPC214X_TMR_MCR_MR1I;
@@ -157,7 +157,7 @@ void arm_timer_initialize(void)
   up_attach_vector(LPC214X_IRQ_SYSTIMER, LPC214X_SYSTIMER_VEC,
                    (vic_vector_t)lpc214x_timerisr);
 #else
-  (void)irq_attach(LPC214X_IRQ_SYSTIMER, (xcpt_t)lpc214x_timerisr, NULL);
+  irq_attach(LPC214X_IRQ_SYSTIMER, (xcpt_t)lpc214x_timerisr, NULL);
 #endif
 
   /* And enable the timer interrupt */

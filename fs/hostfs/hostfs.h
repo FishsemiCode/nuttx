@@ -45,7 +45,8 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
+
+#include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -79,9 +80,9 @@ struct hostfs_ofile_s
   int                       fd;
 };
 
-/* This structure represents the overall mountpoint state.  An instance of this
- * structure is retained as inode private data on each mountpoint that is
- * mounted with a hostfs filesystem.
+/* This structure represents the overall mountpoint state.  An instance of
+ * this structure is retained as inode private data on each mountpoint that
+ * is mounted with a hostfs filesystem.
  */
 
 struct hostfs_mountpt_s
@@ -97,7 +98,7 @@ struct hostfs_mountpt_s
 
 /* Semaphore access for internal use */
 
-void hostfs_semtake(struct hostfs_mountpt_s *fs);
+int  hostfs_semtake(struct hostfs_mountpt_s *fs);
 void hostfs_semgive(struct hostfs_mountpt_s *fs);
 
 /* Forward references for utility functions */

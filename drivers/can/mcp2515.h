@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 #ifndef __DRIVERS_CAN_MCP2514_H
-#define __DRIVERS_CAN_MCP2514_H 1
+#define __DRIVERS_CAN_MCP2514_H
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -192,7 +192,7 @@
 #define TXBCTRL_TXERR        (1 << 4) /* Bit 4: Transmission Error Detected bit */
 #define TXBCTRL_MLOA         (1 << 5) /* Bit 5: Message Lost Arbitration bit */
 #define TXBCTRL_ABTF         (1 << 6) /* Bit 6: Message Aborted Flag bit */
-                                              /* Bit 7: Not used */
+                                      /* Bit 7: Not used */
 
 /* TXRTSCTRL – TXnRTS PIN CONTROL AND STATUS REGISTER */
 
@@ -208,7 +208,6 @@
 
 #define TXBSIDH_SID_MASK     0xff     /* Standard Identifier bits <10:3> */
 
-
 /* TXBnSIDL – TRANSMIT BUFFER n STANDARD IDENTIFIER LOW */
 
 #define TXBSIDL_SID_SHIFT    (5)      /* Bits 5-7: Standard Identifier bits <2:0> */
@@ -216,7 +215,6 @@
 #define TXBSIDL_EXIDE        (1 << 3) /* Bit    3: Extended Identifier Enable bit */
 #define TXBSIDL_EID_SHIFT    (0)      /* Bits 0-1: Extended Identifier bits <17:16> */
 #define TXBSIDL_EID_MASK     (0x03 << TXBSIDL_EID_MASK)
-
 
 /* TXBnEID8 – TRANSMIT BUFFER n EXTENDED IDENTIFIER HIGH */
 
@@ -251,21 +249,22 @@
 
 /* These bits are common to RXB0 and RXB1: */
 
-#define RXBCTRL_RXRTR        (1 << 3) /* Bit 3: Received Remote Transfer Request bit */
-                                      /* Bit 4: Not used */
-#define RXBCTRL_RXM_SHIFT    (5)      /* Bits 5-6: Receive Buffer Operating Mode bits */
+#define RXBCTRL_RXRTR        (1 << 3)                   /* Bit 3: Received Remote Transfer Request bit */
+                                                        /* Bit 4: Not used */
+#define RXBCTRL_RXM_SHIFT    (5)                        /* Bits 5-6: Receive Buffer Operating Mode bits */
 #define RXBCTRL_RXM_MASK     (0x3 << RXBCTRL_RXM_SHIFT)
 #define RXBCTRL_RXM_ALLMSG   (3 << RXBCTRL_RXM_SHIFT)   /* 11: Turn mask/filters off; receive any message */
 #define RXBCTRL_RXM_ALLVALID (0 << RXBCTRL_RXM_SHIFT)   /* 00: Receive all valid msgs using (STD or EXT) that meet filter criteria */
-                                      /* Bit 7: Not used */
+                                                        /* Bit 7: Not used */
 
 /* N.B.: In the datasheet DS21801D the file RXM of RXBnCTRL could to assume
-         the value 01 and 10 to receive only STD or EXT msgs respectively.
-         But in a more recent datasheet DS20001801H it was removed. */
+ *       the value 01 and 10 to receive only STD or EXT msgs respectively.
+ *       But in a more recent datasheet DS20001801H it was removed.
+ */
 
 /* RXB1CTRL – RECEIVE BUFFER 1 CONTROL */
 
-#define RXB1CTRL_FILHIT_SHIFT (0)      /* Filter Hit bits - indicates which acceptance filter enabled reception of message */
+#define RXB1CTRL_FILHIT_SHIFT (0)                           /* Filter Hit bits - indicates which acceptance filter enabled reception of message */
 #define RXB1CTRL_FILHIT_MASK  (0x7 << RXB0CTRL_FILHIT_SHIFT)
 #define RXB1CTRL_FILHIT_F5    (5 << RXB1CTRL_FILHIT_SHIFT)  /* Acceptance Filter 5 (RXF5) */
 #define RXB1CTRL_FILHIT_F4    (4 << RXB1CTRL_FILHIT_SHIFT)  /* Acceptance Filter 4 (RXF4) */
@@ -306,7 +305,7 @@
 
 #define RXBEID0_EID_MASK     0xff     /* Bits 0-7: Extended Identifier bits <7:0> */
 
-/* RXBnDLC – RECEIVE BUFFER n DATA LENGHT CODE */
+/* RXBnDLC – RECEIVE BUFFER n DATA LENGTH CODE */
 
 #define RXBDLC_DLC_SHIFT     (0)      /* Bits 0-3: Data Length Code <3:0> bits */
 #define RXBDLC_DLC_MASK      (0xf << RXBDLC_DLC_SHIFT)
@@ -356,14 +355,14 @@
 
 /* CNF1 – CONFIGURATION 1 */
 
-#define CNF1_BRP_SHIFT       (0)      /* Bits 0-5: Baud Rate Prescaler bits <5:0>, TQ = 2 x (BRP + 1)/Fosc */
+#define CNF1_BRP_SHIFT       (0)                    /* Bits 0-5: Baud Rate Prescaler bits <5:0>, TQ = 2 x (BRP + 1)/Fosc */
 #define CNF1_BRP_MASK        (0x3f << CNF1_BRP_SHIFT)
-#define CNF1_SJW_SHIFT       (6)      /* Bit 6-7: Synchronization Jump Width Length bits <1:0> */
+#define CNF1_SJW_SHIFT       (6)                    /* Bit 6-7: Synchronization Jump Width Length bits <1:0> */
 #define CNF1_SJW_MASK        (3 << CNF1_SJW_SHIFT)
-#  define CNF1_SJW_4xTQ      (3 << CNF1_SJW_SHIFT) /* Length = 4 x TQ */
-#  define CNF1_SJW_3xTQ      (2 << CNF1_SJW_SHIFT) /* Length = 3 x TQ */
-#  define CNF1_SJW_2xTQ      (1 << CNF1_SJW_SHIFT) /* Length = 2 x TQ */
-#  define CNF1_SJW_1xTQ      (0 << CNF1_SJW_SHIFT) /* Length = 1 x TQ */
+#  define CNF1_SJW_4xTQ      (3 << CNF1_SJW_SHIFT)  /* Length = 4 x TQ */
+#  define CNF1_SJW_3xTQ      (2 << CNF1_SJW_SHIFT)  /* Length = 3 x TQ */
+#  define CNF1_SJW_2xTQ      (1 << CNF1_SJW_SHIFT)  /* Length = 2 x TQ */
+#  define CNF1_SJW_1xTQ      (0 << CNF1_SJW_SHIFT)  /* Length = 1 x TQ */
 
 /* CNF2 – CONFIGURATION 2 */
 
@@ -421,9 +420,12 @@
 #define MCP2515_LOAD_TX0     0x40
 #define MCP2515_LOAD_TX1     0x42
 #define MCP2515_LOAD_TX2     0x44
+#define MCP2515_LOAD_TXB(n)  (0x40 + 2 * (n))
+#define MCP2515_READ_RXB(n)  (((n) == 0) ? 0x90 : 0x94)
 #define MCP2515_RTS_TX0      0x81
 #define MCP2515_RTS_TX1      0x82
 #define MCP2515_RTS_TX2      0x84
+#define MCP2515_RTS(x)       (0x81+x)
 #define MCP2515_RTS_ALL      0x87
 #define MCP2515_READ_STATUS  0xA0
 #define MCP2515_RX_STATUS    0xB0

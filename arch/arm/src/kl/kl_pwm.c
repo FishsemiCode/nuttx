@@ -48,7 +48,7 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 #include <arch/board/board.h>
 
 #include "up_internal.h"
@@ -57,8 +57,8 @@
 #include "chip.h"
 #include "kl_pwm.h"
 #include "kl_gpio.h"
-#include "chip/kl_tpm.h"
-#include "chip/kl_sim.h"
+#include "hardware/kl_tpm.h"
+#include "hardware/kl_sim.h"
 
 /* This module then only compiles if there is at least one enabled timer
  * intended for use with the PWM upper half driver.

@@ -195,7 +195,7 @@
 #define NVIC_CPUID_BASE_OFFSET          0x0d00 /* CPUID base register */
 #define NVIC_INTCTRL_OFFSET             0x0d04 /* Interrupt control state register */
 #define NVIC_VECTAB_OFFSET              0x0d08 /* Vector table offset register */
-#define NVIC_AIRCR_OFFSET               0x0d0c /* Application interrupt/reset contol registr */
+#define NVIC_AIRCR_OFFSET               0x0d0c /* Application interrupt/reset control registr */
 #define NVIC_SYSCON_OFFSET              0x0d10 /* System control register */
 #define NVIC_CFGCON_OFFSET              0x0d14 /* Configuration control register */
 #define NVIC_SYSH_PRIORITY_OFFSET(n)    (0x0d14 + 4*((n) >> 2))
@@ -247,6 +247,7 @@
 #define NVIC_DCCSW_OFFSET               0x0f6c /* D-Cache Clean by Set-way (Cortex-M7) */
 #define NVIC_DCCIMVAC_OFFSET            0x0f70 /* D-Cache Clean and Invalidate by MVA to PoC (Cortex-M7) */
 #define NVIC_DCCISW_OFFSET              0x0f74 /* D-Cache Clean and Invalidate by Set-way (Cortex-M7) */
+#define NVIC_BPIALL_OFFSET              0x0f78 /* Branch predictor invalidate all (Cortex-M7) */
 #define NVIC_ITCMCR_OFFSET              0x0f90 /* Instruction Tightly-Coupled Memory Control Register */
 #define NVIC_DTCMCR_OFFSET              0x0f94 /* Data Tightly-Coupled Memory Control Registers */
 #define NVIC_AHBPCR_OFFSET              0x0f98 /* AHBP Control Register */
@@ -436,6 +437,7 @@
 #define NVIC_DCCSW                      (ARMV7M_NVIC_BASE + NVIC_DCCSW_OFFSET)
 #define NVIC_DCCIMVAC                   (ARMV7M_NVIC_BASE + NVIC_DCCIMVAC_OFFSET)
 #define NVIC_DCCISW                     (ARMV7M_NVIC_BASE + NVIC_DCCISW_OFFSET)
+#define NVIC_BPIALL                     (ARMV7M_NVIC_BASE + NVIC_BPIALL_OFFSET)
 #define NVIC_ITCMCR                     (ARMV7M_NVIC_BASE + NVIC_ITCMCR_OFFSET)
 #define NVIC_DTCMCR                     (ARMV7M_NVIC_BASE + NVIC_DTCMCR_OFFSET)
 #define NVIC_AHBPCR                     (ARMV7M_NVIC_BASE + NVIC_AHBPCR_OFFSET)
@@ -516,7 +518,7 @@
 #define NVIC_CFGCON_UNALIGNTRP          (1 << 3)  /* Bit 3: Enables unaligned access traps */
 #define NVIC_CFGCON_DIV0TRP             (1 << 4)  /* Bit 4: Enables fault on divide-by-zero */
 #define NVIC_CFGCON_BFHFNMIGN           (1 << 8)  /* Bit 8: Disables data bus faults */
-#define NVIC_CFGCON_STKALIGN            (1 << 9)  /* Bit 9: Indicates stack alignment on exeption */
+#define NVIC_CFGCON_STKALIGN            (1 << 9)  /* Bit 9: Indicates stack alignment on exception */
                                                   /* Cortex-M7: */
 #define NVIC_CFGCON_DC                  (1 << 16) /* Bit 16: Data cache enable */
 #define NVIC_CFGCON_IC                  (1 << 17) /* Bit 17: Instruction cache enable */

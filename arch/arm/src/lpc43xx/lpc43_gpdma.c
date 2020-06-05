@@ -272,8 +272,8 @@ static int gpdma_interrupt(int irq, FAR void *context, FAR void *arg)
  * Name: up_dma_initialize
  *
  * Description:
- *   Initialize the GPDMA subsystem.  Called from up_initialize() early in the
- *   boot-up sequence.  Prototyped in up_internal.h.
+ *   Initialize the GPDMA subsystem.  Called from up_initialize() early in
+ *   the boot-up sequence.  Prototyped in up_internal.h.
  *
  * Returned Value:
  *   None
@@ -390,17 +390,16 @@ void lpc43_dmaconfigure(uint8_t dmarequest, uint8_t dmasrc)
 DMA_HANDLE lpc43_dmachannel(void)
 {
   struct lpc43_dmach_s *dmach = NULL;
-  int ret;
   int i;
+  int ret;
 
   /* Get exclusive access to the GPDMA state structure */
 
-  do
+  ret = nxsem_wait_uninterruptible(&g_gpdma.exclsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&g_gpdma.exclsem);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return NULL;
     }
-  while (ret < 0);
 
   /* Find an available DMA channel */
 
@@ -590,7 +589,8 @@ int lpc43_dmastart(DMA_HANDLE handle, dma_callback_t callback, void *arg)
   base    = LPC43_GPDMA_CHANNEL((uint32_t)dmach->chn);
   regval  = getreg32(base + LPC43_GPDMA_CONTROL_CHOFFSET);
   regval &= ~GPDMA_CONTROL_XFRSIZE_MASK;
-  regval |= (GPDMA_CONTROL_IE | ((uint32_t)dmach->nxfrs << GPDMA_CONTROL_XFRSIZE_SHIFT));
+  regval |= (GPDMA_CONTROL_IE |
+            ((uint32_t)dmach->nxfrs << GPDMA_CONTROL_XFRSIZE_SHIFT));
   putreg32(regval, base + LPC43_GPDMA_CONTROL_CHOFFSET);
 
   /* Enable the channel and unmask terminal count and error interrupts.
@@ -700,7 +700,8 @@ void lpc43_dmasample(DMA_HANDLE handle, struct lpc43_dmaregs_s *regs)
  ****************************************************************************/
 
 #ifdef CONFIG_DEBUG_DMA
-void lpc43_dmadump(DMA_HANDLE handle, const struct lpc43_dmaregs_s *regs, const char *msg)
+void lpc43_dmadump(DMA_HANDLE handle, const struct lpc43_dmaregs_s *regs,
+                   const char *msg)
 {
   struct lpc43_dmach_s *dmach = (DMA_HANDLE)handle;
   uint32_t base;

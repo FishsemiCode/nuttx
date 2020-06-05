@@ -1,13 +1,13 @@
 /****************************************************************************
  * sched/sched/sched_waitpid.c
  *
- *   Copyright (C) 2011-2013, 2015, 2017-2018 Gregory Nutt. All rights
+ *   Copyright (C) 2011-2013, 2015, 2017-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
- * are met:
+ * are met:make
  *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
@@ -41,7 +41,6 @@
 #include <nuttx/config.h>
 
 #include <sys/wait.h>
-#include <semaphore.h>
 #include <signal.h>
 #include <errno.h>
 
@@ -68,27 +67,27 @@
  *   execution of the calling thread until status information for one of the
  *   terminated child processes of the calling process is available, or until
  *   delivery of a signal whose action is either to execute a signal-catching
- *   function or to terminate the process. If more than one thread is suspended
- *   in waitpid() awaiting termination of the same process, exactly one thread
- *   will return the process status at the time of the target process
- *   termination. If status information is available prior to the call to
- *   waitpid(), return will be immediate.
+ *   function or to terminate the process. If more than one thread is
+ *   suspended in waitpid() awaiting termination of the same process, exactly
+ *   one thread will return the process status at the time of the target
+ *   process termination. If status information is available prior to the
+ *   call to waitpid(), return will be immediate.
  *
  *   The pid argument specifies a set of child processes for which status is
  *   requested. The waitpid() function will only return the status of a child
  *   process from this set:
  *
- *   - If pid is equal to (pid_t)-1, status is requested for any child process.
- *     In this respect, waitpid() is then equivalent to wait().
- *   - If pid is greater than 0, it specifies the process ID of a single child
- *     process for which status is requested.
+ *   - If pid is equal to (pid_t)-1, status is requested for any child
+ *     process. In this respect, waitpid() is then equivalent to wait().
+ *   - If pid is greater than 0, it specifies the process ID of a single
+ *     child process for which status is requested.
  *   - If pid is 0, status is requested for any child process whose process
  *     group ID is equal to that of the calling process.
- *   - If pid is less than (pid_t)-1, status is requested for any child process
- *     whose process group ID is equal to the absolute value of pid.
+ *   - If pid is less than (pid_t)-1, status is requested for any child
+ *     process whose process group ID is equal to the absolute value of pid.
  *
- *   The options argument is constructed from the bitwise-inclusive OR of zero
- *   or more of the following flags, defined in the <sys/wait.h> header:
+ *   The options argument is constructed from the bitwise-inclusive OR of
+ *   zero or more of the following flags, defined in the <sys/wait.h> header:
  *
  *   WCONTINUED - The waitpid() function will report the status of any
  *     continued child process specified by pid whose status has not been
@@ -102,21 +101,22 @@
  *
  *   If the calling process has SA_NOCLDWAIT set or has SIGCHLD set to
  *   SIG_IGN, and the process has no unwaited-for children that were
- *   transformed into zombie processes, the calling thread will block until all
- *   of the children of the process containing the calling thread terminate, and
- *   waitpid() will fail and set errno to ECHILD.
+ *   transformed into zombie processes, the calling thread will block until
+ *   all of the children of the process containing the calling thread
+ *   terminate, and waitpid() will fail and set errno to ECHILD.
  *
  *   If waitpid() returns because the status of a child process is available,
  *   these functions will return a value equal to the process ID of the child
  *   process. In this case, if the value of the argument stat_loc is not a
  *   null pointer, information will be stored in the location pointed to by
- *   stat_loc. The value stored at the location pointed to by stat_loc will be
- *   0 if and only if the status returned is from a terminated child process
- *   that terminated by one of the following means:
+ *   stat_loc. The value stored at the location pointed to by stat_loc will
+ *   be 0 if and only if the status returned is from a terminated child
+ *   process that terminated by one of the following means:
  *
  *   1. The process returned 0 from main().
  *   2. The process called _exit() or exit() with a status argument of 0.
- *   3. The process was terminated because the last thread in the process terminated.
+ *   3. The process was terminated because the last thread in the process
+ *      terminated.
  *
  *   Regardless of its value, this information may be interpreted using the
  *   following macros, which are defined in <sys/wait.h> and evaluate to
@@ -141,7 +141,8 @@
  *     this macro evaluates to the number of the signal that caused the child
  *     process to stop.
  *   WIFCONTINUED(stat_val) - Evaluates to a non-zero value if status was
- *    returned for a child process that has continued from a job control stop.
+ *    returned for a child process that has continued from a job control
+ *    stop.
  *
  * Input Parameters:
  *   pid - The task ID of the thread to waid for
@@ -157,16 +158,19 @@
  *   process, -1 will be returned and errno set to EINTR.
  *
  *   If waitpid() was invoked with WNOHANG set in options, it has at least
- *   one child process specified by pid for which status is not available, and
- *   status is not available for any process specified by pid, 0 is returned.
+ *   one child process specified by pid for which status is not available,
+ *   and status is not available for any process specified by pid, 0 is
+ *   returned.
  *
- *   Otherwise, (pid_t)-1 will be returned, and errno set to indicate the error:
+ *   Otherwise, (pid_t)-1 will be returned, and errno set to indicate the
+ *   error:
  *
- *   ECHILD - The process specified by pid does not exist or is not a child of
- *     the calling process, or the process group specified by pid does not exist
- *     or does not have any member process that is a child of the calling process.
- *   EINTR - The function was interrupted by a signal. The value of the location
- *     pointed to by stat_loc is undefined.
+ *   ECHILD - The process specified by pid does not exist or is not a child
+ *            of the calling process, or the process group specified by pid
+ *            does not exist does not have any member process that is a child
+ *            of the calling process.
+ *   EINTR - The function was interrupted by a signal. The value of the
+ *           location pointed to by stat_loc is undefined.
  *   EINVAL - The options argument is not valid.
  *
  * Assumptions:
@@ -191,7 +195,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   /* waitpid() is a cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* Disable pre-emption so that nothing changes in the following tests */
 
@@ -215,10 +219,10 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   group_addwaiter(group);
 
-  /* "If more than one thread is suspended in waitpid() awaiting termination of
-   * the same process, exactly one thread will return the process status at the
-   * time of the target process termination."  Hmmm.. what do we return to the
-   * others?
+  /* "If more than one thread is suspended in waitpid() awaiting termination
+   * of the same process, exactly one thread will return the process status
+   * at the time of the target process termination."  Hmmm.. what do we
+   * return to the others?
    */
 
   if (group->tg_waitflags == 0)
@@ -261,9 +265,9 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
       if (ret < 0)
         {
-          /* Unlock pre-emption and return the ERROR (nxsem_wait has already set
-           * the errno).  Handle the awkward case of whether or not we need to
-           * nullify the stat_loc value.
+          /* Unlock pre-emption and return the ERROR (nxsem_wait has already
+           * set the errno).  Handle the awkward case of whether or not we
+           * need to nullify the stat_loc value.
            */
 
           if (mystat)
@@ -294,7 +298,7 @@ errout_with_errno:
 /****************************************************************************
  *
  * If CONFIG_SCHED_HAVE_PARENT is defined, then waitpid will use the SIGHCLD
- * signal.  It can also handle the pid == (pid_t)-1 arguement.  This is
+ * signal.  It can also handle the pid == (pid_t)-1 argument.  This is
  * slightly more spec-compliant.
  *
  * But then I have to be concerned about the fact that NuttX does not queue
@@ -322,12 +326,12 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
   /* waitpid() is a cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* Create a signal set that contains only SIGCHLD */
 
-  (void)sigemptyset(&set);
-  (void)sigaddset(&set, SIGCHLD);
+  sigemptyset(&set);
+  sigaddset(&set, SIGCHLD);
 
   /* Disable pre-emption so that nothing changes while the loop executes */
 
@@ -359,7 +363,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
           /* Make sure that the thread it is our child. */
 
 #ifdef HAVE_GROUP_MEMBERS
-          if (ctcb->group->tg_pgid != rtcb->group->tg_gid)
+          if (ctcb->group->tg_pgrpid != rtcb->group->tg_grpid)
 #else
           if (ctcb->group->tg_ppid != rtcb->pid)
 #endif
@@ -403,7 +407,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
       ctcb = sched_gettcb(pid);
 
 #ifdef HAVE_GROUP_MEMBERS
-      if (ctcb == NULL || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+      if (ctcb == NULL || ctcb->group->tg_pgrpid != rtcb->group->tg_grpid)
 #else
       if (ctcb == NULL || ctcb->group->tg_ppid != rtcb->pid)
 #endif
@@ -429,7 +433,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
       if (pid == (pid_t)-1)
         {
           /* We are waiting for any child, check if there are still
-           * chilren.
+           * children.
            */
 
           DEBUGASSERT(!retains || rtcb->group->tg_children);
@@ -445,7 +449,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               /* Discard the child entry and break out of the loop */
 
-              (void)group_removechild(rtcb->group, child->ch_pid);
+              group_removechild(rtcb->group, child->ch_pid);
               group_freechild(child);
               break;
             }
@@ -470,7 +474,7 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 
               /* Discard the child entry and break out of the loop */
 
-              (void)group_removechild(rtcb->group, pid);
+              group_removechild(rtcb->group, pid);
               group_freechild(child);
               break;
             }
@@ -542,12 +546,18 @@ pid_t waitpid(pid_t pid, int *stat_loc, int options)
 #ifdef CONFIG_SCHED_CHILD_STATUS
           if (retains)
             {
+              /* Recover the exiting child */
+
+              child = group_exitchild(rtcb->group);
               DEBUGASSERT(child != NULL);
 
-              /* Discard the child entry */
+              /* Discard the child entry, if we have one */
 
-              (void)group_removechild(rtcb->group, child->ch_pid);
-              group_freechild(child);
+              if (child != NULL)
+                {
+                  group_removechild(rtcb->group, child->ch_pid);
+                  group_freechild(child);
+                }
             }
 #endif /* CONFIG_SCHED_CHILD_STATUS */
 

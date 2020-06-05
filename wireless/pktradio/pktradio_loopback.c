@@ -322,7 +322,7 @@ static int lo_loopback(FAR struct net_driver_s *dev)
   memcpy(pktmeta.pm_dest.pa_addr, g_mac_addr, CONFIG_PKTRADIO_ADDRLEN);
 
   /* Loop while there framelist to be sent, i.e., while the freme list is not
-   * emtpy.  Sending, of course, just means relaying back through the network
+   * empty.  Sending, of course, just means relaying back through the network
    * for this driver.
    */
 
@@ -397,7 +397,7 @@ static void lo_loopback_work(FAR void *arg)
   /* Perform the loopback */
 
   net_lock();
-  (void)lo_loopback(&priv->lo_radio.r_dev);
+  lo_loopback(&priv->lo_radio.r_dev);
   net_unlock();
 }
 
@@ -434,11 +434,11 @@ static void lo_poll_work(FAR void *arg)
 
   /* And perform the poll */
 
-  (void)devif_timer(&priv->lo_radio.r_dev, lo_loopback);
+  devif_timer(&priv->lo_radio.r_dev, LO_WDDELAY, lo_loopback);
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry, 1, priv);
+  wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry, 1, priv);
   net_unlock();
 }
 
@@ -522,8 +522,8 @@ static int lo_ifup(FAR struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry,
-                 1, (wdparm_t)priv);
+  wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry,
+           1, (wdparm_t)priv);
 
   priv->lo_bifup = true;
   return OK;
@@ -599,7 +599,7 @@ static void lo_txavail_work(FAR void *arg)
 
       /* Then perform the poll */
 
-      (void)devif_poll(&priv->lo_radio.r_dev, lo_loopback);
+      devif_poll(&priv->lo_radio.r_dev, lo_loopback);
     }
 
   net_unlock();
@@ -944,7 +944,7 @@ static int lo_req_data(FAR struct radio_driver_s *netdev,
  *
  * Input Parameters:
  *   netdev     - The network device to be queried
- *   properties - Location where radio properities will be returned.
+ *   properties - Location where radio properties will be returned.
  *
  * Returned Value:
  *   Zero (OK) returned on success; a negated errno value is returned on
@@ -1048,11 +1048,20 @@ int pktradio_loopback(void)
 
   priv->lo_polldog    = wd_create();      /* Create periodic poll timer */
 
+#ifdef CONFIG_NET_6LOWPAN
+  /* Make sure the our single packet buffer is attached. We must do this before
+   * registering the device since, once the device is registered, a packet may
+   * be attempted to be forwarded and require the buffer.
+   */
+
+  priv->lo_radio.r_dev.d_buf = g_iobuffer.rb_buf;
+#endif
+
   /* Register the loopabck device with the OS so that socket IOCTLs can be
    * performed.
    */
 
-  (void)netdev_register(&priv->lo_radio.r_dev, NET_LL_PKTRADIO);
+  netdev_register(&priv->lo_radio.r_dev, NET_LL_PKTRADIO);
 
   /* Put the network in the UP state */
 

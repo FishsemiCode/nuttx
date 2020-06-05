@@ -33,7 +33,7 @@
  *
  ************************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly through
+/* This file should never be included directly but, rather, only indirectly through
  * nuttx/irq.h
  */
 
@@ -107,4 +107,3 @@ extern "C"
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_ARM_INCLUDE_NUC1XX_IRQ_H */
-

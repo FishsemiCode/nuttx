@@ -1,4 +1,4 @@
-/****************************************************************************
+/*******************************************************************************
  * sched/task/task_terminate.c
  *
  *   Copyright (C) 2007-2009, 2011-2014, 2016 Gregory Nutt. All rights reserved.
@@ -31,11 +31,11 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ****************************************************************************/
+ *******************************************************************************/
 
-/****************************************************************************
+/*******************************************************************************
  * Included Files
- ****************************************************************************/
+ *******************************************************************************/
 
 #include <nuttx/config.h>
 
@@ -49,20 +49,18 @@
 #include <nuttx/sched_note.h>
 
 #include "sched/sched.h"
-#ifndef CONFIG_DISABLE_SIGNALS
-#  include "signal/signal.h"
-#endif
+#include "signal/signal.h"
 #include "task/task.h"
 
-/****************************************************************************
+/*******************************************************************************
  * Public Functions
- ****************************************************************************/
+ *******************************************************************************/
 
-/****************************************************************************
+/*******************************************************************************
  * Name: nxtask_terminate
  *
  * Description:
- *   This function causes a specified task to cease to exist. Its  stack and
+ *   This function causes a specified task to cease to exist.  Its stack and
  *   TCB will be deallocated.  This function is the internal implementation
  *   of the task_delete() function.  It includes and additional parameter
  *   to determine if blocking is permitted or not.
@@ -96,7 +94,7 @@
  *   This function can fail if the provided pid does not correspond to a
  *   task (errno is not set)
  *
- ****************************************************************************/
+ *******************************************************************************/
 
 int nxtask_terminate(pid_t pid, bool nonblocking)
 {

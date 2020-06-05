@@ -43,10 +43,10 @@
 #include <nuttx/config.h>
 
 #include <arch/board/board.h>
-#include "chip/chip.h"
+#include "chip.h"
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
-#endif  /* __ARCH_Z16_SRC_COMMON_UP_ARCH_H */
+#endif /* __ARCH_Z16_SRC_COMMON_UP_ARCH_H */

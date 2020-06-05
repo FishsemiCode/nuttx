@@ -157,6 +157,7 @@ static void btnet_hci_disconnected(FAR struct bt_conn_s *conn,
               FAR void *context);
 
 /* Network interface support ************************************************/
+
 /* Common TX logic */
 
 static int  btnet_txpoll_callback(FAR struct net_driver_s *netdev);
@@ -420,7 +421,7 @@ drop:
 
   if (ret < 0)
     {
-      iob_free(frame);
+      iob_free(frame, IOBUSER_WIRELESS_BLUETOOTH);
 
       /* Increment statistics */
 
@@ -542,12 +543,12 @@ static void btnet_txpoll_work(FAR void *arg)
 
   /* Then perform the poll */
 
-  (void)devif_timer(&priv->bd_dev.r_dev, btnet_txpoll_callback);
+  devif_timer(&priv->bd_dev.r_dev, TXPOLL_WDDELAY, btnet_txpoll_callback);
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->bd_txpoll, TXPOLL_WDDELAY, btnet_txpoll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->bd_txpoll, TXPOLL_WDDELAY, btnet_txpoll_expiry, 1,
+           (wdparm_t)priv);
   net_unlock();
 }
 
@@ -626,8 +627,8 @@ static int btnet_ifup(FAR struct net_driver_s *netdev)
 
       /* Set and activate a timer process */
 
-      (void)wd_start(priv->bd_txpoll, TXPOLL_WDDELAY, btnet_txpoll_expiry,
-                     1, (wdparm_t)priv);
+      wd_start(priv->bd_txpoll, TXPOLL_WDDELAY, btnet_txpoll_expiry,
+               1, (wdparm_t)priv);
 
       /* The interface is now up */
 
@@ -723,7 +724,7 @@ static void btnet_txavail_work(FAR void *arg)
 
       /* Then poll the network for new XMIT data */
 
-      (void)devif_poll(&priv->bd_dev.r_dev, btnet_txpoll_callback);
+      devif_poll(&priv->bd_dev.r_dev, btnet_txpoll_callback);
     }
 
   net_unlock();
@@ -1110,6 +1111,15 @@ int bt_netdev_register(FAR const struct bt_driver_s *btdev)
 
   btnet_ifdown(netdev);
 
+#ifdef CONFIG_NET_6LOWPAN
+  /* Make sure the our single packet buffer is attached. We must do this before
+   * registering the device since, once the device is registered, a packet may
+   * be attempted to be forwarded and require the buffer.
+   */
+
+  priv->bd_dev.r_dev.d_buf = g_iobuffer.rb_buf;
+#endif
+
   /* Register the network device with the OS so that socket IOCTLs can be
    * performed
    */
@@ -1123,6 +1133,7 @@ int bt_netdev_register(FAR const struct bt_driver_s *btdev)
   nerr("ERROR: netdev_register() failed: %d\n", ret);
 
 errout:
+
   /* Release wdog timers */
 
   wd_delete(priv->bd_txpoll);

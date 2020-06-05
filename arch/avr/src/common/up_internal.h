@@ -123,7 +123,6 @@ extern uint32_t _ebss;            /* End+1 of .bss */
 
 /* Defined in files with the same name as the function */
 
-void up_irqinitialize(void);
 #ifdef CONFIG_ARCH_DMA
 void weak_function up_dma_initialize(void);
 #endif
@@ -151,20 +150,17 @@ void up_lowinit(void);
 
 /* Defined in chip/xxx_serial.c */
 
+#ifdef USE_EARLYSERIALINIT
 void up_earlyserialinit(void);
-void up_serialinit(void);
-
-/* Defined in drivers/lowconsole.c */
-
-#ifdef CONFIG_DEV_LOWCONSOLE
-void lowconsole_init(void);
-#else
-# define lowconsole_init()
 #endif
 
-/* Defined in chip/xxx_timerisr.c */
+#ifdef USE_SERIALDRIVER
+void up_serialinit(void);
+#endif
 
-void avr_timer_initialize(void);
+#ifdef CONFIG_RPMSG_UART
+void rpmsg_serialinit(void);
+#endif
 
 /* Defined in chip/xxx_ethernet.c */
 
@@ -185,4 +181,4 @@ void up_usbuninitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __UP_INTERNAL_H */
+#endif /* __UP_INTERNAL_H */

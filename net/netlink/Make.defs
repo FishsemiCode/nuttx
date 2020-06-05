@@ -33,11 +33,16 @@
 #
 ############################################################################
 
-# Logic specific to IPv6 Neighbor Discovery Protocol
+# Logic specific to NETLINK
 
 ifeq ($(CONFIG_NET_NETLINK),y)
 
-SOCK_CSRCS += netlink_sockif.c netlink_conn.c
+SOCK_CSRCS += netlink_sockif.c
+NET_CSRCS += netlink_conn.c netlink_notifier.c
+
+ifeq ($(CONFIG_NETLINK_ROUTE),y)
+NET_CSRCS += netlink_route.c
+endif
 
 # Include netlink build support
 

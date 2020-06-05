@@ -77,7 +77,9 @@ begin_packed_struct struct net_rpmsg_ifup_s
 {
   struct net_rpmsg_header_s  header;
   struct net_rpmsg_lnkaddr_s lnkaddr;
-  /* all addresses in the network order */
+
+  /* All addresses in the network order */
+
   uint32_t                   ipaddr;
   uint32_t                   draddr;
   uint32_t                   netmask;

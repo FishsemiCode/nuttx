@@ -34,7 +34,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -128,4 +128,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_ARM_INCLUDE_KINETIS_IRQ_H */
-

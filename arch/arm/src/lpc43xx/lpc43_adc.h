@@ -42,7 +42,7 @@
 
 #include <nuttx/config.h>
 #include <nuttx/analog/adc.h>
-#include "chip/lpc43_adc.h"
+#include "hardware/lpc43_adc.h"
 
 #ifdef CONFIG_LPC43_ADC0
 
@@ -80,7 +80,7 @@ extern "C"
  *   Initialize the adc
  *
  * Returned Value:
- *   Valid can device structure reference on succcess; a NULL on failure
+ *   Valid can device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

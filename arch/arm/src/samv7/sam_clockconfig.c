@@ -49,12 +49,12 @@
 #include "up_internal.h"
 
 #include "sam_clockconfig.h"
-#include "chip/sam_pmc.h"
-#include "chip/sam_eefc.h"
-#include "chip/sam_wdt.h"
-#include "chip/sam_supc.h"
-#include "chip/sam_matrix.h"
-#include "chip/sam_utmi.h"
+#include "hardware/sam_pmc.h"
+#include "hardware/sam_eefc.h"
+#include "hardware/sam_wdt.h"
+#include "hardware/sam_supc.h"
+#include "hardware/sam_matrix.h"
+#include "hardware/sam_utmi.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -266,13 +266,13 @@ static inline void sam_pmcsetup(void)
 
   if ((getreg32(SAM_PMC_MCKR) & PMC_MCKR_PLLADIV2) != 0)
     {
-      /* Divider = 480 Mhz / 2 / 48 Mhz = 5 */
+      /* Divider = 480 MHz / 2 / 48 MHz = 5 */
 
       regval |=  PMC_USB_USBDIV(4);
     }
   else
     {
-      /* Divider = 480 Mhz / 1 / 48 Mhz = 10 */
+      /* Divider = 480 MHz / 1 / 48 MHz = 10 */
 
       regval |=  PMC_USB_USBDIV(9);
     }

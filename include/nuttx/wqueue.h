@@ -45,7 +45,6 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
 #include <queue.h>
 
 #include <nuttx/clock.h>
@@ -53,7 +52,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* CONFIG_SCHED_WORKQUEUE.  Not selectable.  Set by the configuration system
  *   if either CONFIG_SCHED_HPWORK or CONFIG_SCHED_LPWORK are selected.
  * CONFIG_SCHED_HPWORK.  Create a dedicated "worker" thread to
@@ -65,8 +66,8 @@
  *   (which runs at the lowest of priority and may not be appropriate
  *   if memory reclamation is of high priority).  If CONFIG_SCHED_HPWORK
  *   is enabled, then the following options can also be used:
- * CONFIG_SCHED_HPNTHREADS - The number of thread in the high-priority queue's
- *   thread pool.  Default: 1
+ * CONFIG_SCHED_HPNTHREADS - The number of thread in the high-priority
+ *   queue's thread pool.  Default: 1
  * CONFIG_SCHED_HPWORKPRIORITY - The execution priority of the high-
  *   priority worker thread.  Default: 224
  * CONFIG_SCHED_HPWORKSTACKSIZE - The stack size allocated for the worker
@@ -132,8 +133,6 @@
 
 #  undef CONFIG_LIB_USRWORK
 #endif
-
-#if defined(CONFIG_SCHED_WORKQUEUE) || defined(CONFIG_LIB_USRWORK)
 
 /* High priority, kernel work queue configuration ***************************/
 
@@ -261,7 +260,7 @@
 
 /* Defines the work callback */
 
-typedef void (*worker_t)(FAR void *arg);
+typedef CODE void (*worker_t)(FAR void *arg);
 
 /* Defines one entry in the work queue.  The user only needs this structure
  * in order to declare instances of the work structure.  Handling of all
@@ -283,11 +282,14 @@ struct work_s
 
 enum work_evtype_e
 {
-  WORK_IOB_AVAIL  = 1, /* Notify availability of an IOB */
-  WORK_NET_DOWN,       /* Notify that the network is down */
-  WORK_TCP_READAHEAD,  /* Notify that TCP read-ahead data is available */
-  WORK_TCP_DISCONNECT, /* Notify loss of TCP connection */
-  WORK_UDP_READAHEAD   /* Notify that TCP read-ahead data is available */
+  WORK_IOB_AVAIL  = 1,   /* Notify availability of an IOB */
+  WORK_NET_DOWN,         /* Notify that the network is down */
+  WORK_TCP_READAHEAD,    /* Notify that TCP read-ahead data is available */
+  WORK_TCP_WRITEBUFFER,  /* Notify that TCP write buffer is empty */
+  WORK_TCP_DISCONNECT,   /* Notify loss of TCP connection */
+  WORK_UDP_READAHEAD,    /* Notify that UDP read-ahead data is available */
+  WORK_UDP_WRITEBUFFER,  /* Notify that UDP write buffer is empty */
+  WORK_NETLINK_RESPONSE  /* Notify that Netlink response is available */
 };
 
 /* This structure describes one notification and is provided as input to
@@ -303,36 +305,6 @@ struct work_notifier_s
   FAR void *qualifier; /* Event qualifier value */
   FAR void *arg;       /* User-defined worker function argument */
   worker_t worker;     /* The worker function to schedule */
-};
-
-/* This structure describes one notification list entry.  It is cast-
- * compatible with struct work_notifier_s.  This structure is an allocated
- * container for the user notification data.   It is allocated because it
- * must persist until the work is executed and must be freed using
- * kmm_free() by the work.
- *
- * With the work notification is scheduled, the work function will receive
- * the allocated instance of struct work_notifier_entry_s as its input
- * argument.  When it completes the notification operation, the work function
- * is responsible for freeing that instance.
- */
-
-struct work_notifier_entry_s
-{
-  /* This must appear at the beginning of the structure.  A reference to
-   * the struct work_notifier_entry_s instance must be cast-compatible with
-   * struct dq_entry_s.
-   */
-
-  struct work_s work;           /* Used for scheduling the work */
-
-  /* User notification information */
-
-  struct work_notifier_s info;  /* The notification info */
-
-  /* Additional payload needed to manage the notification */
-
-  int16_t key;                  /* Unique ID for the notification */
 };
 
 /****************************************************************************
@@ -407,8 +379,8 @@ int work_queue(int qid, FAR struct work_s *work, worker_t worker,
  *
  * Description:
  *   Cancel previously queued work.  This removes work from the work queue.
- *   After work has been cancelled, it may be re-queue by calling work_queue()
- *   again.
+ *   After work has been cancelled, it may be re-queue by calling
+ *   work_queue() again.
  *
  * Input Parameters:
  *   qid    - The work queue ID
@@ -559,7 +531,7 @@ int work_notifier_teardown(int key);
  *   need to call work_notifier_setup() once again.
  *
  * Input Parameters:
- *   evtype   - The type of the event that just occurred.
+ *   evtype    - The type of the event that just occurred.
  *   qualifier - Event qualifier to distinguish different cases of the
  *               generic event type.
  *
@@ -579,5 +551,4 @@ void work_notifier_signal(enum work_evtype_e evtype,
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif /* CONFIG_SCHED_WORKQUEUE || CONFIG_LIB_USRWORK */
 #endif /* __INCLUDE_NUTTX_WQUEUE_H */

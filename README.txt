@@ -1,9 +1,18 @@
-README
-^^^^^^
+APACHE NUTTX (INCUBATING)
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
+  o Introduction
+    - Incubation Status
+  o Community
+    - Getting Help
+    - Mailing Lists
+    - Issue Tracker
+    - Source Code
+    - Website Source Code
   o Environments
     - Installing Cygwin
     - Ubuntu Bash under Windows 10
+    - Using macOS
   o Installation
     - Download and Unpack
     - Semi-Optional apps/ Package
@@ -36,6 +45,132 @@ README
     - Strange Path Problems
     - Window Native Toolchain Issues
   o Documentation
+
+INTRODUCTION
+^^^^^^^^^^^^
+
+  Apache NuttX (Incubating) is a real-time operating system (RTOS) with an
+  emphasis on standards compliance and small footprint.  Scalable from 8-bit
+  to 32-bit microcontroller environments, the primary governing standards in
+  NuttX are POSIX and ANSI standards. Additional standard APIs from Unix and
+  other common RTOSs (such as VxWorks) are adopted for functionality not
+  available under these standards, or for functionality that is not
+  appropriate for deeply-embedded environments (such as fork()).
+
+  Extensive documentation can be found on the project wiki:
+
+    https://cwiki.apache.org/NUTTX/Nuttx
+
+Incubation Status
+-----------------
+
+  Apache NuttX (Incubating) is an effort undergoing Incubation at The Apache
+  Software Foundation (ASF), sponsored by the Incubator.  For more on our
+  incubation effort, please see the file DISCLAIMER-WIP, in the same
+  directory as this README.
+
+  For brevity, the rest of this file will refer to it as Apache NuttX or
+  simply NuttX.
+
+COMMUNITY
+^^^^^^^^^
+
+  Every volunteer project obtains its strength from the people involved in
+  it.  We invite you to participate as much or as little as you choose.
+
+  We encourage you to:
+
+  - Use our project and provide feedback.
+  - Provide us with use-cases.
+  - Report bugs and submit patches.
+  - Contribute code or documentation.
+
+Getting Help
+------------
+
+  The best place to get help is the developer's mailing list.  Please see
+  the following section:
+
+Mailing Lists
+-------------
+
+  Get help using NuttX or contribute to the project on our mailing lists:
+
+  dev@nuttx.apache.org is for people who want to contribute code to NuttX.
+
+  - To subscribe, send an email to dev-subscribe@nuttx.apache.org.
+  - To unsubscribe, send an email to dev-unsubscribe@nuttx.apache.org.
+  - View the archives at:
+
+      https://www.mail-archive.com/dev@nuttx.apache.org/
+
+  commits@nuttx.apache.org is a read-only list that notifies subscribers
+  about commit messages and patches to NuttX.
+
+  - To subscribe, send an email to commits-subscribe@nuttx.apache.org.
+  - To unsubscribe, send an email to commits-unsubscribe@nuttx.apache.org.
+  - View the archives at:
+
+      https://www.mail-archive.com/commits@nuttx.apache.org/
+
+Issue Tracker
+-------------
+
+  Bug Reports:
+
+  Found bug? Send an email to the dev list dev@nuttx.apache.org.
+
+  Before submitting an issue, please:
+
+  - Verify that the bug does in fact exist.
+  - Search the mailing list archives to verify there is no existing issue
+    reporting the bug you've found.
+  - Consider tracking down the bug yourself in the NuttX source code and
+    submitting a patch along with your bug report.  This is a great time
+    saver for the NuttX developers and helps ensure the bug will be fixed
+    quickly.
+
+  Feature Requests:
+
+  Enhancement requests for new features are also welcome. The more concrete
+  and rational the request is, the greater the chance it will incorporated
+  into future releases.
+
+Source Code
+-----------
+
+  The project sources are in two Git repositories.  The core OS is in
+  incubator-nuttx and the apps repository is in incubator-nuttx-apps.  These
+  are housed in GitBox on ASF servers and also mirrored at GitHub.  These
+  are kept in sync, so you can use whichever option you prefer.
+
+  - NuttX core OS repository:
+
+      Primary:
+      https://gitbox.apache.org/repos/asf?p=incubator-nuttx.git
+
+      GitHub Mirror:
+      https://github.com/apache/incubator-nuttx
+
+  - Apps repository:
+
+      Primary:
+      https://gitbox.apache.org/repos/asf?p=incubator-nuttx-apps.git
+
+      GitHub Mirror:
+      https://github.com/apache/incubator-nuttx-apps
+
+Website Source Code
+-------------------
+
+  The project website sources are accessible via the website source code
+  repository which is also mirrored in GitHub:
+
+      Primary:
+      https://gitbox.apache.org/repos/asf?p=incubator-nuttx-website.git
+
+      GitHub Mirror:
+      https://github.com/apache/incubator-nuttx-website
 
 ENVIRONMENTS
 ^^^^^^^^^^^^
@@ -101,7 +236,7 @@ ENVIRONMENTS
         MobaXterm: https://mobaxterm.mobatek.net/
         Gow: https://github.com/bmatzelle/gow/wiki
 
-      Disclaimer:  In priniple, these should work.  However, I have never
+      Disclaimer:  In principle, these should work.  However, I have never
       used any of these environments and cannot guarantee that there is
       not some less-than-obvious issues.
 
@@ -135,6 +270,10 @@ Installing Cygwin
      of the Cygwin utilities that you will need to build NuttX.  The
      build will fail in numerous places because of missing packages.
 
+     NOTE: The last time I installed EVERYTHING, the download was
+     about 5GiB.  The server I selected was also very slow so it took
+     over a day to do the whole install!
+
      NOTE: You don't really have to install EVERYTHING but I cannot
      answer the question "Then what should I install?"  I don't know
      the answer to that and so will continue to recommend installing
@@ -147,16 +286,25 @@ Installing Cygwin
      Perhaps a minimum set would be those packages listed below for the
      "Ubuntu Bash under Windows 10" installation?
 
+     UPDATE:  Sergey Frolov had success with the following minimal
+     Cygwin configuration:
+
+     1. After starting the Cygwin installer, keep the recommended
+        packages that are pre-selected in the default configuration.
+     2. Using the installation tools, add the following packages:
+
+          make (GNU make)  bison        libgmp3-dev
+          gcc-core         byacc        libmpfr-dev
+          gcc-g++          gperf        libmpc-dev
+          flex             gdb          automake-1.15
+          libncurses-dev   libgmp-dev
+
   After installing Cygwin, you will get lots of links for installed
   tools and shells.  I use the RXVT native shell.  It is fast and reliable
   and does not require you to run the Cygwin X server (which is neither
   fast nor reliable).  Unless otherwise noted, the rest of these
   instructions assume that you are at a bash command line prompt in
   either Linux or in Cygwin shell.
-
-  UPDATE: The last time I installed EVERYTHING, the download was
-  about 5GiB.  The server I selected was also very slow so it took
-  over a day to do the whole install!
 
 Using MSYS
 ----------
@@ -177,7 +325,7 @@ Using MSYS
 
   And possibly others depending upon your usage.  Then you will need to
   build and install kconfig-frontends per the instructions of the top-level
-  README.txt file in the tools repository.  This required the following
+  README.txt file in the tools repository.  This requires the following
   additional tools:
 
     pacman -S bison
@@ -189,9 +337,9 @@ Using MSYS
 
   Because of some versioning issues, I had to run 'aclocal' prior to
   running the kconfig-frontends configure script.  See "Configuring NuttX"
-  below for futher information.ifq
+  below for further information.
 
-  Unlike Cygwin, MSYS does not support symbolic links.  The 'ln -s' commnad
+  Unlike Cygwin, MSYS does not support symbolic links.  The 'ln -s' command
   will, in fact, copy a directory!  This means that you Make.defs file will
   have to include definitions like:
 
@@ -219,7 +367,7 @@ Using MSYS
     4. mklink /j programfiles86 "C:/Program\ Files\ \(x86\)"
 
   They then show up as /programfiles and /programfiles86 with the MSYS2
-  sandbox.  Thos paths can then be used with the PATH variable.  I had
+  sandbox.  Those paths can then be used with the PATH variable.  I had
   to do something similar for the path to the GNU Tools "ARM Embedded
   Toolchain" which also has spaces in the path name.
 
@@ -374,13 +522,33 @@ Ubuntu Bash under Windows 10
   Many Linux graphics programs would, however, also require a graphics
   framework like GTK or Qt.  So this might be a trip down the rabbit hole.
 
+Using macOS
+-----------
+
+  You need to install at least the following tools specific to macOS.
+
+  * flock (used by APPDIR build logic)
+
+    A macOS port is available at: https://github.com/discoteq/flock
+
+      brew tap discoteq/discoteq
+      brew install flock
+
+  If you want to build the sim:
+
+    * Xcode (the native compiler and the rest of the toolchain)
+
+    * ELF toolchain (if you want to build modules for CONFIG_LIBC_MODLIB)
+
+        brew install x86_64-elf-gc
+
 INSTALLATION
 ^^^^^^^^^^^^
 
   There are two ways to get NuttX:  You may download released, stable
-  tarballs from either the Bitbucket or Sourceforge download locations.
-  Or you may get NuttX by cloning the Bitbucket GIT repositories.  Let's
-  consider the released tarballs first:
+  tarballs from either the project website.  Or you may get NuttX by
+  cloning the GIT repositories.  Let's consider the released tarballs
+  first:
 
 Download and Unpack
 -------------------
@@ -392,7 +560,11 @@ Download and Unpack
   match the various instructions in the documentation and some scripts
   in the source tree.
 
-  Download locations:
+  Download location:
+
+    https://nuttx.apache.org/download/
+
+  Legacy download locations:
 
     https://bitbucket.org/nuttx/nuttx/downloads
     https://sourceforge.net/projects/nuttx/files/nuttx/
@@ -457,15 +629,27 @@ Downloading from Repositories
 
   Cloning the Repository
 
+    BEFORE cloning repositories on any Windows platform do the following GIT
+    command:
+
+      git config --global core.autocrlf false
+
+    That will avoid conversions of linefeeds (newlines, \n) to carriage
+    return plus linefeed sequences (\r\n)
+
     The current NuttX du jour is available in from a GIT repository.  Here are
     instructions for cloning the core NuttX RTOS (corresponding to the nuttx
-    tarball discussed above)::
+    tarball discussed above):
 
-      git clone https://bitbucket.org/nuttx/nuttx.git nuttx
+      git clone https://gitbox.apache.org/repos/asf/incubator-nuttx.git nuttx
+      -or-
+      git clone https://github.com/apache/incubator-nuttx.git nuttx
 
     And the semi-optional apps/ application directory and be cloned like:
 
-      git clone https://bitbucket.org/nuttx/apps.git apps
+      git clone https://gitbox.apache.org/repos/asf/incubator-nuttx-apps.git apps
+      -or-
+      git clone https://github.com/apache/incubator-nuttx-apps.git apps
 
     That will give you the same directory structure like this:
 
@@ -508,7 +692,9 @@ Related Repositories
 
   These are standalone repositories:
 
-  * https://bitbucket.org/nuttx/apps
+  * https://gitbox.apache.org/repos/asf/incubator-nuttx-apps
+    or
+    https://github.com/apache/incubator-nuttx-apps.git
 
     This directory holds an optional package of applications and libraries
     can be used with the NuttX RTOS.  There is a README.txt file there that
@@ -533,16 +719,6 @@ Related Repositories
 
     There are snapshots of some tools here that you will need to work with
     NuttX:  kconfig-frontends, genromfs, and others.
-
-  * https://bitbucket.org/nuttx/nonbsd
-
-    A few drivers that are not integrated into the main NuttX source tree due
-    to licensing issues.
-
-  * https://bitbucket.org/nuttx/pascal
-
-    Yes, this really is a Pascal compiler.  The Pascal p-code run-time and
-    pcode debugger can be built as a part of NuttX.
 
 Notes about Header Files
 ------------------------
@@ -658,24 +834,26 @@ Instantiating "Canned" Configurations
 
     "Canned" NuttX configuration files are retained in:
 
-      configs/<board-name>/<config-dir>
+      boards/<arch-name>/<chip-name>/<board-name>/configs/<config-dir>
 
     Where <board-name> is the name of your development board and <config-dir>
     is the name of the sub-directory containing a specific configuration for
-    that board.  Only a few steps are required to instantiate a NuttX
-    configuration, but to make the configuration even easier there are
-    scripts available in the tools/ sub-directory combines those simple steps
-    into one command.
+    that board.  <arch-name> and <chip-name> refer to characteristics of the
+    MCU used on the board:  <arch-name> is the CPU architecture implemented
+    by the MCU; <chip-name> identifies the MCU chip family.  Only a few
+    steps are required to instantiate a NuttX configuration, but to make the
+    configuration even easier there are scripts available in the tools/
+    sub-directory combines those simple steps into one command.
 
     There is one tool for use with any Bash-like shell that does configuration
     steps.  It is used as follows:
 
-      tools/configure.sh <board-name>/<config-dir>
+      tools/configure.sh <board-name>:<config-dir>
 
     There is an alternative Windows batch file that can be used in the windows
     native environment like:
 
-      tools\configure.bat <board-name>\<config-dir>
+      tools\configure.bat <board-name>:<config-dir>
 
     And, to make sure that other platforms are supported, there is also a
     C program at tools/configure.c that can be compiled to establish the
@@ -685,8 +863,8 @@ Instantiating "Canned" Configurations
 
     General information about configuring NuttX can be found in:
 
-     {TOPDIR}/configs/README.txt
-     {TOPDIR}/configs/<board-name>/README.txt
+     {TOPDIR}/boards/README.txt
+     {TOPDIR}/boards/<arch-name>/<chip-name>/<board-name>/README.txt
 
   The Hidden Configuration Scripts:
 
@@ -699,9 +877,13 @@ Instantiating "Canned" Configurations
       Configuring NuttX requires only copying two files from the
       <config-dir> to the directory where you installed NuttX (TOPDIR):
 
-        Copy configs/<board-name>/<config-dir>/Make.def to{TOPDIR}/Make.defs
-        OR
-        Copy configs/<board-name>/scripts/Make.def to{TOPDIR}/Make.defs
+        Copy boards/<arch-name>/<chip-name>/<board-name>/configs/<config-dir>/Make.def
+        to {TOPDIR}/Make.defs
+
+      OR
+
+        Copy boards/<arch-name>/<chip-name>/<board-name>/scripts/Make.def
+        to {TOPDIR}/Make.defs
 
       Make.defs describes the rules needed by your tool chain to compile
       and link code.  You may need to modify this file to match the
@@ -710,7 +892,8 @@ Instantiating "Canned" Configurations
       it may use a common Make.defs file for the board in the scripts/
       directory.  The first takes precedence.
 
-        Copy configs/<board-name>/<config-dir>/defconfig to{TOPDIR}/.config
+        Copy boards/<arch-name>/<chip-name>/<board-name>/configs/<config-dir>/defconfig
+        to{TOPDIR}/.config
 
       The defconfig file holds the actual build configuration.  This
       file is included by all other make files to determine what is
@@ -775,12 +958,12 @@ NuttX Configuration Tool
 ------------------------
 
   An automated tool has been incorporated to support re-configuration
-  of NuttX.  This automated tool is based on the kconfig-frontends
-  application available at http://ymorin.is-a-geek.org/projects/kconfig-frontends
-  (A snapshot of this tool is also available from the tools repository at
-  https://bitbucket.org/nuttx/tools).  This application provides a tool
-  called 'kconfig-mconf' that is used by the NuttX top-level Makefile.
-  The following make target is provided:
+  of NuttX.  This tool is based on the kconfig-frontends application available
+  at https://bitbucket.org/nuttx/tools/src/master/kconfig-frontends/.  (This
+  is a snapshot of the old http://ymorin.is-a-geek.org/projects/kconfig-frontends
+  which is no longer available.)  This application provides a tool called
+  'kconfig-mconf' that is used by the NuttX top-level Makefile. The following
+  make target is provided:
 
     make menuconfig
 
@@ -807,10 +990,8 @@ NuttX Configuration Tool
      https://bitbucket.org/nuttx/tools
 
   2. The 'kconfig-mconf' tool.  'kconfig-mconf' is part of the
-     kconfig-frontends package.  You can download that package from
-     the website http://ymorin.is-a-geek.org/projects/kconfig-frontends
-     or you can use the snapshot in the tools repository at
-     https://bitbucket.org/nuttx/tools.
+     kconfig-frontends package.  You can download that package from the
+     snapshot in the tools repository at https://bitbucket.org/nuttx/tools.
 
      Building kconfig-frontends under Linux may be as simple as
      'configure; make; make install' but there may be some build
@@ -918,7 +1099,7 @@ Make Sure that You are on the Right Platform
   configurations.  For example, if you are running on Linux and you
   configure like this:
 
-    tools/configure.sh board/configuration
+    tools/configure.sh board:configuration
 
   The you can use the following command to both (1) make sure that the
   configuration is up to date, AND (2) the configuration is set up
@@ -944,11 +1125,11 @@ Make Sure that You are on the Right Platform
   platform that you use, and uncompress and refresh the defconfig file all in
   one command like:
 
-    tools/configure.sh -l board/configuration
+    tools/configure.sh -l board:configuration
 
   For a Linux host or for a Windows/Cygwin host:
 
-    tools/configure.sh -h board/configuration
+    tools/configure.sh -c board:configuration
 
   Other options are available from the help option built into the
   script.  You can see all options with:
@@ -1200,7 +1381,8 @@ Cross-Development Toolchains
 
   In order to build NuttX for your board, you will have to obtain a cross-
   compiler to generate code for your target CPU.  For each board,
-  configuration, there is a README.txt file (at configs/<board-name>/README.txt).
+  configuration, there is a README.txt file (at
+  boards/<arch-name>/<chip-name>/<board-name>/README.txt).
   That README file contains suggestions and information about appropriate
   tools and development environments for use with your board.
 
@@ -1213,11 +1395,12 @@ NuttX Buildroot Toolchain
   For many configurations, a DIY set of tools is available for NuttX.  These
   tools can be downloaded from the NuttX Bitbucket.org file repository.  After
   unpacking the buildroot tarball, you can find instructions for building
-  the tools in the buildroot/configs/README.txt file.
+  the tools in the buildroot/boards/README.txt file.
 
   Check the README.txt file in the configuration directory for your board
   to see if you can use the buildroot toolchain with your board (this
-  README.txt file is located in configs/<board-name>/README.txt).
+  README.txt file is located in
+  boards/<arch-name>/<chip-name>/<board-name>/README.txt).
 
   This toolchain is available for both the Linux and Cygwin development
   environments.
@@ -1291,8 +1474,9 @@ Building
     make
 
   At least one configuration (eagle100) requires additional command line
-  arguments on the make command.  Read{TOPDIR}/configs/<board-name>/README.txt
-  to see if that applies to your target.
+  arguments on the make command.  Read
+  {TOPDIR}/boards/<arch-name>/<chip-name>/<board-name>/README.txt to see
+  if that applies to your target.
 
 Re-building
 -----------
@@ -1448,9 +1632,18 @@ Native Windows Build
   instead if you know what you are doing and want a faster download (No, I
   can't tell you which packages you should or should not download).
 
+  NOTE:  It should be possible to use Cygwin or MSYS2 in place of the GNUWin32
+  tools.  There are, however, complexities in doing that because those tools
+  depend on the shell environment and use DLLs that are not found (at least
+  not without the correct setup).
+
   Host Compiler:  I use the MingGW GCC compiler which can be downloaded from
   http://www.mingw.org/.  If you are using GNUWin32, then it is recommended
   the you not install the optional MSYS components as there may be conflicts.
+
+  Kconfig-frontends:  See the section entitled "NuttX Configuration Tool
+  under DOS" for information about installing the kconfig-frontend tools to
+  run natively under Windows.
 
   This capability should still be considered a work in progress because:
 
@@ -1523,6 +1716,17 @@ Installing GNUWin32
   more than you will ever need.  If disc space is a problem for you, you might
   need to perform a manual installation of the individual ZIP files that you
   will find in the <this directory>/GetGNUWin32/packages directory.
+
+  9. Make sure that you add the GNUWin32 tools to your path variable:
+
+    set PATH=C:\gnuwin32\bin;%PATH%
+
+  WARNING:  Make sure you have C:\MinGW\bin in your path before any other
+  directory that contains libiconv-2.dll. Apparently the as.exe in some
+  MinGW distributions are dependent on that DLL, and having an old
+  version of it in the path somewhere (for example GnuWin32 tools) will
+  cause as.exe to pick up the older version that doesn't have the entry
+  point it's looking for.
 
 CYGWIN BUILD PROBLEMS
 ^^^^^^^^^^^^^^^^^^^^^
@@ -1707,8 +1911,12 @@ nuttx/
  |   |
  |   |- arm/
  |   |   `- src
- |   |       |- lpc214x/README.txt
- |   |       `- stm32l4/README.txt
+ |   |       |- common
+ |   |       |   `- README_lwl_console.txt
+ |   |       |- lpc214x
+ |   |       |    `-README.txt
+ |   |       `- stm32l4
+ |   |           `- README.txt
  |   |- renesas/
  |   |   |- include/
  |   |   |   `-README.txt
@@ -1726,321 +1934,458 @@ nuttx/
  |   `- README.txt
  |- audio/
  |   `-README.txt
- |- binfmt/
- |   `-libpcode/
- |       `-README.txt
- |- configs/
- |   |- amber/
- |   |   `- README.txt
- |   |- arduino-mega2560/
- |   |   `- README.txt
- |   |- arduino-due/
- |   |   `- README.txt
- |   |- avr32dev1/
- |   |   `- README.txt
- |   |- b-l475e-iot01a/
- |   |   `- README.txt
- |   |- bambino-200e/
- |   |   `- README.txt
- |   |- c5471evm/
- |   |   `- README.txt
- |   |- clicker2-stm32
- |   |   `- README.txt
- |   |- cloudctrl
- |   |   `- README.txt
- |   |- demo0s12ne64/
- |   |   `- README.txt
- |   |- dk-tm4c129x/
- |   |   `- README.txt
- |   |- ea3131/
- |   |   `- README.txt
- |   |- ea3152/
- |   |   `- README.txt
- |   |- eagle100/
- |   |   `- README.txt
- |   |- efm32-g8xx-stk/
- |   |   `- README.txt
- |   |- efm32gg-stk3700/
- |   |   `- README.txt
- |   |- ekk-lm3s9b96/
- |   |   `- README.txt
- |   |- ez80f910200kitg/
- |   |   |- ostest/README.txt
- |   |   `- README.txt
- |   |- ez80f910200zco/
- |   |   |- dhcpd/README.txt
- |   |   |- httpd/README.txt
- |   |   |- nettest/README.txt
- |   |   |- nsh/README.txt
- |   |   |- ostest/README.txt
- |   |   |- poll/README.txt
- |   |   `- README.txt
- |   |- fire-stm32v2/
- |   |   `- README.txt
- |   |- flipnclick-pic32mz/
- |   |   `- README.txt
- |   |- flipnclick-sam3x/
- |   |   `- README.txt
- |   |- freedom-k28f/
- |   |   `- README.txt
- |   |- freedom-k64f/
- |   |   `- README.txt
- |   |- freedom-k66f/
- |   |   `- README.txt
- |   |- freedom-kl25z/
- |   |   `- README.txt
- |   |- freedom-kl26z/
- |   |   `- README.txt
- |   |- gapuino/
- |   |   `- README.txt
- |   |- hymini-stm32v/
- |   |   `- README.txt
- |   |- imxrt1050-evk
- |   |   `- README.txt
- |   |- kwikstik-k40/
- |   |   `- README.txt
- |   |- launchxl-cc1310/
- |   |   `- README.txt
- |   |- launchxl-cc1312r1/
- |   |   `- README.txt
- |   |- launchxl-tms57004/
- |   |   `- README.txt
- |   |- lincoln60/
- |   |   `- README.txt
- |   |- lm3s6432-s2e/
- |   |   `- README.txt
- |   |- lm3s6965-ek/
- |   |   `- README.txt
- |   |- lm3s8962-ek/
- |   |   `- README.txt
- |   |- lpc4330-xplorer/
- |   |   `- README.txt
- |   |- lpc4337-ws/
- |   |   `- README.txt
- |   |- lpc4357-evb/
- |   |   `- README.txt
- |   |- lpc4370-link2/
- |   |   `- README.txt
- |   |- lpcxpresso-lpc1115/
- |   |   `- README.txt
- |   |- lpcxpresso-lpc1768/
- |   |   `- README.txt
- |   |- lpcxpresso-lpc54628/
- |   |   `- README.txt
- |   |- maple/
- |   |   `- README.txt
- |   |- max32660-evsys/
- |   |   `- README.txt
- |   |- mbed/
- |   |   `- README.txt
- |   |- mcb1700/
- |   |   `- README.txt
- |   |- mcu123-lpc214x/
- |   |   `- README.txt
- |   |- metro-m4/
- |   |   `- README.txt
- |   |- micropendous3/
- |   |   `- README.txt
- |   |- mikroe-stm32f/
- |   |   `- README.txt
- |   |- mirtoo/
- |   |   `- README.txt
+ |- boards/
+ |   |- arm/
+ |   |   |- a1x/
+ |   |   |   `- pcduino-a10/
+ |   |   |       `- README.txt
+ |   |   |- am335x/
+ |   |   |   `- beaglebone-black/
+ |   |   |       `- README.txt
+ |   |   |- c5471/
+ |   |   |   `- c5471evm/
+ |   |   |       `- README.txt
+ |   |   |- cxd56xx/
+ |   |   |   `- spresense/
+ |   |   |       `- README.txt
+ |   |   |- dm320/
+ |   |   |   `- ntosd-dm320/
+ |   |   |       |- doc/README.txt
+ |   |   |       `- README.txt
+ |   |   |- efm32/
+ |   |   |   |- efm32-g8xx-stk/
+ |   |   |   |   `- README.txt
+ |   |   |   |- efm32gg-stk3700/
+ |   |   |   |   `- README.txt
+ |   |   |   `- olimex-efm32g880f128-stk/
+ |   |   |       `- README.txt
+ |   |   |- imx6/
+ |   |   |   `- sabre-6quad/
+ |   |   |       `- README.txt
+ |   |   |- imxrt/
+ |   |   |   |- imxrt1050-evk/
+ |   |   |   |   `- README.txt
+ |   |   |   `- imxrt1060-evk/
+ |   |   |       `- README.txt
+ |   |   |- kinetis/
+ |   |   |   |- freedom-k28f/
+ |   |   |   |   `- README.txt
+ |   |   |   |- freedom-k64f/
+ |   |   |   |   `- README.txt
+ |   |   |   |- freedom-k66f/
+ |   |   |   |   `- README.txt
+ |   |   |   |- kwikstik-k40/
+ |   |   |   |   `- README.txt
+ |   |   |   |- teensy-3.x/
+ |   |   |   |   `- README.txt
+ |   |   |   |- twr-k60n512/
+ |   |   |   |   `- README.txt
+ |   |   |   `- twr-k64f120m/
+ |   |   |       `- README.txt
+ |   |   |- kl/
+ |   |   |   |- freedom-kl25z/
+ |   |   |   |   `- README.txt
+ |   |   |   |- freedom-kl26z/
+ |   |   |   |   `- README.txt
+ |   |   |   `- teensy-lc/
+ |   |   |       `- README.txt
+ |   |   |- lc823450/
+ |   |   |   `- lc823450-xgevk/
+ |   |   |       `- README.txt
+ |   |   |- lpc17xx_40xx/
+ |   |   |   |- lincoln60/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lpc4088-devkit/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lpc4088-quickstart/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lpcxpresso-lpc1768/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lx_cpu/
+ |   |   |   |   `- README.txt
+ |   |   |   |- mbed/
+ |   |   |   |   `- README.txt
+ |   |   |   |- mcb1700/
+ |   |   |   |   `- README.txt
+ |   |   |   |- olimex-lpc1766stk/
+ |   |   |   |   `- README.txt
+ |   |   |   |- open1788/
+ |   |   |   |   `- README.txt
+ |   |   |   |- pnev5180b/
+ |   |   |   |   `- README.txt
+ |   |   |   |- u-blox-c027/
+ |   |   |   |   `- README.txt
+ |   |   |   `- zkit-arm-1769/
+ |   |   |       `- README.txt
+ |   |   |- lpc214x/
+ |   |   |   |- mcu123-lpc214x/
+ |   |   |   |   `- README.txt
+ |   |   |   `- zp214xpa/
+ |   |   |       `- README.txt
+ |   |   |- lpc2378/
+ |   |   |   `- olimex-lpc2378/
+ |   |   |       `- README.txt
+ |   |   |- lpc31xx/
+ |   |   |   |- ea3131/
+ |   |   |   |   `- README.txt
+ |   |   |   |- ea3152/
+ |   |   |   |   `- README.txt
+ |   |   |   `- olimex-lpc-h3131/
+ |   |   |       `- README.txt
+ |   |   |- lpc43xx/
+ |   |   |   |- bambino-200e/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lpc4330-xplorer/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lpc4337-ws/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lpc4357-evb/
+ |   |   |   |   `- README.txt
+ |   |   |   `- lpc4370-link2/
+ |   |   |       `- README.txt
+ |   |   |- lpc54xx/
+ |   |   |   `- lpcxpresso-lpc54628/
+ |   |   |       `- README.txt
+ |   |   |- max326xx/
+ |   |   |   `- max32660-evsys/
+ |   |   |       `- README.txt
+ |   |   |- moxart/
+ |   |   |   `- moxa/
+ |   |   |- nrf52/
+ |   |   |   `- nrf52-generic/
+ |   |   |       `- README.txt
+ |   |   |- nuc1xx/
+ |   |   |   `- nutiny-nuc120/
+ |   |   |       `- README.txt
+ |   |   |- s32k1xx/
+ |   |   |   |- s32k118evb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- s32k146evb/
+ |   |   |   |   `- README.txt
+ |   |   |   `- s32k148evb/
+ |   |   |       `- README.txt
+ |   |   |- sam34/
+ |   |   |   |- arduino-due/
+ |   |   |   |   `- README.txt
+ |   |   |   |- flipnclick-sam3x/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sam3u-ek/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sam4cmp-db/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sam4e-ek/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sam4l-xplained/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sam4s-xplained/
+ |   |   |   |   `- README.txt
+ |   |   |   `- sam4s-xplained-pro/
+ |   |   |       `- README.txt
+ |   |   |- sama5/
+ |   |   |   |- sama5d2-xult/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sama5d3x-ek/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sama5d3-xplained/
+ |   |   |   |   `- README.txt
+ |   |   |   `- sama5d4-ek/
+ |   |   |       `- README.txt
+ |   |   |- samd2l2/
+ |   |   |   |- arduino-m0/
+ |   |   |   |   `- README.txt
+ |   |   |   |- samd20-xplained/
+ |   |   |   |   `- README.txt
+ |   |   |   |- samd21-xplained/
+ |   |   |   |   `- README.txt
+ |   |   |   `- saml21-xplained/
+ |   |   |       `- README.txt
+ |   |   |- samd5e5/
+ |   |   |   `- metro-m4/
+ |   |   |      `- README.txt
+ |   |   |- samv7/
+ |   |   |   |- same70-xplained/
+ |   |   |   |   `- README.txt
+ |   |   |   `- samv71-xult/
+ |   |   |      `- README.txt
+ |   |   |- stm32/
+ |   |   |   |- axoloti/
+ |   |   |   |   `- README.txt
+ |   |   |   |- clicker2-stm32/
+ |   |   |   |   `- README.txt
+ |   |   |   |- cloudctrl/
+ |   |   |   |   `- README.txt
+ |   |   |   |- fire-stm32v2/
+ |   |   |   |   `- README.txt
+ |   |   |   |- hymini-stm32v/
+ |   |   |   |   `- README.txt
+ |   |   |   |- maple/
+ |   |   |   |   `- README.txt
+ |   |   |   |- mikroe-stm32f4/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f103rb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f207zg/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f302r8/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f303re/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f303ze/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f334r8/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f410rb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f446re/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f4x1re/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-l152re/
+ |   |   |   |   `- README.txt
+ |   |   |   |- olimexino-stm32/
+ |   |   |   |- olimex-stm32-e407/
+ |   |   |   |   `- README.txt
+ |   |   |   |- olimex-stm32-h405/
+ |   |   |   |   `- README.txt
+ |   |   |   |- olimex-stm32-h407/
+ |   |   |   |   `- README.txt
+ |   |   |   |- olimex-stm32-p107/
+ |   |   |   |- olimex-stm32-p207/
+ |   |   |   |   `- README.txt
+ |   |   |   |- olimex-stm32-p407/
+ |   |   |   |   `- README.txt
+ |   |   |   |- omnibusf4/
+ |   |   |   |   `- README.txt
+ |   |   |   |- photon/
+ |   |   |   |   `- README.txt
+ |   |   |   |- shenzhou/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32_tiny/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm3210e-eval/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm3220g-eval/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm3240g-eval/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32butterfly2/
+ |   |   |   |- stm32f103-minimum/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f334-disco/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f3discovery/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f411e-disco/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f429i-disco/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f4discovery/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32ldiscovery/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32vldiscovery/
+ |   |   |   |   `- README.txt
+ |   |   |   `- viewtool-stm32f107/
+ |   |   |       `- README.txt
+ |   |   |- stm32f0l0g0/
+ |   |   |   |- b-l072z-lrwan1/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f072rb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-f091rc/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-g070rb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-g071rb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-l073rz/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f051-discovery/
+ |   |   |   |   `- README.txt
+ |   |   |   `- stm32f072-discovery/
+ |   |   |       `- README.txt
+ |   |   |- stm32f7/
+ |   |   |   |- nucleo-144/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f746g-disco/
+ |   |   |   |   |- configs/fb/README.txt
+ |   |   |   |   |- configs/nxdemo/README.txt
+ |   |   |   |   |- configs/nxterm/README.txt
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32f746-ws/
+ |   |   |   `- stm32f769i-disco/
+ |   |   |       `- README.txt
+ |   |   |- stm32h7/
+ |   |   |   `- nucleo-h743zi/
+ |   |   |       `- README.txt
+ |   |   |- stm32l4/
+ |   |   |   |- b-l475e-iot01a/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-l432kc/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-l452re/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-l476rg/
+ |   |   |   |   `- README.txt
+ |   |   |   |- nucleo-l496zg/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32l476-mdk/
+ |   |   |   |   `- README.txt
+ |   |   |   |- stm32l476vg-disco/
+ |   |   |   |   `- README.txt
+ |   |   |   `- stm32l4r9ai-disco/
+ |   |   |       `- README.txt
+ |   |   |- str71x/
+ |   |   |   `- olimex-strp711/
+ |   |   |       `- README.txt
+ |   |   |- tiva/
+ |   |   |   |- dk-tm4c129x/
+ |   |   |   |   `- README.txt
+ |   |   |   |- eagle100/
+ |   |   |   |   `- README.txt
+ |   |   |   |- ekk-lm3s9b96/
+ |   |   |   |   `- README.txt
+ |   |   |   |- launchxl-cc1310/
+ |   |   |   |   `- README.txt
+ |   |   |   |- launchxl-cc1312r1/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lm3s6432-s2e/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lm3s6965-ek/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lm3s8962-ek/
+ |   |   |   |   `- README.txt
+ |   |   |   |- lm4f120-launchpad/
+ |   |   |   |   `- README.txt
+ |   |   |   |- tm4c123g-launchpad/
+ |   |   |   |   `- README.txt
+ |   |   |   `- tm4c1294-launchpad/
+ |   |   |       `- README.txt
+ |   |   |- tms570/
+ |   |   |   |- launchxl-tms57004/
+ |   |   |   |   `- README.txt
+ |   |   |   `- tms570ls31x-usb-kit/
+ |   |   |       `- README.txt
+ |   |   `- xmc4/
+ |   |       `- xmc4500-relax/
+ |   |           `- README.txt
+ |   |- avr/
+ |   |   |- at32uc3/
+ |   |   |   `- avr32dev1/
+ |   |   |       `- README.txt
+ |   |   |- at90usb/
+ |   |   |   |- micropendous3/
+ |   |   |   |   `- README.txt
+ |   |   |   `- teensy-2.0/
+ |   |   |       `- README.txt
+ |   |   `- atmega/
+ |   |       |- amber/
+ |   |       |   `- README.txt
+ |   |       |- arduino-mega2560/
+ |   |       |   `- README.txt
+ |   |       `- moteino-mega/
+ |   |           `- README.txt
+ |   |- hc/
+ |   |   `- m9s12/
+ |   |       |- demo9s12ne64/
+ |   |       |   `- README.txt
+ |   |       `- ne64badge/
+ |   |           `- README.txt
+ |   |- mips/
+ |   |   |- pic32mx/
+ |   |   |   |- mirtoo/
+ |   |   |   |   `- README.txt
+ |   |   |   |- pic32mx7mmb/
+ |   |   |   |   `- README.txt
+ |   |   |   |- pic32mx-starterkit/
+ |   |   |   |   `- README.txt
+ |   |   |   |- sure-pic32mx/
+ |   |   |   |   `- README.txt
+ |   |   |   `- ubw32/
+ |   |   |       `- README.txt
+ |   |   `-pic32mz/
+ |   |       |- flipnclick-pic32mz/
+ |   |       |   `- README.txt
+ |   |       `- pic32mz-starterkit/
+ |   |           `- README.txt
  |   |- misoc/
- |   |   `- README.txt
- |   |- moteino-mega/
- |   |   `- README.txt
- |   |- ne63badge/
- |   |   `- README.txt
- |   |- nrf52-generic/
- |   |   `- README.txt
- |   |- ntosd-dm320/
- |   |   |- doc/README.txt
- |   |   `- README.txt
- |   |- nucleo-144/
- |   |   `- README.txt
- |   |- nucleo-f072rb/
- |   |   `- README.txt
- |   |- nucleo-f091rc/
- |   |   `- README.txt
- |   |- nucleo-f303re/
- |   |   `- README.txt
- |   |- nucleo-f334r8/
- |   |   `- README.txt
- |   |- nucleo-f4x1re/
- |   |   `- README.txt
- |   |- nucleo-f410rb
- |   |   `- README.txt
- |   |- nucleo-f446re
- |   |   `- README.txt
- |   |- nucleo-l432kc/
- |   |   `- README.txt
- |   |- nucleo-l452re/
- |   |   `- README.txt
- |   |- nucleo-l476rg/
- |   |   `- README.txt
- |   |- nucleo-l496zg/
- |   |   `- README.txt
- |   |- nutiny-nuc120/
- |   |   `- README.txt
- |   |- olimex-efm32g880f129-stk/
- |   |   `- README.txt
- |   |- olimex-lpc1766stk/
- |   |   `- README.txt
- |   |- olimex-lpc2378/
- |   |   `- README.txt
- |   |- olimex-lpc-h3131/
- |   |   `- README.txt
- |   |- olimex-stm32-h405/
- |   |   `- README.txt
- |   |- olimex-stm32-h407/
- |   |   `- README.txt
- |   |- olimex-stm32-p107/
- |   |   `- README.txt
- |   |- olimex-stm32-p207/
- |   |   `- README.txt
- |   |- olimex-stm32-p407/
- |   |   `- README.txt
- |   |- olimex-strp711/
- |   |   `- README.txt
- |   |- omnibusf4/
- |   |   `- README.txt
- |   |- open1788/
- |   |   `- README.txt
- |   |- p112/
- |   |   `- README.txt
- |   |- pcduino-a10/
- |   |   `- README.txt
- |   |- photon/
- |   |   `- README.txt
- |   |- pic32mx-starterkit/
- |   |   `- README.txt
- |   |- pic32mx7mmb/
- |   |   `- README.txt
- |   |- pic32mz-starterkit/
- |   |   `- README.txt
- |   |- qemu-i486/
- |   |   `- README.txt
- |   |- sabre-6quad/
- |   |   `- README.txt
- |   |- sama5d2-xult/
- |   |   `- README.txt
- |   |- sama5d3x-ek/
- |   |   `- README.txt
- |   |- sama5d3-xplained/
- |   |   `- README.txt
- |   |- sama5d4-ek/
- |   |   `- README.txt
- |   |- samd20-xplained/
- |   |   `- README.txt
- |   |- samd21-xplained/
- |   |   `- README.txt
- |   |- saml21-xplained/
- |   |   `- README.txt
- |   |- sam3u-ek/
- |   |   `- README.txt
- |   |- sam4cmp-db
- |   |   `- README.txt
- |   |- sam4e-ek/
- |   |   `- README.txt
- |   |- sam4l-xplained/
- |   |   `- README.txt
- |   |- sam4s-xplained/
- |   |   `- README.txt
- |   |- sam4s-xplained-pro/
- |   |   `- README.txt
- |   |- same70-xplained/
- |   |   `- README.txt
- |   |- samv71-xult/
- |   |   `- README.txt
+ |   |   `- lm32/
+ |   |       `- misoc/
+ |   |           `- README.txt
+ |   |- or1k/
+ |   |   `- mor1kx/
+ |   |       `- or1k/
+ |   |           `- README.txt
+ |   |- renesas/
+ |   |   |- m16c/
+ |   |   |   `- skp16c26/
+ |   |   |       `- README.txt
+ |   |   `-sh1/
+ |   |       `- us7032evb1/
+ |   |           `- README.txt
+ |   |- risc-v/
+ |   |   |- gap8/
+ |   |   |   `- gapuino/
+ |   |   |       `- README.txt
+ |   |   `-nr5m100/
+ |   |       `- nr5m100-nexys4/
+ |   |           `- README.txt
  |   |- sim/
- |   |   |- include/README.txt
- |   |   `- README.txt
- |   |- shenzhou/
- |   |   `- README.txt
- |   |- skp16c26/
- |   |   `- README.txt
- |   |- stm3210e-eval/
- |   |   |- RIDE/README.txt
- |   |   `- README.txt
- |   |- stm3220g-eval/
- |   |   `- README.txt
- |   |- stm3240g-eval/
- |   |   `- README.txt
- |   |- stm32_tiny/
- |   |   `- README.txt
- |   |- stm32f103-minumum/
- |   |   `- README.txt
- |   |- stm32f3discovery/
- |   |   `- README.txt
- |   |- stm32f4discovery/
- |   |   `- README.txt
- |   |- stm32f411e-disco/
- |   |   `- README.txt
- |   |- stm32f429i-disco/
- |   |   |- fb/README.txt
- |   |   `- README.txt
- |   |- stm32f746g-disco/
- |   |   _- fb/README.txt
- |   |   _- nxdemo/README.txt
- |   |   _- nxterm/README.txt
- |   |   `- README.txt
- |   |- stm32f769i-disco/
- |   |   `- README.txt
- |   |- stm32l476-mdk/
- |   |   `- README.txt
- |   |- stm32l476vg-disco/
- |   |   `- README.txt
- |   |- stm32l4r9ai-disco/
- |   |   `-README.txt
- |   |- stm32ldiscovery/
- |   |   `- README.txt
- |   |- stm32vldiscovery/
- |   |   `- README.txt
- |   |- sure-pic32mx/
- |   |   `- README.txt
- |   |- teensy-2.0/
- |   |   `- README.txt
- |   |- teensy-3.x/
- |   |   `- README.txt
- |   |- teensy-lc/
- |   |   `- README.txt
- |   |- tm4c123g-launchpad/
- |   |   `- README.txt
- |   |- tm4c1294-launchpad/
- |   |   `- README.txt
- |   |- twr-k60n512/
- |   |   `- README.txt
- |   |- tms570ls31x-usb-kit/
- |   |   `- README.txt
- |   |- twr-k64f120m/
- |   |   `- README.txt
- |   |- u-blox-co27/
- |   |   `- README.txt
- |   |- ubw32/
- |   |   `- README.txt
- |   |- us7032evb1/
- |   |   `- README.txt
- |   |- viewtool-stm32f107/
- |   |   `- README.txt
- |   |- xmc5400-relax/
- |   |   `- README.txt
- |   |- z16f2800100zcog/
- |   |   |- ostest/README.txt
- |   |   |- pashello/README.txt
- |   |   `- README.txt
- |   |- z80sim/
- |   |   `- README.txt
- |   |- z8encore000zco/
- |   |   |- ostest/README.txt
- |   |   `- README.txt
- |   |- z8f64200100kit/
- |   |   |- ostest/README.txt
- |   |   `- README.txt
- |   |- zkit-arm-1769/
- |   |   `- README.txt
- |   |- zp214xpa/
- |   |   `- README.txt
- |   `- README.txt
+ |   |   `- sim/
+ |   |       `- sim/
+ |   |           |- include/README.txt
+ |   |           `- README.txt
+ |   |- x86/
+ |   |   `- qemu/
+ |   |       `- qemu-i486/
+ |   |           `- README.txt
+ |   |- xtensa/
+ |   |   `- esp32/
+ |   |       `- esp32-core/
+ |   |           `- README.txt
+ |   |- z16/
+ |   |   `- z16f/
+ |   |       `- z16f2800100zcog/
+ |   |           |- configs/nsh/README.txt
+ |   |           |- configs/ostest/README.txt
+ |   |           |- configs/pashello/README.txt
+ |   |           `- README.txt
+ |   |- z80/
+ |   |   |- ez80/
+ |   |   |   |- ez80f910200kitg/
+ |   |   |   |   |- configs/ostest/README.txt
+ |   |   |   |   `- README.txt
+ |   |   |   |- ez80f910200zco/
+ |   |   |   |   |- configs/dhcpd/README.txt
+ |   |   |   |   |- configs/httpd/README.txt
+ |   |   |   |   |- configs/nettest/README.txt
+ |   |   |   |   |- configs/nsh/README.txt
+ |   |   |   |   |- configs/poll/README.txt
+ |   |   |   |   `- README.txt
+ |   |   |   |- makerlisp/
+ |   |   |   |   |- configs/nsh_flash/README.txt
+ |   |   |   |   |- configs/nsh_ram/README.txt
+ |   |   |   |   |- configs/sdboot/README.txt
+ |   |   |   |   `- README.txt
+ |   |   |   `- z80x/
+ |   |   |       |- configs/nsh_flash/README.txt
+ |   |   |       |- configs/nsh_ram/README.txt
+ |   |   |       |- configs/sdboot/README.txt
+ |   |   |       `- README.txt
+ |   |   |- z180/
+ |   |   |   `- p112/
+ |   |   |       `- README.txt
+ |   |   |- z8/
+ |   |   |   |- z8encore000zco/
+ |   |   |   |   |- configs/ostest/README.txt
+ |   |   |   |   `- README.txt
+ |   |   |   `- z8f64200100kit/
+ |   |   |       |- configs/ostest/README.txt
+ |   |   |       `- README.txt
+ |   |   `- z80/
+ |   |       `- z80sim/
+ |   |           `- README.txt
+ |   `-README.txt
  |- drivers/
  |   |- eeprom/
  |   |   `- README.txt
@@ -2187,7 +2532,4 @@ tools/
  `- README.txt
 
 uClibc++/
- `- README.txt
-
-pascal/
  `- README.txt

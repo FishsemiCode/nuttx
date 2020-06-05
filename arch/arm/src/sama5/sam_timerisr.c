@@ -49,7 +49,7 @@
 
 #include "up_arch.h"
 #include "sam_periphclks.h"
-#include "chip/sam_pit.h"
+#include "hardware/sam_pit.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -114,7 +114,7 @@ static int sam_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -122,7 +122,7 @@ static int sam_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
 
@@ -136,7 +136,7 @@ void arm_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(SAM_IRQ_PIT, (xcpt_t)sam_timerisr, NULL);
+  irq_attach(SAM_IRQ_PIT, (xcpt_t)sam_timerisr, NULL);
 
   /* Set the PIT overflow value (PIV), enable the PIT, and enable
    * interrupts from the PIT.

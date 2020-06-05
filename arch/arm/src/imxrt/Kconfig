@@ -12,21 +12,39 @@ choice
 	default ARCH_CHIP_MIMXRT1052DVL6A
 	depends on ARCH_CHIP_IMXRT
 
+config ARCH_CHIP_MIMXRT1021CAG4A
+	bool "MIMXRT1021CAG4A"
+	select ARCH_FAMILY_MIMXRT1021C
+
+config ARCH_CHIP_MIMXRT1021CAF4A
+	bool "MIMXRT1021CAF4A"
+	select ARCH_FAMILY_MIMXRT1021C
+
+config ARCH_CHIP_MIMXRT1021DAF5A
+	bool "MIMXRT1021DAF5A"
+	select ARCH_FAMILY_MIMXRT1021D
+
+config ARCH_CHIP_MIMXRT1021DAG5A
+	bool "MIMXRT1021DAG5A"
+	select ARCH_FAMILY_MIMXRT1021D
+
 config ARCH_CHIP_MIMXRT1051DVL6A
 	bool "MIMXRT1051DVL6A"
-	select ARCH_FAMILY_MXRT105xDVL6A
+	select ARCH_FAMILY_MIMXRT105xDVL6A
 
 config ARCH_CHIP_MIMXRT1051CVL5A
 	bool "MIMXRT1051CVL5A"
-	select ARCH_FAMILY_IMIMXRT105xCVL5A
+	select ARCH_FAMILY_MIMXRT105xCVL5A
 
 config ARCH_CHIP_MIMXRT1052DVL6A
 	bool "MIMXRT1052DVL6A"
-	select ARCH_FAMILY_MXRT105xDVL6A
+	select ARCH_FAMILY_MIMXRT105xDVL6A
+	select IMXRT_HAVE_LCD
 
 config ARCH_CHIP_MIMXRT1052CVL5A
-	bool "MIMXRT1052DVL5A"
-	select ARCH_FAMILY_MIMXRT1052CVL5A
+	bool "MIMXRT1052CVL5A"
+	select ARCH_FAMILY_MIMXRT105xCVL5A
+	select IMXRT_HAVE_LCD
 
 config ARCH_CHIP_MIMXRT1061DVL6A
 	bool "MIMXRT1061DVL6A"
@@ -34,28 +52,54 @@ config ARCH_CHIP_MIMXRT1061DVL6A
 
 config ARCH_CHIP_MIMXRT1061CVL5A
 	bool "MIMXRT1061CVL5A"
-	select ARCH_FAMILY_IMIMXRT106xCVL5A
+	select ARCH_FAMILY_MIMXRT106xCVL5A
 
 config ARCH_CHIP_MIMXRT1062DVL6A
 	bool "MIMXRT1062DVL6A"
 	select ARCH_FAMILY_MXRT106xDVL6A
+	select IMXRT_HAVE_LCD
 
 config ARCH_CHIP_MIMXRT1062CVL5A
 	bool "MIMXRT1062DVL6A"
-	select ARCH_FAMILY_MIMXRT1062CVL5A
+	select ARCH_FAMILY_MIMXRT106xCVL5A
+	select IMXRT_HAVE_LCD
 
 endchoice # i.MX RT Chip Selection
 
 # i.MX RT Families
 
-config ARCH_FAMILY_MXRT105xDVL6A
+config ARCH_FAMILY_MIMXRT1021D
+	bool
+	default n
+	select ARCH_FAMILY_IMXRT102x
+	---help---
+		i.MX RT1020 Crossover Processors for Consumer Products
+
+config ARCH_FAMILY_MIMXRT1021C
+	bool
+	default n
+	select ARCH_FAMILY_IMXRT102x
+	---help---
+		i.MX RT1020 Crossover Processors for Industrial Products
+
+config ARCH_FAMILY_IMXRT102x
+	bool
+	default n
+	select ARCH_HAVE_FPU
+	select ARCH_HAVE_DPFPU # REVISIT
+	select ARMV7M_HAVE_ICACHE
+	select ARMV7M_HAVE_DCACHE
+	select ARMV7M_HAVE_ITCM
+	select ARMV7M_HAVE_DTCM
+
+config ARCH_FAMILY_MIMXRT105xDVL6A
 	bool
 	default n
 	select ARCH_FAMILY_IMXRT105x
 	---help---
 		i.MX RT1050 Crossover Processors for Consumer Products
 
-config ARCH_FAMILY_MIMXRT1052CVL5A
+config ARCH_FAMILY_MIMXRT105xCVL5A
 	bool
 	default n
 	select ARCH_FAMILY_IMXRT105x
@@ -71,7 +115,6 @@ config ARCH_FAMILY_IMXRT105x
 	select ARMV7M_HAVE_DCACHE
 	select ARMV7M_HAVE_ITCM
 	select ARMV7M_HAVE_DTCM
-	select IMXRT_HAVE_LCD
 
 config ARCH_FAMILY_MXRT106xDVL6A
 	bool
@@ -80,7 +123,7 @@ config ARCH_FAMILY_MXRT106xDVL6A
 	---help---
 		i.MX RT1060 Crossover Processors for Consumer Products
 
-config ARCH_FAMILY_MIMXRT1062CVL5A
+config ARCH_FAMILY_MIMXRT106xCVL5A
 	bool
 	default n
 	select ARCH_FAMILY_IMXRT106x
@@ -97,9 +140,16 @@ config ARCH_FAMILY_IMXRT106x
 	select ARMV7M_HAVE_ITCM
 	select ARMV7M_HAVE_DTCM
 	select IMXRT_HIGHSPEED_GPIO
-	select IMXRT_HAVE_LCD
 
 # Peripheral support
+
+config IMXRT_USDHC
+	bool
+	default n
+
+config IMXRT_FLEXIO
+	bool
+	default n
 
 config IMXRT_HAVE_LPUART
 	bool
@@ -110,6 +160,10 @@ config IMXRT_LPI2C
 	default n
 
 config IMXRT_LPSPI
+	bool
+	default n
+
+config IMXRT_ENC
 	bool
 	default n
 
@@ -132,6 +186,16 @@ config IMXRT_EDMA
 	default n
 	select ARCH_DMA
 
+config IMXRT_USBOTG
+	bool "USB EHCI"
+	default n
+	select USBHOST_HAVE_ASYNCH if USBHOST
+	select USBHOST_ASYNCH
+
+config IMXRT_USBDEV
+	bool "USB Device"
+	default n
+
 config IMXRT_ENET
 	bool "Ethernet"
 	default n
@@ -145,6 +209,128 @@ config IMXRT_LCD
 	depends on IMXRT_HAVE_LCD
 
 menu "FlexIO Peripherals"
+
+config IMXRT_FLEXIO1
+	bool "FLEXIO1"
+	default n
+	select IMXRT_FLEXIO
+
+if IMXRT_FLEXIO1
+
+choice
+	prompt "FLEXIO1 Clock Source"
+	default FLEXIO1_CLK_PLL3_SW
+	---help---
+		The clock source that drives the FLEXIO.
+		Used to set FLEXIO1_CLK_SEL.
+
+config FLEXIO1_CLK_PLL4
+	bool "PLL4"
+
+config FLEXIO1_CLK_PLL3_PFD2
+	bool "PLL3_PFD2"
+
+if ARCH_FAMILY_IMXRT105x || ARCH_FAMILY_IMXRT106x
+
+config FLEXIO1_CLK_PLL5
+	bool "PLL5"
+
+endif # ARCH_FAMILY_IMXRT105x || ARCH_FAMILY_IMXRT106x
+
+config FLEXIO1_CLK_PLL3_SW
+	bool "PLL3_SW_CLK"
+
+endchoice # FLEXIO1 Clock Source
+
+config FLEXIO1_CLK
+	int
+	default 0 if FLEXIO1_CLK_PLL4
+	default 1 if FLEXIO1_CLK_PLL3_PFD2
+	default 2 if FLEXIO1_CLK_PLL5
+	default 3 if FLEXIO1_CLK_PLL3_SW
+
+config FLEXIO1_PRED_DIVIDER
+	int "FLEXIO1 Predivider"
+	range 1 8
+	default 2
+	---help---
+		The clock source predivider value (FLEXIO1_PRED). [1-8]
+
+config FLEXIO1_PODF_DIVIDER
+	int "FLEXIO1 Divider"
+	range 1 8
+	default 8
+	---help---
+		The clock source divider value (FLEXIO1_PODF). [1-8]
+
+endif # IMXRT_FLEXIO1
+
+if ARCH_FAMILY_IMXRT105x || ARCH_FAMILY_IMXRT106x
+
+config IMXRT_FLEXIO2
+	bool "FLEXIO2"
+	default n
+	select IMXRT_FLEXIO
+
+if IMXRT_FLEXIO2 || IMXRT_FLEXIO3
+
+choice
+	prompt "FLEXIO2 Clock Source"
+	default FLEXIO2_CLK_PLL3_SW
+	---help---
+		The clock source that drives the FLEXIO.
+		Used to set FLEXIO2_CLK_SEL.
+
+config FLEXIO2_CLK_PLL4
+	bool "PLL4"
+
+config FLEXIO2_CLK_PLL3_PFD2
+	bool "PLL3_PFD2"
+
+config FLEXIO2_CLK_PLL5
+	bool "PLL5"
+
+config FLEXIO2_CLK_PLL3_SW
+	bool "PLL3_SW_CLK"
+
+endchoice # FLEXIO2 Clock Source
+
+config FLEXIO2_CLK
+	int
+	default 0 if FLEXIO2_CLK_PLL4
+	default 1 if FLEXIO2_CLK_PLL3_PFD2
+	default 2 if FLEXIO2_CLK_PLL5
+	default 3 if FLEXIO2_CLK_PLL3_SW
+
+config FLEXIO2_PRED_DIVIDER
+	int
+	prompt "FLEXIO2 Predivider"
+	range 1 8
+	default 2
+	---help---
+		The clock source predivider value (FLEXIO2_PRED). [1-8]
+
+config FLEXIO2_PODF_DIVIDER
+	int
+	prompt "FLEXIO2 Divider"
+	range 1 8
+	default 8
+	---help---
+		The clock source divider value (FLEXIO2_PODF). [1-8]
+
+endif # IMXRT_FLEXIO2 || IMXRT_FLEXIO3
+
+if ARCH_FAMILY_IMXRT106x
+
+config IMXRT_FLEXIO3
+	bool "FLEXIO3"
+	default n
+	select IMXRT_FLEXIO
+    ---help---
+		FLEXIO3 uses the FLEXIO2 clock settings.
+
+endif # ARCH_FAMILY_IMXRT106x
+endif # ARCH_FAMILY_IMXRT105x || ARCH_FAMILY_IMXRT106x
 
 endmenu # FlexIO Peripherals
 
@@ -207,6 +393,19 @@ config IMXRT_LPUART8
 	select IMXRT_HAVE_LPUART
 
 endmenu # LPUART Peripherals
+
+menu "LPUART Configuration"
+	depends on IMXRT_HAVE_LPUART
+
+config IMXRT_LPUART_INVERT
+	bool "Signal Invert Support"
+	default n
+	depends on IMXRT_HAVE_LPUART
+	---help---
+		Enable signal inversion UART support. The option enables support for the
+		TIOCSINVERT ioctl in the IMXRT serial driver.
+
+endmenu # LPUART Configuration
 
 menu "LPI2C Peripherals"
 
@@ -302,17 +501,17 @@ menuconfig IMXRT_LPSPI1
 	default n
 	select IMXRT_LPSPI
 
-config IMXRT_LPSPI2
+menuconfig IMXRT_LPSPI2
 	bool "LPSPI2"
 	default n
 	select IMXRT_LPSPI
 
-config IMXRT_LPSPI3
+menuconfig IMXRT_LPSPI3
 	bool "LPSPI3"
 	default n
 	select IMXRT_LPSPI
 
-config IMXRT_LPSPI4
+menuconfig IMXRT_LPSPI4
 	bool "LPSPI4"
 	default n
 	select IMXRT_LPSPI
@@ -332,12 +531,329 @@ config IMXRT_SNVS_HPRTC
 	bool "HP RTC"
 	default n
 
-config IMXRT_USDHC
-	bool "USDHC"
+config IMXRT_USDHC1
+	bool "USDHC1"
 	default n
 	select ARCH_HAVE_SDIO
+	select IMXRT_USDHC
 	---help---
-		Support SD host controller
+		Support USDHC host controller 1
+
+config IMXRT_USDHC2
+	bool "USDHC2"
+	default n
+	select ARCH_HAVE_SDIO
+	select IMXRT_USDHC
+	---help---
+		Support USDHC host controller 2
+
+menu "ENC Peripherals"
+
+menuconfig IMXRT_ENC1
+	bool "ENC1"
+	default n
+	select IMXRT_ENC
+
+if IMXRT_ENC1
+
+config ENC1_INITVAL
+	int "Initial position counter value"
+	default 0
+
+config ENC1_DIR
+	bool "Reverse positive rotation direction"
+	default n
+	---help---
+		Select if PHASEB leading PHASEA pulses is positive rotation
+
+config ENC1_FILTPER
+	int "Input filter sample period in clock cycles"
+	default 0
+
+config ENC1_FILTCNT
+	int "Number of input samples that filter will compare"
+	default 0
+
+config ENC1_MOD
+	bool "Enable modulo counting"
+	default n
+
+if ENC1_MOD
+
+config ENC1_MODULUS
+	hex "Modulus to wrap around"
+	default 0xffffffff
+
+endif # ENC1_MOD
+
+config ENC1_HIP
+	bool "HOME signal initializes position counter"
+	default n
+
+if ENC1_HIP
+
+config ENC1_HNE
+	bool "Initialize on negedge of HOME"
+	default n
+
+endif # ENC1_HIP
+
+config ENC1_XIP
+	bool "INDEX signal initializes position counter"
+	default n
+
+if ENC1_XIP
+
+config ENC1_XNE
+	bool "Initialize on negedge of INDEX"
+	default n
+
+endif # ENC1_XIP
+
+if DEBUG_SENSORS
+
+config ENC1_TST_DIR
+	bool "Generate negative test counter advances"
+	default n
+
+config ENC1_TST_PER
+	int "Period of test pulses in clock cycles"
+	default 31
+
+endif # DEBUG_SENSORS
+
+endif # IMXRT_ENC1
+
+menuconfig IMXRT_ENC2
+	bool "ENC2"
+	default n
+	select IMXRT_ENC
+
+if IMXRT_ENC2
+
+config ENC2_INITVAL
+	int "Initial position counter value"
+	default 0
+
+config ENC2_DIR
+	bool "Reverse positive rotation direction"
+	default n
+	---help---
+		Select if PHASEB leading PHASEA pulses is positive rotation
+
+config ENC2_FILTPER
+	int "Input filter sample period in clock cycles"
+	default 0
+
+config ENC2_FILTCNT
+	int "Number of input samples that filter will compare"
+	default 0
+
+config ENC2_MOD
+	bool "Enable modulo counting"
+	default n
+
+if ENC2_MOD
+
+config ENC2_MODULUS
+	hex "Modulus to wrap around"
+	default 0xffffffff
+
+endif # ENC2_MOD
+
+config ENC2_HIP
+	bool "HOME signal initializes position counter"
+	default n
+
+if ENC2_HIP
+
+config ENC2_HNE
+	bool "Initialize on negedge of HOME"
+	default n
+
+endif # ENC2_HIP
+
+config ENC2_XIP
+	bool "INDEX signal initializes position counter"
+	default n
+
+if ENC2_XIP
+
+config ENC2_XNE
+	bool "Initialize on negedge of INDEX"
+	default n
+
+endif # ENC2_XIP
+
+if DEBUG_SENSORS
+
+config ENC2_TST_DIR
+	bool "Generate negative test counter advances"
+	default n
+
+config ENC2_TST_PER
+	int "Period of test pulses in clock cycles"
+	default 31
+
+endif # DEBUG_SENSORS
+
+endif # IMXRT_ENC2
+
+if ARCH_FAMILY_IMXRT105x || ARCH_FAMILY_IMXRT106x
+
+menuconfig IMXRT_ENC3
+	bool "ENC3"
+	default n
+	select IMXRT_ENC
+
+if IMXRT_ENC3
+
+config ENC3_INITVAL
+	int "Initial position counter value"
+	default 0
+
+config ENC3_DIR
+	bool "Reverse positive rotation direction"
+	default n
+	---help---
+		Select if PHASEB leading PHASEA pulses is positive rotation
+
+config ENC3_FILTPER
+	int "Input filter sample period in clock cycles"
+	default 0
+
+config ENC3_FILTCNT
+	int "Number of input samples that filter will compare"
+	default 0
+
+config ENC3_MOD
+	bool "Enable modulo counting"
+	default n
+
+if ENC3_MOD
+
+config ENC3_MODULUS
+	hex "Modulus to wrap around"
+	default 0xffffffff
+
+endif # ENC3_MOD
+
+config ENC3_HIP
+	bool "HOME signal initializes position counter"
+	default n
+
+if ENC3_HIP
+
+config ENC3_HNE
+	bool "Initialize on negedge of HOME"
+	default n
+
+endif # ENC3_HIP
+
+config ENC3_XIP
+	bool "INDEX signal initializes position counter"
+	default n
+
+if ENC3_XIP
+
+config ENC3_XNE
+	bool "Initialize on negedge of INDEX"
+	default n
+
+endif # ENC3_XIP
+
+if DEBUG_SENSORS
+
+config ENC3_TST_DIR
+	bool "Generate negative test counter advances"
+	default n
+
+config ENC3_TST_PER
+	int "Period of test pulses in clock cycles"
+	default 31
+
+endif # DEBUG_SENSORS
+
+endif # IMXRT_ENC3
+
+menuconfig IMXRT_ENC4
+	bool "ENC4"
+	default n
+	select IMXRT_ENC
+
+if IMXRT_ENC4
+
+config ENC4_INITVAL
+	int "Initial position counter value"
+	default 0
+
+config ENC4_DIR
+	bool "Reverse positive rotation direction"
+	default n
+	---help---
+		Select if PHASEB leading PHASEA pulses is positive rotation
+
+config ENC4_FILTPER
+	int "Input filter sample period in clock cycles"
+	default 0
+
+config ENC4_FILTCNT
+	int "Number of input samples that filter will compare"
+	default 0
+
+config ENC4_MOD
+	bool "Enable modulo counting"
+	default n
+
+if ENC4_MOD
+
+config ENC4_MODULUS
+	hex "Modulus to wrap around"
+	default 0xffffffff
+
+endif # ENC4_MOD
+
+config ENC4_HIP
+	bool "HOME signal initializes position counter"
+	default n
+
+if ENC4_HIP
+
+config ENC4_HNE
+	bool "Initialize on negedge of HOME"
+	default n
+
+endif # ENC4_HIP
+
+config ENC4_XIP
+	bool "INDEX signal initializes position counter"
+	default n
+
+if ENC4_XIP
+
+config ENC4_XNE
+	bool "Initialize on negedge of INDEX"
+	default n
+
+endif # ENC4_XIP
+
+if DEBUG_SENSORS
+
+config ENC4_TST_DIR
+	bool "Generate negative test counter advances"
+	default n
+
+config ENC4_TST_PER
+	int "Period of test pulses in clock cycles"
+	default 31
+
+endif # DEBUG_SENSORS
+
+endif # IMXRT_ENC4
+
+endif # ARCH_FAMILY_IMXRT105x || ARCH_FAMILY_IMXRT106x
+
+endmenu # ENC Peripherals
 
 endmenu # i.MX RT Peripheral Selection
 
@@ -348,7 +864,7 @@ menuconfig IMXRT_GPIO_IRQ
 if IMXRT_GPIO_IRQ
 
 config IMXRT_GPIO1_0_15_IRQ
-	bool "GPIO1 Pins 8-15 interrupts"
+	bool "GPIO1 Pins 0-15 interrupts"
 	default n
 
 config IMXRT_GPIO1_16_31_IRQ
@@ -388,7 +904,7 @@ config IMXRT_GPIO5_16_31_IRQ
 	default n
 
 config IMXRT_GPIO6_0_15_IRQ
-	bool "GPIO6 Pins 8-15 interrupts"
+	bool "GPIO6 Pins 0-15 interrupts"
 	default n
 	depends on IMXRT_HIGHSPEED_GPIO
 
@@ -464,14 +980,14 @@ endmenu # IMXRT_ENET
 menu "Memory Configuration"
 
 config IMXRT_DTCM
-	bool "Enable DTCM"
-	default n
-	depends on !IMXRT_OCRAM_PRIMARY && EXPERIMENTAL
+	int "FLEXRAM DTCM Size in K"
+	default 128
+	depends on ARMV7M_HAVE_DTCM
 
 config IMXRT_ITCM
-	bool "Enable ITCM"
-	default n
-	depends on !IMXRT_OCRAM_PRIMARY && EXPERIMENTAL
+	int "FLEXRAM ITCM Size in K"
+	default 128
+	depends on ARMV7M_HAVE_ITCM
 
 config IMXRT_SEMC_SDRAM
 	bool "External SDRAM installed"
@@ -574,6 +1090,19 @@ config IMXRT_OCRAM_HEAP
 	---help---
 		Select to add the entire OCRAM to the heap
 
+config IMXRT_DTCM_HEAP
+	bool "Add DTCM to heap"
+	depends on IMXRT_DTCM > 0
+	---help---
+		Select to add the entire DTCM to the heap
+
+config IMXRT_BOOTLOADER_HEAP
+	bool "Add ROM bootloader 40Kib RAM to heap"
+	default false
+	depends on BOOT_RUNFROMISRAM
+	---help---
+		Select to add the memory used by the ROM bootloader to heap
+
 config IMXRT_SDRAM_HEAP
 	bool "Add SDRAM to heap"
 	depends on IMXRT_SEMC_SDRAM && !IMXRT_SDRAM_PRIMARY
@@ -615,6 +1144,41 @@ config IMXRT_SRAM_HEAPOFFSET
 endmenu  # i.MX RT Heap Configuration
 endmenu # Memory Configuration
 
+menu "LPI2C Configuration"
+	depends on IMXRT_LPI2C
+
+config IMXRT_LPI2C_DYNTIMEO
+	bool "Use dynamic timeouts"
+	default n
+	depends on IMXRT_LPI2C
+
+config IMXRT_LPI2C_DYNTIMEO_USECPERBYTE
+	int "Timeout Microseconds per Byte"
+	default 500
+	depends on IMXRT_LPI2C_DYNTIMEO
+
+config IMXRT_LPI2C_DYNTIMEO_STARTSTOP
+	int "Timeout for Start/Stop (Milliseconds)"
+	default 1000
+	depends on IMXRT_LPI2C_DYNTIMEO
+
+config IMXRT_LPI2C_TIMEOSEC
+	int "Timeout seconds"
+	default 0
+	depends on IMXRT_LPI2C
+
+config IMXRT_LPI2C_TIMEOMS
+	int "Timeout Milliseconds"
+	default 500
+	depends on IMXRT_LPI2C && !IMXRT_LPI2C_DYNTIMEO
+
+config IMXRT_LPI2C_TIMEOTICKS
+	int "Timeout for Done and Stop (ticks)"
+	default 500
+	depends on IMXRT_LPI2C && !IMXRT_LPI2C_DYNTIMEO
+
+endmenu # LPI2C Configuration
+
 menu "USDHC Configuration"
 	depends on IMXRT_USDHC
 
@@ -628,11 +1192,57 @@ config IMXRT_USDHC_DMA
 		For most usages, SD accesses will cause data overruns if used without
 		DMA.
 
-config IMXRT_USDHC_WIDTH_D1_ONLY
-	bool "Use D1 only"
+choice
+	prompt "Bus width for USDHC1"
+	default IMXRT_USDHC1_WIDTH_D1_ONLY
+	depends on IMXRT_USDHC1
+
+config IMXRT_USDHC1_WIDTH_D1_ONLY
+	bool "One bit"
+
+config IMXRT_USDHC1_WIDTH_D1_D4
+	bool "Four bit"
+endchoice
+
+config IMXRT_USDHC1_INVERT_CD
+	bool "Invert the USDHC1 CD"
 	default n
+	depends on IMXRT_USDHC1
 	---help---
-		Select 1-bit transfer mode.  Default: 4-bit transfer mode.
+		If the board defines PIN_USDHC1_CD the CD_B input to the USDHC it is
+		assumed to be active low. Selecting IMXRT_USDHC1_INVERT_CD will make it
+		active high.
+
+		If the board defines PIN_USDHC1_CD_GPIO it is assumed to be active low.
+		Selecting IMXRT_USDHC1_INVERT_CD will make it active high.
+
+choice
+	depends on IMXRT_USDHC2
+	prompt "Bus width for USDHC2"
+	default IMXRT_USDHC2_WIDTH_D1_D4
+
+config IMXRT_USDHC2_WIDTH_D1_ONLY
+	bool "One bit"
+
+config IMXRT_USDHC2_WIDTH_D1_D4
+	bool "Four bit"
+
+config IMXRT_USDHC2_WIDTH_D1_D8
+	bool "Eight bit"
+endchoice
+
+config IMXRT_USDHC2_INVERT_CD
+	bool "Invert the USDHC2 CD"
+	default n
+	depends on IMXRT_USDHC2
+	---help---
+		If the board defines PIN_USDHC2_CD the CD_B input to the USDHC it is
+		assumed to be active low. Selecting IMXRT_USDHC_INVERT_CD will make it
+		active high.
+
+		If the board defines PIN_USDHC2_CD_GPIO it is assumed to be active low.
+		Selecting IMXRT_USDHC2_INVERT_CD will make it active high.
+
 endmenu # USDHC Configuration
 
 menu "eDMA Configuration"
@@ -764,10 +1374,10 @@ config IMXRT_LCD_VRAMBASE
 		Default: SDRAM
 
 config IMXRT_LCD_REFRESH_FREQ
-	int "LCD refesh rate (Hz)"
+	int "LCD refresh rate (Hz)"
 	default 60
 	---help---
-		LCD refesh rate (Hz)
+		LCD refresh rate (Hz)
 
 config IMXRT_LCD_BACKLIGHT
 	bool "Enable backlight"
@@ -891,5 +1501,68 @@ config IMXRT_DATA_RISING_EDGE
 
 endmenu # LCD Configuration
 
-endif # ARCH_CHIP_IMXRT
+if IMXRT_USBOTG && USBHOST
 
+menu "USB host controller driver (HCD) options"
+
+config IMXRT_EHCI_NQHS
+	int "Number of Queue Head (QH) structures"
+	default 4
+	---help---
+		Configurable number of Queue Head (QH) structures.  The default is
+		one per Root hub port plus one for EP0 (4).
+
+config IMXRT_EHCI_NQTDS
+	int "Number of Queue Element Transfer Descriptor (qTDs)"
+	default 6
+	---help---
+		Configurable number of Queue Element Transfer Descriptor (qTDs).
+		The default is one per root hub plus three from EP0 (6).
+
+config IMXRT_EHCI_BUFSIZE
+	int "Size of one request/descriptor buffer"
+	default 128
+	---help---
+		The size of one request/descriptor buffer in bytes.  The TD buffe
+		size must be an even number of 32-bit words and must be large enough
+		to hangle the largest transfer via a SETUP request.
+
+config IMXRT_EHCI_PREALLOCATE
+	bool "Preallocate descriptor pool"
+	default y
+	---help---
+		Select this option to pre-allocate EHCI queue and descriptor
+		structure pools in .bss.  Otherwise, these pools will be
+		dynamically allocated using kmm_memalign().
+
+endmenu # USB host controller driver (HCD) options
+endif # IMXRT_USBOTG && USBHOST
+
+if IMXRT_USBDEV
+
+menu "USB device controller driver (DCD) options"
+
+config IMXRT_USBDEV_NOVBUS
+    bool "No USB VBUS sensing"
+    default n
+
+config IMXRT_USBDEV_FRAME_INTERRUPT
+    bool "USB frame interrupt"
+    default n
+    ---help---
+        Handle USB Start-Of-Frame events.  Enable reading SOF from interrupt
+        handler vs. simply reading on demand. Probably a bad idea... Unless
+        there is some issue with sampling the SOF from hardware asynchronously.
+
+config IMXRT_USBDEV_REGDEBUG
+    bool "Register level debug"
+    depends on DEBUG_USB_INFO
+    default n
+    ---help---
+        Output detailed register-level USB device debug information.  Requires
+        also CONFIG_DEBUG_USB_INFO.
+
+endmenu # USB device controller driver (DCD) options
+endif # IMXRT_USBDEV
+
+endif # ARCH_CHIP_IMXRT

@@ -41,7 +41,6 @@
 #include <nuttx/config.h>
 
 #include <unistd.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 
@@ -50,6 +49,10 @@
 
 #ifdef CONFIG_SMP
 #  include <nuttx/irq.h>
+#endif
+
+#ifdef MONITOR_MM_SEMAPHORE
+#  include <debug.h>
 #endif
 
 /****************************************************************************
@@ -87,7 +90,6 @@
 /* Define MONITOR_MM_SEMAPHORE to enable semaphore state monitoring */
 
 #ifdef MONITOR_MM_SEMAPHORE
-#  include <debug.h>
 #  define msemerr  _err
 #  define msemwarn _warn
 #  define mseminfo _info
@@ -121,7 +123,7 @@ void mm_seminitialize(FAR struct mm_heap_s *heap)
    * private data sets).
    */
 
-  (void)nxsem_init(&heap->mm_semaphore, 0, 1);
+  nxsem_init(&heap->mm_semaphore, 0, 1);
 
   heap->mm_holder      = NO_HOLDER;
   heap->mm_counts_held = 0;
@@ -200,10 +202,10 @@ int mm_trysemaphore(FAR struct mm_heap_s *heap)
 
       ret = _SEM_TRYWAIT(&heap->mm_semaphore);
       if (ret < 0)
-       {
-         _SEM_GETERROR(ret);
-         goto errout;
-       }
+        {
+          _SEM_GETERROR(ret);
+          goto errout;
+        }
 
       /* We have it.  Claim the heap for the current task and return */
 
@@ -300,16 +302,12 @@ void mm_givesemaphore(FAR struct mm_heap_s *heap)
 #ifdef CONFIG_SMP
   irqstate_t flags = enter_critical_section();
 #endif
-#if defined(CONFIG_DEBUG_ASSERTIONS) || \
-   (defined(MONITOR_MM_SEMAPHORE) && defined(CONFIG_DEBUG_INFO))
-  pid_t my_pid = getpid();
-#endif
 
   /* The current task should be holding at least one reference to the
    * semaphore.
    */
 
-  DEBUGASSERT(heap->mm_holder == my_pid);
+  DEBUGASSERT(heap->mm_holder == getpid());
 
   /* Does the current task hold multiple references to the semaphore */
 
@@ -325,7 +323,7 @@ void mm_givesemaphore(FAR struct mm_heap_s *heap)
     {
       /* Nope, this is the last reference held by the current task. */
 
-      mseminfo("PID=%d giving\n", my_pid);
+      mseminfo("PID=%d giving\n", getpid());
 
       heap->mm_holder      = NO_HOLDER;
       heap->mm_counts_held = 0;

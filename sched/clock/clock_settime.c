@@ -91,7 +91,7 @@ int clock_settime(clockid_t clock_id, FAR const struct timespec *tp)
        * bias value that we need to use to correct the base time.
        */
 
-      (void)clock_systimespec(&bias);
+      clock_systimespec(&bias);
 
       /* Save the new base time. */
 
@@ -122,6 +122,7 @@ int clock_settime(clockid_t clock_id, FAR const struct timespec *tp)
           up_rtc_settime(tp);
         }
 #endif
+
       leave_critical_section(flags);
 
       sinfo("basetime=(%ld,%lu) bias=(%ld,%lu)\n",

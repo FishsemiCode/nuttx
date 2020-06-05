@@ -140,17 +140,15 @@
 #undef CP0_STATUS_PX
 #undef CP0_STATUS_MX
 
-/*   2. The following field is of a different width.  Apparently, it
- *      excludes the software interrupt bits.
+/*   2. The following field is of a different width.
  *
- *      CP0_STATUS_IM   Bits 8-15: Interrupt Mask
- *      Vs.
- *      CP0_STATUS_IPL  Bits 10-15: Interrupt priority level
+ *      CP0_STATUS_IPL  Bits 10-12: Interrupt priority level
  *                      Bitss 8-9 reserved
  */
 
-#define CP0_STATUS_IPL_SHIFT        (10)   /*  Bits 10-15: Interrupt priority level */
-#define CP0_STATUS_IPL_MASK         (0x3f << CP0_STATUS_IPL_SHIFT)
+#undef CP0_STATUS_IPL_MASK
+
+#define CP0_STATUS_IPL_MASK         (0x07 << CP0_STATUS_IPL_SHIFT)
 
 /*   3. Supervisor mode not supported
  *       CP0_STATUS_KSU Bits 3-4: Operating mode (with supervisor mode)
@@ -298,10 +296,6 @@
  *
  *   See arch/mips/include/mips32/cp0.h
  */
-
-#define CP0_CONFIG3_SP              (1 << 4)  /* Bit 4: Support page bit */
-#define CP0_CONFIG3_VINT            (1 << 5)  /* Bit 5: Vector interrupt bit */
-#define CP0_CONFIG3_VEIC            (1 << 6)  /* Bit 6: External interrupt controller supported */
 
 /* Register Number: 17-22 Reserved
  * Compliance Level: Optional.

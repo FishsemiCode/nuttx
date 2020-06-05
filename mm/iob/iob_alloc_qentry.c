@@ -39,7 +39,6 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -130,30 +129,12 @@ static FAR struct iob_qentry_s *iob_allocwait_qentry(void)
        * semaphore count will be incremented.
        */
 
-      ret = nxsem_wait(&g_qentry_sem);
-      if (ret < 0)
+      ret = nxsem_wait_uninterruptible(&g_qentry_sem);
+      if (ret >= 0)
         {
-          /* EINTR is not an error!  EINTR simply means that we were
-           * awakened by a signal and we should try again.
-           *
-           * REVISIT:  Many end-user interfaces are required to return
-           * with an error if EINTR is set.  Most uses of this function
-           * is in internal, non-user logic.  But are there cases where
-           * the error should be returned.
-           */
-
-          if (ret == -EINTR)
-            {
-              /* Force a success indication so that we will continue looping. */
-
-              ret = OK;
-            }
-        }
-      else
-        {
-          /* When we wake up from wait successfully, an I/O buffer chain container was
-           * freed and we hold a count for one IOB.  Unless somehting
-           * failed, we should have an IOB waiting for us in the
+          /* When we wake up from wait successfully, an I/O buffer chain
+           * container was freed and we hold a count for one IOB.  Unless
+           * something failed, we should have an IOB waiting for us in the
            * committed list.
            */
 

@@ -33,7 +33,7 @@
  *
  ************************************************************************************/
 
-/* This file should never be included directed but, rather,
+/* This file should never be included directly but, rather,
  * only indirectly through nuttx/irq.h
  */
 
@@ -256,7 +256,7 @@
 #define SH1_SYSTIMER_IRQ   SH1_IMIA0_IRQ
 #endif
 
-/* Vector table offets **************************************************************/
+/* Vector table offsets *************************************************************/
 
 /* The following provides the vector numbers for each IRQ.  The IRQ numbers (above)
  * form the densely packet number space used by the system to identify IRQs.  The
@@ -459,7 +459,6 @@
 #ifndef __ASSEMBLY__
 struct xcptcontext
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-zero if there are pending signals
    * to be processed.
    */
@@ -476,7 +475,6 @@ struct xcptcontext
 
   uint32_t saved_pc;
   uint32_t saved_sr;
-#endif
 
   /* Register save area */
 
@@ -571,4 +569,3 @@ static inline void up_irq_restore(irqstate_t flags)
 #endif
 
 #endif /* __ARCH_RENESAS_INCLUDE_SH1_IRQ_H */
-

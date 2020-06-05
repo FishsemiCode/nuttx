@@ -170,7 +170,7 @@ static int _up_folder_copy(char *dstdir, char *srcdir, bool skippatch)
       else if (DIRENT_ISDIRECTORY(entryp->d_type))
         {
           mkdir(dstfile, 0777);
-          up_folder_copy(dstfile, srcfile);
+          _up_folder_copy(dstfile, srcfile, skippatch);
         }
       else
         {

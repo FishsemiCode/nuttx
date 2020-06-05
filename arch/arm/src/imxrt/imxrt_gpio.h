@@ -47,7 +47,7 @@
 #include <stdbool.h>
 
 #include "chip.h"
-#include "chip/imxrt_gpio.h"
+#include "hardware/imxrt_gpio.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -78,7 +78,7 @@
 #  define GPIO_PERIPH          (2 << GPIO_MODE_SHIFT) /* Peripheral */
 #  define GPIO_INTERRUPT       (3 << GPIO_MODE_SHIFT) /* Interrupt input */
 
-/* Initial Ouptut Value:
+/* Initial Output Value:
  *
  *   GPIO OUTPUT 01V. .... .... ....  .... .... .... ....
  */
@@ -164,7 +164,7 @@
 #  define GPIO_ALT2            (2 << GPIO_ALT_SHIFT)  /* Alternate function 2 */
 #  define GPIO_ALT3            (3 << GPIO_ALT_SHIFT)  /* Alternate function 3 */
 #  define GPIO_ALT4            (4 << GPIO_ALT_SHIFT)  /* Alternate function 4 */
-                                                      /* Alternate function 5 is GPIO */
+#  define GPIO_ALT5            (5 << GPIO_ALT_SHIFT)  /* Alternate function 5 is GPIO */
 #  define GPIO_ALT6            (6 << GPIO_ALT_SHIFT)  /* Alternate function 6 */
 #  define GPIO_ALT7            (7 << GPIO_ALT_SHIFT)  /* Alternate function 7 */
 #  define GPIO_ALT8            (8 << GPIO_ALT_SHIFT)  /* Alternate function 8 */
@@ -205,6 +205,7 @@
 #define GPIO_PADMUX_SHIFT      (16)      /* Bits 16-23: Peripheral alternate function */
 #define GPIO_PADMUX_MASK       (0xff << GPIO_PADMUX_SHIFT)
 #  define GPIO_PADMUX(n)       ((uint32_t)(n) << GPIO_PADMUX_SHIFT)
+#define GPIO_PADMUX_GET(n)     ((n&GPIO_PADMUX_MASK)>>GPIO_PADMUX_SHIFT)
 
 /* IOMUX Pin Configuration:
  *
@@ -257,7 +258,7 @@ extern "C"
 
 /* Look-up table that maps GPIO1..GPIOn indexes into GPIO register base addresses */
 
-EXTERN uintptr_t g_gpio_base[IMXRT_GPIO_NPORTS];
+EXTERN const uintptr_t g_gpio_base[IMXRT_GPIO_NPORTS];
 
 /************************************************************************************
  * Public Function Prototypes
@@ -367,4 +368,4 @@ int imxrt_dump_gpio(uint32_t pinset, const char *msg);
 #if defined(__cplusplus)
 }
 #endif
-#endif  /* __ARCH_ARM_SRC_IMXRT_IMXRT_GPIO_H */
+#endif /* __ARCH_ARM_SRC_IMXRT_IMXRT_GPIO_H */

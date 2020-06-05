@@ -3,7 +3,7 @@
  * 6lowpan HC06 implementation (draft-ietf-6lowpan-hc-06, updated to RFC
  * 6282)
  *
- *   Copyright (C) 2017, Gregory Nutt, all rights reserved
+ *   Copyright (C) 2017, 2019-2020 Gregory Nutt, all rights reserved
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Derives from Contiki:
@@ -240,9 +240,11 @@ static FAR struct sixlowpan_addrcontext_s *
       if ((g_hc06_addrcontexts[i].used == 1) &&
           net_ipv6addr_prefixcmp(&g_hc06_addrcontexts[i].prefix, ipaddr, 64))
         {
-          ninfo("Context found for ipaddr=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x Context: %d\n",
-                ntohs(ipaddr[0]), ntohs(ipaddr[1]), ntohs(ipaddr[2]), ntohs(ipaddr[3]),
-                ntohs(ipaddr[4]), ntohs(ipaddr[5]), ntohs(ipaddr[6]), ntohs(ipaddr[7]),
+          ninfo("Context found for "
+                "ipaddr=%04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x Context: %d\n",
+                ntohs(ipaddr[0]), ntohs(ipaddr[1]), ntohs(ipaddr[2]),
+                ntohs(ipaddr[3]), ntohs(ipaddr[4]), ntohs(ipaddr[5]),
+                ntohs(ipaddr[6]), ntohs(ipaddr[7]),
                 g_hc06_addrcontexts[i].number);
 
           return &g_hc06_addrcontexts[i];
@@ -264,7 +266,7 @@ static FAR struct sixlowpan_addrcontext_s *
  *   prefpost takes a byte where the first nibble specify prefix count
  *   and the second postfix count (NOTE: 15/0xf ipaddr=16 bytes copy).
  *
- *   compress_tagaddr() accepts a remote, variable length, taged MAC address;
+ *   compress_tagaddr() accepts a remote, variable length, tagged MAC address;
  *   compress_laddr() accepts a local, fixed length MAC address.
  *   compress_ipaddr() is simply the common logic that does not depend on
  *   the size of the MAC address.
@@ -503,11 +505,11 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
 #ifdef CONFIG_ENDIAN_BIG
           /* Preserve big-endian, network order */
 
-          ipaddr[destndx - 1] = (uint16_t)(*srcptr) << 8;
+          ipaddr[destndx - 1] = (uint16_t)(*srcptr);
 #else
           /* Preserve big-endian, network order */
 
-          ipaddr[destndx - 1] = (uint16_t)(*srcptr);
+          ipaddr[destndx - 1] = (uint16_t)(*srcptr) << 8;
 #endif
 
           srcptr++;
@@ -527,7 +529,7 @@ static void uncompress_addr(FAR const struct netdev_varaddr_s *addr,
           srcptr += 2;
         }
 
-      /* If the IP is dervied from a MAC address big enough to include the U/L bit,
+      /* If the IP is derived from a MAC address big enough to include the U/L bit,
        * invert it.
        */
 
@@ -611,14 +613,22 @@ void sixlowpan_hc06_initialize(void)
           g_hc06_addrcontexts[1].used      = 1;
           g_hc06_addrcontexts[1].number    = 1;
 
-          g_hc06_addrcontexts[1].prefix[0] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_0;
-          g_hc06_addrcontexts[1].prefix[1] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_1;
-          g_hc06_addrcontexts[1].prefix[2] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_2;
-          g_hc06_addrcontexts[1].prefix[3] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_3;
-          g_hc06_addrcontexts[1].prefix[4] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_4;
-          g_hc06_addrcontexts[1].prefix[5] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_5;
-          g_hc06_addrcontexts[1].prefix[6] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_6;
-          g_hc06_addrcontexts[1].prefix[7] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_7;
+          g_hc06_addrcontexts[1].prefix[0] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_0;
+          g_hc06_addrcontexts[1].prefix[1] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_1;
+          g_hc06_addrcontexts[1].prefix[2] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_2;
+          g_hc06_addrcontexts[1].prefix[3] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_3;
+          g_hc06_addrcontexts[1].prefix[4] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_4;
+          g_hc06_addrcontexts[1].prefix[5] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_5;
+          g_hc06_addrcontexts[1].prefix[6] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_6;
+          g_hc06_addrcontexts[1].prefix[7] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_1_7;
         }
       else
 #ifdef CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREINIT_2
@@ -627,14 +637,22 @@ void sixlowpan_hc06_initialize(void)
           g_hc06_addrcontexts[2].used      = 1;
           g_hc06_addrcontexts[2].number    = 2;
 
-          g_hc06_addrcontexts[2].prefix[0] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_0;
-          g_hc06_addrcontexts[2].prefix[1] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_1;
-          g_hc06_addrcontexts[2].prefix[2] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_2;
-          g_hc06_addrcontexts[2].prefix[3] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_3;
-          g_hc06_addrcontexts[2].prefix[4] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_4;
-          g_hc06_addrcontexts[2].prefix[5] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_5;
-          g_hc06_addrcontexts[2].prefix[6] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_6;
-          g_hc06_addrcontexts[2].prefix[7] = CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_7;
+          g_hc06_addrcontexts[2].prefix[0] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_0;
+          g_hc06_addrcontexts[2].prefix[1] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_1;
+          g_hc06_addrcontexts[2].prefix[2] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_2;
+          g_hc06_addrcontexts[2].prefix[3] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_3;
+          g_hc06_addrcontexts[2].prefix[4] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_4;
+          g_hc06_addrcontexts[2].prefix[5] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_5;
+          g_hc06_addrcontexts[2].prefix[6] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_6;
+          g_hc06_addrcontexts[2].prefix[7] =
+            CONFIG_NET_6LOWPAN_MAXADDRCONTEXT_PREFIX_2_7;
         }
       else
 #endif /* SIXLOWPAN_CONF_ADDR_CONTEXT_2 */
@@ -973,7 +991,7 @@ int sixlowpan_compresshdr_hc06(FAR struct radio_driver_s *radio,
           iphc1   |= SIXLOWPAN_IPHC_DAC;
           iphc[2] |= daddrcontext->number;
 
-          /* Compession compare with link adress (destination) */
+          /* Compession compare with link address (destination) */
 
           iphc1   |= compress_tagaddr(ipv6->destipaddr, destmac,
                                       SIXLOWPAN_IPHC_DAM_BIT);
@@ -1406,6 +1424,7 @@ void sixlowpan_uncompresshdr_hc06(FAR struct radio_driver_s *radio,
           switch (*g_hc06ptr & SIXLOWPAN_NHC_UDP_CS_P_11)
             {
             case SIXLOWPAN_NHC_UDP_CS_P_00:
+
               /* 1 byte for NHC, 4 byte for ports, 2 bytes chksum */
 
               memcpy(&udp->srcport, g_hc06ptr + 1, 2);
@@ -1418,6 +1437,7 @@ void sixlowpan_uncompresshdr_hc06(FAR struct radio_driver_s *radio,
               break;
 
             case SIXLOWPAN_NHC_UDP_CS_P_01:
+
               /* 1 byte for NHC + source 16bit inline, dest = 0xF0 + 8 bit
                * inline
                */
@@ -1435,6 +1455,7 @@ void sixlowpan_uncompresshdr_hc06(FAR struct radio_driver_s *radio,
               break;
 
             case SIXLOWPAN_NHC_UDP_CS_P_10:
+
               /* 1 byte for NHC + source = 0xF0 + 8bit inline, dest = 16 bit
                * inline
                */
@@ -1452,6 +1473,7 @@ void sixlowpan_uncompresshdr_hc06(FAR struct radio_driver_s *radio,
               break;
 
             case SIXLOWPAN_NHC_UDP_CS_P_11:
+
               /* 1 byte for NHC, 1 byte for ports */
 
               udp->srcport =

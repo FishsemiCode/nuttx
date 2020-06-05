@@ -601,6 +601,7 @@ static int lfs_dir_fetch(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
   {
     pair[0], pair[1]
   };
+
   bool valid = false;
   int i;
 
@@ -618,6 +619,7 @@ static int lfs_dir_fetch(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
             {
               continue;
             }
+
           return err;
         }
 
@@ -679,6 +681,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
   FAR lfs_dir_t *d;
   lfs_block_t oldpair[2];
   bool relocated;
+  int err;
   int i;
 
   /* increment revision count */
@@ -702,13 +705,14 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
       if (true)
         {
           uint32_t crc;
-          int err = lfs_bd_erase(lfs, dir->pair[0]);
+          err = lfs_bd_erase(lfs, dir->pair[0]);
           if (err)
             {
               if (err == LFS_ERR_CORRUPT)
                 {
                   goto relocate;
                 }
+
               return err;
             }
 
@@ -723,6 +727,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
                 {
                   goto relocate;
                 }
+
               return err;
             }
 
@@ -742,6 +747,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
                         {
                           goto relocate;
                         }
+
                       return err;
                     }
 
@@ -766,6 +772,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
                         {
                           goto relocate;
                         }
+
                       return err;
                     }
 
@@ -783,6 +790,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
                 {
                   goto relocate;
                 }
+
               return err;
             }
 
@@ -793,6 +801,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
                 {
                   goto relocate;
                 }
+
               return err;
             }
 
@@ -815,6 +824,7 @@ static int lfs_dir_commit(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
       break;
 
 relocate:
+
       /* Commit was corrupted */
 
       LFS_DEBUG("Bad block at %" PRIu32, dir->pair[0]);
@@ -833,9 +843,9 @@ relocate:
           return LFS_ERR_CORRUPT;
         }
 
-      /* relocate half of pair */
+      /* Relocate half of pair */
 
-      int err = lfs_alloc(lfs, &dir->pair[0]);
+      err = lfs_alloc(lfs, &dir->pair[0]);
       if (err)
         {
           return err;
@@ -848,7 +858,7 @@ relocate:
 
       LFS_DEBUG("Relocating %" PRIu32 " %" PRIu32 " to %" PRIu32 " %" PRIu32,
                 oldpair[0], oldpair[1], dir->pair[0], dir->pair[1]);
-      int err = lfs_relocate(lfs, oldpair, dir->pair);
+      err = lfs_relocate(lfs, oldpair, dir->pair);
       if (err)
         {
           return err;
@@ -1102,13 +1112,14 @@ static int lfs_dir_find(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
       size_t sufflen;
       int depth;
 
-    nextname:
-      /* skip slashes */
+nextname:
+
+      /* Skip slashes */
 
       pathname += strspn(pathname, "/");
       pathlen = strcspn(pathname, "/");
 
-      /* skip '.' and root '..' */
+      /* Skip '.' and root '..' */
 
       if ((pathlen == 1 && memcmp(pathname, ".", 1) == 0) ||
           (pathlen == 2 && memcmp(pathname, "..", 2) == 0))
@@ -1117,7 +1128,7 @@ static int lfs_dir_find(FAR lfs_t *lfs, FAR lfs_dir_t *dir,
           goto nextname;
         }
 
-      /* skip if matched by '..' in name */
+      /* Skip if matched by '..' in name */
 
       suffix = pathname + pathlen;
       depth = 1;
@@ -1348,6 +1359,7 @@ static int lfs_ctz_extend(FAR lfs_t *lfs, FAR lfs_cache_t *rcache,
                         {
                           goto relocate;
                         }
+
                       return err;
                     }
                 }
@@ -1397,10 +1409,11 @@ static int lfs_ctz_extend(FAR lfs_t *lfs, FAR lfs_cache_t *rcache,
           return 0;
         }
 
-    relocate:
+relocate:
+
       LFS_DEBUG("Bad block at %" PRIu32, nblock);
 
-      /* just clear cache and try a new block */
+      /* Just clear cache and try a new block */
 
       lfs_cache_drop(lfs, &lfs->pcache);
     }
@@ -1486,6 +1499,7 @@ relocate:
         {
           goto relocate;
         }
+
       return err;
     }
 
@@ -1543,12 +1557,13 @@ static int lfs_file_flush(FAR lfs_t *lfs, FAR lfs_file_t *file)
 
       lfs_file_t orig =
       {
-        .head = file->head,
-        .size = file->size,
+        .head  = file->head,
+        .size  = file->size,
         .flags = LFS_O_RDONLY,
-        .pos = file->pos,
+        .pos   = file->pos,
         .cache = lfs->rcache,
       };
+
       lfs_cache_drop(lfs, &lfs->rcache);
 
       while (file->pos < file->size)
@@ -1579,7 +1594,7 @@ static int lfs_file_flush(FAR lfs_t *lfs, FAR lfs_file_t *file)
             }
         }
 
-      /* write out what we have */
+      /* Write out what we have */
 
       while (true)
         {
@@ -1590,11 +1605,14 @@ static int lfs_file_flush(FAR lfs_t *lfs, FAR lfs_file_t *file)
                 {
                   goto relocate;
                 }
+
               return err;
             }
 
           break;
-        relocate:
+
+relocate:
+
           err = lfs_file_relocate(lfs, file);
           if (err)
             {
@@ -1602,7 +1620,7 @@ static int lfs_file_flush(FAR lfs_t *lfs, FAR lfs_file_t *file)
             }
         }
 
-      /* actual file updates */
+      /* Actual file updates */
 
       file->head = file->block;
       file->size = file->pos;
@@ -2572,6 +2590,7 @@ lfs_ssize_t lfs_file_write(FAR lfs_t *lfs, FAR lfs_file_t *file,
                 {
                   goto relocate;
                 }
+
               file->flags |= LFS_F_ERRED;
               return err;
             }
@@ -2961,6 +2980,7 @@ int lfs_rename(FAR lfs_t *lfs, FAR const char *oldpath,
     {
       return err;
     }
+
   lfs->moving = false;
 
   /* remove old entry */
@@ -3083,6 +3103,7 @@ int lfs_format(FAR lfs_t *lfs, FAR const struct lfs_config_s *cfg)
                 }
               },
               1);
+
           if (err && err != LFS_ERR_CORRUPT)
             {
               goto cleanup;
@@ -3139,7 +3160,7 @@ int lfs_mount(FAR lfs_t *lfs, FAR const struct lfs_config_s *cfg)
 
       /* load superblock */
 
-      err = lfs_dir_fetch(lfs, &dir, (const lfs_block_t[2]){0, 1});
+      err = lfs_dir_fetch(lfs, &dir, (const lfs_block_t[2]){ 0, 1 });
       if (err && err != LFS_ERR_CORRUPT)
         {
           goto cleanup;
@@ -3202,6 +3223,7 @@ int lfs_traverse(FAR lfs_t *lfs, CODE int (*cb)(void *, lfs_block_t),
   {
     0, 1
   };
+
   FAR lfs_file_t *f;
 
   if (lfs_pairisnull(lfs->root))
@@ -3299,11 +3321,13 @@ int lfs_deorphan(FAR lfs_t *lfs)
   {
     .d.size = 0x80000000
   };
+
   lfs_dir_t cwd =
   {
     .d.tail[0] = 0,
     .d.tail[1] = 1
   };
+
   lfs_size_t i;
   int err;
 

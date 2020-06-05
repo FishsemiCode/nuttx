@@ -88,6 +88,7 @@ config ARCH_CHIP_IMX6
 	select BOOT_RUNFROMSDRAM
 	select ARCH_HAVE_ADDRENV
 	select ARCH_NEED_ADDRENV_MAPPING
+	select ARCH_GLOBAL_IRQDISABLE
 	---help---
 		Freescale iMX.6 architectures (Cortex-A9)
 
@@ -141,21 +142,14 @@ config ARCH_CHIP_LM
 	---help---
 		TI/Luminary Stellaris LMS3 and LM4F architectures (ARM Cortex-M3/4)
 
-config ARCH_CHIP_LPC11XX
-	bool "NXP LPC11xx"
-	select ARCH_CORTEXM0
-	---help---
-		NXP LPC11xx architectures (ARM Cortex-M0)
-
-config ARCH_CHIP_LPC17XX
-	bool "NXP LPC17xx"
-	select ARCH_CORTEXM3
+config ARCH_CHIP_LPC17XX_40XX
+	bool "NXP LPC17xx/LPC40xx"
 	select ARCH_HAVE_MPU
 	select ARM_HAVE_MPU_UNIFIED
 	select ARCH_HAVE_FETCHADD
 	select ARMV7M_HAVE_STACKCHECK
 	---help---
-		NXP LPC17xx architectures (ARM Cortex-M3)
+		NXP LPC17xx & LPC40xx architectures (ARM Cortex-M3/4)
 
 config ARCH_CHIP_LPC214X
 	bool "NXP LPC214x"
@@ -226,6 +220,13 @@ config ARCH_CHIP_NUC1XX
 	select ARCH_CORTEXM0
 	---help---
 		Nuvoton NUC100/120 architectures (ARM Cortex-M0).
+
+config ARCH_CHIP_S32K1XX
+	bool "NXP S32K1XX"
+	select ARCH_HAVE_MPU
+	select ARM_HAVE_MPU_UNIFIED
+	---help---
+		NPX LPC54XX architectures (ARM Cortex-M0+ and Cortex-M4F).
 
 config ARCH_CHIP_SAMA5
 	bool "Atmel SAMA5"
@@ -325,6 +326,12 @@ config ARCH_CHIP_STM32L0
 	---help---
 		STMicro STM32L0 architectures (ARM Cortex-M0).
 
+config ARCH_CHIP_STM32G0
+	bool "STMicro STM32 G0"
+	select ARCH_CORTEXM0
+	---help---
+		STMicro STM32G0 architectures (ARM Cortex-M0).
+
 config ARCH_CHIP_STM32F7
 	bool "STMicro STM32 F7"
 	select ARCH_CORTEXM7
@@ -336,6 +343,8 @@ config ARCH_CHIP_STM32F7
 	select ARCH_HAVE_SPI_BITORDER
 	select ARM_HAVE_MPU_UNIFIED
 	select ARMV7M_HAVE_STACKCHECK
+	select ARCH_HAVE_TICKLESS
+	select ARCH_HAVE_TIMEKEEPING
 	---help---
 		STMicro STM32 architectures (ARM Cortex-M7).
 
@@ -343,17 +352,18 @@ config ARCH_CHIP_STM32H7
 	bool "STMicro STM32 H7"
 	select ARCH_CORTEXM7
 	select ARCH_HAVE_MPU
-#	select ARCH_HAVE_I2CRESET
+	select ARCH_HAVE_I2CRESET
+	select ARCH_HAVE_PROGMEM
 #	select ARCH_HAVE_HEAPCHECK
 	select ARCH_HAVE_SPI_BITORDER
 	select ARM_HAVE_MPU_UNIFIED
-#	select ARMV7M_HAVE_STACKCHECK
+	select ARMV7M_HAVE_STACKCHECK
 	---help---
 		STMicro STM32H7 architectures (ARM Cortex-M7).
 
 		BEWARE: This is a work-in-progress and not yet ready for general
-		usage.  See configs/nucleo-h743zi/README.txt for the current state
-		of the port.
+		usage.  See boards/arm/stm32/nucleo-h743zi/README.txt for the
+		current state of the port.
 
 config ARCH_CHIP_STM32L4
 	bool "STMicro STM32 L4"
@@ -407,6 +417,19 @@ config ARCH_CHIP_XMC4
 	select ARMV7M_HAVE_STACKCHECK
 	---help---
 		Infineon XMC4xxx(ARM Cortex-M4) architectures
+
+config ARCH_CHIP_CXD56XX
+	bool "Sony CXD56xx"
+	select ARCH_CORTEXM4
+	select ARCH_HAVE_MPU
+	select ARM_HAVE_MPU_UNIFIED
+	select ARCH_HAVE_FPU
+	select ARCH_HAVE_HEAPCHECK
+	select ARCH_HAVE_MULTICPU
+	select ARCH_GLOBAL_IRQDISABLE
+	select ARCH_HAVE_SDIO if MMCSD
+	---help---
+		Sony CXD56XX (ARM Cortex-M4) architectures
 
 endchoice
 
@@ -509,6 +532,7 @@ config ARCH_CORTEXM23
 config ARCH_ARMV7M
 	bool
 	default n
+	select ARCH_HAVE_SETJMP if ARCH_TOOLCHAIN_GNU
 
 config ARCH_CORTEXM3
 	bool
@@ -654,9 +678,8 @@ config ARCH_CHIP
 	default "kinetis"	if ARCH_CHIP_KINETIS
 	default "kl"		if ARCH_CHIP_KL
 	default "lc823450"	if ARCH_CHIP_LC823450
-	default "tiva"		if ARCH_CHIP_LM || ARCH_CHIP_TIVA ||ARCH_CHIP_SIMPLELINK
-	default "lpc11xx"	if ARCH_CHIP_LPC11XX
-	default "lpc17xx"	if ARCH_CHIP_LPC17XX
+	default "tiva"		if ARCH_CHIP_LM || ARCH_CHIP_TIVA || ARCH_CHIP_SIMPLELINK
+	default "lpc17xx_40xx"	if ARCH_CHIP_LPC17XX_40XX
 	default "lpc214x"	if ARCH_CHIP_LPC214X
 	default "lpc2378"	if ARCH_CHIP_LPC2378
 	default "lpc31xx"	if ARCH_CHIP_LPC31XX
@@ -666,19 +689,21 @@ config ARCH_CHIP
 	default "moxart"	if ARCH_CHIP_MOXART
 	default "nrf52"		if ARCH_CHIP_NRF52
 	default "nuc1xx"	if ARCH_CHIP_NUC1XX
+	default "s32k1xx"	if ARCH_CHIP_S32K1XX
 	default "sama5"		if ARCH_CHIP_SAMA5
 	default "samd2l2"	if ARCH_CHIP_SAMD2X || ARCH_CHIP_SAML2X
 	default "samd5e5"	if ARCH_CHIP_SAMD5X || ARCH_CHIP_SAME5X
 	default "sam34"		if ARCH_CHIP_SAM34
 	default "samv7"		if ARCH_CHIP_SAMV7
 	default "stm32"		if ARCH_CHIP_STM32
-	default "stm32f0l0"	if ARCH_CHIP_STM32F0 || ARCH_CHIP_STM32L0
+	default "stm32f0l0g0"	if ARCH_CHIP_STM32F0 || ARCH_CHIP_STM32L0 || ARCH_CHIP_STM32G0
 	default "stm32f7"	if ARCH_CHIP_STM32F7
 	default "stm32h7"	if ARCH_CHIP_STM32H7
 	default "stm32l4"	if ARCH_CHIP_STM32L4
 	default "str71x"	if ARCH_CHIP_STR71X
 	default "tms570"	if ARCH_CHIP_TMS570
 	default "xmc4"		if ARCH_CHIP_XMC4
+	default "cxd56xx"	if ARCH_CHIP_CXD56XX
 
 config ARCH_HAVE_TRUSTZONE
 	bool
@@ -801,6 +826,22 @@ config ARM_SEMIHOSTING_HOSTFS
 	---help---
 		Mount HostFS through semihosting.
 
+		This doesn't support some directory operations like readdir because
+		of the limitations of semihosting mechanism.
+
+config ARM_LWL_CONSOLE
+	bool "Lightweight Link Console Support"
+	default n
+	depends on DEV_CONSOLE && ARCH_CHIP_STM32
+	---help---
+		Use the lightweight link console which provides console over a
+		debug channel by means of shared memory.  A terminal application
+		for openocd as the debugger is available in tools/ocdconsole.py.
+
+		Currently only available for STM32 architectures, but easily
+		added to other ARM architectures be add up_low_console.c to the
+		architecture Make.defs file.
+
 if ARCH_CORTEXM0
 source arch/arm/src/armv6-m/Kconfig
 endif
@@ -855,11 +896,8 @@ endif
 if ARCH_CHIP_LM || ARCH_CHIP_TIVA || ARCH_CHIP_SIMPLELINK
 source arch/arm/src/tiva/Kconfig
 endif
-if ARCH_CHIP_LPC11XX
-source arch/arm/src/lpc11xx/Kconfig
-endif
-if ARCH_CHIP_LPC17XX
-source arch/arm/src/lpc17xx/Kconfig
+if ARCH_CHIP_LPC17XX_40XX
+source arch/arm/src/lpc17xx_40xx/Kconfig
 endif
 if ARCH_CHIP_LPC214X
 source arch/arm/src/lpc214x/Kconfig
@@ -875,6 +913,9 @@ source arch/arm/src/lpc43xx/Kconfig
 endif
 if ARCH_CHIP_LPC54XX
 source arch/arm/src/lpc54xx/Kconfig
+endif
+if ARCH_CHIP_S32K1XX
+source arch/arm/src/s32k1xx/Kconfig
 endif
 if ARCH_CHIP_MAX326XX
 source arch/arm/src/max326xx/Kconfig
@@ -906,8 +947,8 @@ endif
 if ARCH_CHIP_STM32
 source arch/arm/src/stm32/Kconfig
 endif
-if ARCH_CHIP_STM32F0 || ARCH_CHIP_STM32L0
-source arch/arm/src/stm32f0l0/Kconfig
+if ARCH_CHIP_STM32F0 || ARCH_CHIP_STM32L0 || ARCH_CHIP_STM32G0
+source arch/arm/src/stm32f0l0g0/Kconfig
 endif
 if ARCH_CHIP_STM32F7
 source arch/arm/src/stm32f7/Kconfig
@@ -926,6 +967,9 @@ source arch/arm/src/tms570/Kconfig
 endif
 if ARCH_CHIP_XMC4
 source arch/arm/src/xmc4/Kconfig
+endif
+if ARCH_CHIP_CXD56XX
+source arch/arm/src/cxd56xx/Kconfig
 endif
 
 endif # ARCH_ARM

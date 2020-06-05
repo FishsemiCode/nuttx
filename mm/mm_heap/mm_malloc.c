@@ -148,7 +148,7 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
 
   if (alignsize >= MM_MAX_CHUNK)
     {
-      ndx = MM_NNODES-1;
+      ndx = MM_NNODES - 1;
     }
   else
     {
@@ -203,7 +203,8 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
         {
           /* Get a pointer to the next node in physical memory */
 
-          next = (FAR struct mm_freenode_s *)(((FAR char *)node) + node->size);
+          next = (FAR struct mm_freenode_s *)
+                 (((FAR char *)node) + node->size);
 
           /* Create the remainder node */
 
@@ -240,7 +241,7 @@ FAR void *mm_malloc(FAR struct mm_heap_s *heap, size_t size)
 #ifdef CONFIG_MM_FILL_ALLOCATIONS
   if (ret)
     {
-       memset(ret, 0xAA, alignsize - SIZEOF_MM_ALLOCNODE);
+       memset(ret, 0xaa, alignsize - SIZEOF_MM_ALLOCNODE);
     }
 #endif
 

@@ -1,8 +1,8 @@
 /****************************************************************************
  * include/nuttx/clock.h
  *
- *   Copyright (C) 2007-2009, 2011-2012, 2014, 2016-2018 Gregory Nutt.
-             All rights reserved.
+ *   Copyright (C) 2007-2009, 2011-2012, 2014, 2016-2018, 2020 Gregory Nutt.
+ *     All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -54,6 +54,7 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
 /* Efficient, direct access to OS global timer variables will be supported
  * if the execution environment has direct access to kernel global data.
  * The code in this execution context can access the kernel global data
@@ -71,23 +72,23 @@
 
 #undef __HAVE_KERNEL_GLOBALS
 #if defined(CONFIG_SCHED_TICKLESS)
-   /* Case 1: There is no global timer data */
+  /* Case 1: There is no global timer data */
 
 #elif defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)
-   /* Case 3: Kernel mode of protected kernel build */
+  /* Case 3: Kernel mode of protected kernel build */
 
 #    define __HAVE_KERNEL_GLOBALS 1
 
 #elif defined(CONFIG_BUILD_KERNEL) && defined(__KERNEL__)
-   /* Case 3: Kernel only build */
+  /* Case 3: Kernel only build */
 
 #    define __HAVE_KERNEL_GLOBALS 1
 
 #elif defined(CONFIG_LIB_SYSCALL)
-   /* Case 4: Building with SYSCALLs enabled, but not part of a kernel build */
+  /* Case 4: Building with SYSCALLs enabled, but not part of a kernel build */
 
 #else
-   /* Case 2: Un-protected, non-kernel build */
+  /* Case 2: Un-protected, non-kernel build */
 
 #    define __HAVE_KERNEL_GLOBALS 1
 #endif
@@ -252,6 +253,7 @@ extern "C"
 #endif
 
 /* Access to raw system clock ***********************************************/
+
 /* Direct access to the system timer/counter is supported only if (1) the
  * system timer counter is available (i.e., we are not configured to use
  * a hardware periodic timer), and (2) the execution environment has direct
@@ -270,9 +272,54 @@ EXTERN volatile clock_t g_system_timer;
  * Public Function Prototypes
  ****************************************************************************/
 
+/****************************************************************************
+ * Name: clock_timespec_compare
+ *
+ * Description:
+ *    Return < 0 if time ts1 is before time ts2
+ *    Return > 0 if time ts2 is before time ts1
+ *    Return 0 if time ts1 is the same as time ts2
+ *
+ ****************************************************************************/
+
+int clock_timespec_compare(FAR const struct timespec *ts1,
+                           FAR const struct timespec *ts2);
+
+/****************************************************************************
+ * Name:  clock_timespec_add
+ *
+ * Description:
+ *   Add timespec ts1 to to2 and return the result in ts3
+ *
+ * Input Parameters:
+ *   ts1 and ts2: The two timespecs to be added
+ *   t23: The location to return the result (may be ts1 or ts2)
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
 void clock_timespec_add(FAR const struct timespec *ts1,
                         FAR const struct timespec *ts2,
                         FAR struct timespec *ts3);
+
+/****************************************************************************
+ * Name:  clock_timespec_subtract
+ *
+ * Description:
+ *   Subtract timespec ts2 from to1 and return the result in ts3.
+ *   Zero is returned if the time difference is negative.
+ *
+ * Input Parameters:
+ *   ts1 and ts2: The two timespecs to be subtracted (ts1 - ts2)
+ *   t23: The location to return the result (may be ts1 or ts2)
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
 void clock_timespec_subtract(FAR const struct timespec *ts1,
                              FAR const struct timespec *ts2,
                              FAR struct timespec *ts3);
@@ -379,7 +426,7 @@ clock_t clock_systimer(void);
  *   ts - Location to return the time
  *
  * Returned Value:
- *   Current version always returns OK
+ *   OK (0) on success; a negated errno value on failure.
  *
  * Assumptions:
  *
@@ -415,7 +462,7 @@ int clock_cpuload(int pid, FAR struct cpuload_s *cpuload);
  *
  * Description:
  *   Configure to use a oneshot timer as described in
- *   include/nuttx/timers/oneshot.h to provid external clocking to assess
+ *   include/nuttx/timers/oneshot.h to provide external clocking to assess
  *   the CPU load.
  *
  * Input Parameters:

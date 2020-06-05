@@ -3,6 +3,18 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+config USBHOST_HAVE_ASYNCH
+	bool
+	default n
+
+menuconfig USBHOST
+	bool "USB Host Driver Support"
+	default n
+	---help---
+		USB host drivers.  See also include/nuttx/usb/usbhost.h
+
+if USBHOST
+
 config USBHOST_NPREALLOC
 	int "Number of pre-allocated class instances"
 	default 4
@@ -29,10 +41,6 @@ config USBHOST_ISOC_DISABLE
 	---help---
 		On some architectures, selecting this setting will reduce driver size
 		by disabling isochronous endpoint support
-
-config USBHOST_HAVE_ASYNCH
-	bool
-	default n
 
 config USBHOST_ASYNCH
 	bool "Asynchronous transfer support"
@@ -163,7 +171,7 @@ config USBHOST_CDCACM_BULKONLY
 		By default, both the CDC/ACM compliant protocol and the reduced
 		protocol are supported.  This option is then most useful for testing
 		purposes.  The interrupt IN control interface will not be used even
-		if it is available; nor will EP0 class requestes.
+		if it is available; nor will EP0 class requests.
 
 endchoice # CDC/ACM Protocol
 
@@ -202,7 +210,7 @@ config USBHOST_CDCACM_TXDELAY
 	default 200
 	---help---
 		When the appellation is inactive, the host must poll it at this
-		rate in order to discover if it has serial data to send to to the
+		rate in order to discover if it has serial data to send to the
 		device.
 
 config USBHOST_CDCACM_NPREALLOC
@@ -250,7 +258,7 @@ config USBHOST_CDCACM_TXBUFSIZE
 	default 128
 	---help---
 		This is the size of the serial buffer that will be used to hold
-		data waiting for tranmission.
+		data waiting for transmission.
 
 endif # USBHOST_CDCACM
 
@@ -260,15 +268,15 @@ config USBHOST_HIDKBD
 	depends on !INT_DISABLE
 	---help---
 		Enable support for the keyboard class driver.  This also depends on
-		SCHED_WORKQUEUE && !DISABLE_SIGNALS
+		SCHED_WORKQUEUE
 
 if  USBHOST_HIDKBD
 
 config HIDKBD_POLLUSEC
 	int "Keyboard Poll Rate (MSEC)"
-	default 100000
+	default 40000
 	---help---
-		Device poll rate in microseconds. Default: 100,000 microseconds.
+		Device poll rate in microseconds. Default: 40,000 microseconds.
 
 config HIDKBD_DEFPRIO
 	int "Polling Thread Priority"
@@ -291,7 +299,6 @@ config HIDKBD_BUFSIZE
 config HIDKBD_NPOLLWAITERS
 	int "Max Number of Waiters for Poll Event"
 	default 2
-	depends on !DISABLE_POLL
 	---help---
 		If the poll() method is enabled, this defines the maximum number
 		of threads that can be waiting for keyboard events.  Default: 2.
@@ -339,7 +346,7 @@ config USBHOST_HIDMOUSE
 	select MOUSE
 	---help---
 		Enable support for the mouse class driver.  This also depends on
-		SCHED_WORKQUEUE && !DISABLE_SIGNALS
+		SCHED_WORKQUEUE
 
 		NOTE:  This driver checks out on a Labtec and an AOpen mouse, but
 		does not work correctly on a Microsoft mouse.  A little more work
@@ -384,7 +391,6 @@ config HIDMOUSE_BUFSIZE
 config HIDMOUSE_NPOLLWAITERS
 	int "Max Number of Waiters for Poll Event"
 	default 2
-	depends on !DISABLE_POLL
 	---help---
 		If the poll() method is enabled, this defines the maximum number
 		of threads that can be waiting for mouse events.  Default: 2.
@@ -500,27 +506,6 @@ config HIDMOUSE_WTHRESH
 endif # MOUSE_WHEEL
 endif # USBHOST_HIDMOUSE
 
-config USBHOST_RTL8187
-	bool "RTL8187-based wireless LAN"
-	default n
-	depends on NET
-
-if USBHOST_RTL8187
-
-config RTL8187B
-	bool "RTL8187B chip"
-	default y
-
-config RTL8187_VID
-	hex "RTL8187 VID"
-	default 0x0bda
-
-config RTL8187_PID
-	hex "RTL8187 PID"
-	default 0x8189
-
-endif # USBHOST_RTL8187
-
 config USBHOST_XBOXCONTROLLER
 	bool "Xbox Controller Support"
 	default n
@@ -546,7 +531,6 @@ config XBOXCONTROLLER_STACKSIZE
 config XBOXCONTROLLER_NPOLLWAITERS
 	int "Max Number of Waiters for Poll Event"
 	default 2
-	depends on !DISABLE_POLL
 	---help---
 		If the poll() method is enabled, this defines the maximum number
 		of threads that can be waiting for mouse events.  Default: 2.
@@ -616,3 +600,4 @@ config USBHOST_TRACE_VERBOSE
 
 endif
 
+endif # USBHOST

@@ -48,7 +48,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -106,8 +105,10 @@ static void dac7571_reset(FAR struct dac_dev_s *dev);
 static int  dac7571_setup(FAR struct dac_dev_s *dev);
 static void dac7571_shutdown(FAR struct dac_dev_s *dev);
 static void dac7571_txint(FAR struct dac_dev_s *dev, bool enable);
-static int  dac7571_send(FAR struct dac_dev_s *dev, FAR struct dac_msg_s *msg);
-static int  dac7571_ioctl(FAR struct dac_dev_s *dev, int cmd, unsigned long arg);
+static int  dac7571_send(FAR struct dac_dev_s *dev,
+              FAR struct dac_msg_s *msg);
+static int  dac7571_ioctl(FAR struct dac_dev_s *dev, int cmd,
+              unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -154,7 +155,7 @@ static void dac7571_reset(FAR struct dac_dev_s *dev)
  * Description:
  *   Configure the DAC. This method is called the first time that the DAC
  *   device is opened.  This will occur when the port is first opened.
- *   This setup includes configuring and attaching DAC interrupts.  Interrupts
+ *   This setup includes configuring and attaching DAC interrupts. Interrupts
  *   are all disabled upon return.
  *
  ****************************************************************************/
@@ -269,7 +270,7 @@ FAR struct dac_dev_s *dac7571_initialize(FAR struct i2c_master_s *i2c,
 
   DEBUGASSERT(i2c != NULL);
 
-/* Initialize the DAC7571 device structure */
+  /* Initialize the DAC7571 device structure */
 
   priv = (FAR struct dac7571_dev_s *)g_dacdev.ad_priv;
   priv->i2c = i2c;

@@ -50,15 +50,17 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <semaphore.h>
+
+#include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 #define USBHOST_DEVADDR_HASHSIZE 8
-#define USBHOST_DEVADDR_HASHMASK (USBHOST_DEVADDR_HASHSIZE-1)
+#define USBHOST_DEVADDR_HASHMASK (USBHOST_DEVADDR_HASHSIZE - 1)
 
 /****************************************************************************
  * Public Types

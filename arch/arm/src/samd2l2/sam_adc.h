@@ -49,9 +49,9 @@
 #include "sam_port.h"
 
 #if defined(CONFIG_ARCH_FAMILY_SAMD20) || defined(CONFIG_ARCH_FAMILY_SAMD21)
-#  include "chip/samd_adc.h"
+#  include "hardware/samd_adc.h"
 #elif defined(CONFIG_ARCH_FAMILY_SAML21)
-#  include "chip/saml_adc.h"
+#  include "hardware/saml_adc.h"
 #else
 #  error Unrecognized SAMD/L architecture
 #endif
@@ -68,6 +68,23 @@ extern "C"
 #else
 #define EXTERN extern
 #endif
+
+/****************************************************************************
+ * Name: sam_adcinitialize
+ *
+ * Description:
+ *   Initialize the ADC. See sam_adc.c for more details.
+ *
+ * Input Parameters:
+ *   genclk      - Number of the Clock Generator to use.
+ *
+ * Returned Value:
+ *   Valid ADC device structure reference on success; a NULL on failure
+ *
+ ****************************************************************************/
+
+struct adc_dev_s;
+struct adc_dev_s *sam_adcinitialize(int genclk);
 
 #undef EXTERN
 #if defined(__cplusplus)

@@ -228,7 +228,7 @@ static inline void stm32_gpioremap(void)
  *
  * Assumptions:
  *   This function is called early in the initialization sequence so that
- *   no mutual exlusion is necessary.
+ *   no mutual exclusion is necessary.
  *
  ****************************************************************************/
 
@@ -250,7 +250,7 @@ void stm32_gpioinit(void)
  *
  * Returned Value:
  *   OK on success
- *   A negated errono valu on invalid port, or when pin is locked as ALT
+ *   A negated errno value on invalid port, or when pin is locked as ALT
  *   function.
  *
  * To-Do: Auto Power Enable
@@ -543,19 +543,19 @@ int stm32_configgpio(uint32_t cfgset)
         {
 #if defined(CONFIG_STM32_STM32L15XX)
           default:
-          case GPIO_SPEED_400KHz:    /* 400 kHz Very low speed ouput */
+          case GPIO_SPEED_400KHz:    /* 400 kHz Very low speed output */
             setting = GPIO_OSPEED_400KHz;
             break;
 
-          case GPIO_SPEED_2MHz:   /* 2 MHz Low speed ouput */
+          case GPIO_SPEED_2MHz:   /* 2 MHz Low speed output */
             setting = GPIO_OSPEED_2MHz;
             break;
 
-          case GPIO_SPEED_10MHz:   /* 10 MHz Medium speed ouput  */
+          case GPIO_SPEED_10MHz:   /* 10 MHz Medium speed output  */
             setting = GPIO_OSPEED_10MHz;
             break;
 
-          case GPIO_SPEED_40MHz:   /* 40 MHz High speed ouput */
+          case GPIO_SPEED_40MHz:   /* 40 MHz High speed output */
             setting = GPIO_OSPEED_40MHz;
             break;
 #else
@@ -819,4 +819,3 @@ void stm32_iocompensation(void)
 #endif
 }
 #endif
-

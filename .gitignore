@@ -10,6 +10,7 @@ Make.dep
 .swp
 .*.swp
 core
+uImage
 /.gdbinit
 /cscope.*
 /.config
@@ -31,6 +32,6 @@ core
 /*.hex
 /.cproject
 /.project
-/pcode
 /tags
 openamp
+/TAGS

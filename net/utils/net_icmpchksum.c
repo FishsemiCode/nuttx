@@ -40,10 +40,6 @@
 #include <nuttx/config.h>
 #ifdef CONFIG_NET
 
-#include <stdint.h>
-#include <debug.h>
-
-#include <nuttx/net/netconfig.h>
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/icmp.h>
 
@@ -53,8 +49,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#define ICMPBUF   ((struct icmp_iphdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
-#define ICMPv6BUF ((struct icmp_ipv6hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
+#define IPv4BUF     ((FAR struct ipv4_hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev)])
+#define ICMPBUF(hl) ((FAR struct icmp_hdr_s *)&dev->d_buf[NET_LL_HDRLEN(dev) + (hl)])
 
 /****************************************************************************
  * Public Functions
@@ -71,7 +67,17 @@
 #if defined(CONFIG_NET_ICMP) && defined(CONFIG_NET_ICMP_SOCKET)
 uint16_t icmp_chksum(FAR struct net_driver_s *dev, int len)
 {
-  FAR struct icmp_iphdr_s *icmp = ICMPBUF;
+  FAR struct ipv4_hdr_s *ipv4 = IPv4BUF;
+  FAR struct icmp_hdr_s *icmp;
+  uint16_t iphdrlen;
+
+  /* Get the IP header length (accounting for possible options). */
+
+  iphdrlen = (ipv4->vhl & IPv4_HLMASK) << 2;
+
+  /* The ICMP header immediately follows the IP header */
+
+  icmp = ICMPBUF(iphdrlen);
   return net_chksum((FAR uint16_t *)&icmp->type, len);
 }
 #endif /* CONFIG_NET_ICMP && CONFIG_NET_ICMP_SOCKET */

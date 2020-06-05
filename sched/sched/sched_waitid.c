@@ -66,7 +66,8 @@
  ****************************************************************************/
 
 #ifdef CONFIG_SCHED_CHILD_STATUS
-static void exited_child(FAR struct tcb_s *rtcb, FAR struct child_status_s *child,
+static void exited_child(FAR struct tcb_s *rtcb,
+                         FAR struct child_status_s *child,
                          FAR siginfo_t *info)
 {
   /* The child has exited. Return the saved exit status (and some fudged
@@ -82,7 +83,7 @@ static void exited_child(FAR struct tcb_s *rtcb, FAR struct child_status_s *chil
 
   /* Discard the child entry */
 
-  (void)group_removechild(rtcb->group, child->ch_pid);
+  group_removechild(rtcb->group, child->ch_pid);
   group_freechild(child);
 }
 #endif
@@ -132,9 +133,9 @@ static void exited_child(FAR struct tcb_s *rtcb, FAR struct child_status_s *chil
  *
  *   The 'info' argument must point to a siginfo_t structure. If waitid()
  *   returns because a child process was found that satisfied the conditions
- *   indicated by the arguments idtype and options, then the structure pointed
- *   to by 'info' will be filled in by the system with the status of the
- *   process. The si_signo member will always be equal to SIGCHLD.
+ *   indicated by the arguments idtype and options, then the structure
+ *   pointed to by 'info' will be filled in by the system with the status of
+ *   the process. The si_signo member will always be equal to SIGCHLD.
  *
  * Input Parameters:
  *   See description.
@@ -166,10 +167,11 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
   int errcode;
   int ret;
 
-  /* MISSING LOGIC:   If WNOHANG is provided in the options, then this function
-   * should returned immediately.  However, there is no mechanism available now
-   * know if the thread has child:  The children remember their parents (if
-   * CONFIG_SCHED_HAVE_PARENT) but the parents do not remember their children.
+  /* MISSING LOGIC:   If WNOHANG is provided in the options, then this
+   * function should returned immediately.  However, there is no mechanism
+   * available now know if the thread has child:  The children remember
+   * their parents (if CONFIG_SCHED_HAVE_PARENT) but the parents do not
+   * remember their children.
    */
 
 #ifdef CONFIG_DEBUG_FEATURES
@@ -195,12 +197,12 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
 
   /* waitid() is a cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* Create a signal set that contains only SIGCHLD */
 
-  (void)sigemptyset(&set);
-  (void)sigaddset(&set, SIGCHLD);
+  sigemptyset(&set);
+  sigaddset(&set, SIGCHLD);
 
   /* Disable pre-emption so that nothing changes while the loop executes */
 
@@ -231,7 +233,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
       ctcb = sched_gettcb((pid_t)id);
 
 #ifdef HAVE_GROUP_MEMBERS
-      if (ctcb == NULL || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+      if (ctcb == NULL || ctcb->group->tg_pgrpid != rtcb->group->tg_grpid)
 #else
       if (ctcb == NULL || ctcb->group->tg_ppid != rtcb->pid)
 #endif
@@ -274,7 +276,7 @@ int waitid(idtype_t idtype, id_t id, FAR siginfo_t *info, int options)
       ctcb = sched_gettcb((pid_t)id);
 
 #ifdef HAVE_GROUP_MEMBERS
-      if (ctcb == NULL || ctcb->group->tg_pgid != rtcb->group->tg_gid)
+      if (ctcb == NULL || ctcb->group->tg_pgrpid != rtcb->group->tg_grpid)
 #else
       if (ctcb == NULL || ctcb->group->tg_ppid != rtcb->pid)
 #endif

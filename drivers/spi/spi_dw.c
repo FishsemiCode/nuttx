@@ -463,7 +463,7 @@ static void dw_spi_setbits(FAR struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static uint16_t dw_spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
+static uint32_t dw_spi_send(FAR struct spi_dev_s *dev, uint32_t wd)
 {
   struct dw_spi_s *spi = container_of(dev,
                                 struct dw_spi_s, spi_dev);

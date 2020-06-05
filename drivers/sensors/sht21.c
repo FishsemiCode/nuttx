@@ -99,6 +99,7 @@ struct sht21_dev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* I2C Helpers */
 
 static int sht21_access(FAR struct sht21_dev_s *priv,
@@ -143,10 +144,8 @@ static const struct file_operations g_sht21fops =
   sht21_read,     /* read */
   sht21_write,    /* write */
   NULL,           /* seek */
-  sht21_ioctl     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL          /* poll */
-#endif
+  sht21_ioctl,    /* ioctl */
+  NULL            /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , sht21_unlink /* unlink */
 #endif
@@ -387,17 +386,11 @@ static int sht21_open(FAR struct file *filep)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* Increment the count of open references on the driver */
 
@@ -426,17 +419,11 @@ static int sht21_close(FAR struct file *filep)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* Decrement the count of open references on the driver */
 
@@ -463,7 +450,8 @@ static int sht21_close(FAR struct file *filep)
  * Name: sht21_read
  ****************************************************************************/
 
-static ssize_t sht21_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+static ssize_t sht21_read(FAR struct file *filep, FAR char *buffer,
+                          size_t buflen)
 {
   FAR struct inode       *inode  = filep->f_inode;
   FAR struct sht21_dev_s *priv   = inode->i_private;
@@ -474,17 +462,11 @@ static ssize_t sht21_read(FAR struct file *filep, FAR char *buffer, size_t bufle
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return (ssize_t)ret;
     }
-  while (ret == -EINTR);
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   if (priv->unlinked)
@@ -540,17 +522,11 @@ static int sht21_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   if (priv->unlinked)
@@ -632,17 +608,11 @@ static int sht21_unlink(FAR struct inode *inode)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* Are there open references to the driver data structure? */
 
@@ -659,7 +629,7 @@ static int sht21_unlink(FAR struct inode *inode)
 
   priv->unlinked = true;
   nxsem_post(&priv->devsem);
-  return ret;
+  return OK;
 }
 #endif
 

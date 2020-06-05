@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/xtensa/src/common/arm_releasepending.c
+ *  arch/xtensa/src/common/xtensa_releasepending.c
  *
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -74,6 +74,7 @@ void up_release_pending(void)
   /* Merge the g_pendingtasks list into the ready-to-run task list */
 
   /* sched_lock(); */
+
   if (sched_mergepending())
     {
       /* The currently active task has changed!  We will need to
@@ -145,7 +146,7 @@ void up_release_pending(void)
            * thread at the head of the ready-to-run list.
            */
 
-          (void)group_addrenv(rtcb);
+          group_addrenv(rtcb);
 #endif
           /* Update scheduler parameters */
 

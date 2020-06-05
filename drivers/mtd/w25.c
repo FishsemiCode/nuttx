@@ -1,36 +1,22 @@
 /************************************************************************************
  * drivers/mtd/w25.c
  * Driver for SPI-based W25x16, x32, and x64 and W25q16, q32, q64, and q128 FLASH
+ * from Winbond (and work-alike parts from AMIC)
  *
- *   Copyright (C) 2012-2013, 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ************************************************************************************/
 
@@ -60,7 +46,9 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Configuration ********************************************************************/
+
 /* Per the data sheet, the W25 parts can be driven with either SPI mode 0 (CPOL=0
  * and CPHA=0) or mode 3 (CPOL=1 and CPHA=1). But I have heard that other devices
  * can operate in mode 0 or 1.  So you may need to specify CONFIG_W25_SPIMODE to
@@ -79,8 +67,7 @@
 #endif
 
 /* W25 Instructions *****************************************************************/
-/*      Command                    Value      Description                           */
-/*                                                                                  */
+
 #define W25_WREN                   0x06    /* Write enable                          */
 #define W25_WRDI                   0x04    /* Write Disable                         */
 #define W25_RDSR                   0x05    /* Read status register                  */
@@ -98,6 +85,7 @@
 #define W25_JEDEC_ID               0x9f    /* JEDEC ID read                         */
 
 /* W25 Registers ********************************************************************/
+
 /* Read ID (RDID) register values */
 
 #define W25_MANUFACTURER           0xef   /* Winbond Serial Flash */
@@ -107,7 +95,9 @@
 
 /* JEDEC Read ID register values */
 
-#define W25_JEDEC_MANUFACTURER     0xef  /* SST manufacturer ID */
+#define W25_JEDEC_WINBOND          0xef  /* Winbond manufacturer ID */
+#define W25_JEDEC_AMIC             0x37  /* AMIC manufacturer ID */
+
 #define W25X_JEDEC_MEMORY_TYPE     0x30  /* W25X memory type */
 #define W25Q_JEDEC_MEMORY_TYPE_A   0x40  /* W25Q memory type */
 #define W25Q_JEDEC_MEMORY_TYPE_B   0x60  /* W25Q memory type */
@@ -179,6 +169,7 @@
 #define W25_DUMMY                  0xa5
 
 /* Chip Geometries ******************************************************************/
+
 /* All members of the family support uniform 4K-byte sectors and 256 byte pages */
 
 #define W25_SECTOR_SHIFT           12        /* Sector size 1 << 12 = 4Kb */
@@ -295,26 +286,26 @@ static ssize_t w25_write(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
 
 static void w25_lock(FAR struct spi_dev_s *spi)
 {
-  /* On SPI busses where there are multiple devices, it will be necessary to
-   * lock SPI to have exclusive access to the busses for a sequence of
+  /* On SPI buses where there are multiple devices, it will be necessary to
+   * lock SPI to have exclusive access to the buses for a sequence of
    * transfers.  The bus should be locked before the chip is selected.
    *
-   * This is a blocking call and will not return until we have exclusiv access to
-   * the SPI buss.  We will retain that exclusive access until the bus is unlocked.
+   * This is a blocking call and will not return until we have exclusive access to
+   * the SPI bus.  We will retain that exclusive access until the bus is unlocked.
    */
 
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency, setbits, and
    * setmode methods to make sure that the SPI is properly configured for the device.
-   * If the SPI buss is being shared, then it may have been left in an incompatible
+   * If the SPI bus is being shared, then it may have been left in an incompatible
    * state.
    */
 
   SPI_SETMODE(spi, CONFIG_W25_SPIMODE);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, CONFIG_W25_SPIFREQUENCY);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_W25_SPIFREQUENCY);
 }
 
 /************************************************************************************
@@ -323,7 +314,7 @@ static void w25_lock(FAR struct spi_dev_s *spi)
 
 static inline void w25_unlock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 /************************************************************************************
@@ -344,7 +335,7 @@ static inline int w25_readid(struct w25_dev_s *priv)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)w25_waitwritecomplete(priv);
+  w25_waitwritecomplete(priv);
 
   /* Select this FLASH part. */
 
@@ -352,7 +343,7 @@ static inline int w25_readid(struct w25_dev_s *priv)
 
   /* Send the "Read ID (RDID)" command and read the first three ID bytes */
 
-  (void)SPI_SEND(priv->spi, W25_JEDEC_ID);
+  SPI_SEND(priv->spi, W25_JEDEC_ID);
   manufacturer = SPI_SEND(priv->spi, W25_DUMMY);
   memory       = SPI_SEND(priv->spi, W25_DUMMY);
   capacity     = SPI_SEND(priv->spi, W25_DUMMY);
@@ -367,7 +358,8 @@ static inline int w25_readid(struct w25_dev_s *priv)
 
   /* Check for a valid manufacturer and memory type */
 
-  if (manufacturer == W25_JEDEC_MANUFACTURER &&
+  if ((manufacturer == W25_JEDEC_WINBOND  ||
+       manufacturer == W25_JEDEC_AMIC)    &&
       (memory == W25X_JEDEC_MEMORY_TYPE   ||
        memory == W25Q_JEDEC_MEMORY_TYPE_A ||
        memory == W25Q_JEDEC_MEMORY_TYPE_B ||
@@ -430,6 +422,7 @@ static inline int w25_readid(struct w25_dev_s *priv)
         {
           /* Nope.. we don't understand this capacity. */
 
+          ferr("ERROR: Unsupported capacity: %02x\n", capacity);
           return -ENODEV;
         }
 
@@ -438,6 +431,8 @@ static inline int w25_readid(struct w25_dev_s *priv)
 
   /* We don't understand the manufacturer or the memory type */
 
+  ferr("ERROR: Unrecognized manufacturer/memory type: %02x/%02x\n",
+       manufacturer, memory);
   return -ENODEV;
 }
 
@@ -454,7 +449,7 @@ static void w25_unprotect(FAR struct w25_dev_s *priv)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)w25_waitwritecomplete(priv);
+  w25_waitwritecomplete(priv);
 
   /* Send "Write enable (WREN)" */
 
@@ -502,7 +497,7 @@ static uint8_t w25_waitwritecomplete(struct w25_dev_s *priv)
 
       /* Send "Read Status Register (RDSR)" command */
 
-      (void)SPI_SEND(priv->spi, W25_RDSR);
+      SPI_SEND(priv->spi, W25_RDSR);
 
       /* Send a dummy byte to generate the clock needed to shift out the status */
 
@@ -543,7 +538,7 @@ static inline void w25_wren(struct w25_dev_s *priv)
 
   /* Send "Write Enable (WREN)" command */
 
-  (void)SPI_SEND(priv->spi, W25_WREN);
+  SPI_SEND(priv->spi, W25_WREN);
 
   /* Deselect the FLASH */
 
@@ -562,7 +557,7 @@ static inline void w25_wrdi(struct w25_dev_s *priv)
 
   /* Send "Write Disable (WRDI)" command */
 
-  (void)SPI_SEND(priv->spi, W25_WRDI);
+  SPI_SEND(priv->spi, W25_WRDI);
 
   /* Deselect the FLASH */
 
@@ -639,7 +634,7 @@ static void w25_sectorerase(struct w25_dev_s *priv, off_t sector)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)w25_waitwritecomplete(priv);
+  w25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
 
@@ -651,16 +646,16 @@ static void w25_sectorerase(struct w25_dev_s *priv, off_t sector)
 
   /* Send the "Sector Erase (SE)" instruction */
 
-  (void)SPI_SEND(priv->spi, W25_SE);
+  SPI_SEND(priv->spi, W25_SE);
   priv->prev_instr = W25_SE;
 
   /* Send the sector address high byte first. Only the most significant bits (those
    * corresponding to the sector) have any meaning.
    */
 
-  (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
-  (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
-  (void)SPI_SEND(priv->spi, address & 0xff);
+  SPI_SEND(priv->spi, (address >> 16) & 0xff);
+  SPI_SEND(priv->spi, (address >> 8) & 0xff);
+  SPI_SEND(priv->spi, address & 0xff);
 
   /* Deselect the FLASH */
 
@@ -677,7 +672,7 @@ static inline int w25_chiperase(struct w25_dev_s *priv)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)w25_waitwritecomplete(priv);
+  w25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
 
@@ -689,7 +684,7 @@ static inline int w25_chiperase(struct w25_dev_s *priv)
 
   /* Send the "Chip Erase (CE)" instruction */
 
-  (void)SPI_SEND(priv->spi, W25_CE);
+  SPI_SEND(priv->spi, W25_CE);
   priv->prev_instr = W25_CE;
 
   /* Deselect the FLASH */
@@ -726,23 +721,23 @@ static void w25_byteread(FAR struct w25_dev_s *priv, FAR uint8_t *buffer,
   /* Send "Read from Memory " instruction */
 
 #ifdef CONFIG_W25_SLOWREAD
-  (void)SPI_SEND(priv->spi, W25_RDDATA);
+  SPI_SEND(priv->spi, W25_RDDATA);
   priv->prev_instr = W25_RDDATA;
 #else
-  (void)SPI_SEND(priv->spi, W25_FRD);
+  SPI_SEND(priv->spi, W25_FRD);
   priv->prev_instr = W25_FRD;
 #endif
 
   /* Send the address high byte first. */
 
-  (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
-  (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
-  (void)SPI_SEND(priv->spi, address & 0xff);
+  SPI_SEND(priv->spi, (address >> 16) & 0xff);
+  SPI_SEND(priv->spi, (address >> 8) & 0xff);
+  SPI_SEND(priv->spi, address & 0xff);
 
   /* Send a dummy byte */
 
 #ifndef CONFIG_W25_SLOWREAD
-  (void)SPI_SEND(priv->spi, W25_DUMMY);
+  SPI_SEND(priv->spi, W25_DUMMY);
 #endif
 
   /* Then read all of the requested bytes */
@@ -790,9 +785,9 @@ static void w25_pagewrite(struct w25_dev_s *priv, FAR const uint8_t *buffer,
 
       /* Send the address high byte first. */
 
-      (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
-      (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
-      (void)SPI_SEND(priv->spi, address & 0xff);
+      SPI_SEND(priv->spi, (address >> 16) & 0xff);
+      SPI_SEND(priv->spi, (address >> 8) & 0xff);
+      SPI_SEND(priv->spi, address & 0xff);
 
       /* Then send the page of data */
 
@@ -842,14 +837,14 @@ static inline void w25_bytewrite(struct w25_dev_s *priv, FAR const uint8_t *buff
 
   /* Send "Page Program (PP)" command */
 
-  (void)SPI_SEND(priv->spi, W25_PP);
+  SPI_SEND(priv->spi, W25_PP);
   priv->prev_instr = W25_PP;
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->spi, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->spi, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->spi, offset & 0xff);
+  SPI_SEND(priv->spi, (offset >> 16) & 0xff);
+  SPI_SEND(priv->spi, (offset >> 8) & 0xff);
+  SPI_SEND(priv->spi, offset & 0xff);
 
   /* Then write the specified number of bytes */
 
@@ -869,9 +864,9 @@ static inline void w25_bytewrite(struct w25_dev_s *priv, FAR const uint8_t *buff
 #if defined(CONFIG_W25_SECTOR512) && !defined(CONFIG_W25_READONLY)
 static void w25_cacheflush(struct w25_dev_s *priv)
 {
-  /* If the cached is dirty (meaning that it no longer matches the old FLASH contents)
-   * or was erased (with the cache containing the correct FLASH contents), then write
-   * the cached erase block to FLASH.
+  /* If the cached is dirty (meaning that it no longer matches the old FLASH
+   * contents) or was erased (with the cache containing the correct FLASH contents),
+   * then write the cached erase block to FLASH.
    */
 
   if (IS_DIRTY(priv) || IS_ERASED(priv))
@@ -919,7 +914,8 @@ static FAR uint8_t *w25_cacheread(struct w25_dev_s *priv, off_t sector)
 
       /* Read the erase block into the cache */
 
-      w25_byteread(priv, priv->sector, (esectno << W25_SECTOR_SHIFT), W25_SECTOR_SIZE);
+      w25_byteread(priv, priv->sector, (esectno << W25_SECTOR_SHIFT),
+                   W25_SECTOR_SIZE);
 
       /* Mark the sector as cached */
 
@@ -1083,14 +1079,16 @@ static ssize_t w25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbl
   /* On this device, we can handle the block read just like the byte-oriented read */
 
 #ifdef CONFIG_W25_SECTOR512
-  nbytes = w25_read(dev, startblock << W25_SECTOR512_SHIFT, nblocks << W25_SECTOR512_SHIFT, buffer);
+  nbytes = w25_read(dev, startblock << W25_SECTOR512_SHIFT,
+                    nblocks << W25_SECTOR512_SHIFT, buffer);
   if (nbytes > 0)
     {
       nbytes >>= W25_SECTOR512_SHIFT;
     }
 
 #else
-  nbytes = w25_read(dev, startblock << W25_PAGE_SHIFT, nblocks << W25_PAGE_SHIFT, buffer);
+  nbytes = w25_read(dev, startblock << W25_PAGE_SHIFT,
+                    nblocks << W25_PAGE_SHIFT, buffer);
   if (nbytes > 0)
     {
       nbytes >>= W25_PAGE_SHIFT;
@@ -1104,8 +1102,8 @@ static ssize_t w25_bread(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbl
  * Name: w25_bwrite
  ************************************************************************************/
 
-static ssize_t w25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                            FAR const uint8_t *buffer)
+static ssize_t w25_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
+                          size_t nblocks, FAR const uint8_t *buffer)
 {
 #ifdef CONFIG_W25_READONLY
   return -EACCESS;
@@ -1188,7 +1186,7 @@ static ssize_t w25_write(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes,
       /* Write the 1st partial-page */
 
       count = nbytes;
-      bytestowrite = W25_PAGE_SIZE - (offset & (W25_PAGE_SIZE-1));
+      bytestowrite = W25_PAGE_SIZE - (offset & (W25_PAGE_SIZE - 1));
       w25_bytewrite(priv, buffer, offset, bytestowrite);
 
       /* Update offset and count */
@@ -1238,7 +1236,8 @@ static int w25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
     {
       case MTDIOC_GEOMETRY:
         {
-          FAR struct mtd_geometry_s *geo = (FAR struct mtd_geometry_s *)((uintptr_t)arg);
+          FAR struct mtd_geometry_s *geo =
+            (FAR struct mtd_geometry_s *)((uintptr_t)arg);
           if (geo)
             {
               /* Populate the geometry structure with information need to know
@@ -1253,7 +1252,8 @@ static int w25_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
 #ifdef CONFIG_W25_SECTOR512
               geo->blocksize    = (1 << W25_SECTOR512_SHIFT);
               geo->erasesize    = (1 << W25_SECTOR512_SHIFT);
-              geo->neraseblocks = priv->nsectors << (W25_SECTOR_SHIFT - W25_SECTOR512_SHIFT);
+              geo->neraseblocks = priv->nsectors <<
+                                  (W25_SECTOR_SHIFT - W25_SECTOR512_SHIFT);
 #else
               geo->blocksize    = W25_PAGE_SIZE;
               geo->erasesize    = W25_SECTOR_SIZE;

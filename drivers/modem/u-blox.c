@@ -95,11 +95,9 @@ static int     ubxmdm_ioctl(FAR struct file* filep,
                             int cmd,
                             unsigned long arg);
 
-#ifndef CONFIG_DISABLE_POLL
 static int     ubxmdm_poll (FAR struct file* filep,
                             FAR struct pollfd* fds,
                             bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -113,9 +111,7 @@ static const struct file_operations ubxmdm_fops =
   ubxmdm_write, /* write */
   0,            /* seek */
   ubxmdm_ioctl, /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  ubxmdm_poll,  /* poll */
-#endif
+  ubxmdm_poll   /* poll */
 };
 
 /****************************************************************************
@@ -252,7 +248,6 @@ static int ubxmdm_ioctl(FAR struct file* filep,
   return ret;
 }
 
-#ifndef CONFIG_DISABLE_POLL
 static int ubxmdm_poll(FAR struct file* filep,
                        FAR struct pollfd* fds,
                        bool setup)
@@ -268,7 +263,6 @@ static int ubxmdm_poll(FAR struct file* filep,
 
   return OK;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -330,9 +324,9 @@ void ubxmdm_unregister(FAR void *handle)
   m_info("Unregistering: %s\n", upper->path);
 
   DEBUGASSERT(lower->ops->poweroff);
-  (void) lower->ops->poweroff(lower);
+  lower->ops->poweroff(lower);
 
-  (void) unregister_driver(upper->path);
+  unregister_driver(upper->path);
 
   kmm_free(upper->path);
   kmm_free(upper);

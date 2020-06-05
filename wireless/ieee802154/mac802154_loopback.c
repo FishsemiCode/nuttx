@@ -225,10 +225,10 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[1]  = 0;
   dev->d_ipv6addr[2]  = 0;
   dev->d_ipv6addr[3]  = 0;
-  dev->d_ipv6addr[4]  = HTONS((uint16_t)g_eaddr[7] << 8 | (uint16_t)g_eaddr[6]);
-  dev->d_ipv6addr[5]  = HTONS((uint16_t)g_eaddr[5] << 8 | (uint16_t)g_eaddr[4]);
-  dev->d_ipv6addr[6]  = HTONS((uint16_t)g_eaddr[3] << 8 | (uint16_t)g_eaddr[2]);
-  dev->d_ipv6addr[7]  = HTONS((uint16_t)g_eaddr[1] << 8 | (uint16_t)g_eaddr[0]);
+  dev->d_ipv6addr[4]  = HTONS((uint16_t)g_eaddr[0] << 8 | (uint16_t)g_eaddr[1]);
+  dev->d_ipv6addr[5]  = HTONS((uint16_t)g_eaddr[2] << 8 | (uint16_t)g_eaddr[3]);
+  dev->d_ipv6addr[6]  = HTONS((uint16_t)g_eaddr[4] << 8 | (uint16_t)g_eaddr[5]);
+  dev->d_ipv6addr[7]  = HTONS((uint16_t)g_eaddr[6] << 8 | (uint16_t)g_eaddr[7]);
 
   /* Invert the U/L bit */
 
@@ -253,7 +253,7 @@ static void lo_addr2ip(FAR struct net_driver_s *dev)
   dev->d_ipv6addr[4]  = 0;
   dev->d_ipv6addr[5]  = HTONS(0x00ff);
   dev->d_ipv6addr[6]  = HTONS(0xfe00);
-  dev->d_ipv6addr[7]  = HTONS((uint16_t)g_saddr[1] << 8 |  (uint16_t)g_saddr[0]);
+  dev->d_ipv6addr[7]  = HTONS((uint16_t)g_saddr[0] << 8 |  (uint16_t)g_saddr[1]);
 #endif
 }
 #endif
@@ -343,7 +343,7 @@ static int lo_loopback(FAR struct net_driver_s *dev)
   IEEE802154_EADDRCOPY(ind.dest.eaddr, g_eaddr);
 
   /* Loop while there framelist to be sent, i.e., while the freme list is not
-   * emtpy.  Sending, of course, just means relaying back through the network
+   * empty.  Sending, of course, just means relaying back through the network
    * for this driver.
    */
 
@@ -439,7 +439,7 @@ static void lo_loopback_work(FAR void *arg)
   /* Perform the loopback */
 
   net_lock();
-  (void)lo_loopback(&priv->lo_radio.r_dev);
+  lo_loopback(&priv->lo_radio.r_dev);
   net_unlock();
 }
 
@@ -476,11 +476,11 @@ static void lo_poll_work(FAR void *arg)
 
   /* Then perform the poll */
 
-  (void)devif_timer(&priv->lo_radio.r_dev, lo_loopback);
+  devif_timer(&priv->lo_radio.r_dev, LO_WDDELAY, lo_loopback);
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry, 1, priv);
+  wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry, 1, priv);
   net_unlock();
 }
 
@@ -582,8 +582,8 @@ static int lo_ifup(FAR struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry,
-                 1, (wdparm_t)priv);
+  wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry,
+           1, (wdparm_t)priv);
 
   priv->lo_bifup = true;
   return OK;
@@ -657,7 +657,7 @@ static void lo_txavail_work(FAR void *arg)
       priv->lo_radio.r_dev.d_buf = g_iobuffer.rb_buf;
 #endif
 
-      (void)devif_poll(&priv->lo_radio.r_dev, lo_loopback);
+      devif_poll(&priv->lo_radio.r_dev, lo_loopback);
     }
 
   net_unlock();
@@ -1034,6 +1034,7 @@ static int lo_properties(FAR struct radio_driver_s *netdev,
 
 #ifdef CONFIG_NET_STARPOINT
   /* Star hub node address -- Not supported*/
+
 #endif
 
   return OK;
@@ -1104,11 +1105,20 @@ int ieee8021514_loopback(void)
 
   priv->lo_polldog    = wd_create();      /* Create periodic poll timer */
 
+#ifdef CONFIG_NET_6LOWPAN
+  /* Make sure the our single packet buffer is attached. We must do this before
+   * registering the device since, once the device is registered, a packet may
+   * be attempted to be forwarded and require the buffer.
+   */
+
+  priv->lo_radio.r_dev.d_buf = g_iobuffer.rb_buf;
+#endif
+
   /* Register the loopabck device with the OS so that socket IOCTLs can be
    * performed.
    */
 
-  (void)netdev_register(&priv->lo_radio.r_dev, NET_LL_IEEE802154);
+  netdev_register(&priv->lo_radio.r_dev, NET_LL_IEEE802154);
 
   /* Put the network in the UP state */
 

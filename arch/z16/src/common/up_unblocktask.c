@@ -45,7 +45,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
 
-#include "chip/chip.h"
+#include "chip.h"
 #include "sched/sched.h"
 #include "clock/clock.h"
 #include "up_internal.h"
@@ -66,7 +66,7 @@
  *   tcb: Refers to the tcb to be unblocked.  This tcb is
  *     in one of the waiting tasks lists.  It must be moved to
  *     the ready-to-run list and, if it is the highest priority
- *     ready to run taks, executed.
+ *     ready to run task, executed.
  *
  ****************************************************************************/
 

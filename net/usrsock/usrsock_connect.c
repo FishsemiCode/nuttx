@@ -49,7 +49,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -112,6 +111,7 @@ static int do_connect_request(FAR struct usrsock_conn_s *conn,
   struct usrsock_request_connect_s req =
   {
   };
+
   struct iovec bufs[2];
 
   if (addrlen > UINT16_MAX)
@@ -162,6 +162,7 @@ int usrsock_connect(FAR struct socket *psock,
   struct usrsock_reqstate_s state =
   {
   };
+
   int ret;
 
   DEBUGASSERT(conn);
@@ -234,8 +235,6 @@ int usrsock_connect(FAR struct socket *psock,
       ret = net_lockedwait(&state.recvsem);
       if (ret < 0)
         {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-
           /* Wait interrupted, exit early. */
 
           goto errout_teardown;

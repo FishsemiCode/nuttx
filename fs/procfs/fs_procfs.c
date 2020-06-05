@@ -81,6 +81,7 @@ extern const struct procfs_operations irq_operations;
 extern const struct procfs_operations cpuload_operations;
 extern const struct procfs_operations critmon_operations;
 extern const struct procfs_operations meminfo_operations;
+extern const struct procfs_operations iobinfo_operations;
 extern const struct procfs_operations module_operations;
 extern const struct procfs_operations uptime_operations;
 extern const struct procfs_operations version_operations;
@@ -144,6 +145,10 @@ static const struct procfs_entry_s g_procfs_entries[] =
   { "meminfo",       &meminfo_operations,         PROCFS_FILE_TYPE   },
 #endif
 
+#if defined(CONFIG_MM_IOB) && !defined(CONFIG_FS_PROCFS_EXCLUDE_IOBINFO)
+  { "iobinfo",       &iobinfo_operations,         PROCFS_FILE_TYPE   },
+#endif
+
 #if defined(CONFIG_MODULE) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
   { "modules",       &module_operations,          PROCFS_FILE_TYPE   },
 #endif
@@ -193,13 +198,13 @@ static const struct procfs_entry_s g_procfs_entries[] =
 
 #ifdef CONFIG_FS_PROCFS_REGISTER
 static const uint8_t g_base_entrycount = sizeof(g_base_entries) /
-                                        sizeof(struct procfs_entry_s);
+                                         sizeof(struct procfs_entry_s);
 
 static FAR struct procfs_entry_s *g_procfs_entries;
 static uint8_t g_procfs_entrycount;
 #else
 static const uint8_t g_procfs_entrycount = sizeof(g_procfs_entries) /
-                                          sizeof(struct procfs_entry_s);
+                                           sizeof(struct procfs_entry_s);
 #endif
 
 /****************************************************************************
@@ -249,14 +254,8 @@ static int     procfs_stat(FAR struct inode *mountpt,
 /* Initialization */
 
 #ifdef CONFIG_FS_PROCFS_REGISTER
-int procfs_initialize(void);
-#else
-#  define procfs_initialize()
+static int     procfs_initialize(void);
 #endif
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
 
 /****************************************************************************
  * Public Data
@@ -298,7 +297,7 @@ const struct mountpt_operations procfs_operations =
 };
 
 /* Level 0 contains the directory of active tasks in addition to other
- * statically registered entries with custom handlers.  This strcture
+ * statically registered entries with custom handlers.  This structure
  * contains a snapshot of the active tasks when the directory is first
  * opened.
  */
@@ -621,12 +620,14 @@ static int procfs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
 
           if (match(g_procfs_entries[x].pathpattern, relpath))
             {
-              /* Match found!  Call the handler's opendir routine.  If successful,
-               * this opendir routine will create an entry derived from struct
-               * procfs_dir_priv_s as dir->u.procfs.
+              /* Match found!  Call the handler's opendir routine.  If
+               * successful, this opendir routine will create an entry
+               * derived from struct procfs_dir_priv_s as dir->u.procfs.
                */
 
-              DEBUGASSERT(g_procfs_entries[x].ops && g_procfs_entries[x].ops->opendir);
+              DEBUGASSERT(g_procfs_entries[x].ops != NULL &&
+                          g_procfs_entries[x].ops->opendir != NULL);
+
               ret = g_procfs_entries[x].ops->opendir(relpath, dir);
 
               if (ret == OK)
@@ -642,16 +643,17 @@ static int procfs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
               return ret;
             }
 
-            /* Test for a sub-string match (e.g. "ls /proc/fs") */
+          /* Test for a sub-string match (e.g. "ls /proc/fs") */
 
-          else if (strncmp(g_procfs_entries[x].pathpattern, relpath, len) == 0)
+          else if (strncmp(g_procfs_entries[x].pathpattern, relpath,
+                           len) == 0)
             {
               FAR struct procfs_level1_s *level1;
 
               /* Doing an intermediate directory search */
 
-              /* The path refers to the top level directory.  Allocate the level1
-               * dirent structure.
+              /* The path refers to the top level directory.  Allocate
+               * the level1 dirent structure.
                */
 
               level1 = (FAR struct procfs_level1_s *)
@@ -659,7 +661,8 @@ static int procfs_opendir(FAR struct inode *mountpt, FAR const char *relpath,
 
               if (!level1)
                 {
-                  ferr("ERROR: Failed to allocate the level0 directory structure\n");
+                  ferr("ERROR: Failed to allocate the level0 directory "
+                       "structure\n");
                   return -ENOMEM;
                 }
 
@@ -855,8 +858,8 @@ static int procfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
           dir->fd_dir.d_type = DTYPE_DIRECTORY;
           snprintf(dir->fd_dir.d_name, NAME_MAX + 1, "%d", (int)pid);
 
-          /* Set up the next directory entry offset.  NOTE that we could use the
-           * standard f_pos instead of our own private index.
+          /* Set up the next directory entry offset.  NOTE that we could use
+           * the standard f_pos instead of our own private index.
            */
 
           level0->base.index = index + 1;
@@ -865,7 +868,7 @@ static int procfs_readdir(struct inode *mountpt, struct fs_dirent_s *dir)
 #endif /* CONFIG_FS_PROCFS_EXCLUDE_PROCESS */
     }
 
-    /* Are we reading an intermediate subdirectory? */
+  /* Are we reading an intermediate subdirectory? */
 
   else if (priv->level > 0 && priv->procfsentry == NULL)
     {
@@ -964,8 +967,8 @@ static int procfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
  *
  * Description: This implements a portion of the mount operation. This
  *  function allocates and initializes the mountpoint private data and
- *  binds the blockdriver inode to the filesystem private data.  The final
- *  binding of the private data (containing the blockdriver) to the
+ *  binds the block driver inode to the filesystem private data.  The final
+ *  binding of the private data (containing the block driver) to the
  *  mountpoint is performed by mount().
  *
  ****************************************************************************/
@@ -973,9 +976,12 @@ static int procfs_rewinddir(struct inode *mountpt, struct fs_dirent_s *dir)
 static int procfs_bind(FAR struct inode *blkdriver, const void *data,
                        void **handle)
 {
+#ifdef CONFIG_FS_PROCFS_REGISTER
   /* Make sure that we are properly initialized */
 
   procfs_initialize();
+#endif
+
   return OK;
 }
 
@@ -1068,7 +1074,8 @@ static int procfs_stat(struct inode *mountpt, const char *relpath,
 
           /* Test for an internal subdirectory stat */
 
-          else if (strncmp(g_procfs_entries[x].pathpattern, relpath, len) == 0)
+          else if (strncmp(g_procfs_entries[x].pathpattern, relpath,
+                           len) == 0)
             {
               /* It's an internal subdirectory */
 
@@ -1103,7 +1110,7 @@ int procfs_initialize(void)
 
   if (g_procfs_entries == NULL)
     {
-      /* No.. allocate a modifyable list of entries */
+      /* No.. allocate a modifiable list of entries */
 
       g_procfs_entries = (FAR struct procfs_entry_s *)
         kmm_malloc(sizeof(g_base_entries));
@@ -1173,7 +1180,9 @@ int procfs_register(FAR const struct procfs_entry_s *entry)
   newsize  = newcount * sizeof(struct procfs_entry_s);
 
   sched_lock();
-  newtable = (FAR struct procfs_entry_s *)kmm_realloc(g_procfs_entries, newsize);
+  newtable = (FAR struct procfs_entry_s *)
+    kmm_realloc(g_procfs_entries, newsize);
+
   if (newtable == NULL)
     {
       /* Reallocation failed! */
@@ -1184,7 +1193,8 @@ int procfs_register(FAR const struct procfs_entry_s *entry)
     {
       /* Copy the new entry at the end of the reallocated table */
 
-      memcpy(&newtable[g_procfs_entrycount], entry, sizeof(struct procfs_entry_s));
+      memcpy(&newtable[g_procfs_entrycount], entry,
+             sizeof(struct procfs_entry_s));
 
       /* Instantiate the reallocated table */
 

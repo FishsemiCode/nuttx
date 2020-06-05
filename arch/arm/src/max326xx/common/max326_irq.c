@@ -156,7 +156,7 @@ static void max326_dumpnvic(const char *msg, int irq)
 #ifdef CONFIG_DEBUG_FEATURES
 static int max326_nmi(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! NMI received\n");
   PANIC();
   return 0;
@@ -164,15 +164,15 @@ static int max326_nmi(int irq, FAR void *context, FAR void *arg)
 
 static int max326_busfault(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
-  _err("PANIC!!! Bus fault recived\n");
+  up_irq_save();
+  _err("PANIC!!! Bus fault received\n");
   PANIC();
   return 0;
 }
 
 static int max326_usagefault(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Usage fault received\n");
   PANIC();
   return 0;
@@ -180,7 +180,7 @@ static int max326_usagefault(int irq, FAR void *context, FAR void *arg)
 
 static int max326_pendsv(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! PendSV received\n");
   PANIC();
   return 0;
@@ -188,7 +188,7 @@ static int max326_pendsv(int irq, FAR void *context, FAR void *arg)
 
 static int max326_dbgmonitor(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Debug Monitor received\n");
   PANIC();
   return 0;
@@ -196,7 +196,7 @@ static int max326_dbgmonitor(int irq, FAR void *context, FAR void *arg)
 
 static int max326_reserved(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Reserved interrupt\n");
   PANIC();
   return 0;
@@ -333,7 +333,7 @@ void up_irqinitialize(void)
   putreg32(DEFPRIORITY32, NVIC_SYSH8_11_PRIORITY);
   putreg32(DEFPRIORITY32, NVIC_SYSH12_15_PRIORITY);
 
-  /* The NVIC ICTR register (bits 0-4) holds the number of of interrupt
+  /* The NVIC ICTR register (bits 0-4) holds the number of interrupt
    * lines that the NVIC supports:
    *
    *  0 -> 32 interrupt lines,  8 priority registers

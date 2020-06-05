@@ -54,6 +54,7 @@
 #include "up_arch.h"
 
 #include "chip.h"
+#include "hardware/imxrt_ccm.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -197,7 +198,7 @@ static void up_pm_notify(struct pm_callback_s *cb, int domain,
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the timer
@@ -205,7 +206,7 @@ static void up_pm_notify(struct pm_callback_s *cb, int domain,
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
 #ifdef CONFIG_PM
@@ -219,7 +220,7 @@ void arm_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(IMXRT_IRQ_SYSTICK, (xcpt_t)imxrt_timerisr, NULL);
+  irq_attach(IMXRT_IRQ_SYSTICK, (xcpt_t)imxrt_timerisr, NULL);
 
   /* Enable SysTick interrupts */
 

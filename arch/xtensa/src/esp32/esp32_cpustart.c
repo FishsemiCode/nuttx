@@ -51,8 +51,8 @@
 
 #include "sched/sched.h"
 #include "xtensa.h"
-#include "chip/esp32_dport.h"
-#include "chip/esp32_rtccntl.h"
+#include "hardware/esp32_dport.h"
+#include "hardware/esp32_rtccntl.h"
 #include "esp32_region.h"
 #include "esp32_cpuint.h"
 #include "esp32_smp.h"
@@ -88,6 +88,7 @@ static inline void xtensa_registerdump(FAR struct tcb_s *tcb)
   _info("CPU%d:\n", up_cpu_index());
 
   /* Dump the startup registers */
+
   /* To be provided */
 }
 #else
@@ -115,7 +116,7 @@ static inline void xtensa_attach_fromcpu0_interrupt(void)
 
   /* Attach the inter-CPU interrupt. */
 
-  (void)irq_attach(ESP32_IRQ_CPU_CPU0, (xcpt_t)esp32_fromcpu0_interrupt, NULL);
+  irq_attach(ESP32_IRQ_CPU_CPU0, (xcpt_t)esp32_fromcpu0_interrupt, NULL);
 
   /* Enable the inter 0 CPU interrupts. */
 
@@ -149,12 +150,12 @@ void xtensa_appcpu_start(void)
   register uint32_t sp;
 
 #ifdef CONFIG_STACK_COLORATION
-  {
-    register uint32_t *ptr;
-    register int i;
+    {
+      register uint32_t *ptr;
+      register int i;
 
-      /* If stack debug is enabled, then fill the stack with a recognizable value
-       * that we can use later to test for high water marks.
+      /* If stack debug is enabled, then fill the stack with a recognizable
+       * value that we can use later to test for high water marks.
        */
 
       for (i = 0, ptr = (uint32_t *)tcb->stack_alloc_ptr;
@@ -163,7 +164,7 @@ void xtensa_appcpu_start(void)
         {
           *ptr++ = STACK_COLOR;
         }
-  }
+    }
 #endif
 
   /* Move to the stack assigned to us by up_smp_start immediately.  Although
@@ -194,7 +195,7 @@ void xtensa_appcpu_start(void)
 
   /* Move CPU0 exception vectors to IRAM */
 
-  asm volatile ("wsr %0, vecbase\n"::"r" (&_init_start));
+  __asm__ __volatile__ ("wsr %0, vecbase\n"::"r" (&_init_start));
 
   /* Make page 0 access raise an exception */
 
@@ -202,9 +203,9 @@ void xtensa_appcpu_start(void)
 
   /* Initialize CPU interrupts */
 
-  (void)esp32_cpuint_initialize();
+  esp32_cpuint_initialize();
 
-  /* Attach and emable internal interrupts */
+  /* Attach and enable internal interrupts */
 
 #ifdef CONFIG_SMP
   /* Attach and enable the inter-CPU interrupt */
@@ -249,7 +250,7 @@ void xtensa_appcpu_start(void)
  *
  *   Each CPU is provided the entry point to is IDLE task when started.  A
  *   TCB for each CPU's IDLE task has been initialized and placed in the
- *   CPU's g_assignedtasks[cpu] list.  Not stack has been alloced or
+ *   CPU's g_assignedtasks[cpu] list.  Not stack has been allocated or
  *   initialized.
  *
  *   The OS initialization logic calls this function repeatedly until each

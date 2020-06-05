@@ -46,16 +46,16 @@
 #include "chip.h"
 
 #if defined(CONFIG_STM32_STM32L15XX)
-#  include "chip/stm32l15xxx_uart.h"
+#  include "hardware/stm32l15xxx_uart.h"
 #elif defined(CONFIG_STM32_STM32F10XX)
-#  include "chip/stm32f10xxx_uart.h"
+#  include "hardware/stm32f10xxx_uart.h"
 #elif defined(CONFIG_STM32_STM32F20XX)
-#  include "chip/stm32f20xxx_uart.h"
+#  include "hardware/stm32f20xxx_uart.h"
 #elif defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F33XX) || \
     defined(CONFIG_STM32_STM32F37XX)
-#  include "chip/stm32f30xxx_uart.h"
+#  include "hardware/stm32f30xxx_uart.h"
 #elif defined(CONFIG_STM32_STM32F4XXX)
-#  include "chip/stm32f40xxx_uart.h"
+#  include "hardware/stm32f40xxx_uart.h"
 #else
 #  error "Unsupported STM32 UART"
 #endif
@@ -63,6 +63,7 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Make sure that we have not enabled more U[S]ARTs than are supported by the
  * device.
  */
@@ -249,7 +250,6 @@
 #  undef CONFIG_UART4_SERIAL_CONSOLE
 #  undef CONFIG_UART5_SERIAL_CONSOLE
 #  undef CONFIG_USART6_SERIAL_CONSOLE
-#  undef CONFIG_UART5_SERIAL_CONSOLE
 #  undef CONFIG_UART8_SERIAL_CONSOLE
 #  define CONSOLE_UART 7
 #  define HAVE_CONSOLE 1
@@ -258,7 +258,7 @@
 #  undef CONFIG_USART2_SERIAL_CONSOLE
 #  undef CONFIG_USART3_SERIAL_CONSOLE
 #  undef CONFIG_UART4_SERIAL_CONSOLE
-#  undef CONFIG_UART6_SERIAL_CONSOLE
+#  undef CONFIG_UART5_SERIAL_CONSOLE
 #  undef CONFIG_USART6_SERIAL_CONSOLE
 #  undef CONFIG_UART7_SERIAL_CONSOLE
 #  define CONSOLE_UART 8
@@ -325,12 +325,12 @@
 
 /* Is DMA available on any (enabled) USART? */
 
-#undef SERIAL_HAVE_DMA
+#undef SERIAL_HAVE_RXDMA
 #if defined(CONFIG_USART1_RXDMA) || defined(CONFIG_USART2_RXDMA) || \
     defined(CONFIG_USART3_RXDMA) || defined(CONFIG_UART4_RXDMA)  || \
     defined(CONFIG_UART5_RXDMA)  || defined(CONFIG_USART6_RXDMA) || \
     defined(CONFIG_UART7_RXDMA)  || defined(CONFIG_UART8_RXDMA)
-#  define SERIAL_HAVE_DMA 1
+#  define SERIAL_HAVE_RXDMA 1
 #endif
 
 /* Is DMA used on the console UART? */
@@ -410,7 +410,7 @@ extern "C"
 #endif
 
 /************************************************************************************
- * Public Functions
+ * Public Functions Prototypes
  ************************************************************************************/
 
 /************************************************************************************
@@ -436,7 +436,7 @@ FAR uart_dev_t *stm32_serial_get_uart(int uart_num);
  *
  ************************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 void stm32_serial_dma_poll(void);
 #endif
 

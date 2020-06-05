@@ -54,6 +54,10 @@
  * Private Data
  ****************************************************************************/
 
+/* REVISIT:  These globals will prevent this code from being used in an
+ * environment with more than one display.  FIX ME!
+ */
+
 static struct nxgl_point_s       g_mpos;
 static struct nxgl_point_s       g_mrange;
 static uint8_t                   g_mbutton;
@@ -138,7 +142,7 @@ int nxmu_mousereport(struct nxbe_window_s *wnd)
     {
       /* Yes.. Is the mouse position visible in this window? */
 
-      if (nxbe_visible(wnd, &g_mpos))
+      if (nxbe_isvisible(wnd, &g_mpos))
         {
           /* Yes... Convert the mouse position to window relative
            * coordinates and send it to the client
@@ -169,7 +173,7 @@ int nxmu_mousereport(struct nxbe_window_s *wnd)
  *
  ****************************************************************************/
 
-int nxmu_mousein(FAR struct nxmu_state_s *fe,
+int nxmu_mousein(FAR struct nxmu_state_s *nxmu,
                  FAR const struct nxgl_point_s *pos, int buttons)
 {
   FAR struct nxbe_window_s *wnd;
@@ -198,7 +202,7 @@ int nxmu_mousein(FAR struct nxmu_state_s *fe,
       y = g_mrange.y - 1;
     }
 
-  /* Look any change in values */
+  /* Look for any change in values */
 
   if (x != g_mpos.x || y != g_mpos.y || buttons != g_mbutton)
     {
@@ -211,13 +215,13 @@ int nxmu_mousein(FAR struct nxmu_state_s *fe,
 
       /* If a button is already down, regard this as part of a mouse drag
        * event. Pass all the following events to the window where the drag
-       * started in.
+       * started in, including the final button release event.
        */
 
-      if (oldbuttons)
+      if (oldbuttons != 0)
         {
-          g_mwnd = nxmu_revalidate_g_mwnd(fe->be.topwnd);
-          if (g_mwnd && g_mwnd->cb->mousein)
+          g_mwnd = nxmu_revalidate_g_mwnd(nxmu->be.topwnd);
+          if (g_mwnd != NULL && g_mwnd->cb->mousein)
             {
               struct nxclimsg_mousein_s outmsg;
               outmsg.msgid   = NX_CLIMSG_MOUSEIN;
@@ -240,7 +244,7 @@ int nxmu_mousein(FAR struct nxmu_state_s *fe,
        * report
        */
 
-      for (wnd = fe->be.topwnd; wnd; wnd = wnd->below)
+      for (wnd = nxmu->be.topwnd; wnd; wnd = wnd->below)
         {
           /* The background window normally has no callback structure (unless
            * a client has taken control of the background via nx_requestbkgd()).

@@ -53,8 +53,8 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/sam_pio.h"
-#include "chip/sam_pmc.h"
+#include "hardware/sam_pio.h"
+#include "hardware/sam_pmc.h"
 
 #include "sam_pio.h"
 #include "sam_periphclks.h"
@@ -124,6 +124,7 @@ static int sam_irqbase(int irq, uint32_t *base, int *pin)
           return OK;
         }
 #endif
+
 #ifdef CONFIG_SAMA5_PIOB_IRQ
       if (irq <= SAM_IRQ_PB31)
         {
@@ -132,6 +133,7 @@ static int sam_irqbase(int irq, uint32_t *base, int *pin)
           return OK;
         }
 #endif
+
 #ifdef CONFIG_SAMA5_PIOC_IRQ
       if (irq <= SAM_IRQ_PC31)
         {
@@ -140,6 +142,7 @@ static int sam_irqbase(int irq, uint32_t *base, int *pin)
           return OK;
         }
 #endif
+
 #ifdef CONFIG_SAMA5_PIOD_IRQ
       if (irq <= SAM_IRQ_PD31)
         {
@@ -148,6 +151,7 @@ static int sam_irqbase(int irq, uint32_t *base, int *pin)
           return OK;
         }
 #endif
+
 #ifdef CONFIG_SAMA5_PIOE_IRQ
       if (irq <= SAM_IRQ_PE31)
         {
@@ -156,6 +160,7 @@ static int sam_irqbase(int irq, uint32_t *base, int *pin)
           return OK;
         }
 #endif
+
 #ifdef CONFIG_SAMA5_PIOF_IRQ
       if (irq <= SAM_IRQ_PF31)
         {
@@ -183,7 +188,8 @@ static int sam_piointerrupt(uint32_t base, int irq0, void *context)
   uint32_t bit;
   int      irq;
 
-  pending = getreg32(base + SAM_PIO_ISR_OFFSET) & getreg32(base + SAM_PIO_IMR_OFFSET);
+  pending = getreg32(base + SAM_PIO_ISR_OFFSET) & getreg32(base +
+          SAM_PIO_IMR_OFFSET);
   for (bit = 1, irq = irq0; pending != 0; bit <<= 1, irq++)
     {
       if ((pending & bit) != 0)
@@ -267,12 +273,12 @@ void sam_pioirqinitialize(void)
 
   /* Clear and disable all PIOA interrupts */
 
-  (void)getreg32(SAM_PIOA_ISR);
+  getreg32(SAM_PIOA_ISR);
   putreg32(0xffffffff, SAM_PIOA_IDR);
 
   /* Attach and enable the PIOA IRQ */
 
-  (void)irq_attach(SAM_IRQ_PIOA, sam_pioainterrupt, NULL);
+  irq_attach(SAM_IRQ_PIOA, sam_pioainterrupt, NULL);
   up_enable_irq(SAM_IRQ_PIOA);
 #endif
 
@@ -285,12 +291,12 @@ void sam_pioirqinitialize(void)
 
   /* Clear and disable all PIOB interrupts */
 
-  (void)getreg32(SAM_PIOB_ISR);
+  getreg32(SAM_PIOB_ISR);
   putreg32(0xffffffff, SAM_PIOB_IDR);
 
   /* Attach and enable the PIOB IRQ */
 
-  (void)irq_attach(SAM_IRQ_PIOB, sam_piobinterrupt, NULL);
+  irq_attach(SAM_IRQ_PIOB, sam_piobinterrupt, NULL);
   up_enable_irq(SAM_IRQ_PIOB);
 #endif
 
@@ -303,12 +309,12 @@ void sam_pioirqinitialize(void)
 
   /* Clear and disable all PIOC interrupts */
 
-  (void)getreg32(SAM_PIOC_ISR);
+  getreg32(SAM_PIOC_ISR);
   putreg32(0xffffffff, SAM_PIOC_IDR);
 
   /* Attach and enable the PIOC IRQ */
 
-  (void)irq_attach(SAM_IRQ_PIOC, sam_piocinterrupt, NULL);
+  irq_attach(SAM_IRQ_PIOC, sam_piocinterrupt, NULL);
   up_enable_irq(SAM_IRQ_PIOC);
 #endif
 
@@ -321,12 +327,12 @@ void sam_pioirqinitialize(void)
 
   /* Clear and disable all PIOD interrupts */
 
-  (void)getreg32(SAM_PIOD_ISR);
+  getreg32(SAM_PIOD_ISR);
   putreg32(0xffffffff, SAM_PIOD_IDR);
 
   /* Attach and enable the PIOC IRQ */
 
-  (void)irq_attach(SAM_IRQ_PIOD, sam_piodinterrupt, NULL);
+  irq_attach(SAM_IRQ_PIOD, sam_piodinterrupt, NULL);
   up_enable_irq(SAM_IRQ_PIOD);
 #endif
 
@@ -339,12 +345,12 @@ void sam_pioirqinitialize(void)
 
   /* Clear and disable all PIOE interrupts */
 
-  (void)getreg32(SAM_PIOE_ISR);
+  getreg32(SAM_PIOE_ISR);
   putreg32(0xffffffff, SAM_PIOE_IDR);
 
   /* Attach and enable the PIOE IRQ */
 
-  (void)irq_attach(SAM_IRQ_PIOE, sam_pioeinterrupt, NULL);
+  irq_attach(SAM_IRQ_PIOE, sam_pioeinterrupt, NULL);
   up_enable_irq(SAM_IRQ_PIOE);
 #endif
 
@@ -357,23 +363,23 @@ void sam_pioirqinitialize(void)
 
   /* Clear and disable all PIOF interrupts */
 
-  (void)getreg32(SAM_PIOF_ISR);
+  getreg32(SAM_PIOF_ISR);
   putreg32(0xffffffff, SAM_PIOF_IDR);
 
   /* Attach and enable the PIOF IRQ */
 
-  (void)irq_attach(SAM_IRQ_PIOF, sam_piofinterrupt, NULL);
+  irq_attach(SAM_IRQ_PIOF, sam_piofinterrupt, NULL);
   up_enable_irq(SAM_IRQ_PIOF);
 #endif
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: sam_pioirq
  *
  * Description:
  *   Configure an interrupt for the specified PIO pin.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 void sam_pioirq(pio_pinset_t pinset)
 {
@@ -423,6 +429,7 @@ void sam_pioirq(pio_pinset_t pinset)
 
   /* Are any additional interrupt modes selected? */
 
+#ifdef _PIO_INT_AIM
   if ((pinset & _PIO_INT_AIM) != 0)
     {
       /* Yes.. Enable additional interrupt mode */
@@ -444,11 +451,15 @@ void sam_pioirq(pio_pinset_t pinset)
 
       if ((pinset & _PIO_INT_RH) != 0)
         {
-          putreg32(pin, base + SAM_PIO_REHLSR_OFFSET); /* High level/Rising edge */
+          /* High level/Rising edge */
+
+          putreg32(pin, base + SAM_PIO_REHLSR_OFFSET);
         }
       else
         {
-          putreg32(pin, base + SAM_PIO_FELLSR_OFFSET); /* Low level/Falling edge */
+          /* Low level/Falling edge */
+
+          putreg32(pin, base + SAM_PIO_FELLSR_OFFSET);
         }
     }
   else
@@ -457,6 +468,7 @@ void sam_pioirq(pio_pinset_t pinset)
 
       putreg32(pin, base + SAM_PIO_AIMDR_OFFSET);
     }
+#endif
 
 #if defined(SAM_PIO_ISLR_OFFSET)
   /* Disable writing to PIO registers */
@@ -465,13 +477,13 @@ void sam_pioirq(pio_pinset_t pinset)
 #endif
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: sam_pioirqenable
  *
  * Description:
  *   Enable the interrupt for specified PIO IRQ
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 void sam_pioirqenable(int irq)
 {
@@ -482,18 +494,18 @@ void sam_pioirqenable(int irq)
     {
       /* Clear (all) pending interrupts and enable this pin interrupt */
 
-      //(void)getreg32(base + SAM_PIO_ISR_OFFSET);
+      (void)getreg32(base + SAM_PIO_ISR_OFFSET);
       putreg32((1 << pin), base + SAM_PIO_IER_OFFSET);
     }
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: sam_pioirqdisable
  *
  * Description:
  *   Disable the interrupt for specified PIO IRQ
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 void sam_pioirqdisable(int irq)
 {

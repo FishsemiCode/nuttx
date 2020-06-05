@@ -1,35 +1,20 @@
 /****************************************************************************
  * arch/z80/src/ez80/ez80_spi.c
  *
- *   Copyright (C) 2009-2010, 2016-2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -41,30 +26,45 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
+#include <debug.h>
 
 #include <arch/board/board.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/spi/spi.h>
 #include <arch/io.h>
 
-#include "up_internal.h"
+#include "z80_internal.h"
 #include "up_arch.h"
 
 #include "chip.h"
-#include "ez80f91_spi.h"
+
+#include "ez80_spi.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_ARCH_CHIP_EZ80F91
-# define GPIOB_SPI_PINSET  0x38  /* MISO+MSOI+SCK. Excludes SS */
+#if defined(CONFIG_ARCH_CHIP_EZ80F91) || defined(CONFIG_ARCH_CHIP_EZ80F92)
+
+/* PB2/#SS is controlled by board specific logic and is not used by this
+ * driver.  This permits supporting multiple, different devices with
+ * different chip selects on the bus.
+ */
+
+#  define GPIOB_SPI_SS      (1 << 2)  /* PB2: /SS (not used by driver) */
+#  define GPIOB_SPI_SCK     (1 << 3)  /* PB3: SCK */
+#  define GPIOB_SPI_MISO    (1 << 6)  /* PB6: MISO */
+#  define GPIOB_SPI_MOSI    (1 << 7)  /* PB7: MOSI */
+
+#  define GPIOB_SPI_PINSET  (GPIOB_SPI_SCK | GPIOB_SPI_MISO | GPIOB_SPI_MOSI)
 #else
 #  error "Check GPIO initialization for this chip"
 #endif
+
+#define SPIF_RETRIES 1000
 
 /****************************************************************************
  * Private Function Prototypes
@@ -74,11 +74,17 @@ static int    spi_lock(FAR struct spi_dev_s *dev, bool lock);
 static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
                 uint32_t frequency);
 static void   spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode);
-static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd);
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd);
+#ifdef CONFIG_SPI_EXCHANGE
+static void   spi_exchange(FAR struct spi_dev_s *dev,
+                FAR const void *txbuffer, FAR void *rxbuffer,
+                size_t nwords);
+#else
 static void   spi_sndblock(FAR struct spi_dev_s *dev,
                 FAR const uint8_t *buffer, size_t buflen);
 static void   spi_recvblock(FAR struct spi_dev_s *dev, FAR uint8_t *buffer,
                 size_t buflen);
+#endif
 
 /****************************************************************************
  * Private Data
@@ -86,33 +92,55 @@ static void   spi_recvblock(FAR struct spi_dev_s *dev, FAR uint8_t *buffer,
 
 static const struct spi_ops_s g_spiops =
 {
-  spi_lock,
-  ez80_spiselect,      /* select: Provided externally by board logic */
-  spi_setfrequency,
+  spi_lock,            /* lock() */
+  ez80_spiselect,      /* select(): Provided externally by board logic */
+  spi_setfrequency,    /* setfrequency() */
+#ifdef CONFIG_SPI_CS_DELAY_CONTROL
+  NULL,                /* setdelay() */
+#endif
   spi_setmode,
-  NULL,                /* setbits: Variable number of bits not implemented */
+  NULL,                /* setbits() */
 #ifdef CONFIG_SPI_HWFEATURES
-  NULL,                /* hwfeatures: Not supported */
+  NULL,                /* hwfeatures() */
 #endif
-  ez80_spistatus,      /* status: Provided externally by board logic */
+  ez80_spistatus,      /* status(): Provided externally by board logic */
 #ifdef CONFIG_SPI_CMDDATA
-  ez80_spicmddata,
+  ez80_spicmddata,     /* cmddata(): Provided externally by board logic */
 #endif
-  spi_send,
-  spi_sndblock,
-  spi_recvblock,
-  0                    /* registercallback: Not yet implemented */
+  spi_send,            /* send() */
+#ifdef CONFIG_SPI_EXCHANGE
+  spi_exchange,        /* exchange() */
+#else
+  spi_sndblock,        /* sndblock() */
+  spi_recvblock,       /* recvblock() */
+#endif
+#ifdef CONFIG_SPI_TRIGGER
+  NULL,                /* trigger() */
+#endif
+  NULL                 /* registercallback() */
 };
 
 /* This supports is only a single SPI bus/port.  If you port this to an
- * architecture with multiple SPI busses/ports, then (1) you must create
+ * architecture with multiple SPI buses/ports, then (1) you must create
  * a structure, say ez80_spidev_s, containing both struct spi_dev_s and
  * the mutual exclusion semaphored, and (2) the following must become an
  * array with one 'struct spi_dev_s' instance per bus.
  */
 
-static struct spi_dev_s g_spidev = {&g_spiops};
-static sem_t g_exclsem = SEM_INITIALIZER(1);  /* For mutually exclusive access */
+static struct spi_dev_s g_spidev =
+{
+  &g_spiops
+};
+
+/* Semaphore supports mutually exclusive access */
+
+static sem_t g_exclsem = SEM_INITIALIZER(1);
+
+/* These are used to perform reconfigurations only when necessary. */
+
+static uint32_t g_spi_frequency;
+static uint32_t g_spi_actual;
+static enum spi_mode_e g_spi_mode = SPIDEV_MODE3;
 
 /****************************************************************************
  * Private Functions
@@ -122,12 +150,12 @@ static sem_t g_exclsem = SEM_INITIALIZER(1);  /* For mutually exclusive access *
  * Name: spi_lock
  *
  * Description:
- *   On SPI busses where there are multiple devices, it will be necessary to
- *   lock SPI to have exclusive access to the busses for a sequence of
+ *   On SPI buses where there are multiple devices, it will be necessary to
+ *   lock SPI to have exclusive access to the buses for a sequence of
  *   transfers.  The bus should be locked before the chip is selected. After
  *   locking the SPI bus, the caller should then also call the setfrequency,
  *   setbits, and setmode methods to make sure that the SPI is properly
- *   configured for the device.  If the SPI buss is being shared, then it
+ *   configured for the device.  If the SPI bus is being shared, then it
  *   may have been left in an incompatible state.
  *
  * Input Parameters:
@@ -145,24 +173,11 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
 
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          ret = nxsem_wait(&g_exclsem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&g_exclsem);
     }
   else
     {
-      (void)nxsem_post(&g_exclsem);
-      ret = OK;
+      ret = nxsem_post(&g_exclsem);
     }
 
   return ret;
@@ -183,38 +198,52 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
  *
  ****************************************************************************/
 
-static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
+static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
+                                 uint32_t frequency)
 {
-  /* We want select divisor to provide the highest frequency (SPIR) that does NOT
-   * exceed the requested frequency.:
-   *
-   *   SPIR <= System Clock Frequency / (2 * BRG)
-   *
-   * So
-   *
-   *   BRG >= System Clock Frequency / (2 * SPIR)
-   */
-
-  uint32_t brg = ((EZ80_SYS_CLK_FREQ+1)/2 + frequency - 1) / frequency;
-
-  /* "When configured as a Master, the 16-bit divisor value must be between
-   * 0003h and FFFFh, inclusive. When configured as a Slave, the 16-bit
-   * divisor value must be between 0004h and FFFFh, inclusive."
-   */
-
-  if (brg < 3)
+  if (frequency != g_spi_frequency)
     {
-      brg = 3;
-    }
-  else if (brg > 0xffff)
-    {
-      brg = 0xfff;
+     uint32_t brg;
+
+     spiinfo("frequency: %lu\n", (unsigned long)frequency);
+
+      /* We want select divisor to provide the highest frequency (SPIR) that
+       * does NOT exceed the requested frequency.:
+       *
+       *   SPIR <= System Clock Frequency / (2 * BRG)
+       *
+       * So
+       *
+       *   BRG >= System Clock Frequency / (2 * SPIR)
+       */
+
+      brg = ((EZ80_SYS_CLK_FREQ + 1) / 2 + frequency - 1) / frequency;
+
+      /* "When configured as a Master, the 16-bit divisor value must be
+       * between 0003h and FFFFh, inclusive. When configured as a Slave, the
+       * 16-bit divisor value must be between 0004h and FFFFh, inclusive."
+       */
+
+      if (brg < 3)
+        {
+          brg = 3;
+        }
+      else if (brg > 0xffff)
+        {
+          brg = 0xffff;
+        }
+
+      outp(EZ80_SPI_BRG_L, brg & 0xff);
+      outp(EZ80_SPI_BRG_H, (brg >> 8) & 0xff);
+
+      g_spi_frequency = frequency;
+      g_spi_actual    = ((EZ80_SYS_CLK_FREQ + 1) / 2 + brg - 1) / brg;
+
+      finfo("BRG=%lu Actual=%lu\n",
+            (unsigned long)brg, (unsigned long)g_spi_actual);
     }
 
-  outp(EZ80_SPI_BRG_L, brg & 0xff);
-  outp(EZ80_SPI_BRG_L, (brg >> 8) & 0xff);
-
-  return ((EZ80_SYS_CLK_FREQ+1)/2 + brg - 1) / brg;
+  return g_spi_actual;
 }
 
 /****************************************************************************
@@ -234,39 +263,46 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
 
 static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
 {
-  uint8_t modebits;
-  uint8_t regval;
-
-  /* Select the CTL register bits based on the selected mode */
-
-  switch (mode)
+  if (mode != g_spi_mode)
     {
-    case SPIDEV_MODE0: /* CPOL=0 CHPHA=0 */
-      modebits = 0;
-      break;
+      uint8_t modebits;
+      uint8_t regval;
 
-    case SPIDEV_MODE1: /* CPOL=0 CHPHA=1 */
-      modebits = SPI_CTL_CPHA;
-      break;
+      spiinfo("mode: %d\n", (int)mode);
 
-    case SPIDEV_MODE2: /* CPOL=1 CHPHA=0 */
-      modebits = SPI_CTL_CPOL;
-      break;
+      /* Select the CTL register bits based on the selected mode */
 
-    case SPIDEV_MODE3: /* CPOL=1 CHPHA=1 */
-      modebits = (SPI_CTL_CPOL|SPI_CTL_CPHA);
-      break;
+      switch (mode)
+        {
+          case SPIDEV_MODE0: /* CPOL=0 CHPHA=0 */
+            modebits = 0;
+            break;
 
-    default:
-      return;
+          case SPIDEV_MODE1: /* CPOL=0 CHPHA=1 */
+            modebits = SPI_CTL_CPHA;
+            break;
+
+          case SPIDEV_MODE2: /* CPOL=1 CHPHA=0 */
+            modebits = SPI_CTL_CPOL;
+            break;
+
+          case SPIDEV_MODE3: /* CPOL=1 CHPHA=1 */
+            modebits = (SPI_CTL_CPOL | SPI_CTL_CPHA);
+            break;
+
+          default:
+            return;
+        }
+
+      /* Then set those bits in the CTL register */
+
+      regval  = inp(EZ80_SPI_CTL);
+      regval &= ~(SPI_CTL_CPOL | SPI_CTL_CPHA);
+      regval |= modebits;
+      outp(EZ80_SPI_CTL, regval);
+
+      g_spi_mode = mode;
     }
-
-    /* Then set those bits in the CTL register */
-
-    regval = inp(EZ80_SPI_CTL);
-    regval &= ~(SPI_CTL_CPOL|SPI_CTL_CPHA);
-    regval |= modebits;
-    outp(EZ80_SPI_CTL, regval);
 }
 
 /****************************************************************************
@@ -280,24 +316,35 @@ static void spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode)
  *   None
  *
  * Returned Value:
- *   Status register mode bits
+ *   OK if the transferred completed without error.  Otherwise, a negated
+ *   errno value is returned indicating the nature of the error.
  *
  ****************************************************************************/
 
-static uint8_t spi_waitspif(void)
+static int spi_waitspif(void)
 {
   uint8_t status;
+  int retries;
 
   /* Wait for the device to be ready to accept another byte (or for an error
-   * to be reported
+   * to be reported or for a timeout to occur).
    */
 
-  do
+  for (retries = 0; retries < SPIF_RETRIES; retries++)
     {
-      status = inp(EZ80_SPI_SR) & (SPI_SR_SPIF|SPI_SR_WCOL|SPI_SR_MODF);
+      status = inp(EZ80_SPI_SR);
+      if ((status & (SPI_SR_WCOL | SPI_SR_MODF)) != 0)
+        {
+          return -EIO;
+        }
+      else if ((status & SPI_SR_SPIF) != 0)
+        {
+          return OK;
+        }
     }
-  while (status == 0);
-  return status;
+
+  spierr("ERROR: SPI timed out\n");
+  return -ETIMEDOUT;
 }
 
 /****************************************************************************
@@ -307,31 +354,39 @@ static uint8_t spi_waitspif(void)
  *   Send one byte on SPI, return the response
  *
  * Input Parameters:
- *   ch - the byte to send
+ *   chout - The byte to send
+ *   chin  - The location to save the returned byte (may be NULL)
  *
  * Returned Value:
  *   response
  *
  ****************************************************************************/
 
-static uint8_t spi_transfer(uint8_t ch)
+static int spi_transfer(uint8_t chout, FAR uint8_t *chin)
 {
-   uint8_t status;
+  uint8_t response;
+  int ret;
 
-  /* Send the byte, repeating if some error occurs */
+  /* Send the byte */
 
-  for (;;)
+  outp(EZ80_SPI_TSR, chout);
+
+  /* Wait for the device to be ready to accept another byte */
+
+  ret = spi_waitspif();
+  if (ret < 0)
     {
-      outp(EZ80_SPI_TSR, ch);
-
-      /* Wait for the device to be ready to accept another byte */
-
-      status = spi_waitspif();
-      if ((status & SPI_SR_SPIF) != 0)
-        {
-          return inp(EZ80_SPI_RBR);
-        }
+      spierr("ERROR: spi_waitspif returned %d\n", ret);
+      return ret;
     }
+
+  response = inp(EZ80_SPI_RBR);
+  if (chin != NULL)
+    {
+      *chin = response;
+    }
+
+  return OK;
 }
 
 /****************************************************************************
@@ -350,10 +405,83 @@ static uint8_t spi_transfer(uint8_t ch)
  *
  ****************************************************************************/
 
-static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd)
 {
-  return spi_transfer((uint8_t)wd);
+  uint8_t response;
+  int ret;
+
+  ret = spi_transfer((uint8_t)wd, &response);
+  if (ret < 0)
+    {
+      spierr("ERROR: spi_transfer returned %d\n", ret);
+      return (uint32_t)0xff;
+    }
+
+  spiinfo("cmd: %04x resp: %02x\n", wd, response);
+  return (uint32_t)response;
 }
+
+/****************************************************************************
+ * Name: spi_exchange
+ *
+ * Description:
+ *   Exchange a block of data from SPI. Required.
+ *
+ * Input Parameters:
+ *   dev      - Device-specific state data
+ *   txbuffer - A pointer to the buffer of data to be sent
+ *   rxbuffer - A pointer to the buffer in which to receive data
+ *   nwords   - the length of data that to be exchanged in units of words.
+ *              The wordsize is determined by the number of bits-per-word
+ *              selected for the SPI interface.  If nbits <= 8, the data is
+ *              packed into uint8_t's; if nbits >8, the data is packed into
+ *              uint16_t's
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_SPI_EXCHANGE
+static void spi_exchange(FAR struct spi_dev_s *dev,
+                         FAR const void *txbuffer, FAR void *rxbuffer,
+                         size_t nwords)
+{
+  FAR const uint8_t *inptr = (FAR const uint8_t *)txbuffer;
+  FAR uint8_t *outptr = (FAR const uint8_t *)rxbuffer;
+
+  spiinfo("txbuffer: %p rxbuffer: %p nwords: %lu\n",
+          txbuffer, rxbuffer, (unsigned long)nwords);
+
+  /* Loop while there are bytes remaining to be sent */
+
+  while (nwords-- > 0)
+    {
+      uint8_t outword;
+      int ret;
+
+      /* Send 0xff if there is no outgoing TX stream */
+
+      outword = (inptr == NULL) ? 0xff : *inptr++;
+
+      /* Send the outgoing word and obtain the response */
+
+      ret = spi_transfer(outword, outptr);
+      if (ret < 0)
+        {
+          spierr("ERROR: spi_transfer returned %d\n", ret);
+          break;
+        }
+
+      /* Conditionally increment the output buffer pointer. */
+
+      if (outptr != NULL)
+        {
+          outptr++;
+        }
+    }
+}
+#endif
 
 /****************************************************************************
  * Name: spi_sndblock
@@ -375,18 +503,28 @@ static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
  *
  ****************************************************************************/
 
+#ifndef CONFIG_SPI_EXCHANGE
 static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer,
                          size_t buflen)
 {
-  FAR const uint8_t *ptr = (FAR const uint8_t*)buffer;
+  FAR const uint8_t *ptr = (FAR const uint8_t *)buffer;
+  int ret;
+
+  spiinfo("buffer: %p buflen: %lu\n", buffer, (unsigned long)nwords);
 
   /* Loop while there are bytes remaining to be sent */
 
   while (buflen-- > 0)
     {
-      (void)spi_transfer(*ptr++);
+      ret = spi_transfer(*ptr++, NULL);
+      if (ret < 0)
+        {
+          spierr("ERROR: spi_transfer returned %d\n", ret);
+          break;
+        }
     }
 }
+#endif
 
 /****************************************************************************
  * Name: spi_recvblock
@@ -396,29 +534,39 @@ static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer,
  *
  * Input Parameters:
  *   dev -    Device-specific state data
- *   buffer - A pointer to the buffer in which to recieve data
- *   buflen - the length of data that can be received in the buffer in number
- *            of words.  The wordsize is determined by the number of bits-per-word
- *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into
- *            uint16_t's
+ *   buffer - A pointer to the buffer in which to receive data
+ *   buflen - The length of data that can be received in the buffer in
+ *            number of words.  The wordsize is determined by the number of
+ *            bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *            the data is packed into uint8_t's; if nbits >8, the data is
+ *            packed into uint16_t's
  *
  * Returned Value:
  *   None
  *
  ****************************************************************************/
 
-static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t buflen)
+#ifndef CONFIG_SPI_EXCHANGE
+static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer,
+                          size_t buflen)
 {
-  FAR uint8_t *ptr = (FAR uint8_t*)buffer;
+  FAR uint8_t *ptr = (FAR uint8_t *)buffer;
 
-  /* Loop while thre are bytes remaining to be sent */
+  spiinfo("buffer: %p buflen: %lu\n", buffer, (unsigned long)nwords);
+
+  /* Loop while there are bytes remaining to be sent */
 
   while (buflen-- > 0)
     {
-      *ptr++ = spi_transfer(0xff);
+      ret = spi_transfer(0xff, ptr++);
+      if (ret < 0)
+        {
+          spierr("ERROR: spi_transfer returned %d\n", ret);
+          break;
+        }
     }
 }
+#endif
 
 /****************************************************************************
  * Public Functions
@@ -433,16 +581,16 @@ static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t bu
  *   prior to calling this function.  Specifically:  GPIOs should have
  *   been configured for output, and all chip selects disabled.
  *
- *   One GPIO, SS (PB2 on the eZ8F091) is reserved as a chip select.  However,
- *   If multiple devices on on the bus, then multiple chip selects will be
- *   required.  Theregore, all GPIO chip management is deferred to board-
- *   specific logic.
+ *   One GPIO, SS (PB2 on the eZ8F091) is reserved as a chip select.
+ *   However, if multiple devices on on the bus, then multiple chip
+ *   selects will be required.  Therefore, all GPIO chip management is
+ *   deferred to board-specific logic.
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple SPI interfaces)
+ *   Port number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structre reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -450,9 +598,9 @@ FAR struct spi_dev_s *ez80_spibus_initialize(int port)
 {
   uint8_t regval;
 
+#ifdef CONFIG_DEBUG_FEATURES
   /* Only the SPI1 interface is supported */
 
-#ifdef CONFIG_DEBUG_FEATURES
   if (port != 1)
     {
       return NULL;
@@ -468,15 +616,15 @@ FAR struct spi_dev_s *ez80_spibus_initialize(int port)
    *
    *  GPIO ALT   MASTER  SLAVE   COMMENT
    *  ---- ----- ------- ------- ---------------------------------
-   *   PB2 SS    INPUT   INPUT   Managed by board specific logic
-   *   PB3 SCLK  OUTPUT  INPUT
-   *   PB4 MISO  INPUT   OUTPUT
-   *   PB5 MOSI  OUTPUT  INPUT
+   *  PB2  SS    INPUT   INPUT   Managed by board specific logic
+   *  PB3  SCLK  OUTPUT  INPUT
+   *  PB6  MISO  INPUT   OUTPUT
+   *  PB7  MOSI  OUTPUT  INPUT
    *
-   * Select the alternate function for PB2-5:
+   * Select the alternate function for PB2-3,6-7:
    */
 
-#ifdef CONFIG_ARCH_CHIP_EZ80F91
+#if defined(CONFIG_ARCH_CHIP_EZ80F91) || defined(CONFIG_ARCH_CHIP_EZ80F92)
   regval  = inp(EZ80_PB_DDR);
   regval |= GPIOB_SPI_PINSET;
   outp(EZ80_PB_DDR, regval);
@@ -492,16 +640,19 @@ FAR struct spi_dev_s *ez80_spibus_initialize(int port)
 #  error "Check GPIO initialization for this chip"
 #endif
 
-  /* Set the initial clock frequency for indentification mode < 400kHz */
+  /* Set the initial clock frequency for identification mode < 400kHz
+   * and Mode 0.
+   */
 
   spi_setfrequency(NULL, 400000);
+  spi_setmode(NULL, SPIDEV_MODE0);
 
   /* Enable the SPI.
    * NOTE 1: Interrupts are not used in this driver version.
-   * NOTE 2: Initial mode is mode=0.
+   * NOTE 2: Initial mode is mode=0
    */
 
-  outp(EZ80_SPI_CTL, SPI_CTL_SPIEN|SPI_CTL_MASTEREN);
+  outp(EZ80_SPI_CTL, SPI_CTL_SPIEN | SPI_CTL_MASTEREN);
 
   return &g_spidev;
 }

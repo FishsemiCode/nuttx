@@ -46,7 +46,7 @@
 #include <stdbool.h>
 #include <nuttx/spi/spi.h>
 
-#include "chip/imx_ecspi.h"
+#include "hardware/imx_ecspi.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -82,21 +82,21 @@ struct spi_dev_s; /* Forward reference */
  *
  *   One GPIO, SS (PB2 on the eZ8F091) is reserved as a chip select.  However,
  *   If multiple devices on on the bus, then multiple chip selects will be
- *   required.  Theregore, all GPIO chip management is deferred to board-
+ *   required.  Therefore, all GPIO chip management is deferred to board-
  *   specific logic.
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple SPI interfaces)
+ *   Port number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structre reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ************************************************************************************/
 
 FAR struct spi_dev_s *imx_spibus_initialize(int port);
 
 /************************************************************************************
- * The external functions, imx_spiselect, imx_spistatus, and imx_cmddaa must be
+ * The external functions, imx_spiselect, imx_spistatus, and imx_cmddata must be
  * provided by board-specific logic.  These are implementations of the select and
  * status methods of the SPI interface defined by struct spi_ops_s (see
  * include/nuttx/spi/spi.h).  All other methods (including imx_spibus_initialize()) are
@@ -162,4 +162,4 @@ int imx_spi5cmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
 #endif /* __cplusplus */
 #endif /* __ASSEMBLY__ */
 
-#endif  /* __ARCH_ARM_IMX6_ECSPI_H */
+#endif /* __ARCH_ARM_IMX6_ECSPI_H */

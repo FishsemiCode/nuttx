@@ -1,12 +1,25 @@
 /****************************************************************************
  * drivers/usbdev/usbmsc.c
- *
- *   Copyright (C) 2008-2012, 2016-2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
  * Mass storage class device.  Bulk-only with SCSI subclass.
  *
- * References:
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ ****************************************************************************/
+
+/* References:
  *   "Universal Serial Bus Mass Storage Class, Specification Overview,"
  *   Revision 1.2,  USB Implementer's Forum, June 23, 2003.
  *
@@ -24,35 +37,7 @@
  *
  *   "SCSI Multimedia Commands - 3 (MMC-3),"  American National Standard
  *   for Information Technology, November 12, 2001
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- ****************************************************************************/
+ */
 
 /****************************************************************************
  * Included Files
@@ -75,7 +60,6 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/kthread.h>
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/usb/usb.h>
 #include <nuttx/usb/storage.h>
@@ -88,10 +72,6 @@
 #  include <nuttx/usb/composite.h>
 #  include "composite.h"
 #endif
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
 
 /****************************************************************************
  * Private Types
@@ -142,7 +122,7 @@ static void   usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
 /* Initialization/Uninitialization ******************************************/
 
 static void   usbmsc_lununinitialize(struct usbmsc_lun_s *lun);
-#ifdef CONFIG_USBMSC_COMPOSITE
+#if !defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
 static int    usbmsc_exportluns(FAR void *handle);
 #endif
 
@@ -162,21 +142,16 @@ static struct usbdevclass_driverops_s g_driverops =
   NULL               /* resume */
 };
 
-/* Used to hand-off the state structure when the SCSI worker thread is started */
+/* Used to hand-off the state structure when the SCSI worker thread is
+ * started.
+ */
 
 FAR struct usbmsc_dev_s *g_usbmsc_handoff;
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-/****************************************************************************
- * Class Driver Support
- ****************************************************************************/
 /****************************************************************************
  * Name: usbmsc_ep0incomplete
  *
@@ -231,7 +206,8 @@ static struct usbdev_req_s *usbmsc_allocreq(FAR struct usbdev_ep_s *ep,
  *
  ****************************************************************************/
 
-static void usbmsc_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req)
+static void usbmsc_freereq(FAR struct usbdev_ep_s *ep,
+                           FAR struct usbdev_req_s *req)
 {
   if (ep != NULL && req != NULL)
     {
@@ -239,13 +215,10 @@ static void usbmsc_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req)
         {
           EP_FREEBUFFER(ep, req->buf);
         }
+
       EP_FREEREQ(ep, req);
     }
 }
-
-/****************************************************************************
- * Class Driver Interfaces
- ****************************************************************************/
 
 /****************************************************************************
  * Name: usbmsc_bind
@@ -258,7 +231,8 @@ static void usbmsc_freereq(FAR struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 static int usbmsc_bind(FAR struct usbdevclass_driver_s *driver,
                        FAR struct usbdev_s *dev)
 {
-  FAR struct usbmsc_dev_s *priv = ((FAR struct usbmsc_driver_s *)driver)->dev;
+  FAR struct usbmsc_dev_s *priv =
+    ((FAR struct usbmsc_driver_s *)driver)->dev;
   FAR struct usbmsc_req_s *reqcontainer;
   irqstate_t flags;
   int ret = OK;
@@ -302,7 +276,7 @@ static int usbmsc_bind(FAR struct usbdevclass_driver_s *driver,
   /* Pre-allocate all endpoints... the endpoints will not be functional
    * until the SET CONFIGURATION request is processed in usbmsc_setconfig.
    * This is done here because there may be calls to kmm_malloc and the SET
-   * CONFIGURATION processing probably occurrs within interrupt handling
+   * CONFIGURATION processing probably occurs within interrupt handling
    * logic where kmm_malloc calls will fail.
    */
 
@@ -374,7 +348,9 @@ static int usbmsc_bind(FAR struct usbdevclass_driver_s *driver,
       leave_critical_section(flags);
     }
 
-  /* Report if we are selfpowered (unless we are part of a composite device) */
+  /* Report if we are selfpowered (unless we are part of a composite
+   * device).
+   */
 
 #ifndef CONFIG_USBMSC_COMPOSITE
 #ifdef CONFIG_USBDEV_SELFPOWERED
@@ -417,7 +393,7 @@ static void usbmsc_unbind(FAR struct usbdevclass_driver_s *driver,
     {
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNBINDINVALIDARGS), 0);
       return;
-     }
+    }
 #endif
 
   /* Extract reference to private data */
@@ -436,7 +412,8 @@ static void usbmsc_unbind(FAR struct usbdevclass_driver_s *driver,
    * driver un-initialize logic.
    */
 
-  DEBUGASSERT(priv->thstate == USBMSC_STATE_TERMINATED || priv->thstate == USBMSC_STATE_NOTSTARTED);
+  DEBUGASSERT(priv->thstate == USBMSC_STATE_TERMINATED ||
+              priv->thstate == USBMSC_STATE_NOTSTARTED);
 
   /* Make sure that we are not already unbound */
 
@@ -551,6 +528,7 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
       return -ENODEV;
     }
 #endif
+
   ctrlreq = priv->ctrlreq;
 
   /* Extract the little-endian 16-bit values to host order */
@@ -572,8 +550,9 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
         {
         case USB_REQ_GETDESCRIPTOR:
           {
-            /* The value field specifies the descriptor type in the MS byte and the
-             * descriptor index in the LS byte (order is little endian)
+            /* The value field specifies the descriptor type in the MS byte
+             * and the descriptor index in the LS byte (order is little
+             * endian)
              */
 
             switch (ctrl->value[1])
@@ -608,9 +587,9 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
               case USB_DESC_TYPE_OTHERSPEEDCONFIG:
 #endif
 
-                /* If the mass storage device is used in as part of a composite device,
-                 * then the configuration descriptor is provided by logic in the
-                 * composite device implementation.
+                /* If the mass storage device is used in as part of a
+                 * composite device, then the configuration descriptor is
+                 * provided by logic in the composite device implementation.
                  */
 
 #ifndef CONFIG_USBMSC_COMPOSITE
@@ -637,14 +616,16 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
                   /* index == language code. */
 
                   ret = usbmsc_mkstrdesc(ctrl->value[0],
-                                         (struct usb_strdesc_s *)ctrlreq->buf);
+                                         (FAR struct usb_strdesc_s *)
+                                         ctrlreq->buf);
                 }
                 break;
 #endif
 
               default:
                 {
-                  usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_GETUNKNOWNDESC), value);
+                  usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_GETUNKNOWNDESC),
+                           value);
                 }
                 break;
               }
@@ -731,7 +712,8 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
            break;
 
         default:
-          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNSUPPORTEDSTDREQ), ctrl->req);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_UNSUPPORTEDSTDREQ),
+                   ctrl->req);
           break;
         }
     }
@@ -759,7 +741,8 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
 
                 if (index != USBMSC_INTERFACEID)
                   {
-                    usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_MSRESETNDX), index);
+                    usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_MSRESETNDX),
+                             index);
                     ret = -EDOM;
                   }
                 else
@@ -789,7 +772,8 @@ static int usbmsc_setup(FAR struct usbdevclass_driver_s *driver,
 
                 if (index != USBMSC_INTERFACEID)
                   {
-                    usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_GETMAXLUNNDX), index);
+                    usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_GETMAXLUNNDX),
+                             index);
                     ret = -EDOM;
                   }
                 else
@@ -868,7 +852,7 @@ static void usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
     {
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_DISCONNECTINVALIDARGS), 0);
       return;
-     }
+    }
 #endif
 
   /* Extract reference to private data */
@@ -904,10 +888,6 @@ static void usbmsc_disconnect(FAR struct usbdevclass_driver_s *driver,
 }
 
 /****************************************************************************
- * Initialization/Un-Initialization
- ****************************************************************************/
-
-/****************************************************************************
  * Name: usbmsc_lununinitialize
  ****************************************************************************/
 
@@ -919,7 +899,7 @@ static void usbmsc_lununinitialize(struct usbmsc_lun_s *lun)
     {
       /* Close the block driver */
 
-      (void)close_blockdriver(lun->inode);
+      close_blockdriver(lun->inode);
     }
 
   memset(lun, 0, sizeof(struct usbmsc_lun_s));
@@ -927,10 +907,6 @@ static void usbmsc_lununinitialize(struct usbmsc_lun_s *lun)
 
 /****************************************************************************
  * Public Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Internal Interfaces
  ****************************************************************************/
 
 /****************************************************************************
@@ -1178,7 +1154,9 @@ void usbmsc_rdcomplete(FAR struct usbdev_ep_s *ep,
         sq_addlast((FAR sq_entry_t *)privreq, &priv->rdreqlist);
         leave_critical_section(flags);
 
-        /* Signal the worker thread that there is received data to be processed */
+        /* Signal the worker thread that there is received data to be
+         * processed.
+         */
 
         priv->theventset |= USBMSC_EVENT_RDCOMPLETE;
         usbmsc_scsi_signal(priv);
@@ -1219,7 +1197,7 @@ void usbmsc_rdcomplete(FAR struct usbdev_ep_s *ep,
  * Name: usbmsc_deferredresponse
  *
  * Description:
- *   Some EP0 setup request cannot be responded to immediately becuase they
+ *   Some EP0 setup request cannot be responded to immediately because they
  *   require some asynchronous action from the SCSI worker thread.  This
  *   function is provided for the SCSI thread to make that deferred response.
  *   The specific requests that require this deferred response are:
@@ -1228,7 +1206,7 @@ void usbmsc_rdcomplete(FAR struct usbdev_ep_s *ep,
  *   2. USB_REQ_SETINTERFACE, or
  *   3. USBMSC_REQ_MSRESET
  *
- *   In all cases, the success reponse is a zero-length packet; the failure
+ *   In all cases, the success response is a zero-length packet; the failure
  *   response is an EP0 stall.
  *
  * Input Parameters:
@@ -1290,21 +1268,10 @@ void usbmsc_deferredresponse(FAR struct usbmsc_dev_s *priv, bool failed)
  *
  ****************************************************************************/
 
-static inline void usbmsc_sync_wait(FAR struct usbmsc_dev_s *priv)
+static int usbmsc_sync_wait(FAR struct usbmsc_dev_s *priv)
 {
-  int ret;
-
-  do
-    {
-      ret = nxsem_wait(&priv->thsynch);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&priv->thsynch);
 }
-
-/****************************************************************************
- * User Interfaces
- ****************************************************************************/
 
 /****************************************************************************
  * Name: usbmsc_configure
@@ -1344,7 +1311,8 @@ int usbmsc_configure(unsigned int nluns, void **handle)
 
   /* Allocate the structures needed */
 
-  alloc = (FAR struct usbmsc_alloc_s *)kmm_malloc(sizeof(struct usbmsc_alloc_s));
+  alloc = (FAR struct usbmsc_alloc_s *)
+    kmm_malloc(sizeof(struct usbmsc_alloc_s));
   if (!alloc)
     {
       usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALLOCDEVSTRUCT), 0);
@@ -1398,15 +1366,17 @@ int usbmsc_configure(unsigned int nluns, void **handle)
 
   /* Initialize the device information if we are not part of a composite.
    * If we are part of a composite, the device information will be
-   * initialized through coordinated actions of usbmsc_get_composite_devdesc()
-   * and board-specific logic.
+   * initialized through coordinated actions of
+   * usbmsc_get_composite_devdesc() and board-specific logic.
    */
 
 #ifndef CONFIG_USBMSC_COMPOSITE
   /* minor - not used */
+
   /* Interfaces (ifnobase == 0) */
 
-  priv->devinfo.ninterfaces = USBMSC_NINTERFACES; /* Number of interfaces in the configuration */
+  priv->devinfo.ninterfaces = USBMSC_NINTERFACES; /* Number of interfaces
+                                                   * in the configuration */
 
   /* Strings (strbase == 0) */
 
@@ -1436,7 +1406,8 @@ errout:
  *   Bind the block driver specified by drvrpath to a USB storage LUN.
  *
  * Input Parameters:
- *   handle      - The handle returned by a previous call to usbmsc_configure().
+ *   handle      - The handle returned by a previous call to
+ *                 usbmsc_configure().
  *   drvrpath    - the full path to the block driver
  *   startsector - A sector offset into the block driver to the start of the
  *                 partition on drvrpath (0 if no partitions)
@@ -1544,7 +1515,8 @@ int usbmsc_bindlun(FAR void *handle, FAR const char *drvrpath,
       priv->iobuffer = (FAR uint8_t *)kmm_malloc(geo.geo_sectorsize);
       if (!priv->iobuffer)
         {
-          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALLOCIOBUFFER), geo.geo_sectorsize);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_ALLOCIOBUFFER),
+                   geo.geo_sectorsize);
           return -ENOMEM;
         }
 
@@ -1557,7 +1529,8 @@ int usbmsc_bindlun(FAR void *handle, FAR const char *drvrpath,
       tmp = (FAR void *)kmm_realloc(priv->iobuffer, geo.geo_sectorsize);
       if (!tmp)
         {
-          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_REALLOCIOBUFFER), geo.geo_sectorsize);
+          usbtrace(TRACE_CLSERROR(USBMSC_TRACEERR_REALLOCIOBUFFER),
+                   geo.geo_sectorsize);
           return -ENOMEM;
         }
 
@@ -1571,7 +1544,9 @@ int usbmsc_bindlun(FAR void *handle, FAR const char *drvrpath,
   lun->sectorsize  = geo.geo_sectorsize;
   lun->readonly    = readonly;
 
-  /* If the driver does not support the write method, then this is read-only */
+  /* If the driver does not support the write method, then this is read-
+   * only.
+   */
 
   if (!inode->u.i_bops->write)
     {
@@ -1628,7 +1603,11 @@ int usbmsc_unbindlun(FAR void *handle, unsigned int lunno)
 #endif
 
   lun = &priv->luntab[lunno];
-  usbmsc_scsi_lock(priv);
+  ret = usbmsc_scsi_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
 #ifdef CONFIG_DEBUG_FEATURES
   if (lun->inode == NULL)
@@ -1638,12 +1617,12 @@ int usbmsc_unbindlun(FAR void *handle, unsigned int lunno)
     }
   else
 #endif
-   {
+    {
       /* Close the block driver */
 
-     usbmsc_lununinitialize(lun);
-     ret = OK;
-   }
+      usbmsc_lununinitialize(lun);
+      ret = OK;
+    }
 
   usbmsc_scsi_unlock(priv);
   return ret;
@@ -1664,7 +1643,7 @@ int usbmsc_unbindlun(FAR void *handle, unsigned int lunno)
  *
  ****************************************************************************/
 
-#ifdef CONFIG_USBMSC_COMPOSITE
+#if !defined(CONFIG_USBDEV_COMPOSITE) && defined(CONFIG_USBMSC_COMPOSITE)
 static
 #endif
 int usbmsc_exportluns(FAR void *handle)
@@ -1675,7 +1654,7 @@ int usbmsc_exportluns(FAR void *handle)
   FAR struct usbmsc_driver_s *drvr;
 #endif
   irqstate_t flags;
-  int ret = OK;
+  int ret;
 
 #ifdef CONFIG_DEBUG_FEATURES
   if (!alloc)
@@ -1696,7 +1675,11 @@ int usbmsc_exportluns(FAR void *handle)
    * some protection against re-entrant usage.
    */
 
-  usbmsc_scsi_lock(priv);
+  ret = usbmsc_scsi_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   priv->thstate = USBMSC_STATE_NOTSTARTED;
   priv->theventset = USBMSC_EVENT_NOEVENTS;
@@ -1717,10 +1700,17 @@ int usbmsc_exportluns(FAR void *handle)
   /* Wait for the worker thread to run and initialize */
 
   uinfo("Waiting for the SCSI worker thread\n");
-  usbmsc_sync_wait(priv);
+  ret = usbmsc_sync_wait(priv);
+  if (ret < 0)
+    {
+      goto errout_with_lock;
+    }
+
   DEBUGASSERT(g_usbmsc_handoff == NULL);
 
-  /* Register the USB storage class driver (unless we are part of a composite device) */
+  /* Register the USB storage class driver (unless we are part of a composite
+   * device).
+   */
 
 #ifndef CONFIG_USBMSC_COMPOSITE
   ret = usbdev_register(&drvr->drvr);
@@ -1808,6 +1798,7 @@ void usbmsc_uninitialize(FAR void *handle)
   FAR struct usbmsc_alloc_s *alloc = (FAR struct usbmsc_alloc_s *)handle;
   FAR struct usbmsc_dev_s *priv;
   irqstate_t flags;
+  int ret;
   int i;
 
 #ifdef CONFIG_DEBUG_FEATURES
@@ -1840,9 +1831,23 @@ void usbmsc_uninitialize(FAR void *handle)
 
   if (priv->thstate != USBMSC_STATE_NOTSTARTED)
     {
-       /* The thread was started.. Is it still running? */
+      /* Get exclusive access to SCSI state data */
 
-      usbmsc_scsi_lock(priv);
+      do
+        {
+          ret = usbmsc_scsi_lock(priv);
+
+          /* usbmsc_scsi_lock() will fail with ECANCELED, only
+           * if this thread is canceled.  At this point, we
+           * have no option but to continue with the teardown.
+           */
+
+          DEBUGASSERT(ret == OK || ret == -ECANCELED);
+        }
+      while (ret < 0);
+
+      /* The thread was started.. Is it still running? */
+
       if (priv->thstate != USBMSC_STATE_TERMINATED)
         {
           /* Yes.. Ask the thread to stop */
@@ -1859,7 +1864,15 @@ void usbmsc_uninitialize(FAR void *handle)
 
       while ((priv->theventset & USBMSC_EVENT_TERMINATEREQUEST) != 0)
         {
-          usbmsc_sync_wait(priv);
+          ret = usbmsc_sync_wait(priv);
+          if (ret < 0)
+            {
+              /* Just break out and continue if the thread has been
+               * canceled.
+               */
+
+              break;
+            }
         }
     }
 

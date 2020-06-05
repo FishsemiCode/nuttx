@@ -306,7 +306,7 @@ void up_lowputc(char ch)
  *
  * Description:
  *   This performs basic initialization of the USART used for the serial
- *   console.  Its purpose is to get the console output availabe as soon
+ *   console.  Its purpose is to get the console output available as soon
  *   as possible.
  *
  ****************************************************************************/
@@ -385,4 +385,3 @@ void stm32l4_lowsetup(void)
 #endif /* HAVE_CONSOLE && !CONFIG_SUPPRESS_UART_CONFIG */
 #endif /* HAVE_UART */
 }
-

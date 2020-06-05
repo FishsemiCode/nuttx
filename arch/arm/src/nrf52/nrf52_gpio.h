@@ -48,7 +48,7 @@
 #endif
 
 #include <arch/nrf52/chip.h>
-#include "chip/nrf52_gpio.h"
+#include "hardware/nrf52_gpio.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -176,6 +176,11 @@
 #  define GPIO_PIN31            (31 << GPIO_PIN_SHIFT)
 #  define GPIO_PIN(n)           ((n) << GPIO_PIN_SHIFT)
 
+/* Helper macros */
+
+#define GPIO_PIN_DECODE(p)  (((p) & GPIO_PIN_MASK)  >> GPIO_PIN_SHIFT)
+#define GPIO_PORT_DECODE(p) (((p) & GPIO_PORT_MASK) >> GPIO_PORT_SHIFT)
+
 /************************************************************************************
  * Public Types
  ************************************************************************************/
@@ -197,23 +202,8 @@ extern "C"
 #endif
 
 /************************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ************************************************************************************/
-
-/************************************************************************************
- * Name: nrf52_gpio_irqinitialize
- *
- * Description:
- *   Initialize logic to support interrupting GPIO pins.  This function is called by
- *   the OS inialization logic and is not a user interface.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_NRF52_GPIOIRQ
-void nrf52_gpio_irqinitialize(void);
-#else
-#  define nrf52_gpio_irqinitialize()
-#endif
 
 /************************************************************************************
  * Name: nrf52_gpio_config
@@ -226,45 +216,14 @@ void nrf52_gpio_irqinitialize(void);
 int nrf52_gpio_config(nrf52_pinset_t cfgset);
 
 /************************************************************************************
- * Name: nrf52_gpio_interrupt
+ * Name: nrf52_gpio_unconfig
  *
  * Description:
- *   Configure a GPIO interrupt pin based on bit-encoded description of the pin.
- *   This function is called by nrf52_gpio_config to setup interrupting pins.  It is
- *   not a user interface.
+ *   Unconfigure a GPIO pin based on bit-encoded description of the pin.
  *
  ************************************************************************************/
 
-#ifdef CONFIG_NRF52_GPIOIRQ
-int nrf52_gpio_interrupt(nrf52_pinset_t pinset);
-#endif
-
-/************************************************************************************
- * Name: nrf52_gpio_irqno
- *
- * Description:
- *   Returns the IRQ number that was associated with an interrupt pin after it was
- *   configured.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_NRF52_GPIOIRQ
-int nrf52_gpio_irqno(nrf52_pinset_t pinset);
-#endif
-
-/************************************************************************************
- * Name: nrf52_gpio_ackedge
- *
- * Description:
- *   Acknowledge edge interrupts by clearing the associated bits in the rising and
- *   falling registers.  This acknowledgemment is, of course, not needed for level
- *   interupts.
- *
- ************************************************************************************/
-
-#ifdef CONFIG_NRF52_GPIOIRQ
-int nrf52_gpio_ackedge(int irq);
-#endif
+int nrf52_gpio_unconfig(nrf52_pinset_t cfgset);
 
 /************************************************************************************
  * Name: rnf52_gpio_write

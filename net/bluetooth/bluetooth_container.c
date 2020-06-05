@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -65,7 +64,7 @@
 
 static FAR struct bluetooth_container_s *g_free_container;
 
-/* Pool of pre-allocated meta-data stuctures */
+/* Pool of pre-allocated meta-data structures */
 
 static struct bluetooth_container_s
   g_container_pool[CONFIG_NET_BLUETOOTH_NCONTAINERS];
@@ -120,7 +119,7 @@ void bluetooth_container_initialize(void)
  * Name: bluetooth_container_allocate
  *
  * Description:
- *   The bluetooth_container_allocate function will get a free continer
+ *   The bluetooth_container_allocate function will get a free container
  *   for use by the recvfrom() logic.
  *
  *   This function will first attempt to allocate from the g_free_container
@@ -131,9 +130,9 @@ void bluetooth_container_initialize(void)
  *   None
  *
  * Returned Value:
- *   A reference to the allocated container structure.  All user fields in this
- *   structure have been zeroed.  On a failure to allocate, NULL is
- *   returned.
+ *   A reference to the allocated container structure.
+ *   All user fields in this structure have been zeroed.
+ *   On a failure to allocate, NULL is returned.
  *
  * Assumptions:
  *   The caller has locked the network.
@@ -167,10 +166,10 @@ FAR struct bluetooth_container_s *bluetooth_container_allocate(void)
 
   if (container != NULL)
     {
-       /* Zero and tag the allocated meta-data structure. */
+      /* Zero and tag the allocated meta-data structure. */
 
-       memset(container, 0, sizeof(struct bluetooth_container_s));
-       container->bn_pool = pool;
+      memset(container, 0, sizeof(struct bluetooth_container_s));
+      container->bn_pool = pool;
     }
 
   return container;

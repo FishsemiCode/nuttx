@@ -13,7 +13,7 @@ more like on multi-threaded program that all runs in kernel-mode.
 
 But if the CONFIG_BUILD_PROTECTED option is selected, NuttX will be built
 into distinct user-mode and kernel-mode sections.  In that case, most of the
-code in the nuttx/ directory will run in kernel-mode with with exceptions
+code in the nuttx/ directory will run in kernel-mode with exceptions
 of (1) the user-mode "proxies" found in syscall/proxies, and (2) the
 standard C library functions found in this directory.  In this build model,
 it is critical to separate the user-mode OS interfaces in this way.
@@ -29,6 +29,7 @@ in the include/ directory provides the prototype for library functions.  So
 we have:
 
   audio     - This part of the audio system: nuttx/audio/audio.h
+  builtin   - Support for builtin applications.  Used by nuttx/binfmt and NSH.
   dlfcn     - dlfcn.h
   endian    - endian.h
   hex2bin   - hex2bin.h
@@ -36,18 +37,20 @@ we have:
   locale    - locale.h
   lzf       - lzf.h
   fixedmath - fixedmath.h
+  grp       - grp.h
   inttypes  - inttypes.h
   machine   - Various architecture-specific implementations.
   math      - math.h
   modlib    - Part of module and shared library logic: nuttx/lib/modlib.h
   net       - Various network-related header files: netinet/ether.h, arpa/inet.h
   pthread   - pthread.h
+  pwd       - pwd.h
   queue     - queue.h
   sched     - sched.h
   semaphore - semaphore.h
   stdio     - stdio.h
   stdlib    - stdlib.h
-  string    - string.h (and legacy strings.h)
+  string    - string.h (and legacy strings.h and non-standard nuttx/b2c.h)
   time      - time.h
   uio       - sys/uio.h
   unistd    - unistd.h
@@ -100,3 +103,40 @@ Each type field has a format as follows:
 
 NOTE: The tool mksymtab can be used to generate a symbol table from this CSV
 file.  See nuttx/tools/README.txt for further details about the use of mksymtab.
+
+symtab
+======
+
+Symbol Tables and Build Modes
+-----------------------------
+This directory provide support for a symbol table which provides all/most of
+system and C library services/functions to the application and NSH.
+
+Symbol tables have differing usefulness in different NuttX build modes:
+
+  1. In the FLAT build (CONFIG_BUILD_FLAT), symbol tables are used to bind
+     addresses in loaded ELF or NxFLAT modules to base code that usually
+     resides in FLASH memory.  Both OS interfaces and user/application
+     libraries are made available to the loaded module via symbol tables.
+
+  2. Symbol tables may be of value in a protected build
+     (CONFIG_BUILD_PROTECTED) where the newly started user task must
+     share resources with other user code (but should use system calls to
+     interact with the OS).
+
+  3. But in the kernel build mode (CONFIG_BUILD_LOADABLE), only fully linked
+     executables loadable via execl(), execv(), or posix_spawan() can used.
+     There is no use for a symbol table with the kernel build since all
+     memory resources are separate; nothing is share-able with the newly
+     started process.
+
+Code/Text Size Implications
+---------------------------
+The option can have substantial effect on system image size, mainly
+code/text.  That is because the instructions to generate symtab.inc
+above will cause EVERY interface in the NuttX RTOS and the C library to be
+included into build.  Add to that the size of a huge symbol table.
+
+In order to reduce the code/text size, you may want to manually prune the
+auto-generated symtab.inc file to remove all interfaces that you do
+not wish to include into the base FLASH image.

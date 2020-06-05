@@ -181,7 +181,7 @@ int bchlib_readsector(FAR struct bchlib_s *bch, size_t sector)
     {
       inode = bch->inode;
 
-      (void)bchlib_flushsector(bch);
+      bchlib_flushsector(bch);
       bch->sector = (size_t)-1;
 
       ret = inode->u.i_bops->read(inode, bch->buffer, sector, 1);
@@ -189,11 +189,12 @@ int bchlib_readsector(FAR struct bchlib_s *bch, size_t sector)
         {
           ferr("Read failed: %d\n");
         }
+
       bch->sector = sector;
 #if defined(CONFIG_BCH_ENCRYPTION)
       bch_cypher(bch, CYPHER_DECRYPT);
 #endif
     }
+
   return (int)ret;
 }
-

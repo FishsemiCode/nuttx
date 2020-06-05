@@ -1,36 +1,20 @@
 /****************************************************************************
  * include/nuttx/compiler.h
  *
- *   Copyright (C) 2007-2009, 2012-2013, 2015-2017 Gregory Nutt. All rights
- *     reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -69,10 +53,10 @@
 
 /* Built-in functions */
 
-/* GCC 4.x (except CEVATL4) have __builtin_ctz(|l|ll) and __builtin_clz(|l|ll).
- * These count trailing/leading zeros of input number and typically will
- * generate few fast bit-counting instructions. Inputting zero to these
- * functions is undefined and needs to be taken care of by the caller.
+/* GCC 4.x have __builtin_ctz(|l|ll) and __builtin_clz(|l|ll). These count
+ * trailing/leading zeros of input number and typically will generate few
+ * fast bit-counting instructions. Inputting zero to these functions is
+ * undefined and needs to be taken care of by the caller.
  */
 
 #if __GNUC__ >= 4 && !defined(TEAKLITE4)
@@ -119,7 +103,11 @@
 
 #  define farcall_function __attribute__ ((long_call))
 
-/* The packed attribute informs GCC that the stucture elements are packed,
+/* Data alignment */
+
+#  define aligned_data(n) __attribute__ ((aligned(n)))
+
+/* The packed attribute informs GCC that the structure elements are packed,
  * ignoring other alignment rules.
  */
 
@@ -137,8 +125,8 @@
 #  define naked_function __attribute__ ((naked,no_instrument_function))
 
 /* The inline_function attribute informs GCC that the function should always
- * be inlined, regardless of the level of optimization.  The noinline_function
- * indicates that the function should never be inlined.
+ * be inlined, regardless of the level of optimization.  The
+ * noinline_function indicates that the function should never be inlined.
  */
 
 #  define inline_function __attribute__ ((always_inline,no_instrument_function))
@@ -259,9 +247,9 @@
 #  undef  CONFIG_PTR_IS_NOT_INT
 #endif
 
-/* GCC supports inlined functions for version C99 and above */
+/* GCC supports inlined functions for C++ and for C version C99 and above */
 
-#  if defined(__cplusplus) || !defined(__STDC_VERSION__) || __STDC_VERSION__ >= 199901L
+#  if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L)
 #    define CONFIG_HAVE_INLINE 1
 #  else
 #    undef CONFIG_HAVE_INLINE
@@ -274,8 +262,8 @@
  * may support them).
  *
  * CAREFUL: This can cause issues for shared data structures shared between
- * C and C++ if the two versions do not support the same features.  Structures
- * and unions can lose binary compatibility!
+ * C and C++ if the two versions do not support the same features.
+ * Structures and unions can lose binary compatibility!
  *
  * NOTE: The NuttX coding standard forbids the use of unnamed structures and
  * unions within the OS.
@@ -290,18 +278,10 @@
 #    define CONFIG_HAVE_ANONYMOUS_UNION 1
 #  endif
 
-/* GCC supports both types double and long long */
-
-#  ifndef __clang__
-#    define CONFIG_HAVE_LONG_LONG 1
-#  endif
+#  define CONFIG_HAVE_LONG_LONG 1
 #  define CONFIG_HAVE_FLOAT 1
 #  define CONFIG_HAVE_DOUBLE 1
 #  define CONFIG_HAVE_LONG_DOUBLE 1
-
-/* Structures and unions can be assigned and passed as values */
-
-#  define CONFIG_CAN_PASS_STRUCTS 1
 
 /* Indicate that a local variable is not used */
 
@@ -329,7 +309,8 @@
 
 /* Pragmas
  *
- * Disable warnings for unused function arguments */
+ * Disable warnings for unused function arguments
+ */
 
 # pragma disable_warning 85
 
@@ -339,7 +320,8 @@
 
 /* Attributes
  *
- * SDCC does not support weak symbols */
+ * SDCC does not support weak symbols
+ */
 
 #  undef  CONFIG_HAVE_WEAKFUNCTIONS
 #  define weak_alias(name, aliasname)
@@ -348,11 +330,13 @@
 #  define restrict /* REVISIT */
 
 /* SDCC does not support the noreturn or packed attributes */
+
 /* Current SDCC supports noreturn via C11 _Noreturn keyword (see
  * stdnoreturn.h).
  */
 
 #  define noreturn_function
+#  define aligned_data(n)
 #  define begin_packed_struct
 #  define end_packed_struct
 
@@ -441,12 +425,6 @@
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
 
-/* Structures and unions cannot be passed as values or used
- * in assignments.
- */
-
-#  undef  CONFIG_CAN_PASS_STRUCTS
-
 /* Indicate that a local variable is not used */
 
 #  define UNUSED(a) ((void)(a))
@@ -496,6 +474,7 @@
  */
 
 #  define noreturn_function
+#  define aligned_data(n)
 #  define begin_packed_struct
 #  define end_packed_struct
 #  define naked_function
@@ -518,8 +497,8 @@
  * Z8Encore!:  Far is 16-bits; near is 8-bits of address.
  *             The supported model is (1) all code on ROM, and (2) all data
  *             and stacks in internal (far) RAM.
- * Z8Acclaim:  In Z80 mode, all pointers are 16-bits.  In ADL mode, all pointers
- *             are 24 bits.
+ * Z8Acclaim:  In Z80 mode, all pointers are 16-bits.  In ADL mode, all
+ *             pointers are 24 bits.
  */
 
 #  if defined(__ZNEO__)
@@ -564,9 +543,9 @@
 #  undef CONFIG_HAVE_ANONYMOUS_STRUCT
 #  undef  CONFIG_HAVE_ANONYMOUS_UNION
 
-/* Older Zilog compilers support both types double and long long, but the size
- * is 32-bits (same as long and single precision) so it is safer to say that
- * they are not supported.  Later versions are more ANSII compliant and
+/* Older Zilog compilers support both types double and long long, but the
+ * size is 32-bits (same as long and single precision) so it is safer to say
+ * that they are not supported.  Later versions are more ANSII compliant and
  * simply do not support long long or double.
  */
 
@@ -575,20 +554,16 @@
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
 
-/* Structures and unions can be assigned and passed as values */
-
-#  define CONFIG_CAN_PASS_STRUCTS 1
-
 /* Indicate that a local variable is not used */
 
 #  define UNUSED(a) ((void)(a))
 
-/* ICCARM-specific definitions ***********************************************/
+/* ICCARM-specific definitions **********************************************/
 
 #elif defined(__ICCARM__)
 
 #  define CONFIG_CPP_HAVE_VARARGS 1 /* Supports variable argument macros */
-#  define CONFIG_HAVE_FILENAME 1 /* Has __FILE__ */
+#  define CONFIG_HAVE_FILENAME 1    /* Has __FILE__ */
 #  define CONFIG_HAVE_FLOAT 1
 
 /* Indicate that a local variable is not used */
@@ -600,6 +575,7 @@
 #  define weak_const_function
 #  define noreturn_function
 #  define farcall_function
+#  define aligned_data(n)
 #  define begin_packed_struct  __packed
 #  define end_packed_struct
 #  define reentrant_function
@@ -628,7 +604,9 @@
 
 #  undef CONFIG_HAVE_CXX14
 
-/* ISO C11 supports anonymous (unnamed) structures and unions.  Does ICCARM? */
+/* ISO C11 supports anonymous (unnamed) structures and unions.  Does
+ * ICCARM?
+ */
 
 #  undef CONFIG_HAVE_ANONYMOUS_STRUCT
 #  undef  CONFIG_HAVE_ANONYMOUS_UNION
@@ -649,6 +627,7 @@
 #  define restrict
 #  define noreturn_function
 #  define farcall_function
+#  define aligned_data(n)
 #  define begin_packed_struct
 #  define end_packed_struct
 #  define reentrant_function
@@ -670,7 +649,6 @@
 #  define CONFIG_HAVE_FLOAT 1
 #  undef  CONFIG_HAVE_DOUBLE
 #  undef  CONFIG_HAVE_LONG_DOUBLE
-#  undef  CONFIG_CAN_PASS_STRUCTS
 #  undef  CONFIG_HAVE_ANONYMOUS_STRUCT
 #  undef  CONFIG_HAVE_ANONYMOUS_UNION
 

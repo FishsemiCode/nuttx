@@ -65,11 +65,8 @@
 /********************************************************************************************
  * Pre-processor Definitions
  ********************************************************************************************/
-/* Configuration ****************************************************************************/
 
-#ifdef CONFIG_DISABLE_SIGNALS
-#  error Signal support is required by this driver
-#endif
+/* Configuration ****************************************************************************/
 
 #if defined(CONFIG_LCD_FT80X_WQVGA)
 #  define FT80X_DISPLAY_WIDTH   480
@@ -200,7 +197,7 @@
  *   Returns:      None.
  *
  * FT80X_IOC_AUDIO:
- *   Description:  Enable/disable an external audio amplifer.
+ *   Description:  Enable/disable an external audio amplifier.
  *   Argument:     0=disable; 1=enable.
  *   Returns:      None.
  */

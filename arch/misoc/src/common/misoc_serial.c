@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -313,7 +312,7 @@ static int misoc_attach(struct uart_dev_s *dev)
 {
   struct misoc_dev_s *priv = (struct misoc_dev_s *)dev->priv;
 
-  (void)irq_attach(priv->irq, misoc_uart_interrupt, dev);
+  irq_attach(priv->irq, misoc_uart_interrupt, dev);
   up_enable_irq(priv->irq);
 
   return OK;
@@ -345,7 +344,7 @@ static void misoc_detach(struct uart_dev_s *dev)
  *   interrupt received on the 'irq'  It should call uart_transmitchars or
  *   uart_receivechar to perform the appropriate data transfers.  The
  *   interrupt handling logic must be able to map the 'irq' number into the
- *   approprite uart_dev_s structure in order to call these functions.
+ *   appropriate uart_dev_s structure in order to call these functions.
  *
  ****************************************************************************/
 
@@ -656,10 +655,10 @@ void misoc_serial_initialize(void)
   /* Register the console */
 
 #ifdef HAVE_SERIAL_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs */
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #endif
 }

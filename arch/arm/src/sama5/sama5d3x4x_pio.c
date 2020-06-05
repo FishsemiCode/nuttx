@@ -52,7 +52,7 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "chip/_sama5d3x4x_pio.h"
+#include "hardware/_sama5d3x4x_pio.h"
 
 #include "chip.h"
 #include "sam_periphclks.h"
@@ -730,7 +730,7 @@ int sam_configpio(pio_pinset_t cfgset)
 
   /* Put the pin in an initial state -- a vanilla input pin */
 
-  (void)sam_configinput(base, pin, MK_INPUT(cfgset));
+  sam_configinput(base, pin, MK_INPUT(cfgset));
 
   /* Then handle the real pin configuration according to pin type */
 

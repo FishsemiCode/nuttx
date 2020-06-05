@@ -45,7 +45,7 @@
 #include <stdint.h>
 
 #include "chip.h"
-#include "chip/sam_udp.h"
+#include "hardware/sam_udp.h"
 
 /************************************************************************************
  * Public Functions
@@ -90,4 +90,3 @@ void sam_udp_suspend(FAR struct usbdev_s *dev, bool resume);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SAM34_SAM_UDP_H */
-

@@ -49,7 +49,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -123,6 +122,7 @@ static int do_getpeername_request(FAR struct usrsock_conn_s *conn,
   struct usrsock_request_getpeername_s req =
   {
   };
+
   struct iovec bufs[1];
 
   if (addrlen > UINT16_MAX)
@@ -175,6 +175,7 @@ int usrsock_getpeername(FAR struct socket *psock,
   struct usrsock_data_reqstate_s state =
   {
   };
+
   struct iovec inbufs[1];
   ssize_t ret;
   socklen_t outaddrlen = 0;
@@ -217,11 +218,7 @@ int usrsock_getpeername(FAR struct socket *psock,
     {
       /* Wait for completion of request. */
 
-      while ((ret = net_lockedwait(&state.reqstate.recvsem)) < 0)
-        {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
-
+      net_lockedwait_uninterruptible(&state.reqstate.recvsem);
       ret = state.reqstate.result;
 
       DEBUGASSERT(state.valuelen <= *addrlen);

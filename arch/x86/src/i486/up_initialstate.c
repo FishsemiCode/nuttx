@@ -72,7 +72,7 @@
  *   function is called to initialize the processor specific portions of the
  *   new TCB.
  *
- *   This function must setup the intial architecture registers and/or stack
+ *   This function must setup the initial architecture registers and/or stack
  *   so that execution will begin at tcb->start on the next context switch.
  *
  ****************************************************************************/
@@ -123,4 +123,3 @@ void up_initial_state(struct tcb_s *tcb)
   xcp->regs[REG_EFLAGS]  = X86_FLAGS_IF;
 #endif
 }
-

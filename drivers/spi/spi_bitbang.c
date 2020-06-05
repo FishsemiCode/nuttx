@@ -32,6 +32,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
+
 /****************************************************************************
  * Included Files
  ****************************************************************************/
@@ -39,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <stdlib.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -47,11 +47,14 @@
 #include <nuttx/spi/spi.h>
 #include <nuttx/spi/spi_bitbang.h>
 
+#include <nuttx/semaphore.h>
+
 #ifdef CONFIG_SPI_BITBANG
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* This file holds the static, device-independ portion of the generica SPI-
  * bit-bang driver.  The full driver consists of 5 files:
  *
@@ -62,22 +65,22 @@
  * 2. include/nuttx/spi/spi_bitbang.h:  This header file provides the
  *    data types and function prototypes needed to utilize the logic in
  *    this file.
- * 3. configs/<board>/src/<file>:  The implementation of the low-level
- *    bit-bang logic resides in some file in the board source directory.
- *    This board-specific logic includes the bit-bang skeleton logic
- *    provided in include/nuttx/spi/spi_bitband.c.
+ * 3. boards/<arch>/<chip>/<board>/src/<file>:  The implementation of the
+ *    low-level bit-bang logic resides in some file in the board source
+ *    directory.  This board-specific logic includes the bit-bang skeleton
+ *    logic provided in include/nuttx/spi/spi_bitband.c.
  * 4. include/nuttx/spi/spi_bitband.c.  Despite the .c extension, this
  *    really an included file.  It is used in this way:  1) The board-
- *    specific logic in configs/<board>/src/<file> provides some definitions
- *    then 2) includes include/nuttx/spi/spi_bitband.c.  That file will
- *    then use those definitions to implement the low-level bit-bang
- *    logic.  the board-specific logic then calls spi_create_bitbang()
- *    in this file to instantiate the complete SPI driver.
+ *    specific logic in boards/<arch>/<chip>/<board>/src/<file> provides
+ *    some definitions then 2) includes include/nuttx/spi/spi_bitband.c.
+ *    That file will then use those definitions to implement the low-level
+ *    bit-bang logic.  the board-specific logic then calls
+ *    spi_create_bitbang() in this file to instantiate the complete SPI
+ *    driver.
  *
  *    See include/nuttx/spi/spi_bitband.c for more detailed usage
  *    information.
  */
-
 
 /****************************************************************************
  * Private Function Prototypes
@@ -93,7 +96,7 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
 static void     spi_setmode(FAR struct spi_dev_s *dev,
                   enum spi_mode_e mode);
 static void     spi_setbits(FAR struct spi_dev_s *dev, int nbits);
-static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t ch);
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd);
 static void     spi_exchange(FAR struct spi_dev_s *dev,
                    FAR const void *txbuffer, FAR void *rxbuffer,
                    size_t nwords);
@@ -136,7 +139,7 @@ static const struct spi_ops_s g_spiops =
   spi_sndblock,       /* sndblock */
   spi_recvblock,      /* recvblock */
 #endif
-   0                  /* registercallback */
+  0                   /* registercallback */
 };
 
 /****************************************************************************
@@ -172,24 +175,11 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
   spiinfo("lock=%d\n", lock);
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          ret = nxsem_wait(&priv->exclsem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&priv->exclsem);
     }
   else
     {
-      (void)nxsem_post(&priv->exclsem);
-      ret = OK;
+      ret = nxsem_post(&priv->exclsem);
     }
 
   return ret;
@@ -236,7 +226,8 @@ static void spi_select(FAR struct spi_dev_s *dev, uint32_t devid,
  *
  ****************************************************************************/
 
-static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
+static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
+                                 uint32_t frequency)
 {
   FAR struct spi_bitbang_s *priv = (FAR struct spi_bitbang_s *)dev;
   uint32_t actual;
@@ -317,12 +308,12 @@ static void spi_setbits(FAR struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd)
 {
   FAR struct spi_bitbang_s *priv = (FAR struct spi_bitbang_s *)dev;
   DEBUGASSERT(priv && priv->low && priv->low->exchange);
 
-  return priv->low->exchange(priv, wd);
+  return priv->low->exchange(priv, (uint16_t)wd);
 }
 
 /****************************************************************************
@@ -334,7 +325,7 @@ static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
  * Input Parameters:
  *   dev      - Device-specific state data
  *   txbuffer - A pointer to the buffer of data to be sent
- *   rxbuffer - A pointer to the buffer in which to recieve data
+ *   rxbuffer - A pointer to the buffer in which to receive data
  *   nwords   - the length of data that to be exchanged in units of words.
  *              The wordsize is determined by the number of bits-per-word
  *              selected for the SPI interface.  If nbits <= 8, the data is
@@ -378,14 +369,14 @@ static void spi_exchange(FAR struct spi_dev_s *dev,
 
 #ifdef CONFIG_SPI_BITBANG_VARWIDTH
           if (priv->nbits > 8)
-           {
+            {
 #ifdef CONFIG_ENDIAN_BIG
-             dataout <<= 8;
-             dataout |= *src++;
+              dataout <<= 8;
+              dataout |= *src++;
 #else
-             dataout |= (uint16_t)(*src++) << 8;
+              dataout |= (uint16_t)(*src++) << 8;
 #endif
-           }
+            }
 #endif
         }
 
@@ -427,7 +418,8 @@ static void spi_exchange(FAR struct spi_dev_s *dev,
  *   nwords - the length of data to send from the buffer in number of words.
  *            The wordsize is determined by the number of bits-per-word
  *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into uint16_t's
+ *            packed into uint8_t's; if nbits >8, the data is packed into
+ *            uint16_t's
  *
  * Returned Value:
  *   None
@@ -435,7 +427,8 @@ static void spi_exchange(FAR struct spi_dev_s *dev,
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size_t nwords)
+static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer,
+                         size_t nwords)
 {
   /* spi_exchange can do this. */
 
@@ -451,11 +444,12 @@ static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size
  *
  * Input Parameters:
  *   dev -    Device-specific state data
- *   buffer - A pointer to the buffer in which to recieve data
+ *   buffer - A pointer to the buffer in which to receive data
  *   nwords - the length of data that can be received in the buffer in number
- *            of words.  The wordsize is determined by the number of bits-per-word
- *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into uint16_t's
+ *            of words.  The wordsize is determined by the number of
+ *            bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *            the data is packed into uint8_t's; if nbits >8, the data is
+ *            packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -463,7 +457,8 @@ static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nwords)
+static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer,
+                          size_t nwords)
 {
   /* spi_exchange can do this. */
 
@@ -515,7 +510,7 @@ static int spi_cmddata(FAR struct spi_dev_s *dev, uint32_t devid,
                        bool cmd)
 {
   FAR struct spi_bitbang_s *priv = (FAR struct spi_bitbang_s *)dev;
-  DEBUGASSERTcmddata(priv && priv->low && priv->low->status);
+  DEBUGASSERT(priv && priv->low && priv->low->status);
 
   return priv->low->cmddata(priv, devid, cmd);
 }
@@ -533,7 +528,8 @@ static int spi_cmddata(FAR struct spi_dev_s *dev, uint32_t devid,
  *
  ****************************************************************************/
 
-FAR struct spi_dev_s *spi_create_bitbang(FAR const struct spi_bitbang_ops_s *low)
+FAR struct spi_dev_s *spi_create_bitbang(FAR const struct
+                                         spi_bitbang_ops_s *low)
 {
   FAR struct spi_bitbang_s *priv;
 

@@ -74,10 +74,8 @@ static int        icmpv6_connect(FAR struct socket *psock,
 static int        icmpv6_accept(FAR struct socket *psock,
                     FAR struct sockaddr *addr, FAR socklen_t *addrlen,
                     FAR struct socket *newsock);
-#ifndef CONFIG_DISABLE_POLL
 static int        icmpv6_netpoll(FAR struct socket *psock,
                     FAR struct pollfd *fds, bool setup);
-#endif
 static ssize_t    icmpv6_send(FAR struct socket *psock, FAR const void *buf,
                     size_t len, int flags);
 static int        icmpv6_close(FAR struct socket *psock);
@@ -97,9 +95,7 @@ const struct sock_intf_s g_icmpv6_sockif =
   icmpv6_listen,      /* si_listen */
   icmpv6_connect,     /* si_connect */
   icmpv6_accept,      /* si_accept */
-#ifndef CONFIG_DISABLE_POLL
   icmpv6_netpoll,     /* si_poll */
-#endif
   icmpv6_send,        /* si_send */
   icmpv6_sendto,      /* si_sendto */
 #ifdef CONFIG_NET_SENDFILE
@@ -193,7 +189,7 @@ static sockcaps_t icmpv6_sockcaps(FAR struct socket *psock)
  * Name: icmpv6_addref
  *
  * Description:
- *   Increment the refernce count on the underlying connection structure.
+ *   Increment the reference count on the underlying connection structure.
  *
  * Input Parameters:
  *   psock - Socket structure of the socket whose reference count will be
@@ -242,7 +238,7 @@ static void icmpv6_addref(FAR struct socket *psock)
  *   addrlen   Length of actual 'addr'
  *
  * Returned Value:
- *   0 on success; a negated errno value on failue.  See connect() for the
+ *   0 on success; a negated errno value on failure.  See connect() for the
  *   list of appropriate errno values to be returned.
  *
  ****************************************************************************/
@@ -289,7 +285,7 @@ static int icmpv6_connect(FAR struct socket *psock,
  *
  * Returned Value:
  *   Returns 0 (OK) on success.  On failure, it returns a negated errno
- *   value.  See accept() for a desrciption of the approriate error value.
+ *   value.  See accept() for a desrciption of the appropriate error value.
  *
  * Assumptions:
  *   The network is locked.
@@ -446,11 +442,9 @@ int icmpv6_listen(FAR struct socket *psock, int backlog)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int icmpv6_netpoll(FAR struct socket *psock, FAR struct pollfd *fds,
                         bool setup)
 {
-#ifdef CONFIG_MM_IOB
   /* Check if we are setting up or tearing down the poll */
 
   if (setup)
@@ -465,11 +459,7 @@ static int icmpv6_netpoll(FAR struct socket *psock, FAR struct pollfd *fds,
 
       return icmpv6_pollteardown(psock, fds);
     }
-#else
-  return -ENOSYS;
-#endif /* CONFIG_MM_IOB */
 }
-#endif /* !CONFIG_DISABLE_POLL */
 
 /****************************************************************************
  * Name: icmpv6_send
@@ -533,7 +523,7 @@ static int icmpv6_close(FAR struct socket *psock)
     {
       /* Yes... free any read-ahead data */
 
-      iob_free_queue(&conn->readahead);
+      iob_free_queue(&conn->readahead, IOBUSER_NET_SOCK_ICMPv6);
 
       /* Then free the connection structure */
 

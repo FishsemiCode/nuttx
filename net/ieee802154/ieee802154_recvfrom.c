@@ -49,7 +49,6 @@
 
 #include <arch/irq.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/mm/iob.h>
 #include <nuttx/net/net.h>
@@ -138,7 +137,7 @@ static ssize_t ieee802154_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
   size_t copylen;
   int ret = -EAGAIN;
 
-  /* Check if there is anyting in in the RX input queue */
+  /* Check if there is anything in in the RX input queue */
 
   DEBUGASSERT(pstate != NULL && pstate->ir_sock != NULL);
   conn = (FAR struct ieee802154_conn_s *)pstate->ir_sock->s_conn;
@@ -161,11 +160,11 @@ static ssize_t ieee802154_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
         }
 
 #if CONFIG_NET_IEEE802154_BACKLOG > 0
-       /* Decrement the count of frames in the queue. */
+      /* Decrement the count of frames in the queue. */
 
-       DEBUGASSERT(conn->backlog > 0);
-       conn->backlog--;
-       DEBUGASSERT((int)conn->backlog == ieee802154_count_frames(conn));
+      DEBUGASSERT(conn->backlog > 0);
+      conn->backlog--;
+      DEBUGASSERT((int)conn->backlog == ieee802154_count_frames(conn));
 #endif
 
       /* Extract the IOB containing the frame from the container */
@@ -182,7 +181,7 @@ static ssize_t ieee802154_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
       ninfo("Received %d bytes\n", (int)copylen);
       ret = copylen;
 
-      /* If a 'from' address poiner was supplied, copy the source address
+      /* If a 'from' address pointer was supplied, copy the source address
        * in the container there.
        */
 
@@ -190,12 +189,13 @@ static ssize_t ieee802154_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
         {
           iaddr            = (FAR struct sockaddr_ieee802154_s *)pstate->ir_from;
           iaddr->sa_family = AF_IEEE802154;
-          memcpy(&iaddr->sa_addr, &container->ic_src, sizeof(struct ieee802154_saddr_s));
+          memcpy(&iaddr->sa_addr, &container->ic_src,
+                 sizeof(struct ieee802154_saddr_s));
         }
 
       /* Free both the IOB and the container */
 
-      iob_free(iob);
+      iob_free(iob, IOBUSER_NET_SOCK_IEEE802154);
       ieee802154_container_free(container);
     }
 
@@ -237,6 +237,7 @@ static uint16_t ieee802154_recvfrom_eventhandler(FAR struct net_driver_s *dev,
     }
 
   /* Make sure that this is the driver to which the socket is bound. */
+
 #warning Missing logic
 
   pstate = (FAR struct ieee802154_recvfrom_s *)pvpriv;
@@ -380,12 +381,8 @@ ssize_t ieee802154_recvfrom(FAR struct socket *psock, FAR void *buf,
    * hence, should not have priority inheritance enabled.
    */
 
-  (void)nxsem_init(&state.ir_sem, 0, 0); /* Doesn't really fail */
-  (void)nxsem_setprotocol(&state.ir_sem, SEM_PRIO_NONE);
-
-  /* Set the socket state to receiving */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_RECV);
+  nxsem_init(&state.ir_sem, 0, 0); /* Doesn't really fail */
+  nxsem_setprotocol(&state.ir_sem, SEM_PRIO_NONE);
 
   /* Set up the callback in the connection */
 
@@ -402,7 +399,7 @@ ssize_t ieee802154_recvfrom(FAR struct socket *psock, FAR void *buf,
        * the task sleeps and automatically re-locked when the task restarts.
        */
 
-      (void)net_lockedwait(&state.ir_sem);
+      net_lockedwait(&state.ir_sem);
 
       /* Make sure that no further events are processed */
 
@@ -414,9 +411,6 @@ ssize_t ieee802154_recvfrom(FAR struct socket *psock, FAR void *buf,
       ret = -EBUSY;
     }
 
-  /* Set the socket state to idle */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
   nxsem_destroy(&state.ir_sem);
 
 errout_with_lock:

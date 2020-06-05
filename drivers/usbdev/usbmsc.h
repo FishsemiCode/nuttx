@@ -1,37 +1,21 @@
 /****************************************************************************
  * drivers/usbdev/usbmsc.h
- *
- *   Copyright (C) 2008-2013, 2015, 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
  * Mass storage class device.  Bulk-only with SCSI subclass.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -48,9 +32,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <queue.h>
-#include <semaphore.h>
 
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/usb/storage.h>
 #include <nuttx/usb/usbdev.h>
 
@@ -59,6 +43,7 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
 /* If the USB mass storage device is configured as part of a composite device
  * then both CONFIG_USBDEV_COMPOSITE and CONFIG_USBMSC_COMPOSITE must be
  * defined.
@@ -69,7 +54,7 @@
 #endif
 
 #if defined(CONFIG_USBMSC_COMPOSITE) && !defined(CONFIG_USBMSC_STRBASE)
-#  define CONFIG_USBMSC_STRBASE (4)
+#  define CONFIG_USBMSC_STRBASE (0)
 #endif
 
 /* Interface IDs.  If the mass storage driver is built as a component of a
@@ -223,7 +208,7 @@
 #  define USBMSC_SELFPOWERED (0)
 #endif
 
-#ifdef  CONFIG_USBDEV_REMOTEWAKEUP
+#ifdef CONFIG_USBDEV_REMOTEWAKEUP
 #  define USBMSC_REMOTEWAKEUP USB_CONFIG_ATTR_WAKEUP
 #else
 #  define USBMSC_REMOTEWAKEUP (0)
@@ -292,7 +277,7 @@
 #  undef CONFIG_USBMSC_STRBASE
 #  define CONFIG_USBMSC_STRBASE       (0)
 #else
-#  define USBMSC_INTERFACESTRID       (CONFIG_USBMSC_STRBASE+1)
+#  define USBMSC_INTERFACESTRID       (CONFIG_USBMSC_STRBASE + 1)
 #endif
 
 #define USBMSC_LASTSTRID              USBMSC_INTERFACESTRID
@@ -300,7 +285,7 @@
 
 /* Configuration Descriptor */
 
-#define USBMSC_INTERFACEID            (CONFIG_USBMSC_IFNOBASE+0)
+#define USBMSC_INTERFACEID            (CONFIG_USBMSC_IFNOBASE + 0)
 #define USBMSC_ALTINTERFACEID         (0)
 
 #define USBMSC_CONFIGIDNONE           (0) /* Config ID means to return to address mode */
@@ -360,6 +345,7 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* Endpoint descriptors */
 
 enum usbmsc_epdesc_e
@@ -423,7 +409,7 @@ struct usbmsc_dev_s
 
   struct usbmsc_lun_s *lun;           /* Currently selected LUN */
   struct usbmsc_lun_s *luntab;        /* Allocated table of all LUNs */
-  uint8_t cdb[USBMSC_MAXCDBLEN];     /* Command data (cdb[]) from CBW */
+  uint8_t cdb[USBMSC_MAXCDBLEN];      /* Command data (cdb[]) from CBW */
   uint8_t           phaseerror:1;     /* Need to send phase sensing status */
   uint8_t           shortpacket:1;    /* Host transmission stopped unexpectedly */
   uint8_t           cbwdir:2;         /* Direction from CBW. See USBMSC_FLAGS_DIR* definitions */
@@ -481,8 +467,8 @@ EXTERN const char g_mscvendorstr[];
 EXTERN const char g_mscproductstr[];
 EXTERN const char g_mscserialstr[];
 
-/* If we are using a composite device, then vendor/product/serial number strings
- * are provided by the composite device logic.
+/* If we are using a composite device, then vendor/product/serial number
+ * strings are provided by the composite device logic.
  */
 
 #else
@@ -511,7 +497,7 @@ EXTERN FAR struct usbmsc_dev_s *g_usbmsc_handoff;
  *
  ****************************************************************************/
 
-void usbmsc_scsi_lock(FAR struct usbmsc_dev_s *priv);
+int usbmsc_scsi_lock(FAR struct usbmsc_dev_s *priv);
 
 /****************************************************************************
  * Name: usbmsc_scsi_unlock
@@ -523,7 +509,7 @@ void usbmsc_scsi_lock(FAR struct usbmsc_dev_s *priv);
 
 #define usbmsc_scsi_unlock(priv) nxsem_post(&priv->thlock)
 
-/*****************************************************************************
+/****************************************************************************
  * Name: usbmsc_scsi_signal
  *
  * Description:
@@ -589,10 +575,12 @@ int usbmsc_copy_epdesc(enum usbmsc_epdesc_e epid,
  ****************************************************************************/
 
 #ifdef CONFIG_USBDEV_DUALSPEED
-int16_t usbmsc_mkcfgdesc(FAR uint8_t *buf, FAR struct usbdev_devinfo_s *devinfo,
+int16_t usbmsc_mkcfgdesc(FAR uint8_t *buf,
+                         FAR struct usbdev_devinfo_s *devinfo,
                          uint8_t speed, uint8_t type);
 #else
-int16_t usbmsc_mkcfgdesc(FAR uint8_t *buf, FAR struct usbdev_devinfo_s *devinfo);
+int16_t usbmsc_mkcfgdesc(FAR uint8_t *buf,
+                         FAR struct usbdev_devinfo_s *devinfo);
 #endif
 
 /****************************************************************************
@@ -667,7 +655,7 @@ void usbmsc_rdcomplete(FAR struct usbdev_ep_s *ep,
  * Name: usbmsc_deferredresponse
  *
  * Description:
- *   Some EP0 setup request cannot be responded to immediately becuase they
+ *   Some EP0 setup request cannot be responded to immediately because they
  *   require some asynchronous action from the SCSI worker thread.  This
  *   function is provided for the SCSI thread to make that deferred response.
  *   The specific requests that require this deferred response are:
@@ -676,7 +664,7 @@ void usbmsc_rdcomplete(FAR struct usbdev_ep_s *ep,
  *   2. USB_REQ_SETINTERFACE, or
  *   3. USBMSC_REQ_MSRESET
  *
- *   In all cases, the success reponse is a zero-length packet; the failure
+ *   In all cases, the success response is a zero-length packet; the failure
  *   response is an EP0 stall.
  *
  * Input Parameters:

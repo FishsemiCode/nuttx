@@ -46,7 +46,7 @@
 
 #include <nuttx/nx/nxglib.h>
 
-#include "chip/sam_lcdc.h"
+#include "hardware/sam_lcdc.h"
 
 #ifdef CONFIG_SAMA5_LCDC
 
@@ -89,7 +89,7 @@
  * Description:
  *   This is a non-standard LCD interface just for the SAMA5.  Clearing the display
  *   in the normal way by writing a sequences of runs that covers the entire display
- *   can be slow.  Here the dispaly is cleared by simply setting all VRAM memory to
+ *   can be slow.  Here the display is cleared by simply setting all VRAM memory to
  *   the specified color.
  *
  ************************************************************************************/

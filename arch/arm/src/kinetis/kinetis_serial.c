@@ -45,7 +45,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -66,9 +65,9 @@
 
 #include "kinetis_config.h"
 #include "chip.h"
-#include "chip/kinetis_dmamux.h"
-#include "chip/kinetis_uart.h"
-#include "chip/kinetis_pinmux.h"
+#include "hardware/kinetis_dmamux.h"
+#include "hardware/kinetis_uart.h"
+#include "hardware/kinetis_pinmux.h"
 #include "kinetis.h"
 #include "kinetis_dma.h"
 #include "kinetis_uart.h"
@@ -137,7 +136,7 @@
 #  endif
 #elif defined(CONFIG_UART5_SERIAL_CONSOLE)
 #    define CONSOLE_DEV         g_uart5port /* UART5 is console */
-#    define TTYS5_DEV           g_uart5port /* UART5 is ttyS0 */
+#    define TTYS0_DEV           g_uart5port /* UART5 is ttyS0 */
 #    define UART5_ASSIGNED      1
 #  if defined(CONFIG_KINETIS_UART5_RXDMA)
 #    define SERIAL_HAVE_CONSOLE_DMA 1
@@ -881,7 +880,7 @@ static uint8_t get_and_clear_uart_status(struct up_dev_s *priv)
        * discarding the data.
        */
 
-      (void)up_serialin(priv, KINETIS_UART_D_OFFSET);
+      up_serialin(priv, KINETIS_UART_D_OFFSET);
     }
 
   return regval;
@@ -1163,7 +1162,7 @@ static int up_interrupt(int irq, void *context, FAR void *arg)
  *   interrupt received on the 'irq'  It should call uart_transmitchars or
  *   uart_receivechar to perform the appropriate data transfers.  The
  *   interrupt handling logic must be able to map the 'irq' number into the
- *   approprite uart_dev_s structure in order to call these functions.
+ *   appropriate uart_dev_s structure in order to call these functions.
  *
  ****************************************************************************/
 
@@ -1267,30 +1266,21 @@ static int up_interrupts(int irq, void *context, FAR void *arg)
 
 static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
-#if defined(CONFIG_SERIAL_TERMIOS) || defined(CONFIG_SERIAL_TIOCSERGSTRUCT) || \
-    defined(CONFIG_KINETIS_SERIALBRK_BSDCOMPAT)
-  struct inode      *inode;
-  struct uart_dev_s *dev;
-  uint8_t regval;
-#endif
 #if defined(CONFIG_SERIAL_TERMIOS) || defined(CONFIG_KINETIS_SERIALBRK_BSDCOMPAT)
-  struct up_dev_s   *priv;
   bool               iflow = false;
   bool               oflow = false;
 #endif
+  struct inode      *inode;
+  struct uart_dev_s *dev;
+  uint8_t            regval;
+  struct up_dev_s   *priv;
   int                ret   = OK;
 
-#if defined(CONFIG_SERIAL_TERMIOS) || defined(CONFIG_SERIAL_TIOCSERGSTRUCT) || \
-    defined(CONFIG_KINETIS_SERIALBRK_BSDCOMPAT)
   DEBUGASSERT(filep != NULL && filep->f_inode != NULL);
   inode = filep->f_inode;
   dev   = inode->i_private;
   DEBUGASSERT(dev != NULL && dev->priv != NULL);
-#endif
-
-#if defined(CONFIG_SERIAL_TERMIOS) || defined(CONFIG_KINETIS_SERIALBRK_BSDCOMPAT)
   priv  = (struct up_dev_s *)dev->priv;
-#endif
 
   switch (cmd)
     {
@@ -1313,6 +1303,12 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 #ifdef CONFIG_KINETIS_UART_SINGLEWIRE
     case TIOCSSINGLEWIRE:
       {
+        if ((arg & SER_SINGLEWIRE_PULLUP) != 0)
+          {
+            ret = -EINVAL; // Not supported
+            break;
+          }
+
         /* Change to single-wire operation. the RXD pin is disconnected from
          * the UART and the UART implements a half-duplex serial connection.
          * The UART uses the TXD pin for both receiving and transmitting
@@ -1320,7 +1316,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 
         regval = up_serialin(priv, KINETIS_UART_C1_OFFSET);
 
-        if (arg == SER_SINGLEWIRE_ENABLED)
+        if ((arg & SER_SINGLEWIRE_ENABLED) != 0)
           {
             regval |= (UART_C1_LOOPS | UART_C1_RSRC);
           }
@@ -1501,10 +1497,53 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
       break;
 #endif /* CONFIG_KINETIS_UART_BREAKS */
 
+#ifdef CONFIG_KINETIS_UART_INVERT
+    case TIOCSINVERT:
+      {
+        uint8_t s2;
+        uint8_t c3;
+        irqstate_t flags;
+
+        flags = enter_critical_section();
+
+        s2 = up_serialin(priv, KINETIS_UART_S2_OFFSET);
+        c3 = up_serialin(priv, KINETIS_UART_C3_OFFSET);
+
+        /* {R|T}XINV bit fields can written any time */
+
+        if (arg & SER_INVERT_ENABLED_RX)
+          {
+            s2 |= UART_S2_RXINV;
+          }
+        else
+          {
+            s2 &= ~UART_S2_RXINV;
+          }
+
+        if (arg & SER_INVERT_ENABLED_TX)
+          {
+            c3 |= UART_C3_TXINV;
+          }
+        else
+          {
+            c3 &= ~UART_C3_TXINV;
+          }
+
+        up_serialout(priv, KINETIS_UART_S2_OFFSET, s2);
+        up_serialout(priv, KINETIS_UART_C3_OFFSET, c3);
+
+        leave_critical_section(flags);
+      }
+     break;
+#endif
+
     default:
       ret = -ENOTTY;
       break;
     }
+
+  UNUSED(regval);
+  UNUSED(priv);
 
   return ret;
 }
@@ -1992,7 +2031,7 @@ unsigned int kinetis_uart_serialinit(unsigned int first)
   /* Register the console */
 
 #ifdef HAVE_UART_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 
 #  ifdef SERIAL_HAVE_CONSOLE_DMA
   /* If we need to re-initialise the console to enable DMA do that here. */
@@ -2004,26 +2043,26 @@ unsigned int kinetis_uart_serialinit(unsigned int first)
   /* Register all UARTs */
 
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS0_DEV);
+  uart_register(devname, &TTYS0_DEV);
 #ifdef TTYS1_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS1_DEV);
+  uart_register(devname, &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS2_DEV);
+  uart_register(devname, &TTYS2_DEV);
 #endif
 #ifdef TTYS3_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS3_DEV);
+  uart_register(devname, &TTYS3_DEV);
 #endif
 #ifdef TTYS4_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS4_DEV);
+  uart_register(devname, &TTYS4_DEV);
 #endif
 #ifdef TTYS5_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS5_DEV);
+  uart_register(devname, &TTYS5_DEV);
 #endif
   return first;
 }

@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -163,7 +162,8 @@ struct up_dev_s
 /* Low-level helpers */
 
 static inline uint32_t up_serialin(struct up_dev_s *priv, int offset);
-static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t value);
+static inline void up_serialout(struct up_dev_s *priv, int offset,
+                                uint32_t value);
 static void up_restoreuartint(struct uart_dev_s *dev, uint8_t im);
 static void up_disableuartint(struct uart_dev_s *dev, uint8_t *im);
 
@@ -245,7 +245,7 @@ static uart_dev_t g_uart1port =
   {
     .size    = CONFIG_UART1_TXBUFSIZE,
     .buffer  = g_uart1txbuffer,
-   },
+  },
   .ops       = &g_uart_ops,
   .priv      = &g_uart1priv,
 };
@@ -279,7 +279,7 @@ static uart_dev_t g_uart2port =
   {
     .size    = CONFIG_UART2_TXBUFSIZE,
     .buffer  = g_uart2txbuffer,
-   },
+  },
   .ops       = &g_uart_ops,
   .priv      = &g_uart2priv,
 };
@@ -302,7 +302,8 @@ static inline uint32_t up_serialin(struct up_dev_s *priv, int offset)
  * Name: up_serialout
  ****************************************************************************/
 
-static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t value)
+static inline void up_serialout(struct up_dev_s *priv, int offset,
+                                uint32_t value)
 {
   putreg32(value, priv->uartbase + offset);
 }
@@ -334,9 +335,10 @@ static void up_disableuartint(struct uart_dev_s *dev, uint8_t *im)
 
   flags = enter_critical_section();
   if (im)
-   {
-     *im = priv->im;
-   }
+    {
+      *im = priv->im;
+    }
+
   up_restoreuartint(dev, 0);
   leave_critical_section(flags);
 }
@@ -403,7 +405,8 @@ static void up_shutdown(struct uart_dev_s *dev)
  *
  *   RX and TX interrupts are not enabled by the attach method (unless the
  *   hardware supports multiple levels of interrupt enabling).  The RX and TX
- *   interrupts are not enabled until the txint() and rxint() methods are called.
+ *   interrupts are not enabled until the txint() and rxint() methods are
+ *   called.
  *
  ****************************************************************************/
 
@@ -447,7 +450,7 @@ static void up_detach(struct uart_dev_s *dev)
  *   interrupt received on the 'irq'  It should call uart_transmitchars or
  *   uart_receivechar to perform the appropriate data transfers.  The
  *   interrupt handling logic must be able to map the 'irq' number into the
- *   approprite uart_dev_s structure in order to call these functions.
+ *   appropriate uart_dev_s structure in order to call these functions.
  *
  ****************************************************************************/
 
@@ -474,18 +477,19 @@ static int up_interrupt(int irq, void *context, void *arg)
        * following error conditions take place:
        *  - Parity error PERR (UxSTA bit 3) is detected
        *  - Framing Error FERR (UxSTA bit 2) is detected
-       *  - Overflow condition for the receive buffer OERR (UxSTA bit 1) occurs
+       *  - Overflow condition for the receive buffer OERR (UxSTA bit 1)
+       *    occurs.
        */
 
 #ifdef CONFIG_DEBUG_FEATURES
       if (up_pending_irq(priv->irqe))
         {
-           /* Clear the pending error interrupt */
+          /* Clear the pending error interrupt */
 
-           up_clrpend_irq(priv->irqe);
-           _err("ERROR: interrupt STA: %08x\n",
-               up_serialin(priv, PIC32MX_UART_STA_OFFSET));
-           handled = true;
+          up_clrpend_irq(priv->irqe);
+          _err("ERROR: interrupt STA: %08x\n",
+              up_serialin(priv, PIC32MX_UART_STA_OFFSET));
+          handled = true;
         }
 #endif
 
@@ -509,7 +513,8 @@ static int up_interrupt(int irq, void *context, void *arg)
            * longer has space to buffer the serial data.
            */
 
-          if ((up_serialin(priv, PIC32MX_UART_STA_OFFSET) & UART_STA_URXDA) == 0)
+          if ((up_serialin(priv, PIC32MX_UART_STA_OFFSET) &
+               UART_STA_URXDA) == 0)
             {
               up_clrpend_irq(priv->irqrx);
             }
@@ -518,8 +523,8 @@ static int up_interrupt(int irq, void *context, void *arg)
       /* Handle outgoing, transmit bytes  The RT FIFO is configured to
        * interrupt only when the TX FIFO is empty.  There are not many
        * options on trigger TX interrupts.  The FIFO-not-full might generate
-       * better through-put but with a higher interrupt rate.  FIFO-empty should
-       * lower the interrupt rate but result in a burstier output.  If
+       * better through-put but with a higher interrupt rate.  FIFO-empty
+       * should lower the interrupt rate but result in a burstier output.  If
        * you change this, You will probably need to change the conditions for
        * clearing the pending TX interrupt below.
        *
@@ -545,7 +550,8 @@ static int up_interrupt(int irq, void *context, void *arg)
            * to be sent.
            */
 
-          if ((up_serialin(priv, PIC32MX_UART_STA_OFFSET) & UART_STA_UTRMT) != 0)
+          if ((up_serialin(priv, PIC32MX_UART_STA_OFFSET) &
+               UART_STA_UTRMT) != 0)
             {
               up_clrpend_irq(priv->irqtx);
             }
@@ -657,7 +663,8 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
 
   /* Then return the actual received byte */
 
-  return  (int)(up_serialin(priv, PIC32MX_UART_RXREG_OFFSET) & UART_RXREG_MASK);
+  return  (int)(up_serialin(priv, PIC32MX_UART_RXREG_OFFSET) &
+                UART_RXREG_MASK);
 }
 
 /****************************************************************************
@@ -678,8 +685,8 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
   im = priv->im;
   if (enable)
     {
-      /* Receive an interrupt when their is anything in the Rx data register (or an Rx
-       * timeout occurs).
+      /* Receive an interrupt when their is anything in the Rx data register
+       * (or an Rx timeout occurs).
        */
 
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
@@ -698,6 +705,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
       up_disable_irq(priv->irqrx);
       DISABLE_RX(im);
     }
+
   priv->im = im;
   leave_critical_section(flags);
 }
@@ -814,6 +822,8 @@ static bool up_txempty(struct uart_dev_s *dev)
  * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
  * Name: up_earlyserialinit
  *
@@ -844,6 +854,7 @@ void up_earlyserialinit(void)
   up_setup(&CONSOLE_DEV);
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: up_serialinit
@@ -859,14 +870,14 @@ void up_serialinit(void)
   /* Register the console */
 
 #ifdef HAVE_SERIAL_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs */
 
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 }
 
@@ -954,4 +965,3 @@ int up_putc(int ch)
 }
 
 #endif /* USE_SERIALDRIVER */
-

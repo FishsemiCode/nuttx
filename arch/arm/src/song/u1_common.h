@@ -241,6 +241,7 @@ static inline bool up_is_u1v1(void)
 
 int up_file_copy(char *dstfile, char *srcfile);
 int up_folder_copy(char *dstdir, char *srcdir);
-int up_folder_copy_append(char *dstdir, char *srcdir);
+int up_file_copy_append(char *dstfile, char *srcfile);
+int up_folder_copy_skippatch(char *dstdir, char *srcdir);
 
 #endif //__ARCH_ARM_SRC_SONG_U1_COMMON_H

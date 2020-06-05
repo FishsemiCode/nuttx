@@ -3,6 +3,13 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+menuconfig RPTUN
+	bool "Remote Proc Tunnel Driver Support"
+	default n
+	depends on OPENAMP
+	---help---
+		RPTUN driver is used for multi-cores' communication.
+
 if RPTUN
 
 config RPTUN_PRIORITY
@@ -24,4 +31,4 @@ config SONG_RPTUN
 	depends on ARCH_CHIP_SONG
 	depends on SONG_MBOX
 
-endif
+endif # RPTUN

@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/xtensa/src/common/arm_reprioritizertr.c
+ *  arch/xtensa/src/common/xtensa_reprioritizertr.c
  *
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -167,7 +167,8 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
 
           /* Copy the exception context into the TCB at the (old) head of the
            * ready-to-run Task list. if up_saveusercontext returns a non-zero
-           * value, then this is really the previously running task restarting!
+           * value, then this is really the previously running task
+           * restarting!
            */
 
           else if (!xtensa_context_save(rtcb->xcp.regs))
@@ -198,7 +199,7 @@ void up_reprioritize_rtr(struct tcb_s *tcb, uint8_t priority)
                * thread at the head of the ready-to-run list.
                */
 
-              (void)group_addrenv(rtcb);
+              group_addrenv(rtcb);
 #endif
               /* Update scheduler parameters */
 

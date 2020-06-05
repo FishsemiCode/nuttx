@@ -58,15 +58,11 @@ extern "C"
 #define EXTERN extern
 #endif
 
-/* The default SYSLOG channel */
-
-struct syslog_channel_s; /* Forward reference */
-EXTERN const struct syslog_channel_s g_default_channel;
-
 /* This is the current syslog channel in use.  It initially points to
  * g_default_channel.
  */
 
+struct syslog_channel_s; /* Forward reference */
 EXTERN FAR const struct syslog_channel_s *g_syslog_channel;
 
 /****************************************************************************
@@ -82,7 +78,7 @@ EXTERN FAR const struct syslog_channel_s *g_syslog_channel;
  *
  *   One power up, the SYSLOG facility is non-existent or limited to very
  *   low-level output.  This function may be called later in the
- *   intialization sequence after full driver support has been initialized.
+ *   initialization sequence after full driver support has been initialized.
  *   (via syslog_initialize())  It installs the configured SYSLOG drivers
  *   and enables full SYSLOGing capability.
  *
@@ -123,7 +119,7 @@ int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode);
  ****************************************************************************/
 
 #ifdef CONFIG_SYSLOG_FILE
-int syslog_dev_uninitialize(void);
+void syslog_dev_uninitialize(void);
 #endif /* CONFIG_SYSLOG_FILE */
 
 /****************************************************************************
@@ -208,7 +204,7 @@ void syslog_register(void);
  *
  * Description:
  *   Add one more character to the interrupt buffer.  In the event of
- *   buffer overlowed, the character will be dropped.  The indication
+ *   buffer overflowed, the character will be dropped.  The indication
  *   "[truncated]\n" will be appended to the end of the interrupt buffer.
  *
  * Input Parameters:
@@ -262,8 +258,8 @@ int syslog_flush_intbuffer(FAR const struct syslog_channel_s *channel,
  *   ch - The character to add to the SYSLOG (must be positive).
  *
  * Returned Value:
- *   On success, the character is echoed back to the caller.  Minus one
- *   is returned on any failure with the errno set correctly.
+ *   On success, the character is echoed back to the caller.  A negated
+ *   errno value is returned on any failure.
  *
  ****************************************************************************/
 
@@ -310,7 +306,7 @@ int syslog_force(int ch);
  * Name: syslog_dev_write
  *
  * Description:
- *   This is the low-level, multile byte, system logging interface provided
+ *   This is the low-level, multiple byte, system logging interface provided
  *   for the character driver interface.
  *
  * Input Parameters:

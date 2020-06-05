@@ -43,13 +43,12 @@
 #include <errno.h>
 #include <debug.h>
 #include <string.h>
-#include <semaphore.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/random.h>
-
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/sensors/lis3mdl.h>
 
 #if defined(CONFIG_SPI) && defined(CONFIG_SENSORS_LIS3MDL)
@@ -119,10 +118,8 @@ static const struct file_operations g_lis3mdl_fops =
   lis3mdl_read,
   lis3mdl_write,
   NULL,
-  lis3mdl_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  lis3mdl_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL
 #endif
@@ -223,7 +220,9 @@ static void lis3mdl_read_measurement_data(FAR struct lis3mdl_dev_s *dev)
 {
   /* Magnetic data */
 
-  uint16_t x_mag = 0, y_mag = 0, z_mag = 0;
+  uint16_t x_mag = 0;
+  uint16_t y_mag = 0;
+  uint16_t z_mag = 0;
 
   lis3mdl_read_magnetic_data(dev, &x_mag, &y_mag, &z_mag);
 
@@ -233,12 +232,12 @@ static void lis3mdl_read_measurement_data(FAR struct lis3mdl_dev_s *dev)
 
   lis3mdl_read_temperature(dev, &temperature);
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   int ret = nxsem_wait(&dev->datasem);
   if (ret != OK)
     {
-      snerr("ERROR: Could not aquire dev->datasem: %d\n", ret);
+      snerr("ERROR: Could not acquire dev->datasem: %d\n", ret);
       return;
     }
 
@@ -316,7 +315,8 @@ static void lis3mdl_read_temperature(FAR struct lis3mdl_dev_s *dev,
 
   /* Transmit the register address from where we want to start reading 0x80 ->
    * MSB is set -> Read Indication 0x40 -> MSB-1 (MS-Bit) is set -> auto
-   * increment of address when reading multiple bytes */
+   * increment of address when reading multiple bytes.
+   */
 
   SPI_SEND(dev->spi, (LIS3MDL_TEMP_OUT_L_REG | 0x80 | 0x40));
 
@@ -341,7 +341,8 @@ static void lis3mdl_read_temperature(FAR struct lis3mdl_dev_s *dev,
 static int lis3mdl_interrupt_handler(int irq, FAR void *context)
 {
   /* This function should be called upon a rising edge on the LIS3MDL DRDY pin
-   * since it signals that new data has been measured. */
+   * since it signals that new data has been measured.
+   */
 
   FAR struct lis3mdl_dev_s *priv = 0;
   int ret;
@@ -354,7 +355,8 @@ static int lis3mdl_interrupt_handler(int irq, FAR void *context)
 
   /* Task the worker with retrieving the latest sensor data. We should not do
    * this in a interrupt since it might take too long. Also we cannot lock the
-   * SPI bus from within an interrupt. */
+   * SPI bus from within an interrupt.
+   */
 
   DEBUGASSERT(priv->work.worker == NULL);
   ret = work_queue(HPWORK, &priv->work, lis3mdl_worker, priv, 0);
@@ -386,6 +388,7 @@ static void lis3mdl_worker(FAR void *arg)
 /****************************************************************************
  * Name: lis3mdl_open
  ****************************************************************************/
+
 static int lis3mdl_open(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
@@ -400,7 +403,8 @@ static int lis3mdl_open(FAR struct file *filep)
   lis3mdl_reset(priv);
 
   /* Enable * - the maximum full scale mode. * Full scale = +/- 1.6 mT (16
-   * Gauss) */
+   * Gauss).
+   */
 
   lis3mdl_write_register(priv,
                          LIS3MDL_CTRL_REG_2,
@@ -409,7 +413,8 @@ static int lis3mdl_open(FAR struct file *filep)
 
   /* Enable - temperature sensor - ultra high performance mode (UMP) for X and
    * Y - fast output data rates This results in a output data rate of 155 Hz
-   * for X and Y */
+   * for X and Y.
+   */
 
   lis3mdl_write_register(priv,
                          LIS3MDL_CTRL_REG_1,
@@ -418,7 +423,8 @@ static int lis3mdl_open(FAR struct file *filep)
                          | LIS3MDL_CTRL_REG_1_FAST_ODR_bm);
 
   /* Enable * - ultra high performance mode (UMP) for Z * This should result to
-   * the same output data rate as for X and Y. */
+   * the same output data rate as for X and Y.
+   */
 
   lis3mdl_write_register(priv,
                          LIS3MDL_CTRL_REG_4,
@@ -426,11 +432,12 @@ static int lis3mdl_open(FAR struct file *filep)
                          LIS3MDL_CTRL_REG_4_OMZ_0_bm);
 
   /* Enable * - block data update for magnetic sensor data * This should
-   * prevent race conditions when reading sensor data. */
+   * prevent race conditions when reading sensor data.
+   */
 
   lis3mdl_write_register(priv, LIS3MDL_CTRL_REG_5, LIS3MDL_CTRL_REG_5_BDU_bm);
 
-  /* Enable continous conversion mode - the device starts measuring now. */
+  /* Enable continuous conversion mode - the device starts measuring now. */
 
   lis3mdl_write_register(priv, LIS3MDL_CTRL_REG_3, 0);
 
@@ -495,12 +502,12 @@ static ssize_t lis3mdl_read(FAR struct file *filep, FAR char *buffer,
       return -ENOSYS;
     }
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   ret = nxsem_wait(&priv->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire priv->datasem: %d\n", ret);
+      snerr("ERROR: Could not acquire priv->datasem: %d\n", ret);
       return ret;
     }
 
@@ -629,7 +636,8 @@ int lis3mdl_register(FAR const char *devpath, FAR struct spi_dev_s *spi,
 
   /* Since we support multiple LIS3MDL devices are supported, we will need to
    * add this new instance to a list of device instances so that it can be
-   * found by the interrupt handler based on the received IRQ number. */
+   * found by the interrupt handler based on the received IRQ number.
+   */
 
   priv->flink    = g_lis3mdl_list;
   g_lis3mdl_list = priv;

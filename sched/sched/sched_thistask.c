@@ -73,9 +73,9 @@ FAR struct tcb_s *this_task(void)
 #if defined(CONFIG_ARCH_GLOBAL_IRQDISABLE)
   irqstate_t flags;
 
-  /* If the CPU supports suppression of interprocessor interrupts, then simple
-   * disabling interrupts will provide sufficient protection for the following
-   * operations.
+  /* If the CPU supports suppression of interprocessor interrupts, then
+   * simple disabling interrupts will provide sufficient protection for
+   * the following operations.
    */
 
   flags = up_irq_save();
@@ -90,6 +90,7 @@ FAR struct tcb_s *this_task(void)
    * enter_critical section are not viable options here (because both depend
    * on this_task()).
    */
+
 #  warning "Missing critical section"
 #endif
 

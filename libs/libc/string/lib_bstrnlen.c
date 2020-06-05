@@ -41,11 +41,12 @@
 
 #include <stdlib.h>
 
+#if !defined(CONFIG_ENDIAN_BIG) && CHAR_BIT != 8
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#if !defined(CONFIG_ENDIAN_BIG) && CHAR_BIT != 8
 size_t bstrnlen(FAR const char *src, size_t maxlen)
 {
   size_t len = 0;
@@ -61,7 +62,9 @@ size_t bstrnlen(FAR const char *src, size_t maxlen)
               return len;
             }
         }
+
       src++;
     }
 }
+
 #endif

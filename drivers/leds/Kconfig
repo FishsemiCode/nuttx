@@ -63,11 +63,11 @@ config FISHLED
 		Enable support for fish led driver.
 
 config RGBLED
-        bool "RGB LED Driver Support"
-        default n
-        ---help---
-                This selection enables building of the "upper-half" RGB LED driver.
-                See include/nuttx/rgbled.h for further PWM driver information.
+	bool "RGB LED Driver Support"
+	default n
+	---help---
+		This selection enables building of the "upper-half" RGB LED driver.
+		See include/nuttx/rgbled.h for further PWM driver information.
 
 config RGBLED_INVERT
 	bool "Invert RGB LED Output"

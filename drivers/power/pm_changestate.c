@@ -3,6 +3,7 @@
  *
  *   Copyright (C) 2011-2012, 2016, 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
+ *   Author: Matias Nitsche <mnitsche@dc.uba.ar>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -51,72 +52,8 @@
 #ifdef CONFIG_PM
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define PM_TIMER_GAP        (TIME_SLICE_TICKS * 2)
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
-
-static void pm_timer_cb(int argc, wdparm_t arg1, ...)
-{
-  /* Do nothing here, cause we only need TIMER ISR to wake up PM,
-   * for deceasing PM state.
-   */
-}
-
-/****************************************************************************
- * Name: pm_timer
- *
- * Description:
- *   This internal function is called to start one timer to decrease power
- *   state level.
- *
- * Input Parameters:
- *   domain - The PM domain associated with the accumulator
- *
- * Returned Value:
- *   None.
- *
- ****************************************************************************/
-
-static void pm_timer(int domain)
-{
-  FAR struct pm_domain_s *pdom = &g_pmglobals.domain[domain];
-  static const int pmtick[3] =
-  {
-    TIME_SLICE_TICKS * CONFIG_PM_IDLEENTER_COUNT,
-    TIME_SLICE_TICKS * CONFIG_PM_STANDBYENTER_COUNT,
-    TIME_SLICE_TICKS * CONFIG_PM_SLEEPENTER_COUNT
-  };
-
-  if (!pdom->wdog)
-    {
-      pdom->wdog = wd_create();
-    }
-
-  if (pdom->state < PM_SLEEP && !pdom->stay[pdom->state])
-    {
-      int delay = pmtick[pdom->state] + pdom->btime - clock_systimer();
-      int left  = wd_gettime(pdom->wdog);
-
-      if (delay <= 0)
-        {
-          delay = 1;
-        }
-
-      if (!WDOG_ISACTIVE(pdom->wdog) || abs(delay - left) > PM_TIMER_GAP)
-        {
-          wd_start(pdom->wdog, delay, pm_timer_cb, 0);
-        }
-    }
-  else
-    {
-      wd_cancel(pdom->wdog);
-    }
-}
 
 /****************************************************************************
  * Name: pm_prepall
@@ -125,7 +62,7 @@ static void pm_timer(int domain)
  *   Prepare every driver for the state change.
  *
  * Input Parameters:
- *   domain - Identifies the domain of the new PM state
+ *   domain   - Identifies the domain of the new PM state
  *   newstate - Identifies the new PM state
  *
  * Returned Value:
@@ -194,7 +131,7 @@ static int pm_prepall(int domain, enum pm_state_e newstate)
  *   Inform all drivers of the state change.
  *
  * Input Parameters:
- *   domain - Identifies the domain of the new PM state
+ *   domain   - Identifies the domain of the new PM state
  *   newstate - Identifies the new PM state
  *
  * Returned Value:
@@ -209,11 +146,12 @@ static inline void pm_changeall(int domain, enum pm_state_e newstate)
 {
   FAR dq_entry_t *entry;
 
-if (newstate <= g_pmglobals.domain[domain].state)
+  if (newstate <= g_pmglobals.domain[domain].state)
     {
       /* Visit each registered callback structure in normal order. */
 
-      for (entry = dq_peek(&g_pmglobals.registry); entry; entry = dq_next(entry))
+      for (entry = dq_peek(&g_pmglobals.registry);
+           entry; entry = dq_next(entry))
         {
           /* Is the notification callback supported? */
 
@@ -230,7 +168,8 @@ if (newstate <= g_pmglobals.domain[domain].state)
     {
       /* Visit each registered callback structure in reverse order. */
 
-    for (entry = dq_tail(&g_pmglobals.registry); entry; entry = dq_prev(entry))
+      for (entry = dq_tail(&g_pmglobals.registry);
+           entry; entry = dq_prev(entry))
         {
           /* Is the notification callback supported? */
 
@@ -258,7 +197,7 @@ if (newstate <= g_pmglobals.domain[domain].state)
  *   drivers that have registered for power management event callbacks.
  *
  * Input Parameters:
- *   domain - Identifies the domain of the new PM state
+ *   domain   - Identifies the domain of the new PM state
  *   newstate - Identifies the new PM state
  *
  * Returned Value:
@@ -282,9 +221,9 @@ int pm_changestate(int domain, enum pm_state_e newstate)
   irqstate_t flags;
   int ret;
 
-  DEBUGASSERT(domain >=0 && domain < CONFIG_PM_NDOMAINS);
+  DEBUGASSERT(domain >= 0 && domain < CONFIG_PM_NDOMAINS);
 
-  /* Disable interrupts throught this operation... changing driver states
+  /* Disable interrupts throughout this operation... changing driver states
    * could cause additional driver activity that might interfere with the
    * state change.  When the state change is complete, interrupts will be
    * re-enabled.
@@ -304,7 +243,7 @@ int pm_changestate(int domain, enum pm_state_e newstate)
        */
 
       newstate =  g_pmglobals.domain[domain].state;
-      (void)pm_prepall(domain, newstate);
+      pm_prepall(domain, newstate);
     }
 
   /* All drivers have agreed to the state change (or, one or more have
@@ -315,10 +254,13 @@ int pm_changestate(int domain, enum pm_state_e newstate)
   if (newstate != PM_RESTORE)
     {
       g_pmglobals.domain[domain].state = newstate;
+    }
 
-      /* Start PM timer to decrease PM state */
+  /* Notify governor of (possible) state change */
 
-      pm_timer(domain);
+  if (g_pmglobals.governor->statechanged)
+    {
+      g_pmglobals.governor->statechanged(domain, newstate);
     }
 
   /* Restore the interrupt state */

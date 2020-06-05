@@ -4,7 +4,7 @@
  *   Copyright(C) 2012, 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Ported from from the LPC17 version:
+ * Ported from the LPC17 version:
  *
  *   Copyright(C) 2011 Li Zhuoyi. All rights reserved.
  *   Copyright(C) 2016 Gregory Nutt. All rights reserved.
@@ -54,7 +54,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -74,8 +73,8 @@
 #include "lpc43_ccu.h"
 #include "lpc43_creg.h"
 
-#include "chip/lpc43_gima.h"
-#include "chip/lpc43_timer.h"
+#include "hardware/lpc43_gima.h"
+#include "hardware/lpc43_timer.h"
 
 #include "lpc43_pinconfig.h"
 

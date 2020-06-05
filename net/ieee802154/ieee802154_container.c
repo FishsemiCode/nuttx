@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -65,7 +64,7 @@
 
 static FAR struct ieee802154_container_s *g_free_container;
 
-/* Pool of pre-allocated meta-data stuctures */
+/* Pool of pre-allocated meta-data structures */
 
 static struct ieee802154_container_s
   g_container_pool[CONFIG_NET_IEEE802154_NCONTAINERS];
@@ -120,7 +119,7 @@ void ieee802154_container_initialize(void)
  * Name: ieee802154_container_allocate
  *
  * Description:
- *   The ieee802154_container_allocate function will get a free continer
+ *   The ieee802154_container_allocate function will get a free container
  *   for use by the recvfrom() logic.
  *
  *   This function will first attempt to allocate from the g_free_container
@@ -131,9 +130,9 @@ void ieee802154_container_initialize(void)
  *   None
  *
  * Returned Value:
- *   A reference to the allocated container structure.  All user fields in this
- *   structure have been zeroed.  On a failure to allocate, NULL is
- *   returned.
+ *   A reference to the allocated container structure.
+ *   All user fields in this structure have been zeroed.
+ *   On a failure to allocate, NULL is returned.
  *
  * Assumptions:
  *   The caller has locked the network.
@@ -167,10 +166,10 @@ FAR struct ieee802154_container_s *ieee802154_container_allocate(void)
 
   if (container != NULL)
     {
-       /* Zero and tag the allocated meta-data structure. */
+      /* Zero and tag the allocated meta-data structure. */
 
-       memset(container, 0, sizeof(struct ieee802154_container_s));
-       container->ic_pool = pool;
+      memset(container, 0, sizeof(struct ieee802154_container_s));
+      container->ic_pool = pool;
     }
 
   return container;

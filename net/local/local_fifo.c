@@ -54,7 +54,7 @@
 #include "local/local.h"
 
 /****************************************************************************
- * Private Functions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 #define LOCAL_CS_SUFFIX    "CS"  /* Name of the client-to-server FIFO */
@@ -82,13 +82,13 @@ static inline void local_cs_name(FAR struct local_conn_s *conn,
 {
   if (conn->lc_instance_id < 0)
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_CS_SUFFIX,
-                     conn->lc_path);
+      snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_CS_SUFFIX,
+               conn->lc_path);
     }
   else
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_CS_SUFFIX "%x",
-                     conn->lc_path, conn->lc_instance_id);
+      snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_CS_SUFFIX "%x",
+               conn->lc_path, conn->lc_instance_id);
     }
 
   path[LOCAL_FULLPATH_LEN - 1] = '\0';
@@ -109,13 +109,13 @@ static inline void local_sc_name(FAR struct local_conn_s *conn,
 {
   if (conn->lc_instance_id < 0)
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_SC_SUFFIX,
-                     conn->lc_path);
+      snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_SC_SUFFIX,
+               conn->lc_path);
     }
   else
     {
-      (void)snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_SC_SUFFIX "%x",
-                     conn->lc_path, conn->lc_instance_id);
+      snprintf(path, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_SC_SUFFIX "%x",
+               conn->lc_path, conn->lc_instance_id);
     }
 
   path[LOCAL_FULLPATH_LEN - 1] = '\0';
@@ -133,8 +133,8 @@ static inline void local_sc_name(FAR struct local_conn_s *conn,
 #ifdef CONFIG_NET_LOCAL_DGRAM
 static inline void local_hd_name(FAR const char *inpath, FAR char *outpath)
 {
-  (void)snprintf(outpath, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_HD_SUFFIX,
-                 inpath);
+  snprintf(outpath, LOCAL_FULLPATH_LEN - 1, "%s" LOCAL_HD_SUFFIX,
+          inpath);
   outpath[LOCAL_FULLPATH_LEN - 1] = '\0';
 }
 #endif /* CONFIG_NET_LOCAL_DGRAM */
@@ -330,7 +330,7 @@ static int local_set_policy(FAR struct file *filep, unsigned long policy)
   ret = file_ioctl(filep, PIPEIOC_POLICY, policy);
   if (ret < 0)
     {
-      nerr("ERROR: Failed to set FIFO buffer policty: %d\n", ret);
+      nerr("ERROR: Failed to set FIFO buffer policy: %d\n", ret);
     }
 
   return ret;
@@ -437,7 +437,7 @@ int local_release_halfduplex(FAR struct local_conn_s *conn)
    * oriented Unix domain socket, we don't really know the best time to
    * release the FIFO resource.  It would be extremely inefficient to create
    * and destroy the FIFO on each packet. But, on the other hand, failing
-   * to destory the FIFO will leave the FIFO resources in place after the
+   * to destroy the FIFO will leave the FIFO resources in place after the
    * communications have completed.
    *
    * I am thinking that there should be something like a timer.  The timer

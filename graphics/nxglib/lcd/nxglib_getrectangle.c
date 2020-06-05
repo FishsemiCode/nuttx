@@ -67,7 +67,7 @@ void NXGL_FUNCNAME(nxgl_getrectangle, NXGLIB_SUFFIX)
   unsigned int ncols;
   unsigned int srcrow;
 
-  /* Get the width of the rectange to move in pixels. */
+  /* Get the width of the rectangle to move in pixels. */
 
   ncols = rect->pt2.x - rect->pt1.x + 1;
 
@@ -79,7 +79,7 @@ void NXGL_FUNCNAME(nxgl_getrectangle, NXGLIB_SUFFIX)
 
   for (srcrow = rect->pt1.y; srcrow <= rect->pt2.y; srcrow++)
     {
-      (void)pinfo->getrun(srcrow, rect->pt1.x, dline, ncols);
+      pinfo->getrun(srcrow, rect->pt1.x, dline, ncols);
       dline += deststride;
     }
 }

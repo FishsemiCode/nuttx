@@ -37,7 +37,7 @@
 /* NOTE: Some Maxim MAX6675 chips have an issue it report value 25% lower
  * of real temperature, for more info read this thread:
  * http://www.eevblog.com/forum/projects/max6675-temperature-error/
-*/
+ */
 
 /****************************************************************************
  * Included Files
@@ -103,10 +103,8 @@ static const struct file_operations g_max6675fops =
   max6675_read,
   max6675_write,
   NULL,
+  NULL,
   NULL
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
 };
 
 /****************************************************************************
@@ -123,10 +121,10 @@ static const struct file_operations g_max6675fops =
 
 static void max6675_lock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
   SPI_SETMODE(spi, SPIDEV_MODE0);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
+  SPI_HWFEATURES(spi, 0);
   SPI_SETFREQUENCY(spi, 4000000);
 }
 
@@ -140,7 +138,7 @@ static void max6675_lock(FAR struct spi_dev_s *spi)
 
 static void max6675_unlock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 /****************************************************************************
@@ -210,8 +208,8 @@ static ssize_t max6675_read(FAR struct file *filep, FAR char *buffer, size_t buf
   SPI_SELECT(priv->spi, SPIDEV_TEMPERATURE(0), false);
   max6675_unlock(priv->spi);
 
-  regval  = (regmsb & 0xFF00) >> 8;
-  regval |= (regmsb & 0xFF) << 8;
+  regval  = (regmsb & 0xff00) >> 8;
+  regval |= (regmsb & 0xff) << 8;
 
   sninfo("Read from MAX6675 = 0x%04X\n", regval);
 

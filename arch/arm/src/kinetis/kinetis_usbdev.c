@@ -71,8 +71,8 @@
 #include "up_arch.h"
 #include "kinetis.h"
 #include "kinetis_usbotg.h"
-#include "chip/kinetis_sim.h"
-#include "chip/kinetis_fmc.h"
+#include "hardware/kinetis_sim.h"
+#include "hardware/kinetis_fmc.h"
 
 #if defined(CONFIG_USBDEV)
 
@@ -621,8 +621,8 @@ static void   khci_reset(struct khci_usbdev_s *priv);
 static void   khci_attach(struct khci_usbdev_s *priv);
 static void   khci_swreset(struct khci_usbdev_s *priv);
 static void   khci_hwreset(struct khci_usbdev_s *priv);
-static void   khci_swinitalize(struct khci_usbdev_s *priv);
-static void   khci_hwinitalize(struct khci_usbdev_s *priv);
+static void   khci_swinitialize(struct khci_usbdev_s *priv);
+static void   khci_hwinitialize(struct khci_usbdev_s *priv);
 static void   khci_hwshutdown(struct khci_usbdev_s *priv);
 
 /****************************************************************************
@@ -1096,7 +1096,7 @@ static void khci_rqrestart(int argc, uint32_t arg1, ...)
 #ifndef CONFIG_USBDEV_NOWRITEAHEAD
               privreq->inflight[1] = 0;
 #endif
-              (void)khci_wrrequest(priv, privep);
+              khci_wrrequest(priv, privep);
             }
         }
     }
@@ -1114,8 +1114,8 @@ static void khci_delayedrestart(struct khci_usbdev_s *priv, uint8_t epno)
 
   /* And start (or re-start) the watchdog timer */
 
-  (void)wd_start(priv->wdog, RESTART_DELAY, khci_rqrestart, 1,
-                 (uint32_t)priv);
+  wd_start(priv->wdog, RESTART_DELAY, khci_rqrestart, 1,
+           (uint32_t)priv);
 }
 
 /****************************************************************************
@@ -1366,7 +1366,7 @@ static int khci_wrrequest(struct khci_usbdev_s *priv, struct khci_ep_s *privep)
        * queued
        */
 
-      (void)khci_wrstart(priv, privep);
+      khci_wrstart(priv, privep);
     }
 #else
   UNUSED(ret);
@@ -1582,7 +1582,7 @@ static int khci_rdsetup(struct khci_ep_s *privep, uint8_t *dest, int readlen)
    * in order to improve performance.
    *
    * Note that we NULLify the BDT OUT entries.  This is so that we can tell
-   * that the BDT readlly available.  No, it is not sufficient to look at the
+   * that the BDT readily available.  No, it is not sufficient to look at the
    * UOWN bit.  If UOWN==0, then the transfer has been completed BUT it may
    * not yet have been processed.  But a completely NULLified BDT is a sure
    * indication
@@ -1840,7 +1840,7 @@ static void khci_eptransfer(struct khci_usbdev_s *priv, uint8_t epno,
         {
           /* If that succeeds, then try to set up another OUT transfer. */
 
-          (void)khci_rdrequest(priv, privep);
+          khci_rdrequest(priv, privep);
         }
 #else
       UNUSED(ret);
@@ -1860,7 +1860,7 @@ static void khci_eptransfer(struct khci_usbdev_s *priv, uint8_t epno,
 
       /* Handle additional queued write requests */
 
-      (void)khci_wrrequest(priv, privep);
+      khci_wrrequest(priv, privep);
     }
 }
 
@@ -1871,7 +1871,7 @@ static void khci_eptransfer(struct khci_usbdev_s *priv, uint8_t epno,
  *   This function is called (1) after successful completion of an EP0 Setup
  *   command, or (2) after receipt of the OUT complete event (for simple
  *   transfers).  It simply sets up the single BDT to accept the next
- *   SETUP commend.
+ *   SETUP command.
  *
  ****************************************************************************/
 
@@ -2472,7 +2472,7 @@ resume_packet_processing:
    * could stall the endpoint and perhaps speed things up a bit???.
    */
 
-   /* Set up the BDT to accept the next setup commend. */
+   /* Set up the BDT to accept the next setup command. */
 
    khci_ep0nextsetup(priv);
    priv->ctrlstate = CTRLSTATE_WAITSETUP;
@@ -2718,7 +2718,7 @@ static void khci_ep0transfer(struct khci_usbdev_s *priv, uint16_t ustat)
       /* Stall EP0 */
 
       usbtrace(TRACE_DEVERROR(KHCI_TRACEERR_EP0SETUPSTALLED), priv->ctrlstate);
-      (void)khci_epstall(&priv->eplist[EP0].ep, false);
+      khci_epstall(&priv->eplist[EP0].ep, false);
     }
 }
 
@@ -2827,13 +2827,13 @@ static int khci_interrupt(int irq, void *context, FAR void *arg)
         /* Disable and deactivate HNP */
 #warning Missing Logic
 #endif
-      /* Acknowlege the reset interrupt */
+      /* Acknowledge the reset interrupt */
 
       khci_putreg(USB_INT_USBRST, KINETIS_USB0_ISTAT);
       goto interrupt_exit;
     }
 
-#ifdef  CONFIG_KINETIS_USBOTG
+#ifdef CONFIG_KINETIS_USBOTG
   /* Check if the ID Pin Changed State */
 
   if ((otgir & USB_OTGISTAT_IDCHG) != 0)
@@ -2965,7 +2965,7 @@ static int khci_interrupt(int irq, void *context, FAR void *arg)
 
 interrupt_exit:
   kinetis_clrpend(KINETIS_IRQ_USBOTG);
-#ifdef  CONFIG_KINETIS_USBOTG
+#ifdef CONFIG_KINETIS_USBOTG
   usbtrace(TRACE_INTEXIT(KHCI_TRACEINTID_INTERRUPT), usbir | otgir);
 #else
   usbtrace(TRACE_INTEXIT(KHCI_TRACEINTID_INTERRUPT), usbir);
@@ -3519,7 +3519,7 @@ static int khci_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 
       if (!privep->stalled)
         {
-          (void)khci_wrrequest(priv, privep);
+          khci_wrrequest(priv, privep);
         }
     }
 
@@ -3538,7 +3538,7 @@ static int khci_epsubmit(struct usbdev_ep_s *ep, struct usbdev_req_s *req)
 
       if (!privep->stalled)
         {
-          (void)khci_rdrequest(priv, privep);
+          khci_rdrequest(priv, privep);
         }
     }
 
@@ -3653,7 +3653,7 @@ static int khci_epbdtstall(struct usbdev_ep_s *ep, bool resume, bool epin)
 
       /* Check for the EP0 OUT endpoint.  This is a special case because we
        * need to set it up to receive the next setup packet (Hmmm... what
-       * if there are queued outgoing reponses.  We need to revisit this.)
+       * if there are queued outgoing responses.  We need to revisit this.)
        */
 
       if (epno == 0 && !epin)
@@ -3876,7 +3876,7 @@ static void khci_freeep(struct usbdev_s *dev, struct usbdev_ep_s *ep)
 
   /* Disable the endpoint */
 
-  (void)khci_epdisable(ep);
+  khci_epdisable(ep);
 
   /* Mark the endpoint as available */
 
@@ -4183,14 +4183,14 @@ static void khci_hwreset(struct khci_usbdev_s *priv)
 }
 
 /****************************************************************************
- * Name: khci_hwinitalize
+ * Name: khci_hwinitialize
  *
  * Description:
  *   Reset the hardware and leave it in a known, unready state.
  *
  ****************************************************************************/
 
-static void khci_hwinitalize(struct khci_usbdev_s *priv)
+static void khci_hwinitialize(struct khci_usbdev_s *priv)
 {
   uint32_t regval;
 
@@ -4243,10 +4243,10 @@ static void khci_hwinitalize(struct khci_usbdev_s *priv)
 }
 
 /****************************************************************************
- * Name: khci_swinitalize
+ * Name: khci_swinitialize
  ****************************************************************************/
 
-static void khci_swinitalize(struct khci_usbdev_s *priv)
+static void khci_swinitialize(struct khci_usbdev_s *priv)
 {
   int epno;
 
@@ -4358,7 +4358,7 @@ void up_usbinitialize(void)
 
   /* Initialize the driver state structure */
 
-  khci_swinitalize(priv);
+  khci_swinitialize(priv);
 
   /* Select clock source:
    * SIM_SOPT2[PLLFLLSEL] and SIM_CLKDIV2[USBFRAC, USBDIV] will have been
@@ -4404,7 +4404,7 @@ void up_usbinitialize(void)
       return;
     }
 
-  khci_hwinitalize(priv);
+  khci_hwinitialize(priv);
 }
 
 /****************************************************************************
@@ -4578,7 +4578,7 @@ int usbdev_unregister(struct usbdevclass_driver_s *driver)
    */
 
   khci_hwshutdown(priv);
-  khci_swinitalize(priv);
+  khci_swinitialize(priv);
 
   leave_critical_section(flags);
   return OK;

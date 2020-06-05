@@ -8,7 +8,8 @@
  *
  * For SST25VF064, see sst25cxx.c driver instead.
  *
- *   Copyright (C) 2009-2011, 2013, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2009-2011, 2013, 2016-2017, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Ken Pettit <pettitkd@gmail.com>
  *   Author: Sebastien Lorquet <sebastien@lorquet.fr>
  *
@@ -70,6 +71,7 @@
  ************************************************************************************/
 
 /* Configuration ********************************************************************/
+
 /* Per the data sheet, SST26 parts can be driven with either SPI mode 0 (CPOL=0 and
  * CPHA=0) or mode 3 (CPOL=1 and CPHA=1).  So you may need to specify
  * CONFIG_SST26_SPIMODE to select the best mode for your device.  If
@@ -95,11 +97,12 @@
 #endif
 
 #ifndef CONFIG_SST26_MEMORY_TYPE
-#  define CONFIG_SST26_MEMORY_TYPE  0x25
+#  define CONFIG_SST26_MEMORY_TYPE  0x26
 #endif
 
 /* SST26 Registers *******************************************************************/
-/* Indentification register values */
+
+/* Identification register values */
 
 #define SST26_MANUFACTURER         CONFIG_SST26_MANUFACTURER
 #define SST26_MEMORY_TYPE          CONFIG_SST26_MEMORY_TYPE
@@ -229,6 +232,7 @@ struct sst26_dev_s
 {
   struct mtd_dev_s mtd;      /* MTD interface */
   FAR struct spi_dev_s *dev; /* Saved SPI interface instance */
+  bool     lastwaswrite;
   uint8_t  sectorshift;
   uint8_t  pageshift;
   uint16_t nsectors;
@@ -248,10 +252,11 @@ static void sst26_waitwritecomplete(struct sst26_dev_s *priv);
 static void sst26_writeenable(struct sst26_dev_s *priv);
 static void sst26_writedisable(struct sst26_dev_s *priv);
 static void sst26_globalunlock(struct sst26_dev_s *priv);
-static inline void sst26_sectorerase(struct sst26_dev_s *priv, off_t offset, uint8_t type);
+static inline void sst26_sectorerase(struct sst26_dev_s *priv, off_t offset,
+                                     uint8_t type);
 static inline int  sst26_chiperase(struct sst26_dev_s *priv);
-static inline void sst26_pagewrite(struct sst26_dev_s *priv, FAR const uint8_t *buffer,
-                                   off_t offset);
+static inline void sst26_pagewrite(struct sst26_dev_s *priv,
+                                   FAR const uint8_t *buffer, off_t offset);
 
 /* MTD driver methods */
 
@@ -278,26 +283,26 @@ static int sst26_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
 static void sst26_lock(FAR struct spi_dev_s *dev)
 {
-  /* On SPI busses where there are multiple devices, it will be necessary to
-   * lock SPI to have exclusive access to the busses for a sequence of
+  /* On SPI buses where there are multiple devices, it will be necessary to
+   * lock SPI to have exclusive access to the buses for a sequence of
    * transfers.  The bus should be locked before the chip is selected.
    *
-   * This is a blocking call and will not return until we have exclusiv access to
-   * the SPI buss.  We will retain that exclusive access until the bus is unlocked.
+   * This is a blocking call and will not return until we have exclusive access to
+   * the SPI bus.  We will retain that exclusive access until the bus is unlocked.
    */
 
-  (void)SPI_LOCK(dev, true);
+  SPI_LOCK(dev, true);
 
-  /* After locking the SPI bus, the we also need call the setfrequency, setbits, and
-   * setmode methods to make sure that the SPI is properly configured for the device.
-   * If the SPI buss is being shared, then it may have been left in an incompatible
-   * state.
+  /* After locking the SPI bus, then we also need to call the setfrequency, setbits,
+   * and setmode methods to make sure that the SPI is properly configured for the
+   * device.  If the SPI bus is being shared, then it may have been left in an
+   * incompatible state.
    */
 
   SPI_SETMODE(dev, CONFIG_SST26_SPIMODE);
   SPI_SETBITS(dev, 8);
-  (void)SPI_HWFEATURES(dev, 0);
-  (void)SPI_SETFREQUENCY(dev, CONFIG_SST26_SPIFREQUENCY);
+  SPI_HWFEATURES(dev, 0);
+  SPI_SETFREQUENCY(dev, CONFIG_SST26_SPIFREQUENCY);
 }
 
 /************************************************************************************
@@ -306,7 +311,7 @@ static void sst26_lock(FAR struct spi_dev_s *dev)
 
 static inline void sst26_unlock(FAR struct spi_dev_s *dev)
 {
-  (void)SPI_LOCK(dev, false);
+  SPI_LOCK(dev, false);
 }
 
 /************************************************************************************
@@ -328,12 +333,12 @@ static inline int sst26_readid(struct sst26_dev_s *priv)
 
   /* Send the "Read ID (RDID)" command and read the first three ID bytes */
 
-  (void)SPI_SEND(priv->dev, SST26_RDID);
+  SPI_SEND(priv->dev, SST26_RDID);
   manufacturer = SPI_SEND(priv->dev, SST26_DUMMY);
   memory       = SPI_SEND(priv->dev, SST26_DUMMY);
   capacity     = SPI_SEND(priv->dev, SST26_DUMMY);
 
-  /* Deselect the FLASH and unlock the bus */
+  /* De-select the FLASH and unlock the bus */
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), false);
   sst26_unlock(priv->dev);
@@ -349,23 +354,33 @@ static inline int sst26_readid(struct sst26_dev_s *priv)
 
       if (capacity == SST26_SST26VF064_CAPACITY)
         {
-           /* Save the FLASH geometry */
+          /* Save the FLASH geometry */
 
-           priv->sectorshift = SST26_SST26VF064_SECTOR_SHIFT;
-           priv->nsectors    = SST26_SST26VF064_NSECTORS;
-           priv->pageshift   = SST26_SST26VF064_PAGE_SHIFT;
-           priv->npages      = SST26_SST26VF064_NPAGES;
-           return OK;
+          priv->sectorshift = SST26_SST26VF064_SECTOR_SHIFT;
+          priv->nsectors    = SST26_SST26VF064_NSECTORS;
+          priv->pageshift   = SST26_SST26VF064_PAGE_SHIFT;
+          priv->npages      = SST26_SST26VF064_NPAGES;
+          return OK;
         }
       else if (capacity == SST26_SST26VF032_CAPACITY)
         {
-           /* Save the FLASH geometry */
+          /* Save the FLASH geometry */
 
-           priv->sectorshift = SST26_SST26VF032_SECTOR_SHIFT;
-           priv->nsectors    = SST26_SST26VF032_NSECTORS;
-           priv->pageshift   = SST26_SST26VF032_PAGE_SHIFT;
-           priv->npages      = SST26_SST26VF032_NPAGES;
-           return OK;
+          priv->sectorshift = SST26_SST26VF032_SECTOR_SHIFT;
+          priv->nsectors    = SST26_SST26VF032_NSECTORS;
+          priv->pageshift   = SST26_SST26VF032_PAGE_SHIFT;
+          priv->npages      = SST26_SST26VF032_NPAGES;
+          return OK;
+        }
+      else if (capacity == SST26_SST26VF016_CAPACITY)
+        {
+          /* Save the FLASH geometry */
+
+          priv->sectorshift = SST26_SST26VF016_SECTOR_SHIFT;
+          priv->nsectors    = SST26_SST26VF016_NSECTORS;
+          priv->pageshift   = SST26_SST26VF016_PAGE_SHIFT;
+          priv->npages      = SST26_SST26VF016_NPAGES;
+          return OK;
         }
     }
 
@@ -390,7 +405,7 @@ static void sst26_waitwritecomplete(struct sst26_dev_s *priv)
 
       /* Send "Read Status Register (RDSR)" command */
 
-      (void)SPI_SEND(priv->dev, SST26_RDSR);
+      SPI_SEND(priv->dev, SST26_RDSR);
 
       /* Send a dummy byte to generate the clock needed to shift out the status */
 
@@ -431,7 +446,7 @@ static void sst26_globalunlock(struct sst26_dev_s *priv)
 
   /* Send "Global Unlock (ULBPR)" command */
 
-  (void)SPI_SEND(priv->dev, SST26_ULBPR);
+  SPI_SEND(priv->dev, SST26_ULBPR);
 
   /* Deselect the FLASH */
 
@@ -452,7 +467,7 @@ static void sst26_writeenable(struct sst26_dev_s *priv)
 
   /* Send "Write Enable (WREN)" command */
 
-  (void)SPI_SEND(priv->dev, SST26_WREN);
+  SPI_SEND(priv->dev, SST26_WREN);
 
   /* Deselect the FLASH */
 
@@ -473,7 +488,7 @@ static void sst26_writedisable(struct sst26_dev_s *priv)
 
   /* Send "Write Disable (WRDI)" command */
 
-  (void)SPI_SEND(priv->dev, SST26_WRDI);
+  SPI_SEND(priv->dev, SST26_WRDI);
 
   /* Deselect the FLASH */
 
@@ -506,16 +521,16 @@ static void sst26_sectorerase(struct sst26_dev_s *priv, off_t sector, uint8_t ty
    * that was passed in as the erase type.
    */
 
-  (void)SPI_SEND(priv->dev, type);
+  SPI_SEND(priv->dev, type);
 
   /* Send the sector offset high byte first.  For all of the supported
    * parts, the sector number is completely contained in the first byte
    * and the values used in the following two bytes don't really matter.
    */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Deselect the FLASH */
 
@@ -544,7 +559,7 @@ static inline int sst26_chiperase(struct sst26_dev_s *priv)
 
   /* Send the "Chip Erase (CE)" instruction */
 
-  (void)SPI_SEND(priv->dev, SST26_CE);
+  SPI_SEND(priv->dev, SST26_CE);
 
   /* Deselect the FLASH */
 
@@ -577,13 +592,13 @@ static inline void sst26_pagewrite(struct sst26_dev_s *priv,
 
   /* Send "Page Program (PP)" command */
 
-  (void)SPI_SEND(priv->dev, SST26_PP);
+  SPI_SEND(priv->dev, SST26_PP);
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Then write the specified number of bytes */
 
@@ -619,13 +634,13 @@ static inline void sst26_bytewrite(struct sst26_dev_s *priv,
 
   /* Send "Page Program (PP)" command */
 
-  (void)SPI_SEND(priv->dev, SST26_PP);
+  SPI_SEND(priv->dev, SST26_PP);
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Then write the specified number of bytes */
 
@@ -701,8 +716,8 @@ static ssize_t sst26_bread(FAR struct mtd_dev_s *dev, off_t startblock,
  * Name: sst26_bwrite
  ************************************************************************************/
 
-static ssize_t sst26_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t nblocks,
-                              FAR const uint8_t *buffer)
+static ssize_t sst26_bwrite(FAR struct mtd_dev_s *dev, off_t startblock,
+                            size_t nblocks, FAR const uint8_t *buffer)
 {
   FAR struct sst26_dev_s *priv = (FAR struct sst26_dev_s *)dev;
   size_t blocksleft = nblocks;
@@ -718,7 +733,7 @@ static ssize_t sst26_bwrite(FAR struct mtd_dev_s *dev, off_t startblock, size_t 
       sst26_pagewrite(priv, buffer, startblock);
       buffer += pagesize;
       startblock++;
-   }
+    }
 
   sst26_unlock(priv->dev);
   return nblocks;
@@ -742,17 +757,17 @@ static ssize_t sst26_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbytes
 
   /* Send "Read from Memory " instruction */
 
-  (void)SPI_SEND(priv->dev, SST26_FAST_READ);
+  SPI_SEND(priv->dev, SST26_FAST_READ);
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Dummy read */
 
-  (void)SPI_SEND(priv->dev, SST26_DUMMY);
+  SPI_SEND(priv->dev, SST26_DUMMY);
 
   /* Then read all of the requested bytes */
 
@@ -805,7 +820,7 @@ static ssize_t sst26_write(FAR struct mtd_dev_s *dev, off_t offset, size_t nbyte
 
       count = nbytes;
       pagesize = (1 << priv->pageshift);
-      bytestowrite = pagesize - (offset & (pagesize-1));
+      bytestowrite = pagesize - (offset & (pagesize - 1));
       sst26_bytewrite(priv, buffer, offset, bytestowrite);
 
       /* Update offset and count */
@@ -857,8 +872,9 @@ static int sst26_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg)
     {
       case MTDIOC_GEOMETRY:
         {
-          FAR struct mtd_geometry_s *geo = (FAR struct mtd_geometry_s *)((uintptr_t)arg);
-          if (geo)
+          FAR struct mtd_geometry_s *geo =
+            (FAR struct mtd_geometry_s *)((uintptr_t)arg);
+          if (geo != NULL)
             {
               /* Populate the geometry structure with information need to know
                * the capacity and how to access the device.
@@ -965,6 +981,7 @@ FAR struct mtd_dev_s *sst26_initialize_spi(FAR struct spi_dev_s *dev)
       else
         {
           /* Make sure that the FLASH is unprotected so that we can write into it */
+
           sst26_writeenable(priv);
           sst26_globalunlock(priv);
           sst26_writedisable(priv);

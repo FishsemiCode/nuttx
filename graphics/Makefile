@@ -1,7 +1,8 @@
 ############################################################################
 # graphics/Makefile
 #
-#   Copyright (C) 2008-2009, 2011-2012, 2016 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008-2009, 2011-2012, 2016, 2019 Gregory Nutt. All
+#     rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -134,6 +135,11 @@ mklibgraphics: $(BIN)
 
 depend: .depend
 
+clean_context:
+	$(Q) $(MAKE) -C nxglib -f Makefile.devblit distclean TOPDIR=$(TOPDIR) EXTRAFLAGS="$(EXTRAFLAGS)"
+	$(Q) $(MAKE) -C nxglib -f Makefile.pwfb distclean TOPDIR=$(TOPDIR) EXTRAFLAGS="$(EXTRAFLAGS)"
+	$(Q) $(MAKE) -C nxglib -f Makefile.cursor distclean TOPDIR=$(TOPDIR) EXTRAFLAGS="$(EXTRAFLAGS)"
+
 context: gensources
 
 clean:
@@ -149,4 +155,3 @@ distclean: clean
 	$(call DELFILE, .depend)
 
 -include Make.dep
-

@@ -100,10 +100,8 @@ static ssize_t devurand_read(FAR struct file *filep, FAR char *buffer,
                              size_t buflen);
 static ssize_t devurand_write(FAR struct file *filep, FAR const char *buffer,
                               size_t buflen);
-#ifndef CONFIG_DISABLE_POLL
 static int devurand_poll(FAR struct file *filep, FAR struct pollfd *fds,
                          bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -116,10 +114,8 @@ static const struct file_operations g_urand_fops =
   devurand_read,                /* read */
   devurand_write,               /* write */
   NULL,                         /* seek */
-  NULL                          /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , devurand_poll               /* poll */
-#endif
+  NULL,                         /* ioctl */
+  devurand_poll                 /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL                        /* unlink */
 #endif
@@ -167,17 +163,18 @@ static ssize_t devurand_read(FAR struct file *filep, FAR char *buffer,
                              size_t len)
 {
 #ifdef CONFIG_DEV_URANDOM_RANDOM_POOL
-  if (len)
+  if (len > 0)
     {
       getrandom(buffer, len);
     }
+
 #else
   size_t n;
   uint32_t rnd;
 
   n = len;
 
-  /* Align buffer pointer to 4-byte boundry */
+  /* Align buffer pointer to 4-byte boundary */
 
   if (((uintptr_t)buffer & 0x03) != 0)
     {
@@ -217,7 +214,7 @@ static ssize_t devurand_read(FAR struct file *filep, FAR char *buffer,
 
       do
         {
-          *buffer++ = rnd & 0xFF;
+          *buffer++ = rnd & 0xff;
           rnd >>= 8;
         }
       while (--n > 0);
@@ -243,6 +240,7 @@ static ssize_t devurand_write(FAR struct file *filep, FAR const char *buffer,
   memcpy(&seed, buffer, len);
   srand(seed);
   return len;
+
 #elif defined(CONFIG_DEV_URANDOM_RANDOM_POOL)
   const unsigned int alignmask = sizeof(uint32_t) - 1;
   const size_t initlen = len;
@@ -304,7 +302,6 @@ static ssize_t devurand_write(FAR struct file *filep, FAR const char *buffer,
  * Name: devurand_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int devurand_poll(FAR struct file *filep, FAR struct pollfd *fds,
                          bool setup)
 {
@@ -319,7 +316,6 @@ static int devurand_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
   return OK;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -348,7 +344,7 @@ void devurandom_register(void)
   g_prng.state.z = g_prng.state.x << 25;
 #endif
 
-  (void)register_driver("/dev/urandom", &g_urand_fops, 0666, NULL);
+  register_driver("/dev/urandom", &g_urand_fops, 0666, NULL);
 }
 
 #endif /* CONFIG_DEV_URANDOM && CONFIG_DEV_URANDOM_ARCH */

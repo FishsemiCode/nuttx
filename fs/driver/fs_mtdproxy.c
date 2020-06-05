@@ -43,7 +43,6 @@
 #include <sys/stat.h>
 
 #include <stdio.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
@@ -51,6 +50,7 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/mtd/mtd.h>
+#include <nuttx/semaphore.h>
 
 #include "driver/driver.h"
 
@@ -96,17 +96,12 @@ static FAR char *unique_blkdev(void)
     {
       /* Get the semaphore protecting the path number */
 
-      do
+      ret = nxsem_wait_uninterruptible(&g_devno_sem);
+      if (ret < 0)
         {
-          ret = nxsem_wait(&g_devno_sem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
+          ferr("ERROR: nxsem_wait_uninterruptible failed: %d\n", ret);
+          return NULL;
         }
-      while (ret == -EINTR);
 
       /* Get the next device number and release the semaphore */
 
@@ -155,7 +150,7 @@ static FAR char *unique_blkdev(void)
  *
  *   Errors that may be returned:
  *
- *     ENOMEM - Failed to create a temporay path name.
+ *     ENOMEM - Failed to create a temporary path name.
  *
  *   Plus:
  *
@@ -207,9 +202,9 @@ int mtd_proxy(FAR const char *mtddev, int mountflags,
       goto out_with_fltdev;
     }
 
-  /* Unlink and free the block device name.  The driver instance will persist,
-   * provided that CONFIG_DISABLE_PSEUDOFS_OPERATIONS=y (otherwise, we have
-   * a problem here!)
+  /* Unlink and free the block device name.  The driver instance will
+   * persist, provided that CONFIG_DISABLE_PSEUDOFS_OPERATIONS=y (otherwise,
+   * we have a problem here!)
    */
 
 out_with_fltdev:
@@ -218,4 +213,3 @@ out_with_blkdev:
   kmm_free(blkdev);
   return ret;
 }
-

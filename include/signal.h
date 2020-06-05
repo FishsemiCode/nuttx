@@ -1,35 +1,20 @@
 /********************************************************************************
  * include/signal.h
  *
- *   Copyright (C) 2007-2009, 2011, 2013-2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ********************************************************************************/
 
@@ -60,7 +45,7 @@
 #define ALL_SIGNAL_SET  ((sigset_t)0xffffffff)
 #define MIN_SIGNO       0
 #define MAX_SIGNO       31
-#define GOOD_SIGNO(s)   ((((unsigned)(s))<=MAX_SIGNO))
+#define GOOD_SIGNO(s)   ((((unsigned)(s)) <= MAX_SIGNO))
 #define SIGNO2SET(s)    ((sigset_t)1 << (s))
 
 /* All signals are "real time" signals */
@@ -75,7 +60,7 @@
  * following table.
  *
  * This is not POSIX compliant behavior!  Per OpenGroup.org:  The following
- * signals and default signal action s must be supported on all
+ * signals and default signal actions must be supported on all
  * implementations:
  *
  *   ---------- ------- ----------------------------------------------------
@@ -93,7 +78,7 @@
  *   SIGILL     A       Illegal instruction
  *   SIGINT     T (3)   Terminal interrupt signal
  *   SIGKILL    T (3)   Kill (cannot be caught or ignored)
- *   SIGPIPE    T       Write on a pipe with no one to read it
+ *   SIGPIPE    T (7)   Write on a pipe with no one to read it
  *   SIGQUIT    A       Terminal quit signal
  *   SIGSEGV    A       Invalid memory reference
  *   SIGSTOP    S (2)   Stop executing (cannot be caught or ignored)
@@ -133,6 +118,7 @@
  * (4)  The default action can be enabled with CONFIG_SIG_SIGUSR1_ACTION
  * (5)  The default action can be enabled with CONFIG_SIG_SIGUSR2_ACTION
  * (6)  The default action can be enabled with CONFIG_SIG_SIGPOLL_ACTION
+ * (7)  The default action can be enabled with CONFIG_SIG_SIGPIPE_ACTION
  */
 
 /* A few of the real time signals are used within the OS.  They have
@@ -189,6 +175,12 @@
 #ifdef CONFIG_SIG_SIGKILL_ACTION
 #  define SIGKILL     CONFIG_SIG_KILL
 #  define SIGINT      CONFIG_SIG_INT
+#endif
+
+#ifndef CONFIG_SIG_SIGPIPE
+#  define SIGPIPE       11
+#else
+#  define SIGPIPE       CONFIG_SIG_SIGPIPE
 #endif
 
 /* The following are non-standard signal definitions */
@@ -250,7 +242,7 @@
 #  define SIGEV_THREAD  3 /* A notification function is called */
 #endif
 
-/* Special values of of sa_handler used by sigaction and sigset.  They are all
+/* Special values of sa_handler used by sigaction and sigset.  They are all
  * treated like NULL for now.  This is okay for SIG_DFL and SIG_IGN because
  * in NuttX, the default action for all signals is to ignore them.
  */
@@ -267,7 +259,7 @@
 #endif
 
 /********************************************************************************
- * Public Type Definitions
+ * Public Types
  ********************************************************************************/
 
 /* This defines a set of 32 signals (numbered 0 through 31).
@@ -299,11 +291,7 @@ union sigval
  * available on a queue
  */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
 typedef CODE void (*sigev_notify_function_t)(union sigval value);
-#else
-typedef CODE void (*sigev_notify_function_t)(FAR void *sival_ptr);
-#endif
 
 struct sigevent
 {
@@ -328,6 +316,9 @@ struct siginfo
 #ifdef CONFIG_SCHED_HAVE_PARENT
   pid_t        si_pid;       /* Sending task ID */
   int          si_status;    /* Exit value or signal (SIGCHLD only). */
+#endif
+#if 0                        /* Not implemented */
+  FAR void    *si_addr;      /* Report address with SIGFPE, SIGSEGV, or SIGBUS */
 #endif
 };
 
@@ -391,11 +382,7 @@ _sa_handler_t signal(int signo, _sa_handler_t func);
 int  sigpause(int signo);
 int  sigpending(FAR sigset_t *set);
 int  sigprocmask(int how, FAR const sigset_t *set, FAR sigset_t *oset);
-#ifdef CONFIG_CAN_PASS_STRUCTS
 int  sigqueue(int pid, int signo, union sigval value);
-#else
-int  sigqueue(int pid, int signo, FAR void *sival_ptr);
-#endif
 int  sigrelse(int signo);
 _sa_handler_t sigset(int signo, _sa_handler_t func);
 int  sigwait(FAR const sigset_t *set, FAR int *sig);
@@ -415,11 +402,19 @@ int  sigwaitinfo(FAR const sigset_t *set, FAR struct siginfo *value);
 
 #else /* __INCLUDE_SIGNAL_H */
 
-#include <stdint.h>
-
 /* Avoid circular dependencies by assuring that simple type definitions are
  * available in any inclusion ordering.
  */
+
+/********************************************************************************
+ * Included Files
+ ********************************************************************************/
+
+#include <stdint.h>
+
+/********************************************************************************
+ * Public Types
+ ********************************************************************************/
 
 #ifndef __SIGSET_T_DEFINED
 typedef uint32_t sigset_t;

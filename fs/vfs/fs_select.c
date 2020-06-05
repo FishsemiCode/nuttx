@@ -54,16 +54,6 @@
 
 #include "inode/inode.h"
 
-#ifndef CONFIG_DISABLE_POLL
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -113,7 +103,7 @@ int select(int nfds, FAR fd_set *readfds, FAR fd_set *writefds,
 
   /* select() is cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* How many pollfd structures do we need to allocate? */
 
@@ -294,5 +284,3 @@ errout:
   leave_cancellation_point();
   return ERROR;
 }
-
-#endif /* CONFIG_DISABLE_POLL */

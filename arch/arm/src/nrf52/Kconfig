@@ -14,15 +14,25 @@ config ARCH_CHIP_NRF52832
 	bool "NRF52832"
 	select ARCH_FAMILY_NRF52
 	select ARCH_FAMILY_NRF52832
-	#select NRF52_HAVE_I2C_MASTER
-	#select NRF52_HAVE_UART
+
+config ARCH_CHIP_NRF52833
+	bool "NRF52832"
+	select ARCH_FAMILY_NRF52
+	select ARCH_FAMILY_NRF52833
+	select NRF52_HAVE_UART1
+	select NRF52_HAVE_PORT1
+	select NRF52_HAVE_SPI3_MASTER
+	select NRF52_HAVE_USBDEV
 
 config ARCH_CHIP_NRF52840
 	bool "NRF52840"
 	select ARCH_FAMILY_NRF52
 	select ARCH_FAMILY_NRF52840
-	#select NRF52_HAVE_I2C_MASTER
-	#select NRF52_HAVE_UART
+	select NRF52_HAVE_UART1
+	select NRF52_HAVE_PORT1
+	select NRF52_HAVE_SPI3_MASTER
+	select NRF52_HAVE_QSPI
+	select NRF52_HAVE_USBDEV
 
 endchoice # NRF52 Chip Selection
 
@@ -36,23 +46,47 @@ config ARCH_FAMILY_NRF52832
 	bool
 	default n
 
+config ARCH_FAMILY_NRF52833
+	bool
+	default n
+
 config ARCH_FAMILY_NRF52840
 	bool
 	default n
 
 # Peripheral support
 
+config NRF52_HAVE_UART1
+	bool
+	default n
+
+config NRF52_HAVE_PORT1
+	bool
+	default n
+
+config NRF52_HAVE_SPI3_MASTER
+	bool
+	default n
+
+config NRF52_HAVE_QSPI
+	bool
+	default n
+
+config NRF52_HAVE_USBDEV
+	bool
+	default n
+
 # Peripheral Selection
 
-config NRF52_HAVE_I2C_MASTER
+config NRF52_I2C_MASTER
 	bool
 	default n
 
-config NRF52_HAVE_SPI_MASTER
+config NRF52_SPI_MASTER
 	bool
 	default n
 
-config NRF52_HAVE_UART
+config NRF52_UART
 	bool
 	default n
 
@@ -61,18 +95,53 @@ menu "NRF52 Peripheral Selection"
 config NRF52_I2C0_MASTER
 	bool "I2C0 Master"
 	default n
-	select NRF52_HAVE_I2C_MASTER
+	select NRF52_I2C_MASTER
 
 config NRF52_I2C1_MASTER
 	bool "I2C1 Master"
 	default n
-	select NRF52_HAVE_I2C_MASTER
+	select NRF52_I2C_MASTER
+
+config NRF52_SPI0_MASTER
+	bool "SPI0 Master"
+	default n
+	select NRF52_SPI_MASTER
+
+config NRF52_SPI1_MASTER
+	bool "SPI1 Master"
+	default n
+	select NRF52_SPI_MASTER
+
+config NRF52_SPI3_MASTER
+	bool "SPI3 Master"
+	default n
+	select NRF52_SPI_MASTER
+	depends on NRF52_HAVE_SPI3_MASTER
+
+if NRF52_SPI_MASTER
+
+config NRF52_SPI_MASTER_INTERRUPTS
+	bool "SPI Master interrupts support"
+	default n
+
+endif
+
+config NRF52_GPIOTE
+	bool "GPIOTE (GPIO interrupts)"
+	default n
 
 config NRF52_UART0
 	bool "UART0"
 	default n
 	select UART0_SERIALDRIVER
-	select NRF52_HAVE_UART
+	select NRF52_UART
+
+config NRF52_UART1
+	bool "UART1"
+	default n
+	depends on NRF52_HAVE_UART1
+	select UART1_SERIALDRIVER
+	select NRF52_UART
 
 config NRF52_RNG
 	bool "Random Generator"
@@ -82,12 +151,70 @@ config NRF52_RNG
 config NRF52_QSPI
 	bool "QSPI"
 	default n
-	depends on ARCH_CHIP_NRF52840
+	depends on NRF52_HAVE_QSPI
 
 config NRF52_WDT
 	bool "Watchdog (WDT)"
 	default n
 	select WATCHDOG
+
+config NRF52_RADIO
+	bool "RADIO"
+	depends on EXPERIMENTAL
+	default n
+
+config NRF52_NFCT
+	bool "NFCT"
+	default n
+
+config NRF52_SAADC
+	bool "SAADC"
+	default n
+
+config NRF52_TIMER0
+	bool "TIMER0"
+	default n
+
+config NRF52_TIMER1
+	bool "TIMER1"
+	default n
+
+config NRF52_TIMER2
+	bool "TIMER2"
+	default n
+
+config NRF52_TIMER3
+	bool "TIMER3"
+	default n
+
+config NRF52_TIMER4
+	bool "TIMER4"
+	default n
+
+config NRF52_RTC0
+	bool "RTC0"
+	default n
+
+config NRF52_RTC1
+	bool "RTC1"
+	default n
+
+config NRF52_RTC2
+	bool "RTC2"
+	default n
+
+config NRF52_I2S
+	bool "I2S"
+	default n
+
+config NRF52_USBDEV
+	bool "USB Device"
+	default n
+	depends on NRF52_HAVE_USBDEV
+
+config NRF52_COMP
+	bool "COMP"
+	default n
 
 endmenu # NRF52 Peripheral Selection
 
@@ -105,9 +232,5 @@ config NRF52_PROGMEM
 		Enable support FLASH interfaces as defined in include/nuttx/progmem.h
 
 menu "GPIO Interrupt Configuration"
-
-config NRF52_GPIOIRQ
-	bool "Support GPIO Interrupts"
-	default n
 
 endmenu # GPIO Interrupt Configuration

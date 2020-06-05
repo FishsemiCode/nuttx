@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <unistd.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -98,11 +97,9 @@ int nxterm_semwait(FAR struct nxterm_state_s *priv)
 
 int nxterm_sempost(FAR struct nxterm_state_s *priv)
 {
-  pid_t me = getpid();
-
   /* Make sure that I really hold the semaphore */
 
-  DEBUGASSERT(priv->holder == me);
+  DEBUGASSERT(priv->holder == getpid());
 
   /* Then let go of it */
 

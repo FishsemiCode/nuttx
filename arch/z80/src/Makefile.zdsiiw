@@ -1,7 +1,8 @@
 ############################################################################
 # arch/z80/src/Makefile.zdsiiw
 #
-#   Copyright (C) 2008, 2011-2012, 2014 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2008, 2011-2012, 2014, 2020 Gregory Nutt. All rights
+#     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,10 +40,10 @@
 
 SCHEDSRCDIR = $(TOPDIR)$(DELIM)sched
 ARCHSRCDIR = $(TOPDIR)$(DELIM)arch$(DELIM)$(CONFIG_ARCH)$(DELIM)src
-USRINCLUDES = -usrinc:".;$(SCHEDSRCDIR);$(ARCHSRCDIR);$(ARCHSRCDIR)\common"
+USRINCLUDES = -usrinc:".;$(SCHEDSRCDIR);$(ARCHSRCDIR)$(DELIM)chip;$(ARCHSRCDIR)$(DELIM)common"
 
 INCLUDES = $(ARCHSTDINCLUDES) $(USRINCLUDES)
-CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRADEFINES)
+CFLAGS = $(ARCHWARNINGS) $(ARCHOPTIMIZATION) $(ARCHCPUFLAGS) $(INCLUDES) $(ARCHDEFINES) $(EXTRAFLAGS)
 CPPFLAGS += -I$(ARCHSRCDIR) -I$(ZDSSTDINCDIR) -I$(ZDSZILOGINCDIR)
 LDFLAGS  += @$(OUTDIR)\nuttx.linkcmd
 
@@ -99,7 +100,7 @@ libarch$(LIBEXT): $(OBJS)
 	$(call ARCHIVE, $@, $(OBJS))
 
 board$(DELIM)libboard$(LIBEXT):
-	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRAFLAGS="$(EXTRAFLAGS)"
 
 nuttx.linkcmd: $(LINKCMDTEMPLATE)
 	$(Q) cp -f $(LINKCMDTEMPLATE) nuttx.linkcmd
@@ -121,7 +122,7 @@ ifeq ($(CONFIG_ARCH_CHIP_Z8F642X),y)
 	@echo   "$(ZDSZILOGLIBDIR)\csioLDD$(LIBEXT)", \>>nuttx.linkcmd
 	@echo   "$(ZDSZILOGLIBDIR)\zsldevinitdummy$(LIBEXT)">>nuttx.linkcmd
 endif
-ifeq ($(CONFIG_ARCH_CHIP_EZ80F91),y)
+ifeq ($(CONFIG_ARCH_CHIP_EZ80),y)  # EZ80F91 and EZ80F92
 	@echo   "$(ZDSSTDLIBDIR)\chelp$(LIBEXT)", \>>nuttx.linkcmd
 	@echo   "$(ZDSSTDLIBDIR)\crt$(LIBEXT)", \>>nuttx.linkcmd
 	@echo   "$(ZDSSTDLIBDIR)\fplib$(LIBEXT)", \>>nuttx.linkcmd

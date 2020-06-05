@@ -1,4 +1,4 @@
-/************************************************************************************
+/****************************************************************************
  * drivers/serial/serial_dma.c
  *
  *   Copyright (C) 2015, 2018 Gregory Nutt. All rights reserved.
@@ -31,42 +31,43 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Included Files
- ************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
 #include <debug.h>
 
 #include <nuttx/serial/serial.h>
 
-#ifdef CONFIG_SERIAL_DMA
+#if defined(CONFIG_SERIAL_TXDMA) || defined(CONFIG_SERIAL_RXDMA)
 
-/************************************************************************************
+/****************************************************************************
  * Private Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Name: uart_check_signo
  *
  * Description:
- *   Check if the SIGINT or SIGSTP character is in the contiguous Rx DMA buffer
- *   region.  The first signal associated with the first such character is returned.
+ *   Check if the SIGINT or SIGSTP character is in the contiguous Rx DMA
+ *   buffer region.  The first signal associated with the first such
+ *   character is returned.
  *
- *   If there multiple such characters in the buffer, only the signal associated
- *   with the first is returned (this a bug!)
+ *   If there multiple such characters in the buffer, only the signal
+ *   associated with the first is returned (this a bug!)
  *
  * Returned Value:
- *   0 if a signal-related character does not appear in the.  Otherwise, SIGKILL or
- *   SIGSTP may be returned to indicate the appropriate signal action.
+ *   0 if a signal-related character does not appear in the.  Otherwise,
+ *   SIGKILL or SIGSTP may be returned to indicate the appropriate signal
+ *   action.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #if defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP)
 static int uart_check_signo(const char *buf, size_t size)
@@ -94,18 +95,20 @@ static int uart_check_signo(const char *buf, size_t size)
 }
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: uart_recvchars_signo
  *
  * Description:
- *   Check if the SIGINT character is anywhere in the newly received DMA buffer.
+ *   Check if the SIGINT character is anywhere in the newly received DMA
+ *   buffer.
  *
- *   REVISIT:  We must also remove the SIGINT/SIGSTP character from the Rx buffer.  It
- *   should not be read as normal data by the caller.
+ *   REVISIT:  We must also remove the SIGINT/SIGSTP character from the Rx
+ *   buffer.  It should not be read as normal data by the caller.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
-#if defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP)
+#if defined(CONFIG_SERIAL_RXDMA) && \
+   (defined(CONFIG_TTY_SIGINT) || defined(CONFIG_TTY_SIGSTP))
 static int uart_recvchars_signo(FAR uart_dev_t *dev)
 {
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
@@ -132,18 +135,19 @@ static int uart_recvchars_signo(FAR uart_dev_t *dev)
 }
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Public Functions
- ************************************************************************************/
+ ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Name: uart_xmitchars_dma
  *
  * Description:
  *   Set up to transfer bytes from the TX circular buffer using DMA
  *
- ************************************************************************************/
+ ****************************************************************************/
 
+#ifdef CONFIG_SERIAL_TXDMA
 void uart_xmitchars_dma(FAR uart_dev_t *dev)
 {
   FAR struct uart_dmaxfer_s *xfer = &dev->dmatx;
@@ -172,17 +176,20 @@ void uart_xmitchars_dma(FAR uart_dev_t *dev)
 
   uart_dmasend(dev);
 }
+#endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: uart_xmitchars_done
  *
  * Description:
- *   Perform operations necessary at the complete of DMA including adjusting the
- *   TX circular buffer indices and waking up of any threads that may have been
- *   waiting for space to become available in the TX circular buffer.
+ *   Perform operations necessary at the complete of DMA including adjusting
+ *   the TX circular buffer indices and waking up of any threads that may
+ *   have been waiting for space to become available in the TX circular
+ *   buffer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
+#ifdef CONFIG_SERIAL_TXDMA
 void uart_xmitchars_done(FAR uart_dev_t *dev)
 {
   FAR struct uart_dmaxfer_s *xfer = &dev->dmatx;
@@ -190,7 +197,7 @@ void uart_xmitchars_done(FAR uart_dev_t *dev)
   struct uart_buffer_s *txbuf = &dev->xmit;
 
   /* Skip the update if the tail position change which mean
-   * someone reset(e.g. TCOFLUSH) the xmit buffer during DMA.
+   * someone reset (e.g. TCOFLUSH) the xmit buffer during DMA.
    */
 
   if (xfer->buffer == &txbuf->buffer[txbuf->tail])
@@ -205,8 +212,8 @@ void uart_xmitchars_done(FAR uart_dev_t *dev)
   xfer->nbytes = 0;
   xfer->length = xfer->nlength = 0;
 
-  /* If any bytes were removed from the buffer, inform any waiters there there is
-   * space available.
+  /* If any bytes were removed from the buffer, inform any waiters there
+   * there is space available.
    */
 
   if (nbytes)
@@ -214,15 +221,17 @@ void uart_xmitchars_done(FAR uart_dev_t *dev)
       uart_datasent(dev);
     }
 }
+#endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: uart_recvchars_dma
  *
  * Description:
  *   Set up to receive bytes into the RX circular buffer using DMA
  *
- ************************************************************************************/
+ ****************************************************************************/
 
+#ifdef CONFIG_SERIAL_RXDMA
 void uart_recvchars_dma(FAR uart_dev_t *dev)
 {
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
@@ -257,7 +266,8 @@ void uart_recvchars_dma(FAR uart_dev_t *dev)
 #ifdef CONFIG_SERIAL_IFLOWCONTROL_WATERMARKS
   /* Pre-calcuate the watermark level that we will need to test against. */
 
-  watermark = (CONFIG_SERIAL_IFLOWCONTROL_UPPER_WATERMARK * rxbuf->size) / 100;
+  watermark = (CONFIG_SERIAL_IFLOWCONTROL_UPPER_WATERMARK * rxbuf->size) /
+              100;
 #endif
 
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
@@ -341,17 +351,20 @@ void uart_recvchars_dma(FAR uart_dev_t *dev)
 
   uart_dmareceive(dev);
 }
+#endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: uart_recvchars_done
  *
  * Description:
- *   Perform operations necessary at the complete of DMA including adjusting the
- *   RX circular buffer indices and waking up of any threads that may have been
- *   waiting for new data to become available in the RX circular buffer.
+ *   Perform operations necessary at the complete of DMA including adjusting
+ *   the RX circular buffer indices and waking up of any threads that may
+ *   have been waiting for new data to become available in the RX circular
+ *   buffer.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
+#ifdef CONFIG_SERIAL_RXDMA
 void uart_recvchars_done(FAR uart_dev_t *dev)
 {
   FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
@@ -393,5 +406,6 @@ void uart_recvchars_done(FAR uart_dev_t *dev)
     }
 #endif
 }
+#endif
 
-#endif /* CONFIG_SERIAL_DMA */
+#endif /* CONFIG_SERIAL_TXDMA || CONFIG_SERIAL_RXDMA */

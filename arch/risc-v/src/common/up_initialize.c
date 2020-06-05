@@ -1,7 +1,8 @@
 /****************************************************************************
  * arch/risc-v/src/common/up_initialize.c
  *
- *   Copyright (C) 2007-2010, 2012-2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007-2010, 2012-2015, 2017 Gregory Nutt. All rights
+ *   reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -62,6 +63,7 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
+#include "chip.h"
 
 /****************************************************************************
  * Private Functions
@@ -79,7 +81,11 @@
 #if defined(CONFIG_STACK_COLORATION) && CONFIG_ARCH_INTERRUPTSTACK > 3
 static inline void up_color_intstack(void)
 {
+#ifdef CONFIG_SMP
+  uint32_t *ptr = (uint32_t *)up_intstack_base();
+#else
   uint32_t *ptr = (uint32_t *)&g_intstackalloc;
+#endif
   ssize_t size;
 
   for (size = (CONFIG_ARCH_INTERRUPTSTACK & ~3);
@@ -116,15 +122,17 @@ static inline void up_color_intstack(void)
 
 void up_initialize(void)
 {
-  struct tcb_s *idle;
+  FAR struct tcb_s *idle;
 
   /* Colorize the interrupt stack */
 
   up_color_intstack();
 
+#if CONFIG_MM_REGIONS > 1
   /* Add any extra memory fragments to the memory manager */
 
   up_addregion();
+#endif
 
   /* Initialize the idle task stack info */
 
@@ -132,17 +140,6 @@ void up_initialize(void)
   idle->stack_alloc_ptr = _END_BSS;
   idle->adj_stack_ptr   = (FAR void *)g_idle_topstack;
   idle->adj_stack_size  = CONFIG_IDLETHREAD_STACKSIZE;
-
-  /* Initialize the interrupt subsystem */
-
-  up_irqinitialize();
-
-  /* Initialize the system timer interrupt */
-
-#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
-    !defined(CONFIG_SYSTEMTICK_EXTCLK)
-  riscv_timer_initialize();
-#endif
 
 #ifdef CONFIG_PM
   /* Initialize the power management subsystem.  This MCU-specific function
@@ -155,8 +152,8 @@ void up_initialize(void)
 #endif
 
 #ifdef CONFIG_ARCH_DMA
-  /* Initialize the DMA subsystem if the weak function up_dma_initialize has been
-   * brought into the build
+  /* Initialize the DMA subsystem if the weak function up_dma_initialize has
+   * been brought into the build
    */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
@@ -165,12 +162,6 @@ void up_initialize(void)
     {
       up_dma_initialize();
     }
-#endif
-
-#ifdef CONFIG_MM_IOB
-  /* Initialize IO buffering */
-
-  iob_initialize();
 #endif
 
   /* Register devices */
@@ -214,26 +205,17 @@ void up_initialize(void)
    * serial driver).
    */
 
-#if defined(CONFIG_DEV_LOWCONSOLE)
-  lowconsole_init();
+#if defined (CONFIG_ARM_LWL_CONSOLE)
+  lwlconsole_init();
 #elif defined(CONFIG_CONSOLE_SYSLOG)
   syslog_console_init();
-#elif defined(CONFIG_RAMLOG_CONSOLE)
-  ramlog_consoleinit();
 #endif
 
 #ifdef CONFIG_PSEUDOTERM_SUSV1
   /* Register the master pseudo-terminal multiplexor device */
 
-  (void)ptmx_register();
+  ptmx_register();
 #endif
-
-  /* Early initialization of the system logging device.  Some SYSLOG channel
-   * can be initialized early in the initialization sequence because they
-   * depend on only minimal OS initialization.
-   */
-
-  syslog_initialize(SYSLOG_INIT_EARLY);
 
 #if defined(CONFIG_CRYPTO)
   /* Initialize the HW crypto and /dev/crypto */
@@ -241,40 +223,45 @@ void up_initialize(void)
   up_cryptoinitialize();
 #endif
 
-#if CONFIG_NFILE_DESCRIPTORS > 0 && defined(CONFIG_CRYPTO_CRYPTODEV)
+#ifdef CONFIG_CRYPTO_CRYPTODEV
   devcrypto_register();
 #endif
 
-#ifndef CONFIG_NETDEV_LATEINIT
+#if defined(CONFIG_NET) && !defined(CONFIG_NETDEV_LATEINIT)
   /* Initialize the network */
 
   up_netinitialize();
 #endif
 
-#ifdef CONFIG_NETDEV_LOOPBACK
+#ifdef CONFIG_NET_LOOPBACK
   /* Initialize the local loopback device */
 
-  (void)localhost_initialize();
+  localhost_initialize();
 #endif
 
 #ifdef CONFIG_NET_TUN
   /* Initialize the TUN device */
 
-  (void)tun_initialize();
+  tun_initialize();
 #endif
 
 #ifdef CONFIG_NETDEV_TELNET
   /* Initialize the Telnet session factory */
 
-  (void)telnet_initialize();
+  telnet_initialize();
 #endif
 
+#if defined(CONFIG_USBDEV) || defined(CONFIG_USBHOST)
   /* Initialize USB -- device and/or host */
 
   up_usbinitialize();
+#endif
 
+#ifdef CONFIG_ARCH_L2CACHE
   /* Initialize the L2 cache if present and selected */
 
   up_l2ccinitialize();
+#endif
+
   board_autoled_on(LED_IRQSENABLED);
 }

@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * arch/mips/include/mips32/cp0.h
  *
  *   Copyright (C) 2011 Gregory Nutt. All rights reserved.
@@ -31,21 +31,22 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __ARCH_MIPS_INCLUDE_MIPS32_CP0_H
 #define __ARCH_MIPS_INCLUDE_MIPS32_CP0_H
 
-/********************************************************************************************
+/****************************************************************************
  * Included Files
- ********************************************************************************************/
+ ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <arch/chip/chip.h>
 
-/********************************************************************************************
+/****************************************************************************
  * Pre-processor Definitions
- ********************************************************************************************/
-/* CP0 Register Addresses *******************************************************************/
+ ****************************************************************************/
+/* CP0 Register Addresses ***************************************************/
 
 #ifdef __ASSEMBLY__
 #  define MIPS32_CP0_INDEX1         $0,0   /* Index into the TLB array */
@@ -73,6 +74,7 @@
 #  define MIPS32_CP0_DEBUG3         $23,0  /* Debug control and exception status */
 #  define MIPS32_CP0_DEPC3          $24,0  /* Program counter at last debug exception */
 #  define MIPS32_CP0_ERRCTL         $26,0  /* Controls access data CACHE instruction */
+#  define MIPS32_CP0_CACHEERR       $27,0  /* Cache error-detection logic */
 #  define MIPS32_CP0_TAGLO          $28,0  /* LS portion of cache tag interface */
 #  define MIPS32_CP0_DATALO         $28,1  /* LS portion of cache tag interface */
 #  define MIPS32_CP0_TAGHI          $29,0  /* MS portion of cache tag interface */
@@ -81,7 +83,7 @@
 #  define MIPS32_CP0_DESAVE3        $31,0  /* Debug handler scratchpad register */
 #endif
 
-/* CP0 Registers ****************************************************************************/
+/* CP0 Registers ************************************************************/
 
 /* Register Number: 0 Sel: 0 Name: Index
  * Function: Index into the TLB array
@@ -126,7 +128,7 @@
  * Compliance Level: Required for TLB-based MMUs; Optional otherwise.
  */
 
-#define CP0_CONTEXT_BADVPN2_SHIFT   (4)       /* Bits 4-22: Virtual address that cause an excpetion */
+#define CP0_CONTEXT_BADVPN2_SHIFT   (4)       /* Bits 4-22: Virtual address that cause an exception */
 #define CP0_CONTEXT_BADVPN2_MASK    (0x0007ffff << CP0_CONTEXT_BADVPN2_SHIFT)
 #define CP0_CONTEXT_PTEBASE_SHIFT   (23)      /* Bits 23-31: Page table base address */
 #define CP0_CONTEXT_PTEBASE_MASK    (0x000001ff << CP0_CONTEXT_PTEBASE_SHIFT)
@@ -212,20 +214,27 @@
 #define CP0_STATUS_UX               (1 << 5)  /* Bit 5: Enables 64-bit user address space (Not MIPS32) */
 #define CP0_STATUS_SX               (1 << 6)  /* Bit 6: Enables 64-bit supervisor address space (Not MIPS32) */
 #define CP0_STATUS_KX               (1 << 7)  /* Bit 7: Enables 64-bit kernel address space (Not MIPS32) */
-#define CP0_STATUS_IM_SHIFT         (8)       /* Bits 8-15: Interrupt Mask */
-#define CP0_STATUS_IM_MASK          (0xff << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM_SWINTS      (0x03 << CP0_STATUS_IM_SHIFT) /* IM0-1 = Software interrupts */
-#  define CP0_STATUS_IM0            (0x01 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM1            (0x02 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM_HWINTS      (0x7c << CP0_STATUS_IM_SHIFT) /* IM2-6 = Hardware interrupts */
-#  define CP0_STATUS_IM2            (0x04 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM3            (0x08 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM4            (0x10 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM5            (0x20 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM6            (0x40 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM_TIMER       (0x80 << CP0_STATUS_IM_SHIFT) /* IM7 = Hardware/Timer/Perf interrupts */
-#  define CP0_STATUS_IM7            (0x80 << CP0_STATUS_IM_SHIFT)
-#  define CP0_STATUS_IM_ALL         (0xff << CP0_STATUS_IM_SHIFT)
+#ifdef CONFIG_ARCH_HAVE_EIC
+#  define CP0_STATUS_IPL_SHIFT      (10)       /* Bits 10-16+18: Interrupt Mask */
+#  define CP0_STATUS_IPL_MASK       (0x17f << CP0_STATUS_IPL_SHIFT)
+#    define CP0_STATUS_IPL_ENALL    (0x00  << CP0_STATUS_IPL_SHIFT)
+#    define CP0_STATUS_IPL_SW0      ((CHIP_SW0_PRIORITY - 1) << CP0_STATUS_IPL_SHIFT)
+#    define CP0_STATUS_IPL_DISALL   (CHIP_MAX_PRIORITY << CP0_STATUS_IPL_SHIFT)
+#      define CP0_STATUS_INT_ENALL  CP0_STATUS_IPL_ENALL
+#      define CP0_STATUS_INT_SW0    CP0_STATUS_IPL_SW0
+#      define CP0_STATUS_INT_MASK   CP0_STATUS_IPL_MASK
+#      define CP0_STATUS_INT_DISALL CP0_STATUS_IPL_DISALL
+#else
+#  define CP0_STATUS_IM_SHIFT       (8)       /* Bits 8-15: Interrupt Mask */
+#  define CP0_STATUS_IM_MASK        (0xff << CP0_STATUS_IM_SHIFT)
+#    define CP0_STATUS_IM_DISALL    (0x00 << CP0_STATUS_IM_SHIFT)
+#    define CP0_STATUS_IM_SW0       (0x03 << CP0_STATUS_IM_SHIFT) /* IM0-1 = Software interrupts */
+#    define CP0_STATUS_IM_ALL       (0xff << CP0_STATUS_IM_SHIFT)
+#      define CP0_STATUS_INT_ENALL  CP0_STATUS_IM_ALL
+#      define CP0_STATUS_INT_SW0    CP0_STATUS_IM_SW0
+#      define CP0_STATUS_INT_MASK   CP0_STATUS_IM_MASK
+#      define CP0_STATUS_INT_DISALL CP0_STATUS_IM_DISALL
+#endif
 #define CP0_STATUS_IMPL_SHIFT       (16)      /* Bits 16-17: Implementation dependent */
 #define CP0_STATUS_IMPL_MASK        (3 << CP0_STATUS_IMPL_SHIFT)
 #define CP0_STATUS_NMI              (1 << 19) /* Bit 19: Reset exception due to an NMI */
@@ -333,7 +342,9 @@
 #define CP0_CONFIG_BE               (1 << 15) /* Bit 15: Processor is running in big-endian mode */
 #define CP0_CONFIG_IMPL_SHIFT       (16)      /* Bits 16-30: Implementation dependent */
 #define CP0_CONFIG_IMPL_MASK        (0x7fff << CP0_CONFIG_IMPL_SHIFT)
-#define CP0_CONFIG_M                (1 << 31) /* Bit 31: Config1 register is implemented at select=1 */
+#define CP0_CONFIG_M_SHIFT         (31)
+#define CP0_CONFIG_M_MASK          (1 << CP0_CONFIG_M_SHIFT)
+#  define CP0_CONFIG_M             (1 << CP0_CONFIG_M_SHIFT) /* Bit 31: Indicates the presence of a Config1 register */
 
 /* Register Number: 16 Sel: 1 Name: Config1
  * Function: Configuration register 1
@@ -417,11 +428,37 @@
 #define CP0_CONFIG2_M               (1 << 31) /* Bit 31: Config3 register is present */
 
 /* Register Number: 16 Sel: 3 Name: Config3
- * Function: Configuration register 3
+ * Function: Configuration register 3 (Section 50: "CPU for Devices with MIPS32
+ *            microAptive and M-Class Cores")
  * Compliance Level: Optional.
  */
-#define CP0_CONFIG3_TL              (1 << 0)  /* Bit 0: Trace Logic implemented */
-#define CP0_CONFIG3_SM              (1 << 1)  /* Bit 1: SmartMIPS™ ASE implemented */
+
+#define CP0_CONFIG3_TL              (1 << 0)  /* Bit 0:  Trace Logic implemented */
+#define CP0_CONFIG3_SM              (1 << 1)  /* Bit 1:  SmartMIPS™ ASE implemented */
+#define CP0_CONFIG3_CDMM            (1 << 3)  /* Bit 3:  Common Device Memory Map */
+#define CP0_CONFIG3_SP              (1 << 4)  /* Bit 4:  Small page bit */
+#define CP0_CONFIG3_VINT            (1 << 5)  /* Bit 5:  Vector interrupt bit */
+#define CP0_CONFIG3_VEIC            (1 << 6)  /* Bit 6:  External interrupt controller supported */
+#define CP0_CONFIG3_ITL             (1 << 8)  /* Bit 8:  Flowtrace® Hardware bit */
+#define CP0_CONFIG3_DSPP            (1 << 10) /* Bit 10: MIPS DSP ASE Presence bit */
+#define CP0_CONFIG3_DSP2            (1 << 11) /* Bit 11: MIPS DSP ASE Revision 2 Presence bit */
+#define CP0_CONFIG3_RXI             (1 << 12) /* Bit 12: RIE and XIE Implemented in PageGrain bit */
+#define CP0_CONFIG3_ULRI            (1 << 13) /* Bit 13: UserLocal register implemented bit */
+#define CP0_CONFIG3_ISA_SHIFT       (14)      /* Bits 14-15: Indicates Instruction Set Availability */
+#define CP0_CONFIG3_ISA_MASK        (3 << CP0_CONFIG3_ISA_SHIFT)
+#  define CP0_CONFIG3_ISA_MIPS32    (0 << CP0_CONFIG3_ISA_SHIFT) /* Only MIPS32 is implemented */
+#  define CP0_CONFIG3_ISA_MICROMIPS (1 << CP0_CONFIG3_ISA_SHIFT) /* Only microMIPS is implemented */
+#  define CP0_CONFIG3_ISA_BOTHMIP32 (2 << CP0_CONFIG3_ISA_SHIFT) /* Both supported, MIPS32 on reset */
+#  define CP0_CONFIG3_ISA_BOTHUMIPS (3 << CP0_CONFIG3_ISA_SHIFT) /* Both supported, microMIPS on reset */
+#define CP0_CONFIG3_ISAONEXC        (1 << 16) /* Bit 16: ISA on Exception bit */
+#define CP0_CONFIG3_MCU             (1 << 17) /* Bit 17: MIPS MCU ASE Implemented bit */
+#define CP0_CONFIG3_MMAR_SHIFT      (18)      /* Bits 18-20: microMIPS Architecture Revision level bits */
+#define CP0_CONFIG3_MMAR_MASK       (7 << CP0_CONFIG3_MMAR_SHIFT)
+#  define CP0_CONFIG3_MMAR_REL1     (0 << CP0_CONFIG3_MMAR_SHIFT) /* Release 1 */
+#define CP0_CONFIG3_IPLW_SHIFT      (21)      /* Bits 21-22: Width of the Status IPL and Cause RIPL bits */
+#define CP0_CONFIG3_IPLW_MASK       (3 << CP0_CONFIG3_IPLW_SHIFT)
+#  define CP0_CONFIG3_IPLW_6BITS    (0 << CP0_CONFIG3_IPLW_SHIFT) /* 6 bits */
+#  define CP0_CONFIG3_IPLW_8BITS    (1 << CP0_CONFIG3_IPLW_SHIFT) /* 8 bits */
 #define CP0_CONFIG3_M               (1 << 31) /* Bit 31: Config4 register is present */
 
 /* Register Number: 16 Sel: 6-7 (Available for implementation dependent use) */
@@ -454,7 +491,7 @@
 #define CP0_WATCHHI_MASK_MASK       (0x1ff << CP0_WATCHHI_MASK_SHIFT)
 #define CP0_WATCHHI_ASID_SHIFT      (16)       /* Bits 16-23:  ASID value which to match that in the EntryHi register */
 #define CP0_WATCHHI_ASID_MASK       (0xff << CP0_WATCHHI_ASID_SHIFT)
-#define CP0_WATCHHI_G               (1 << 30) /* Bit 30: Any address matcing the WatchLo addr will cause an exception */
+#define CP0_WATCHHI_G               (1 << 30) /* Bit 30: Any address matching the WatchLo addr will cause an exception */
 #define CP0_WATCHHI_M               (1 << 31) /* Bit 30: Another pair of WatchHi/WatchLo registers at select n+1 */
 
 /* Register Number: 20 Sel: 0 Name: XContext
@@ -545,19 +582,19 @@
  *   register.
  */
 
-/********************************************************************************************
+/****************************************************************************
  * Public Types
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __ASSEMBLY__
 
-/********************************************************************************************
+/****************************************************************************
  * Inline Functions
- ********************************************************************************************/
+ ****************************************************************************/
 
-/********************************************************************************************
+/****************************************************************************
  * Public Function Prototypes
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifdef __cplusplus
 #define EXTERN extern "C"

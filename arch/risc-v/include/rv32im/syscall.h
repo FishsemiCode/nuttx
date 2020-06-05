@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through include/syscall.h or include/sys/sycall.h
  */
 
@@ -97,7 +97,7 @@
 
 #define SYS_restore_context (1)
 #define up_fullcontextrestore(restoreregs) \
-  (void)sys_call1(SYS_restore_context, (uintptr_t)restoreregs)
+  sys_call1(SYS_restore_context, (uintptr_t)restoreregs)
 
 /* SYS call 2:
  *
@@ -106,7 +106,7 @@
 
 #define SYS_switch_context (2)
 #define up_switchcontext(saveregs, restoreregs) \
-  (void)sys_call2(SYS_switch_context, (uintptr_t)saveregs, (uintptr_t)restoreregs)
+  sys_call2(SYS_switch_context, (uintptr_t)saveregs, (uintptr_t)restoreregs)
 
 #ifdef CONFIG_BUILD_KERNEL
 /* SYS call 3:
@@ -216,4 +216,3 @@ uintptr_t sys_call5(unsigned int nbr, uintptr_t parm1, uintptr_t parm2,
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_RISCV_INCLUDE_RV32IM_SYSCALL_H */
-

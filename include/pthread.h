@@ -151,7 +151,9 @@
 
 #define PTHREAD_ONCE_INIT             (false)
 
-/* This is returned by pthread_wait.  It must not match any errno in errno.h */
+/* This is returned by pthread_barrier_wait.  It must not match any errno
+ * in errno.h
+ */
 
 #define PTHREAD_BARRIER_SERIAL_THREAD 0x1000
 
@@ -231,7 +233,7 @@ typedef FAR void *pthread_addr_t;
 #define __PTHREAD_ADDR_T_DEFINED 1
 #endif
 
-typedef pthread_addr_t (*pthread_startroutine_t)(pthread_addr_t);
+typedef CODE pthread_addr_t (*pthread_startroutine_t)(pthread_addr_t);
 typedef pthread_startroutine_t pthread_func_t;
 
 struct pthread_attr_s
@@ -380,11 +382,11 @@ typedef bool pthread_once_t;
 
 struct pthread_rwlock_s
 {
-    pthread_mutex_t lock;
-    pthread_cond_t  cv;
-    unsigned int num_readers;
-    unsigned int num_writers;
-    bool write_in_progress;
+  pthread_mutex_t lock;
+  pthread_cond_t  cv;
+  unsigned int num_readers;
+  unsigned int num_writers;
+  bool write_in_progress;
 };
 
 typedef struct pthread_rwlock_s pthread_rwlock_t;
@@ -402,7 +404,7 @@ typedef int pthread_rwlockattr_t;
 struct pthread_spinlock_s
 {
   volatile spinlock_t sp_lock;  /* Indicates if the spinlock is locked or
-                                 * not.  See the* values SP_LOCKED and
+                                 * not.  See the values SP_LOCKED and
                                  * SP_UNLOCKED. */
   pthread_t sp_holder;          /* ID of the thread that holds the spinlock */
 };
@@ -412,7 +414,7 @@ struct pthread_spinlock_s
 typedef FAR struct pthread_spinlock_s pthread_spinlock_t;
 #define __PTHREAD_SPINLOCK_T_DEFINED 1
 #endif
-#endif /* JCONFIG_PTHREAD_SPINLOCKS */
+#endif /* CONFIG_PTHREAD_SPINLOCKS */
 
 #ifdef CONFIG_PTHREAD_CLEANUP
 /* This type describes the pthread cleanup callback (non-standard) */
@@ -463,15 +465,20 @@ int pthread_attr_getaffinity_np(FAR const pthread_attr_t *attr,
 
 /* Set or obtain the default stack size */
 
-int pthread_attr_setstacksize(FAR pthread_attr_t *attr, long stacksize);
-int pthread_attr_getstacksize(FAR const pthread_attr_t *attr, long *stackaddr);
+int pthread_attr_setstacksize(FAR pthread_attr_t *attr, size_t stacksize);
+int pthread_attr_getstacksize(FAR const pthread_attr_t *attr, size_t *stackaddr);
 
-/* Set or obtain stack address and size */
+/* Set or obtain stack address and size attributes */
 
 int pthread_attr_setstack(FAR pthread_attr_t *attr,
                           FAR void *stackaddr, long stacksize);
 int pthread_attr_getstack(FAR pthread_attr_t *attr,
                           FAR void **stackaddr, FAR long *stacksize);
+
+/* Get run-time stack address and size */
+
+FAR void *pthread_get_stackaddr_np(pthread_t thread);
+ssize_t pthread_get_stacksize_np(pthread_t thread);
 
 /* To create a thread object and runnable thread, a routine must be specified
  * as the new thread's start routine.  An argument may be passed to this
@@ -499,7 +506,7 @@ int  pthread_setcancelstate(int state, FAR int *oldstate);
 int  pthread_setcanceltype(int type, FAR int *oldtype);
 void pthread_testcancel(void);
 
-/* A thread may set up cleanup functions to execut when the thread exits or
+/* A thread may set up cleanup functions to execute when the thread exits or
  * is canceled.
  */
 
@@ -633,7 +640,7 @@ int pthread_barrier_wait(FAR pthread_barrier_t *barrier);
 /* Pthread initialization */
 
 int pthread_once(FAR pthread_once_t *once_control,
-                        CODE void (*init_routine)(void));
+                 CODE void (*init_routine)(void));
 
 /* Pthread rwlock */
 

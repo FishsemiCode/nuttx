@@ -62,9 +62,9 @@
  */
 
 #define WLIOC_SETRADIOFREQ  _WLCIOC(0x0001)  /* arg: Pointer to uint32_t, frequency
-                                             * value (in Mhz) */
+                                             * value (in MHz) */
 #define WLIOC_GETRADIOFREQ  _WLCIOC(0x0002)  /* arg: Pointer to uint32_t, frequency
-                                             * value (in Mhz) */
+                                             * value (in MHz) */
 #define WLIOC_SETADDR       _WLCIOC(0x0003)  /* arg: Pointer to address value, format
                                              * of the address is driver specific */
 #define WLIOC_GETADDR       _WLCIOC(0x0004)  /* arg: Pointer to address value, format
@@ -80,8 +80,8 @@
 #define WL_NCMDS            0x0006          /* Number of common commands */
 
 /* User defined ioctl commands are also supported. These will be forwarded
- * by the upper-half QE driver to the lower-half QE driver via the ioctl()
- * method fo the QE lower-half interface.  However, the lower-half driver
+ * by the upper-half driver to the lower-half driver via the ioctl()
+ * method of the lower-half interface.  However, the lower-half driver
  * must reserve a block of commands as follows in order prevent IOCTL
  * command numbers from overlapping.
  */
@@ -90,12 +90,17 @@
 /* See include/nuttx/wireless/nrf24l01.h */
 
 #define NRF24L01_FIRST      (WL_FIRST + WL_NCMDS)
-#define NRF24L01_NCMDS      14
+#define NRF24L01_NCMDS      16
 
 /* See include/nuttx/wireless/lpwan/sx127x.h */
 
 #define SX127X_FIRST        (NRF24L01_FIRST + NRF24L01_NCMDS)
 #define SX127X_NCMDS        11
+
+/* See include/nuttx/wireless/gs2200m.h */
+
+#define GS2200M_FIRST       (SX127X_FIRST + SX127X_NCMDS)
+#define GS2200M_NCMDS       8
 
 /************************************************************************************
  * Public Types

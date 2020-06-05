@@ -43,13 +43,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/crypto/crypto.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 #include <arch/board/board.h>
 
 #include "up_internal.h"
@@ -130,8 +130,6 @@ static void stm32aes_setkey(FAR const void *key, size_t key_len)
 {
   FAR uint32_t *in = (FAR uint32_t *)key;
 
-  (void)key_len;
-
   putreg32(__builtin_bswap32(*in), STM32_AES_KEYR3);
   in++;
   putreg32(__builtin_bswap32(*in), STM32_AES_KEYR2);
@@ -167,8 +165,7 @@ static void stm32aes_encryptblock(FAR void *block_out, FAR const void *block_in)
   in++;
   putreg32(*in, STM32_AES_DINR);
 
-  while (!(getreg32(STM32_AES_SR) & AES_SR_CCF))
-    ;
+  while (!(getreg32(STM32_AES_SR) & AES_SR_CCF));
   stm32aes_ccfc();
 
   *out = getreg32(STM32_AES_DOUTR);

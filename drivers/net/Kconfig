@@ -3,18 +3,48 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+menuconfig NETDEVICES
+	bool "Network Device/PHY Support"
+	default n if !ARCH_HAVE_PHY
+	default y if ARCH_HAVE_PHY
+	depends on NET
+	---help---
+		Network interface driver and PHY selections.  This options enables
+		selection of drivers for external Ethernet MAC chips.  The majority
+		of MCUs, however, have built-in, internal Ethernet MAC peripherals
+		and that Ethernet support is selected in the MCU-specific
+		configuration menus.
+
+		Most Ethernet MAC drivers, whether internal or external, will
+		require configuration of an external PHY device.  That external PHY
+		device is also selected via this menu.
+
+if NETDEVICES
+
 comment "General Ethernet MAC Driver Options"
 
-config NETDEV_LOOPBACK
-	bool
-	default n if !NET_LOOPBACK
-	default y if NET_LOOPBACK
+config NET_RPMSG_DRV
+	bool "RPMSG net driver"
+	depends on NET && OPENAMP
 	select ARCH_HAVE_NETDEV_STATISTICS
 	---help---
-		Add support for the local network loopback device, lo.
+		Use the rpmsg as net device, transfer packet between remoteproc.
 
-if NETDEV_LOOPBACK
-endif # NETDEV_LOOPBACK
+if NET_RPMSG_DRV
+
+config NET_RPMSG_PRIORITY
+	int "net prmsg priority"
+	default 100
+	---help---
+		The priority for net rmpsg task.
+
+config NET_RPMSG_STACKSIZE
+	int "net rpmsg stack size"
+	default DEFAULT_TASK_STACKSIZE
+	---help---
+		The stack size allocated for the net rpmsg task.
+
+endif # NET_RPMSG_DRV
 
 config NET_RPMSG_DRV
 	bool "RPMSG net driver"
@@ -59,28 +89,40 @@ config TELNET_TXBUFFER_SIZE
 	int "Telnet TX buffer size"
 	default 256
 
-config TELNET_DUMPBUFFER
-	bool "Dump Telnet buffers"
-	default n
-	depends on DEBUG_NET
+config TELNET_MAXLCLIENTS
+	int "Maximum Telnet clients"
+	default 8
+	---help---
+		The maximum number of Telnet clients tasks is limited by this
+		number.  This limitation is somewhat artificial since it only
+		determines the size of a fixed-size, preallocated, internal array.
 
 config TELNET_CHARACTER_MODE
 	bool "Character mode"
 	default n
 	---help---
-		The Telnet daemon works in character mode. In this case, the deamon
+		The Telnet daemon works in character mode. In this case, the daemon
 		will echo a character which telnet client sent. By default, it works
 		in line mode.
+
+config TELNET_IOTHREAD_PRIORITY
+	int "I/O thread priority"
+	default 100
+
+config TELNET_IOTHREAD_STACKSIZE
+	int "I/O thread stack size"
+	default 1024
 
 config TELNET_SUPPORT_NAWS
 	bool "Support NAWS (Negotiate About Window Size)"
 	default n
 
-endif # NETDEV_TELNET
-
-config ARCH_HAVE_NETDEV_STATISTICS
-	bool
+config TELNET_DUMPBUFFER
+	bool "Dump Telnet buffers"
 	default n
+	depends on DEBUG_NET
+
+endif # NETDEV_TELNET
 
 config NETDEV_STATISTICS
 	bool "Network device driver statistics"
@@ -272,7 +314,7 @@ config ENCX24J600_NRXDESCR
 		Defines how many descriptors are preallocated for the
 		transmission and reception queues.
 		The ENC has a relative large packet buffer of 24kB which can
-		be used to buffer multiple packets simutaneously
+		be used to buffer multiple packets simultaneously
 
 config ENCX24J600_DUMPPACKET
 	bool "Dump Packets"
@@ -290,35 +332,6 @@ config ENCX24J600_REGDEBUG
 		CONFIG_DEBUG_FEATURES and CONFIG_DEBUG_NET.
 
 endif # ENCX24J600
-
-menuconfig NET_SLIP
-	bool "SLIP (serial line) support"
-	default n
-	select ARCH_HAVE_NETDEV_STATISTICS
-	---help---
-		Reference: RFC 1055
-
-if NET_SLIP
-
-config NET_SLIP_STACKSIZE
-	int "Daemon stack size"
-	default 2048
-	---help---
-		Provides the stack size for SLIP RX and TX.
-
-config NET_SLIP_DEFPRIO
-	int "Daemon priority"
-	default 128
-	---help---
-		Provides the priority for SLIP RX and TX threads.
-
-config NET_SLIP_NINTERFACES
-	int "Number of SLIP interfaces"
-	default 1
-	---help---
-		Determines the number of physical interfaces that will be supported.
-
-endif
 
 menuconfig NET_FTMAC100
 	bool "Faraday 10/100 Ethernet"
@@ -365,10 +378,6 @@ if ARCH_HAVE_PHY
 
 comment "External Ethernet PHY Device Support"
 
-config ARCH_PHY_INTERRUPT
-	bool
-	default n
-
 choice
 	prompt "Board PHY Selection (ETH0)"
 	default ETH0_PHY_NONE
@@ -403,6 +412,14 @@ config ETH0_PHY_KSZ90x1
 config ETH0_PHY_DP83848C
 	bool "National Semiconductor DP83848C PHY"
 
+config ETH0_PHY_TJA1100
+	bool "NXP TJA1100 PHY"
+	select ARCH_PHY_100BASE_T1
+
+config ETH0_PHY_TJA1101
+	bool "NXP TJA1101 PHY"
+	select ARCH_PHY_100BASE_T1
+
 config ETH0_PHY_LAN8720
 	bool "SMSC LAN8720 PHY"
 
@@ -431,7 +448,7 @@ config ETH1_PHY_NONE
 	bool "No PHY support"
 
 config ETH1_PHY_AM79C874
-	 bool "AMD Am79C874 PHY"
+	bool "AMD Am79C874 PHY"
 
 config ETH1_PHY_KS8721
 	bool "Micrel KS8721 PHY"
@@ -451,6 +468,14 @@ config ETH1_PHY_KSZ90x1
 config ETH1_PHY_DP83848C
 	bool "National Semiconductor DP83848C PHY"
 
+config ETH1_PHY_TJA1100
+	bool "NXP TJA1100 PHY"
+	select ARCH_PHY_100BASE_T1
+
+config ETH1_PHY_TJA1101
+	bool "NXP TJA1101 PHY"
+	select ARCH_PHY_100BASE_T1
+
 config ETH1_PHY_LAN8720
 	bool "SMSC LAN8720 PHY"
 
@@ -458,6 +483,29 @@ config ETH1_PHY_DM9161
 	bool "Davicom DM9161 PHY"
 
 endchoice
+
+config ARCH_PHY_100BASE_T1
+	bool
+	default n
+
+if (ARCH_PHY_100BASE_T1)
+
+choice
+	prompt "Automotive Ethernet 100BASE-T1 master/slave mode"
+	default PHY_100BASE_T1_SLAVE
+    ---help---
+		Automotive Ethernet 100BASE-T1 requires the PHY to be configured
+		in either master or slave mode.
+
+config PHY_100BASE_T1_MASTER
+	bool "Master"
+
+config PHY_100BASE_T1_SLAVE
+	bool "Slave"
+
+endchoice # 100BASE-T1 master/slave mode
+
+endif
 
 config NETDEV_PHY_DEBUG
 	bool "PHY debug"
@@ -472,3 +520,5 @@ config NETDEV_PHY_DEBUG
 		the NSH network initialization logic.
 
 endif # ARCH_HAVE_PHY
+
+endif # NETDEVICES

@@ -54,16 +54,16 @@
 #include "chip.h"
 
 #if defined(CONFIG_STM32_STM32L15XX)
-#  include "chip/stm32l15xxx_gpio.h"
+#  include "hardware/stm32l15xxx_gpio.h"
 #elif defined(CONFIG_STM32_STM32F10XX)
-#  include "chip/stm32f10xxx_gpio.h"
+#  include "hardware/stm32f10xxx_gpio.h"
 #elif defined(CONFIG_STM32_STM32F20XX)
-#  include "chip/stm32f20xxx_gpio.h"
+#  include "hardware/stm32f20xxx_gpio.h"
 #elif defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F33XX) || \
       defined(CONFIG_STM32_STM32F37XX)
-#  include "chip/stm32f30xxx_gpio.h"
+#  include "hardware/stm32f30xxx_gpio.h"
 #elif defined(CONFIG_STM32_STM32F4XXX)
-#  include "chip/stm32f40xxx_gpio.h"
+#  include "hardware/stm32f40xxx_gpio.h"
 #else
 #  error "Unrecognized STM32 chip"
 #endif
@@ -98,7 +98,7 @@
 
 /* If the pin is a GPIO digital output, then this identifies the initial output value.
  * If the pin is an input, this bit is overloaded to provide the qualifier to\
- * distinquish input pull-up and -down:
+ * distinguish input pull-up and -down:
  *
  * 1111 1100 0000 0000
  * 5432 1098 7654 3210
@@ -106,7 +106,7 @@
  * .... .... V... ....
  */
 
-#define GPIO_OUTPUT_SET               (1 << 7)                   /* Bit 7: If output, inital value of output */
+#define GPIO_OUTPUT_SET               (1 << 7)                   /* Bit 7: If output, initial value of output */
 #define GPIO_OUTPUT_CLEAR             (0)
 
 /* These bits set the primary function of the pin:
@@ -320,7 +320,7 @@
 
 /* If the pin is a GPIO digital output, then this identifies the initial output value.
  * If the pin is an input, this bit is overloaded to provide the qualifier to
- * distinquish input pull-up and -down:
+ * distinguish input pull-up and -down:
  *
  * 1111 1111 1100 0000 0000
  * 9876 5432 1098 7654 3210
@@ -328,7 +328,7 @@
  * .... .... ...V .... ....
  */
 
-#define GPIO_OUTPUT_SET               (1 << 8)                   /* Bit 8: If output, inital value of output */
+#define GPIO_OUTPUT_SET               (1 << 8)                   /* Bit 8: If output, initial value of output */
 #define GPIO_OUTPUT_CLEAR             (0)
 
 /* External interrupt selection (GPIO inputs only):

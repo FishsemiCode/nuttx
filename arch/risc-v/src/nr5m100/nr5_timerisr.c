@@ -129,7 +129,7 @@ uint64_t up_get_systick(void)
 }
 
 /****************************************************************************
- * Function:  riscv_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -137,7 +137,7 @@ uint64_t up_get_systick(void)
  *
  ****************************************************************************/
 
-void riscv_timer_initialize(void)
+void up_timer_initialize(void)
 {
   /* Set the SysTick interrupt to the default priority */
 
@@ -147,7 +147,7 @@ void riscv_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(NR5_IRQ_SYSTICK, nr5m100_timerisr, NULL);
+  irq_attach(NR5_IRQ_SYSTICK, nr5m100_timerisr, NULL);
 
   /* Configure and enable SysTick to interrupt at the requested rate */
 
@@ -157,4 +157,3 @@ void riscv_timer_initialize(void)
 
   up_enable_irq(NR5_IRQ_SYSTICK);
 }
-

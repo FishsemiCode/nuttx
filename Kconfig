@@ -35,6 +35,13 @@ config DEFAULT_SMALL
 		have already been selected in your configuration file.  This applies
 		only to new settings that require a default value.
 
+config DEFAULT_TASK_STACKSIZE
+	int "The default stack size for tasks"
+	default 8192 if ARCH_SIM
+	default 2048
+	---help---
+		The default stack size for tasks.
+
 choice
 	prompt "Build Host Platform"
 	default HOST_LINUX
@@ -69,9 +76,15 @@ choice
 config WINDOWS_NATIVE
 	bool "Windows Native"
 	select TOOLCHAIN_WINDOWS
+	depends on EXPERIMENTAL
 	---help---
 		Build natively in a CMD.exe environment with Windows style paths
-		(like C:\cgywin\home)
+		(like C:\cygwin\home)
+
+		The Windows native build is complete and available, but not often
+		used or verified.  As a consequence, it cannot be assured to be
+		fully functional at any given time.  Hence, it is marked here as
+		EXPERIMENTAL so that the end user will be aware of this state.
 
 config WINDOWS_CYGWIN
 	bool "Cygwin"
@@ -83,7 +96,7 @@ config WINDOWS_CYGWIN
 config WINDOWS_UBUNTU
 	bool "Ubuntu under Windows 10"
 	---help---
-		Build natively in an Ubuntu shell under Windoes 10 environment with
+		Build natively in an Ubuntu shell under Windows 10 environment with
 		POSIX style paths (like /mnt/c/Program Files)
 
 config WINDOWS_MSYS
@@ -91,7 +104,7 @@ config WINDOWS_MSYS
 	select TOOLCHAIN_WINDOWS
 	---help---
 		Build natively in a Cygwin environment with POSIX style paths (like
-		/cygdrive/c/cgywin/home)
+		/cygdrive/c/cygwin/home)
 
 config WINDOWS_OTHER
 	bool "Windows POSIX-like environment"
@@ -170,10 +183,8 @@ config APPS_DIR
 		or to set up include file paths.
 
 config BUILD_LOADABLE
-	bool "NuttX application loadable build"
+	bool
 	option modules
-	default n if !BUILD_KERNEL
-	default y if BUILD_KERNEL
 	---help---
 		Automatically selected if KERNEL build is selected.
 		This selection only effects the behavior of the 'make export'
@@ -210,6 +221,7 @@ config BUILD_PROTECTED
 config BUILD_KERNEL
 	bool "NuttX kernel build"
 	depends on ARCH_USE_MMU && ARCH_ADDRENV
+	select BUILD_LOADABLE
 	select LIB_SYSCALL
 	---help---
 		Builds NuttX as a separately compiled kernel.  No applications are
@@ -282,13 +294,6 @@ endmenu # Build Setup
 
 menu "Binary Output Formats"
 
-config RRLOAD_BINARY
-	bool "rrload binary format"
-	default n
-	---help---
-		Create nuttx.rr in the rrload binary format used with
-		BSPs from www.ridgerun.com using the tools/mkimage.sh script.
-
 config INTELHEX_BINARY
 	bool "Intel HEX binary format"
 	default n
@@ -356,9 +361,17 @@ endmenu # Binary Output Formats
 
 menu "Customize Header Files"
 
+config ARCH_HAVE_STDINT_H
+	bool
+	default n
+	---help---
+		Selected by architecture specific logic if the architecture provides
+		a stdint.h header file.
+
 config ARCH_STDINT_H
 	bool "stdint.h"
 	default n
+	depends on ARCH_HAVE_STDINT_H
 	---help---
 		The stdint.h header file can be found at nuttx/include/stdint.h.
 		However, that header includes logic to redirect the inclusion of an
@@ -373,9 +386,17 @@ config ARCH_STDINT_H
 		Recall that that include path, include/arch, is a symbolic link and
 		will refer to a version of stdint.h at nuttx/arch/<architecture>/include/stdint.h.
 
+config ARCH_HAVE_STDBOOL_H
+	bool
+	default n
+	---help---
+		Selected by architecture specific logic if the architecture provides
+		a stdbool.h header file.
+
 config ARCH_STDBOOL_H
 	bool "stdbool.h"
 	default n
+	depends on ARCH_HAVE_STDBOOL_H
 	---help---
 		The stdbool.h header file can be found at nuttx/include/stdbool.h.
 		However, that header includes logic to redirect the inclusion of an
@@ -390,8 +411,16 @@ config ARCH_STDBOOL_H
 		Recall that that include path, include/arch, is a symbolic link and
 		will refer to a version of stdbool.h at nuttx/arch/<architecture>/include/stdbool.h.
 
+config ARCH_HAVE_MATH_H
+	bool
+	default n
+	---help---
+		Selected by architecture specific logic if the architecture provides
+		a math.h header file.
+
 config ARCH_MATH_H
 	bool "math.h"
+	depends on ARCH_HAVE_MATH_H
 	default n
 	---help---
 		There is also a re-directing version of math.h in the source tree.
@@ -422,15 +451,23 @@ config ARCH_FLOAT_H
 		there is no assurance that the settings in this float.h are actually
 		correct for your platform!
 
-config ARCH_STDARG_H
-	bool "stdarg.h"
+config ARCH_HAVE_STDARG_H
+	bool
 	default n
 	---help---
-		There is also a redirecting version of stdarg.h in the source tree
-		as well. It also resides out-of-the-way at include/nuttx/lib/stdarg.h.
-		This is because you should normally use your toolchain's stdarg.h
-		file. But sometimes, your toolchain's stdarg.h file may have other
-		header file dependencies and so may not be usable in the NuttX build
+		Selected by architecture specific logic if the architecture provides
+		a math.h header file.
+
+config ARCH_STDARG_H
+	bool "stdarg.h"
+	depends on ARCH_HAVE_STDARG_H
+	default n
+	---help---
+		There is a redirecting version of stdarg.h in the source tree. It
+		resides out-of-the-way at include/nuttx/lib/stdarg.h.  This is
+		because you should normally use your toolchain's stdarg.h file. But
+		sometimes, your toolchain's stdarg.h file may have other header
+		file dependencies and so may not be usable in the NuttX build
 		environment. In those cases, you may have to create a architecture-
 		specific stdarg.h header file at nuttx/arch/<architecture>/include/stdarg.h
 
@@ -441,11 +478,35 @@ config ARCH_STDARG_H
 		ARCH_STDARG_H=y and providing. If ARCH_STDARG_H, is not defined, then
 		the stdarg.h header file will stay out-of-the-way in include/nuttx/.
 
+config ARCH_HAVE_SETJMP
+	bool
+	default n
+
+config ARCH_SETJMP_H
+	bool "setjmp.h"
+	default n
+	depends on ARCH_HAVE_SETJMP
+	---help---
+		There is a redirecting version of setjmp.h in the source tree. It
+		resides out-of-the-way at include/nuttx/lib/setjmp.h.  This is
+		because you should normally use your toolchain's setjmp.h file. But
+		sometimes, your toolchain's setjmp.h file may have other header
+		file dependencies and so may not be usable in the NuttX build
+		environment. In those cases, you may have to create a architecture-
+		specific setjmp.h header file at nuttx/arch/<architecture>/include/setjmp.h
+
+		If ARCH_SETJMP_H=y is defined, the top-level makefile will copy the
+		re-directing setjmp.h header file from include/nuttx/lib/setjmp.h to
+		include/setjmp.h. So for the architectures that cannot use their
+		toolchain's setjmp.h file, they can use this alternative by defining
+		ARCH_SETJMP_H=y and providing. If ARCH_SETJMP_H, is not defined, then
+		the setjmp.h header file will stay out-of-the-way in include/nuttx/.
+
 config ARCH_DEBUG_H
 	bool "debug.h"
 	default n
 	---help---
-		 The debug.h contains architecture dependent debugging primitives
+		The debug.h contains architecture dependent debugging primitives
 
 endmenu # Customize Header Files
 
@@ -546,7 +607,7 @@ endif # DEBUG_AUDIO
 config DEBUG_BINFMT
 	bool "Binary Loader Debug Features"
 	default n
-	depends on !BINFMT_DISABLE
+	depends on !BINFMT_DISABLE || LIBC_MODLIB
 	---help---
 		Enable binary loader debug features.
 
@@ -574,6 +635,41 @@ config DEBUG_BINFMT_INFO
 		Enable binary loader informational output to SYSLOG.
 
 endif # DEBUG_BINFMT
+
+config DEBUG_CONTACTLESS
+	bool "Contactless Debug Features"
+	default n
+	depends on DRIVERS_CONTACTLESS
+	---help---
+		Enable debug features for contactless (aka RFID) subsystem.
+
+if DEBUG_CONTACTLESS
+
+config DEBUG_CONTACTLESS_ERROR
+	bool "Contactless Error Output"
+	default n
+	depends on DEBUG_ERROR
+	---help---
+		Enable contactless (aka RFID) subsystem error output to
+		SYSLOG.
+
+config DEBUG_CONTACTLESS_WARN
+	bool "Contactless Warnings Output"
+	default n
+	depends on DEBUG_ERROR
+	---help---
+		Enable contactless (aka RFID) subsystem warning output to
+		SYSLOG.
+
+config DEBUG_CONTACTLESS_INFO
+	bool "Contactless Informational Output"
+	default n
+	depends on DEBUG_ERROR
+	---help---
+		Enable contactless (aka RFID) subsystem informational output
+		to SYSLOG.
+
+endif # DEBUG_CONTACTLESS
 
 config DEBUG_CRYPTO
 	bool "Crypto Debug Features"
@@ -1687,7 +1783,7 @@ source "arch/Kconfig"
 endmenu
 
 menu "Board Selection"
-source "configs/Kconfig"
+source "boards/Kconfig"
 endmenu
 
 menu "RTOS Features"
@@ -1722,6 +1818,10 @@ endmenu
 
 menu "Audio Support"
 source audio/Kconfig
+endmenu
+
+menu "Video Support"
+source video/Kconfig
 endmenu
 
 menu "Wireless Support"

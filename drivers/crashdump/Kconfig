@@ -3,6 +3,12 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+menuconfig CRASH_DUMP
+	bool "crash dump drivers"
+	default n
+
+if CRASH_DUMP
+
 config CRASH_DUMPFILE
 	bool "Enable crash dump file"
 	default n
@@ -37,3 +43,5 @@ config CRASH_DUMPZMODEM_TTY
 	default "/dev/ttyS0"
 
 endif #CRASH_DUMPZMODEM
+
+endif #CRASH_DUMP

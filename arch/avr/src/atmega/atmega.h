@@ -85,7 +85,7 @@ extern "C"
  * Name: up_clkinit
  *
  * Description:
- *   Initialiaze clock/PLL settings per the definitions in the board.h file.
+ *   Initialize clock/PLL settings per the definitions in the board.h file.
  *
  ****************************************************************************/
 
@@ -118,7 +118,7 @@ void usart1_configure(void);
  *
  * Description:
  *   Initialize a console for debug output.  This function is called very
- *   early in the initializeation sequence to configure the serial console
+ *   early in the initialization sequence to configure the serial console
  *   uart (only).
  *
  ****************************************************************************/
@@ -130,7 +130,7 @@ void up_consoleinit(void);
  *
  * Description:
  *   This function must be provided by the board-specific logic in the
- *   directory configs/<board-name>/src.
+ *   directory boards/avr/atmega/<board-name>/src.
  *
  ****************************************************************************/
 
@@ -211,4 +211,3 @@ void gpio_irqdisable(int irq);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_AVR_SRC_ATMEGA_ATMEGA_H */
-

@@ -60,7 +60,7 @@
  * Name: file_read
  *
  * Description:
- *   file_read() is an interanl OS interface.  It is functionally similar to
+ *   file_read() is an internal OS interface.  It is functionally similar to
  *   the standard read() interface except:
  *
  *    - It does not modify the errno variable,
@@ -199,7 +199,7 @@ ssize_t read(int fd, FAR void *buf, size_t nbytes)
 
   /* read() is a cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* Let nx_read() do the real work */
 

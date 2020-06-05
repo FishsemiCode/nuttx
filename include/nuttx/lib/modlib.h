@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/lib/modlib.h
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2017, 2020 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
-#include <elf32.h>
+#include <elf.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/symtab.h>
@@ -51,6 +51,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_MODLIB_MAXDEPEND
@@ -103,7 +104,7 @@
 
 /* This is the type of the function that is called to uninitialize the
  * the loaded module.  This may mean, for example, un-registering a device
- * driver. If the module is successfully initialized, its memory will be
+ * driver. If the module is successfully uninitialized, its memory will be
  * deallocated.
  *
  * Input Parameters:
@@ -112,7 +113,7 @@
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on any failure to
- *   initialize the module.  If zero is returned, then the module memory
+ *   uninitialize the module.  If zero is returned, then the module memory
  *   will be deallocated.  If the module is still in use (for example with
  *   open driver instances), the uninitialization function should fail with
  *   -EBUSY
@@ -120,13 +121,13 @@
 
 typedef CODE int (*mod_uninitializer_t)(FAR void *arg);
 
-/* The contect of this structure is returned by module_initialize().
+/* The content of this structure is filled by module_initialize().
  *
  *   uninitializer - The pointer to the uninitialization function.  NULL may
- *                   be returned if no uninitialization is needed (i.e, the
+ *                   be specified if no uninitialization is needed (i.e, the
  *                   the module memory can be deallocated at any time).
  *   arg           - An argument that will be passed to the uninitialization
-                     function.
+ *                   function.
  *   exports       - A symbol table exported by the module
  *   nexports      - The number of symbols in the exported symbol table.
  */
@@ -141,11 +142,11 @@ struct mod_info_s
 
 /* A NuttX module is expected to export a function called module_initialize()
  * that has the following function prototype.  This function should appear as
- * the entry point in the ELF module file and will be called by the binfmt
- * logic after the module has been loaded into kernel memory.
+ * the entry point in the ELF module file and will be called by the loader
+ * logic after the module has been loaded into memory.
  *
  * Input Parameters:
- *   modinfo - Module information returned by modlib_initialize().
+ *   modinfo - Module information to be filled by the initializer.
  *
  * Returned Value:
  *   Zero (OK) on success; a negated errno value on any failure to
@@ -171,7 +172,12 @@ struct module_s
   mod_initializer_t initializer;       /* Module initializer function */
 #endif
   struct mod_info_s modinfo;           /* Module information */
+#if defined(CONFIG_ARCH_USE_MODULE_TEXT)
+  FAR void *textalloc;                 /* Allocated kernel text memory */
+  FAR void *dataalloc;                 /* Allocated kernel memory */
+#else
   FAR void *alloc;                     /* Allocated kernel memory */
+#endif
 #if defined(CONFIG_FS_PROCFS) && !defined(CONFIG_FS_PROCFS_EXCLUDE_MODULE)
   size_t textsize;                     /* Size of the kernel .text memory allocation */
   size_t datasize;                     /* Size of the kernel .bss/.data memory allocation */
@@ -197,8 +203,8 @@ struct mod_loadinfo_s
   /* elfalloc is the base address of the memory that is allocated to hold the
    * module image.
    *
-   * The alloc[] array in struct module_s will hold memory that persists after
-   * the module has been loaded.
+   * The alloc[] array in struct module_s will hold memory that persists
+   * after the module has been loaded.
    */
 
   uintptr_t         textalloc;   /* .text memory allocated when module was loaded */
@@ -206,8 +212,8 @@ struct mod_loadinfo_s
   size_t            textsize;    /* Size of the module .text memory allocation */
   size_t            datasize;    /* Size of the module .bss/.data memory allocation */
   off_t             filelen;     /* Length of the entire module file */
-  Elf32_Ehdr        ehdr;        /* Buffered module file header */
-  FAR Elf32_Shdr   *shdr;        /* Buffered module section headers */
+  Elf_Ehdr          ehdr;        /* Buffered module file header */
+  FAR Elf_Shdr     *shdr;        /* Buffered module section headers */
   uint8_t          *iobuffer;    /* File I/O buffer */
 
   uint16_t          symtabidx;   /* Symbol table section index */
@@ -244,8 +250,8 @@ int modlib_initialize(FAR const char *filename,
  * Name: modlib_uninitialize
  *
  * Description:
- *   Releases any resources committed by modlib_initialize().  This essentially
- *   undoes the actions of modlib_initialize.
+ *   Releases any resources committed by modlib_initialize().  This
+ *   essentially undoes the actions of modlib_initialize.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -263,7 +269,8 @@ int modlib_uninitialize(FAR struct mod_loadinfo_s *loadinfo);
  *
  * Input Parameters:
  *   symtab - The location to store the symbol table.
- *   nsymbols - The location to store the number of symbols in the symbol table.
+ *   nsymbols - The location to store the number of symbols in the symbol
+ *              table.
  *
  * Returned Value:
  *   None
@@ -309,7 +316,8 @@ int modlib_load(FAR struct mod_loadinfo_s *loadinfo);
  *
  * Description:
  *   Bind the imported symbol names in the loaded module described by
- *   'loadinfo' using the exported symbol values provided by modlib_setsymtab().
+ *   'loadinfo' using the exported symbol values provided by
+ *   modlib_setsymtab().
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -317,7 +325,8 @@ int modlib_load(FAR struct mod_loadinfo_s *loadinfo);
  *
  ****************************************************************************/
 
-int modlib_bind(FAR struct module_s *modp, FAR struct mod_loadinfo_s *loadinfo);
+int modlib_bind(FAR struct module_s *modp,
+                FAR struct mod_loadinfo_s *loadinfo);
 
 /****************************************************************************
  * Name: modlib_unload
@@ -357,7 +366,8 @@ int modlib_unload(struct mod_loadinfo_s *loadinfo);
  ****************************************************************************/
 
 #if CONFIG_MODLIB_MAXDEPEND > 0
-int modlib_depend(FAR struct module_s *importer, FAR struct module_s *exporter);
+int modlib_depend(FAR struct module_s *importer,
+                  FAR struct module_s *exporter);
 #endif
 
 /****************************************************************************

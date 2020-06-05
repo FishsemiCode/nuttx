@@ -34,7 +34,7 @@
  *
  ****************************************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly through arch/irq.h */
+/* This file should never be included directly but, rather, only indirectly through arch/irq.h */
 
 #ifndef __ARCH_ARM_INCLUDE_STM32F7_STM32F76XX77XX_IRQ_H
 #define __ARCH_ARM_INCLUDE_STM32F7_STM32F76XX77XX_IRQ_H
@@ -179,7 +179,6 @@
 #define STM32_IRQ_MDIOS       (STM32_IRQ_FIRST + 109) /* 109: MDIO slave global interrupt */
 
 #define STM32_IRQ_NEXTINTS    110
-#define STM32_IRQ_NIRQS       (STM32_IRQ_FIRST + 110)
 
 /* EXTI interrupts (Do not use IRQ numbers) */
 

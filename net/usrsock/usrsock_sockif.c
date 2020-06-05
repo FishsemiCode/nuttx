@@ -80,9 +80,7 @@ const struct sock_intf_s g_usrsock_sockif =
   usrsock_listen,             /* si_listen */
   usrsock_connect,            /* si_connect */
   usrsock_accept,             /* si_accept */
-#ifndef CONFIG_DISABLE_POLL
   usrsock_poll,               /* si_poll */
-#endif
   usrsock_sockif_send,        /* si_send */
   usrsock_sendto,             /* si_sendto */
 #ifdef CONFIG_NET_SENDFILE
@@ -144,6 +142,7 @@ static int usrsock_sockif_setup(FAR struct socket *psock, int protocol)
           return -ENETDOWN;
         }
 #endif
+
 #ifndef CONFIG_NET_USRSOCK_TCP
       if (type == SOCK_STREAM)
         {

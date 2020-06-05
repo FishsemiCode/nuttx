@@ -44,7 +44,7 @@
 
 #include "chip.h"
 
-#include "chip/efm32_adc.h"
+#include "hardware/efm32_adc.h"
 
 #include <nuttx/analog/adc.h>
 
@@ -572,7 +572,7 @@ extern "C" {
  *   nchannels - Number of channels
  *
  * Returned Value:
- *   Valid can device structure reference on succcess; a NULL on failure
+ *   Valid ADC device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -588,4 +588,3 @@ struct adc_dev_s *efm32_adcinitialize(int intf, const uint8_t *chanlist,
 
 #endif /* CONFIG_EFM32_ADC || CONFIG_EFM32_ADC2 || CONFIG_EFM32_ADC3 */
 #endif /* __ARCH_ARM_SRC_EFM32_EFM32_ADC_H */
-

@@ -1,35 +1,20 @@
 /****************************************************************************
  * graphics/vnc/vnc_updater.c
  *
- *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -40,7 +25,6 @@
 #include <nuttx/config.h>
 
 #include <string.h>
-#include <semaphore.h>
 #include <sched.h>
 #include <pthread.h>
 #include <queue.h>
@@ -63,8 +47,6 @@
 #  define CONFIG_DEBUG_GRAPHICS_INFO  1
 #endif
 #include <debug.h>
-
-#include <nuttx/semaphore.h>
 
 #include "vnc_server.h"
 
@@ -131,19 +113,14 @@ static void vnc_sem_debug(FAR struct vnc_session_s *session,
   int queuewaiting;
   int ret;
 
-  do
+  ret = nxsem_wait_uninterruptible(&g_errsem);
+  if (ret < 0)
     {
-      /* Take the semaphore (perhaps waiting) */
+      /* Should happen only on task cancellation */
 
-      ret = nxsem_wait(&g_errsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      DEBUGASSERT(ret == -ECANCELED);
+      return;
     }
-  while (ret == -EINTR);
 
   /* Count structures in the list */
 
@@ -207,7 +184,6 @@ static FAR struct vnc_fbupdate_s *
 vnc_alloc_update(FAR struct vnc_session_s *session)
 {
   FAR struct vnc_fbupdate_s *update;
-  int ret;
 
   /* Reserve one element from the free list.  Lock the scheduler to assure
    * that the sq_remfirst() and the successful return from nxsem_wait are
@@ -217,19 +193,7 @@ vnc_alloc_update(FAR struct vnc_session_s *session)
   sched_lock();
   vnc_sem_debug(session, "Before alloc", 0);
 
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&session->freesem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  nxsem_wait_uninterruptible(&session->freesem);
 
   /* It is reserved.. go get it */
 
@@ -300,7 +264,6 @@ static FAR struct vnc_fbupdate_s *
 vnc_remove_queue(FAR struct vnc_session_s *session)
 {
   FAR struct vnc_fbupdate_s *rect;
-  int ret;
 
   /* Reserve one element from the list of queued rectangle.  Lock the
    * scheduler to assure that the sq_remfirst() and the successful return
@@ -311,19 +274,7 @@ vnc_remove_queue(FAR struct vnc_session_s *session)
   sched_lock();
   vnc_sem_debug(session, "Before remove", 0);
 
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&session->queuesem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  nxsem_wait_uninterruptible(&session->queuesem);
 
   /* It is reserved.. go get it */
 
@@ -418,7 +369,7 @@ static FAR void *vnc_updater(FAR void *arg)
   while (session->state == VNCSERVER_RUNNING)
     {
       /* Get the next queued rectangle update.  This call will block until an
-       * upate is available for the case where the update queue is empty.
+       * update is available for the case where the update queue is empty.
        */
 
       srcrect = vnc_remove_queue(session);
@@ -487,7 +438,8 @@ int vnc_start_updater(FAR struct vnc_session_s *session)
   session->state = VNCSERVER_RUNNING;
 
   DEBUGVERIFY(pthread_attr_init(&attr));
-  DEBUGVERIFY(pthread_attr_setstacksize(&attr, CONFIG_VNCSERVER_UPDATER_STACKSIZE));
+  DEBUGVERIFY(pthread_attr_setstacksize(&attr,
+                                        CONFIG_VNCSERVER_UPDATER_STACKSIZE));
 
   param.sched_priority = CONFIG_VNCSERVER_UPDATER_PRIO;
   DEBUGVERIFY(pthread_attr_setschedparam(&attr, &param));
@@ -653,7 +605,7 @@ int vnc_update_rectangle(FAR struct vnc_session_s *session,
           update->whupd = whupd;
           nxgl_rectcopy(&update->rect, &intersection);
 
-          /* Add the upate to the end of the update queue. */
+          /* Add the update to the end of the update queue. */
 
           vnc_add_queue(session, update);
 
@@ -665,7 +617,7 @@ int vnc_update_rectangle(FAR struct vnc_session_s *session,
       sched_unlock();
     }
 
-  /* Since we ignore bad rectangles and wait for updata structures, there is
+  /* Since we ignore bad rectangles and wait for update structures, there is
    * really no way a failure can occur.
    */
 

@@ -125,7 +125,7 @@ void up_wic_disable_irq(int irq)
   modifyreg32(TOP_PWR_RCPU1_INTR2SLP_MK0, 0, 1 << irq);
 }
 
-void riscv_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =

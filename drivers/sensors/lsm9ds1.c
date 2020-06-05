@@ -47,10 +47,10 @@
 #include <stdlib.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/random.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/sensors/lsm9ds1.h>
-#include <nuttx/random.h>
 
 #if defined(CONFIG_I2C) && defined(CONFIG_SENSORS_LSM9DS1)
 
@@ -63,6 +63,7 @@
 #endif
 
 /* Register Addresses *******************************************************/
+
 /* Accelerometer and gyroscope registers */
 
 #define LSM9DS1_ACT_THS                         0x04 /* Inactivity threshold */
@@ -143,6 +144,7 @@
 #define LSM9DS1_INT_THS_H_M                     0x33 /* Interrupt threshold high byte */
 
 /* Register Bit Definitions *************************************************/
+
 /* Inactivity threshold register */
 
 #define LSM9DS1_ACT_THS_ACT_THS_SHIFT           0 /* Inactivity threshold */
@@ -521,6 +523,7 @@ struct lsm9ds1_dev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* I2C Helpers */
 
 static int lsm9ds1_readreg8(FAR struct lsm9ds1_dev_s *priv, uint8_t regaddr,
@@ -592,9 +595,7 @@ static const struct file_operations g_fops =
   lsm9ds1_write,
   NULL,
   lsm9ds1_ioctl,
-#ifndef CONFIG_DISABLE_POLL
   NULL,
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   NULL,
 #endif

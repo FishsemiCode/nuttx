@@ -50,14 +50,12 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/signal.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/analog/dac.h>
 
@@ -92,23 +90,22 @@ static const struct file_operations dac_fops =
   dac_close,
   dac_read,
   dac_write,
-  0,
-  dac_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , 0
-#endif
+  NULL,
+  dac_ioctl,
+  NULL
 };
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-/************************************************************************************
+
+/****************************************************************************
  * Name: dac_open
  *
  * Description:
  *   This function is called whenever the DAC device is opened.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int dac_open(FAR struct file *filep)
 {
@@ -123,8 +120,8 @@ static int dac_open(FAR struct file *filep)
   if (ret >= 0)
     {
       /* Increment the count of references to the device.  If this the first
-       * time that the driver has been opened for this device, then initialize
-       * the device.
+       * time that the driver has been opened for this device, then
+       * initialize the device.
        */
 
       tmp = dev->ad_ocount + 1;
@@ -166,14 +163,14 @@ static int dac_open(FAR struct file *filep)
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: dac_close
  *
  * Description:
  *   This routine is called when the DAC device is closed.
  *   It waits for the last remaining data to be sent.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int dac_close(FAR struct file *filep)
 {
@@ -204,16 +201,12 @@ static int dac_close(FAR struct file *filep)
 
           while (dev->ad_xmit.af_head != dev->ad_xmit.af_tail)
             {
-#ifndef CONFIG_DISABLE_SIGNALS
                nxsig_usleep(HALF_SECOND_USEC);
-#else
-               up_mdelay(HALF_SECOND_MSEC);
-#endif
             }
 
           /* Free the IRQ and disable the DAC device */
 
-          flags = enter_critical_section();       /* Disable interrupts */
+          flags = enter_critical_section();    /* Disable interrupts */
           dev->ad_ops->ao_shutdown(dev);       /* Disable the DAC */
           leave_critical_section(flags);
 
@@ -228,12 +221,13 @@ static int dac_close(FAR struct file *filep)
  * Name: dac_read
  ****************************************************************************/
 
-static ssize_t dac_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+static ssize_t dac_read(FAR struct file *filep, FAR char *buffer,
+                        size_t buflen)
 {
   return 0;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: dac_xmit
  *
  * Description:
@@ -242,7 +236,7 @@ static ssize_t dac_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
  * Assumptions:
  *   Called with interrupts disabled
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int dac_xmit(FAR struct dac_dev_s *dev)
 {
@@ -255,7 +249,8 @@ static int dac_xmit(FAR struct dac_dev_s *dev)
     {
       /* Send the next message at the head of the FIFO */
 
-      ret = dev->ad_ops->ao_send(dev, &dev->ad_xmit.af_buffer[dev->ad_xmit.af_head]);
+      ret = dev->ad_ops->ao_send(dev,
+        &dev->ad_xmit.af_buffer[dev->ad_xmit.af_head]);
 
       /* Make sure the TX done interrupts are enabled */
 
@@ -266,11 +261,12 @@ static int dac_xmit(FAR struct dac_dev_s *dev)
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: dac_write
- ************************************************************************************/
+ ****************************************************************************/
 
-static ssize_t dac_write(FAR struct file *filep, FAR const char *buffer, size_t buflen)
+static ssize_t dac_write(FAR struct file *filep, FAR const char *buffer,
+                         size_t buflen)
 {
   FAR struct inode      *inode = filep->f_inode;
   FAR struct dac_dev_s  *dev   = inode->i_private;
@@ -287,8 +283,8 @@ static ssize_t dac_write(FAR struct file *filep, FAR const char *buffer, size_t 
 
   flags = enter_critical_section();
 
-  /* Check if the TX FIFO was empty when we started.  That is a clue that we have
-   * to kick off a new TX sequence.
+  /* Check if the TX FIFO was empty when we started.  That is a clue that we
+   * have to kick off a new TX sequence.
    */
 
   empty = (fifo->af_head == fifo->af_tail);
@@ -324,8 +320,8 @@ static ssize_t dac_write(FAR struct file *filep, FAR const char *buffer, size_t 
 
   while ((buflen - nsent) >= msglen)
     {
-      /* Check if adding this new message would over-run the drivers ability to enqueue
-       * xmit data.
+      /* Check if adding this new message would over-run the drivers ability
+       * to enqueue xmit data.
        */
 
       nexttail = fifo->af_tail + 1;
@@ -365,15 +361,11 @@ static ssize_t dac_write(FAR struct file *filep, FAR const char *buffer, size_t 
 
           /* Wait for a message to be sent */
 
-          do
+          ret = nxsem_wait_uninterruptible(&fifo->af_sem);
+          if (ret < 0)
             {
-              ret = nxsem_wait(&fifo->af_sem);
-              if (ret < 0 && ret != -EINTR)
-                {
-                  goto return_with_irqdisabled;
-                }
+              goto return_with_irqdisabled;
             }
-          while (ret < 0);
 
           /* Re-check the FIFO state */
 
@@ -392,27 +384,30 @@ static ssize_t dac_write(FAR struct file *filep, FAR const char *buffer, size_t 
       else if (msglen == 4)
         {
           fifo->af_buffer[fifo->af_tail].am_channel = buffer[nsent];
-          fifo->af_buffer[fifo->af_tail].am_data    = *(uint32_t *)&buffer[nsent];
-          fifo->af_buffer[fifo->af_tail].am_data   &= 0xffffff00;
+          fifo->af_buffer[fifo->af_tail].am_data =
+            *(FAR uint32_t *)&buffer[nsent];
+          fifo->af_buffer[fifo->af_tail].am_data &= 0xffffff00;
         }
       else if (msglen == 3)
         {
           fifo->af_buffer[fifo->af_tail].am_channel = buffer[nsent];
-          fifo->af_buffer[fifo->af_tail].am_data    = (*(uint16_t *)&buffer[nsent+1]);
-          fifo->af_buffer[fifo->af_tail].am_data  <<= 16;
+          fifo->af_buffer[fifo->af_tail].am_data =
+            (*(FAR uint16_t *)&buffer[nsent + 1]);
+          fifo->af_buffer[fifo->af_tail].am_data <<= 16;
         }
       else if (msglen == 2)
         {
           fifo->af_buffer[fifo->af_tail].am_channel = 0;
-          fifo->af_buffer[fifo->af_tail].am_data    = (*(uint16_t *)&buffer[nsent]);
-          fifo->af_buffer[fifo->af_tail].am_data  <<= 16;
+          fifo->af_buffer[fifo->af_tail].am_data =
+            (*(FAR uint16_t *)&buffer[nsent]);
+          fifo->af_buffer[fifo->af_tail].am_data <<= 16;
         }
       else if (msglen == 1)
-       {
+        {
           fifo->af_buffer[fifo->af_tail].am_channel = 0;
           fifo->af_buffer[fifo->af_tail].am_data    = buffer[nsent];
           fifo->af_buffer[fifo->af_tail].am_data  <<= 24;
-       }
+        }
 
       /* Increment the tail of the circular buffer */
 
@@ -441,9 +436,9 @@ return_with_irqdisabled:
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: dac_ioctl
- ************************************************************************************/
+ ****************************************************************************/
 
 static int dac_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
@@ -459,16 +454,17 @@ static int dac_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Public Functions
  ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Name: dac_txdone
  *
  * Description:
- *   Called from the DAC interrupt handler at the completion of a send operation.
+ *   Called from the DAC interrupt handler at the completion of a send
+ *   operation.
  *
  * Returned Value:
  *   OK on success; a negated errno on failure.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 int dac_txdone(FAR struct dac_dev_s *dev)
 {

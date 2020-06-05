@@ -59,10 +59,11 @@
 #ifdef CONFIG_NETDEV_IOCTL  /* Not optional! */
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 /* These structures encapsulate all globals used by the IOCTL logic. */
+
 /* Scan state variables */
 
 struct btnet_scanstate_s
@@ -149,9 +150,9 @@ static struct btnet_scanstate_s     g_scanstate;
  *
  ****************************************************************************/
 
-static void btnet_scan_callback(FAR const bt_addr_le_t *addr, int8_t rssi,
-                                uint8_t adv_type, FAR const uint8_t *adv_data,
-                                uint8_t len)
+static void btnet_scan_callback(FAR const bt_addr_le_t *addr,
+                                int8_t rssi, uint8_t adv_type,
+                                FAR const uint8_t *adv_data, uint8_t len)
 {
   FAR struct bt_scanresponse_s *rsp;
   uint8_t nexttail;
@@ -165,21 +166,19 @@ static void btnet_scan_callback(FAR const bt_addr_le_t *addr, int8_t rssi,
       return;
     }
 
-   if (len > CONFIG_BLUETOOTH_MAXSCANDATA)
-     {
-       wlerr("ERROR: Scan result is too big:  %u\n", len);
-       return;
-     }
+  if (len > CONFIG_BLUETOOTH_MAXSCANDATA)
+    {
+      wlerr("ERROR: Scan result is too big:  %u\n", len);
+      return;
+    }
 
   /* Get exclusive access to the scan data */
 
-  while ((ret = nxsem_wait(&g_scanstate.bs_exclsem)) < 0)
+  ret = nxsem_wait_uninterruptible(&g_scanstate.bs_exclsem);
+  if (ret < 0)
     {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-      if (ret != -EINTR)
-        {
-          return;
-        }
+      wlerr("nxsem_wait_uninterruptible() failed: %d\n", ret);
+      return;
     }
 
   /* Add the scan data to the cache */
@@ -254,13 +253,12 @@ static int btnet_scan_result(FAR struct bt_scanresponse_s *result,
    */
 
   if (scanning)
-   {
+    {
       /* Get exclusive access to the scan data */
 
       ret = nxsem_wait(&g_scanstate.bs_exclsem);
       if (ret < 0)
         {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
           return ret;
         }
     }
@@ -523,7 +521,8 @@ int btnet_ioctl(FAR struct net_driver_s *netdev, int cmd, unsigned long arg)
             }
           else
             {
-              ret = bt_conn_disconnect(conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
+              ret = bt_conn_disconnect(conn,
+                                       BT_HCI_ERR_REMOTE_USER_TERM_CONN);
               if (ret == -ENOTCONN)
                 {
                   wlerr("Already disconnected\n");

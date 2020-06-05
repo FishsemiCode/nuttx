@@ -315,7 +315,7 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 }
 #endif
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
   if (up_is_u1v1())

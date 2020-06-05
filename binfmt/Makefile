@@ -1,7 +1,7 @@
 ############################################################################
 # binfmt/Makefile
 #
-#   Copyright (C) 2007-2009, 2012-2016, 2018 Gregory Nutt. All rights
+#   Copyright (C) 2007-2009, 2012-2016, 2018-2019 Gregory Nutt. All rights
 #     reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
@@ -40,7 +40,6 @@ DELIM ?= $(strip /)
 ifeq ($(WINTOOL),y)
 INCDIROPT = -w
 endif
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" "$(TOPDIR)$(DELIM)sched"}
 
 # Basic BINFMT source files
 
@@ -57,6 +56,12 @@ ifeq ($(CONFIG_LIBC_EXECFUNCS),y)
 BINFMT_CSRCS += binfmt_execsymtab.c
 endif
 
+# Builtin application interfaces
+
+ifeq ($(CONFIG_BUILTIN),y)
+BINFMT_CSRCS += builtin.c
+endif
+
 # Add configured binary modules
 
 VPATH =
@@ -65,8 +70,6 @@ DEPPATH = --dep-path .
 
 include libnxflat$(DELIM)Make.defs
 include libelf$(DELIM)Make.defs
-include libbuiltin$(DELIM)Make.defs
-include libpcode$(DELIM)Make.defs
 
 VPATH := $(patsubst %,$(SRCDIR)$(DELIM)%,$(VPATH))
 VPATH += :$(SRCDIR)

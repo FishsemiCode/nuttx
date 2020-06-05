@@ -53,8 +53,8 @@
 #include "up_arch.h"
 
 #include "sam_gpio.h"
-#include "chip/sam_pio.h"
-#include "chip/sam_matrix.h"
+#include "hardware/sam_pio.h"
+#include "hardware/sam_matrix.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -291,7 +291,7 @@ static inline int sam_configoutput(uintptr_t base, uint32_t pin,
     }
 #endif
 
-  /* Enable the open drain driver if requrested */
+  /* Enable the open drain driver if requested */
 
   if ((cfgset & GPIO_CFG_OPENDRAIN) != 0)
     {
@@ -474,7 +474,7 @@ static inline int sam_configperiph(uintptr_t base, uint32_t pin,
  *
  * Assumptions:
  *   This function is called early in the initialization sequence so that
- *   no mutual exlusion is necessary.
+ *   no mutual exclusion is necessary.
  *
  ****************************************************************************/
 

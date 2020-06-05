@@ -97,7 +97,7 @@ int dump_module(FAR const struct binary_s *bin);
  *
  * Description:
  *   In the kernel build, the argv list will likely lie in the caller's
- *   address environment and, hence, by inaccessible when we swith to the
+ *   address environment and, hence, by inaccessible when we switch to the
  *   address environment of the new process address environment.  So we
  *   do not have any real option other than to copy the callers argv[] list.
  *
@@ -132,10 +132,42 @@ void binfmt_freeargv(FAR struct binary_s *bin);
 #  define binfmt_freeargv(bin)
 #endif
 
+/****************************************************************************
+ * Name: builtin_initialize
+ *
+ * Description:
+ *   In order to use the builtin binary format, this function must be called
+ *   during system initialize to register the builtin binary format.
+ *
+ * Returned Value:
+ *   This is a NuttX internal function so it follows the convention that
+ *   0 (OK) is returned on success and a negated errno is returned on
+ *   failure.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_FS_BINFS) && defined(HAVE_BUILTIN_CONTEXT)
+int builtin_initialize(void);
+#endif
+
+/****************************************************************************
+ * Name: builtin_uninitialize
+ *
+ * Description:
+ *   Unregister the builtin binary loader
+ *
+ * Returned Value:
+ *   None
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_FS_BINFS) && defined(HAVE_BUILTIN_CONTEXT)
+void builtin_uninitialize(void);
+#endif
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
 
 #endif /* __BINFMT_BINFMT_H */
-

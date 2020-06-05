@@ -56,8 +56,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* CONFIG_DEBUG_FEATURES, CONFIG_DEBUG_INFO, and CONFIG_DEBUG_BINFMT have to be
- * defined or CONFIG_ELF_DUMPBUFFER does nothing.
+/* CONFIG_DEBUG_FEATURES, CONFIG_DEBUG_INFO, and CONFIG_DEBUG_BINFMT have to
+ * be defined or CONFIG_ELF_DUMPBUFFER does nothing.
  */
 
 #if !defined(CONFIG_DEBUG_INFO) || !defined (CONFIG_DEBUG_BINFMT)
@@ -172,31 +172,34 @@ int elf_init(FAR const char *filename, FAR struct elf_loadinfo_s *loadinfo)
 
   /* Read the ELF ehdr from offset 0 */
 
-  ret = elf_read(loadinfo, (FAR uint8_t *)&loadinfo->ehdr, sizeof(Elf32_Ehdr), 0);
+  ret = elf_read(loadinfo, (FAR uint8_t *)&loadinfo->ehdr,
+                 sizeof(Elf_Ehdr), 0);
   if (ret < 0)
     {
       berr("Failed to read ELF header: %d\n", ret);
+      close(loadinfo->filfd);
       return ret;
     }
 
-  elf_dumpbuffer("ELF header", (FAR const uint8_t *)&loadinfo->ehdr, sizeof(Elf32_Ehdr));
+  elf_dumpbuffer("ELF header", (FAR const uint8_t *)&loadinfo->ehdr,
+                 sizeof(Elf_Ehdr));
 
   /* Verify the ELF header */
 
   ret = elf_verifyheader(&loadinfo->ehdr);
   if (ret < 0)
     {
-      /* This may not be an error because we will be called to attempt loading
-       * EVERY binary.  If elf_verifyheader() does not recognize the ELF header,
-       * it will -ENOEXEC whcih simply informs the system that the file is not an
-       * ELF file.  elf_verifyheader() will return other errors if the ELF header
-       * is not correctly formed.
+      /* This may not be an error because we will be called to attempt
+       * loading EVERY binary.  If elf_verifyheader() does not recognize
+       * the ELF header, it will -ENOEXEC which simply informs the system
+       * that the file is not an ELF file.  elf_verifyheader() will return
+       * other errors if the ELF header is not correctly formed.
        */
 
       berr("Bad ELF header: %d\n", ret);
+      close(loadinfo->filfd);
       return ret;
     }
 
   return OK;
 }
-

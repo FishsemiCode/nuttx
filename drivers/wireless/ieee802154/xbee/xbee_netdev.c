@@ -122,7 +122,7 @@
  * Private Types
  ****************************************************************************/
 
-/* This is our private version of the MAC callback stucture */
+/* This is our private version of the MAC callback structure */
 
 struct xbeenet_callback_s
 {
@@ -159,14 +159,12 @@ struct xbeenet_driver_s
   sem_t xd_eventsem;                /* Signaling semaphore for waiting get event */
   sq_queue_t primitive_queue;       /* For holding primitives to pass along */
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* MAC Service notification information */
 
   bool    xd_notify_registered;
   pid_t   xd_notify_pid;
   struct sigevent xd_notify_event;
   struct sigwork_s xd_notify_work;
-#endif
 };
 
 /****************************************************************************
@@ -186,6 +184,7 @@ static int  xbeenet_rxframe(FAR struct xbeenet_driver_s *maccb,
                             FAR struct ieee802154_data_ind_s *ind);
 
 /* Network interface support ************************************************/
+
 /* Common TX logic */
 
 static int  xbeenet_txpoll_callback(FAR struct net_driver_s *dev);
@@ -242,26 +241,31 @@ static struct sixlowpan_reassbuf_s g_iobuffer;
  ****************************************************************************/
 
 /****************************************************************************
-* Name: xbeenet_set_ipaddress
-*
-* Description:
-*   Advertise the MAC and IPv6 address for this node.
-*
-*   Creates a MAC-based IP address from the IEEE 802.15.14 short or extended
-*   address assigned to the node.
-*
-*    128  112  96   80    64   48   32   16
-*    ---- ---- ---- ----  ---- ---- ---- ----
-*    fe80 0000 0000 0000  0000 00ff fe00 xxxx 2-byte short address IEEE 48-bit MAC
-*    fe80 0000 0000 0000  xxxx xxxx xxxx xxxx 8-byte extended address IEEE EUI-64
-*
-****************************************************************************/
+ * Name: xbeenet_set_ipaddress
+ *
+ * Description:
+ *   Advertise the MAC and IPv6 address for this node.
+ *
+ *   Creates a MAC-based IP address from the IEEE 802.15.14 short or extended
+ *   address assigned to the node.
+ *
+ *    128  112  96   80    64   48   32   16
+ *    ---- ---- ---- ----  ---- ---- ---- ----
+ *    fe80 0000 0000 0000  0000 00ff fe00 xxxx 2-byte short address IEEE 48-bit MAC
+ *    fe80 0000 0000 0000  xxxx xxxx xxxx xxxx 8-byte extended address IEEE EUI-64
+ *
+ ****************************************************************************/
 
 static int xbeenet_set_ipaddress(FAR struct net_driver_s *dev)
 {
   FAR struct xbeenet_driver_s *priv;
   union ieee802154_macarg_u arg;
   int ret;
+
+  dev->d_ipv6addr[0]  = HTONS(CONFIG_XBEE_DEFAULT_PREFIX_0);
+  dev->d_ipv6addr[1]  = HTONS(CONFIG_XBEE_DEFAULT_PREFIX_1);
+  dev->d_ipv6addr[2]  = HTONS(CONFIG_XBEE_DEFAULT_PREFIX_2);
+  dev->d_ipv6addr[3]  = HTONS(CONFIG_XBEE_DEFAULT_PREFIX_3);
 
 #ifdef CONFIG_NET_6LOWPAN_EXTENDEDADDR
   uint8_t *eaddr;
@@ -281,37 +285,21 @@ static int xbeenet_set_ipaddress(FAR struct net_driver_s *dev)
     }
   else
     {
-      /* Set the MAC address as the eaddr */
-
-      eaddr = arg.getreq.attrval.mac.eaddr;
-
-      /* Network layers expect address in Network Order (Big Endian) */
-
-      dev->d_mac.radio.nv_addr[0] = eaddr[7];
-      dev->d_mac.radio.nv_addr[1] = eaddr[6];
-      dev->d_mac.radio.nv_addr[2] = eaddr[5];
-      dev->d_mac.radio.nv_addr[3] = eaddr[4];
-      dev->d_mac.radio.nv_addr[4] = eaddr[3];
-      dev->d_mac.radio.nv_addr[5] = eaddr[2];
-      dev->d_mac.radio.nv_addr[6] = eaddr[1];
-      dev->d_mac.radio.nv_addr[7] = eaddr[0];
-
+      IEEE802154_EADDRCOPY(dev->d_mac.radio.nv_addr, arg.getreq.attrval.mac.eaddr);
       dev->d_mac.radio.nv_addrlen = IEEE802154_EADDRSIZE;
 
       /* Set the IP address based on the eaddr */
 
-      dev->d_ipv6addr[0]  = HTONS(0xfe80);
-      dev->d_ipv6addr[1]  = 0;
-      dev->d_ipv6addr[2]  = 0;
-      dev->d_ipv6addr[3]  = 0;
-      dev->d_ipv6addr[4]  = HTONS((uint16_t)eaddr[7] << 8 | (uint16_t)eaddr[6]);
-      dev->d_ipv6addr[5]  = HTONS((uint16_t)eaddr[5] << 8 | (uint16_t)eaddr[4]);
-      dev->d_ipv6addr[6]  = HTONS((uint16_t)eaddr[3] << 8 | (uint16_t)eaddr[2]);
-      dev->d_ipv6addr[7]  = HTONS((uint16_t)eaddr[1] << 8 | (uint16_t)eaddr[0]);
+      dev->d_ipv6addr[4]  = HTONS((uint16_t)eaddr[0] << 8 | (uint16_t)eaddr[1]);
+      dev->d_ipv6addr[5]  = HTONS((uint16_t)eaddr[2] << 8 | (uint16_t)eaddr[3]);
+      dev->d_ipv6addr[6]  = HTONS((uint16_t)eaddr[4] << 8 | (uint16_t)eaddr[5]);
+      dev->d_ipv6addr[7]  = HTONS((uint16_t)eaddr[6] << 8 | (uint16_t)eaddr[7]);
 
       /* Invert the U/L bit */
 
       dev->d_ipv6addr[4] ^= HTONS(0x0200);
+
+      dev->d_mac.radio.nv_addrlen = IEEE802154_EADDRSIZE;
       return OK;
     }
 
@@ -346,14 +334,10 @@ static int xbeenet_set_ipaddress(FAR struct net_driver_s *dev)
 
       /* Set the IP address based on the saddr */
 
-      dev->d_ipv6addr[0]  = HTONS(0xfe80);
-      dev->d_ipv6addr[1]  = 0;
-      dev->d_ipv6addr[2]  = 0;
-      dev->d_ipv6addr[3]  = 0;
       dev->d_ipv6addr[4]  = 0;
       dev->d_ipv6addr[5]  = HTONS(0x00ff);
       dev->d_ipv6addr[6]  = HTONS(0xfe00);
-      dev->d_ipv6addr[7]  = HTONS((uint16_t)saddr[1] << 8 |  (uint16_t)saddr[0]);
+      dev->d_ipv6addr[7]  = HTONS((uint16_t)saddr[0] << 8 |  (uint16_t)saddr[1]);
       return OK;
     }
 #endif
@@ -442,14 +426,12 @@ static int xbeenet_notify(FAR struct xbee_maccb_s *maccb,
           nxsem_post(&priv->xd_eventsem);
         }
 
-#ifndef CONFIG_DISABLE_SIGNALS
       if (priv->xd_notify_registered)
         {
           priv->xd_notify_event.sigev_value.sival_int = primitive->type;
           nxsig_notification(priv->xd_notify_pid, &priv->xd_notify_event,
                              SI_QUEUE, &priv->xd_notify_work);
         }
-#endif
 
       nxsem_post(&priv->xd_exclsem);
       return OK;
@@ -536,7 +518,6 @@ static int xbeenet_rxframe(FAR struct xbeenet_driver_s *priv,
           ret = sixlowpan_input(&priv->xd_dev, iob, (FAR void *)ind);
         }
     }
-
 
   if (ret < 0)
 #endif
@@ -630,12 +611,12 @@ static void xbeenet_txpoll_work(FAR void *arg)
 
   /* Then perform the poll */
 
-  (void)devif_timer(&priv->xd_dev.r_dev, xbeenet_txpoll_callback);
+  devif_timer(&priv->xd_dev.r_dev, TXPOLL_WDDELAY, xbeenet_txpoll_callback);
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->xd_txpoll, TXPOLL_WDDELAY, xbeenet_txpoll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->xd_txpoll, TXPOLL_WDDELAY, xbeenet_txpoll_expiry, 1,
+           (wdparm_t)priv);
   net_unlock();
 }
 
@@ -785,8 +766,8 @@ static int xbeenet_ifup(FAR struct net_driver_s *dev)
 #endif
       /* Set and activate a timer process */
 
-      (void)wd_start(priv->xd_txpoll, TXPOLL_WDDELAY, xbeenet_txpoll_expiry,
-                     1, (wdparm_t)priv);
+      wd_start(priv->xd_txpoll, TXPOLL_WDDELAY, xbeenet_txpoll_expiry,
+               1, (wdparm_t)priv);
 
       /* The interface is now up */
 
@@ -881,7 +862,7 @@ static void xbeenet_txavail_work(FAR void *arg)
 
       /* Then poll the network for new XMIT data */
 
-      (void)devif_poll(&priv->xd_dev.r_dev, xbeenet_txpoll_callback);
+      devif_poll(&priv->xd_dev.r_dev, xbeenet_txpoll_callback);
     }
 
   net_unlock();
@@ -1034,7 +1015,6 @@ static int xbeenet_ioctl(FAR struct net_driver_s *dev, int cmd,
 
           switch (cmd)
             {
-        #ifndef CONFIG_DISABLE_SIGNALS
               /* Command:     MAC802154IOC_NOTIFY_REGISTER
                * Description: Register to receive a signal whenever there is a
                *              event primitive sent from the MAC layer.
@@ -1054,7 +1034,7 @@ static int xbeenet_ioctl(FAR struct net_driver_s *dev, int cmd,
                   ret = OK;
                 }
                 break;
-        #endif
+
               case MAC802154IOC_GET_EVENT:
                 {
                   FAR struct ieee802154_primitive_s *primitive;
@@ -1098,7 +1078,6 @@ static int xbeenet_ioctl(FAR struct net_driver_s *dev, int cmd,
                       ret = nxsem_wait(&priv->xd_eventsem);
                       if (ret < 0)
                         {
-                          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
                           priv->xd_eventpending = false;
                           return ret;
                         }
@@ -1142,7 +1121,6 @@ static int xbeenet_ioctl(FAR struct net_driver_s *dev, int cmd,
 
   nxsem_post(&priv->xd_exclsem);
   return ret;
-
 }
 #endif
 
@@ -1228,13 +1206,13 @@ static int xbeenet_req_data(FAR struct radio_driver_s *netdev,
         {
           wlerr("ERROR: xbeemac_req_data failed: %d\n", ret);
 
-          iob_free(iob);
+          iob_free(iob, IOBUSER_WIRELESS_RAD802154);
           for (iob = framelist; iob != NULL; iob = framelist)
             {
               /* Remove the IOB from the queue and free */
 
               framelist = iob->io_flink;
-              iob_free(iob);
+              iob_free(iob, IOBUSER_WIRELESS_RAD802154);
             }
 
           NETDEV_TXERRORS(&priv->xd_dev.r_dev);
@@ -1258,7 +1236,7 @@ static int xbeenet_req_data(FAR struct radio_driver_s *netdev,
  *
  * Input Parameters:
  *   netdev     - The network device to be queried
- *   properties - Location where radio properities will be returned.
+ *   properties - Location where radio properties will be returned.
  *
  * Returned Value:
  *   Zero (OK) returned on success; a negated errno value is returned on
@@ -1308,10 +1286,10 @@ static int xbeenet_properties(FAR struct radio_driver_s *netdev,
    */
 
 #ifdef CONFIG_NET_6LOWPAN_EXTENDEDADDR
-  (void)xbeenet_coord_eaddr(netdev, properties->sp_hubnode.nv_addr);
+  xbeenet_coord_eaddr(netdev, properties->sp_hubnode.nv_addr);
   properties->sp_hubnode.nv_addrlen = NET_6LOWPAN_EADDRSIZE;
 #else
-  (void)xbeenet_coord_saddr(netdev, properties->sp_hubnode.nv_addr);
+  xbeenet_coord_saddr(netdev, properties->sp_hubnode.nv_addr);
   properties->sp_hubnode.nv_addrlen = NET_6LOWPAN_SADDRSIZE;
 #endif
 #endif
@@ -1395,7 +1373,7 @@ int xbee_netdev_register(XBEEHANDLE xbee)
 
   radio->r_get_mhrlen = xbeenet_get_mhrlen;  /* Get MAC header length */
   radio->r_req_data   = xbeenet_req_data;    /* Enqueue frame for transmission */
-  radio->r_properties = xbeenet_properties;  /* Return radio properies */
+  radio->r_properties = xbeenet_properties;  /* Return radio properties */
 
   /* Initialize fields related to MAC event handling */
 
@@ -1438,9 +1416,18 @@ int xbee_netdev_register(XBEEHANDLE xbee)
 
   xbeenet_ifdown(dev);
 
+#ifdef CONFIG_NET_6LOWPAN
+  /* Make sure the our single packet buffer is attached. We must do this before
+   * registering the device since, once the device is registered, a packet may
+   * be attempted to be forwarded and require the buffer.
+   */
+
+  priv->xd_dev.r_dev.d_buf = g_iobuffer.rb_buf;
+#endif
+
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->xd_dev.r_dev, NET_LL_IEEE802154);
+  netdev_register(&priv->xd_dev.r_dev, NET_LL_IEEE802154);
   return OK;
 }
 

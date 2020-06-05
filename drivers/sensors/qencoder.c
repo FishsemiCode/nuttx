@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
@@ -54,6 +53,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/sensors/qencoder.h>
 
 #include <arch/irq.h>
@@ -63,6 +63,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Debug ********************************************************************/
 
 /****************************************************************************
@@ -84,8 +85,10 @@ struct qe_upperhalf_s
 
 static int     qe_open(FAR struct file *filep);
 static int     qe_close(FAR struct file *filep);
-static ssize_t qe_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
-static ssize_t qe_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
+static ssize_t qe_read(FAR struct file *filep, FAR char *buffer,
+                       size_t buflen);
+static ssize_t qe_write(FAR struct file *filep, FAR const char *buffer,
+                        size_t buflen);
 static int     qe_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
 /****************************************************************************
@@ -98,11 +101,9 @@ static const struct file_operations g_qeops =
   qe_close, /* close */
   qe_read,  /* read */
   qe_write, /* write */
-  0,         /* seek */
-  qe_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0        /* poll */
-#endif
+  NULL,     /* seek */
+  qe_ioctl, /* ioctl */
+  NULL      /* poll */
 };
 
 /****************************************************************************
@@ -113,7 +114,7 @@ static const struct file_operations g_qeops =
  * Name: qe_open
  *
  * Description:
- *   This function is called whenever the PWM device is opened.
+ *   This function is called whenever the QEncoder device is opened.
  *
  ************************************************************************************/
 
@@ -134,7 +135,7 @@ static int qe_open(FAR struct file *filep)
       goto errout;
     }
 
-  /* Increment the count of references to the device.  If this the first
+  /* Increment the count of references to the device.  If this is the first
    * time that the driver has been opened for this device, then initialize
    * the device.
    */
@@ -182,7 +183,7 @@ errout:
  * Name: qe_close
  *
  * Description:
- *   This function is called when the PWM device is closed.
+ *   This function is called when the QEncoder device is closed.
  *
  ************************************************************************************/
 
@@ -218,7 +219,7 @@ static int qe_close(FAR struct file *filep)
 
       upper->crefs = 0;
 
-      /* Disable the PWM device */
+      /* Disable the QEncoder device */
 
       DEBUGASSERT(lower->ops->shutdown != NULL);
       sninfo("calling shutdown: %d\n");
@@ -237,7 +238,7 @@ errout:
  * Name: qe_read
  *
  * Description:
- *   A dummy read method.  This is provided only to satsify the VFS layer.
+ *   A dummy read method.  This is provided only to satisfy the VFS layer.
  *
  ************************************************************************************/
 
@@ -252,7 +253,7 @@ static ssize_t qe_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
  * Name: qe_write
  *
  * Description:
- *   A dummy write method.  This is provided only to satsify the VFS layer.
+ *   A dummy write method.  This is provided only to satisfy the VFS layer.
  *
  ************************************************************************************/
 
@@ -267,7 +268,7 @@ static ssize_t qe_write(FAR struct file *filep, FAR const char *buffer, size_t b
  * Name: qe_ioctl
  *
  * Description:
- *   The standard ioctl method.  This is where ALL of the PWM work is done.
+ *   The standard ioctl method.  This is where ALL of the QEncoder work is done.
  *
  ************************************************************************************/
 
@@ -372,12 +373,12 @@ int qe_register(FAR const char *devpath, FAR struct qe_lowerhalf_s *lower)
       return -ENOMEM;
     }
 
-  /* Initialize the PWM device structure (it was already zeroed by kmm_zalloc()) */
+  /* Initialize the QEncoder device structure (it was already zeroed by kmm_zalloc()) */
 
   nxsem_init(&upper->exclsem, 0, 1);
   upper->lower = lower;
 
-  /* Register the PWM device */
+  /* Register the QEncoder device */
 
   sninfo("Registering %s\n", devpath);
   return register_driver(devpath, &g_qeops, 0666, upper);

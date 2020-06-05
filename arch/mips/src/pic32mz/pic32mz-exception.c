@@ -53,19 +53,19 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/pic32mz-int.h"
+#include "hardware/pic32mz-int.h"
 
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-/************************************************************************************
+/****************************************************************************
  * Name: pic32mz_exception
  *
  * Description:
  *   Called from assembly language logic on all other exceptions.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 uint32_t *pic32mz_exception(uint32_t *regs)
 {
@@ -177,7 +177,7 @@ uint32_t *pic32mz_exception(uint32_t *regs)
 
   /* Crash with currents_regs set so that we can dump the register contents. */
 
-  g_current_regs = regs;
+  CURRENT_REGS = regs;
   PANIC();
   return regs; /* Won't get here */
 }

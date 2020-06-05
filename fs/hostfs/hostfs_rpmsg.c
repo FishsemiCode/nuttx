@@ -58,44 +58,45 @@
 struct hostfs_rpmsg_s
 {
   struct rpmsg_endpoint ept;
-  const char            *cpuname;
+  FAR const char        *cpuname;
 };
 
 struct hostfs_rpmsg_cookie_s
 {
-  sem_t sem;
-  int   result;
-  void  *data;
+  sem_t     sem;
+  int       result;
+  FAR void  *data;
 };
 
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
 
-static int hostfs_rpmsg_default_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv);
-static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv);
-static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv);
-static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv);
-static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv);
+static int hostfs_rpmsg_default_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_read_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_readdir_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_statfs_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_stat_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv);
 static void hostfs_rpmsg_device_created(struct rpmsg_device *rdev,
-                                        void *priv_);
+                                        FAR void *priv_);
 static void hostfs_rpmsg_device_destroy(struct rpmsg_device *rdev,
-                                        void *priv_);
-static int  hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                                size_t len, uint32_t src, void *priv);
+                                        FAR void *priv_);
+static int  hostfs_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept,
+                                FAR void *data, size_t len, uint32_t src,
+                                FAR void *priv);
 static int  hostfs_rpmsg_send_recv(uint32_t command, bool copy,
-                                  struct hostfs_rpmsg_header_s *msg,
-                                  int len, void *data);
+                                   FAR struct hostfs_rpmsg_header_s *msg,
+                                   int len, FAR void *data);
 
 /****************************************************************************
  * Private Data
@@ -131,12 +132,12 @@ static const rpmsg_ept_cb g_hostfs_rpmsg_handler[] =
  * Private Functions
  ****************************************************************************/
 
-static int hostfs_rpmsg_default_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv)
+static int hostfs_rpmsg_default_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie =
+  FAR struct hostfs_rpmsg_header_s *header = data;
+  FAR struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
 
   cookie->result = header->result;
@@ -144,39 +145,41 @@ static int hostfs_rpmsg_default_handler(struct rpmsg_endpoint *ept,
     {
       memcpy(cookie->data, data, len);
     }
+
   nxsem_post(&cookie->sem);
 
   return 0;
 }
 
-static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv)
+static int hostfs_rpmsg_read_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie =
+  FAR struct hostfs_rpmsg_header_s *header = data;
+  FAR struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
-  struct hostfs_rpmsg_read_s *rsp = data;
+  FAR struct hostfs_rpmsg_read_s *rsp = data;
 
   cookie->result = header->result;
   if (cookie->result > 0)
     {
       memcpy(cookie->data, rsp->buf, B2C(cookie->result));
     }
+
   nxsem_post(&cookie->sem);
 
   return 0;
 }
 
-static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv)
+static int hostfs_rpmsg_readdir_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie =
+  FAR struct hostfs_rpmsg_header_s *header = data;
+  FAR struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
-  struct hostfs_rpmsg_readdir_s *rsp = data;
-  struct dirent *entry = cookie->data;
+  FAR struct hostfs_rpmsg_readdir_s *rsp = data;
+  FAR struct dirent *entry = cookie->data;
 
   cookie->result = header->result;
   if (cookie->result >= 0)
@@ -185,20 +188,21 @@ static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
       entry->d_name[NAME_MAX] = '\0';
       entry->d_type = rsp->type;
     }
+
   nxsem_post(&cookie->sem);
 
   return 0;
 }
 
-static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv)
+static int hostfs_rpmsg_statfs_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie =
+  FAR struct hostfs_rpmsg_header_s *header = data;
+  FAR struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
-  struct hostfs_rpmsg_statfs_s *rsp = data;
-  struct statfs *buf = cookie->data;
+  FAR struct hostfs_rpmsg_statfs_s *rsp = data;
+  FAR struct statfs *buf = cookie->data;
 
   cookie->result = header->result;
   if (cookie->result >= 0)
@@ -212,41 +216,49 @@ static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
       buf->f_files   = rsp->buf.f_files;
       buf->f_ffree   = rsp->buf.f_ffree;
     }
+
   nxsem_post(&cookie->sem);
 
   return 0;
 }
 
-static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv)
+static int hostfs_rpmsg_stat_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_header_s *header = data;
-  struct hostfs_rpmsg_cookie_s *cookie =
+  FAR struct hostfs_rpmsg_header_s *header = data;
+  FAR struct hostfs_rpmsg_cookie_s *cookie =
       (struct hostfs_rpmsg_cookie_s *)(uintptr_t)header->cookie;
-  struct hostfs_rpmsg_stat_s *rsp = data;
-  struct stat *buf = cookie->data;
+  FAR struct hostfs_rpmsg_stat_s *rsp = data;
+  FAR struct stat *buf = cookie->data;
 
   cookie->result = header->result;
   if (cookie->result >= 0)
     {
+      buf->st_dev     = rsp->buf.st_dev;
+      buf->st_ino     = rsp->buf.st_ino;
       buf->st_mode    = rsp->buf.st_mode;
+      buf->st_nlink   = rsp->buf.st_nlink;
+      buf->st_uid     = rsp->buf.st_uid;
+      buf->st_gid     = rsp->buf.st_gid;
+      buf->st_rdev    = rsp->buf.st_rdev;
       buf->st_size    = B2C(rsp->buf.st_size);
-      buf->st_blksize = B2C(rsp->buf.st_blksize);
-      buf->st_blocks  = rsp->buf.st_blocks;
       buf->st_atime   = rsp->buf.st_atime;
       buf->st_mtime   = rsp->buf.st_mtime;
       buf->st_ctime   = rsp->buf.st_ctime;
+      buf->st_blksize = B2C(rsp->buf.st_blksize);
+      buf->st_blocks  = rsp->buf.st_blocks;
     }
+
   nxsem_post(&cookie->sem);
 
   return 0;
 }
 
-static void hostfs_rpmsg_device_created(struct rpmsg_device *rdev,
-                                        void *priv_)
+static void hostfs_rpmsg_device_created(FAR struct rpmsg_device *rdev,
+                                        FAR void *priv_)
 {
-  struct hostfs_rpmsg_s *priv = priv_;
+  FAR struct hostfs_rpmsg_s *priv = priv_;
 
   if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
@@ -257,8 +269,8 @@ static void hostfs_rpmsg_device_created(struct rpmsg_device *rdev,
     }
 }
 
-static void hostfs_rpmsg_device_destroy(struct rpmsg_device *rdev,
-                                        void *priv_)
+static void hostfs_rpmsg_device_destroy(FAR struct rpmsg_device *rdev,
+                                        FAR void *priv_)
 {
   struct hostfs_rpmsg_s *priv = priv_;
 
@@ -268,10 +280,10 @@ static void hostfs_rpmsg_device_destroy(struct rpmsg_device *rdev,
     }
 }
 
-static int hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                               size_t len, uint32_t src, void *priv)
+static int hostfs_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept, FAR void *data,
+                               size_t len, uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_header_s *header = data;
+  FAR struct hostfs_rpmsg_header_s *header = data;
   uint32_t command = header->command;
 
   if (command < ARRAY_SIZE(g_hostfs_rpmsg_handler))
@@ -283,11 +295,11 @@ static int hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
 }
 
 static int hostfs_rpmsg_send_recv(uint32_t command, bool copy,
-                                  struct hostfs_rpmsg_header_s *msg,
-                                  int len, void *data)
+                                  FAR struct hostfs_rpmsg_header_s *msg,
+                                  int len, FAR void *data)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct hostfs_rpmsg_cookie_s cookie;
+  FAR struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
+  FAR struct hostfs_rpmsg_cookie_s cookie;
   int ret;
 
   memset(&cookie, 0, sizeof(cookie));
@@ -315,22 +327,16 @@ static int hostfs_rpmsg_send_recv(uint32_t command, bool copy,
     {
       ret = rpmsg_send_nocopy(&priv->ept, msg, len);
     }
+
   if (ret < 0)
     {
       goto fail;
     }
 
-  while (1)
+  ret = nxsem_wait_uninterruptible(&cookie.sem);
+  if (ret == 0)
     {
-      ret = nxsem_wait(&cookie.sem);
-      if (ret != -EINTR)
-        {
-          if (ret == 0)
-            {
-              ret = cookie.result;
-            }
-          break;
-        }
+      ret = cookie.result;
     }
 
 fail:
@@ -342,10 +348,10 @@ fail:
  * Public Functions
  ****************************************************************************/
 
-int host_open(const char *pathname, int flags, int mode)
+int host_open(FAR const char *pathname, int flags, int mode)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct hostfs_rpmsg_open_s *msg;
+  FAR struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
+  FAR struct hostfs_rpmsg_open_s *msg;
   uint32_t space;
   size_t len;
 
@@ -379,7 +385,7 @@ int host_close(int fd)
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), NULL);
 }
 
-ssize_t host_read(int fd, void *buf, size_t count)
+ssize_t host_read(int fd, FAR void *buf, size_t count)
 {
   size_t read = 0;
   int ret = 0;
@@ -393,7 +399,7 @@ ssize_t host_read(int fd, void *buf, size_t count)
       };
 
       ret = hostfs_rpmsg_send_recv(HOSTFS_RPMSG_READ, true,
-              (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), buf);
+              (FAR struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), buf);
       if (ret <= 0)
         {
           break;
@@ -406,15 +412,15 @@ ssize_t host_read(int fd, void *buf, size_t count)
   return read ? read : ret;
 }
 
-ssize_t host_write(int fd, const void *buf, size_t count)
+ssize_t host_write(int fd, FAR const void *buf, size_t count)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
+  FAR struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   size_t written = 0;
   int ret = 0;
 
   while (written < count)
     {
-      struct hostfs_rpmsg_write_s *msg;
+      FAR struct hostfs_rpmsg_write_s *msg;
       uint32_t space;
 
       msg = rpmsg_get_tx_payload_buffer(&priv->ept, &space, true);
@@ -455,6 +461,7 @@ off_t host_lseek(int fd, off_t offset, int whence)
     .offset = C2B(offset),
     .whence = whence,
   };
+
   int ret;
 
   ret = hostfs_rpmsg_send_recv(HOSTFS_RPMSG_LSEEK, true,
@@ -521,10 +528,10 @@ int host_ftruncate(int fd, off_t length)
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), NULL);
 }
 
-void *host_opendir(const char *name)
+FAR void *host_opendir(FAR const char *name)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct hostfs_rpmsg_opendir_s *msg;
+  FAR struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
+  FAR struct hostfs_rpmsg_opendir_s *msg;
   uint32_t space;
   size_t len;
   int ret;
@@ -545,10 +552,10 @@ void *host_opendir(const char *name)
   ret = hostfs_rpmsg_send_recv(HOSTFS_RPMSG_OPENDIR, false,
           (struct hostfs_rpmsg_header_s *)msg, len, NULL);
 
-  return ret < 0 ? NULL : (void *)ret;
+  return ret < 0 ? NULL : (FAR void *)((uintptr_t)ret);
 }
 
-int host_readdir(void *dirp, struct dirent* entry)
+int host_readdir(FAR void *dirp, FAR struct dirent *entry)
 {
   struct hostfs_rpmsg_readdir_s msg =
   {
@@ -559,7 +566,7 @@ int host_readdir(void *dirp, struct dirent* entry)
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), entry);
 }
 
-void host_rewinddir(void *dirp)
+void host_rewinddir(FAR void *dirp)
 {
   struct hostfs_rpmsg_rewinddir_s msg =
   {
@@ -570,7 +577,7 @@ void host_rewinddir(void *dirp)
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), NULL);
 }
 
-int host_closedir(void *dirp)
+int host_closedir(FAR void *dirp)
 {
   struct hostfs_rpmsg_closedir_s msg =
   {
@@ -581,7 +588,7 @@ int host_closedir(void *dirp)
           (struct hostfs_rpmsg_header_s *)&msg, sizeof(msg), NULL);
 }
 
-int host_statfs(const char *path, struct statfs *buf)
+int host_statfs(FAR const char *path, FAR struct statfs *buf)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_statfs_s *msg;
@@ -605,7 +612,7 @@ int host_statfs(const char *path, struct statfs *buf)
           (struct hostfs_rpmsg_header_s *)msg, len, buf);
 }
 
-int host_unlink(const char *pathname)
+int host_unlink(FAR const char *pathname)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_unlink_s *msg;
@@ -629,7 +636,7 @@ int host_unlink(const char *pathname)
           (struct hostfs_rpmsg_header_s *)msg, len, NULL);
 }
 
-int host_mkdir(const char *pathname, mode_t mode)
+int host_mkdir(FAR const char *pathname, mode_t mode)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_mkdir_s *msg;
@@ -652,7 +659,7 @@ int host_mkdir(const char *pathname, mode_t mode)
           (struct hostfs_rpmsg_header_s *)msg, len, NULL);
 }
 
-int host_rmdir(const char *pathname)
+int host_rmdir(FAR const char *pathname)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_rmdir_s *msg;
@@ -676,11 +683,12 @@ int host_rmdir(const char *pathname)
           (struct hostfs_rpmsg_header_s *)msg, len, NULL);
 }
 
-int host_rename(const char *oldpath, const char *newpath)
+int host_rename(FAR const char *oldpath, FAR const char *newpath)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
   struct hostfs_rpmsg_rename_s *msg;
-  size_t len, oldlen;
+  size_t len;
+  size_t oldlen;
   uint32_t space;
 
   len     = sizeof(*msg);
@@ -702,10 +710,10 @@ int host_rename(const char *oldpath, const char *newpath)
           (struct hostfs_rpmsg_header_s *)msg, len, NULL);
 }
 
-int host_stat(const char *path, struct stat *buf)
+int host_stat(FAR const char *path, FAR struct stat *buf)
 {
-  struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
-  struct hostfs_rpmsg_stat_s *msg;
+  FAR struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
+  FAR struct hostfs_rpmsg_stat_s *msg;
   uint32_t space;
   size_t len;
 
@@ -726,7 +734,7 @@ int host_stat(const char *path, struct stat *buf)
           (struct hostfs_rpmsg_header_s *)msg, len, buf);
 }
 
-int hostfs_rpmsg_init(const char *cpuname)
+int hostfs_rpmsg_init(FAR const char *cpuname)
 {
   struct hostfs_rpmsg_s *priv = &g_hostfs_rpmsg;
 

@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/mount/fs_procfs_mount.c
  *
- *   Copyright (C) 2017-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -532,7 +532,7 @@ static ssize_t mount_read(FAR struct file *filep, FAR char *buffer,
 
   /* Generate each entry in the routing table */
 
-  (void)foreach_mountpoint(handler, &info);
+  foreach_mountpoint(handler, &info);
   ret = info.totalsize;
 
   /* Update the file offset */

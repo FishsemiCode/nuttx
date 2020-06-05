@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through include/syscall.h or include/sys/sycall.h
  */
 
@@ -80,4 +80,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_SIM_INCLUDE_SYSCALL_H */
-

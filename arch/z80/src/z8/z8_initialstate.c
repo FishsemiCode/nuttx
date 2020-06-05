@@ -44,8 +44,8 @@
 #include <nuttx/arch.h>
 #include <nuttx/sched.h>
 
-#include "chip/chip.h"
-#include "up_internal.h"
+#include "chip.h"
+#include "z80_internal.h"
 #include "up_arch.h"
 
 /****************************************************************************
@@ -72,7 +72,7 @@
  *   has been created. This function is called to initialize
  *   the processor specific portions of the new TCB.
  *
- *   This function must setup the intial architecture registers
+ *   This function must setup the initial architecture registers
  *   and/or  stack so that execution will begin at tcb->start
  *   on the next context switch.
  *

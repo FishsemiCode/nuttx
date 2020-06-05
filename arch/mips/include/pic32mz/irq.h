@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -52,7 +52,7 @@
 #elif defined(CHIP_PIC32MZEF)
 #  include <arch/pic32mz/irq_pic32mzxxxef.h>
 #else
-#  error "Unknown PIC32MZ family
+#  error "Unknown PIC32MZ family"
 #endif
 
 /****************************************************************************
@@ -212,4 +212,3 @@ extern "C"
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_MIPS_INCLUDE_PIC32MZ_IRQ_H */
-

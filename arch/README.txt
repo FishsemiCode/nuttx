@@ -32,7 +32,7 @@ o Board specific files.  In order to be usable, the chip must be
   peripheral LEDs, external peripherals (such as network, USB, etc.).
 
   These board-specific configuration files can be found in the
-  configs/<board-name>/ sub-directories.
+  boards/<arch>/<chip>/<board> sub-directories.
 
 This README will address the processor architecture specific files
 that are contained in the arch/<arch-name>/ directory. The file
@@ -115,7 +115,7 @@ include/irq.h
   NOTE: These interfaces are not available to application code but can
   only be used within the operating system code.  And, in general,
   these functions should *never* be called directly, not unless you
-  know absolutely well what you are doing.  Rather you shoudl typically
+  know absolutely well what you are doing.  Rather you should typically
   use the wrapper functions enter_critical_section() and leave_critical_section()
   as prototyped in include/nuttx/irq.h.
 
@@ -166,9 +166,8 @@ arch/arm - ARM-based micro-controllers
       arch/arm/include/imx6 and arch/arm/src/imrt
       arch/arm/include/kinetis and arch/arm/src/kinetis
       arch/arm/include/kl and arch/arm/src/kl
-      arch/arm/include/lpc11xx and arch/arm/src/lc823450
-      arch/arm/include/lpc11xx and arch/arm/src/lpc11xx
-      arch/arm/include/lpc17xx and arch/arm/src/lpc17xx
+      arch/arm/include/lc823450 and arch/arm/src/lc823450
+      arch/arm/include/lpc17xx_40xx and arch/arm/src/lpc17xx_40xx
       arch/arm/include/lpc214x and arch/arm/src/lpc214x
       arch/arm/include/lpc2378 and arch/arm/src/lpc2378.
       arch/arm/include/lpc31xx and arch/arm/src/lpc31xx
@@ -269,7 +268,7 @@ arch/xtensa
     LX6 DPU support:
       arch/xtensa/include/lx6 and arch/xtensa/xtensa/lx6
 
-    Expressif ESP32 implemenation of the LX6 DPU:
+    Espressif ESP32 implementation of the LX6 DPU:
       arch/xtensa/include/esp32 and arch/xtensa/xtensa/esp32
 
 arch/z16 - ZiLOG 16-bit processors

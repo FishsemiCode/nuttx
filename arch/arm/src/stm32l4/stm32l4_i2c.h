@@ -44,7 +44,7 @@
 #include <nuttx/i2c/i2c_master.h>
 
 #include "chip.h"
-#include "chip/stm32l4_i2c.h"
+#include "hardware/stm32l4_i2c.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -78,7 +78,7 @@
  *   Port number (for hardware that has multiple I2C interfaces)
  *
  * Returned Value:
- *   Valid I2C device structure reference on succcess; a NULL on failure
+ *   Valid I2C device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

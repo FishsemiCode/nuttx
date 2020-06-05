@@ -79,10 +79,8 @@ static const struct file_operations g_xen1210fops =
   xen1210_read,    /* read */
   NULL,            /* write */
   NULL,            /* seek */
-  NULL             /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL           /* poll */
-#endif
+  NULL,            /* ioctl */
+  NULL             /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL           /* unlink */
 #endif
@@ -105,8 +103,8 @@ static inline void xen1210_configspi(FAR struct spi_dev_s *spi)
 
   SPI_SETMODE(spi, SPIDEV_MODE1);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, XEN1210_SPI_MAXFREQUENCY);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, XEN1210_SPI_MAXFREQUENCY);
 }
 
 /****************************************************************************
@@ -179,7 +177,6 @@ static ssize_t xen1210_read(FAR struct file *filep, FAR char *buffer,
       /* This should only happen if the wait was canceled by an signal */
 
       snerr("Failed: Cannot get exclusive access to driver structure!\n");
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -312,6 +309,7 @@ XEN1210_HANDLE xen1210_instantiate(FAR struct spi_dev_s *dev,
                  (FAR void *)priv);
 
   /* Device initialization sequence */
+
   /* Power off */
 
   regval = (XEN1210_POWEROFF);
@@ -328,7 +326,7 @@ XEN1210_HANDLE xen1210_instantiate(FAR struct spi_dev_s *dev,
   /* Test */
 
   regval  = (XEN1210_TEST);
-  regval |= 0x003A00;
+  regval |= 0x003a00;
 
   xen1210_putdata(priv, regval);
 
@@ -413,7 +411,7 @@ void xen1210_getdata(FAR struct xen1210_dev_s *priv)
 
   /* If SPI bus is shared then lock and configure it */
 
-  (void)SPI_LOCK(priv->spi, true);
+  SPI_LOCK(priv->spi, true);
   xen1210_configspi(priv->spi);
 
   /* Select the XEN1210 */
@@ -423,13 +421,13 @@ void xen1210_getdata(FAR struct xen1210_dev_s *priv)
   /* Read three times 3 bytes = 24 bits * 3 */
 
   SPI_RECVBLOCK(priv->spi, &regval, 3);
-  priv->sample.data_x = regval & 0xFFFFFF;
+  priv->sample.data_x = regval & 0xffffff;
 
   SPI_RECVBLOCK(priv->spi, &regval, 3);
-  priv->sample.data_y = regval & 0xFFFFFF;
+  priv->sample.data_y = regval & 0xffffff;
 
   SPI_RECVBLOCK(priv->spi, &regval, 3);
-  priv->sample.data_z = regval & 0xFFFFFF;
+  priv->sample.data_z = regval & 0xffffff;
 
   /* Deselect the XEN1210 */
 
@@ -437,7 +435,7 @@ void xen1210_getdata(FAR struct xen1210_dev_s *priv)
 
   /* Unlock bus */
 
-  (void)SPI_LOCK(priv->spi, false);
+  SPI_LOCK(priv->spi, false);
 
 #ifdef CONFIG_XEN1210_REGDEBUG
   _err("%02x->%02x\n", regaddr, regval);
@@ -466,7 +464,7 @@ void xen1210_putdata(FAR struct xen1210_dev_s *priv, uint32_t regval)
 
   /* If SPI bus is shared then lock and configure it */
 
-  (void)SPI_LOCK(priv->spi, true);
+  SPI_LOCK(priv->spi, true);
   xen1210_configspi(priv->spi);
 
   /* Select the XEN1210 */
@@ -474,11 +472,12 @@ void xen1210_putdata(FAR struct xen1210_dev_s *priv, uint32_t regval)
   SPI_SELECT(priv->spi, SPIDEV_ACCELEROMETER(0), true);
 
   /* We need to write to 3 sensors in the daisy-chain */
+
   /* Write three times 3 bytes */
 
-  (void)SPI_SNDBLOCK(priv->spi, &regval, 3);
-  (void)SPI_SNDBLOCK(priv->spi, &regval, 3);
-  (void)SPI_SNDBLOCK(priv->spi, &regval, 3);
+  SPI_SNDBLOCK(priv->spi, &regval, 3);
+  SPI_SNDBLOCK(priv->spi, &regval, 3);
+  SPI_SNDBLOCK(priv->spi, &regval, 3);
 
   /* Deselect the XEN1210 */
 
@@ -486,7 +485,7 @@ void xen1210_putdata(FAR struct xen1210_dev_s *priv, uint32_t regval)
 
   /* Unlock bus */
 
-  (void)SPI_LOCK(priv->spi, false);
+  SPI_LOCK(priv->spi, false);
 }
 
 #endif /* CONFIG_SENSORS_XEN1210 */

@@ -89,9 +89,9 @@ begin_packed_struct struct uart_rpmsg_wakeup_s
 struct uart_rpmsg_priv_s
 {
   struct rpmsg_endpoint ept;
-  const char            *devname;
-  const char            *cpuname;
-  void                  *recv_data;
+  FAR const char        *devname;
+  FAR const char        *cpuname;
+  FAR void              *recv_data;
   bool                  last_upper;
 #ifdef CONFIG_SERIAL_TERMIOS
   struct termios        termios;
@@ -109,7 +109,7 @@ static void uart_rpmsg_detach(FAR struct uart_dev_s *dev);
 static int  uart_rpmsg_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 static void uart_rpmsg_rxint(FAR struct uart_dev_s *dev, bool enable);
 static bool uart_rpmsg_rxflowcontrol(FAR struct uart_dev_s *dev,
-                    unsigned int nbuffered, bool upper);
+                                     unsigned int nbuffered, bool upper);
 static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_dmareceive(FAR struct uart_dev_s *dev);
 static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev);
@@ -118,10 +118,12 @@ static void uart_rpmsg_send(FAR struct uart_dev_s *dev, int ch);
 static void uart_rpmsg_txint(FAR struct uart_dev_s *dev, bool enable);
 static bool uart_rpmsg_txready(FAR struct uart_dev_s *dev);
 static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev);
-static void uart_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_);
-static void uart_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_);
-static int  uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                              size_t len, uint32_t src, void *priv_);
+static void uart_rpmsg_device_created(FAR struct rpmsg_device *rdev,
+                                      FAR void *priv_);
+static void uart_rpmsg_device_destroy(FAR struct rpmsg_device *rdev,
+                                      FAR void *priv_);
+static int  uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, FAR void *data,
+                              size_t len, uint32_t src, FAR void *priv_);
 
 /****************************************************************************
  * Private Data
@@ -168,7 +170,8 @@ static void uart_rpmsg_detach(FAR struct uart_dev_s *dev)
 {
 }
 
-static int uart_rpmsg_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
+static int uart_rpmsg_ioctl(FAR struct file *filep, int cmd,
+                            unsigned long arg)
 {
   int ret = -ENOTTY;
 
@@ -180,7 +183,7 @@ static int uart_rpmsg_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
     case TCGETS:
       {
-        struct termios *termiosp = (struct termios *)arg;
+        FAR struct termios *termiosp = (struct termios *)arg;
 
         if (termiosp)
           {
@@ -196,7 +199,7 @@ static int uart_rpmsg_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     case TCSETS:
       {
-        struct termios *termiosp = (struct termios *)arg;
+        FAR struct termios *termiosp = (struct termios *)arg;
 
         if (termiosp)
           {
@@ -220,10 +223,10 @@ static void uart_rpmsg_rxint(FAR struct uart_dev_s *dev, bool enable)
 }
 
 static bool uart_rpmsg_rxflowcontrol(FAR struct uart_dev_s *dev,
-                unsigned int nbuffered, bool upper)
+                                     unsigned int nbuffered, bool upper)
 {
-  struct uart_rpmsg_priv_s *priv = dev->priv;
-  struct uart_rpmsg_wakeup_s msg;
+  FAR struct uart_rpmsg_priv_s *priv = dev->priv;
+  FAR struct uart_rpmsg_wakeup_s msg;
 
   if (!upper && upper != priv->last_upper)
     {
@@ -242,9 +245,9 @@ static bool uart_rpmsg_rxflowcontrol(FAR struct uart_dev_s *dev,
 
 static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev)
 {
-  struct uart_rpmsg_priv_s *priv = dev->priv;
-  struct uart_dmaxfer_s *xfer = &dev->dmatx;
-  struct uart_rpmsg_write_s *msg;
+  FAR struct uart_rpmsg_priv_s *priv = dev->priv;
+  FAR struct uart_dmaxfer_s *xfer = &dev->dmatx;
+  FAR struct uart_rpmsg_write_s *msg;
   size_t len = xfer->length + xfer->nlength;
   uint32_t space;
 
@@ -285,9 +288,9 @@ static void uart_rpmsg_dmasend(FAR struct uart_dev_s *dev)
 
 static void uart_rpmsg_dmareceive(FAR struct uart_dev_s *dev)
 {
-  struct uart_rpmsg_priv_s *priv = dev->priv;
-  struct uart_dmaxfer_s *xfer = &dev->dmarx;
-  struct uart_rpmsg_write_s *msg = priv->recv_data;
+  FAR struct uart_rpmsg_priv_s *priv = dev->priv;
+  FAR struct uart_dmaxfer_s *xfer = &dev->dmarx;
+  FAR struct uart_rpmsg_write_s *msg = priv->recv_data;
   uint32_t len = msg->count;
   size_t space = xfer->length + xfer->nlength;
 
@@ -338,7 +341,7 @@ static void uart_rpmsg_dmarxfree(FAR struct uart_dev_s *dev)
 
 static void uart_rpmsg_dmatxavail(FAR struct uart_dev_s *dev)
 {
-  struct uart_rpmsg_priv_s *priv = dev->priv;
+  FAR struct uart_rpmsg_priv_s *priv = dev->priv;
 
   if (is_rpmsg_ept_ready(&priv->ept) && dev->dmatx.length == 0)
     {
@@ -389,10 +392,11 @@ static bool uart_rpmsg_txempty(FAR struct uart_dev_s *dev)
   return true;
 }
 
-static void uart_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_)
+static void uart_rpmsg_device_created(FAR struct rpmsg_device *rdev,
+                                      FAR void *priv_)
 {
-  struct uart_dev_s *dev = priv_;
-  struct uart_rpmsg_priv_s *priv = dev->priv;
+  FAR struct uart_dev_s *dev = priv_;
+  FAR struct uart_rpmsg_priv_s *priv = dev->priv;
   char eptname[RPMSG_NAME_SIZE];
 
   if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
@@ -405,10 +409,11 @@ static void uart_rpmsg_device_created(struct rpmsg_device *rdev, void *priv_)
     }
 }
 
-static void uart_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_)
+static void uart_rpmsg_device_destroy(FAR struct rpmsg_device *rdev,
+                                      FAR void *priv_)
 {
-  struct uart_dev_s *dev = priv_;
-  struct uart_rpmsg_priv_s *priv = dev->priv;
+  FAR struct uart_dev_s *dev = priv_;
+  FAR struct uart_rpmsg_priv_s *priv = dev->priv;
 
   if (strcmp(priv->cpuname, rpmsg_get_cpuname(rdev)) == 0)
     {
@@ -416,16 +421,16 @@ static void uart_rpmsg_device_destroy(struct rpmsg_device *rdev, void *priv_)
     }
 }
 
-static int uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                             size_t len, uint32_t src, void *priv_)
+static int uart_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept, FAR void *data,
+                             size_t len, uint32_t src, FAR void *priv_)
 {
-  struct uart_dev_s *dev = priv_;
-  struct uart_rpmsg_header_s *header = data;
-  struct uart_rpmsg_write_s *msg = data;
+  FAR struct uart_dev_s *dev = priv_;
+  FAR struct uart_rpmsg_header_s *header = data;
+  FAR struct uart_rpmsg_write_s *msg = data;
 
   if (header->response)
     {
-      /* Get write-cmd reponse, this tell how many data have sent */
+      /* Get write-cmd response, this tell how many data have sent */
 
       dev->dmatx.nbytes = header->result;
       if (header->result < 0)
@@ -441,10 +446,10 @@ static int uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
         {
           uart_rpmsg_dmatxavail(dev);
         }
-     }
+    }
   else if (header->command == UART_RPMSG_TTY_WRITE)
     {
-      struct uart_rpmsg_priv_s *priv = dev->priv;
+      FAR struct uart_rpmsg_priv_s *priv = dev->priv;
 
       /* Get write-cmd, there are some data, we need receive them */
 
@@ -466,14 +471,14 @@ static int uart_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
 }
 
 /****************************************************************************
- * Public Funtions
+ * Public Functions
  ****************************************************************************/
 
-int uart_rpmsg_init(const char *cpuname, const char *devname,
+int uart_rpmsg_init(FAR const char *cpuname, FAR const char *devname,
                     int buf_size, bool isconsole)
 {
-  struct uart_rpmsg_priv_s *priv;
-  struct uart_dev_s *dev;
+  FAR struct uart_rpmsg_priv_s *priv;
+  FAR struct uart_dev_s *dev;
   char dev_name[32];
   int ret = -ENOMEM;
 
@@ -540,7 +545,8 @@ fail:
 }
 
 #ifdef CONFIG_RPMSG_SERIALINIT
-/* dummy function to make linker happy */
+/* Dummy function to make linker happy */
+
 void up_earlyserialinit(void)
 {
 }

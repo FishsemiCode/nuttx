@@ -1,35 +1,20 @@
 /****************************************************************************
  * sched/task/task_spawnparms.c
  *
- *   Copyright (C) 2013, 2015, 2017-2019 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -39,11 +24,11 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
 #include <fcntl.h>
 #include <spawn.h>
 #include <debug.h>
 
+#include <nuttx/semaphore.h>
 #include <nuttx/signal.h>
 #include <nuttx/spawn.h>
 #include <nuttx/fs/fs.h>
@@ -87,7 +72,7 @@ static inline int nxspawn_close(FAR struct spawn_close_file_action_s *action)
 
   sinfo("Closing fd=%d\n", action->fd);
 
-  (void)close(action->fd);
+  close(action->fd);
   return OK;
 }
 
@@ -167,20 +152,13 @@ static inline int nxspawn_open(FAR struct spawn_open_file_action_s *action)
  *   sem - The semaphore to act on.
  *
  * Returned Value:
- *   None
+ *   See nxsem_wait_uninterruptible
  *
  ****************************************************************************/
 
-void spawn_semtake(FAR sem_t *sem)
+int spawn_semtake(FAR sem_t *sem)
 {
-  int ret;
-
-  do
-    {
-      ret = nxsem_wait(sem);
-      DEBUGASSERT(ret == 0 || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(sem);
 }
 
 /****************************************************************************
@@ -252,7 +230,7 @@ int spawn_execattrs(pid_t pid, FAR const posix_spawnattr_t *attr)
           ret = nxsched_setparam(pid, &param);
           if (ret < 0)
             {
-             return ret;
+              return ret;
             }
         }
     }
@@ -290,7 +268,7 @@ int spawn_execattrs(pid_t pid, FAR const posix_spawnattr_t *attr)
       param.sched_ss_init_budget.tv_sec  = attr->budget.tv_sec;
       param.sched_ss_init_budget.tv_nsec = attr->budget.tv_nsec;
 #endif
-      (void)nxsched_setscheduler(pid, attr->policy, &param);
+      nxsched_setscheduler(pid, attr->policy, &param);
     }
 
   return OK;
@@ -322,16 +300,14 @@ int spawn_proxyattrs(FAR const posix_spawnattr_t *attr,
 
   /* Check if we need to change the signal mask */
 
-#ifndef CONFIG_DISABLE_SIGNALS
-  if (attr && (attr->flags & POSIX_SPAWN_SETSIGMASK) != 0)
+  if (attr != NULL && (attr->flags & POSIX_SPAWN_SETSIGMASK) != 0)
     {
-      (void)nxsig_procmask(SIG_SETMASK, &attr->sigmask, NULL);
+      nxsig_procmask(SIG_SETMASK, &attr->sigmask, NULL);
     }
 
   /* Were we also requested to perform file actions? */
 
-  if (file_actions)
-#endif
+  if (file_actions != NULL)
     {
       /* Yes.. Execute each file action */
 
@@ -342,15 +318,18 @@ int spawn_proxyattrs(FAR const posix_spawnattr_t *attr,
           switch (entry->action)
             {
               case SPAWN_FILE_ACTION_CLOSE:
-                ret = nxspawn_close((FAR struct spawn_close_file_action_s *)entry);
+                ret = nxspawn_close((FAR struct spawn_close_file_action_s *)
+                                    entry);
                 break;
 
               case SPAWN_FILE_ACTION_DUP2:
-                ret = nxspawn_dup2((FAR struct spawn_dup2_file_action_s *)entry);
+                ret = nxspawn_dup2((FAR struct spawn_dup2_file_action_s *)
+                                   entry);
                 break;
 
               case SPAWN_FILE_ACTION_OPEN:
-                ret = nxspawn_open((FAR struct spawn_open_file_action_s *)entry);
+                ret = nxspawn_open((FAR struct spawn_open_file_action_s *)
+                                   entry);
                 break;
 
               case SPAWN_FILE_ACTION_NONE:

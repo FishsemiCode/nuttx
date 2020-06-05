@@ -53,7 +53,7 @@
  * Public Functions
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_TIMER_CMSDK
   static const struct cmsdk_timer_config_s config =

@@ -1,9 +1,9 @@
 /****************************************************************************
  * arch/arm/src/stm32f7/stm32_rtc.c
  *
- *   Copyright (C) 2011, 2015-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011, 2015-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
- *           David Sidrane <david_s5@nscdg.com>
+ *           David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -63,7 +63,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* This RTC implementation supports
  *  - date/time RTC hardware
  *  - extended functions Alarm A and B
@@ -200,7 +202,7 @@ static void rtc_dumpregs(FAR const char *msg)
     ((getreg32(STM32_EXTI_FTSR) & EXTI_RTC_ALARM) ? 0x0100 : 0) |
     ((getreg32(STM32_EXTI_IMR)  & EXTI_RTC_ALARM) ? 0x0010 : 0) |
     ((getreg32(STM32_EXTI_EMR)  & EXTI_RTC_ALARM) ? 0x0001 : 0);
-  rtcinfo("EXTI (RTSR FTSR ISR EVT): %01x\n",rtc_state);
+  rtcinfo("EXTI (RTSR FTSR ISR EVT): %01x\n", rtc_state);
 }
 #else
 #  define rtc_dumpregs(msg)
@@ -256,7 +258,7 @@ static void rtc_wprunlock(void)
   /* The following steps are required to unlock the write protection on all
    * the RTC registers (except for RTC_ISR[13:8], RTC_TAFCR, and RTC_BKPxR).
    *
-   * 1. Write 0xCA into the RTC_WPR register.
+   * 1. Write 0xca into the RTC_WPR register.
    * 2. Write 0x53 into the RTC_WPR register.
    *
    * Writing a wrong key re-activates the write protection.
@@ -592,7 +594,7 @@ static int stm32_rtc_alarm_handler(int irq, void *context, void *arg)
    * backup data registers and backup SRAM).
    */
 
-  (void)stm32_pwr_enablebkp(true);
+  stm32_pwr_enablebkp(true);
 
   isr  = getreg32(STM32_RTC_ISR);
 
@@ -654,7 +656,7 @@ static int stm32_rtc_alarm_handler(int irq, void *context, void *arg)
    * data registers and backup SRAM).
    */
 
-  (void)stm32_pwr_enablebkp(false);
+  stm32_pwr_enablebkp(false);
 
   return ret;
 }
@@ -845,7 +847,8 @@ rtchw_set_alrmbr_exit:
 #ifdef CONFIG_RTC_ALARM
 static int stm32_rtc_getalarmdatetime(rtc_alarmreg_t reg, FAR struct tm *tp)
 {
-  uint32_t data, tmp;
+  uint32_t data;
+  uint32_t tmp;
 
   DEBUGASSERT(tp != NULL);
 
@@ -908,6 +911,7 @@ int up_rtc_initialize(void)
    */
 
   /* Select the clock source */
+
   /* Save the token before losing it when resetting */
 
   regval = getreg32(RTC_MAGIC_REG);
@@ -1043,7 +1047,7 @@ int up_rtc_initialize(void)
 
   /* Check if the one-time initialization of the RTC has already been
    * performed. We can determine this by checking if the magic number
-   * has been writing to to back-up date register DR0.
+   * has been written to the back-up date register DR0.
    */
 
   if (regval != RTC_MAGIC && regval != RTC_MAGIC_TIME_SET)
@@ -1080,23 +1084,6 @@ int up_rtc_initialize(void)
               nretry, ret);
       return -ETIMEDOUT;
     }
-
-#ifdef CONFIG_RTC_ALARM
-  /* Configure RTC interrupt to catch alarm interrupts. All RTC interrupts
-   * are connected to the EXTI controller.  To enable the RTC Alarm
-   * interrupt, the following sequence is required:
-   *
-   * 1. Configure and enable the EXTI Line 17 RTC ALARM in interrupt mode
-   *    and select the rising edge sensitivity.
-   *    For STM32F7:
-   *    EXTI line 21 RTC Tamper & Timestamp
-   *    EXTI line 22 RTC Wakeup
-   * 2. Configure and enable the RTC_Alarm IRQ channel in the NVIC.
-   * 3. Configure the RTC to generate RTC alarms (Alarm A or Alarm B).
-   */
-
-  (void)stm32_exti_alarm(true, false, true, stm32_rtc_alarm_handler, NULL);
-#endif
 
   g_rtc_enabled = true;
   rtc_dumpregs("After Initialization");
@@ -1160,6 +1147,7 @@ int up_rtc_getdatetime(FAR struct tm *tp)
           continue;
         }
 #endif
+
       tmp = getreg32(STM32_RTC_DR);
       if (tmp == dr)
         {
@@ -1202,13 +1190,11 @@ int up_rtc_getdatetime(FAR struct tm *tp)
   tmp = (dr & (RTC_DR_YU_MASK | RTC_DR_YT_MASK)) >> RTC_DR_YU_SHIFT;
   tp->tm_year = rtc_bcd2bin(tmp) + 100;
 
-#if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
   tmp = (dr & RTC_DR_WDU_MASK) >> RTC_DR_WDU_SHIFT;
   tp->tm_wday = tmp % 7;
   tp->tm_yday = tp->tm_mday +
     clock_daysbeforemonth(tp->tm_mon, clock_isleapyear(tp->tm_year + 1900));
   tp->tm_isdst = 0;
-#endif
 
 #ifdef CONFIG_STM32F7_HAVE_RTC_SUBSECONDS
   /* Return RTC sub-seconds if a non-NULL value
@@ -1274,14 +1260,15 @@ int up_rtc_getdatetime(FAR struct tm *tp)
  * Description:
  *   Get the current date and time from the date/time RTC.  This interface
  *   is only supported by the date/time RTC hardware implementation.
- *   It is used to replace the system timer.  It is only used by the RTOS during
- *   initialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
- *   are selected (and CONFIG_RTC_HIRES is not).
+ *   It is used to replace the system timer.  It is only used by the RTOS
+ *   during initialization to set up the system time when CONFIG_RTC and
+ *   CONFIG_RTC_DATETIME are selected (and CONFIG_RTC_HIRES is not).
  *
- *   NOTE: This interface exposes sub-second accuracy capability of RTC hardware.
- *   This interface allow maintaining timing accuracy when system time needs constant
- *   resynchronization with RTC, for example with board level power-save mode utilizing
- *   deep-sleep modes such as STOP on STM32 MCUs.
+ *   NOTE: This interface exposes sub-second accuracy capability of RTC
+ *   hardware.  This interface allow maintaining timing accuracy when
+ *   system time needs constant resynchronization with RTC, for example with
+ *   board level power-save mode utilizing deep-sleep modes such as STOP on
+ *   STM32 MCUs.
  *
  * Input Parameters:
  *   tp - The location to return the high resolution time value.
@@ -1352,9 +1339,7 @@ int stm32_rtc_setdatetime(FAR const struct tm *tp)
 
   dr = (rtc_bin2bcd(tp->tm_mday) << RTC_DR_DU_SHIFT) |
        ((rtc_bin2bcd(tp->tm_mon + 1))  << RTC_DR_MU_SHIFT) |
-#if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
        ((tp->tm_wday == 0 ? 7 : (tp->tm_wday & 7))  << RTC_DR_WDU_SHIFT) |
-#endif
        ((rtc_bin2bcd(tp->tm_year - 100)) << RTC_DR_YU_SHIFT);
 
   dr &= ~RTC_DR_RESERVED_BITS;
@@ -1436,7 +1421,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
    * seconds)
    */
 
-  (void)gmtime_r(&tp->tv_sec, &newtime);
+  gmtime_r(&tp->tv_sec, &newtime);
   return stm32_rtc_setdatetime(&newtime);
 }
 
@@ -1460,9 +1445,29 @@ int stm32_rtc_setalarm(FAR struct alm_setalarm_s *alminfo)
   FAR struct alm_cbinfo_s *cbinfo;
   rtc_alarmreg_t alarmreg;
   int ret = -EINVAL;
+  static bool once = false;
 
   DEBUGASSERT(alminfo != NULL);
   DEBUGASSERT(RTC_ALARM_LAST > alminfo->as_id);
+
+  /* Configure RTC interrupt to catch alarm interrupts. All RTC interrupts
+   * are connected to the EXTI controller.  To enable the RTC Alarm
+   * interrupt, the following sequence is required:
+   *
+   * 1. Configure and enable the EXTI Line 17 RTC ALARM in interrupt mode
+   *    and select the rising edge sensitivity.
+   *    For STM32F7:
+   *    EXTI line 21 RTC Tamper & Timestamp
+   *    EXTI line 22 RTC Wakeup
+   * 2. Configure and enable the RTC_Alarm IRQ channel in the NVIC.
+   * 3. Configure the RTC to generate RTC alarms (Alarm A or Alarm B).
+   */
+
+  if (!once)
+    {
+      once = true;
+      stm32_exti_alarm(true, false, true, stm32_rtc_alarm_handler, NULL);
+    }
 
   /* REVISIT:  Should test that the time is in the future */
 
@@ -1727,20 +1732,20 @@ static inline void rtc_enable_wakeup(void)
 {
   if (!g_wakeup_enabled)
     {
-      (void)stm32_exti_wakeup(true, false, true, stm32_rtc_wakeup_handler,
-                              NULL);
+      stm32_exti_wakeup(true, false, true, stm32_rtc_wakeup_handler,
+                        NULL);
       g_wakeup_enabled = true;
     }
 }
 #endif
 
-/************************************************************************************
+/****************************************************************************
  * Name: rtc_set_wcksel
  *
  * Description:
  *   Sets RTC wakeup clock selection value
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 #ifdef CONFIG_RTC_PERIODIC
 static inline void rtc_set_wcksel(unsigned int wucksel)
@@ -1785,7 +1790,7 @@ int stm32_rtc_setperiodic(FAR const struct timespec *period,
 #elif defined(CONFIG_STM32F7_RTC_LSICLOCK)
 #  error "Periodic wakeup not available for LSI (and it is too inaccurate!)"
 #elif defined(CONFIG_STM32F7_RTC_LSECLOCK)
-  const uint32_t rtc_div16_max_msecs = 16 * 1000 * 0xffffU / STM32_LSE_FREQUENCY;
+  const uint32_t rtc_div16_max_msecs = 16 * 1000 * 0xffffu / STM32_LSE_FREQUENCY;
 #else
 #  error "No clock for RTC!"
 #endif
@@ -1796,12 +1801,12 @@ int stm32_rtc_setperiodic(FAR const struct timespec *period,
    * We currently go for subseconds accuracy instead of maximum period.
    */
 
-  if (period->tv_sec > 0xffffU ||
-     (period->tv_sec == 0xffffU && period->tv_nsec > 0))
+  if (period->tv_sec > 0xffffu ||
+     (period->tv_sec == 0xffffu && period->tv_nsec > 0))
     {
       /* More than max. */
 
-      secs = 0xffffU;
+      secs = 0xffffu;
       millisecs = secs * 1000;
     }
   else

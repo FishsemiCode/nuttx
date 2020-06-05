@@ -45,7 +45,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
@@ -55,19 +54,12 @@
 #include <nuttx/arch.h>
 #include <nuttx/signal.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/sensors/zerocross.h>
 
 #include <nuttx/irq.h>
 
 #ifdef CONFIG_SENSORS_ZEROCROSS
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifdef CONFIG_DISABLE_SIGNALS
-#  error "This driver needs SIGNAL support, remove CONFIG_DISABLE_SIGNALS"
-#endif
 
 /****************************************************************************
  * Private Type Definitions
@@ -85,7 +77,6 @@ struct zc_upperhalf_s
    */
 
   FAR struct zc_open_s *zu_open;
-
 };
 
 /* This structure describes the state of one open zero cross driver instance */
@@ -133,11 +124,9 @@ static const struct file_operations g_zcops =
   zc_close,  /* close */
   zc_read,   /* read */
   zc_write,  /* write */
-  0,         /* seek */
-  zc_ioctl   /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0        /* poll */
-#endif
+  NULL,      /* seek */
+  zc_ioctl,  /* ioctl */
+  NULL       /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , 0        /* unlink */
 #endif
@@ -247,7 +236,7 @@ static int zc_open(FAR struct file *filep)
   opriv = (FAR struct zc_open_s *)kmm_zalloc(sizeof(struct zc_open_s));
   if (!opriv)
     {
-      snerr("ERROR: Failled to allocate open structure\n");
+      snerr("ERROR: Failed to allocate open structure\n");
       ret = -ENOMEM;
       goto errout_with_sem;
     }
@@ -417,7 +406,7 @@ static int zc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   DEBUGASSERT(filep && filep->f_priv && filep->f_inode);
   opriv = filep->f_priv;
   inode = filep->f_inode;
-  DEBUGASSERT(inode->i_private)
+  DEBUGASSERT(inode->i_private);
   priv = (FAR struct zc_upperhalf_s *)inode->i_private;
 
   /* Get exclusive access to the device structures */
@@ -433,36 +422,34 @@ static int zc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   ret = -EINVAL;
   switch (cmd)
     {
-#ifndef CONFIG_DISABLE_SIGNALS
-    /* Command:     ZCIOC_REGISTER
-     * Description: Register to receive a signal whenever there is zero
-     *              cross detection interrupt.
-     * Argument:    A read-only pointer to an instance of struct
-     *              zc_notify_s
-     * Return:      Zero (OK) on success.  Minus one will be returned on
-     *              failure with the errno value set appropriately.
-     */
+      /* Command:     ZCIOC_REGISTER
+       * Description: Register to receive a signal whenever there is zero
+       *              cross detection interrupt.
+       * Argument:    A read-only pointer to an instance of struct
+       *              zc_notify_s
+       * Return:      Zero (OK) on success.  Minus one will be returned on
+       *              failure with the errno value set appropriately.
+       */
 
-    case ZCIOC_REGISTER:
-      {
-        FAR struct sigevent *event =
-          (FAR struct sigevent *)((uintptr_t)arg);
+      case ZCIOC_REGISTER:
+        {
+          FAR struct sigevent *event =
+            (FAR struct sigevent *)((uintptr_t)arg);
 
-        if (event)
-          {
-            /* Save the notification events */
+          if (event)
+            {
+              /* Save the notification events */
 
-            opriv->do_event = *event;
-            opriv->do_pid   = getpid();
+              opriv->do_event = *event;
+              opriv->do_pid   = getpid();
 
-            /* Enable/disable interrupt handling */
+              /* Enable/disable interrupt handling */
 
-            zerocross_enable(priv);
-            ret = OK;
-          }
-      }
-      break;
-#endif
+              zerocross_enable(priv);
+              ret = OK;
+            }
+        }
+        break;
 
       default:
         {

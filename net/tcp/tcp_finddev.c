@@ -71,7 +71,8 @@
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IPv4
-static int tcp_find_ipv4_device(FAR struct tcp_conn_s *conn, in_addr_t addr)
+static int tcp_find_ipv4_device(FAR struct tcp_conn_s *conn,
+                                in_addr_t addr, bool local)
 {
   /* Do nothing if a device is already bound to the connection */
 
@@ -88,7 +89,7 @@ static int tcp_find_ipv4_device(FAR struct tcp_conn_s *conn, in_addr_t addr)
 
   if (net_ipv4addr_cmp(addr, INADDR_ANY))
     {
-      return OK;
+      return local ? OK : -EINVAL;
     }
 
   /* We need to select the device that is going to route the TCP packet
@@ -121,7 +122,7 @@ static int tcp_find_ipv4_device(FAR struct tcp_conn_s *conn, in_addr_t addr)
 
 #ifdef CONFIG_NET_IPv6
 static int tcp_find_ipv6_device(FAR struct tcp_conn_s *conn,
-                                const net_ipv6addr_t addr)
+                                const net_ipv6addr_t addr, bool local)
 {
   /* Do nothing if a device is already bound to the connection */
 
@@ -138,7 +139,7 @@ static int tcp_find_ipv6_device(FAR struct tcp_conn_s *conn,
 
   if (net_ipv6addr_cmp(addr, g_ipv6_unspecaddr))
     {
-      return OK;
+      return local ? OK : -EINVAL;
     }
 
   /* We need to select the device that is going to route the TCP packet
@@ -162,7 +163,7 @@ static int tcp_find_ipv6_device(FAR struct tcp_conn_s *conn,
  *
  * Description:
  *   Select the network driver to use with the IPv4 TCP transaction based
- *   on the locally bound IPv4 address
+ *   on the locally bound IPv4 address.
  *
  * Input Parameters:
  *   conn - TCP connection structure.  The locally bound address, laddr,
@@ -177,7 +178,7 @@ static int tcp_find_ipv6_device(FAR struct tcp_conn_s *conn,
 #ifdef CONFIG_NET_IPv4
 int tcp_local_ipv4_device(FAR struct tcp_conn_s *conn)
 {
-  return tcp_find_ipv4_device(conn, conn->u.ipv4.laddr);
+  return tcp_find_ipv4_device(conn, conn->u.ipv4.laddr, true);
 }
 #endif /* CONFIG_NET_IPv4 */
 
@@ -186,10 +187,10 @@ int tcp_local_ipv4_device(FAR struct tcp_conn_s *conn)
  *
  * Description:
  *   Select the network driver to use with the IPv4 TCP transaction based
- *   on the remotely connected IPv4 address
+ *   on the remotely connected IPv4 address.
  *
  * Input Parameters:
- *   conn - TCP connection structure.  The remotely conected address, raddr,
+ *   conn - TCP connection structure.  The remotely connected address, raddr,
  *     should be set to a non-zero value in this structure.
  *
  * Returned Value:
@@ -201,7 +202,7 @@ int tcp_local_ipv4_device(FAR struct tcp_conn_s *conn)
 #ifdef CONFIG_NET_IPv4
 int tcp_remote_ipv4_device(FAR struct tcp_conn_s *conn)
 {
-  return tcp_find_ipv4_device(conn, conn->u.ipv4.raddr);
+  return tcp_find_ipv4_device(conn, conn->u.ipv4.raddr, false);
 }
 #endif
 
@@ -224,7 +225,7 @@ int tcp_remote_ipv4_device(FAR struct tcp_conn_s *conn)
 #ifdef CONFIG_NET_IPv6
 int tcp_local_ipv6_device(FAR struct tcp_conn_s *conn)
 {
-  return tcp_find_ipv6_device(conn, conn->u.ipv6.laddr);
+  return tcp_find_ipv6_device(conn, conn->u.ipv6.laddr, true);
 }
 #endif /* CONFIG_NET_IPv6 */
 
@@ -233,7 +234,7 @@ int tcp_local_ipv6_device(FAR struct tcp_conn_s *conn)
  *
  * Description:
  *   Select the network driver to use with the IPv6 TCP transaction based
- *   on the remotely conected IPv6 address
+ *   on the remotely connected IPv6 address.
  *
  * Input Parameters:
  *   conn - TCP connection structure.  The remotely connected address, raddr,
@@ -248,7 +249,7 @@ int tcp_local_ipv6_device(FAR struct tcp_conn_s *conn)
 #ifdef CONFIG_NET_IPv6
 int tcp_remote_ipv6_device(FAR struct tcp_conn_s *conn)
 {
-  return tcp_find_ipv6_device(conn, conn->u.ipv6.raddr);
+  return tcp_find_ipv6_device(conn, conn->u.ipv6.raddr, false);
 }
 #endif /* CONFIG_NET_IPv6 */
 

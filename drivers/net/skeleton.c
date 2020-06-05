@@ -239,8 +239,8 @@ static int skel_transmit(FAR struct skel_driver_s *priv)
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->sk_txtimeout, skeleton_TXTIMEOUT,
-                 skel_txtimeout_expiry, 1, (wdparm_t)priv);
+  wd_start(priv->sk_txtimeout, skeleton_TXTIMEOUT,
+           skel_txtimeout_expiry, 1, (wdparm_t)priv);
   return OK;
 }
 
@@ -301,7 +301,7 @@ static int skel_txpoll(FAR struct net_driver_s *dev)
 
       /* Check if the network is sending this packet to the IP address of
        * this device.  If so, just loop the packet back into the network but
-       * don't attmpt to put it on the wire.
+       * don't attempt to put it on the wire.
        */
 
       if (!devif_loopback(&priv->sk_dev))
@@ -443,7 +443,7 @@ static void skel_receive(FAR struct skel_driver_s *priv)
 
       if (BUF->type == HTONS(ETHTYPE_IP6))
         {
-          ninfo("Iv6 frame\n");
+          ninfo("IPv6 frame\n");
           NETDEV_RXIPV6(&priv->sk_dev);
 
           /* Dispatch IPv6 packet to the network layer */
@@ -522,7 +522,7 @@ static void skel_txdone(FAR struct skel_driver_s *priv)
 
   /* In any event, poll the network for new TX data */
 
-  (void)devif_poll(&priv->sk_dev, skel_txpoll);
+  devif_poll(&priv->sk_dev, skel_txpoll);
 }
 
 /****************************************************************************
@@ -660,7 +660,7 @@ static void skel_txtimeout_work(FAR void *arg)
 
   /* Then poll the network for new XMIT data */
 
-  (void)devif_poll(&priv->sk_dev, skel_txpoll);
+  devif_poll(&priv->sk_dev, skel_txpoll);
   net_unlock();
 }
 
@@ -740,12 +740,12 @@ static void skel_poll_work(FAR void *arg)
    * progress, we will missing TCP time state updates?
    */
 
-  (void)devif_timer(&priv->sk_dev, skel_txpoll);
+  devif_timer(&priv->sk_dev, skeleton_WDDELAY, skel_txpoll);
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->sk_txpoll, skeleton_WDDELAY, skel_poll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->sk_txpoll, skeleton_WDDELAY, skel_poll_expiry, 1,
+           (wdparm_t)priv);
   net_unlock();
 }
 
@@ -823,8 +823,8 @@ static int skel_ifup(FAR struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->sk_txpoll, skeleton_WDDELAY, skel_poll_expiry, 1,
-                 (wdparm_t)priv);
+  wd_start(priv->sk_txpoll, skeleton_WDDELAY, skel_poll_expiry, 1,
+           (wdparm_t)priv);
 
   /* Enable the Ethernet interrupt */
 
@@ -914,7 +914,7 @@ static void skel_txavail_work(FAR void *arg)
 
       /* If so, then poll the network for new XMIT data */
 
-      (void)devif_poll(&priv->sk_dev, skel_txpoll);
+      devif_poll(&priv->sk_dev, skel_txpoll);
     }
 
   net_unlock();
@@ -1060,7 +1060,7 @@ static void skel_ipv6multicast(FAR struct skel_driver_s *priv)
   ninfo("IPv6 Multicast: %02x:%02x:%02x:%02x:%02x:%02x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  (void)skel_addmac(dev, mac);
+  skel_addmac(dev, mac);
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
   /* Add the IPv6 all link-local nodes Ethernet address.  This is the
@@ -1068,7 +1068,7 @@ static void skel_ipv6multicast(FAR struct skel_driver_s *priv)
    * packets.
    */
 
-  (void)skel_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
+  skel_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
 
@@ -1078,7 +1078,7 @@ static void skel_ipv6multicast(FAR struct skel_driver_s *priv)
    * packets.
    */
 
-  (void)skel_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
+  skel_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_ROUTER */
 }
@@ -1194,13 +1194,14 @@ int skel_initialize(int intf)
    * the device and/or calling skel_ifdown().
    */
 
-  /* Read the MAC address from the hardware into priv->sk_dev.d_mac.ether.ether_addr_octet
+  /* Read the MAC address from the hardware into
+   * priv->sk_dev.d_mac.ether.ether_addr_octet
    * Applies only if the Ethernet MAC has its own internal address.
    */
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->sk_dev, NET_LL_ETHERNET);
+  netdev_register(&priv->sk_dev, NET_LL_ETHERNET);
   return OK;
 }
 

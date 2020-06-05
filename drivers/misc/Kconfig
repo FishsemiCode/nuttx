@@ -3,6 +3,13 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+config MISC
+	bool "Misc Support"
+	default n
+	---help---
+		This selection enables misc, this driver usualy contain some
+		small and useful things.
+
 if MISC
 
 config MISC_RPMSG

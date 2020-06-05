@@ -42,11 +42,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mm/iob.h>
 
@@ -64,9 +62,9 @@
  * Private Data
  ****************************************************************************/
 
-/* The g_free_reass is a list of reassembly buffer structures that are available for
- * general use.  The number of messages in this list is a system configuration
- * item.  Protected only by the network lock.
+/* The g_free_reass is a list of reassembly buffer structures that are
+ * available for general use.  The number of messages in this list is a
+ * system configuration item.  Protected only by the network lock.
  */
 
 static FAR struct sixlowpan_reassbuf_s *g_free_reass;
@@ -75,9 +73,10 @@ static FAR struct sixlowpan_reassbuf_s *g_free_reass;
 
 static FAR struct sixlowpan_reassbuf_s *g_active_reass;
 
-/* Pool of pre-allocated reassembly buffer stuctures */
+/* Pool of pre-allocated reassembly buffer structures */
 
-static struct sixlowpan_reassbuf_s g_metadata_pool[CONFIG_NET_6LOWPAN_NREASSBUF];
+static struct sixlowpan_reassbuf_s
+              g_metadata_pool[CONFIG_NET_6LOWPAN_NREASSBUF];
 
 /****************************************************************************
  * Public Functions
@@ -88,7 +87,7 @@ static struct sixlowpan_reassbuf_s g_metadata_pool[CONFIG_NET_6LOWPAN_NREASSBUF]
  *
  * Description:
  *   Check if the fragment that we just received is from the same source as
- *   the previosly received fragements.
+ *   the previously received fragments.
  *
  * Input Parameters:
  *   radio    - Radio network device driver state instance
@@ -100,7 +99,7 @@ static struct sixlowpan_reassbuf_s g_metadata_pool[CONFIG_NET_6LOWPAN_NREASSBUF]
  ****************************************************************************/
 
 static bool sixlowpan_compare_fragsrc(FAR struct sixlowpan_reassbuf_s *reass,
-                                      FAR const struct netdev_varaddr_s *fragsrc)
+                                  FAR const struct netdev_varaddr_s *fragsrc)
 {
   /* The addresses cannot match if they are not the same size */
 
@@ -162,7 +161,7 @@ static void sixlowpan_reass_expire(void)
 
           /* If the reassembly has expired, then free the reassembly buffer */
 
-          if (elapsed > NET_6LOWPAN_TIMEOUT)
+          if (elapsed >= NET_6LOWPAN_TIMEOUT)
             {
               nwarn("WARNING: Reassembly timed out\n");
               sixlowpan_reass_free(reass);
@@ -247,8 +246,8 @@ void sixlowpan_reass_initialize(void)
   FAR struct sixlowpan_reassbuf_s *reass;
   int i;
 
-  /* Initialize g_free_reass, the list of reassembly buffer structures that are
-   * available for allocation.
+  /* Initialize g_free_reass, the list of reassembly buffer structures that
+   * are available for allocation.
    */
 
   g_free_reass = NULL;
@@ -316,8 +315,8 @@ FAR struct sixlowpan_reassbuf_s *
 #ifdef CONFIG_NET_6LOWPAN_REASS_STATIC
       reass         = NULL;
 #else
-      /* If we cannot get a reassembly buffer instance from the free list, then we
-       * will have to allocate one from the kernal memory pool.
+      /* If we cannot get a reassembly buffer instance from the free list,
+       * then we will have to allocate one from the kernel memory pool.
        */
 
       reass = (FAR struct sixlowpan_reassbuf_s *)
@@ -430,8 +429,8 @@ void sixlowpan_reass_free(FAR struct sixlowpan_reassbuf_s *reass)
 
   sixlowpan_remove_active(reass);
 
-  /* If this is a pre-allocated reassembly buffer structure, then just put it back
-   * in the free list.
+  /* If this is a pre-allocated reassembly buffer structure, then just put it
+   * back in the free list.
    */
 
   if (reass->rb_pool == REASS_POOL_PREALLOCATED)

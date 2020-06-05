@@ -44,8 +44,8 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/nrf52_memorymap.h"
-#include "chip/nrf52_uarte.h"
+#include "hardware/nrf52_memorymap.h"
+#include "hardware/nrf52_uarte.h"
 
 #include "nrf52_config.h"
 #include "nrf52_clockconfig.h"
@@ -60,11 +60,23 @@
 
 #ifdef HAVE_UART_CONSOLE
 
-#define CONSOLE_BASE     NRF52_UART0_BASE
-#define CONSOLE_BAUD     CONFIG_UART0_BAUD
-#define CONSOLE_BITS     CONFIG_UART0_BITS
-#define CONSOLE_PARITY   CONFIG_UART0_PARITY
-#define CONSOLE_2STOP    CONFIG_UART0_2STOP
+#ifdef CONFIG_UART0_SERIAL_CONSOLE
+#  define CONSOLE_BASE     NRF52_UART0_BASE
+#  define CONSOLE_BAUD     CONFIG_UART0_BAUD
+#  define CONSOLE_BITS     CONFIG_UART0_BITS
+#  define CONSOLE_PARITY   CONFIG_UART0_PARITY
+#  define CONSOLE_2STOP    CONFIG_UART0_2STOP
+#  define CONSOLE_TX_PIN   BOARD_UART0_TX_PIN
+#  define CONSOLE_RX_PIN   BOARD_UART0_RX_PIN
+#elif CONFIG_UART1_SERIAL_CONSOLE
+#  define CONSOLE_BASE     NRF52_UART1_BASE
+#  define CONSOLE_BAUD     CONFIG_UART1_BAUD
+#  define CONSOLE_BITS     CONFIG_UART1_BITS
+#  define CONSOLE_PARITY   CONFIG_UART1_PARITY
+#  define CONSOLE_2STOP    CONFIG_UART1_2STOP
+#  define CONSOLE_TX_PIN   BOARD_UART1_TX_PIN
+#  define CONSOLE_RX_PIN   BOARD_UART1_RX_PIN
+#endif
 
 /****************************************************************************
  * Private Data
@@ -72,7 +84,7 @@
 
 /* UART console configuration */
 
-static const struct uart_config_s g_console_config=
+static const struct uart_config_s g_console_config =
 {
   .baud      = CONSOLE_BAUD,
   .parity    = CONSOLE_PARITY,
@@ -84,8 +96,8 @@ static const struct uart_config_s g_console_config=
 #ifdef CONFIG_SERIAL_OFLOWCONTROL
   .oflow     = CONSOLE_OFLOW,
 #endif
-  .txpin     = BOARD_UART0_TX_PIN,
-  .rxpin     = BOARD_UART0_RX_PIN,
+  .txpin     = CONSOLE_TX_PIN,
+  .rxpin     = CONSOLE_RX_PIN,
 };
 #endif /* HAVE_UART_CONSOLE */
 
@@ -104,11 +116,11 @@ static const struct uart_config_s g_console_config=
 #ifdef HAVE_UART_DEVICE
 static void nrf52_setbaud(uintptr_t base, const struct uart_config_s *config)
 {
-  uint32_t br = 0x01D7E000;  /* 268.444444 */
+  uint32_t br = 0;
 
   if (config->baud == 115200)
     {
-      br = 0x01D7E000;
+      br = UART_BAUDRATE_115200;
     }
 
   putreg32(br, base + NRF52_UART_BAUDRATE_OFFSET);
@@ -123,10 +135,10 @@ static void nrf52_setbaud(uintptr_t base, const struct uart_config_s *config)
  * Name: nrf52_lowsetup
  *
  * Description:
- *   Called at the very beginning of _start.  Performs low level initialization
- *   including setup of the console UART.  This UART initialization is done
- *   early so that the serial console is available for debugging very early in
- *   the boot sequence.
+ *   Called at the very beginning of _start. Performs low level
+ *   initialization including setup of the console UART.
+ *   This UART initialization is done early so that the serial console is
+ *   available for debugging very early in the boot sequence.
  *
  ****************************************************************************/
 
@@ -151,9 +163,12 @@ void nrf52_lowsetup(void)
  ****************************************************************************/
 
 #ifdef HAVE_UART_DEVICE
-void nrf52_usart_configure(uintptr_t base, const struct uart_config_s *config)
+void nrf52_usart_configure(uintptr_t base,
+                           const struct uart_config_s *config)
 {
-  uint32_t pin;
+  uint32_t pin    = 0;
+  uint32_t port   = 0;
+  uint32_t regval = 0;
 
   putreg32(1, base + NRF52_UART_TASKS_STOPRX_OFFSET);
   putreg32(1, base + NRF52_UART_TASKS_STOPTX_OFFSET);
@@ -163,17 +178,30 @@ void nrf52_usart_configure(uintptr_t base, const struct uart_config_s *config)
 
   nrf52_setbaud(base, config);
 
-  /* Config and select pins for uart */
+  /* Config GPIO pins for uart */
 
   nrf52_gpio_config(config->txpin);
   nrf52_gpio_config(config->rxpin);
 
-  pin = (config->txpin & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
-  putreg32(pin, base + NRF52_UART_PSELTXD_OFFSET);
-  pin = (config->rxpin & GPIO_PIN_MASK) >> GPIO_PIN_SHIFT;
-  putreg32(pin, base + NRF52_UART_PSELRXD_OFFSET);
+  /* Setect TX pins for UART */
 
-  /* Enable */
+  pin  = GPIO_PIN_DECODE(config->txpin);
+  port = GPIO_PORT_DECODE(config->txpin);
+
+  regval = (pin << UART_PSELTXD_PIN_SHIFT);
+  regval |= (port << UART_PSELTXD_PORT_SHIFT);
+  putreg32(regval, base + NRF52_UART_PSELTXD_OFFSET);
+
+  /* Setect RX pins for UART */
+
+  pin  = GPIO_PIN_DECODE(config->rxpin);
+  port = GPIO_PORT_DECODE(config->rxpin);
+
+  regval = (pin << UART_PSELRXD_PIN_SHIFT);
+  regval |= (port << UART_PSELRXD_PORT_SHIFT);
+  putreg32(regval, base + NRF52_UART_PSELRXD_OFFSET);
+
+  /* Enable UART */
 
   putreg32(NRF52_UART_ENABLE_ENABLE, base + NRF52_UART_ENABLE_OFFSET);
 }
@@ -189,17 +217,28 @@ void nrf52_usart_configure(uintptr_t base, const struct uart_config_s *config)
  ****************************************************************************/
 
 #ifdef HAVE_UART_DEVICE
-void nrf52_usart_disable(uintptr_t base)
+void nrf52_usart_disable(uintptr_t base, const struct uart_config_s *config)
 {
   /* Disable interrupts */
+
   /* Disable the UART */
 
   putreg32(1, base + NRF52_UART_TASKS_STOPRX_OFFSET);
   putreg32(1, base + NRF52_UART_TASKS_STOPTX_OFFSET);
   putreg32(NRF52_UART_ENABLE_DISABLE, base + NRF52_UART_ENABLE_OFFSET);
 
-  putreg32(0xFFFFFFFF, base + NRF52_UART_PSELTXD_OFFSET);
-  putreg32(0xFFFFFFFF, base + NRF52_UART_PSELRXD_OFFSET);
+  putreg32(0xffffffff, base + NRF52_UART_PSELTXD_OFFSET);
+  putreg32(0xffffffff, base + NRF52_UART_PSELRXD_OFFSET);
+
+  /* Unconfigure GPIO */
+
+  nrf52_gpio_unconfig(config->rxpin);
+  nrf52_gpio_unconfig(config->txpin);
+
+  /* Deatach TWI from GPIO */
+
+  putreg32(UART_PSELTXD_RESET, base + NRF52_UART_PSELTXD_OFFSET);
+  putreg32(UART_PSELRXD_RESET, base + NRF52_UART_PSELRXD_OFFSET);
 }
 #endif
 
@@ -217,7 +256,7 @@ void up_lowputc(char ch)
   putreg32(1, CONSOLE_BASE + NRF52_UART_TASKS_STARTTX_OFFSET);
   putreg32(0, CONSOLE_BASE + NRF52_UART_EVENTS_TXDRDY_OFFSET);
   putreg32(ch, CONSOLE_BASE + NRF52_UART_TXD_OFFSET);
-  while (getreg32(CONSOLE_BASE + NRF52_UART_EVENTS_TXDRDY_OFFSET) == 0 )
+  while (getreg32(CONSOLE_BASE + NRF52_UART_EVENTS_TXDRDY_OFFSET) == 0)
     {
     }
 

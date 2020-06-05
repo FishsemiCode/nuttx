@@ -1,7 +1,7 @@
 /****************************************************************************
  * fs/vfs/fs_poll.c
  *
- *   Copyright (C) 2008-2009, 2012-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,6 @@
 #include <stdbool.h>
 #include <poll.h>
 #include <time.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -55,8 +54,6 @@
 #include <arch/irq.h>
 
 #include "inode/inode.h"
-
-#ifndef CONFIG_DISABLE_POLL
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -74,18 +71,7 @@
 
 static int poll_semtake(FAR sem_t *sem)
 {
-  int ret;
-
-  /* Take the semaphore (perhaps waiting) */
-
-  ret = nxsem_wait(sem);
-
-  /* The only case that an error should occur here is if the wait were
-   * awakened by a signal.
-   */
-
-  DEBUGASSERT(ret == OK || ret == -EINTR);
-  return ret;
+  return nxsem_wait(sem);
 }
 
 /****************************************************************************
@@ -130,7 +116,8 @@ static int poll_fdsetup(int fd, FAR struct pollfd *fds, bool setup)
  *
  ****************************************************************************/
 
-static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
+static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds,
+                             FAR sem_t *sem)
 {
   unsigned int i;
   unsigned int j;
@@ -140,7 +127,14 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
 
   for (i = 0; i < nfds; i++)
     {
-      /* Setup the poll descriptor */
+      /* Setup the poll descriptor
+       *
+       * REVISIT: In a multi-threaded environment, one use case might be to
+       * share a single, array of struct pollfd in poll() calls on different
+       * threads.  That use case is not supportable here because the non-
+       * standard internal fields get reset here on each call to poll()
+       * on each thread.
+       */
 
       fds[i].sem     = sem;
       fds[i].revents = 0;
@@ -198,16 +192,16 @@ static inline int poll_setup(FAR struct pollfd *fds, nfds_t nfds, sem_t *sem)
               switch (fds[j].events & POLLMASK)
                 {
                 case POLLFD:
-                  (void)poll_fdsetup(fds[j].fd, &fds[j], false);
+                  poll_fdsetup(fds[j].fd, &fds[j], false);
                   break;
 
                 case POLLFILE:
-                  (void)file_poll(fds[j].ptr, &fds[j], false);
+                  file_poll(fds[j].ptr, &fds[j], false);
                   break;
 
 #ifdef CONFIG_NET
                 case POLLSOCK:
-                  (void)psock_poll(fds[j].ptr, &fds[j], false);
+                  psock_poll(fds[j].ptr, &fds[j], false);
                   break;
 #endif
 
@@ -306,7 +300,7 @@ static inline int poll_teardown(FAR struct pollfd *fds, nfds_t nfds,
  * Description:
  *   Low-level poll operation based on struct file.  This is used both to (1)
  *   support detached file, and also (2) by fdesc_poll() to perform all
- *   normal operations on file descriptors descriptors.
+ *   normal operations on file descriptors.
  *
  * Input Parameters:
  *   file     File structure instance
@@ -446,7 +440,7 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
 
   /* poll() is a cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* This semaphore is used for signaling and, hence, should not have
    * priority inheritance enabled.
@@ -495,18 +489,18 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
            * will return immediately.
            */
 
-           ret = nxsem_tickwait(&sem, clock_systimer(), ticks);
-           if (ret < 0)
-             {
-               if (ret == -ETIMEDOUT)
-                 {
-                   /* Return zero (OK) in the event of a timeout */
+          ret = nxsem_tickwait(&sem, clock_systimer(), ticks);
+          if (ret < 0)
+            {
+              if (ret == -ETIMEDOUT)
+                {
+                  /* Return zero (OK) in the event of a timeout */
 
-                   ret = OK;
-                 }
+                  ret = OK;
+                }
 
-               /* EINTR is the only other error expected in normal operation */
-             }
+              /* EINTR is the only other error expected in normal operation */
+            }
         }
       else
         {
@@ -541,5 +535,3 @@ int poll(FAR struct pollfd *fds, nfds_t nfds, int timeout)
 
   return count;
 }
-
-#endif /* CONFIG_DISABLE_POLL */

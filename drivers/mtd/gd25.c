@@ -222,7 +222,7 @@ static ssize_t gd25_write(FAR struct mtd_dev_s *dev, off_t offset,
 static inline void gd25_purdid(FAR struct gd25_dev_s *priv)
 {
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_PURDID);
+  SPI_SEND(priv->spi, GD25_PURDID);
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
   up_udelay(20);
 }
@@ -234,7 +234,7 @@ static inline void gd25_purdid(FAR struct gd25_dev_s *priv)
 static inline void gd25_pd(FAR struct gd25_dev_s *priv)
 {
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_PD);
+  SPI_SEND(priv->spi, GD25_PD);
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
   up_udelay(20);
 }
@@ -253,12 +253,12 @@ static inline void gd25_pd(FAR struct gd25_dev_s *priv)
 
 static void gd25_lock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
 
   SPI_SETMODE(spi, CONFIG_GD25_SPIMODE);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, CONFIG_GD25_SPIFREQUENCY);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_GD25_SPIFREQUENCY);
 }
 
 /**************************************************************************
@@ -267,7 +267,7 @@ static void gd25_lock(FAR struct spi_dev_s *spi)
 
 static inline void gd25_unlock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 /**************************************************************************
@@ -292,7 +292,7 @@ static inline int gd25_readid(FAR struct gd25_dev_s *priv)
 
   /* Send the "Read ID (RDID)" command and read the first three ID bytes */
 
-  (void)SPI_SEND(priv->spi, GD25_JEDEC_ID);
+  SPI_SEND(priv->spi, GD25_JEDEC_ID);
   manufacturer = SPI_SEND(priv->spi, GD25_DUMMY);
   memory       = SPI_SEND(priv->spi, GD25_DUMMY);
   capacity     = SPI_SEND(priv->spi, GD25_DUMMY);
@@ -391,7 +391,7 @@ static void gd25_unprotect(FAR struct gd25_dev_s *priv)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)gd25_waitwritecomplete(priv);
+  gd25_waitwritecomplete(priv);
 
   /* Send "Write enable (WREN)" */
 
@@ -431,7 +431,7 @@ static uint8_t gd25_waitwritecomplete(FAR struct gd25_dev_s *priv)
       if (priv->prev_instr != GD25_PP && (status & GD25_SR_WIP) != 0)
         {
           gd25_unlock(priv->spi);
-          usleep(1000);
+          nxsig_usleep(1000);
           gd25_lock(priv->spi);
         }
     }
@@ -453,7 +453,7 @@ static inline uint8_t gd25_rdsr(FAR struct gd25_dev_s *priv, uint32_t id)
   };
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, rdsr[id]);
+  SPI_SEND(priv->spi, rdsr[id]);
   status = SPI_SEND(priv->spi, GD25_DUMMY);
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
 
@@ -467,7 +467,7 @@ static inline uint8_t gd25_rdsr(FAR struct gd25_dev_s *priv, uint32_t id)
 static inline void gd25_4ben(FAR struct gd25_dev_s *priv)
 {
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_4BEN);
+  SPI_SEND(priv->spi, GD25_4BEN);
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
 }
 
@@ -478,7 +478,7 @@ static inline void gd25_4ben(FAR struct gd25_dev_s *priv)
 static inline void gd25_wren(FAR struct gd25_dev_s *priv)
 {
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_WREN);
+  SPI_SEND(priv->spi, GD25_WREN);
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
 }
 
@@ -489,7 +489,7 @@ static inline void gd25_wren(FAR struct gd25_dev_s *priv)
 static inline void gd25_wrdi(FAR struct gd25_dev_s *priv)
 {
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), true);
-  (void)SPI_SEND(priv->spi, GD25_WRDI);
+  SPI_SEND(priv->spi, GD25_WRDI);
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
 }
 
@@ -556,7 +556,7 @@ static void gd25_sectorerase(FAR struct gd25_dev_s *priv, off_t sector)
 
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)gd25_waitwritecomplete(priv);
+  gd25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
 
@@ -566,7 +566,7 @@ static void gd25_sectorerase(FAR struct gd25_dev_s *priv, off_t sector)
 
   /* Send the "Sector Erase (SE)" instruction */
 
-  (void)SPI_SEND(priv->spi, GD25_SE);
+  SPI_SEND(priv->spi, GD25_SE);
   priv->prev_instr = GD25_SE;
 
   /* Send the sector address high byte first.  Only the most significant
@@ -575,12 +575,12 @@ static void gd25_sectorerase(FAR struct gd25_dev_s *priv, off_t sector)
 
   if (priv->addr_4byte)
     {
-      (void)SPI_SEND(priv->spi, (address >> 24) & 0xff);
+      SPI_SEND(priv->spi, (address >> 24) & 0xff);
     }
 
-  (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
-  (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
-  (void)SPI_SEND(priv->spi, address & 0xff);
+  SPI_SEND(priv->spi, (address >> 16) & 0xff);
+  SPI_SEND(priv->spi, (address >> 8) & 0xff);
+  SPI_SEND(priv->spi, address & 0xff);
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
 }
@@ -593,7 +593,7 @@ static inline int gd25_chiperase(FAR struct gd25_dev_s *priv)
 {
   /* Wait for any preceding write or erase operation to complete. */
 
-  (void)gd25_waitwritecomplete(priv);
+  gd25_waitwritecomplete(priv);
 
   /* Send write enable instruction */
 
@@ -603,7 +603,7 @@ static inline int gd25_chiperase(FAR struct gd25_dev_s *priv)
 
   /* Send the "Chip Erase (CE)" instruction */
 
-  (void)SPI_SEND(priv->spi, GD25_CE);
+  SPI_SEND(priv->spi, GD25_CE);
   priv->prev_instr = GD25_CE;
 
   SPI_SELECT(priv->spi, SPIDEV_FLASH(priv->spi_devid), false);
@@ -632,10 +632,10 @@ static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
   /* Send "Read from Memory " instruction */
 
 #ifdef CONFIG_GD25_SLOWREAD
-  (void)SPI_SEND(priv->spi, GD25_RDDATA);
+  SPI_SEND(priv->spi, GD25_RDDATA);
   priv->prev_instr = GD25_RDDATA;
 #else
-  (void)SPI_SEND(priv->spi, GD25_FRD);
+  SPI_SEND(priv->spi, GD25_FRD);
   priv->prev_instr = GD25_FRD;
 #endif
 
@@ -646,14 +646,14 @@ static void gd25_byteread(FAR struct gd25_dev_s *priv, FAR uint8_t *buffer,
       (void)SPI_SEND(priv->spi, (address >> 24) & 0xff);
     }
 
-  (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
-  (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
-  (void)SPI_SEND(priv->spi, address & 0xff);
+  SPI_SEND(priv->spi, (address >> 16) & 0xff);
+  SPI_SEND(priv->spi, (address >> 8) & 0xff);
+  SPI_SEND(priv->spi, address & 0xff);
 
   /* Send a dummy byte */
 
 #ifndef CONFIG_GD25_SLOWREAD
-  (void)SPI_SEND(priv->spi, GD25_DUMMY);
+  SPI_SEND(priv->spi, GD25_DUMMY);
 #endif
 
   /* Then read all of the requested bytes */
@@ -697,12 +697,12 @@ static void gd25_pagewrite(FAR struct gd25_dev_s *priv,
 
       if (priv->addr_4byte)
         {
-          (void)SPI_SEND(priv->spi, (address >> 24) & 0xff);
+          SPI_SEND(priv->spi, (address >> 24) & 0xff);
         }
 
-      (void)SPI_SEND(priv->spi, (address >> 16) & 0xff);
-      (void)SPI_SEND(priv->spi, (address >> 8) & 0xff);
-      (void)SPI_SEND(priv->spi, address & 0xff);
+      SPI_SEND(priv->spi, (address >> 16) & 0xff);
+      SPI_SEND(priv->spi, (address >> 8) & 0xff);
+      SPI_SEND(priv->spi, address & 0xff);
 
       /* Then send the page of data */
 
@@ -745,19 +745,19 @@ static inline void gd25_bytewrite(FAR struct gd25_dev_s *priv,
 
   /* Send "Page Program (PP)" command */
 
-  (void)SPI_SEND(priv->spi, GD25_PP);
+  SPI_SEND(priv->spi, GD25_PP);
   priv->prev_instr = GD25_PP;
 
   /* Send the page offset high byte first. */
 
   if (priv->addr_4byte)
     {
-      (void)SPI_SEND(priv->spi, (offset >> 24) & 0xff);
+      SPI_SEND(priv->spi, (offset >> 24) & 0xff);
     }
 
-  (void)SPI_SEND(priv->spi, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->spi, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->spi, offset & 0xff);
+  SPI_SEND(priv->spi, (offset >> 16) & 0xff);
+  SPI_SEND(priv->spi, (offset >> 8) & 0xff);
+  SPI_SEND(priv->spi, offset & 0xff);
 
   /* Then write the specified number of bytes */
 

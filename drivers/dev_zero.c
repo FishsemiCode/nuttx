@@ -57,10 +57,8 @@ static ssize_t devzero_read(FAR struct file *filep, FAR char *buffer,
                  size_t buflen);
 static ssize_t devzero_write(FAR struct file *filep, FAR const char *buffer,
                  size_t buflen);
-#ifndef CONFIG_DISABLE_POLL
 static int     devzero_poll(FAR struct file *filep, FAR struct pollfd *fds,
                  bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -73,10 +71,8 @@ static const struct file_operations devzero_fops =
   devzero_read,  /* read */
   devzero_write, /* write */
   NULL,          /* seek */
-  NULL           /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , devzero_poll /* poll */
-#endif
+  NULL,          /* ioctl */
+  devzero_poll   /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL         /* unlink */
 #endif
@@ -111,7 +107,6 @@ static ssize_t devzero_write(FAR struct file *filep, FAR const char *buffer,
  * Name: devzero_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int devzero_poll(FAR struct file *filep, FAR struct pollfd *fds,
                         bool setup)
 {
@@ -123,9 +118,9 @@ static int devzero_poll(FAR struct file *filep, FAR struct pollfd *fds,
           nxsem_post(fds->sem);
         }
     }
+
   return OK;
 }
-#endif
 
 /****************************************************************************
  * Public Functions
@@ -141,5 +136,5 @@ static int devzero_poll(FAR struct file *filep, FAR struct pollfd *fds,
 
 void devzero_register(void)
 {
-  (void)register_driver("/dev/zero", &devzero_fops, 0666, NULL);
+  register_driver("/dev/zero", &devzero_fops, 0666, NULL);
 }

@@ -47,7 +47,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -780,7 +779,7 @@ static void adc_startconv(struct efm32_dev_s *priv, bool enable)
   regval = adc_getreg(priv, EFM32_ADC_CR2_OFFSET);
   if (enable)
     {
-      /* Start conversion of regular channles */
+      /* Start conversion of regular channels */
 
       regval |= ADC_CR2_SWSTART;
     }
@@ -1262,7 +1261,7 @@ static int adc_interrupt(int irq, FAR void *context, FAR struct adc_dev_s *dev)
  *   nchannels - Number of channels
  *
  * Returned Value:
- *   Valid ADC device structure reference on succcess; a NULL on failure
+ *   Valid ADC device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

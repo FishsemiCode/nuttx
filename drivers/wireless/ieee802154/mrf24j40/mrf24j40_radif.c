@@ -46,10 +46,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <semaphore.h>
 
 #include <nuttx/arch.h>
-
 #include <nuttx/wireless/ieee802154/ieee802154_radio.h>
 #include <nuttx/wireless/ieee802154/ieee802154_mac.h>
 
@@ -426,6 +424,11 @@ int mrf24j40_rxenable(FAR struct ieee802154_radio_s *radio, bool enable)
   return OK;
 }
 
+int mrf24j40_energydetect(FAR struct ieee802154_radio_s *radio, uint32_t nsymbols)
+{
+  return -ENOTTY;
+}
+
 int mrf24j40_reset(FAR struct ieee802154_radio_s *radio)
 {
   FAR struct mrf24j40_radio_s *dev = (FAR struct mrf24j40_radio_s *)radio;
@@ -559,6 +562,13 @@ int mrf24j40_getattr(FAR struct ieee802154_radio_s *radio,
         }
         break;
 
+      case IEEE802154_ATTR_PHY_FCS_LEN:
+        {
+          attrval->phy.fcslen = 2;
+          ret = IEEE802154_STATUS_SUCCESS;
+        }
+        break;
+
       default:
         ret = IEEE802154_STATUS_UNSUPPORTED_ATTRIBUTE;
     }
@@ -634,6 +644,7 @@ int mrf24j40_setattr(FAR struct ieee802154_radio_s *radio,
         ret = IEEE802154_STATUS_UNSUPPORTED_ATTRIBUTE;
         break;
     }
+
   return ret;
 }
 
@@ -745,6 +756,7 @@ int mrf24j40_sfupdate(FAR struct ieee802154_radio_s *radio,
     {
       reg &= ~MRF24J40_TXMCR_SLOTTED;
     }
+
   mrf24j40_setreg(dev->spi, MRF24J40_TXMCR, reg);
 
   mrf24j40_setorder(dev, sfspec->beaconorder, sfspec->sforder);

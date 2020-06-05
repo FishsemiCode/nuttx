@@ -153,6 +153,7 @@ int nxsched_setscheduler(pid_t pid, int policy,
               DEBUGVERIFY(sched_sporadic_stop(tcb));
             }
 #endif
+
           /* Save the FIFO scheduling parameters */
 
           tcb->flags       |= TCB_FLAG_SCHED_FIFO;
@@ -173,6 +174,7 @@ int nxsched_setscheduler(pid_t pid, int policy,
               DEBUGVERIFY(sched_sporadic_stop(tcb));
             }
 #endif
+
           /* Save the round robin scheduling parameters */
 
           tcb->flags       |= TCB_FLAG_SCHED_RR;
@@ -197,8 +199,8 @@ int nxsched_setscheduler(pid_t pid, int policy,
 
           /* Convert timespec values to system clock ticks */
 
-          (void)clock_time2ticks(&param->sched_ss_repl_period, &repl_ticks);
-          (void)clock_time2ticks(&param->sched_ss_init_budget, &budget_ticks);
+          clock_time2ticks(&param->sched_ss_repl_period, &repl_ticks);
+          clock_time2ticks(&param->sched_ss_init_budget, &budget_ticks);
 
           /* Avoid zero/negative times */
 
@@ -215,6 +217,7 @@ int nxsched_setscheduler(pid_t pid, int policy,
           /* The replenishment period must be greater than or equal to the
            * budget period.
            */
+
 #if 1
           /* REVISIT: In the current implementation, the budget cannot
            * exceed half the duty.

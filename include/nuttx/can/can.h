@@ -1,7 +1,8 @@
 /************************************************************************************
  * include/nuttx/can/can.h
  *
- *   Copyright (C) 2008, 2009, 2011-2012, 2015-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008, 2009, 2011-2012, 2015-2017, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,10 +47,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 
+#include <nuttx/list.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/semaphore.h>
 
 #ifdef CONFIG_CAN_TXREADY
 #  include <nuttx/wqueue.h>
@@ -62,6 +64,7 @@
  ************************************************************************************/
 
 /* Configuration ********************************************************************/
+
 /* CONFIG_CAN - Enables CAN support (MCU-specific selections are also required.  For
  *   STM32, as an example, one or both of CONFIG_STM32_CAN1 or CONFIG_STM32_CAN2
  *   must also be defined)
@@ -106,6 +109,7 @@
 #endif
 
 /* Ioctl Commands *******************************************************************/
+
 /* Ioctl commands supported by the upper half CAN driver.
  *
  * CANIOC_RTR:
@@ -211,7 +215,7 @@
 
 /* User defined ioctl commands are also supported. These will be forwarded
  * by the upper-half CAN driver to the lower-half CAN driver via the co_ioctl()
- * method fo the CAN lower-half interface.  However, the lower-half driver
+ * method of the CAN lower-half interface.  However, the lower-half driver
  * must reserve a block of commands as follows in order prevent IOCTL
  * command numbers from overlapping.
  *
@@ -310,7 +314,7 @@
 #  define CAN_ERROR2_BIT1         (1 << 4) /* Bit 4: Unable to send recessive bit */
 #  define CAN_ERROR2_OVERLOAD     (1 << 5) /* Bit 5: Bus overload */
 #  define CAN_ERROR2_ACTIVE       (1 << 6) /* Bit 6: Active error announcement */
-#  define CAN_ERROR2_TX           (1 << 7) /* Bit 7: Error occured on transmission */
+#  define CAN_ERROR2_TX           (1 << 7) /* Bit 7: Error occurred on transmission */
 
 /* Data[3]:  Error in CAN protocol.  This provides the loation of the error. */
 
@@ -360,6 +364,7 @@
 #endif /* CONFIG_CAN_ERRORS */
 
 /* CAN filter support ***************************************************************/
+
 /* Some CAN hardware supports a notion of prioritizing messages that match filters.
  * Only two priority levels are currently supported and are encoded as defined
  * below:
@@ -377,6 +382,7 @@
 /************************************************************************************
  * Public Types
  ************************************************************************************/
+
 /* CAN-message Format (without Extended ID support)
  *
  *   One based CAN-message is represented with a maximum of 10 bytes.  A message is
@@ -431,6 +437,7 @@ begin_packed_struct struct can_hdr_s
   uint8_t      ch_extid  : 1; /* Extended ID indication */
   uint8_t      ch_unused : 1; /* Unused */
 } end_packed_struct;
+
 #else
 begin_packed_struct struct can_hdr_s
 {
@@ -550,21 +557,26 @@ struct can_ops_s
  * The common logic will initialize all semaphores.
  */
 
+struct can_reader_s
+{
+  struct list_node     list;
+  sem_t                read_sem;
+  struct can_rxfifo_s  fifo;             /* Describes receive FIFO */
+};
+
 struct can_dev_s
 {
   uint8_t              cd_ocount;        /* The number of times the device has been opened */
   uint8_t              cd_npendrtr;      /* Number of pending RTR messages */
   volatile uint8_t     cd_ntxwaiters;    /* Number of threads waiting to enqueue a message */
   volatile uint8_t     cd_nrxwaiters;    /* Number of threads waiting to receive a message */
+  struct list_node     cd_readers;       /* Number of readers */
 #ifdef CONFIG_CAN_ERRORS
   uint8_t              cd_error;         /* Flags to indicate internal device errors */
 #endif
   sem_t                cd_closesem;      /* Locks out new opens while close is in progress */
-#ifndef CONFIG_DISABLE_POLL
   sem_t                cd_pollsem;       /* Manages exclusive access to cd_fds[] */
-#endif
   struct can_txfifo_s  cd_xmit;          /* Describes transmit FIFO */
-  struct can_rxfifo_s  cd_recv;          /* Describes receive FIFO */
 #ifdef CONFIG_CAN_TXREADY
   struct work_s        cd_work;          /* Use to manage can_txready() work */
 #endif
@@ -573,12 +585,11 @@ struct can_dev_s
   FAR const struct can_ops_s *cd_ops;    /* Arch-specific operations */
   FAR void            *cd_priv;          /* Used by the arch-specific logic */
 
-#ifndef CONFIG_DISABLE_POLL
   FAR struct pollfd   *cd_fds[CONFIG_CAN_NPOLLWAITERS];
-#endif
 };
 
 /* Structures used with ioctl calls */
+
 /* CANIOC_RTR: */
 
 struct canioc_rtr_s
@@ -587,8 +598,9 @@ struct canioc_rtr_s
   FAR struct can_msg_s *ci_msg;          /* The location to return the RTR response */
 };
 
-/* CANIOC_GET_BITTIMING/CANIOC_SET_BITTIMING: */
-/* Bit time = Tquanta * (Sync_Seg + Prop_Seq + Phase_Seg1 + Phase_Seg2)
+/* CANIOC_GET_BITTIMING/CANIOC_SET_BITTIMING:
+ *
+ * Bit time = Tquanta * (Sync_Seg + Prop_Seq + Phase_Seg1 + Phase_Seg2)
  *          = Tquanta * (TSEG1 + TSEG2 + 1)
  * Where
  *   TSEG1 = Prop_Seq + Phase_Seg1
@@ -603,8 +615,9 @@ struct canioc_bittiming_s
   uint8_t               bt_sjw;          /* Synchronization Jump Width in time quanta */
 };
 
-/* CANIOC_GET_CONNMODES/CANIOC_SET_CONNMODES: */
-/* A CAN device may support loopback and silent mode. Both modes may not be
+/* CANIOC_GET_CONNMODES/CANIOC_SET_CONNMODES:
+ *
+ * A CAN device may support loopback and silent mode. Both modes may not be
  * settable independently.
  */
 
@@ -643,11 +656,7 @@ struct canioc_stdfilter_s
 };
 
 /************************************************************************************
- * Public Data
- ************************************************************************************/
-
-/************************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ************************************************************************************/
 
 #undef EXTERN
@@ -768,7 +777,7 @@ int can_txdone(FAR struct can_dev_s *dev);
  * Description:
  *   Called from the CAN interrupt handler at the completion of a send
  *   operation.  This interface is needed only for CAN hardware that
- *   supports queing of outgoing messages in a H/W FIFO.
+ *   supports queueing of outgoing messages in a H/W FIFO.
  *
  *   The CAN upper half driver also supports a queue of output messages in a
  *   S/W FIFO.  Messages are added to that queue when when can_write() is
@@ -790,7 +799,7 @@ int can_txdone(FAR struct can_dev_s *dev);
  *   another transfer.
  *
  *   If the CAN hardware supports a H/W FIFO, can_txdone() is not called
- *   when the tranfer is complete, but rather when the transfer is queued in
+ *   when the transfer is complete, but rather when the transfer is queued in
  *   the H/W FIFO.  When the H/W FIFO becomes full, then dev_txready() will
  *   report false and the number of queued messages in the S/W FIFO will grow.
  *

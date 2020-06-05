@@ -46,7 +46,7 @@
 #include <stdbool.h>
 
 #include "chip.h"
-#include "chip/stm32_pwr.h"
+#include "hardware/stm32_pwr.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -117,14 +117,14 @@ void stm32_pwr_enablebkp(bool writable);
  *   into the RAM will be maintained in the Standby and VBAT modes.
  *
  * Input Parameters:
- *   regon - state to set it to
+ *   region - state to set it to
  *
  * Returned Value:
  *   None
  *
  ************************************************************************************/
 
-void stm32_pwr_enablebreg(bool regon);
+void stm32_pwr_enablebreg(bool region);
 
 #undef EXTERN
 #if defined(__cplusplus)

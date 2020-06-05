@@ -128,7 +128,7 @@ void up_consoleinit(void);
  *
  * Description:
  *   This function must be provided by the board-specific logic in the
- *   directory configs/<board-name>/src/.
+ *   directory boards/avr/at90usb/<board-name>/src.
  *
  ****************************************************************************/
 
@@ -209,4 +209,3 @@ void gpio_irqdisable(int irq);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_AVR_SRC_ATMEGA_ATMEGA_H */
-

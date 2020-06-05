@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "chip/sam_can.h"
+#include "hardware/sam_can.h"
 
 #include <nuttx/can/can.h>
 
@@ -129,7 +129,7 @@ extern "C"
  *   Port number: 0=CAN0, 1=CAN1
  *
  * Returned Value:
- *   Valid CAN device structure reference on succcess; a NULL on failure
+ *   Valid CAN device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

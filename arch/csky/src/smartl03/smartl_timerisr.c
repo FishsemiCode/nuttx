@@ -64,7 +64,7 @@ extern void CORET_IRQHandler(int irq, uint32_t *regs, void *arg);
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  csky_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -72,7 +72,7 @@ extern void CORET_IRQHandler(int irq, uint32_t *regs, void *arg);
  *
  ****************************************************************************/
 
-void csky_timer_initialize(void)
+void up_timer_initialize(void)
 {
     irq_attach(CORET_IRQn, (xcpt_t)CORET_IRQHandler, NULL);
     up_enable_irq(CORET_IRQn);

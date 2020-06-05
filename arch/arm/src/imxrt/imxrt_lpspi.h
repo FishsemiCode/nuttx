@@ -47,7 +47,7 @@
 #include <nuttx/spi/spi.h>
 
 #include "chip.h"
-#include "chip/imxrt_lpspi.h"
+#include "hardware/imxrt_lpspi.h"
 
 /************************************************************************************
  * Public Functions
@@ -73,10 +73,10 @@ struct spi_dev_s; /* Forward reference */
  *   Initialize the selected SPI bus
  *
  * Input Parameters:
- *   bus number (for hardware that has mutiple SPI interfaces)
+ *   bus number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ************************************************************************************/
 
@@ -184,4 +184,3 @@ int imxrt_lpspi4register(FAR struct spi_dev_s *dev, spi_mediachange_t callback,
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_IMXRT_IMXRT_LPSPI_H */
-

@@ -41,7 +41,6 @@
 
 #include <sys/types.h>
 #include <limits.h>
-#include <semaphore.h>
 #include <errno.h>
 
 #include <nuttx/semaphore.h>
@@ -54,7 +53,7 @@
  * Name: nxsem_init
  *
  * Description:
- *   This function initializes the UNAMED semaphore sem. Following a
+ *   This function initializes the UNNAMED semaphore sem. Following a
  *   successful call to nxsem_init(), the semaphore may be used in subsequent
  *   calls to nxsem_wait(), nxsem_post(), and nxsem_trywait().  The semaphore
  *   remains usable until it is destroyed.
@@ -83,7 +82,7 @@ int nxsem_init(FAR sem_t *sem, int pshared, unsigned int value)
 
   if (sem != NULL && value <= SEM_VALUE_MAX)
     {
-      /* Initialize the seamphore count */
+      /* Initialize the semaphore count */
 
       sem->semcount         = (int16_t)value;
 
@@ -110,7 +109,7 @@ int nxsem_init(FAR sem_t *sem, int pshared, unsigned int value)
  * Name: sem_init
  *
  * Description:
- *   This function initializes the UNAMED semaphore sem. Following a
+ *   This function initializes the UNNAMED semaphore sem. Following a
  *   successful call to sem_init(), the semaphore may be used in subsequent
  *   calls to sem_wait(), sem_post(), and sem_trywait().  The semaphore
  *   remains usable until it is destroyed.

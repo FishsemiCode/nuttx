@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather,
+/* This file should never be included directly but, rather,
  * only indirectly through nuttx/irq.h
  */
 
@@ -83,4 +83,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_RENESAS_INCLUDE_IRQ_H */
-

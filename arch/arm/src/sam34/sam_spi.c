@@ -46,7 +46,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -69,10 +68,10 @@
 #include "sam_cmcc.h"
 #include "sam_periphclks.h"
 #include "sam_spi.h"
-#include "chip/sam_pmc.h"
-#include "chip/sam_dmac.h"
-#include "chip/sam_spi.h"
-#include "chip/sam_pinmap.h"
+#include "hardware/sam_pmc.h"
+#include "hardware/sam_dmac.h"
+#include "hardware/sam_spi.h"
+#include "hardware/sam_pinmap.h"
 
 #if defined(CONFIG_SAM34_SPI0) || defined(CONFIG_SAM34_SPI1)
 
@@ -81,6 +80,7 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
 /* When SPI DMA is enabled, small DMA transfers will still be performed by
  * polling logic.  But we need a threshold value to determine what is small.
  * That value is provided by CONFIG_SAM34_SPI_DMATHRESHOLD.
@@ -114,6 +114,7 @@
 #endif
 
 /* Clocking *****************************************************************/
+
 /* Select MCU-specific settings
  *
  * For the SAM3U, SAM3A, SAM3X, SAM4E and SAM4S SPI is driven by the main
@@ -138,7 +139,8 @@
 #define DMA_TIMEOUT_MS    (800)
 #define DMA_TIMEOUT_TICKS MSEC2TICK(DMA_TIMEOUT_MS)
 
-/* Debug *******************************************************************/
+/* Debug ********************************************************************/
+
 /* Check if SPI debut is enabled */
 
 #ifndef CONFIG_DEBUG_DMA_INFO
@@ -212,10 +214,10 @@ struct sam_spidev_s
   /* Debug stuff */
 
 #ifdef CONFIG_SAM34_SPI_REGDEBUG
-   bool     wrlast;            /* Last was a write */
-   uint32_t addresslast;       /* Last address */
-   uint32_t valuelast;         /* Last value */
-   int      ntimes;            /* Number of times */
+  bool     wrlast;            /* Last was a write */
+  uint32_t addresslast;       /* Last address */
+  uint32_t valuelast;         /* Last value */
+  int      ntimes;            /* Number of times */
 #endif
 };
 
@@ -279,7 +281,7 @@ static void     spi_select(struct spi_dev_s *dev, uint32_t devid,
 static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency);
 static void     spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode);
 static void     spi_setbits(struct spi_dev_s *dev, int nbits);
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t ch);
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd);
 #ifdef CONFIG_SAM34_SPI_DMA
 static void     spi_exchange_nodma(struct spi_dev_s *dev,
                    const void *txbuffer, void *rxbuffer, size_t nwords);
@@ -571,7 +573,7 @@ static inline void spi_flush(struct sam_spidev_s *spi)
 
   while ((spi_getreg(spi, SAM_SPI_SR_OFFSET) & SPI_INT_RDRF) != 0)
     {
-       (void)spi_getreg(spi, SAM_SPI_RDR_OFFSET);
+       spi_getreg(spi, SAM_SPI_RDR_OFFSET);
     }
 }
 
@@ -625,8 +627,10 @@ static void spi_dma_sampleinit(struct sam_spics_s *spics)
 {
   /* Put contents of register samples into a known state */
 
-  memset(spics->rxdmaregs, 0xff, DMA_NSAMPLES * sizeof(struct sam_dmaregs_s));
-  memset(spics->txdmaregs, 0xff, DMA_NSAMPLES * sizeof(struct sam_dmaregs_s));
+  memset(spics->rxdmaregs, 0xff,
+         DMA_NSAMPLES * sizeof(struct sam_dmaregs_s));
+  memset(spics->txdmaregs, 0xff,
+         DMA_NSAMPLES * sizeof(struct sam_dmaregs_s));
 
   /* Then get the initial samples */
 
@@ -658,6 +662,7 @@ static void spi_dma_sampledone(struct sam_spics_s *spics)
   sam_dmasample(spics->txdma, &spics->txdmaregs[DMA_END_TRANSFER]);
 
   /* Then dump the sampled DMA registers */
+
   /* Initial register values */
 
   sam_dmadump(spics->txdma, &spics->txdmaregs[DMA_INITIAL],
@@ -730,7 +735,7 @@ static void spi_dma_sampledone(struct sam_spics_s *spics)
  ****************************************************************************/
 
 #ifdef CONFIG_SAM34_SPI_DMA
-static void spi_dmatimeout(int argc, uint32_t arg)
+static void spi_dmatimeout(int argc, uint32_t arg, ...)
 {
   struct sam_spics_s *spics = (struct sam_spics_s *)arg;
   DEBUGASSERT(spics != NULL);
@@ -775,19 +780,21 @@ static void spi_rxcallback(DMA_HANDLE handle, void *arg, int result)
 
   /* Cancel the watchdog timeout */
 
-  (void)wd_cancel(spics->dmadog);
+  wd_cancel(spics->dmadog);
 
   /* Sample DMA registers at the time of the callback */
 
   spi_rxdma_sample(spics, DMA_CALLBACK);
 
-  /* Report the result of the transfer only if the TX callback has not already
-   * reported an error.
+  /* Report the result of the transfer only if the TX callback has not
+   * already reported an error.
    */
 
   if (spics->result == -EBUSY)
     {
-      /* Save the result of the transfer if no error was previously reported */
+      /* Save the result of the transfer if no error was previously
+       * reported
+       */
 
       spics->result = result;
     }
@@ -883,26 +890,11 @@ static int spi_lock(struct spi_dev_s *dev, bool lock)
   spiinfo("lock=%d\n", lock);
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          /* Take the semaphore (perhaps waiting) */
-
-          ret = nxsem_wait(&spi->spisem);
-
-          /* The only case that an error should occur here is if the wait was
-           * awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&spi->spisem);
     }
   else
     {
-      (void)nxsem_post(&spi->spisem);
-      ret = OK;
+      ret = nxsem_post(&spi->spisem);
     }
 
   return ret;
@@ -939,8 +931,8 @@ static void spi_select(struct spi_dev_s *dev, uint32_t devid,
     {
       spiinfo("cs=%d\n", spics->cs);
 
-      /* Before writing the TDR, the PCS field in the SPI_MR register must be set
-       * in order to select a slave.
+      /* Before writing the TDR, the PCS field in the SPI_MR register must
+       * be set in order to select a slave.
        */
 
       regval  = spi_getreg(spi, SAM_SPI_MR_OFFSET);
@@ -994,7 +986,9 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
 
   spiinfo("cs=%d frequency=%d\n", spics->cs, frequency);
 
-  /* Check if the requested frequency is the same as the frequency selection */
+  /* Check if the requested frequency is the same as the frequency
+   * selection
+   */
 
   if (spics->frequency == frequency)
     {
@@ -1029,10 +1023,10 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   regval &= ~(SPI_CSR_SCBR_MASK | SPI_CSR_DLYBS_MASK | SPI_CSR_DLYBCT_MASK);
   regval |= scbr << SPI_CSR_SCBR_SHIFT;
 
-  /* DLYBS: Delay Before SPCK.  This field defines the delay from NPCS valid to the
-   * first valid SPCK transition. When DLYBS equals zero, the NPCS valid to SPCK
-   * transition is 1/2 the SPCK clock period. Otherwise, the following equations
-   * determine the delay:
+  /* DLYBS: Delay Before SPCK.  This field defines the delay from NPCS valid
+   * to the first valid SPCK transition. When DLYBS equals zero, the NPCS
+   * valid to SPCK transition is 1/2 the SPCK clock period. Otherwise, the
+   * following equations determine the delay:
    *
    *   Delay Before SPCK = DLYBS / SPI_CLK
    *
@@ -1044,10 +1038,10 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
   dlybs   = SAM_SPI_CLOCK / 500000;
   regval |= dlybs << SPI_CSR_DLYBS_SHIFT;
 
-  /* DLYBCT: Delay Between Consecutive Transfers.  This field defines the delay
-   * between two consecutive transfers with the same peripheral without removing
-   * the chip select. The delay is always inserted after each transfer and
-   * before removing the chip select if needed.
+  /* DLYBCT: Delay Between Consecutive Transfers.  This field defines the
+   * delay between two consecutive transfers with the same peripheral without
+   * removing the chip select. The delay is always inserted after each
+   * transfer and before removing the chip select if needed.
    *
    *  Delay Between Consecutive Transfers = (32 x DLYBCT) / SPI_CLK
    *
@@ -1210,7 +1204,7 @@ static void spi_setbits(struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
   uint8_t txbyte;
   uint8_t rxbyte;
@@ -1225,7 +1219,7 @@ static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
   spi_exchange(dev, &txbyte, &rxbyte, 1);
 
   spiinfo("Sent %02x received %02x\n", txbyte, rxbyte);
-  return (uint16_t)rxbyte;
+  return (uint32_t)rxbyte;
 }
 
 /****************************************************************************
@@ -1595,7 +1589,7 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       /* Start (or re-start) the watchdog timeout */
 
       ret = wd_start(spics->dmadog, DMA_TIMEOUT_TICKS,
-                     (wdentry_t)spi_dmatimeout, 1, (uint32_t)spics);
+                     spi_dmatimeout, 1, (uint32_t)spics);
       if (ret < 0)
         {
            spierr("ERROR: wd_start failed: %d\n", ret);
@@ -1603,17 +1597,15 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
 
       /* Wait for the DMA complete */
 
-      ret = nxsem_wait(&spics->dmawait);
+      ret = nxsem_wait_uninterruptible(&spics->dmawait);
 
       /* Cancel the watchdog timeout */
 
-      (void)wd_cancel(spics->dmadog);
+      wd_cancel(spics->dmadog);
 
-      /* Check if we were awakened by an error of some kind.  EINTR is not a
-       * failure.  It simply means that the wait was awakened by a signal.
-       */
+      /* Check if we were awakened by an error of some kind. */
 
-      if (ret < 0 && ret != -EINTR)
+      if (ret < 0)
         {
           DEBUGPANIC();
           return;
@@ -1688,10 +1680,10 @@ static void spi_sndblock(struct spi_dev_s *dev, const void *buffer,
  *   dev -    Device-specific state data
  *   buffer - A pointer to the buffer in which to receive data
  *   nwords - the length of data that can be received in the buffer in number
- *            of words.  The wordsize is determined by the number of bits-per-word
- *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into
- *            uint16_t's
+ *            of words.  The wordsize is determined by the number of
+ *            bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *            the data is packed into uint8_t's; if nbits >8, the data is
+ *            packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -1879,8 +1871,8 @@ struct spi_dev_s *sam_spibus_initialize(int port)
 
       /* Flush any pending transfers */
 
-      (void)spi_getreg(spi, SAM_SPI_SR_OFFSET);
-      (void)spi_getreg(spi, SAM_SPI_RDR_OFFSET);
+      spi_getreg(spi, SAM_SPI_SR_OFFSET);
+      spi_getreg(spi, SAM_SPI_RDR_OFFSET);
 
       /* Initialize the SPI semaphore that enforces mutually exclusive
        * access to the SPI registers.

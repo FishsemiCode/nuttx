@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -53,8 +52,8 @@
 #include <nuttx/arch.h>
 #include <nuttx/serial/serial.h>
 
-#include "chip/chip.h"
-#include "up_internal.h"
+#include "chip.h"
+#include "z80_internal.h"
 
 #ifdef USE_SERIALDRIVER
 
@@ -163,6 +162,7 @@ static uart_dev_t g_uart0port =
   { 0 },                    /* closesem */
   { 0 },                    /* xmitsem */
   { 0 },                    /* recvsem */
+  { 0 },                    /* pollsem */
   {
     { 0 },                  /* xmit.sem */
     0,                      /* xmit.head */
@@ -179,6 +179,7 @@ static uart_dev_t g_uart0port =
   },
   &g_uart_ops,              /* ops */
   &g_uart0priv,             /* priv */
+  NULL,                     /* pollfds */
 };
 
 /* This describes the state of the DM320 uart1 port. */
@@ -208,6 +209,7 @@ static uart_dev_t g_uart1port =
   { 0 },                    /* closesem */
   { 0 },                    /* xmitsem */
   { 0 },                    /* recvsem */
+  { 0 },                    /* pollsem */
   {
     { 0 },                  /* xmit.sem */
     0,                      /* xmit.head */
@@ -224,6 +226,7 @@ static uart_dev_t g_uart1port =
   },
   &g_uart_ops,              /* ops */
   &g_uart1priv,             /* priv */
+  NULL,                     /* pollfds */
 };
 
 /* Now, which one with be tty0/console and which tty1? */
@@ -420,7 +423,7 @@ static int z8_setup(FAR struct uart_dev_s *dev)
 
 static void z8_shutdown(FAR struct uart_dev_s *dev)
 {
-  (void)z8_disableuartirq(dev);
+  z8_disableuartirq(dev);
 }
 
 /****************************************************************************
@@ -693,33 +696,33 @@ static bool z8_txempty(FAR struct uart_dev_s *dev)
 }
 
 /****************************************************************************
- * Public Funtions
+ * Public Functions
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_serialinit
+ * Name: z80_serial_initialize
  *
  * Description:
  *   Register serial console and serial ports.
  *
  ****************************************************************************/
 
-void up_serialinit(void)
+void z80_serial_initialize(void)
 {
    /* Disable all UART interrupts */
 
-  (void)z8_disableuartirq(&TTYS0_DEV);
-  (void)z8_disableuartirq(&TTYS1_DEV);
+  z8_disableuartirq(&TTYS0_DEV);
+  z8_disableuartirq(&TTYS1_DEV);
 
   /* Initialize the console for early use */
   CONSOLE_DEV.isconsole = true;
   z8_setup(&CONSOLE_DEV);
 
-  /* Reigster console and tty devices */
+  /* Register console and tty devices */
 
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 }
 
 /****************************************************************************

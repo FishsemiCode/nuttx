@@ -46,7 +46,7 @@
 #include <stdbool.h>
 
 #include "chip.h"
-#include "chip/stm32l4_sdmmc.h"
+#include "hardware/stm32l4_sdmmc.h"
 
 
 /************************************************************************************
@@ -85,7 +85,7 @@ FAR struct sdio_dev_s *sdio_initialize(int slotno);
  * Name: sdio_mediachange
  *
  * Description:
- *   Called by board-specific logic -- posssible from an interrupt handler --
+ *   Called by board-specific logic -- possibly from an interrupt handler --
  *   in order to signal to the driver that a card has been inserted or
  *   removed from the slot
  *
@@ -127,4 +127,3 @@ void sdio_wrprotect(FAR struct sdio_dev_s *dev, bool wrprotect);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_STM32L4_STM32_SDMMC_H */
-

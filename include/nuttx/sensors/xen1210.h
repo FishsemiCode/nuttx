@@ -54,15 +54,8 @@
  *
  * CONFIG_SCHED_WORKQUEUE - Work queue support is required
  *
- * Settings that effect the driver: CONFIG_DISABLE_POLL
- *
- * CONFIG_SENSORS_XEN1210
- *   Enables support for the XEN1210 driver
+ * CONFIG_SENSORS_XEN1210 - Enables support for the XEN1210 driver
  */
-
-#ifdef CONFIG_DISABLE_SIGNALS
-#  error "Signals are required.  CONFIG_DISABLE_SIGNALS must not be selected."
-#endif
 
 #ifndef CONFIG_SCHED_WORKQUEUE
 #  error "Work queue support required.  CONFIG_SCHED_WORKQUEUE must be selected."
@@ -71,6 +64,7 @@
 /* The XEN1210 interfaces with the target CPU via a SPI interface. */
 
 /* SPI **************************************************************************************/
+
 /* The device always operates in mode 1 */
 
 #define XEN1210_SPI_MODE            SPIDEV_MODE1 /* Mode 1 */
@@ -92,7 +86,7 @@
 #define XEN1210_TIMING              0x01  /* Timing and biasing settings */
 #define XEN1210_TEST                0x02  /* Testing */
 
-/* Timming Cycles */
+/* Timing Cycles */
 
 #define XEN1210_1K_CYCLES           0x1113 /* 1024 cycles used be internale ADC */
 #define XEN1210_2K_CYCLES           0x2113 /* 2048 cycles used be internale ADC */
@@ -115,7 +109,7 @@
  */
 
 struct xen1210_config_s;
-typedef void (*xen1210_handler_t)(FAR struct xen1210_config_s *config, FAR void *arg);
+typedef CODE void (*xen1210_handler_t)(FAR struct xen1210_config_s *config, FAR void *arg);
 
 /* A reference to a structure of this type must be passed to the XEN1210 driver when the
  * driver is instantiated. This structure provides information about the configuration of

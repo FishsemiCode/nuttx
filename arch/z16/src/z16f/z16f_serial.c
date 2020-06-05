@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -52,7 +51,7 @@
 #include <nuttx/arch.h>
 #include <nuttx/serial/serial.h>
 
-#include "chip/chip.h"
+#include "chip.h"
 #include "up_internal.h"
 
 #ifdef USE_SERIALDRIVER
@@ -400,7 +399,7 @@ static int z16f_setup(struct uart_dev_s *dev)
 
 static void z16f_shutdown(struct uart_dev_s *dev)
 {
-  (void)z16f_disableuartirq(dev);
+  z16f_disableuartirq(dev);
 }
 
 /****************************************************************************
@@ -689,6 +688,8 @@ static bool z16f_txempty(struct uart_dev_s *dev)
  * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
  * Name: up_earlyserialinit
  *
@@ -704,7 +705,7 @@ void up_earlyserialinit(void)
   uint8_t regval;
 
   /* Configure UART alternate pin functions.  This may duplicate logic in
-   * z16f_lowuartinit() or z16f_lowinit().
+   * z16f_lowuartinit() or z16f_board_initialize().
    */
 
 #ifdef CONFIG_Z16F_UART0
@@ -734,11 +735,11 @@ void up_earlyserialinit(void)
   /* Disable UART interrupts */
 
 #ifdef TTYS0_DEV
-  (void)z16f_disableuartirq(&TTYS0_DEV);
+  z16f_disableuartirq(&TTYS0_DEV);
 #endif
 
 #ifdef TTYS1_DEV
-  (void)z16f_disableuartirq(&TTYS1_DEV);
+  z16f_disableuartirq(&TTYS1_DEV);
 #endif
 
   /* Configuration any serial console */
@@ -748,6 +749,7 @@ void up_earlyserialinit(void)
   z16f_setup(&CONSOLE_DEV);
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: up_serialinit
@@ -761,13 +763,13 @@ void up_earlyserialinit(void)
 void up_serialinit(void)
 {
 #ifdef CONSOLE_DEV
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 #ifdef TTYS0_DEV
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #endif
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 }
 

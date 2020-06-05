@@ -70,10 +70,8 @@ static const struct file_operations syslog_fops =
   NULL,          /* read */
   syslog_chardev_write, /* write */
   NULL,          /* seek */
-  NULL           /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL         /* poll */
-#endif
+  NULL,          /* ioctl */
+  NULL           /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL         /* unlink */
 #endif
@@ -114,7 +112,7 @@ static ssize_t syslog_chardev_write(FAR struct file *filep,
 
 void syslog_register(void)
 {
-  (void)register_driver("/dev/syslog", &syslog_fops, 0222, NULL);
+  register_driver("/dev/syslog", &syslog_fops, 0222, NULL);
 }
 
 #endif /* CONFIG_SYSLOG_CHARDEV */

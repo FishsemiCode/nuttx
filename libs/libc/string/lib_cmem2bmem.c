@@ -41,11 +41,12 @@
 
 #include <stdlib.h>
 
+#if !defined(CONFIG_ENDIAN_BIG) && CHAR_BIT != 8
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#if !defined(CONFIG_ENDIAN_BIG) && CHAR_BIT != 8
 void cmem2bmem(FAR void *dst_, size_t rem, FAR const void *src_, size_t len)
 {
   char *dst = dst_;
@@ -73,4 +74,5 @@ void cmem2bmem(FAR void *dst_, size_t rem, FAR const void *src_, size_t len)
       dst++;
     }
 }
+
 #endif

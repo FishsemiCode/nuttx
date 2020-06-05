@@ -11,13 +11,23 @@ config ARCH_HAVE_PHY
 	bool
 	default n
 
+config ARCH_PHY_INTERRUPT
+	bool
+	default n
+
+config ARCH_HAVE_NETDEV_STATISTICS
+	bool
+	default n
+
 config NET_WRITE_BUFFERS
 	bool
 	default n
+	select MM_IOB
 
 config NET_READAHEAD
 	bool
 	default n
+	select MM_IOB
 
 config NET_MCASTGROUP
 	bool
@@ -45,8 +55,9 @@ config NET_ETH_PKTSIZE
 	int "Ethernet packet buffer size"
 	default 1294 if NET_IPv6
 	default 590 if !NET_IPv6
+	range 1294 1518 if NET_IPv6
+	range 590 1518 if !NET_IPv6
 	depends on NET_ETHERNET
-	range 590 1518
 	---help---
 		Packet buffer size.  This size includes the TCP/UDP payload plus the
 		size of TCP/UDP header, the IP header, and the Ethernet header.
@@ -59,7 +70,7 @@ config NET_ETH_PKTSIZE
 		590.
 
 		IPv6 hosts are required to be able to handle an MSS of 1220 octets,
-		resulting in a minimum buffer size of of 1220+20+40+14 = 1294
+		resulting in a minimum buffer size of 1220+20+40+14 = 1294
 
 		To get an MTU of 1500, for example, you would need packet buffer of
 		size 1514.
@@ -81,7 +92,7 @@ config NET_SLIP_PKTSIZE
 		296 are not recommended.
 
 		The Linux slip module hard-codes its MTU size to 296 (40 bytes for
-		the IP+TPC headers plus 256 bytes of data).  So you might as well
+		the IP+TCP headers plus 256 bytes of data).  So you might as well
 		set CONFIG_NET_SLIP_PKTSIZE to 296 as well.
 
 		There may be an issue with this setting, however.  I see that Linux
@@ -116,12 +127,32 @@ config NET_ETHERNET
 
 config NET_LOOPBACK
 	bool "Local loopback"
+	select ARCH_HAVE_NETDEV_STATISTICS
 	default n
 	---help---
 		Add support for the local network loopback device, lo.
 
+config NET_LOOPBACK_PKTSIZE
+	int "Loopback packet buffer size"
+	default 0
+	depends on NET_LOOPBACK
+	range 0 65535
+	---help---
+		The loopback driver packet buffer should be quite large.  The larger
+		the loopback packet buffer, the better will be TCP performance of
+		the loopback transfers.  The Linux loopback device historically used
+		packet buffers of size 16Kb, but that was increased in recent Linux
+		versions to 64Kb.  Those sizes may be excessive for resource
+		constrained MCUs, however.
+
+		The network enforces a lower limit that is the maximum packet size
+		of all enabled link layer protocols.  The default value of
+		CONFIG_NET_LOOPBACK_PKTSIZE is zero, meaning that this maximum
+		packet size will be used by loopback driver.
+
 menuconfig NET_SLIP
 	bool "SLIP support"
+	select ARCH_HAVE_NETDEV_STATISTICS
 	default n
 	---help---
 		Enables building of the SLIP driver. SLIP requires
@@ -153,9 +184,9 @@ config SLIP_NINTERFACES
 
 config SLIP_STACKSIZE
 	int "SLIP stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
-		Select the stack size of the SLIP RX and TX tasks.  Default: 2048
+		Select the stack size of the SLIP RX and TX tasks.
 
 config SLIP_DEFPRIO
 	int "SLIP priority"
@@ -218,7 +249,7 @@ config NETDEV_LATEINIT
 	---help---
 		Normally, networking initialization occur in the later phase of the
 		boot process in the function up_initialize() when it calls the
-		driver initialization function, up_netintialize().  This
+		driver initialization function, up_netinitialize().  This
 		initialization occurs after a sufficient about of the OS has been
 		initialized so that driver registration can be performed, but
 		before the completion of OS initialization and before the first
@@ -238,7 +269,7 @@ config NETDEV_LATEINIT
 		Examples of this latter situation includes such things as network
 		drivers that required some setup via an I2C I/O expander, or network
 		drivers that depend on USB, SPI, I2C, PCI, serial, or other
-		interfaces that may not be ready when up_netiniailize() is normally
+		interfaces that may not be ready when up_netinitialize() is normally
 		called.
 
 endmenu # Link layer support
@@ -323,7 +354,6 @@ source "net/icmpv6/Kconfig"
 source "net/mld/Kconfig"
 source "net/igmp/Kconfig"
 source "net/arp/Kconfig"
-source "net/loopback/Kconfig"
 source "net/procfs/Kconfig"
 source "net/usrsock/Kconfig"
 source "net/utils/Kconfig"

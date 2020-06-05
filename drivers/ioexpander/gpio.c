@@ -73,17 +73,15 @@ static int     gpio_ioctl(FAR struct file *filep, int cmd,
 
 static const struct file_operations g_gpio_drvrops =
 {
-  gpio_open,  /* open */
-  gpio_close, /* close */
-  gpio_read,  /* read */
-  gpio_write, /* write */
-  gpio_seek,  /* seek */
-  gpio_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL      /* poll */
-#endif
+  gpio_open,   /* open */
+  gpio_close,  /* close */
+  gpio_read,   /* read */
+  gpio_write,  /* write */
+  gpio_seek,   /* seek */
+  gpio_ioctl,  /* ioctl */
+  NULL         /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-  , NULL      /* unlink */
+  , NULL       /* unlink */
 #endif
 };
 
@@ -649,7 +647,7 @@ void gpio_pin_unregister(FAR struct gpio_dev_s *dev, int minor)
   snprintf(devname, 16, fmt, (unsigned int)minor);
   gpioinfo("Unregistering %s\n", devname);
 
-  (void)unregister_driver(devname);
+  unregister_driver(devname);
 }
 
 #endif /* CONFIG_DEV_GPIO */

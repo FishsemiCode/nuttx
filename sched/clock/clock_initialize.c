@@ -210,6 +210,14 @@ static void clock_inittime(void)
 
 void clock_initialize(void)
 {
+#if !defined(CONFIG_SUPPRESS_INTERRUPTS) && \
+    !defined(CONFIG_SUPPRESS_TIMER_INTS) && \
+    !defined(CONFIG_SYSTEMTICK_EXTCLK)
+  /* Initialize the system timer interrupt */
+
+  up_timer_initialize();
+#endif
+
 #if defined(CONFIG_RTC) && !defined(CONFIG_RTC_EXTERNAL)
   /* Initialize the internal RTC hardware.  Initialization of external RTC
    * must be deferred until the system has booted.
@@ -328,7 +336,7 @@ void clock_resynchronize(FAR struct timespec *rtc_diff)
    * bias value that we need to use to correct the base time.
    */
 
-  (void)clock_systimespec(&bias);
+  clock_systimespec(&bias);
 
   /* Add the base time to this.  The base time is the time-of-day
    * setting.  When added to the elapsed time since the time-of-day

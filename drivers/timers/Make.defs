@@ -141,6 +141,18 @@ ifeq ($(CONFIG_TIMERS_CS2100CP),y)
   TMRVPATH = :timers
 endif
 
+ifeq ($(CONFIG_PWM),y)
+  CSRCS += pwm.c
+  TMRDEPPATH = --dep-path timers
+  TMRVPATH = :timers
+endif
+
+ifeq ($(CONFIG_PWM_SONG),y)
+  CSRCS += song_pwm.c
+  TMRDEPPATH = --dep-path timers
+  TMRVPATH = :timers
+endif
+
 # Include timer build support (if any were selected)
 
 DEPPATH += $(TMRDEPPATH)

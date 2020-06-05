@@ -56,7 +56,7 @@
 
 #if defined(CONFIG_STM32L4_STM32L4X3) || defined(CONFIG_STM32L4_STM32L4X5) || \
     defined(CONFIG_STM32L4_STM32L4X6) || defined(CONFIG_STM32L4_STM32L4XR)
-#  include "chip/stm32l4_gpio.h"
+#  include "hardware/stm32l4_gpio.h"
 #else
 #  error "Unsupported STM32L4 chip"
 #endif
@@ -173,7 +173,7 @@
 
 /* If the pin is a GPIO digital output, then this identifies the initial output value.
  * If the pin is an input, this bit is overloaded to provide the qualifier to
- * distinquish input pull-up and -down:
+ * distinguish input pull-up and -down:
  *
  * 1111 1111 1100 0000 0000
  * 9876 5432 1098 7654 3210
@@ -181,7 +181,7 @@
  * .... .... ...V .... ....
  */
 
-#define GPIO_OUTPUT_SET               (1 << 8)                   /* Bit 8: If output, inital value of output */
+#define GPIO_OUTPUT_SET               (1 << 8)                   /* Bit 8: If output, initial value of output */
 #define GPIO_OUTPUT_CLEAR             (0)
 
 /* External interrupt selection (GPIO inputs only):

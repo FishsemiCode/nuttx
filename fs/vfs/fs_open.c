@@ -90,8 +90,8 @@ int inode_checkflags(FAR struct inode *inode, int oflags)
  *   applications.
  *
  * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure.
+ *   The new file descriptor is returned on success; a negated errno value is
+ *   returned on any failure.
  *
  ****************************************************************************/
 
@@ -120,9 +120,7 @@ int nx_vopen(FAR const char *path, int oflags, va_list ap)
 
   if ((oflags & (O_WRONLY | O_CREAT)) != 0)
     {
-      va_start(ap, oflags);
       mode = va_arg(ap, mode_t);
-      va_end(ap);
     }
 #endif
 
@@ -157,27 +155,27 @@ int nx_vopen(FAR const char *path, int oflags, va_list ap)
    * NOTE: This will recurse to open the character driver proxy.
    */
 
-   if (INODE_IS_BLOCK(inode) || INODE_IS_MTD(inode))
-     {
-       /* Release the inode reference */
+  if (INODE_IS_BLOCK(inode) || INODE_IS_MTD(inode))
+    {
+      /* Release the inode reference */
 
-       inode_release(inode);
+      inode_release(inode);
 
-       /* Get the file descriptor of the opened character driver proxy */
+      /* Get the file descriptor of the opened character driver proxy */
 
-       fd = block_proxy(path, oflags);
-       if (fd < 0)
-         {
-           ret = fd;
-           goto errout_with_search;
-         }
+      fd = block_proxy(path, oflags);
+      if (fd < 0)
+        {
+          ret = fd;
+          goto errout_with_search;
+        }
 
-       /* Return the file descriptor */
+      /* Return the file descriptor */
 
-       RELEASE_SEARCH(&desc);
-       return fd;
-     }
-   else
+      RELEASE_SEARCH(&desc);
+      return fd;
+    }
+  else
 #endif
 
   /* Verify that the inode is either a "normal" character driver or a
@@ -303,8 +301,8 @@ errout_with_search:
  *   applications.
  *
  * Returned Value:
- *   Zero (OK) is returned on success; a negated errno value is returned on
- *   any failure.
+ *   The new file descriptor is returned on success; a negated errno value is
+ *   returned on any failure.
  *
  ****************************************************************************/
 
@@ -329,8 +327,8 @@ int nx_open(FAR const char *path, int oflags, ...)
  *   Standard 'open' interface
  *
  * Returned Value:
- *   Zero (OK) is returned on success; -1 (ERROR) is returned on any failure
- *   the the errno value set appropriately.
+ *   The new file descriptor is returned on success; -1 (ERROR) is returned
+ *   on any failure the errno value set appropriately.
  *
  ****************************************************************************/
 
@@ -341,7 +339,7 @@ int open(FAR const char *path, int oflags, ...)
 
   /* open() is a cancellation point */
 
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
 
   /* Let nx_vopen() do most of the work */
 

@@ -42,13 +42,15 @@ ifeq ($(CONFIG_ARCH_RV32I),y)           # Base Integer support
 ARCH_SUBDIR = rv32i
 else ifeq ($(CONFIG_ARCH_RV32IM),y)     # Integer + math support
 ARCH_SUBDIR = rv32im
+else ifeq ($(CONFIG_ARCH_RV64GC),y)     # GC=IMAFDC
+ARCH_SUBDIR = rv64gc
 else
 ARCH_SUBDIR = rv32i                     # Default to base RV32I core
 endif
 
-CPPFLAGS += $(EXTRADEFINES)
-CFLAGS += $(EXTRADEFINES)
-CXXFLAGS += $(EXTRADEFINES)
+CPPFLAGS += $(EXTRAFLAGS)
+CFLAGS += $(EXTRAFLAGS)
+CXXFLAGS += $(EXTRAFLAGS)
 
 ifeq ($(CONFIG_WINDOWS_NATIVE),y)
   ARCH_SRCDIR = $(TOPDIR)\arch\$(CONFIG_ARCH)\src
@@ -112,6 +114,9 @@ UBIN = libuarch$(LIBEXT)
 BIN  = libarch$(LIBEXT)
 
 # Override in Make.defs if linker is not 'ld'
+
+LDSTARTGROUP ?= --start-group
+LDENDGROUP ?= --end-group
 
 LDSTARTGROUP ?= --start-group
 LDENDGROUP ?= --end-group
@@ -182,7 +187,7 @@ $(UBIN): $(UOBJS)
 	$(call ARCHIVE, $@, $(UOBJS))
 
 board/libboard$(LIBEXT):
-	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRADEFINES=$(EXTRADEFINES)
+	$(Q) $(MAKE) -C board TOPDIR="$(TOPDIR)" libboard$(LIBEXT) EXTRAFLAGS="$(EXTRAFLAGS)"
 
 nuttx$(EXEEXT): $(HEAD_OBJ) board/libboard$(LIBEXT)
 	$(Q) echo "LD: nuttx"

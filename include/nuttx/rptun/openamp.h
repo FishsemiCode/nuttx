@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * include/nuttx/rptun/openamp.h
  *
  *   Copyright (C) 2019 Pinecone Inc. All rights reserved.
@@ -31,7 +31,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_RPTUN_OPENAMP_H
 #define __INCLUDE_NUTTX_RPTUN_OPENAMP_H
@@ -50,9 +50,11 @@
  * Public Types
  ****************************************************************************/
 
-typedef void (*rpmsg_dev_cb_t)(struct rpmsg_device *rdev, void *priv);
-typedef void (*rpmsg_bind_cb_t)(struct rpmsg_device *rdev, void *priv,
-                                const char *name, uint32_t dest);
+typedef void (*rpmsg_dev_cb_t)(FAR struct rpmsg_device *rdev,
+                               FAR void *priv);
+typedef void (*rpmsg_bind_cb_t)(FAR struct rpmsg_device *rdev,
+                                FAR void *priv, FAR const char *name,
+                                uint32_t dest);
 
 /****************************************************************************
  * Public Function Prototypes
@@ -66,12 +68,12 @@ extern "C"
 #define EXTERN extern
 #endif
 
-const char *rpmsg_get_cpuname(struct rpmsg_device *rdev);
-int rpmsg_register_callback(void *priv,
+const char *rpmsg_get_cpuname(FAR struct rpmsg_device *rdev);
+int rpmsg_register_callback(FAR void *priv,
                             rpmsg_dev_cb_t device_created,
                             rpmsg_dev_cb_t device_destroy,
                             rpmsg_bind_cb_t ns_bind);
-void rpmsg_unregister_callback(void *priv,
+void rpmsg_unregister_callback(FAR void *priv,
                                rpmsg_dev_cb_t device_created,
                                rpmsg_dev_cb_t device_destroy,
                                rpmsg_bind_cb_t ns_bind);

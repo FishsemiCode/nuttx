@@ -59,13 +59,13 @@
 
 /* Most internal nxmq_* interfaces are not available in the user space in
  * PROTECTED and KERNEL builds.  In that context, the application message
- * queu interfaces must be used.  The differences between the two sets of
+ * queue interfaces must be used.  The differences between the two sets of
  * interfaces are:  (1) the nxmq_* interfaces do not cause cancellation
  * points and (2) they do not modify the errno variable.
  *
  * This is only important when compiling libraries (libc or libnx) that are
  * used both by the OS (libkc.a and libknx.a) or by the applications
- * (libuc.a and libunx.a).  The that case, the correct interface must be
+ * (libuc.a and libunx.a).  In that case, the correct interface must be
  * used for the build context.
  *
  * REVISIT:  In the flat build, the same functions must be used both by
@@ -78,7 +78,7 @@
 #  define _MQ_SEND(d,m,l,p)           nxmq_send(d,m,l,p)
 #  define _MQ_TIMEDSEND(d,m,l,p,t)    nxmq_timedsend(d,m,l,p,t)
 #  define _MQ_RECEIVE(d,m,l,p)        nxmq_receive(d,m,l,p)
-#  define _MQ_TIMEDRECIEVE(d,m,l,p,t) nxmq_timedreceive(d,m,l,p,t)
+#  define _MQ_TIMEDRECEIVE(d,m,l,p,t) nxmq_timedreceive(d,m,l,p,t)
 #  define _MQ_GETERRNO(r)             (-(r))
 #  define _MQ_SETERRNO(r)             set_errno(-(r))
 #  define _MQ_GETERRVAL(r)            (r)
@@ -86,7 +86,7 @@
 #  define _MQ_SEND(d,m,l,p)           mq_send(d,m,l,p)
 #  define _MQ_TIMEDSEND(d,m,l,p,t)    mq_timedsend(d,m,l,p,t)
 #  define _MQ_RECEIVE(d,m,l,p)        mq_receive(d,m,l,p)
-#  define _MQ_TIMEDRECIEVE(d,m,l,p,t) mq_timedreceive(d,m,l,p,t)
+#  define _MQ_TIMEDRECEIVE(d,m,l,p,t) mq_timedreceive(d,m,l,p,t)
 #  define _MQ_GETERRNO(r)             errno
 #  define _MQ_SETERRNO(r)
 #  define _MQ_GETERRVAL(r)            (-errno)
@@ -113,12 +113,10 @@ struct mqueue_inode_s
 #else
   uint16_t maxmsgsize;        /* Max size of message in message queue */
 #endif
-#ifndef CONFIG_DISABLE_SIGNALS
   FAR struct mq_des *ntmqdes; /* Notification: Owning mqdes (NULL if none) */
   pid_t ntpid;                /* Notification: Receiving Task's PID */
   struct sigevent ntevent;    /* Notification description */
   struct sigwork_s ntwork;    /* Notification work */
-#endif
 };
 
 /* This describes the message queue descriptor that is held in the
@@ -161,7 +159,7 @@ struct task_group_s;  /* Forward reference */
  *   (mqdes).  This is an internal OS interface.  It is functionally
  *   equivalent to mq_send() except that:
  *
- *   - It is not a cancellaction point, and
+ *   - It is not a cancellation point, and
  *   - It does not modify the errno value.
  *
  *  See comments with mq_send() for a more complete description of the
@@ -197,7 +195,7 @@ int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen,\
  *   nxmq_timedsend() is functionally equivalent to mq_timedsend() except
  *   that:
  *
- *   - It is not a cancellaction point, and
+ *   - It is not a cancellation point, and
  *   - It does not modify the errno value.
  *
  *  See comments with mq_timedsend() for a more complete description of the
@@ -226,7 +224,7 @@ int nxmq_send(mqd_t mqdes, FAR const char *msg, size_t msglen,\
  *
  ****************************************************************************/
 
-int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen, 
+int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen,
                    unsigned int prio, FAR const struct timespec *abstime);
 
 /****************************************************************************
@@ -237,7 +235,7 @@ int nxmq_timedsend(mqd_t mqdes, FAR const char *msg, size_t msglen,
  *   from the message queue specified by "mqdes."  This is an internal OS
  *   interface.  It is functionally equivalent to mq_receive except that:
  *
- *   - It is not a cancellaction point, and
+ *   - It is not a cancellation point, and
  *   - It does not modify the errno value.
  *
  *  See comments with mq_receive() for a more complete description of the
@@ -272,7 +270,7 @@ ssize_t nxmq_receive(mqd_t mqdes, FAR char *msg, size_t msglen,
  *   nxmq_timedreceive() is an internal OS interface.  It is functionally
  *   equivalent to mq_timedreceive() except that:
  *
- *   - It is not a cancellaction point, and
+ *   - It is not a cancellation point, and
  *   - It does not modify the errno value.
  *
  *  See comments with mq_timedreceive() for a more complete description of
@@ -322,16 +320,16 @@ void nxmq_free_msgq(FAR struct mqueue_inode_s *msgq);
  *
  * Description:
  *   This function implements a part of the POSIX message queue open logic.
- *   It allocates and initializes a structu mqueue_inode_s structure.
+ *   It allocates and initializes a struct mqueue_inode_s structure.
  *
  * Input Parameters:
  *   mode   - mode_t value is ignored
  *   attr   - The mq_maxmsg attribute is used at the time that the message
  *            queue is created to determine the maximum number of
- *             messages that may be placed in the message queue.
+ *            messages that may be placed in the message queue.
  *
  * Returned Value:
- *   The allocated and initalized message queue structure or NULL in the
+ *   The allocated and initialized message queue structure or NULL in the
  *   event of a failure.
  *
  ****************************************************************************/
@@ -392,14 +390,15 @@ int nxmq_close_group(mqd_t mqdes, FAR struct task_group_s *group);
  *   group - Group that has the open descriptor.
  *
  * Returned Value:
- *   None.
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   and failure.
  *
  * Assumptions:
  * - Called only from mq_close() with the scheduler locked.
  *
  ****************************************************************************/
 
-void nxmq_desclose_group(mqd_t mqdes, FAR struct task_group_s *group);
+int nxmq_desclose_group(mqd_t mqdes, FAR struct task_group_s *group);
 
 #undef EXTERN
 #ifdef __cplusplus
@@ -408,4 +407,3 @@ void nxmq_desclose_group(mqd_t mqdes, FAR struct task_group_s *group);
 
 #endif /* CONFIG_MQ_MAXMSGSIZE > 0 */
 #endif /* ___INCLUDE_NUTTX_MQUEUE_H */
-

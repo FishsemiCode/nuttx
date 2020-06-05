@@ -6,7 +6,7 @@
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Derives from software originally provided by Expressif Systems:
+ * Derives from software originally provided by Espressif Systems:
  *
  * Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
  *
@@ -99,7 +99,9 @@ void esp32_clockconfig(void)
       break;
     default:
       freq_mhz = 80;
+
       /* no break */
+
     case 80:
       freq = CPU_80M;
       break;

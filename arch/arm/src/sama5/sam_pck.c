@@ -45,7 +45,7 @@
 
 #include <arch/board/board.h>
 
-#include "chip/sam_pinmap.h"
+#include "hardware/sam_pinmap.h"
 
 #include "up_arch.h"
 #include "sam_pio.h"
@@ -156,7 +156,7 @@ uint32_t sam_pck_configure(enum pckid_e pckid, enum pckid_clksrc_e clksrc,
     }
 
 #ifdef SAMA5_HAVE_PCK_INT_PRES
-  /* Programmable Clock frequency is selected clock freqency divided by PRES + 1 */
+  /* Programmable Clock frequency is selected clock frequency divided by PRES + 1 */
 
   pres = clkin / frequency;
   if (pres < 1)
@@ -229,7 +229,7 @@ uint32_t sam_pck_configure(enum pckid_e pckid, enum pckid_clksrc_e clksrc,
     case PCK0:
       putreg32(PMC_PCK0, SAM_PMC_SCDR);
 #ifdef PIO_PMC_PCK0
-      (void)sam_configpio(PIO_PMC_PCK0);
+      sam_configpio(PIO_PMC_PCK0);
 #endif
       putreg32(regval, SAM_PMC_PCK0);
       break;
@@ -237,7 +237,7 @@ uint32_t sam_pck_configure(enum pckid_e pckid, enum pckid_clksrc_e clksrc,
     case PCK1:
       putreg32(PMC_PCK1, SAM_PMC_SCDR);
 #ifdef PIO_PMC_PCK1
-      (void)sam_configpio(PIO_PMC_PCK1);
+      sam_configpio(PIO_PMC_PCK1);
 #endif
       putreg32(regval, SAM_PMC_PCK1);
       break;
@@ -245,7 +245,7 @@ uint32_t sam_pck_configure(enum pckid_e pckid, enum pckid_clksrc_e clksrc,
     case PCK2:
       putreg32(PMC_PCK2, SAM_PMC_SCDR);
 #ifdef PIO_PMC_PCK2
-      (void)sam_configpio(PIO_PMC_PCK2);
+      sam_configpio(PIO_PMC_PCK2);
 #endif
       putreg32(regval, SAM_PMC_PCK2);
       break;

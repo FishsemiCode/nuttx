@@ -43,8 +43,8 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "chip/sam_emac.h"
-#include "chip/sam_gmac.h"
+#include "hardware/sam_emac.h"
+#include "hardware/sam_gmac.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -340,4 +340,3 @@ int sam_phy_boardinitialize(int intf);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SAMA5_SAM_ETHERNET_H */
-

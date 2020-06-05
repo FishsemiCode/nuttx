@@ -118,9 +118,9 @@ ssize_t psock_local_sendto(FAR struct socket *psock, FAR const void *buf,
 
   if (tolen < sizeof(sa_family_t) + 2)
     {
-     /* EFAULT - An invalid user space address was specified for a parameter */
+      /* EFAULT - An invalid user space address was specified for a parameter */
 
-     return -EFAULT;
+      return -EFAULT;
     }
 
   /* Make sure that half duplex FIFO has been created.
@@ -138,7 +138,8 @@ ssize_t psock_local_sendto(FAR struct socket *psock, FAR const void *buf,
   /* Open the sending side of the transfer */
 
   ret = local_open_sender(conn, unaddr->sun_path,
-                          _SS_ISNONBLOCK(psock->s_flags));
+                          _SS_ISNONBLOCK(psock->s_flags) ||
+                          (flags & MSG_DONTWAIT) != 0);
   if (ret < 0)
     {
       nerr("ERROR: Failed to open FIFO for %s: %d\n",
@@ -168,9 +169,10 @@ ssize_t psock_local_sendto(FAR struct socket *psock, FAR const void *buf,
   conn->lc_outfile.f_inode = NULL;
 
 errout_with_halfduplex:
+
   /* Release our reference to the half duplex FIFO */
 
-  (void)local_release_halfduplex(conn);
+  local_release_halfduplex(conn);
   return nsent;
 }
 

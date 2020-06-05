@@ -4,7 +4,7 @@
  *   Copyright (C) 2012, 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Ported from from the LPC17 version:
+ * Ported from the LPC17 version:
  *
  *   Copyright (C) 2011 Li Zhuoyi. All rights reserved.
  *   Author: Li Zhuoyi <lzyy.cn@gmail.com>
@@ -53,7 +53,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -192,7 +191,7 @@ static int  dac_interrupt(int irq, void *context, FAR void *arg)
  *   Initialize the DAC
  *
  * Returned Value:
- *   Valid dac device structure reference on succcess; a NULL on failure
+ *   Valid dac device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

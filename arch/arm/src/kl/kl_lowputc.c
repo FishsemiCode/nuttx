@@ -51,11 +51,11 @@
 #include "kl_lowputc.h"
 #include "kl_gpio.h"
 
-#include "chip/kl_uart.h"
-#include "chip/kl_sim.h"
-#include "chip/kl_port.h"
-#include "chip/kl_uart.h"
-#include "chip/kl_pinmux.h"
+#include "hardware/kl_uart.h"
+#include "hardware/kl_sim.h"
+#include "hardware/kl_port.h"
+#include "hardware/kl_uart.h"
+#include "hardware/kl_pinmux.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -148,7 +148,7 @@ void kl_lowputc(uint32_t ch)
  *
  * Description:
  *   This performs basic initialization of the UART used for the serial
- *   console.  Its purpose is to get the console output availabe as soon
+ *   console.  Its purpose is to get the console output available as soon
  *   as possible.
  *
  ****************************************************************************/
@@ -330,6 +330,3 @@ void kl_uartconfigure(uintptr_t uart_base, uint32_t baud, uint32_t clock,
   putreg8(regval, uart_base + KL_UART_C2_OFFSET);
 }
 #endif
-
-
-

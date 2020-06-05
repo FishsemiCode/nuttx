@@ -60,19 +60,6 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#ifdef CONFIG_CL_MFRC522_DEBUG
-#  define mfrc522err    _err
-#  define mfrc522info   _info
-#else
-#  ifdef CONFIG_CPP_HAVE_VARARGS
-#    define mfrc522err(x...)
-#    define mfrc522info(x...)
-#  else
-#    define mfrc522err  (void)
-#    define mfrc522info (void)
-#  endif
-#endif
-
 #ifdef CONFIG_CL_MFRC522_DEBUG_TX
 #  define tracetx errdumpbuffer
 #else
@@ -138,13 +125,11 @@ static const struct file_operations g_mfrc522fops =
   mfrc522_close,
   mfrc522_read,
   mfrc522_write,
-  0,
-  mfrc522_ioctl
-#ifndef CONFIG_DISABLE_POLL
-    , 0
-#endif
+  NULL,
+  mfrc522_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-    , 0
+  , NULL
 #endif
 };
 
@@ -154,17 +139,17 @@ static const struct file_operations g_mfrc522fops =
 
 static void mfrc522_lock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
 
   SPI_SETMODE(spi, SPIDEV_MODE0);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, CONFIG_MFRC522_SPI_FREQ);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_MFRC522_SPI_FREQ);
 }
 
 static void mfrc522_unlock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 static inline void mfrc522_configspi(FAR struct spi_dev_s *spi)
@@ -173,8 +158,8 @@ static inline void mfrc522_configspi(FAR struct spi_dev_s *spi)
 
   SPI_SETMODE(spi, SPIDEV_MODE0);
   SPI_SETBITS(spi, 8);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, CONFIG_MFRC522_SPI_FREQ);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_MFRC522_SPI_FREQ);
 }
 
 static inline void mfrc522_select(struct mfrc522_dev_s *dev)
@@ -211,7 +196,7 @@ uint8_t mfrc522_readu8(FAR struct mfrc522_dev_s *dev, uint8_t regaddr)
   mfrc522_deselect(dev);
   mfrc522_unlock(dev->spi);
 
-  tracerx("read", regval, 1);
+  tracerx("read", &regval, 1);
   return regval;
 }
 
@@ -303,7 +288,7 @@ void mfrc522_readblk(FAR struct mfrc522_dev_s *dev, uint8_t regaddr,
   mfrc522_deselect(dev);
   mfrc522_unlock(dev->spi);
 
-  tracerx("readblk", regval, size);
+  tracerx("readblk", regval, length);
 }
 
 /****************************************************************************
@@ -337,7 +322,7 @@ void mfrc522_writeblk(FAR struct mfrc522_dev_s *dev, uint8_t regaddr,
   mfrc522_deselect(dev);
   mfrc522_unlock(dev->spi);
 
-  tracerx("writeblk", regval, size);
+  tracerx("writeblk", regval, length);
 }
 
 /****************************************************************************
@@ -487,7 +472,7 @@ int mfrc522_comm_picc(FAR struct mfrc522_dev_s *dev, uint8_t command,
       tstart.tv_nsec -= 1000 * 1000 * 1000;
     }
 
-  /* If it is a Transceive command, then start transmittion */
+  /* If it is a Transceive command, then start transmission */
 
   if (command == MFRC522_TRANSCV_CMD)
     {
@@ -695,7 +680,7 @@ int mfrc522_picc_reqa_wupa(FAR struct mfrc522_dev_s *dev, uint8_t command,
       return -EAGAIN;
     }
 
-  mfrc522info("buffer[0]=0x%02X | buffer[1]=0x%02X\n", buffer[0], buffer[1]);
+  ctlsinfo("buffer[0]=0x%02X | buffer[1]=0x%02X\n", buffer[0], buffer[1]);
   return OK;
 }
 
@@ -772,7 +757,7 @@ int mfrc522_picc_select(FAR struct mfrc522_dev_s *dev,
 
   /* The number of known UID bits in the current Cascade Level. */
 
-  uint8_t curr_level_known_bits;
+  int8_t curr_level_known_bits;
 
   /* The SELECT/ANTICOLLISION uses a 7 byte standard frame + 2 bytes CRC_A */
 
@@ -1226,6 +1211,51 @@ void mfrc522_setantennagain(FAR struct mfrc522_dev_s *dev, uint8_t mask)
 }
 
 /****************************************************************************
+ * Name: mfrc522_mifare_read
+ ****************************************************************************/
+
+int mfrc522_mifare_read(FAR struct mfrc522_dev_s *dev,
+                        FAR struct mifare_tag_data_s *data)
+{
+  uint8_t buffer[18];
+  uint8_t command[4];
+  uint8_t length    = 18;
+  uint8_t validbits = 0;
+  int     ret       = OK;
+
+  /* Read block from address */
+
+  command[0] = PICC_CMD_MF_READ;
+  command[1] = data->address;
+
+  /* Get CRC */
+
+  ret = mfrc522_calc_crc(dev, command, 2, &command[2]);
+  if (ret != OK)
+    {
+      goto errout;
+    }
+
+  /* Send data and read response.
+   * We read back 16 bytes block data nad 2 bytes CRC.
+   */
+
+  ret = mfrc522_transcv_data(dev, command, 4, buffer, &length,
+                             &validbits, 0, false);
+  if (ret < 0)
+    {
+      goto errout;
+    }
+
+  /* Copy block data */
+
+  memcpy(data->data, buffer, 16);
+
+errout:
+  return ret;
+}
+
+/****************************************************************************
  * Name: mfrc522_init
  *
  * Description:
@@ -1359,19 +1389,19 @@ int mfrc522_selftest(FAR struct mfrc522_dev_s *dev)
 
   mfrc522_writeu8(dev, MFRC522_AUTOTEST_REG, 0x00);
 
-  mfrc522info("Self Test Result:\n");
+  ctlsinfo("Self Test Result:\n");
 
   for (i = 0; i < 64; i += 8)
     {
       for (j = 0, k = 0; j < 8; j++, k += 3)
         {
-          (void)sprintf(&outbuf[k], " %02x", result[i + j]);
+          sprintf(&outbuf[k], " %02x", result[i + j]);
         }
 
-      mfrc522info("  %02x:%s\n", i, outbuf);
+      ctlsinfo("  %02x:%s\n", i, outbuf);
     }
 
-  mfrc522info("Done!\n");
+  ctlsinfo("Done!\n");
   return OK;
 }
 
@@ -1456,7 +1486,7 @@ static ssize_t mfrc522_read(FAR struct file *filep, FAR char *buffer,
 
   if (!mfrc522_picc_detect(dev))
     {
-      mfrc522err("Card is not present!\n");
+      ctlserr("Card is not present!\n");
       return -EAGAIN;
     }
 
@@ -1464,8 +1494,10 @@ static ssize_t mfrc522_read(FAR struct file *filep, FAR char *buffer,
 
   mfrc522_picc_select(dev, &uid, 0);
 
-  if (uid.sak != 0)
+  if (uid.sak != PICC_TYPE_NOT_COMPLETE)
     {
+      /* TODO: double/triple UID */
+
       if (buffer)
         {
           snprintf(buffer, buflen, "0x%02X%02X%02X%02X",
@@ -1494,7 +1526,7 @@ static ssize_t mfrc522_write(FAR struct file *filep, FAR const char *buffer,
   DEBUGASSERT(inode && inode->i_private);
   dev = inode->i_private;
 
-  (void)dev;
+  UNUSED(dev);
 
   return -ENOSYS;
 }
@@ -1517,29 +1549,59 @@ static int mfrc522_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   switch (cmd)
     {
-    case MFRC522IOC_GET_PICC_UID:
-      {
-        struct picc_uid_s *uid = (struct picc_uid_s *)arg;
+      case MFRC522IOC_GET_PICC_UID:
+        {
+          FAR struct picc_uid_s *uid = (FAR struct picc_uid_s *)arg;
 
-        /* Is a card near? */
+          /* Is a card near? */
 
-        if (mfrc522_picc_detect(dev))
-          {
-            ret = mfrc522_picc_select(dev, uid, 0);
-          }
-      }
-      break;
+          ret = mfrc522_picc_detect(dev);
+          if (ret < 0)
+            {
+              goto errout;
+            }
 
-    case MFRC522IOC_GET_STATE:
-      ret = dev->state;
-      break;
+          /* Get UID and select card */
 
-    default:
-      mfrc522err("ERROR: Unrecognized cmd: %d\n", cmd);
-      ret = -ENOTTY;
-      break;
+          ret = mfrc522_picc_select(dev, uid, 0);
+          if (ret < 0)
+            {
+              goto errout;
+            }
+
+          break;
+        }
+
+      case CLIOC_READ_MIFARE_DATA:
+        {
+          FAR struct mifare_tag_data_s *data = (struct mifare_tag_data_s *)arg;
+
+          /* We assume that tag is selected!
+           *
+           * TODO: authentication for MIFARE Classic.
+           * Without authentication this will works only for MIFARE Ultralight.
+           */
+
+          ret = mfrc522_mifare_read(dev, data);
+
+          break;
+        }
+
+      case MFRC522IOC_GET_STATE:
+        {
+          ret = dev->state;
+          break;
+        }
+
+      default:
+        {
+          ctlserr("ERROR: Unrecognized cmd: %d\n", cmd);
+          ret = -ENOTTY;
+          break;
+        }
     }
 
+errout:
   return ret;
 }
 
@@ -1576,7 +1638,7 @@ int mfrc522_register(FAR const char *devpath, FAR struct spi_dev_s *spi)
   dev = (FAR struct mfrc522_dev_s *)kmm_malloc(sizeof(struct mfrc522_dev_s));
   if (!dev)
     {
-      mfrc522err("ERROR: Failed to allocate instance\n");
+      ctlserr("ERROR: Failed to allocate instance\n");
       return -ENOMEM;
     }
 
@@ -1604,13 +1666,13 @@ int mfrc522_register(FAR const char *devpath, FAR struct spi_dev_s *spi)
 
   fwver = mfrc522_getfwversion(dev);
 
-  mfrc522info("MFRC522 Firmware Version: 0x%02X!\n", fwver);
+  ctlsinfo("MFRC522 Firmware Version: 0x%02X!\n", fwver);
 
   /* If returned firmware version is unknown don't register the device */
 
   if (fwver != 0x90 && fwver != 0x91 && fwver != 0x92 && fwver != 0x88)
     {
-      mfrc522err("None supported device detected!\n");
+      ctlserr("None supported device detected!\n");
       goto firmware_error;
     }
 
@@ -1619,7 +1681,7 @@ int mfrc522_register(FAR const char *devpath, FAR struct spi_dev_s *spi)
   ret = register_driver(devpath, &g_mfrc522fops, 0666, dev);
   if (ret < 0)
     {
-      mfrc522err("ERROR: Failed to register driver: %d\n", ret);
+      ctlserr("ERROR: Failed to register driver: %d\n", ret);
       kmm_free(dev);
     }
 

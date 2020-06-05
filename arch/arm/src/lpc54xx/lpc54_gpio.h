@@ -49,8 +49,8 @@
 
 #include <arch/lpc54xx/chip.h>
 
-#include "chip/lpc54_gpio.h"
-#include "chip/lpc54_iocon.h"
+#include "hardware/lpc54_gpio.h"
+#include "hardware/lpc54_iocon.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -314,7 +314,7 @@ int lpc54_gpio_irqno(lpc54_pinset_t pinset);
  * Description:
  *   Acknowledge edge interrupts by clearing the associated bits in the rising and
  *   falling registers.  This acknowledgemment is, of course, not needed for level
- *   interupts.
+ *   interrupts.
  *
  ************************************************************************************/
 

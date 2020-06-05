@@ -1,7 +1,8 @@
 /****************************************************************************
  * libs/libnx/nxtk/nxtk_events.c
  *
- *   Copyright (C) 2008-2009, 2012, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2012, 2017, 2019 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <debug.h>
 #include <errno.h>
 #include <assert.h>
@@ -68,7 +68,8 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
                        FAR void *arg);
 #endif
-static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2);
+static void nxtk_event(NXWINDOW hwnd, enum nx_event_e event,
+                       FAR void *arg1, FAR void *arg2);
 
 /****************************************************************************
  * Public Data
@@ -84,7 +85,7 @@ const struct nx_callback_s g_nxtkcb =
 #ifdef CONFIG_NX_KBD
   , nxtk_kbdin    /* kbdin */
 #endif
-  , nxtk_blocked  /* blocked */
+  , nxtk_event    /* event */
 };
 
 /****************************************************************************
@@ -202,7 +203,7 @@ static void nxtk_position(NXWINDOW hwnd, FAR const struct nxgl_size_s *size,
 
 #ifdef CONFIG_NX_XYINPUT
 static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
-                          uint8_t buttons, FAR void *arg)
+                         uint8_t buttons, FAR void *arg)
 {
   FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
   struct nxgl_point_s abspos;
@@ -254,15 +255,50 @@ static void nxtk_mousein(NXWINDOW hwnd, FAR const struct nxgl_point_s *pos,
 
   /* Is the mouse position inside of the client window region? */
 
-  if (fwnd->fwcb->mousein && nxgl_rectinside(&fwnd->fwrect, &fwnd->mpos))
+  if (fwnd->fwcb->mousein != NULL &&
+      nxgl_rectinside(&fwnd->fwrect, &fwnd->mpos))
     {
       nxgl_vectsubtract(&relpos, &abspos, &fwnd->fwrect.pt1);
       fwnd->fwcb->mousein((NXTKWINDOW)fwnd, &relpos, buttons, fwnd->fwarg);
     }
 
-  /* If the mouse position inside the toobar region? */
+  /* If the mouse position inside the toolbar region? */
 
-  else if (fwnd->tbcb->mousein && nxgl_rectinside(&fwnd->tbrect, &fwnd->mpos))
+  else if (fwnd->tbcb->mousein != NULL &&
+           nxgl_rectinside(&fwnd->tbrect, &fwnd->mpos))
+    {
+      nxgl_vectsubtract(&relpos, &abspos, &fwnd->tbrect.pt1);
+      fwnd->tbcb->mousein((NXTKWINDOW)fwnd, &relpos, buttons, fwnd->tbarg);
+    }
+
+  /* REVISIT: Missing logic to detect border events.
+   *
+   * NOTE that the following logic is completely redundant!  All of the
+   * above tests could be eliminated and only the following performed with
+   * the same result.  These tests are separated from the above only to
+   * guarantee a spot for future border mouse event event detection which
+   * would go about here.
+   */
+
+  /* As a complexity, when dragging mouse events outside of the containing
+   * raw window will be sent to this function as well.  We will need to pass
+   * these outside-the-window reports as well.
+   *
+   * If the mouse report is below the toolbar, then we will report this
+   * as a main window event.
+   */
+
+  else if (fwnd->fwcb->mousein != NULL &&
+           pos->y >= fwnd->tbheight + CONFIG_NXTK_BORDERWIDTH)
+    {
+      nxgl_vectsubtract(&relpos, &abspos, &fwnd->fwrect.pt1);
+      fwnd->fwcb->mousein((NXTKWINDOW)fwnd, &relpos, buttons, fwnd->fwarg);
+    }
+
+  /* Otherwise, we will report this as a toolbar event. */
+
+  else if (fwnd->tbcb->mousein != NULL &&
+           pos->y < fwnd->tbheight + CONFIG_NXTK_BORDERWIDTH)
     {
       nxgl_vectsubtract(&relpos, &abspos, &fwnd->tbrect.pt1);
       fwnd->tbcb->mousein((NXTKWINDOW)fwnd, &relpos, buttons, fwnd->tbarg);
@@ -290,18 +326,19 @@ static void nxtk_kbdin(NXWINDOW hwnd, uint8_t nch, const uint8_t *ch,
 #endif
 
 /****************************************************************************
- * Name: nxtk_blocked
+ * Name: nxtk_event
  ****************************************************************************/
 
-static void nxtk_blocked(NXWINDOW hwnd, FAR void *arg1, FAR void *arg2)
+static void nxtk_event(NXWINDOW hwnd, enum nx_event_e event,
+                       FAR void *arg1, FAR void *arg2)
 {
   FAR struct nxtk_framedwindow_s *fwnd = (FAR struct nxtk_framedwindow_s *)hwnd;
 
-  /* Only the client window gets keyboard input */
+  /* Forward the event to the window client */
 
-  if (fwnd->fwcb->blocked)
+  if (fwnd->fwcb->event != NULL)
     {
-      fwnd->fwcb->blocked((NXTKWINDOW)fwnd, fwnd->fwarg, arg2);
+      fwnd->fwcb->event((NXTKWINDOW)fwnd, event, fwnd->fwarg, arg2);
     }
 }
 

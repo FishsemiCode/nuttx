@@ -93,7 +93,7 @@
 
 /* Beginning (BOTTOM/BASE) and End+1 (TOP) of the IDLE stack.
  *
- * The IDLE stack is the stack that is used during intialization and,
+ * The IDLE stack is the stack that is used during initialization and,
  * eventually, becomes the stack of the IDLE task when initialization
  * is complete.
  *
@@ -423,7 +423,7 @@ arm_data_initialize:
 
 #ifdef CONFIG_BOOT_RUNFROMFLASH
 	/* If the .data section is in a separate, uninitialized address space,
-	 * then we will also need to copy the initial values of of the .data
+	 * then we will also need to copy the initial values of the .data
 	 * section from the .text region into that .data region.  This would
 	 * be the case if we are executing from FLASH and the .data section
 	 * lies in a different physical address region OR if we are support
@@ -483,7 +483,7 @@ arm_data_initialize:
 	/* .text Data:
 	 *
 	 *   _sbss is the start of the BSS region (see linker script)
-	 *   _ebss is the end of the BSS regsion (see linker script)
+	 *   _ebss is the end of the BSS region (see linker script)
 	 *
 	 * Typical Configuration:
 	 *   The idle task stack starts at the end of BSS and is of size

@@ -100,7 +100,7 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include "chip/imxrt_edma.h"
+#include "hardware/imxrt_edma.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -117,7 +117,7 @@
 #define EDMA_CONFIG_LINKTYPE_MASK        (3 << EDMA_CONFIG_LINKTYPE_SHIFT)
 #  define EDMA_CONFIG_LINKTYPE_LINKNONE  (0 << EDMA_CONFIG_LINKTYPE_SHIFT) /* No channel link */
 #  define EDMA_CONFIG_LINKTYPE_MINORLINK (1 << EDMA_CONFIG_LINKTYPE_SHIFT) /* Channel link after each minor loop */
-#  define EDMA_CONFIG_LINKTYPE_MAJORLINK (2 << EDMA_CONFIG_LINKTYPE_SHIFT) /*  Channel link when major loop count exhausted */
+#  define EDMA_CONFIG_LINKTYPE_MAJORLINK (2 << EDMA_CONFIG_LINKTYPE_SHIFT) /* Channel link when major loop count exhausted */
 
 /************************************************************************************
  * Public Types
@@ -139,22 +139,22 @@ enum imxrt_edma_xfrtype_e
 
 struct imxrt_edma_xfrconfig_s
 {
-    uint32_t saddr;      /* Source data address. */
-    uint32_t daddr;      /* Destination data address. */
-    int16_t  soff;       /* Sign-extended offset for current source address. */
-    int16_t  doff;       /* Sign-extended offset for current destination address. */
-    uint16_t iter;       /* Major loop iteration count. */
-    uint8_t  flags;      /* See EDMA_CONFIG_* definitions */
-    uint8_t  ssize;      /* Source data transfer size (see TCD_ATTR_SIZE_* definitions in chip/. */
-    uint8_t  dsize;      /* Destination data transfer size. */
-    uint8_t  ttype;      /* Transfer type (see enum imxrt_edma_xfrtype_e). */
+  uint32_t saddr;      /* Source data address. */
+  uint32_t daddr;      /* Destination data address. */
+  int16_t  soff;       /* Sign-extended offset for current source address. */
+  int16_t  doff;       /* Sign-extended offset for current destination address. */
+  uint16_t iter;       /* Major loop iteration count. */
+  uint8_t  flags;      /* See EDMA_CONFIG_* definitions */
+  uint8_t  ssize;      /* Source data transfer size (see TCD_ATTR_SIZE_* definitions in rdware/. */
+  uint8_t  dsize;      /* Destination data transfer size. */
+  uint8_t  ttype;      /* Transfer type (see enum imxrt_edma_xfrtype_e). */
 #ifdef CONFIG_IMXRT_EDMA_EMLIM
-    uint16_t nbytes;     /* Bytes to transfer in a minor loop */
+  uint16_t nbytes;     /* Bytes to transfer in a minor loop */
 #else
-    uint32_t nbytes;     /* Bytes to transfer in a minor loop */
+  uint32_t nbytes;     /* Bytes to transfer in a minor loop */
 #endif
 #ifdef CONFIG_IMXRT_EDMA_ELINK
-    DMACH_HANDLE linkch; /* Link channel (With EDMA_CONFIG_LINKTYPE_* flags) */
+  DMACH_HANDLE linkch; /* Link channel (With EDMA_CONFIG_LINKTYPE_* flags) */
 #endif
 };
 
@@ -231,7 +231,7 @@ extern "C"
  *
  * Input Parameters:
  *   dmamux - DMAMUX configuration see DMAMUX channel configuration register
- *            bit-field definitions in chip/imxrt_dmamux.h.  Settings include:
+ *            bit-field definitions in hardware/imxrt_dmamux.h.  Settings include:
  *
  *            DMAMUX_CHCFG_SOURCE     Chip-specific DMA source (required)
  *            DMAMUX_CHCFG_AON        DMA Channel Always Enable (optional)
@@ -241,7 +241,7 @@ extern "C"
  *            A value of zero will disable the DMAMUX channel.
  *   dchpri - DCHPRI channel priority configuration.  See DCHPRI channel
  *            configuration register bit-field definitions in
- *            chip/imxrt_edma.h.  Meaningful settings include:
+ *            hardware/imxrt_edma.h.  Meaningful settings include:
  *
  *            EDMA_DCHPRI_CHPRI       Channel Arbitration Priority
  *            DCHPRI_DPA              Disable Preempt Ability

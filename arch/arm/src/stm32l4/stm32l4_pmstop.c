@@ -99,7 +99,7 @@ static int do_stop(void)
  *
  * Returned Value:
  *   Zero means that the STOP was successfully entered and the system has
- *   been re-awakened.  The internal volatage regulator is back to its
+ *   been re-awakened.  The internal voltage regulator is back to its
  *   original state.  Otherwise, STOP mode did not occur and a negated
  *   errno value is returned to indicate the cause of the failure.
  *
@@ -146,9 +146,15 @@ int stm32l4_pmstop2(void)
 {
   uint32_t regval;
 
+  regval  = getreg32(STM32L4_PWR_CR1);
+#ifdef CONFIG_STM32L4_SRAM3_HEAP
+  /* SRAM3 is used as heap, so it must not be powered off in Stop 2 mode. */
+
+  regval |= PWR_CR1_RRSTP;
+#endif
+
   /* Select Stop 2 mode in power control register 1. */
 
-  regval  = getreg32(STM32L4_PWR_CR1);
   regval &= ~PWR_CR1_LPMS_MASK;
   regval |= PWR_CR1_LPMS_STOP2;
   putreg32(regval, STM32L4_PWR_CR1);

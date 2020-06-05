@@ -53,8 +53,8 @@
 
 #include "up_arch.h"
 #include "chip.h"
-#include "chip/nrf52_utils.h"
-#include "chip/nrf52_rng.h"
+#include "hardware/nrf52_utils.h"
+#include "hardware/nrf52_rng.h"
 #include "up_internal.h"
 
 #if defined(CONFIG_NRF52_RNG)
@@ -79,8 +79,8 @@ struct rng_dev_s
   uint8_t *rd_buf;
   size_t   rd_count;
   size_t   buflen;
-  sem_t    rd_sem;         /* semphore for read RNG data */
-  sem_t    excl_sem;       /* semphore for access RNG dev */
+  sem_t    rd_sem;         /* semaphore for read RNG data */
+  sem_t    excl_sem;       /* semaphore for access RNG dev */
 };
 
 /****************************************************************************
@@ -91,8 +91,8 @@ static struct rng_dev_s g_rngdev;
 
 static const struct file_operations g_rngops =
 {
-  .open  = nrf52_rng_open,       /* open   */
-  .read  = nrf52_rng_read,       /* read   */
+  .open  = nrf52_rng_open,       /* open */
+  .read  = nrf52_rng_read,       /* read */
 };
 
 /****************************************************************************
@@ -104,11 +104,11 @@ static void nrf52_rng_start(void)
   irqstate_t flag;
   flag = enter_critical_section();
 
-  nrf52_event_clear(NRF52_RNG_EVENT_RDY);
+  nrf52_event_clear(NRF52_RNG_EVENTS_RDY);
 
   putreg32(1, NRF52_RNG_CONFIG);
-  nrf52_interrupt_enable(NRF52_RNG_INT_SET, NRF52_RNG_INT_EVENT_RDY);
-  nrf52_task_trigger(NRF52_RNG_T_START);
+  nrf52_interrupt_enable(NRF52_RNG_INTSET, RNG_INT_RDY);
+  nrf52_task_trigger(NRF52_RNG_TASKS_START);
 
   up_enable_irq(NRF52_IRQ_RNG);
 
@@ -122,10 +122,10 @@ static void nrf52_rng_stop(void)
 
   up_disable_irq(NRF52_IRQ_RNG);
 
-  nrf52_task_trigger(NRF52_RNG_T_STOP);
-  nrf52_interrupt_disable(NRF52_RNG_INT_CLR, NRF52_RNG_INT_EVENT_RDY);
+  nrf52_task_trigger(NRF52_RNG_TASKS_STOP);
+  nrf52_interrupt_disable(NRF52_RNG_INTCLR, RNG_INT_RDY);
 
-  nrf52_event_clear(NRF52_RNG_EVENT_RDY);
+  nrf52_event_clear(NRF52_RNG_EVENTS_RDY);
 
   leave_critical_section(flag);
 }
@@ -143,11 +143,11 @@ static int nrf52_rng_initialize(void)
 
   memset(&g_rngdev, 0, sizeof(struct rng_dev_s));
 
-  sem_init(&g_rngdev.rd_sem, 0, 0);
-  sem_setprotocol(&g_rngdev.rd_sem, SEM_PRIO_NONE);
+  nxsem_init(&g_rngdev.rd_sem, 0, 0);
+  nxsem_setprotocol(&g_rngdev.rd_sem, SEM_PRIO_NONE);
 
-  sem_init(&g_rngdev.excl_sem, 0, 1);
-  sem_setprotocol(&g_rngdev.excl_sem, SEM_PRIO_NONE);
+  nxsem_init(&g_rngdev.excl_sem, 0, 1);
+  nxsem_setprotocol(&g_rngdev.excl_sem, SEM_PRIO_NONE);
 
   _info("Ready to stop\n");
   nrf52_rng_stop();
@@ -169,9 +169,9 @@ static int nrf52_rng_irqhandler(int irq, FAR void *context, FAR void *arg)
   FAR struct rng_dev_s *priv = (struct rng_dev_s *) &g_rngdev;
   uint8_t *addr;
 
-  if (getreg32(NRF52_RNG_EVENT_RDY) == NRF52_RNG_INT_EVENT_RDY)
+  if (getreg32(NRF52_RNG_EVENTS_RDY) == RNG_INT_RDY)
     {
-      nrf52_event_clear(NRF52_RNG_EVENT_RDY);
+      nrf52_event_clear(NRF52_RNG_EVENTS_RDY);
       if (priv->rd_count < priv->buflen)
         {
           addr = priv->rd_buf + priv->rd_count++;
@@ -182,7 +182,7 @@ static int nrf52_rng_irqhandler(int irq, FAR void *context, FAR void *arg)
       if (priv->rd_count == priv->buflen)
         {
           nrf52_rng_stop();
-          sem_post(&priv->rd_sem);
+          nxsem_post(&priv->rd_sem);
         }
     }
 
@@ -216,10 +216,9 @@ static ssize_t nrf52_rng_read(FAR struct file *filep, FAR char *buffer,
   FAR struct rng_dev_s *priv = (struct rng_dev_s *)&g_rngdev;
   ssize_t read_len;
 
-  if (sem_wait(&priv->excl_sem) != OK)
+  if (nxsem_wait(&priv->excl_sem) != OK)
     {
-      errno = EBUSY;
-      return -errno;
+      return -EBUSY;
     }
 
   priv->rd_buf = (uint8_t *) buffer;
@@ -230,7 +229,7 @@ static ssize_t nrf52_rng_read(FAR struct file *filep, FAR char *buffer,
 
   nrf52_rng_start();
 
-  sem_wait(&priv->rd_sem);
+  nxsem_wait(&priv->rd_sem);
   read_len = priv->rd_count;
 
   if (priv->rd_count > priv->buflen)
@@ -241,7 +240,7 @@ static ssize_t nrf52_rng_read(FAR struct file *filep, FAR char *buffer,
 
   /* Now , got data, and release rd_sem for next read */
 
-  sem_post(&priv->excl_sem);
+  nxsem_post(&priv->excl_sem);
 
   return read_len;
 }
@@ -269,7 +268,7 @@ static ssize_t nrf52_rng_read(FAR struct file *filep, FAR char *buffer,
 void devrandom_register(void)
 {
   nrf52_rng_initialize();
-  (void)register_driver("/dev/random", FAR & g_rngops, 0444, NULL);
+  register_driver("/dev/random", FAR & g_rngops, 0444, NULL);
 }
 #endif
 
@@ -293,7 +292,7 @@ void devurandom_register(void)
 #ifndef CONFIG_DEV_RANDOM
   nrf52_rng_initialize();
 #endif
-  (void)register_driver("dev/urandom", FAR & g_rngops, 0444, NULL);
+  register_driver("dev/urandom", FAR & g_rngops, 0444, NULL);
 }
 #endif
 

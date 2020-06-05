@@ -1,5 +1,5 @@
 /************************************************************************************
- * arm/arm/src/stm3l42/stm32l4_lptim.c
+ * arch/arm/src/stm3l42/stm32l4_lptim.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
  *   Author: Uros Platise <uros.platise@isotel.eu>
@@ -38,6 +38,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************/
+
 /************************************************************************************
  *   Copyright (c) 2015 Google, Inc.
  *   All rights reserved.
@@ -130,23 +131,23 @@ static const struct stm32l4_lptim_ops_s stm32l4_lptim_ops =
   .setchannel = &stm32l4_lptim_setchannel,
 };
 
-#if CONFIG_STM32L4_LPTIM1
+#if defined(CONFIG_STM32L4_LPTIM1)
 static struct stm32l4_lptim_priv_s stm32l4_lptim1_priv =
 {
   .ops        = &stm32l4_lptim_ops,
   .mode       = STM32L4_LPTIM_MODE_UNUSED,
   .base       = STM32L4_LPTIM1_BASE,
-  .freq       = STM32L4_LPTIM1_FREQUENCY,  /* Must be efined in board.h */
+  .freq       = STM32L4_LPTIM1_FREQUENCY,  /* Must be defined in board.h */
 };
 #endif
 
-#if CONFIG_STM32L4_LPTIM2
+#if defined(CONFIG_STM32L4_LPTIM2)
 static struct stm32l4_lptim_priv_s stm32l4_lptim2_priv =
 {
   .ops        = &stm32l4_lptim_ops,
   .mode       = STM32L4_LPTIM_MODE_UNUSED,
   .base       = STM32L4_LPTIM2_BASE,
-  .freq       = STM32L4_LPTIM2_FREQUENCY,  /* Must be efined in board.h */
+  .freq       = STM32L4_LPTIM2_FREQUENCY,  /* Must be defined in board.h */
 };
 #endif
 
@@ -162,11 +163,11 @@ static struct stm32l4_lptim_dev_s *stm32l4_lptim_getstruct(int timer)
 {
   switch (timer)
     {
-#if CONFIG_STM32L4_LPTIM1
+#if defined(CONFIG_STM32L4_LPTIM1)
       case 1:
         return (struct stm32l4_lptim_dev_s *)&stm32l4_lptim1_priv;
 #endif
-#if CONFIG_STM32L4_LPTIM2
+#if defined(CONFIG_STM32L4_LPTIM2)
       case 2:
         return (struct stm32l4_lptim_dev_s *)&stm32l4_lptim2_priv;
 #endif
@@ -183,7 +184,8 @@ static inline void stm32l4_modifyreg32(FAR struct stm32l4_lptim_dev_s *dev,
                                        uint8_t offset, uint32_t clearbits,
                                        uint32_t setbits)
 {
-  modifyreg32(((struct stm32l4_lptim_priv_s *)dev)->base + offset, clearbits, setbits);
+  modifyreg32(((struct stm32l4_lptim_priv_s *)dev)->base + offset,
+              clearbits, setbits);
 }
 
 /************************************************************************************
@@ -196,12 +198,12 @@ static int stm32l4_lptim_enable(FAR struct stm32l4_lptim_dev_s *dev)
 
   switch (((struct stm32l4_lptim_priv_s *)dev)->base)
     {
-#if CONFIG_STM32L4_LPTIM1
+#if defined(CONFIG_STM32L4_LPTIM1)
       case STM32L4_LPTIM1_BASE:
         modifyreg32(STM32L4_RCC_APB1ENR1, 0, RCC_APB1ENR1_LPTIM1EN);
         break;
 #endif
-#if CONFIG_STM32L4_LPTIM2
+#if defined(CONFIG_STM32L4_LPTIM2)
       case STM32L4_LPTIM2_BASE:
         modifyreg32(STM32L4_RCC_APB1ENR2, 0, RCC_APB1ENR2_LPTIM2EN);
         break;
@@ -224,12 +226,12 @@ static int stm32l4_lptim_disable(FAR struct stm32l4_lptim_dev_s *dev)
 
   switch (((struct stm32l4_lptim_priv_s *)dev)->base)
     {
-#if CONFIG_STM32L4_LPTIM1
+#if defined(CONFIG_STM32L4_LPTIM1)
       case STM32L4_LPTIM1_BASE:
         modifyreg32(STM32L4_RCC_APB1ENR1, RCC_APB1ENR1_LPTIM1EN, 0);
         break;
 #endif
-#if CONFIG_STM32L4_LPTIM2
+#if defined(CONFIG_STM32L4_LPTIM2)
       case STM32L4_LPTIM2_BASE:
         modifyreg32(STM32L4_RCC_APB1ENR2, RCC_APB1ENR2_LPTIM2EN, 0);
         break;
@@ -252,13 +254,13 @@ static int stm32l4_lptim_reset(FAR struct stm32l4_lptim_dev_s *dev)
 
   switch (((struct stm32l4_lptim_priv_s *)dev)->base)
     {
-#if CONFIG_STM32L4_LPTIM1
+#if defined(CONFIG_STM32L4_LPTIM1)
       case STM32L4_LPTIM1_BASE:
         modifyreg32(STM32L4_RCC_APB1RSTR1, 0, RCC_APB1RSTR1_LPTIM1RST);
         modifyreg32(STM32L4_RCC_APB1RSTR1, RCC_APB1RSTR1_LPTIM1RST, 0);
         break;
 #endif
-#if CONFIG_STM32L4_LPTIM2
+#if defined(CONFIG_STM32L4_LPTIM2)
       case STM32L4_LPTIM2_BASE:
         modifyreg32(STM32L4_RCC_APB1RSTR2, 0, RCC_APB1RSTR2_LPTIM2RST);
         modifyreg32(STM32L4_RCC_APB1RSTR2, RCC_APB1RSTR2_LPTIM2RST, 0);
@@ -283,7 +285,7 @@ static int stm32l4_lptim_get_gpioconfig(FAR struct stm32l4_lptim_dev_s *dev,
 
   switch (((struct stm32l4_lptim_priv_s *)dev)->base)
     {
-#if CONFIG_STM32L4_LPTIM1
+#if defined(CONFIG_STM32L4_LPTIM1)
       case STM32L4_LPTIM1_BASE:
         switch (channel)
           {
@@ -308,7 +310,7 @@ static int stm32l4_lptim_get_gpioconfig(FAR struct stm32l4_lptim_dev_s *dev,
         break;
 #endif /* CONFIG_STM32L4_LPTIM1 */
 
-#if CONFIG_STM32L4_LPTIM2
+#if defined(CONFIG_STM32L4_LPTIM2)
       case STM32L4_LPTIM2_BASE:
         switch (channel)
           {

@@ -87,7 +87,7 @@ volatile uint32_t *g_current_regs[1];
  *       sam_dbgmonitor, sam_pendsv, sam_reserved
  *
  * Description:
- *   Handlers for various execptions.  None are handled and all are fatal
+ *   Handlers for various exceptions.  None are handled and all are fatal
  *   error conditions.  The only advantage these provided over the default
  *   unexpected interrupt handler is that they provide a diagnostic output.
  *
@@ -96,7 +96,7 @@ volatile uint32_t *g_current_regs[1];
 #ifdef CONFIG_DEBUG_FEATURES
 static int sam_nmi(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! NMI received\n");
   PANIC();
   return 0;
@@ -104,7 +104,7 @@ static int sam_nmi(int irq, FAR void *context, FAR void *arg)
 
 static int sam_pendsv(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! PendSV received\n");
   PANIC();
   return 0;
@@ -112,7 +112,7 @@ static int sam_pendsv(int irq, FAR void *context, FAR void *arg)
 
 static int sam_reserved(int irq, FAR void *context, FAR void *arg)
 {
-  (void)up_irq_save();
+  up_irq_save();
   _err("PANIC!!! Reserved interrupt\n");
   PANIC();
   return 0;
@@ -334,4 +334,3 @@ void sam_dumpnvic(const char *msg, int irq)
 #else
 #  define sam_dumpnvic(msg, irq)
 #endif
-

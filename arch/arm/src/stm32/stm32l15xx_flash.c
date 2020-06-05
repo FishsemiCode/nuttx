@@ -50,9 +50,9 @@
 
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
@@ -97,23 +97,9 @@ static sem_t g_sem = SEM_INITIALIZER(1);
  * Private Functions
  ************************************************************************************/
 
-static void sem_lock(void)
+static int sem_lock(void)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&g_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&g_sem);
 }
 
 static inline void sem_unlock(void)
@@ -298,18 +284,36 @@ static ssize_t stm32_eeprom_erase_write(size_t addr, const void *buf,
  * Public Functions
  ************************************************************************************/
 
-void stm32_flash_unlock(void)
+int stm32_flash_unlock(void)
 {
-  sem_lock();
+  int ret;
+
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   flash_unlock();
   sem_unlock();
+
+  return ret;
 }
 
-void stm32_flash_lock(void)
+int stm32_flash_lock(void)
 {
-  sem_lock();
+  int ret;
+
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   flash_lock();
   sem_unlock();
+
+  return ret;
 }
 
 size_t stm32_eeprom_size(void)
@@ -325,13 +329,19 @@ size_t stm32_eeprom_getaddress(void)
 ssize_t stm32_eeprom_write(size_t addr, const void *buf, size_t buflen)
 {
   ssize_t outlen;
+  int ret;
 
   if (!buf)
     {
       return -EINVAL;
     }
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
+
   outlen = stm32_eeprom_erase_write(addr, buf, buflen);
   sem_unlock();
 
@@ -341,8 +351,14 @@ ssize_t stm32_eeprom_write(size_t addr, const void *buf, size_t buflen)
 ssize_t stm32_eeprom_erase(size_t addr, size_t eraselen)
 {
   ssize_t outlen;
+  int ret;
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
+
   outlen = stm32_eeprom_erase_write(addr, NULL, eraselen);
   sem_unlock();
 
@@ -426,6 +442,7 @@ ssize_t up_progmem_ispageerased(size_t page)
 ssize_t up_progmem_eraseblock(size_t block)
 {
   size_t page_address;
+  int ret;
 
   if (block >= STM32_FLASH_NPAGES)
     {
@@ -436,7 +453,12 @@ ssize_t up_progmem_eraseblock(size_t block)
 
   /* Get flash ready and begin erasing single page */
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
+
   flash_unlock();
 
   modifyreg32(STM32_FLASH_PECR, 0, FLASH_PECR_ERASE);
@@ -493,14 +515,19 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
       addr -= STM32_FLASH_BASE;
     }
 
-  if ((addr+count) > STM32_FLASH_SIZE)
+  if ((addr + count) > STM32_FLASH_SIZE)
     {
       return -EFAULT;
     }
 
   /* Get flash ready and begin flashing */
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
+
   flash_unlock();
 
   for (addr += STM32_FLASH_BASE; count; count -= 4, word++, addr += 4)

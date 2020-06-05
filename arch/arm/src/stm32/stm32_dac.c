@@ -46,7 +46,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include <math.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -170,11 +169,11 @@
 #if defined(CONFIG_STM32_DAC1CH1_DMA) && !defined(DAC1CH1_HRTIM) && \
     !defined(CONFIG_STM32_DAC1CH1_DMA_EXTERNAL)
 #  if !defined(CONFIG_STM32_DAC1CH1_TIMER)
-#    warning "A timer number must be specificed in CONFIG_STM32_DAC1CH1_TIMER"
+#    warning "A timer number must be specified in CONFIG_STM32_DAC1CH1_TIMER"
 #    undef CONFIG_STM32_DAC1CH1_DMA
 #    undef CONFIG_STM32_DAC1CH1_TIMER_FREQUENCY
 #  elif !defined(CONFIG_STM32_DAC1CH1_TIMER_FREQUENCY)
-#    warning "A timer frequency must be specificed in CONFIG_STM32_DAC1CH1_TIMER_FREQUENCY"
+#    warning "A timer frequency must be specified in CONFIG_STM32_DAC1CH1_TIMER_FREQUENCY"
 #    undef CONFIG_STM32_DAC1CH1_DMA
 #    undef CONFIG_STM32_DAC1CH1_TIMER
 #  endif
@@ -183,11 +182,11 @@
 #if defined(CONFIG_STM32_DAC1CH2_DMA) && !defined(DAC1CH2_HRTIM) && \
     !defined(CONFIG_STM32_DAC1CH2_DMA_EXTERNAL)
 #  if !defined(CONFIG_STM32_DAC1CH2_TIMER)
-#    warning "A timer number must be specificed in CONFIG_STM32_DAC1CH2_TIMER"
+#    warning "A timer number must be specified in CONFIG_STM32_DAC1CH2_TIMER"
 #    undef CONFIG_STM32_DAC1CH2_DMA
 #    undef CONFIG_STM32_DAC1CH2_TIMER_FREQUENCY
 #  elif !defined(CONFIG_STM32_DAC1CH2_TIMER_FREQUENCY)
-#    warning "A timer frequency must be specificed in CONFIG_STM32_DAC1CH2_TIMER_FREQUENCY"
+#    warning "A timer frequency must be specified in CONFIG_STM32_DAC1CH2_TIMER_FREQUENCY"
 #    undef CONFIG_STM32_DAC1CH2_DMA
 #    undef CONFIG_STM32_DAC1CH2_TIMER
 #  endif
@@ -196,11 +195,11 @@
 #if defined(CONFIG_STM32_DAC2CH1_DMA) && !defined(DAC2CH1_HRTIM) && \
     !defined(CONFIG_STM32_DAC2CH1_DMA_EXTERNAL)
 #  if !defined(CONFIG_STM32_DAC2CH1_TIMER)
-#    warning "A timer number must be specificed in CONFIG_STM32_DAC2CH1_TIMER"
+#    warning "A timer number must be specified in CONFIG_STM32_DAC2CH1_TIMER"
 #    undef CONFIG_STM32_DAC2CH1_DMA
 #    undef CONFIG_STM32_DAC2CH1_TIMER_FREQUENCY
 #  elif !defined(CONFIG_STM32_DAC2CH1_TIMER_FREQUENCY)
-#    warning "A timer frequency must be specificed in CONFIG_STM32_DAC2CH1_TIMER_FREQUENCY"
+#    warning "A timer frequency must be specified in CONFIG_STM32_DAC2CH1_TIMER_FREQUENCY"
 #    undef CONFIG_STM32_DAC2CH1_DMA
 #    undef CONFIG_STM32_DAC2CH1_TIMER
 #  endif
@@ -584,7 +583,7 @@ static void     tim_modifyreg(FAR struct stm32_chan_s *chan, int offset,
 
 /* Interrupt handler */
 
-#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
+#if 0 /* defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX) */
 static int  dac_interrupt(int irq, FAR void *context, FAR void *arg);
 #endif
 
@@ -664,7 +663,7 @@ static struct dac_dev_s g_dac1ch1dev =
   .ad_ops  = &g_dacops,
   .ad_priv = &g_dac1ch1priv,
 };
-#endif  /* CONFIG_STM32_DAC1CH1 */
+#endif /* CONFIG_STM32_DAC1CH1 */
 
 #ifdef CONFIG_STM32_DAC1CH2
 /* Channel 2: DAC1 channel 2 */
@@ -705,9 +704,9 @@ static struct dac_dev_s g_dac1ch2dev =
   .ad_ops  = &g_dacops,
   .ad_priv = &g_dac1ch2priv,
 };
-#endif  /* CONFIG_STM32_DAC1CH2 */
+#endif /* CONFIG_STM32_DAC1CH2 */
 
-#endif  /* CONFIG_STM32_DAC1 */
+#endif /* CONFIG_STM32_DAC1 */
 
 #ifdef CONFIG_STM32_DAC2
 #ifdef CONFIG_STM32_DAC2CH1
@@ -749,8 +748,8 @@ static struct dac_dev_s g_dac2ch1dev =
   .ad_ops  = &g_dacops,
   .ad_priv = &g_dac2ch1priv,
 };
-#endif  /* CONFIG_STM32_DAC2CH1 */
-#endif  /* CONFIG_STM32_DAC2 */
+#endif /* CONFIG_STM32_DAC2CH1 */
+#endif /* CONFIG_STM32_DAC2 */
 
 static struct stm32_dac_s g_dacblock;
 
@@ -857,7 +856,7 @@ static void tim_modifyreg(FAR struct stm32_chan_s *chan, int offset,
 {
   modifyreg32(chan->tbase + offset, clearbits, setbits);
 }
-#endif  /* HAVE_TIMER */
+#endif /* HAVE_TIMER */
 
 /****************************************************************************
  * Name: dac_interrupt
@@ -873,7 +872,7 @@ static void tim_modifyreg(FAR struct stm32_chan_s *chan, int offset,
  *
  ****************************************************************************/
 
-#if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
+#if 0 /* defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX) */
 static int dac_interrupt(int irq, FAR void *context, FAR void *arg)
 {
 #warning "Missing logic"
@@ -984,9 +983,11 @@ static void dac_txint(FAR struct dac_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
+#ifdef HAVE_DMA
 static void dac_dmatxcallback(DMA_HANDLE handle, uint8_t isr, FAR void *arg)
 {
 }
+#endif
 
 /****************************************************************************
  * Name: dac_send
@@ -1114,6 +1115,7 @@ static int dac_ioctl(FAR struct dac_dev_s *dev, int cmd, unsigned long arg)
         }
     }
 
+  UNUSED(chan);
   return ret;
 }
 
@@ -1227,7 +1229,7 @@ static int dac_timinit(FAR struct stm32_chan_s *chan)
    * counter mode (up).
    */
 
-  /* Enable the timer.  At most, two of the following cases (pluse the
+  /* Enable the timer.  At most, two of the following cases (pulse the
    * default) will be enabled
    */
 
@@ -1367,7 +1369,7 @@ static int dac_timinit(FAR struct stm32_chan_s *chan)
   return OK;
 }
 #endif
-#endif  /* HAVE_DMA */
+#endif /* HAVE_DMA */
 
 /****************************************************************************
  * Name: dac_chaninit
@@ -1552,7 +1554,7 @@ static int dac_blockinit(void)
  *   intf - The DAC interface number.
  *
  * Returned Value:
- *   Valid dac device structure reference on succcess; a NULL on failure.
+ *   Valid DAC device structure reference on success; a NULL on failure.
  *
  * Assumptions:
  *   1. Clock to the DAC block has enabled,
@@ -1573,7 +1575,7 @@ FAR struct dac_dev_s *stm32_dacinitialize(int intf)
       dev = &g_dac1ch1dev;
     }
   else
-#endif  /* CONFIG_STM32_DAC1CH1 */
+#endif /* CONFIG_STM32_DAC1CH1 */
 #ifdef CONFIG_STM32_DAC1CH2
   if (intf == 2)
     {
@@ -1581,7 +1583,7 @@ FAR struct dac_dev_s *stm32_dacinitialize(int intf)
       dev = &g_dac1ch2dev;
     }
   else
-#endif  /* CONFIG_STM32_DAC1CH2 */
+#endif /* CONFIG_STM32_DAC1CH2 */
 #ifdef CONFIG_STM32_DAC2CH1
   if (intf == 3)
     {
@@ -1589,7 +1591,7 @@ FAR struct dac_dev_s *stm32_dacinitialize(int intf)
       dev = &g_dac2ch1dev;
     }
   else
-#endif  /* CONFIG_STM32_DAC2CH1 */
+#endif /* CONFIG_STM32_DAC2CH1 */
     {
       aerr("ERROR: No such DAC interface: %d\n", intf);
       return NULL;

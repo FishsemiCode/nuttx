@@ -46,7 +46,7 @@
 #include <debug.h>
 
 #include "chip.h"
-#include "chip/sam_tc.h"
+#include "hardware/sam_tc.h"
 
 #if defined(CONFIG_SAMA5_TC0) || defined(CONFIG_SAMA5_TC1) || defined(CONFIG_SAMA5_TC2)
 
@@ -348,4 +348,3 @@ int sam_tc_divisor(uint32_t frequency, uint32_t *div, uint32_t *tcclks);
 
 #endif /* CONFIG_SAMA5_TC0 || CONFIG_SAMA5_TC1 || CONFIG_SAMA5_TC2 */
 #endif /* __ARCH_ARM_SRC_SAMA5_SAM_TC_H */
-
