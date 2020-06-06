@@ -306,7 +306,7 @@ static int ak4332_configure(struct audio_lowerhalf_s *dev_,
   uint32_t samprate, nchannels, bpsamp;
   int ret = OK;
 
-  DEBUGASSERT(ak4332 && caps);
+  DEBUGASSERT(dev && caps);
   audinfo("ac_type: %d\n", caps->ac_type);
 
   /* Process the configure operation */
