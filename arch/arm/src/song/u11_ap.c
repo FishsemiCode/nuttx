@@ -326,6 +326,10 @@ static void up_rptun_init(void)
 
   song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_AP]);
 
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize();
+#endif
+
 #ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
 #endif
