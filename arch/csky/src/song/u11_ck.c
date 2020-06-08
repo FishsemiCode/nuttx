@@ -261,6 +261,10 @@ void csky_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 
@@ -505,6 +509,10 @@ void up_finalinitialize(void)
   /* Enable SLP_U1RXD_ACT intr */
 
   modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_finalinitialize();
+#endif
 }
 
 void up_reset(int status)
