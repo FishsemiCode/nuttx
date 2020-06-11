@@ -252,7 +252,7 @@ static inline void flash_regupdate(FAR struct song_spi_flash_dev_s *priv,
             (flash_regread(priv, offset) & ~mask));
 }
 
-static inline irqstate_t flash_enter_critical(
+__ramfunc__ static irqstate_t flash_enter_critical(
                           FAR struct song_spi_flash_dev_s *priv)
 {
   irqstate_t flags = enter_critical_section();
@@ -260,7 +260,7 @@ static inline irqstate_t flash_enter_critical(
   return flags;
 }
 
-static inline void flash_leave_critical(FAR struct song_spi_flash_dev_s *priv,
+__ramfunc__ static void flash_leave_critical(FAR struct song_spi_flash_dev_s *priv,
                           irqstate_t flags)
 {
   flash_regupdate(priv, MODE_CTL, 1, 0);
