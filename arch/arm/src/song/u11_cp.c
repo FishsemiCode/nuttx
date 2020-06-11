@@ -298,7 +298,7 @@ void up_wic_disable_irq(int irq)
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(0, 0xb0020000, 28, NULL);
+  g_dma[0] = song_dmas_initialize(0, 0xb0020000, 28, "dmas_hclk");
 #endif
 }
 
