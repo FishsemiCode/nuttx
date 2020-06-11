@@ -852,4 +852,11 @@ config SENSORS_ADT7320
 	---help---
 		Enables support for the ADT7320 Driver
 
+config SENSORS_CS1237
+	bool "ChipSea CS1237 Temperature Sensor support"
+	default n
+	depends on IOEXPANDER
+	---help---
+		Enable driver support for the ChipSea CS1237 temperature sensor.
+
 endif # SENSORS

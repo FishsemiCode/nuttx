@@ -317,7 +317,7 @@ static int dp_adc_configure(struct audio_lowerhalf_s *dev_,
   int samprate, nchannels, bpsamp;
   int ret = OK;
 
-  DEBUGASSERT(dp_adc && caps);
+  DEBUGASSERT(dev && caps);
   audinfo("ac_type: %d\n", caps->ac_type);
 
   /* Process the configure operation */

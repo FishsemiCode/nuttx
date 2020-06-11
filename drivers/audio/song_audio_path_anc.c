@@ -221,7 +221,7 @@ static int song_audio_path_configure(struct audio_lowerhalf_s *dev_,
   int nchannels, samprate;
   int ret = OK;
 
-  DEBUGASSERT(song_audio_path && caps);
+  DEBUGASSERT(dev && caps);
   audinfo("ac_type: %d\n", caps->ac_type);
 
   /* Process the configure operation */

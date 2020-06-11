@@ -384,6 +384,16 @@ void rpmsg_serialinit(void)
   uart_rpmsg_init(CPU_NAME_AP, "AT1", 256, false);
   uart_rpmsg_init(CPU_NAME_AP, "GPS", 256, false);
   uart_rpmsg_init(CPU_NAME_AP, "GPS1", 256, false);
+
+#ifdef CONFIG_NBIOT_HLS_SOFTSIM
+
+#ifdef CONFIG_SOFTSIM_ON_CHIP_SP
+  uart_rpmsg_init(CPU_NAME_SP, "AT3", 256, false);
+#else
+  uart_rpmsg_init(CPU_NAME_AP, "AT3", 256, false);
+#endif
+
+#endif
 }
 #endif
 

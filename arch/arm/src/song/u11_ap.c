@@ -266,6 +266,10 @@ void up_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 
@@ -322,8 +326,16 @@ static void up_rptun_init(void)
 
   song_rptun_initialize(&rptun_cfg_cp, g_mbox[CPU_INDEX_CP], g_mbox[CPU_INDEX_AP]);
 
+#ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize();
+#endif
+
 #ifdef CONFIG_SYSLOG_RPMSG_SERVER
   syslog_rpmsg_server_init();
+#endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG
+  hostfs_rpmsg_init(CPU_NAME_CP);
 #endif
 }
 #endif
@@ -489,8 +501,34 @@ void up_lateinitialize(void)
   up_extra_init();
 }
 
+static int up_top_pwr_isr(int irq, FAR void *context, FAR void *arg)
+{
+  if (getreg32(TOP_PWR_INTR_ST_AP_M4) & TOP_PWR_SLP_U1RXD_ACT)
+    {
+      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_AP_M4);
+#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
+      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
+                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
+#endif
+    }
+
+  return 0;
+}
+
 void up_finalinitialize(void)
 {
+  /* Attach TOP_PWR intr */
+
+  irq_attach(18, up_top_pwr_isr, NULL);
+  up_enable_irq(18);
+
+  /* Enable SLP_U1RXD_ACT intr */
+
+  modifyreg32(TOP_PWR_INTR_EN_AP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_finalinitialize();
+#endif
 }
 
 void up_reset(int status)

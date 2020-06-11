@@ -43,10 +43,14 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/fs/fs.h>
+#include <nuttx/fs/partition.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/misc/misc_rpmsg.h>
+#include <nuttx/mtd/mtd.h>
+#include <nuttx/mtd/song_spi_flash.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/rptun/song_rptun.h>
 #include <nuttx/serial/uart_16550.h>
@@ -61,6 +65,7 @@
 #include <nuttx/wqueue.h>
 
 #include <fcntl.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 
@@ -109,9 +114,6 @@
 
 #define TOP_PWR_SFRST_RESET         (1 << 0)    //TOP_PWR_SFRST_CTL
 
-#define TOP_PWR_SLP_U1RXD_ACT       (1 << 21)   //TOP_PWR_INTR_EN_CP_M4
-                                                //TOP_PWR_INTR_ST_CP_M4
-
 #define TOP_PWR_SLPU_FLASH_S        (1 << 0)    //TOP_PWR_INTR_EN_CP_M4_1
 #define TOP_PWR_AP_DS_WAKEUP        (1 << 5)    //TOP_PWR_INTR_ST_CP_M4_1
 
@@ -119,7 +121,10 @@
 #define TOP_PWR_CP_M4_AU_PU_MK      (1 << 6)
 #define TOP_PWR_CP_M4_AU_PD_MK      (1 << 7)
 
-#define TOP_PWR_AP_CPU_SEL          (1 << 22)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL_MOD_MK   (3 << 20)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL_MOD_M4   (0 << 20)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL_MOD_CK   (1 << 20)   //TOP_PWR_AP_M4_CTL0
+#define TOP_PWR_AP_CPU_SEL          (1 << 22)
 
 #define TOP_PWR_CPU_RSTCTL          (1 << 1)    //TOP_PWR_CK802_CTL0
 #define TOP_PWR_CPUCLK_EN           (1 << 0)
@@ -177,6 +182,14 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 FAR struct mbox_dev_s *g_mbox[3] =
 {
   [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_SONG_SPI_FLASH
+struct song_spi_flash_config_s spiflash =
+{
+  .base = 0xb0130000,
+  .cpu_base = 0x02000000,
 };
 #endif
 
@@ -318,6 +331,10 @@ void up_timer_initialize(void)
 
   up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_initialize();
+#endif
 }
 
 #ifdef CONFIG_RPMSG_UART
@@ -390,7 +407,14 @@ static int ap_start(const struct song_rptun_config_s *config)
 {
   int ret;
 
-  ret = ap_relocate(0x02089000, 0x00000000, 0xb1000000);
+  /* Set ldo_ano to 1.1V for AP TCM */
+
+  putreg32(0xa1203, TOP_PMICFSM_LDO0);
+  usleep(500);
+
+  /* Relocate for AP WARM start */
+
+  ret = ap_relocate(0x02124000, 0x00000000, 0xb1000000);
   if (ret)
     {
       return ret;
@@ -400,6 +424,8 @@ static int ap_start(const struct song_rptun_config_s *config)
     {
       /* Boot AP CK802 */
 
+      modifyreg32(TOP_PWR_AP_M4_CTL0, TOP_PWR_AP_CPU_SEL_MOD_MK,
+                  TOP_PWR_AP_CPU_SEL_MOD_CK);
       modifyreg32(TOP_PWR_CK802_CTL0, 0, TOP_PWR_CPUCLK_EN);
       modifyreg32(TOP_PWR_CK802_CTL0, TOP_PWR_CPU_RSTCTL, 0);
     }
@@ -407,6 +433,8 @@ static int ap_start(const struct song_rptun_config_s *config)
     {
       /* Boot AP M4 */
 
+      modifyreg32(TOP_PWR_AP_M4_CTL0, TOP_PWR_AP_CPU_SEL_MOD_MK,
+                  TOP_PWR_AP_CPU_SEL_MOD_M4);
       putreg32(TOP_PWR_AP_M4_PORESET << 16, TOP_PWR_AP_M4_RSTCTL);
     }
 
@@ -462,8 +490,16 @@ static void up_rptun_init(void)
 
   song_rptun_initialize(&rptun_cfg_ap, g_mbox[CPU_INDEX_AP], g_mbox[CPU_INDEX_CP]);
 
+#  ifdef CONFIG_CLK_RPMSG
+  clk_rpmsg_initialize();
+#  endif
+
 #ifdef CONFIG_SYSLOG_RPMSG
   syslog_rpmsg_init();
+#endif
+
+#ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+  hostfs_rpmsg_server_init();
 #endif
 }
 #endif
@@ -514,6 +550,33 @@ static void up_ioe_init(void)
 }
 #endif
 
+#ifdef CONFIG_SONG_SPI_FLASH
+static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
+{
+  char path[NAME_MAX];
+
+  snprintf(path, NAME_MAX, "/dev/%s", part->name);
+
+  register_mtdpartition(path, 0, arg, part->firstblock, part->nblocks);
+}
+
+static void up_flash_init(void)
+{
+  char *path = "/dev/spiflash";
+  FAR struct mtd_dev_s *mtd;
+
+  mtd = song_spi_flash_initialize(&spiflash);
+  if (mtd == NULL)
+    {
+      ferr("ERROR: Spi flash initialize failed\n");
+      return;
+    }
+
+  register_mtddriver(path, mtd, 0, mtd);
+  parse_block_partition(path, up_partition_init, path);
+}
+#endif
+
 static void up_extra_init(void)
 {
   /* Set start reason to env */
@@ -544,6 +607,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_IOE
   up_ioe_init();
+#endif
+
+#ifdef CONFIG_SONG_SPI_FLASH
+  up_flash_init();
 #endif
 
   up_extra_init();
@@ -593,15 +660,6 @@ static int up_top_pwr_isr(int irq, FAR void *context, FAR void *arg)
       putreg32(TOP_PWR_AP_DS_WAKEUP, TOP_PWR_INTR_ST_CP_M4_1);
     }
 
-  if (getreg32(TOP_PWR_INTR_ST_CP_M4) & TOP_PWR_SLP_U1RXD_ACT)
-    {
-      putreg32(TOP_PWR_SLP_U1RXD_ACT, TOP_PWR_INTR_ST_CP_M4);
-#if defined(CONFIG_PM) && defined(CONFIG_SERIAL_CONSOLE)
-      pm_activity(CONFIG_SERIAL_PM_ACTIVITY_DOMAIN,
-                  CONFIG_SERIAL_PM_ACTIVITY_PRIORITY);
-#endif
-    }
-
   return 0;
 }
 
@@ -617,12 +675,12 @@ void up_finalinitialize(void)
   modifyreg32(TOP_PWR_INTR_EN_CP_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
   modifyreg32(TOP_PWR_INTR_EN_CP_M4_1, 0, TOP_PWR_AP_DS_WAKEUP);
 
-  /* Enable SLP_U1RXD_ACT intr */
-
-  modifyreg32(TOP_PWR_INTR_EN_CP_M4, 0, TOP_PWR_SLP_U1RXD_ACT);
-
 #ifdef CONFIG_SONG_RPTUN
   rptun_boot(CPU_NAME_AP);
+#endif
+
+#ifdef CONFIG_SONG_CLK
+  up_clk_finalinitialize();
 #endif
 }
 

@@ -377,6 +377,13 @@ void up_timer_initialize(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_SP, "SP", 256, false);
+
+#ifdef CONFIG_SERVICES_SOFTSIM
+  uart_rpmsg_init(CPU_NAME_CP, "AT3", 256, false);
+#elif defined(CONFIG_SOFTSIM_ON_CHIP_SP)
+  uart_rpmsg_init(CPU_NAME_SP, "AT2", 256, false);
+#endif
+
   uart_rpmsg_init(CPU_NAME_CP, "CP", 256, false);
   uart_rpmsg_init(CPU_NAME_CP, "AT", 1024, false);
   uart_rpmsg_init(CPU_NAME_CP, "AT1", 256, false);

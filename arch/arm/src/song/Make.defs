@@ -103,8 +103,8 @@ CHIP_CSRCS += u1_ap.c u1_ap_clk.c
 CHIP_CSRCS += u1_cp.c u1_cp_clk.c
 CHIP_CSRCS += u1_recovery.c
 CHIP_CSRCS += u1_sp.c u1_sp_clk.c u1_sp_pmu.c u1_sp_recovery.c
-CHIP_CSRCS += u11_ap.c
-CHIP_CSRCS += u11_cp.c
+CHIP_CSRCS += u11_ap.c u11_ap_clk.c
+CHIP_CSRCS += u11_cp.c u11_cp_clk.c
 CHIP_CSRCS += u2_m4.c u2_m4_clk.c u2_m4_pmu.c
 
 CHIP_UCSRCS += song_userspace.c

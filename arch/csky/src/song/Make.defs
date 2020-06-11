@@ -54,5 +54,5 @@ CHIP_CSRCS += csky_vic.c
 CHIP_CSRCS += song_board.c song_heap.c
 CHIP_CSRCS += song_icache.c song_idle.c song_start.c
 CHIP_CSRCS += u1_ck.c u1_ck_clk.c
-CHIP_CSRCS += u11_ck.c
+CHIP_CSRCS += u11_ck.c u11_ck_clk.c
 CHIP_CSRCS += u2_ck.c u2_ck_clk.c u2_ck_pmu.c

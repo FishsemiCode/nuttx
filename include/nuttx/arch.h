@@ -2021,7 +2021,7 @@ char up_romgetc(FAR const char *ptr);
 #endif
 
 /****************************************************************************
- * Name: up_mdelay and up_udelay
+ * Name: up_mdelay and up_udelay and up_udelay_light
  *
  * Description:
  *   Some device drivers may require that the plaform-specific logic
@@ -2031,6 +2031,7 @@ char up_romgetc(FAR const char *ptr);
 
 void up_mdelay(unsigned int milliseconds);
 void up_udelay(useconds_t microseconds);
+void up_udelay_light(useconds_t microseconds);
 
 /****************************************************************************
  * These are standard interfaces that are exported by the OS for use by the.
