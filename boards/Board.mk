@@ -144,7 +144,7 @@ ifneq ($(CXXOBJS),)
 	$(call ARCHIVE, $@, $(CXXOBJS))
 endif
 
-.depend: Makefile $(SRCS) $(CXXSRCS)
+.cdepend: Makefile $(SRCS) $(CXXSRCS)
 ifneq ($(ZDSVERSION),)
 	$(Q) $(MKDEP) $(DEPPATH) "$(CC)" -- $(CFLAGS) -- $(SRCS) >Make.dep
 else
@@ -155,7 +155,15 @@ ifneq ($(CXXSRCS),)
 endif
 	$(Q) touch $@
 
-depend: .depend
+.cxxdepend: $(CXXSRCS)
+	$(Q) $(MKDEP) $(DEPPATH) "$(CXX)" -- $(CXXFLAGS) -- $^ >CXXMake.dep
+	$(Q) touch $@
+
+.rcdepend: $(RCSRCS)
+	$(Q) $(MKDEP) $(DEPPATH) "$(CPP)" -- $(CPPFLAGS) -- $^ >RCMake.dep
+	$(Q) touch $@
+
+depend: .cdepend .cxxdepend .rcdepend
 
 ifneq ($(BOARD_CONTEXT),y)
 context:
@@ -168,7 +176,11 @@ clean:
 
 distclean: clean
 	$(call DELFILE, Make.dep)
-	$(call DELFILE, .depend)
+	$(call DELFILE, .cdepend)
+	$(call DELFILE, .cxxdepend)
+	$(call DELFILE, .rcdepend)
 	$(EXTRA_DISTCLEAN)
 
--include Make.dep
+-include CMake.dep
+-include CXXMake.dep
+-include RCMake.dep
