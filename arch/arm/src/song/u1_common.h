@@ -88,6 +88,9 @@
 
 #define TOP_PMICFSM_DS_RF_RST_MK        (1 << 6)
 
+#define TOP_PMICFSM_LDO0_RF_ICTRL_MK    (3 << 14)
+#define TOP_PMICFSM_LDO0_RF_ICTRL_1     (1 << 14)
+
 #define TOP_PMICFSM_LDO0_ACTIVE_ON      (0x1 << 0)
 #define TOP_PMICFSM_LDO0_SLEEP_ON       (0x1 << 1)
 #define TOP_PMICFSM_LDO0_VOLT_900mV     (0x0 << 8)

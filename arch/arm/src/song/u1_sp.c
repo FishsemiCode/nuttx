@@ -389,7 +389,8 @@ void up_earlyinitialize(void)
 
       putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
                TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
-      modifyreg32(TOP_PMICFSM_CONFIG2, 0, TOP_PMICFSM_DS_RF_RST_MK);
+      modifyreg32(TOP_PMICFSM_CONFIG2, TOP_PMICFSM_LDO0_RF_ICTRL_MK,
+               TOP_PMICFSM_DS_RF_RST_MK | TOP_PMICFSM_LDO0_RF_ICTRL_1);
 
       /* Disable iomod up/pull when LDO1.VOLT is 0x19 */
 
