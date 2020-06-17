@@ -62,6 +62,12 @@ config LCD_EXTERNINIT
 
 menu "LCD driver selection"
 
+config LCD_VK1056B
+	bool "Vk1056b 3-wire using gpio lcd"
+	default n
+	---help---
+		vk1056b.c Driver for vk1056b display panel.
+
 config LCD_ILI9486
 	bool "Ili9486 spi interface lcd"
 	default n

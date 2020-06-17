@@ -43,6 +43,10 @@ endif
 
 # Include support for Graphics LCD drivers
 
+ifeq ($(CONFIG_LCD_VK1056B),y)
+  CSRCS += vk1056b.c
+endif
+
 ifeq ($(CONFIG_LCD_ILI9486),y)
   CSRCS += ili9486.c
 endif
