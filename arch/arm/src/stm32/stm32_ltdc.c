@@ -58,8 +58,8 @@
 #include "up_arch.h"
 #include "up_internal.h"
 #include "stm32.h"
-#include "chip/stm32_ltdc.h"
-#include "chip/stm32_dma2d.h"
+#include "hardware/stm32_ltdc.h"
+#include "hardware/stm32_dma2d.h"
 #include "stm32_ltdc.h"
 #include "stm32_dma2d.h"
 
@@ -1636,7 +1636,7 @@ static void stm32_ltdc_irqconfig(void)
 
   /* Attach LTDC interrupt vector */
 
-  (void)irq_attach(g_interrupt.irq, stm32_ltdcirq, NULL);
+  irq_attach(g_interrupt.irq, stm32_ltdcirq, NULL);
 
   /* Enable the IRQ at the NVIC */
 

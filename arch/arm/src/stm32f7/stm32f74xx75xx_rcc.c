@@ -230,17 +230,18 @@ static inline void rcc_enableahb1(void)
 #endif
 #endif
 
-#ifdef CONFIG_STM32F7_OTGHS
-#ifdef BOARD_ENABLE_USBOTG_HSULPI
+#ifdef CONFIG_STM32F7_OTGFSHS
+ #if defined(CONFIG_STM32F7_INTERNAL_ULPI) || defined(CONFIG_STM32F7_EXTERNAL_ULPI)
   /* Enable clocking for  USB OTG HS and external PHY */
 
   regval |= (RCC_AHB1ENR_OTGHSEN | RCC_AHB1ENR_OTGHSULPIEN);
 #else
+
   /* Enable only clocking for USB OTG HS */
 
   regval |= RCC_AHB1ENR_OTGHSEN;
 #endif
-#endif  /* CONFIG_STM32F7_OTGHS */
+#endif /* CONFIG_STM32F7_OTGFSHS */
 
   putreg32(regval, STM32_RCC_AHB1ENR);   /* Enable peripherals */
 }
@@ -802,9 +803,9 @@ static void stm32_stdclockconfig(void)
 
       /* Over-drive is needed if
        *  - Voltage output scale 1 mode is selected and SYSCLK frequency is
-       *    over 180 Mhz.
+       *    over 180 MHz.
        *  - Voltage output scale 2 mode is selected and SYSCLK frequence is
-       *    over 168 Mhz.
+       *    over 168 MHz.
        */
 
       if ((STM32_PWR_VOS_SCALE == PWR_CR1_VOS_SCALE_1 &&
@@ -813,7 +814,7 @@ static void stm32_stdclockconfig(void)
            STM32_SYSCLK_FREQUENCY > 168000000))
         {
           /* Enable the Over-drive to extend the clock frequency up to
-           * 216 Mhz.
+           * 216 MHz.
            */
 
           regval  = getreg32(STM32_PWR_CR1);
@@ -836,8 +837,8 @@ static void stm32_stdclockconfig(void)
       regval = FLASH_ACR_LATENCY(BOARD_FLASH_WAITSTATES);
 
 #ifdef CONFIG_STM32F7_FLASH_ART_ACCELERATOR
-      /* The Flash memory interface accelerates code execution with a system of
-       * instruction prefetch and cache lines on ITCM interface (ART
+      /* The Flash memory interface accelerates code execution with a system
+       * of instruction prefetch and cache lines on ITCM interface (ART
        * Accelerator™).
        */
 
@@ -862,10 +863,10 @@ static void stm32_stdclockconfig(void)
 
 #if defined(CONFIG_STM32F7_LTDC) || defined(CONFIG_STM32F7_PLLSAI)
 
-       /* Configure PLLSAI */
+      /* Configure PLLSAI */
 
       regval = getreg32(STM32_RCC_PLLSAICFGR);
-      regval &= ~(  RCC_PLLSAICFGR_PLLSAIN_MASK
+      regval &= ~(RCC_PLLSAICFGR_PLLSAIN_MASK
                   | RCC_PLLSAICFGR_PLLSAIP_MASK
                   | RCC_PLLSAICFGR_PLLSAIQ_MASK
                   | RCC_PLLSAICFGR_PLLSAIR_MASK);
@@ -892,7 +893,6 @@ static void stm32_stdclockconfig(void)
 
       putreg32(regval, STM32_RCC_DCKCFGR1);
 
-
       /* Enable PLLSAI */
 
       regval = getreg32(STM32_RCC_CR);
@@ -905,12 +905,14 @@ static void stm32_stdclockconfig(void)
         {
         }
 #endif
-#if defined(CONFIG_STM32F7_LTDC) || defined(CONFIG_STM32F7_PLLI2S)
 
+#if defined(CONFIG_STM32F7_PLLI2S) || \
+    (STM32_RCC_DCKCFGR1_SAI1SRC == RCC_DCKCFGR1_SAI1SEL(1)) || \
+    (STM32_RCC_DCKCFGR1_SAI2SRC == RCC_DCKCFGR1_SAI2SEL(1))
       /* Configure PLLI2S */
 
       regval = getreg32(STM32_RCC_PLLI2SCFGR);
-      regval &= ~(  RCC_PLLI2SCFGR_PLLI2SN_MASK
+      regval &= ~(RCC_PLLI2SCFGR_PLLI2SN_MASK
                   | RCC_PLLI2SCFGR_PLLI2SP_MASK
                   | RCC_PLLI2SCFGR_PLLI2SQ_MASK
                   | RCC_PLLI2SCFGR_PLLI2SR_MASK);
@@ -920,8 +922,21 @@ static void stm32_stdclockconfig(void)
                  | STM32_RCC_PLLI2SCFGR_PLLI2SR);
       putreg32(regval, STM32_RCC_PLLI2SCFGR);
 
+      /* Enable PLLI2S */
+
+      regval = getreg32(STM32_RCC_CR);
+      regval |= RCC_CR_PLLI2SON;
+      putreg32(regval, STM32_RCC_CR);
+
+      /* Wait until the PLLI2S is ready */
+
+      while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLI2SRDY) == 0)
+        {
+        }
+#endif
+
       regval  = getreg32(STM32_RCC_DCKCFGR2);
-      regval &= ~(  RCC_DCKCFGR2_USART1SEL_MASK
+      regval &= ~(RCC_DCKCFGR2_USART1SEL_MASK
                   | RCC_DCKCFGR2_USART2SEL_MASK
                   | RCC_DCKCFGR2_UART4SEL_MASK
                   | RCC_DCKCFGR2_UART5SEL_MASK
@@ -937,7 +952,7 @@ static void stm32_stdclockconfig(void)
                   | RCC_DCKCFGR2_CK48MSEL_MASK
                   | RCC_DCKCFGR2_SDMMCSEL_MASK);
 
-      regval |= (  STM32_RCC_DCKCFGR2_USART1SRC
+      regval |= (STM32_RCC_DCKCFGR2_USART1SRC
                  | STM32_RCC_DCKCFGR2_USART2SRC
                  | STM32_RCC_DCKCFGR2_UART4SRC
                  | STM32_RCC_DCKCFGR2_UART5SRC
@@ -954,19 +969,6 @@ static void stm32_stdclockconfig(void)
                  | STM32_RCC_DCKCFGR2_SDMMCSRC);
 
       putreg32(regval, STM32_RCC_DCKCFGR2);
-
-      /* Enable PLLI2S */
-
-      regval = getreg32(STM32_RCC_CR);
-      regval |= RCC_CR_PLLI2SON;
-      putreg32(regval, STM32_RCC_CR);
-
-      /* Wait until the PLLI2S is ready */
-
-      while ((getreg32(STM32_RCC_CR) & RCC_CR_PLLI2SRDY) == 0)
-        {
-        }
-#endif
 
 #if defined(CONFIG_STM32F7_IWDG) || defined(CONFIG_STM32F7_RTC_LSICLOCK)
       /* Low speed internal clock source LSI */

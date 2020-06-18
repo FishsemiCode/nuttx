@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "chip/stm32l4_wdg.h"
+#include "hardware/stm32l4_wdg.h"
 
 #ifdef CONFIG_WATCHDOG
 
@@ -63,7 +63,7 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************
@@ -92,8 +92,8 @@ void stm32l4_iwdginitialize(FAR const char *devpath, uint32_t lsifreq);
  * Name: stm32l4_wwdginitialize
  *
  * Description:
- *   Initialize the WWDG watchdog time.  The watchdog timer is initialized and
- *   registers as 'devpath.  The initial state of the watchdog time is
+ *   Initialize the WWDG watchdog time.  The watchdog timer is initialized
+ *   and registers as 'devpath.  The initial state of the watchdog time is
  *   disabled.
  *
  * Input Parameters:

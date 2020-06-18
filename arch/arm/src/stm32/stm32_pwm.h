@@ -40,9 +40,9 @@
 #define __ARCH_ARM_SRC_STM32_STM32_PWM_H
 
 /* The STM32 does not have dedicated PWM hardware.  Rather, pulsed output control
- * is a capabilitiy of the STM32 timers.  The logic in this file implements the
+ * is a capability of the STM32 timers.  The logic in this file implements the
  * lower half of the standard, NuttX PWM interface using the STM32 timers.  That
- * interface is described in include/nuttx/drivers/pwm.h.
+ * interface is described in include/nuttx/timers/pwm.h.
  */
 
 /************************************************************************************
@@ -51,18 +51,26 @@
 
 #include <nuttx/config.h>
 
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 
 #include "chip.h"
+
+#ifdef CONFIG_STM32_PWM
+#  include <arch/board/board.h>
+#  include "hardware/stm32_tim.h"
+#endif
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Configuration ********************************************************************/
+
 /* Timer devices may be used for different purposes.  One special purpose is
- * to generate modulated outputs for such things as motor control.  If CONFIG_STM32_TIMn
- * is defined then the CONFIG_STM32_TIMn_PWM must also be defined to indicate that
- * timer "n" is intended to be used for pulsed output signal generation.
+ * to generate modulated outputs for such things as motor control.
+ * If CONFIG_STM32_TIMn is defined then the CONFIG_STM32_TIMn_PWM must also be
+ * defined to indicate that timer "n" is intended to be used for pulsed output
+ * signal generation.
  */
 
 #ifndef CONFIG_STM32_TIM1
@@ -120,14 +128,9 @@
 
 #ifdef CONFIG_STM32_PWM
 
-#include <arch/board/board.h>
-#include "chip/stm32_tim.h"
+/* PWM driver channels configuration */
 
-/* Configuration needed by upper-half PWM driver */
-
-#ifdef CONFIG_PWM
-
-#ifdef CONFIG_PWM_MULTICHAN
+#ifdef CONFIG_STM32_PWM_MULTICHAN
 
 #ifdef CONFIG_STM32_TIM1_CHANNEL1
 #  define PWM_TIM1_CHANNEL1 1
@@ -149,8 +152,19 @@
 #else
 #  define PWM_TIM1_CHANNEL4 0
 #endif
+#ifdef CONFIG_STM32_TIM1_CHANNEL5
+#  define PWM_TIM1_CHANNEL5 1
+#else
+#  define PWM_TIM1_CHANNEL5 0
+#endif
+#ifdef CONFIG_STM32_TIM1_CHANNEL6
+#  define PWM_TIM1_CHANNEL6 1
+#else
+#  define PWM_TIM1_CHANNEL6 0
+#endif
 #define PWM_TIM1_NCHANNELS (PWM_TIM1_CHANNEL1 + PWM_TIM1_CHANNEL2 + \
-                            PWM_TIM1_CHANNEL3 + PWM_TIM1_CHANNEL4)
+                            PWM_TIM1_CHANNEL3 + PWM_TIM1_CHANNEL4 + \
+                            PWM_TIM1_CHANNEL5 + PWM_TIM1_CHANNEL6)
 
 #ifdef CONFIG_STM32_TIM2_CHANNEL1
 #  define PWM_TIM2_CHANNEL1 1
@@ -264,8 +278,19 @@
 #else
 #  define PWM_TIM8_CHANNEL4 0
 #endif
+#ifdef CONFIG_STM32_TIM8_CHANNEL5
+#  define PWM_TIM8_CHANNEL5 1
+#else
+#  define PWM_TIM8_CHANNEL5 0
+#endif
+#ifdef CONFIG_STM32_TIM8_CHANNEL6
+#  define PWM_TIM8_CHANNEL6 1
+#else
+#  define PWM_TIM8_CHANNEL6 0
+#endif
 #define PWM_TIM8_NCHANNELS (PWM_TIM8_CHANNEL1 + PWM_TIM8_CHANNEL2 + \
-                            PWM_TIM8_CHANNEL3 + PWM_TIM8_CHANNEL4)
+                            PWM_TIM8_CHANNEL3 + PWM_TIM8_CHANNEL4 + \
+                            PWM_TIM8_CHANNEL5 + PWM_TIM8_CHANNEL6)
 
 #ifdef CONFIG_STM32_TIM9_CHANNEL1
 #  define PWM_TIM9_CHANNEL1 1
@@ -603,9 +628,7 @@
 #  define PWM_TIM17_NCHANNELS 1
 #endif
 
-#endif /* CONFIG_PWM_MULTICHAN */
-
-#endif /* CONFIG_PWM */
+#endif /* CONFIG_STM32_PWM_MULTICHAN */
 
 #ifdef CONFIG_STM32_TIM1_CH1OUT
 #  define PWM_TIM1_CH1CFG GPIO_TIM1_CH1OUT
@@ -876,6 +899,8 @@
 
 /* Low-level ops helpers ************************************************************/
 
+#ifdef CONFIG_STM32_PWM_LL_OPS
+
 /* NOTE: low-level ops accept pwm_lowerhalf_s as first argument, but llops access
  *       can be found in stm32_pwm_dev_s
  */
@@ -886,6 +911,8 @@
         (dev)->ops->shutdown((FAR struct pwm_lowerhalf_s *)dev)
 #define PWM_CCR_UPDATE(dev, index, ccr)                                            \
         (dev)->llops->ccr_update((FAR struct pwm_lowerhalf_s *)dev, index, ccr)
+#define PWM_MODE_UPDATE(dev, index, mode)                                          \
+        (dev)->llops->mode_update((FAR struct pwm_lowerhalf_s *)dev, index, mode)
 #define PWM_CCR_GET(dev, index)                                                    \
         (dev)->llops->ccr_get((FAR struct pwm_lowerhalf_s *)dev, index)
 #define PWM_ARR_UPDATE(dev, arr)                                                   \
@@ -912,6 +939,8 @@
 #endif
 #define PWM_DT_UPDATE(dev, dt)                                                     \
         (dev)->llops->dt_update((FAR struct pwm_lowerhalf_s *)dev, dt)
+
+#endif
 
 /************************************************************************************
  * Public Types
@@ -946,43 +975,68 @@ enum stm32_pwm_idle_e
 
 /* PWM channel mode */
 
-enum stm32_chan_mode_e
+enum stm32_pwm_chanmode_e
 {
-  STM32_CHANMODE_PWM1        = 0,
-  STM32_CHANMODE_PWM2        = 1,
+  STM32_CHANMODE_FRZN        = 0,  /* CCRx matches has no effects on outputs */
+  STM32_CHANMODE_CHACT       = 1,  /* OCxREF active on match */
+  STM32_CHANMODE_CHINACT     = 2,  /* OCxREF inactive on match */
+  STM32_CHANMODE_OCREFTOG    = 3,  /* OCxREF toggles when TIMy_CNT=TIMyCCRx */
+  STM32_CHANMODE_OCREFLO     = 4,  /* OCxREF is forced low */
+  STM32_CHANMODE_OCREFHI     = 5,  /* OCxREF is forced high */
+  STM32_CHANMODE_PWM1        = 6,  /* PWM mode 1 */
+  STM32_CHANMODE_PWM2        = 7,  /* PWM mode 2 */
 #ifdef HAVE_IP_TIMERS_V2
-  STM32_CHANMODE_COMBINED1   = 2,
-  STM32_CHANMODE_COMBINED2   = 3,
-  STM32_CHANMODE_ASYMMETRIC1 = 4,
-  STM32_CHANMODE_ASYMMETRIC2 = 5
+  STM32_CHANMODE_COMBINED1   = 8,  /* Combined PWM mode 1 */
+  STM32_CHANMODE_COMBINED2   = 9,  /* Combined PWM mode 2 */
+  STM32_CHANMODE_ASYMMETRIC1 = 10, /* Asymmetric PWM mode 1 */
+  STM32_CHANMODE_ASYMMETRIC2 = 11, /* Asymmetric PWM mode 2 */
 #endif
 };
 
-/* Timer channel */
+/* PWM timer channel */
 
-enum stm32_chan_e
+enum stm32_pwm_chan_e
 {
-  STM32_CHAN1  = (1 << 0),
-  STM32_CHAN1N = (1 << 1),
-  STM32_CHAN2  = (1 << 2),
-  STM32_CHAN2N = (1 << 3),
-  STM32_CHAN3  = (1 << 4),
-  STM32_CHAN3N = (1 << 5),
-  STM32_CHAN4  = (1 << 6),
-  /* No complementary output for CH4 */
+  STM32_PWM_CHAN1  = 1,
+  STM32_PWM_CHAN2  = 2,
+  STM32_PWM_CHAN3  = 3,
+  STM32_PWM_CHAN4  = 4,
+#ifdef HAVE_IP_TIMERS_V2
+  STM32_PWM_CHAN5  = 5,
+  STM32_PWM_CHAN6  = 6,
+#endif
+};
+
+/* PWM timer channel output */
+
+enum stm32_pwm_output_e
+{
+  STM32_PWM_OUT1  = (1 << 0),
+  STM32_PWM_OUT1N = (1 << 1),
+  STM32_PWM_OUT2  = (1 << 2),
+  STM32_PWM_OUT2N = (1 << 3),
+  STM32_PWM_OUT3  = (1 << 4),
+  STM32_PWM_OUT3N = (1 << 5),
+  STM32_PWM_OUT4  = (1 << 6),
+
+  /* 1 << 7 reserved - no complementary output for CH4 */
+
 #ifdef HAVE_IP_TIMERS_V2
   /* Only available inside micro */
 
-  STM32_CHAN5  = (1 << 7),
-  /* 1<<8 reserved */
-  STM32_CHAN6  = (1 << 9),
-  /* 1<<10 reserved */
+  STM32_PWM_OUT5  = (1 << 8),
+
+  /* 1 << 9 reserved - no complementary output for CH5 */
+
+  STM32_PWM_OUT6  = (1 << 10),
+
+  /* 1 << 11 reserved - no complementary output for CH6 */
 #endif
 };
 
 #ifdef CONFIG_STM32_PWM_LL_OPS
 
-/* This structure provides the publicly visable representation of the
+/* This structure provides the publicly visible representation of the
  * "lower-half" PWM driver structure.
  */
 
@@ -998,7 +1052,7 @@ struct stm32_pwm_dev_s
 
   FAR const struct stm32_pwm_ops_s *llops;
 
-  /* Require cast-compatibility with private "lower-half" PWM strucutre */
+  /* Require cast-compatibility with private "lower-half" PWM structure */
 };
 
 /* Low-level operations for PWM */
@@ -1009,6 +1063,10 @@ struct stm32_pwm_ops_s
   /* Update CCR register */
 
   int (*ccr_update)(FAR struct pwm_lowerhalf_s *dev, uint8_t index, uint32_t ccr);
+
+  /* Update PWM mode */
+
+  int (*mode_update)(FAR struct pwm_lowerhalf_s *dev, uint8_t index, uint32_t mode);
 
   /* Get CCR register */
 
@@ -1024,7 +1082,8 @@ struct stm32_pwm_ops_s
 
   /* Enable outputs */
 
-  int (*outputs_enable)(FAR struct pwm_lowerhalf_s *dev, uint16_t outputs, bool state);
+  int (*outputs_enable)(FAR struct pwm_lowerhalf_s *dev, uint16_t outputs,
+                        bool state);
 
   /* Software update */
 
@@ -1059,7 +1118,7 @@ struct stm32_pwm_ops_s
 #endif
 };
 
-#endif  /* CONFIG_STM32_PWM_LL_OPS */
+#endif /* CONFIG_STM32_PWM_LL_OPS */
 
 /************************************************************************************
  * Public Data
@@ -1077,7 +1136,7 @@ extern "C"
 #endif
 
 /************************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ************************************************************************************/
 
 /************************************************************************************

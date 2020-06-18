@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -107,7 +107,6 @@
 #ifndef __ASSEMBLY__
 struct xcptcontext
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-zero if there are pending signals
    * to be processed.
    */
@@ -124,7 +123,6 @@ struct xcptcontext
 
   uint32_t saved_pc;
   uint32_t saved_sr;
-#endif
 
   /* Register save area */
 
@@ -245,4 +243,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_AVR_INCLUDE_AVR32_IRQ_H */
-

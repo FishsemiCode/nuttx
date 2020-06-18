@@ -188,7 +188,7 @@ int at32uc3_configgpio(uint16_t cfgset)
       putreg32(pinmask, base + AVR32_GPIO_GPERC_OFFSET);
     }
 
-  /* Then the "ornaments" tha do not depend on gpio/peripheral mode:
+  /* Then the "ornaments" that do not depend on gpio/peripheral mode:
    * Pull-ups and glitch filering.
    */
 
@@ -252,7 +252,7 @@ void at32uc3_gpiowrite(uint16_t pinset, bool value)
   pinmask = (1 << pin);
   base    = g_portmap[port];
 
-  /* Now, set or clear the pin ouput value */
+  /* Now, set or clear the pin output value */
 
   if (value)
     {

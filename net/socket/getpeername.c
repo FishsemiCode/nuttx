@@ -91,7 +91,8 @@
  *
  ****************************************************************************/
 
-int psock_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr, FAR socklen_t *addrlen)
+int psock_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr,
+                      FAR socklen_t *addrlen)
 {
   /* Verify that the psock corresponds to valid, allocated socket */
 
@@ -105,7 +106,7 @@ int psock_getpeername(FAR struct socket *psock, FAR struct sockaddr *addr, FAR s
    */
 
 #ifdef CONFIG_DEBUG_FEATURES
-  if (addr == NULL || addrlen <= 0)
+  if (addr == NULL || *addrlen <= 0)
     {
       return -EINVAL;
     }
@@ -168,7 +169,7 @@ int getpeername(int sockfd, FAR struct sockaddr *addr, FAR socklen_t *addrlen)
   ret = psock_getpeername(psock, addr, addrlen);
   if (ret < 0)
     {
-      set_errno(-ret);
+      _SO_SETERRNO(psock, -ret);
       return ERROR;
     }
 

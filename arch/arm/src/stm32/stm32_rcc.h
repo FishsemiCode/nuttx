@@ -46,19 +46,19 @@
 #include "chip.h"
 
 #if defined(CONFIG_STM32_STM32L15XX)
-#  include "chip/stm32l15xxx_rcc.h"
+#  include "hardware/stm32l15xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F10XX)
-#  include "chip/stm32f10xxx_rcc.h"
+#  include "hardware/stm32f10xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F20XX)
-#  include "chip/stm32f20xxx_rcc.h"
+#  include "hardware/stm32f20xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F30XX)
-#  include "chip/stm32f30xxx_rcc.h"
+#  include "hardware/stm32f30xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F33XX)
-#  include "chip/stm32f33xxx_rcc.h"
+#  include "hardware/stm32f33xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F37XX)
-#  include "chip/stm32f37xxx_rcc.h"
+#  include "hardware/stm32f37xxx_rcc.h"
 #elif defined(CONFIG_STM32_STM32F4XXX)
-#  include "chip/stm32f40xxx_rcc.h"
+#  include "hardware/stm32f40xxx_rcc.h"
 #endif
 
 /************************************************************************************
@@ -264,7 +264,7 @@ void stm32_clockconfig(void);
  *
  * Description:
  *   Any STM32 board may replace the "standard" board clock configuration logic with
- *   its own, custom clock cofiguration logic.
+ *   its own, custom clock configuration logic.
  *
  ************************************************************************************/
 
@@ -283,7 +283,7 @@ void stm32_board_clockconfig(void);
  *
  *   This functional performs a subset of the operations performed by
  *   stm32_clockconfig():  It does not reset any devices, and it does not reset the
- *   currenlty enabled peripheral clocks.
+ *   currently enabled peripheral clocks.
  *
  *   If CONFIG_ARCH_BOARD_STM32_CUSTOM_CLOCKCONFIG is defined, then clocking will
  *   be enabled by an externally provided, board-specific function called

@@ -47,7 +47,7 @@
 #endif
 
 #if defined(CONFIG_NR5_NR5M1XX)
-#  include "chip/nr5m1xx_epic.h"
+#  include "hardware/nr5m1xx_epic.h"
 #endif
 
 #include <arch/rv32im/csr.h>
@@ -91,4 +91,3 @@ void up_enableints(void);
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_RISCV_SRC_NR5_NR5_CSR_H */
-

@@ -47,14 +47,13 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/drivers/drivers.h>
 
 #include "up_arch.h"
 #include "chip.h"
-#include "chip/nrf52_utils.h"
-#include "chip/nrf52_rng.h"
+#include "hardware/nrf52_utils.h"
+#include "hardware/nrf52_rng.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -77,7 +76,7 @@ static bool errata_16(void)
 
 static bool errata_66(void)
 {
-  /* This piece of code is modifed from Nordic SDK , there is no document to
+  /* This piece of code is modified from Nordic SDK , there is no document to
    * describe how to get the errdata information
    */
 
@@ -110,12 +109,13 @@ static void nrf52832_errdata_66_temp(void)
 
   if (errata_66())
     {
-      uint32_t temp_offset = 0x520;
+      uint32_t temp_offset      = 0x520;
       uint32_t temp_ficr_offset = 0x404;
+      int i;
 
       /* slot A : 6 totals */
 
-      for (int i = 0; i < 6; i++)
+      for (i = 0; i < 6; i++)
         {
           putreg32(getreg32(NRF52_FICR_BASE + temp_ficr_offset + i * 4),
                             NRF52_TEMP_BASE + temp_offset + i * 4);
@@ -123,9 +123,10 @@ static void nrf52832_errdata_66_temp(void)
 
       /* Slot B : 6 totals */
 
-      temp_offset = 0x540;
+      temp_offset      = 0x540;
       temp_ficr_offset = 0x41c;
-      for (int i = 0 ; i < 6; i++)
+
+      for (i = 0 ; i < 6; i++)
         {
           putreg32(getreg32(NRF52_FICR_BASE + temp_ficr_offset + i * 4),
                    NRF52_TEMP_BASE + temp_offset + i * 4);
@@ -133,9 +134,10 @@ static void nrf52832_errdata_66_temp(void)
 
       /* slot C : 5 totals */
 
-      temp_offset = 0x560;
+      temp_offset      = 0x560;
       temp_ficr_offset = 0x434;
-      for (int i = 0; i < 5; i++)
+
+      for (i = 0; i < 5; i++)
         {
           putreg32(getreg32(NRF52_FICR_BASE + temp_ficr_offset + i * 4),
                    NRF52_TEMP_BASE + temp_offset + i * 4);

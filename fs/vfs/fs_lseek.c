@@ -185,10 +185,9 @@ off_t lseek(int fd, off_t offset, int whence)
       goto errout;
     }
 
-   return newpos;
+  return newpos;
 
 errout:
   set_errno(errcode);
   return (off_t)ERROR;
 }
-

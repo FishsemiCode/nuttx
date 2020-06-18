@@ -48,7 +48,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -58,6 +57,7 @@
 #include <nuttx/analog/adc.h>
 #include <nuttx/analog/ioctl.h>
 #include <nuttx/analog/ltc1867l.h>
+#include <nuttx/semaphore.h>
 
 #if defined(CONFIG_ADC_LTC1867L)
 
@@ -128,10 +128,10 @@ static const struct adc_ops_s g_adcops =
 
 static void adc_lock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, true);
+  SPI_LOCK(spi, true);
   SPI_SETMODE(spi, LTC1867L_SPI_MODE);
   SPI_SETBITS(spi, 16);
-  (void)SPI_HWFEATURES(spi, 0);
+  SPI_HWFEATURES(spi, 0);
   SPI_SETFREQUENCY(spi, CONFIG_LTC1867L_FREQUENCY);
 }
 
@@ -145,22 +145,23 @@ static void adc_lock(FAR struct spi_dev_s *spi)
 
 static void adc_unlock(FAR struct spi_dev_s *spi)
 {
-  (void)SPI_LOCK(spi, false);
+  SPI_LOCK(spi, false);
 }
 
 /****************************************************************************
  * Name: adc_bind
  *
  * Description:
- *   Bind the upper-half driver callbacks to the lower-half implementation.  This
- *   must be called early in order to receive ADC event notifications.
+ *   Bind the upper-half driver callbacks to the lower-half implementation.
+ *   This must be called early in order to receive ADC event notifications.
  *
  ****************************************************************************/
 
 static int adc_bind(FAR struct adc_dev_s *dev,
                     FAR const struct adc_callback_s *callback)
 {
-  FAR struct ltc1867l_dev_s *priv = (FAR struct ltc1867l_dev_s *)dev->ad_priv;
+  FAR struct ltc1867l_dev_s *priv =
+    (FAR struct ltc1867l_dev_s *)dev->ad_priv;
   priv->cb = callback;
   return OK;
 }
@@ -184,7 +185,7 @@ static void adc_reset(FAR struct adc_dev_s *dev)
  * Description:
  *   Configure the ADC. This method is called the first time that the ADC
  *   device is opened.  This will occur when the port is first opened.
- *   This setup includes configuring and attaching ADC interrupts.  Interrupts
+ *   This setup includes configuring and attaching ADC interrupts. Interrupts
  *   are all disabled upon return.
  *
  ****************************************************************************/
@@ -229,12 +230,13 @@ static void adc_rxint(FAR struct adc_dev_s *dev, bool enable)
 
 static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
 {
-  FAR struct ltc1867l_dev_s *priv = (FAR struct ltc1867l_dev_s *)dev->ad_priv;
+  FAR struct ltc1867l_dev_s *priv =
+    (FAR struct ltc1867l_dev_s *)dev->ad_priv;
   FAR struct spi_dev_s *spi = priv->spi;
   int i;
   uint16_t command;
   uint16_t data;
-  int32_t dataToPost;
+  int32_t postdata;
   int ret = OK;
 
   if (cmd == ANIOC_TRIGGER)
@@ -250,7 +252,7 @@ static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
           if (i < priv->channel_config_count)
             {
               command = priv->channel_config[i].analog_multiplexer_config |
-                        priv->channel_config[i].analog_inputMode;
+                        priv->channel_config[i].analog_inputmode;
               command = command << 8;
             }
           else
@@ -265,18 +267,21 @@ static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
 
           if (i > 0)
             {
-              if (priv->channel_config[i-1].analog_inputMode == LTC1867L_UNIPOLAR ||
-                  (priv->channel_config[i-1].analog_inputMode == LTC1867L_BIPOLAR &&
+              if (priv->channel_config[i - 1].analog_inputmode ==
+                  LTC1867L_UNIPOLAR ||
+                  (priv->channel_config[i - 1].analog_inputmode ==
+                   LTC1867L_BIPOLAR &&
                    data >= 0 && data <= 0x7fff))
                 {
-                  dataToPost = data;
+                  postdata = data;
                 }
               else
                 {
-                  dataToPost = -(0xffff - data) - 1;
+                  postdata = -(0xffff - data) - 1;
                 }
 
-              priv->cb->au_receive(dev, priv->channel_config[i-1].channel, dataToPost);
+              priv->cb->au_receive(dev, priv->channel_config[i - 1].channel,
+                                   postdata);
             }
         }
 
@@ -318,7 +323,7 @@ static int adc_ioctl(FAR struct adc_dev_s *dev, int cmd, unsigned long arg)
 
 int ltc1867l_register(FAR const char *devpath, FAR struct spi_dev_s *spi,
                       unsigned int devno,
-                      FAR struct ltc1867l_channel_config_s* channel_config,
+                      FAR struct ltc1867l_channel_config_s *channel_config,
                       int channel_config_count)
 {
   FAR struct ltc1867l_dev_s *adcpriv;
@@ -332,7 +337,8 @@ int ltc1867l_register(FAR const char *devpath, FAR struct spi_dev_s *spi,
 
   /* Initialize the LTC1867L device structure */
 
-  adcpriv = (FAR struct ltc1867l_dev_s *)kmm_malloc(sizeof(struct ltc1867l_dev_s));
+  adcpriv =
+    (FAR struct ltc1867l_dev_s *)kmm_malloc(sizeof(struct ltc1867l_dev_s));
   if (adcpriv == NULL)
     {
       aerr("ERROR: Failed to allocate ltc1867l_dev_s instance\n");

@@ -79,9 +79,10 @@
 #define MSBYTE(u16)                             ((u16) >> 8)     /* Get MS byte from uint16_t */
 #define LSBYTE(u16)                             ((u16) & 0xff)   /* Get LS byte from uint16_t */
 
-#define GETUINT16(p)                            (((uint16_t)p[1]<<8)|(uint16_t)p[0])
-#define GETUINT32(p)                            (((uint32_t)p[3]<<24)|((uint32_t)p[2]<<16)|\
-                                                 ((uint32_t)p[1]<<8)|(uint32_t)p[0])
+#define GETUINT16(p)                            (((uint16_t)p[1] << 8) | (uint16_t)p[0])
+#define GETUINT32(p)                            (((uint32_t)p[3] << 24) | \
+                                                 ((uint32_t)p[2] << 16) | \
+                                                 ((uint32_t)p[1] << 8) | (uint32_t)p[0])
 
 /* USB directions (in endpoint addresses) */
 
@@ -439,7 +440,7 @@ struct usb_iaddesc_s
  * USB_REQ_GETMSFTOSDESCRIPTOR.
  * More details: https://msdn.microsoft.com/en-us/windows/hardware/gg463179
  * And excellent explanation: https://github.com/pbatard/libwdi/wiki/WCID-Devices
- * 
+ *
  * The device will have exactly one "Extended Compat ID Feature Descriptor",
  * which may contain multiple "Function Descriptors" associated with different
  * interfaces.
@@ -467,7 +468,7 @@ struct usb_msft_os_feature_desc_s
 /* Microsoft OS extended property descriptor.
  * This can be used to set specific registry values, such as interface GUID for
  * a device. It is requested per-interface by special request USB_REQ_GETMSFTOSDESCRIPTOR.
- * 
+ *
  * The interface will have one extended properties descriptor, which may contain
  * multiple properties inside it.
  */
@@ -478,7 +479,7 @@ struct usb_msft_os_extprop_hdr_s
   uint8_t version[2];        /* Descriptor syntax version, 0x0100 */
   uint8_t index[2];          /* Set to 5 for "extended property descriptors" */
   uint8_t count[2];          /* Number of property sections */
-  
+
   /* The properties are appended after the header and follow this format:
    * uint8_t prop_len[4];
    * uint8_t data_type[4];
@@ -498,4 +499,3 @@ struct usb_msft_os_extprop_hdr_s
  ************************************************************************************/
 
 #endif /* __INCLUDE_NUTTX_USB_USB_H */
-

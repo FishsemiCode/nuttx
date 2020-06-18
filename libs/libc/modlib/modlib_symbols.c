@@ -1,35 +1,20 @@
 /****************************************************************************
  * libs/libc/modlib/modlib_symbols.c
  *
- *   Copyright (C) 2015, 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -82,14 +67,14 @@ struct mod_exportinfo_s
  *   0 (OK) is returned on success and a negated errno is returned on
  *   failure.
  *
- *   EINVAL - There is something inconsistent in the symbol table (should only
- *            happen if the file is corrupted).
+ *   EINVAL - There is something inconsistent in the symbol table (should
+ *            only happen if the file is corrupted).
  *   ESRCH - Symbol has no name
  *
  ****************************************************************************/
 
 static int modlib_symname(FAR struct mod_loadinfo_s *loadinfo,
-                          FAR const Elf32_Sym *sym)
+                          FAR const Elf_Sym *sym)
 {
   FAR uint8_t *buffer;
   off_t  offset;
@@ -169,9 +154,9 @@ static int modlib_symname(FAR struct mod_loadinfo_s *loadinfo,
  * Name: modlib_symcallback
  *
  * Description:
- *   modlib_registry_foreach() callback function.  Test if the provided module,
- *   modp, exports the symbol of interest.  If so, return that symbol value
- *   and setup the module dependency relationship.
+ *   modlib_registry_foreach() callback function.  Test if the provided
+ *   module, modp, exports the symbol of interest.  If so, return that symbol
+ *   value and setup the module dependency relationship.
  *
  * Returned Value:
  *   0 (OK) is returned on success and a negated errno is returned on
@@ -181,7 +166,8 @@ static int modlib_symname(FAR struct mod_loadinfo_s *loadinfo,
 
 static int modlib_symcallback(FAR struct module_s *modp, FAR void *arg)
 {
-  FAR struct mod_exportinfo_s *exportinfo = (FAR struct mod_exportinfo_s *)arg;
+  FAR struct mod_exportinfo_s *exportinfo = (FAR struct mod_exportinfo_s *)
+                                            arg;
   int ret;
 
   /* Check if this module exports a symbol of that name */
@@ -196,23 +182,23 @@ static int modlib_symcallback(FAR struct module_s *modp, FAR void *arg)
                                          modp->modinfo.nexports);
 #endif
 
-   if (exportinfo->symbol != NULL)
-     {
-       /* Yes.. save the dependency relationship and return SYM_FOUND to
-        * stop the traversal.
-        */
+  if (exportinfo->symbol != NULL)
+    {
+      /* Yes.. save the dependency relationship and return SYM_FOUND to
+       * stop the traversal.
+       */
 
-       ret = modlib_depend(exportinfo->modp, modp);
-       if (ret < 0)
-         {
-           berr("ERROR: modlib_depend failed: %d\n", ret);
-           return ret;
-         }
+      ret = modlib_depend(exportinfo->modp, modp);
+      if (ret < 0)
+        {
+          berr("ERROR: modlib_depend failed: %d\n", ret);
+          return ret;
+        }
 
-       return SYM_FOUND;
-     }
+      return SYM_FOUND;
+    }
 
-   return SYM_NOT_FOUND;
+  return SYM_NOT_FOUND;
 }
 
 /****************************************************************************
@@ -276,14 +262,14 @@ int modlib_findsymtab(FAR struct mod_loadinfo_s *loadinfo)
  ****************************************************************************/
 
 int modlib_readsym(FAR struct mod_loadinfo_s *loadinfo, int index,
-                   FAR Elf32_Sym *sym)
+                   FAR Elf_Sym *sym)
 {
-  FAR Elf32_Shdr *symtab = &loadinfo->shdr[loadinfo->symtabidx];
+  FAR Elf_Shdr *symtab = &loadinfo->shdr[loadinfo->symtabidx];
   off_t offset;
 
   /* Verify that the symbol table index lies within symbol table */
 
-  if (index < 0 || index > (symtab->sh_size / sizeof(Elf32_Sym)))
+  if (index < 0 || index > (symtab->sh_size / sizeof(Elf_Sym)))
     {
       berr("ERROR: Bad relocation symbol index: %d\n", index);
       return -EINVAL;
@@ -291,11 +277,11 @@ int modlib_readsym(FAR struct mod_loadinfo_s *loadinfo, int index,
 
   /* Get the file offset to the symbol table entry */
 
-  offset = symtab->sh_offset + sizeof(Elf32_Sym) * index;
+  offset = symtab->sh_offset + sizeof(Elf_Sym) * index;
 
   /* And, finally, read the symbol table entry into memory */
 
-  return modlib_read(loadinfo, (FAR uint8_t *)sym, sizeof(Elf32_Sym), offset);
+  return modlib_read(loadinfo, (FAR uint8_t *)sym, sizeof(Elf_Sym), offset);
 }
 
 /****************************************************************************
@@ -314,8 +300,8 @@ int modlib_readsym(FAR struct mod_loadinfo_s *loadinfo, int index,
  *   0 (OK) is returned on success and a negated errno is returned on
  *   failure.
  *
- *   EINVAL - There is something inconsistent in the symbol table (should only
- *            happen if the file is corrupted).
+ *   EINVAL - There is something inconsistent in the symbol table (should
+ *            only happen if the file is corrupted).
  *   ENOSYS - Symbol lies in common
  *   ESRCH  - Symbol has no name
  *   ENOENT - Symbol undefined and not provided via a symbol table
@@ -323,7 +309,7 @@ int modlib_readsym(FAR struct mod_loadinfo_s *loadinfo, int index,
  ****************************************************************************/
 
 int modlib_symvalue(FAR struct module_s *modp,
-                    FAR struct mod_loadinfo_s *loadinfo, FAR Elf32_Sym *sym)
+                    FAR struct mod_loadinfo_s *loadinfo, FAR Elf_Sym *sym)
 {
   FAR const struct symtab_s *symbol;
   struct mod_exportinfo_s exportinfo;
@@ -376,7 +362,8 @@ int modlib_symvalue(FAR struct module_s *modp,
         exportinfo.modp   = modp;
         exportinfo.symbol = NULL;
 
-        ret = modlib_registry_foreach(modlib_symcallback, (FAR void *)&exportinfo);
+        ret = modlib_registry_foreach(modlib_symcallback,
+                                      (FAR void *)&exportinfo);
         if (ret < 0)
           {
             berr("ERROR: modlib_symcallback failed: \n", ret);
@@ -410,13 +397,15 @@ int modlib_symvalue(FAR struct module_s *modp,
             return -ENOENT;
           }
 
-        /* Yes... add the exported symbol value to the ELF symbol table entry */
+        /* Yes... add the exported symbol value to the ELF symbol tablei
+         * entry
+         */
 
         binfo("SHN_UNDEF: name=%s %08x+%08x=%08x\n",
               loadinfo->iobuffer, sym->st_value, symbol->sym_value,
               sym->st_value + symbol->sym_value);
 
-        sym->st_value += (Elf32_Word)((uintptr_t)symbol->sym_value);
+        sym->st_value += ((uintptr_t)symbol->sym_value);
       }
       break;
 

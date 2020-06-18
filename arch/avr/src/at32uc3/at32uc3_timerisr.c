@@ -174,7 +174,7 @@ static int at32uc3_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  avr_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the timer
@@ -183,7 +183,7 @@ static int at32uc3_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void avr_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
 
@@ -219,7 +219,7 @@ void avr_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(AVR32_IRQ_RTC, (xcpt_t)at32uc3_timerisr, NULL);
+  irq_attach(AVR32_IRQ_RTC, (xcpt_t)at32uc3_timerisr, NULL);
 
   /* Enable RTC interrupts */
 

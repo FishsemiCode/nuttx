@@ -75,8 +75,8 @@
  *
  ****************************************************************************/
 
-#ifdef CONFIG_NET_UDP_READAHEAD
-static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn,
+static uint16_t udp_datahandler(FAR struct net_driver_s *dev,
+                                FAR struct udp_conn_s *conn,
                                 FAR uint8_t *buffer, uint16_t buflen)
 {
   FAR struct iob_s *iob;
@@ -84,13 +84,17 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
 #ifdef CONFIG_NET_IPv6
   FAR struct sockaddr_in6 src_addr6 =
   {
+    0
   };
 #endif
+
 #ifdef CONFIG_NET_IPv4
   FAR struct sockaddr_in src_addr4 =
   {
+    0
   };
 #endif
+
   FAR void  *src_addr;
   uint8_t src_addr_size;
 
@@ -98,7 +102,7 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
    * We will not wait for an I/O buffer to become available in this context.
    */
 
-  iob = iob_tryalloc(true);
+  iob = iob_tryalloc(true, IOBUSER_NET_UDP_READAHEAD);
   if (iob == NULL)
     {
       nerr("ERROR: Failed to create new I/O buffer chain\n");
@@ -161,6 +165,7 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
 
           net_ipv4addr_copy(src_addr4.sin_addr.s_addr,
                             net_ip4addr_conv32(ipv4->srcipaddr));
+          memset(src_addr4.sin_zero, 0, sizeof(src_addr4.sin_zero));
 
           src_addr_size = sizeof(src_addr4);
           src_addr = &src_addr4;
@@ -174,7 +179,7 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
    */
 
   ret = iob_trycopyin(iob, (FAR const uint8_t *)&src_addr_size,
-                      sizeof(uint8_t), 0, true);
+                      sizeof(uint8_t), 0, true, IOBUSER_NET_UDP_READAHEAD);
   if (ret < 0)
     {
       /* On a failure, iob_trycopyin return a negated error value but does
@@ -182,12 +187,12 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
        */
 
       nerr("ERROR: Failed to add data to the I/O buffer chain: %d\n", ret);
-      (void)iob_free_chain(iob);
+      iob_free_chain(iob, IOBUSER_NET_UDP_READAHEAD);
       return 0;
     }
 
   ret = iob_trycopyin(iob, (FAR const uint8_t *)src_addr, src_addr_size,
-                      sizeof(uint8_t), true);
+                      sizeof(uint8_t), true, IOBUSER_NET_UDP_READAHEAD);
   if (ret < 0)
     {
       /* On a failure, iob_trycopyin return a negated error value but does
@@ -195,7 +200,7 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
        */
 
       nerr("ERROR: Failed to add data to the I/O buffer chain: %d\n", ret);
-      (void)iob_free_chain(iob);
+      iob_free_chain(iob, IOBUSER_NET_UDP_READAHEAD);
       return 0;
     }
 
@@ -204,7 +209,8 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
       /* Copy the new appdata into the I/O buffer chain */
 
       ret = iob_trycopyin(iob, buffer, buflen,
-                          src_addr_size + sizeof(uint8_t), true);
+                          src_addr_size + sizeof(uint8_t), true,
+                          IOBUSER_NET_UDP_READAHEAD);
       if (ret < 0)
         {
           /* On a failure, iob_trycopyin return a negated error value but
@@ -213,7 +219,7 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
 
           nerr("ERROR: Failed to add data to the I/O buffer chain: %d\n",
                ret);
-          (void)iob_free_chain(iob);
+          iob_free_chain(iob, IOBUSER_NET_UDP_READAHEAD);
           return 0;
         }
     }
@@ -224,22 +230,21 @@ static uint16_t udp_datahandler(FAR struct net_driver_s *dev, FAR struct udp_con
   if (ret < 0)
     {
       nerr("ERROR: Failed to queue the I/O buffer chain: %d\n", ret);
-      (void)iob_free_chain(iob);
+      iob_free_chain(iob, IOBUSER_NET_UDP_READAHEAD);
       return 0;
     }
 
-#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+#ifdef CONFIG_NET_UDP_NOTIFIER
   /* Provided notification(s) that additional UDP read-ahead data is
    * available.
    */
 
-  udp_notifier_signal(conn);
+  udp_readahead_signal(conn);
 #endif
 
   ninfo("Buffered %d bytes\n", buflen);
   return buflen;
 }
-#endif /* CONFIG_NET_UDP_READAHEAD */
 
 /****************************************************************************
  * Name: net_dataevent
@@ -254,11 +259,9 @@ net_dataevent(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn,
               uint16_t flags)
 {
   uint16_t ret;
-#ifdef CONFIG_NET_UDP_READAHEAD
   uint8_t *buffer = dev->d_appdata;
   int      buflen = dev->d_len;
   uint16_t recvlen;
-#endif
 
   ret = (flags & ~UDP_NEWDATA);
 
@@ -268,14 +271,12 @@ net_dataevent(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn,
 
   ninfo("No receive on connection\n");
 
-#ifdef CONFIG_NET_UDP_READAHEAD
   /* Save as the packet data as in the read-ahead buffer.  NOTE that
    * partial packets will not be buffered.
    */
 
   recvlen = udp_datahandler(dev, conn, buffer, buflen);
   if (recvlen < buflen)
-#endif
     {
       /* There is no handler to receive new data and there are no free
        * read-ahead buffers to retain the data -- drop the packet.

@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/unistd.h
  *
- *   Copyright (C) 2007-2009, 2013-2014, 2016-2018 Gregory Nutt. All rights
+ *   Copyright (C) 2007-2009, 2013-2014, 2016-2019 Gregory Nutt. All rights
  *     reserved.
  *   Author:  Gregory Nutt <gnutt@nuttx.org>
  *
@@ -65,9 +65,9 @@
 /* Bit values for the second argument to access */
 
 #define F_OK        0  /* Test existence */
-#define R_OK        1  /* Test read permission */
+#define X_OK        1  /* Test execute permission */
 #define W_OK        2  /* Test write permission */
-#define X_OK        4  /* Test execute permission */
+#define R_OK        4  /* Test read permission */
 
 /* POSIX feature set macros */
 
@@ -307,6 +307,10 @@ FAR void *sbrk(intptr_t incr);
 
 int     pipe(int fd[2]);
 
+/* Schedule an alarm */
+
+unsigned int alarm(unsigned int seconds);
+
 /* Working directory operations */
 
 int     chdir(FAR const char *path);
@@ -341,6 +345,21 @@ int     sethostname(FAR const char *name, size_t size);
 /* Get configurable system variables */
 
 long    sysconf(int name);
+
+/* User and group identity management */
+
+int     setuid(uid_t uid);
+uid_t   getuid(void);
+int     setgid(gid_t gid);
+gid_t   getgid(void);
+
+int     seteuid(uid_t uid);
+uid_t   geteuid(void);
+int     setegid(gid_t gid);
+gid_t   getegid(void);
+
+int     setreuid(uid_t ruid, uid_t euid);
+int     setregid(gid_t rgid, gid_t egid);
 
 #undef EXTERN
 #if defined(__cplusplus)

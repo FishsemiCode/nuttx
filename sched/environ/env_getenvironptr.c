@@ -120,4 +120,3 @@ FAR char **get_environ_ptr_global(void)
 }
 
 #endif /* CONFIG_DISABLE_ENVIRON */
-

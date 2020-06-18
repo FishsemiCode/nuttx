@@ -41,7 +41,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -55,8 +54,8 @@
 
 #include "chip.h"
 #include "lpc43_gpio.h"
-#include "chip/lpc43_can.h"
-#include "chip/lpc43_rgu.h"
+#include "hardware/lpc43_can.h"
+#include "hardware/lpc43_rgu.h"
 #include "lpc43_ccu.h"
 #include "lpc43_cgu.h"
 
@@ -703,7 +702,7 @@ static int can_remoterequest(FAR struct can_dev_s *dev, uint16_t id)
  *
  *    Byte 0:      Bits 0-7: Bits 3-10 of the 11-bit CAN identifier
  *    Byte 1:      Bits 5-7: Bits 0-2 of the 11-bit CAN identifier
- *                 Bit 4:    Remote Tranmission Request (RTR)
+ *                 Bit 4:    Remote Transmission Request (RTR)
  *                 Bits 0-3: Data Length Code (DLC)
  *    Bytes 2-10: CAN data
  *
@@ -1207,13 +1206,13 @@ static int can_bittiming(struct up_dev_s *priv)
  * Name: lpc43_caninitialize
  *
  * Description:
- *   Initialize the selected can port
+ *   Initialize the selected CAN port
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple can interfaces)
+ *   Port number (for hardware that has multiple CAN interfaces)
  *
  * Returned Value:
- *   Valid can device structure reference on succcess; a NULL on failure
+ *   Valid CAN device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

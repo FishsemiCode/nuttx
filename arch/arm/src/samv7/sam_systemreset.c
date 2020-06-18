@@ -43,11 +43,12 @@
 #include <stdint.h>
 #include <assert.h>
 
+#include <nuttx/arch.h>
 #include <nuttx/board.h>
 #include <arch/samv7/chip.h>
 
 #include "up_arch.h"
-#include "chip/sam_rstc.h"
+#include "hardware/sam_rstc.h"
 
 #ifdef CONFIG_SAMV7_SYSTEMRESET
 

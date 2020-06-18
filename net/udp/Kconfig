@@ -8,6 +8,7 @@ menu "UDP Networking"
 config NET_UDP
 	bool "UDP Networking"
 	default n
+	select NET_READAHEAD if !NET_UDP_NO_STACK
 	depends on NET
 	---help---
 		Enable or disable UDP networking support.
@@ -18,6 +19,16 @@ config NET_UDP_NO_STACK
 	select NET_UDP
 	---help---
 		Build without UDP/IP stack even if UDP networking support enabled.
+
+if NET_UDP
+
+config NET_BROADCAST
+	bool "UDP broadcast Rx support"
+	default n
+	---help---
+		Incoming UDP broadcast support
+
+endif # NET_UDP
 
 if NET_UDP && !NET_UDP_NO_STACK
 
@@ -45,35 +56,14 @@ config NET_UDP_CONNS
 	---help---
 		The maximum amount of open concurrent UDP sockets
 
-config NET_BROADCAST
-	bool "UDP broadcast Rx support"
-	default n
-	---help---
-		Incoming UDP broadcast support
-
-config NET_UDP_READAHEAD
-	bool "Enable UDP/IP read-ahead buffering"
-	default y
-	select NET_READAHEAD
-	select MM_IOB
-
-config UDP_READAHEAD_NOTIFIER
-	bool "Support UDP read-ahead notifications"
-	default n
-	depends on NET_UDP_READAHEAD && SCHED_WORKQUEUE
-	select WQUEUE_NOTIFIER
-	---help---
-		Enable building of UDP read-ahead notifier logic that will execute a
-		worker function on the high priority work queue when read-ahead data
-		is available.  This is is a general purpose notifier, but was
-		developed specifically to support poll() logic where the poll must
-		wait for read-ahead data to become available.
+config NET_UDP_NPOLLWAITERS
+	int "Number of UDP poll waiters"
+	default 1
 
 config NET_UDP_WRITE_BUFFERS
 	bool "Enable UDP/IP write buffering"
 	default n
 	select NET_WRITE_BUFFERS
-	select MM_IOB
 	---help---
 		Write buffers allows buffering of ongoing UDP/IP packets, providing
 		for higher performance, streamed output.
@@ -116,6 +106,18 @@ config NET_UDP_WRBUFFER_DUMP
 		detail.
 
 endif # NET_UDP_WRITE_BUFFERS
+
+config NET_UDP_NOTIFIER
+	bool "Support UDP read-ahead notifications"
+	default n
+	depends on SCHED_WORKQUEUE
+	select WQUEUE_NOTIFIER
+	---help---
+		Enable building of UDP read-ahead notifier logic that will execute a
+		worker function on the low priority work queue when read-ahead data
+		is available.  This is a general purpose notifier, but was
+		developed specifically to support poll() logic where the poll must
+		wait for read-ahead data to become available.
 
 endif # NET_UDP && !NET_UDP_NO_STACK
 endmenu # UDP Networking

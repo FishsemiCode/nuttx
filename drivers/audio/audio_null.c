@@ -363,7 +363,7 @@ static int null_configure(FAR struct audio_lowerhalf_s *dev,
         case AUDIO_FU_VOLUME:
           audinfo("    Volume: %d\n", caps->ac_controls.hw[0]);
           break;
-#endif  /* CONFIG_AUDIO_EXCLUDE_VOLUME */
+#endif /* CONFIG_AUDIO_EXCLUDE_VOLUME */
 
 #ifndef CONFIG_AUDIO_EXCLUDE_TONE
         case AUDIO_FU_BASS:
@@ -373,7 +373,7 @@ static int null_configure(FAR struct audio_lowerhalf_s *dev,
         case AUDIO_FU_TREBLE:
           audinfo("    Treble: %d\n", caps->ac_controls.b[0]);
           break;
-#endif  /* CONFIG_AUDIO_EXCLUDE_TONE */
+#endif /* CONFIG_AUDIO_EXCLUDE_TONE */
 
         default:
           auderr("    ERROR: Unrecognized feature unit\n");
@@ -544,8 +544,8 @@ static int null_start(FAR struct audio_lowerhalf_s *dev)
 
   pthread_attr_init(&tattr);
   sparam.sched_priority = sched_get_priority_max(SCHED_FIFO) - 3;
-  (void)pthread_attr_setschedparam(&tattr, &sparam);
-  (void)pthread_attr_setstacksize(&tattr, CONFIG_AUDIO_NULL_WORKER_STACKSIZE);
+  pthread_attr_setschedparam(&tattr, &sparam);
+  pthread_attr_setstacksize(&tattr, CONFIG_AUDIO_NULL_WORKER_STACKSIZE);
 
   audinfo("Starting worker thread\n");
   ret = pthread_create(&priv->threadid, &tattr, null_workerthread,
@@ -590,8 +590,8 @@ static int null_stop(FAR struct audio_lowerhalf_s *dev)
 
   term_msg.msgId = AUDIO_MSG_STOP;
   term_msg.u.data = 0;
-  (void)nxmq_send(priv->mq, (FAR const char *)&term_msg, sizeof(term_msg),
-                 CONFIG_AUDIO_NULL_MSG_PRIO);
+  nxmq_send(priv->mq, (FAR const char *)&term_msg, sizeof(term_msg),
+            CONFIG_AUDIO_NULL_MSG_PRIO);
 
   /* Join the worker thread */
 

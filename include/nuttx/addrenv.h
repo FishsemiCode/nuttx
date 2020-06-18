@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_ADDRENV_H
-#define __INCLUDE_NUTTX_ADDRENV_H 1
+#define __INCLUDE_NUTTX_ADDRENV_H
 
 /****************************************************************************
  * Included Files
@@ -247,7 +247,6 @@
  */
 
 #ifdef CONFIG_BUILD_KERNEL
-#ifndef CONFIG_DISABLE_SIGNALS
 /* This is the type of the signal handler trampoline routine.  This
  * trampoline is called directly from kernel logic.  It simply forwards the
  * signal information to the real signal handler.  When the signal handler
@@ -255,17 +254,15 @@
  * mode.
  */
 
-typedef void (*addrenv_sigtramp_t)(_sa_sigaction_t sighand, int signo,
-                                   FAR siginfo_t *info, FAR void *ucontext);
-#endif
+typedef CODE void (*addrenv_sigtramp_t)(_sa_sigaction_t sighand, int signo,
+                                        FAR siginfo_t *info,
+                                        FAR void *ucontext);
 
 /* This structure describes the format of the .bss/.data reserved area */
 
 struct addrenv_reserve_s
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   addrenv_sigtramp_t ar_sigtramp;  /* Signal trampoline */
-#endif
   struct mm_heap_s   ar_usrheap;   /* User space heap structure */
 };
 

@@ -1,40 +1,20 @@
 /****************************************************************************
  * arch/arm/src/imx6/imx_ecspi.c
  *
- *   Copyright (C) 2016-2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Derives from the i.MX1 CSPI driver:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- *   Copyright (C) 2009-2010, 2013, 2016 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -46,7 +26,6 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -135,7 +114,7 @@
  * Private Type Definitions
  ****************************************************************************/
 
- /* Per SPI callouts to board-specific logic */
+/* Per SPI callouts to board-specific logic */
 
 typedef CODE void (*imx_select_t)(FAR struct spi_dev_s *dev,
                                   uint32_t devid, bool selected);
@@ -165,7 +144,7 @@ struct imx_spidev_s
 
   /* These are functions pointers that are configured to perform the
    * appropriate transfer for the particular kind of exchange that is
-   * occurring.  Differnt functions may be selected depending on (1)
+   * occurring.  Different functions may be selected depending on (1)
    * if the tx or txbuffer is NULL and depending on the number of bits
    * per word.
    */
@@ -203,8 +182,10 @@ struct imx_spidev_s
 
 /* SPI register access */
 
-static inline uint32_t spi_getreg(struct imx_spidev_s *priv, unsigned int offset);
-static inline void spi_putreg(struct imx_spidev_s *priv, unsigned int offset, uint32_t value);
+static inline uint32_t spi_getreg(struct imx_spidev_s *priv,
+                                  unsigned int offset);
+static inline void spi_putreg(struct imx_spidev_s *priv,
+                              unsigned int offset, uint32_t value);
 
 /* SPI data transfer */
 
@@ -234,7 +215,7 @@ static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
                                  uint32_t frequency);
 static void   spi_setmode(FAR struct spi_dev_s *dev, enum spi_mode_e mode);
 static void   spi_setbits(FAR struct spi_dev_s *dev, int nbits);
-static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd);
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd);
 static uint8_t spi_status(FAR struct spi_dev_s *dev, uint32_t devid);
 #ifdef CONFIG_SPI_CMDDATA
 static int spi_cmddata(FAR struct spi_dev_s *dev, uint32_t devid,
@@ -280,7 +261,7 @@ static const struct spi_ops_s g_spiops =
 #endif
 };
 
-/* This supports is up to five SPI busses/ports */
+/* This supports is up to five SPI buses/ports */
 
 static struct imx_spidev_s g_spidev[] =
 {
@@ -297,11 +278,11 @@ static struct imx_spidev_s g_spidev[] =
 #ifdef CONFIG_SPI_CMDDATA
       .cmddata = imx_spi1cmddata,
 #endif
-    }
+    },
 #endif
 
 #ifdef CONFIG_IMX6_ECSPI2
-  , {
+    {
       .ops     = &g_spiops,
       .base    = IMX_ECSPI2_VBASE,
       .spindx  = SPI2_NDX,
@@ -313,11 +294,11 @@ static struct imx_spidev_s g_spidev[] =
 #ifdef CONFIG_SPI_CMDDATA
       .cmddata = imx_spi2cmddata,
 #endif
-    }
+    },
 #endif
 
 #ifdef CONFIG_IMX6_ECSPI3
-  , {
+    {
       .ops     = &g_spiops,
       .base    = IMX_ECSPI3_VBASE,
       .spindx  = SPI3_NDX,
@@ -329,11 +310,11 @@ static struct imx_spidev_s g_spidev[] =
 #ifdef CONFIG_SPI_CMDDATA
       .cmddata = imx_spi3cmddata,
 #endif
-    }
+    },
 #endif
 
 #ifdef CONFIG_IMX6_ECSPI4
-  , {
+    {
       .ops     = &g_spiops,
       .base    = IMX_ECSPI4_VBASE,
       .spindx  = SPI4_NDX,
@@ -345,11 +326,11 @@ static struct imx_spidev_s g_spidev[] =
 #ifdef CONFIG_SPI_CMDDATA
       .cmddata = imx_spi4cmddata,
 #endif
-    }
+    },
 #endif
 
 #ifdef CONFIG_IMX6_ECSPI5
-  , {
+    {
       .ops     = &g_spiops,
       .base    = IMX_ECSPI5_VBASE,
       .spindx  = SPI5_NDX,
@@ -384,7 +365,8 @@ static struct imx_spidev_s g_spidev[] =
  *
  ****************************************************************************/
 
-static inline uint32_t spi_getreg(struct imx_spidev_s *priv, unsigned int offset)
+static inline uint32_t spi_getreg(struct imx_spidev_s *priv,
+                                  unsigned int offset)
 {
   return getreg32(priv->base + offset);
 }
@@ -405,7 +387,8 @@ static inline uint32_t spi_getreg(struct imx_spidev_s *priv, unsigned int offset
  *
  ****************************************************************************/
 
-static inline void spi_putreg(struct imx_spidev_s *priv, unsigned int offset, uint32_t value)
+static inline void spi_putreg(struct imx_spidev_s *priv, unsigned int offset,
+                              uint32_t value)
 {
   putreg32(value, priv->base + offset);
 }
@@ -414,10 +397,10 @@ static inline void spi_putreg(struct imx_spidev_s *priv, unsigned int offset, ui
  * Name: spi_txnull, spi_txuint16, and spi_txuint8
  *
  * Description:
- *   Transfer all ones, a uint8_t, or uint16_t to Tx FIFO and update the txbuffer
- *   pointer appropriately.  The selected function dependes on (1) if there
- *   is a source txbuffer provided, and (2) if the number of bits per
- *   word is <=8 or >8.
+ *   Transfer all ones, a uint8_t, or uint16_t to Tx FIFO and update the
+ *   txbuffer pointer appropriately.  The selected function dependes on
+ *   (1) if there is a source txbuffer provided, and (2) if the number of
+ *   bits per word is <=8 or >8.
  *
  * Input Parameters:
  *   priv   - Device-specific state data
@@ -452,7 +435,7 @@ static void spi_txuint8(struct imx_spidev_s *priv)
  * Description:
  *   Discard input, save a uint8_t, or or save a uint16_t from Tx FIFO in the
  *   user rxvbuffer and update the rxbuffer pointer appropriately.  The
- *   selected function dependes on (1) if there is a desination rxbuffer
+ *   selected function dependes on (1) if there is a destination rxbuffer
  *   provided, and (2) if the number of bits per word is <=8 or >8.
  *
  * Input Parameters:
@@ -465,7 +448,7 @@ static void spi_txuint8(struct imx_spidev_s *priv)
 
 static void spi_rxnull(struct imx_spidev_s *priv)
 {
-  (void)spi_getreg(priv, ECSPI_RXDATA_OFFSET);
+  spi_getreg(priv, ECSPI_RXDATA_OFFSET);
 }
 
 static void spi_rxuint16(struct imx_spidev_s *priv)
@@ -520,7 +503,7 @@ static int spi_performtx(struct imx_spidev_s *priv)
                priv->txword(priv);
             }
 
-          /* Update the count of words to to transferred */
+          /* Update the count of words to be transferred */
 
           priv->ntxwords -= ntxd;
         }
@@ -533,6 +516,7 @@ static int spi_performtx(struct imx_spidev_s *priv)
           spi_putreg(priv, ECSPI_INTREG_OFFSET, regval);
         }
     }
+
   return ntxd;
 }
 
@@ -614,9 +598,9 @@ static void spi_startxfr(struct imx_spidev_s *priv, int ntxd)
  *   txbuffer - The buffer of data to send to the device (may be NULL).
  *   rxbuffer - The buffer to receive data from the device (may be NULL).
  *   nwords   - The total number of words to be exchanged.  If the interface
- *              uses <= 8 bits per word, then this is the number of uint8_t's;
- *              if the interface uses >8 bits per word, then this is the
- *              number of uint16_t's
+ *              uses <= 8 bits per word, then this is the number of
+ *              uint8_t's; if the interface uses >8 bits per word, then this
+ *              is the number of uint16_t's
  *
  * Returned Value:
  *   0: success, <0:Negated error number on failure
@@ -629,7 +613,6 @@ static int spi_transfer(struct imx_spidev_s *priv, const void *txbuffer,
 #ifndef CONFIG_SPI_POLLWAIT
   irqstate_t flags;
   uint32_t regval;
-  int ret;
 #endif
   int ntxd;
 
@@ -683,13 +666,9 @@ static int spi_transfer(struct imx_spidev_s *priv, const void *txbuffer,
    * with the transfer, so it should be safe with no timeout.
    */
 
-  do
-    {
-      /* Wait to be signaled from the interrupt handler */
+  /* Wait to be signaled from the interrupt handler */
 
-      ret = nxsem_wait(&priv->waitsem);
-    }
-  while (ret < 0 && ret == -EINTR);
+  return nxsem_wait_uninterruptible(&priv->waitsem);
 
 #else
   /* Perform the transfer using polling logic.  This will totally
@@ -719,8 +698,9 @@ static int spi_transfer(struct imx_spidev_s *priv, const void *txbuffer,
       sched_yield();
     }
   while (priv->nrxwords < priv->nwords);
-#endif
+
   return OK;
+#endif
 }
 
 /****************************************************************************
@@ -774,12 +754,12 @@ static int spi_interrupt(int irq, void *context, FAR void *arg)
  * Name: spi_lock
  *
  * Description:
- *   On SPI busses where there are multiple devices, it will be necessary to
- *   lock SPI to have exclusive access to the busses for a sequence of
+ *   On SPI buses where there are multiple devices, it will be necessary to
+ *   lock SPI to have exclusive access to the buses for a sequence of
  *   transfers.  The bus should be locked before the chip is selected. After
  *   locking the SPI bus, the caller should then also call the setfrequency,
  *   setbits, and setmode methods to make sure that the SPI is properly
- *   configured for the device.  If the SPI buss is being shared, then it
+ *   configured for the device.  If the SPI bus is being shared, then it
  *   may have been left in an incompatible state.
  *
  * Input Parameters:
@@ -798,19 +778,11 @@ static int spi_lock(FAR struct spi_dev_s *dev, bool lock)
 
   if (lock)
     {
-      do
-        {
-          /* Take the semaphore (perhaps waiting) */
-
-          ret = nxsem_wait(&priv->exclsem);
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&priv->exclsem);
     }
   else
     {
-      (void)nxsem_post(&priv->exclsem);
-      ret = OK;
+      ret = nxsem_post(&priv->exclsem);
     }
 
   return ret;
@@ -859,7 +831,8 @@ static void spi_select(FAR struct spi_dev_s *dev, uint32_t devid,
  *
  ****************************************************************************/
 
-static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev, uint32_t frequency)
+static uint32_t spi_setfrequency(FAR struct spi_dev_s *dev,
+                                 uint32_t frequency)
 {
   struct imx_spidev_s *priv = (struct imx_spidev_s *)dev;
   uint32_t actual;
@@ -1027,12 +1000,12 @@ static void spi_setbits(FAR struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static uint16_t spi_send(FAR struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(FAR struct spi_dev_s *dev, uint32_t wd)
 {
   struct imx_spidev_s *priv = (struct imx_spidev_s *)dev;
-  uint16_t response = 0;
+  uint32_t response = 0;
 
-  (void)spi_transfer(priv, &wd, &response, 1);
+  spi_transfer(priv, &wd, &response, 1);
   return response;
 }
 
@@ -1117,11 +1090,12 @@ static int spi_cmddata(FAR struct spi_dev_s *dev, uint32_t devid,
  * Input Parameters:
  *   dev      - Device-specific state data
  *   buffer   - A pointer to the buffer of data to be sent
- *   rxbuffer - A pointer to the buffer in which to recieve data
+ *   rxbuffer - A pointer to the buffer in which to receive data
  *   nwords   - the length of data that to be exchanged in units of words.
  *              The wordsize is determined by the number of bits-per-word
  *              selected for the SPI interface.  If nbits <= 8, the data is
- *              packed into uint8_t's; if nbits >8, the data is packed into uint16_t's
+ *              packed into uint8_t's; if nbits >8, the data is packed into
+ *              uint16_t's
  *
  * Returned Value:
  *   None
@@ -1133,7 +1107,7 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
                          FAR void *rxbuffer, size_t nwords)
 {
   struct imx_spidev_s *priv = (struct imx_spidev_s *)dev;
-  (void)spi_transfer(priv, txbuffer, rxbuffer, nwords);
+  spi_transfer(priv, txbuffer, rxbuffer, nwords);
 }
 #endif
 
@@ -1149,7 +1123,8 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
  *   nwords - the length of data to send from the buffer in number of words.
  *            The wordsize is determined by the number of bits-per-word
  *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into uint16_t's
+ *            packed into uint8_t's; if nbits >8, the data is packed into
+ *            uint16_t's
  *
  * Returned Value:
  *   None
@@ -1157,10 +1132,11 @@ static void spi_exchange(FAR struct spi_dev_s *dev, FAR const void *txbuffer,
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size_t nwords)
+static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer,
+                         size_t nwords)
 {
   struct imx_spidev_s *priv = (struct imx_spidev_s *)dev;
-  (void)spi_transfer(priv, buffer, NULL, nwords);
+  spi_transfer(priv, buffer, NULL, nwords);
 }
 #endif
 
@@ -1172,11 +1148,12 @@ static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size
  *
  * Input Parameters:
  *   dev -    Device-specific state data
- *   buffer - A pointer to the buffer in which to recieve data
+ *   buffer - A pointer to the buffer in which to receive data
  *   nwords - the length of data that can be received in the buffer in number
- *            of words.  The wordsize is determined by the number of bits-per-word
- *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into uint16_t's
+ *            of words.  The wordsize is determined by the number of
+ *            bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *            the data is packed into uint8_t's; if nbits >8, the data is
+ *            packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -1184,10 +1161,11 @@ static void spi_sndblock(FAR struct spi_dev_s *dev, FAR const void *buffer, size
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nwords)
+static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer,
+                          size_t nwords)
 {
   struct imx_spidev_s *priv = (struct imx_spidev_s *)dev;
-  (void)spi_transfer(priv, NULL, buffer, nwords);
+  spi_transfer(priv, NULL, buffer, nwords);
 }
 #endif
 
@@ -1204,16 +1182,16 @@ static void spi_recvblock(FAR struct spi_dev_s *dev, FAR void *buffer, size_t nw
  *   prior to calling this function.  Specifically:  GPIOs should have
  *   been configured for output, and all chip selects disabled.
  *
- *   One GPIO, SS (PB2 on the eZ8F091) is reserved as a chip select.  However,
- *   If multiple devices on on the bus, then multiple chip selects will be
- *   required.  Theregore, all GPIO chip management is deferred to board-
- *   specific logic.
+ *   One GPIO, SS (PB2 on the eZ8F091) is reserved as a chip select.
+ *   However, If multiple devices on on the bus, then multiple chip selects
+ *   will be required.  Therefore, all GPIO chip management is deferred to
+ *   board-specific logic.
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple SPI interfaces)
+ *   Port number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structre reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -1228,6 +1206,7 @@ FAR struct spi_dev_s *imx_spibus_initialize(int port)
     {
 #ifdef CONFIG_IMX6_ECSPI1
     case 1:
+
       /* Select SPI1 */
 
       priv = &g_spidev[SPI1_NDX];
@@ -1245,11 +1224,13 @@ FAR struct spi_dev_s *imx_spibus_initialize(int port)
 
 #ifdef CONFIG_IMX6_ECSPI2
     case 2:
+
       /* Select SPI2 */
 
       priv = &g_spidev[SPI2_NDX];
 
       /* Configure SPI2 GPIOs */
+
       /* SCLK: AIN of Port A, pin 0 -OR- AIN of Port D, pin 7 */
 
 #if 1
@@ -1300,6 +1281,7 @@ FAR struct spi_dev_s *imx_spibus_initialize(int port)
     }
 
   /* Initialize the state structure */
+
   /* Initialize Semaphores */
 
 #ifndef CONFIG_SPI_POLLWAIT
@@ -1308,10 +1290,10 @@ FAR struct spi_dev_s *imx_spibus_initialize(int port)
    * signaling and, hence, should not have priority inheritance enabled.
    */
 
-   nxsem_init(&priv->waitsem, 0, 0);
-   nxsem_setprotocol(&priv->waitsem, SEM_PRIO_NONE);
+  nxsem_init(&priv->waitsem, 0, 0);
+  nxsem_setprotocol(&priv->waitsem, SEM_PRIO_NONE);
 #endif
-   nxsem_init(&priv->exclsem, 0, 1);
+  nxsem_init(&priv->exclsem, 0, 1);
 
   /* Initialize control register: min frequency, ignore ready, master mode, mode=0, 8-bit */
 

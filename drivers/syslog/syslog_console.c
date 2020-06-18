@@ -66,15 +66,13 @@ static int     syslog_console_ioctl(FAR struct file *filep, int cmd,
 
 static const struct file_operations g_consoleops =
 {
-  0,                    /* open */
-  0,                    /* close */
+  NULL,                 /* open */
+  NULL,                 /* close */
   syslog_console_read,  /* read */
   syslog_console_write, /* write */
-  0,                    /* seek */
-  syslog_console_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0                   /* poll */
-#endif
+  NULL,                 /* seek */
+  syslog_console_ioctl, /* ioctl */
+  NULL                  /* poll */
 };
 
 /****************************************************************************
@@ -121,5 +119,5 @@ static ssize_t syslog_console_write(FAR struct file *filep,
 
 void syslog_console_init(void)
 {
-  (void)register_driver("/dev/console", &g_consoleops, 0666, NULL);
+  register_driver("/dev/console", &g_consoleops, 0666, NULL);
 }

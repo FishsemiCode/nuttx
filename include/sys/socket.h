@@ -54,16 +54,17 @@
 
 /* Supported Protocol Families */
 
-#define PF_UNSPEC      0 /* Protocol family unspecified */
-#define PF_UNIX        1 /* Local communication */
-#define PF_LOCAL       1 /* Local communication */
-#define PF_INET        2 /* IPv4 Internet protocols */
-#define PF_INET6      10 /* IPv6 Internet protocols */
-#define PF_NETLINK    16 /* Netlink IPC socket */
-#define PF_PACKET     17 /* Low level packet interface */
-#define PF_BLUETOOTH  31 /* Bluetooth sockets */
-#define PF_IEEE802154 36 /* Low level IEEE 802.15.4 radio frame interface */
-#define PF_PKTRADIO   64 /* Low level packet radio interface */
+#define PF_UNSPEC      0         /* Protocol family unspecified */
+#define PF_UNIX        1         /* Local communication */
+#define PF_LOCAL       1         /* Local communication */
+#define PF_INET        2         /* IPv4 Internet protocols */
+#define PF_INET6      10         /* IPv6 Internet protocols */
+#define PF_NETLINK    16         /* Netlink IPC socket */
+#define PF_ROUTE      PF_NETLINK /* 4.4BSD Compatibility*/
+#define PF_PACKET     17         /* Low level packet interface */
+#define PF_BLUETOOTH  31         /* Bluetooth sockets */
+#define PF_IEEE802154 36         /* Low level IEEE 802.15.4 radio frame interface */
+#define PF_PKTRADIO   64         /* Low level packet radio interface */
 
 /* Supported Address Families. Opengroup.org requires only AF_UNSPEC,
  * AF_UNIX, AF_INET and AF_INET6.
@@ -75,6 +76,7 @@
 #define AF_INET        PF_INET
 #define AF_INET6       PF_INET6
 #define AF_NETLINK     PF_NETLINK
+#define AF_ROUTE       PF_ROUTE
 #define AF_PACKET      PF_PACKET
 #define AF_BLUETOOTH   PF_BLUETOOTH
 #define AF_IEEE802154  PF_IEEE802154
@@ -105,7 +107,7 @@
 #define SOCK_PACKET    10 /* Obsolete and should not be used in new programs */
 
 /* Bits in the FLAGS argument to `send', `recv', et al. These are the bits
- * recognized by Linus, not all are supported by NuttX.
+ * recognized by Linux, not all are supported by NuttX.
  */
 
 #define MSG_OOB        0x0001 /* Process out-of-band data.  */
@@ -236,7 +238,7 @@
 #define CMSG_ALIGN(len) \
   (((len)+sizeof(long)-1) & ~(sizeof(long)-1))
 #define CMSG_DATA(cmsg) \
-  ((void *)((char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
+  ((FAR void *)((FAR char *)(cmsg) + CMSG_ALIGN(sizeof(struct cmsghdr))))
 #define CMSG_SPACE(len) \
   (CMSG_ALIGN(sizeof(struct cmsghdr)) + CMSG_ALIGN(len))
 #define CMSG_LEN(len)   \
@@ -257,6 +259,8 @@
   * aligned at an appropriate boundary so that pointers to it can be cast
   * as pointers to protocol-specific address structures and used to access
   * the fields of those structures without alignment problems.
+  *
+  * REVISIT: sizeof(struct sockaddr_storge) should be 128 bytes.
   */
 
 #ifdef CONFIG_NET_IPv6
@@ -294,11 +298,11 @@ struct linger
 
 struct msghdr
 {
-  void *msg_name;               /* Socket name */
+  FAR void *msg_name;           /* Socket name */
   int msg_namelen;              /* Length of name */
-  struct iovec *msg_iov;        /* Data blocks */
+  FAR struct iovec *msg_iov;    /* Data blocks */
   unsigned long msg_iovlen;     /* Number of blocks */
-  void *msg_control;            /* Per protocol magic (eg BSD file descriptor passing) */
+  FAR void *msg_control;        /* Per protocol magic (eg BSD file descriptor passing) */
   unsigned long msg_controllen; /* Length of cmsg list */
   unsigned int msg_flags;
 };
@@ -314,23 +318,23 @@ struct cmsghdr
  * Inline Functions
  ****************************************************************************/
 
-static inline struct cmsghdr *__cmsg_nxthdr(FAR void *__ctl,
-                                            unsigned int __size,
-                                            FAR struct cmsghdr *__cmsg)
+static inline FAR struct cmsghdr *__cmsg_nxthdr(FAR void *__ctl,
+                                                unsigned int __size,
+                                                FAR struct cmsghdr *__cmsg)
 {
   FAR struct cmsghdr *__ptr;
 
-  __ptr = (struct cmsghdr *)(((unsigned char *)__cmsg) + CMSG_ALIGN(__cmsg->cmsg_len));
-  if ((unsigned long)((char *)(__ptr + 1) - (char *)__ctl) > __size)
+  __ptr = (FAR struct cmsghdr *)(((FAR char *)__cmsg) + CMSG_ALIGN(__cmsg->cmsg_len));
+  if ((unsigned long)((FAR char *)(__ptr + 1) - (FAR char *)__ctl) > __size)
     {
-      return (struct cmsghdr *)0;
+      return (FAR struct cmsghdr *)NULL;
     }
 
   return __ptr;
 }
 
-static inline struct cmsghdr *cmsg_nxthdr(FAR struct msghdr *__msg,
-                                          FAR struct cmsghdr *__cmsg)
+static inline FAR struct cmsghdr *cmsg_nxthdr(FAR struct msghdr *__msg,
+                                              FAR struct cmsghdr *__cmsg)
 {
   return __cmsg_nxthdr(__msg->msg_control, __msg->msg_controllen, __cmsg);
 }

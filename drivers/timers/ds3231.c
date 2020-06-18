@@ -55,7 +55,9 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Configuration ********************************************************************/
+
 /* This RTC implementation supports only date/time RTC hardware */
 
 #ifndef CONFIG_RTC_DATETIME
@@ -78,8 +80,9 @@
 #define DS3231_I2C_ADDRESS 0x68
 
 /************************************************************************************
- * Priviate Types
+ * Private Types
  ************************************************************************************/
+
 /* This structure describes the state of the DS3231 chip.  Only a single RTC is
  * supported.
  */
@@ -100,6 +103,7 @@ volatile bool g_rtc_enabled = false;
 /************************************************************************************
  * Private Data
  ************************************************************************************/
+
 /* The state of the DS3231 chip.  Only a single RTC is supported */
 
 static struct ds3231_dev_s g_ds3231;
@@ -132,11 +136,9 @@ static void rtc_dumptime(FAR struct tm *tp, FAR const char *msg)
   rtcinfo("  tm_mday: %08x\n", tp->tm_mday);
   rtcinfo("   tm_mon: %08x\n", tp->tm_mon);
   rtcinfo("  tm_year: %08x\n", tp->tm_year);
-#if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
   rtcinfo("  tm_wday: %08x\n", tp->tm_wday);
   rtcinfo("  tm_yday: %08x\n", tp->tm_yday);
   rtcinfo(" tm_isdst: %08x\n", tp->tm_isdst);
-#endif
 }
 #else
 #  define rtc_dumptime(tp, msg)
@@ -266,12 +268,9 @@ int up_rtc_getdatetime(FAR struct tm *tp)
       tp->tm_min  = 0;
       tp->tm_hour = 0;
 
-#if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
       /* Jan 1, 1970 was a Thursday */
 
       tp->tm_wday = 4;
-#endif
-
       tp->tm_mday = 1;
       tp->tm_mon  = 0;
       tp->tm_year = 70;
@@ -329,6 +328,7 @@ int up_rtc_getdatetime(FAR struct tm *tp)
          (seconds & DSXXXX_TIME_SEC_BCDMASK));
 
   /* Format the return time */
+
   /* Return seconds (0-61) */
 
   tp->tm_sec = rtc_bcd2bin(buffer[0] & DSXXXX_TIME_SEC_BCDMASK);
@@ -341,11 +341,9 @@ int up_rtc_getdatetime(FAR struct tm *tp)
 
   tp->tm_hour = rtc_bcd2bin(buffer[2] & DSXXXX_TIME_HOUR24_BCDMASK);
 
- #if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
   /* Return the day of the week (0-6) */
 
   tp->tm_wday = (rtc_bcd2bin(buffer[3]) & DSXXXX_TIME_DAY_MASK) - 1;
-#endif
 
   /* Return the day of the month (1-31) */
 
@@ -427,24 +425,26 @@ int up_rtc_settime(FAR const struct timespec *tp)
       newtime++;
     }
 
- #ifdef CONFIG_LIBC_LOCALTIME
-   if (localtime_r(&newtime, &newtm) == NULL)
-     {
-       rtcerr("ERROR: localtime_r failed\n");
-       return -EINVAL;
-     }
+#ifdef CONFIG_LIBC_LOCALTIME
+  if (localtime_r(&newtime, &newtm) == NULL)
+    {
+      rtcerr("ERROR: localtime_r failed\n");
+      return -EINVAL;
+    }
+
 #else
-   if (gmtime_r(&newtime, &newtm) == NULL)
-     {
-       rtcerr("ERROR: gmtime_r failed\n");
-       return -EINVAL;
-     }
+  if (gmtime_r(&newtime, &newtm) == NULL)
+    {
+      rtcerr("ERROR: gmtime_r failed\n");
+      return -EINVAL;
+    }
 #endif
 
   rtc_dumptime(&newtm, "New time");
 
   /* Construct the message */
-  /* Write starting with the seconds regiser */
+
+  /* Write starting with the seconds register */
 
   buffer[0] = DSXXXX_TIME_SECR;
 
@@ -462,11 +462,7 @@ int up_rtc_settime(FAR const struct timespec *tp)
 
   /* Save the day of the week (1-7) */
 
-#if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
   buffer[4] = rtc_bin2bcd(newtm.tm_wday + 1);
-#else
-  buffer[4] = 1;
-#endif
 
   /* Save the day of the month (1-31) */
 

@@ -139,7 +139,7 @@ static int sixlowpan_compress_ipv6hdr(FAR const struct ipv6_hdr_s *ipv6hdr,
  * Name: sixlowpan_protosize
  *
  * Description:
- *   Get the size of any uncompresssed protocol header that follows the
+ *   Get the size of any uncompressed protocol header that follows the
  *   IPv6 header.
  *
  ****************************************************************************/
@@ -151,40 +151,40 @@ static uint16_t sixlowpan_protosize(FAR const struct ipv6_hdr_s *ipv6hdr,
 
   /* Copy the following protocol header, */
 
-   switch (ipv6hdr->proto)
-     {
+  switch (ipv6hdr->proto)
+    {
 #ifdef CONFIG_NET_TCP
-       case IP_PROTO_TCP:
-         {
-           FAR struct tcp_hdr_s *tcp =
-             &((FAR struct ipv6tcp_hdr_s *)ipv6hdr)->tcp;
+      case IP_PROTO_TCP:
+        {
+          FAR struct tcp_hdr_s *tcp =
+            &((FAR struct ipv6tcp_hdr_s *)ipv6hdr)->tcp;
 
-           /* The TCP header length is encoded in the top 4 bits of the
-            * tcpoffset field (in units of 32-bit words).
-            */
+          /* The TCP header length is encoded in the top 4 bits of the
+           * tcpoffset field (in units of 32-bit words).
+           */
 
-           protosize = ((uint16_t)tcp->tcpoffset >> 4) << 2;
-         }
-         break;
+          protosize = ((uint16_t)tcp->tcpoffset >> 4) << 2;
+        }
+        break;
 #endif
 
 #ifdef CONFIG_NET_UDP
-       case IP_PROTO_UDP:
-         protosize = UDP_HDRLEN;
-         break;
+      case IP_PROTO_UDP:
+        protosize = UDP_HDRLEN;
+        break;
 #endif
 
 #ifdef CONFIG_NET_ICMPv6
-       case IP_PROTO_ICMP6:
-         protosize = ICMPv6_HDRLEN;
-         break;
+      case IP_PROTO_ICMP6:
+        protosize = ICMPv6_HDRLEN;
+        break;
 #endif
 
-       default:
-         nwarn("WARNING: Unrecognized proto: %u\n", ipv6hdr->proto);
-         protosize = 0;
-         break;
-     }
+      default:
+        nwarn("WARNING: Unrecognized proto: %u\n", ipv6hdr->proto);
+        protosize = 0;
+        break;
+    }
 
   return protosize;
 }
@@ -201,7 +201,7 @@ static uint16_t sixlowpan_protosize(FAR const struct ipv6_hdr_s *ipv6hdr,
  *   meta    - Location to return the final metadata.
  *
  * Returned Value:
- *   OK is returned on success; Othewise a negated errno value is returned.
+ *   OK is returned on success; Otherwise a negated errno value is returned.
  *
  ****************************************************************************/
 
@@ -271,7 +271,7 @@ static int sixlowpan_ieee802154_metadata(FAR struct radio_driver_s *radio,
    * PAN IDs are the same.
    */
 
-  (void)sixlowpan_src_panid(radio, pktmeta.dpanid);
+  sixlowpan_src_panid(radio, pktmeta.dpanid);
 
   /* Based on the collected attributes and addresses, construct the MAC meta
    * data structure that we need to interface with the IEEE802.15.4 MAC (we
@@ -300,7 +300,7 @@ static int sixlowpan_ieee802154_metadata(FAR struct radio_driver_s *radio,
  *   meta    - Location to return the final metadata.
  *
  * Returned Value:
- *   OK is returned on success; Othewise a negated errno value is returned.
+ *   OK is returned on success; Otherwise a negated errno value is returned.
  *
  ****************************************************************************/
 
@@ -359,7 +359,7 @@ static int sixlowpan_pktradio_metadata(FAR struct radio_driver_s *radio,
  *   destmac - The IEEE802.15.4 MAC address of the destination
  *
  * Returned Value:
- *   Ok is returned on success; Othewise a negated errno value is returned.
+ *   Ok is returned on success; Otherwise a negated errno value is returned.
  *   This function is expected to fail if the driver is not an IEEE802.15.4
  *   MAC network driver.  In that case, the UDP/TCP will fall back to normal
  *   IPv4/IPv6 formatting.
@@ -410,7 +410,7 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
    * necessary.
    */
 
-  iob = net_ioballoc(false);
+  iob = net_ioballoc(false, IOBUSER_NET_6LOWPAN);
   DEBUGASSERT(iob != NULL);
 
   /* Initialize the IOB */
@@ -495,8 +495,8 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
   ret = sixlowpan_radio_framelen(radio);
   if (ret < 0)
     {
-       nerr("ERROR: sixlowpan_radio_framelen() failed: %d\n", ret);
-       return ret;
+      nerr("ERROR: sixlowpan_radio_framelen() failed: %d\n", ret);
+      return ret;
     }
 
   /* Limit to the maximum size supported by the IOBs */
@@ -513,8 +513,8 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
   ret -= SIXLOWPAN_MAC_FCSSIZE;
   if (ret < MAX_MACHDR || ret > UINT16_MAX)
     {
-       nerr("ERROR: Invalid frame size: %d\n", ret);
-       return ret;
+      nerr("ERROR: Invalid frame size: %d\n", ret);
+      return ret;
     }
 
   framelen = (uint16_t)ret;
@@ -634,7 +634,7 @@ int sixlowpan_queue_frames(FAR struct radio_driver_s *radio,
            * necessary.
            */
 
-          iob = net_ioballoc(false);
+          iob = net_ioballoc(false, IOBUSER_NET_6LOWPAN);
           DEBUGASSERT(iob != NULL);
 
           /* Initialize the IOB */

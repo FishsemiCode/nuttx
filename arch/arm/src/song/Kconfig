@@ -126,6 +126,10 @@ config SONG_GIC_VBASE
 	hex "GIC base address"
 	depends on ARMV7A_HAVE_GICv2
 
+config SONG_RAMDISK
+	bool "Song RAM Disk Support"
+	default n
+
 config SONG_NR_IRQS
 	int "Interrupt Number"
 

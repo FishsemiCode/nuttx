@@ -49,7 +49,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -121,6 +120,7 @@ static int do_socket_request(FAR struct usrsock_conn_s *conn, int domain,
   struct usrsock_request_socket_s req =
   {
   };
+
   struct iovec bufs[1];
 
   /* Prepare request for daemon to read. */
@@ -200,9 +200,9 @@ int usrsock_socket(int domain, int type, int protocol,
   struct usrsock_reqstate_s state =
   {
   };
+
   FAR struct usrsock_conn_s *conn;
   int err;
-  int ret;
 
   /* Allocate the usrsock socket connection structure and save in the new
    * socket instance.
@@ -238,10 +238,7 @@ int usrsock_socket(int domain, int type, int protocol,
 
   /* Wait for completion of request. */
 
-  while ((ret = net_lockedwait(&state.recvsem)) < 0)
-    {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-    }
+  net_lockedwait_uninterruptible(&state.recvsem);
 
   if (state.result < 0)
     {

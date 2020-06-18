@@ -58,15 +58,15 @@
  * however, the stack must be aligned to 8-byte addresses.
  */
 
-#ifdef CONFIG_LIBC_FLOATINGPOINT
-#  define CONFIG_STACK_ALIGNMENT   8
+#if defined(CONFIG_LIBC_FLOATINGPOINT) || defined (CONFIG_ARCH_RV64GC)
+#  define STACK_ALIGNMENT   8
 #else
-#  define CONFIG_STACK_ALIGNMENT   4
+#  define STACK_ALIGNMENT   4
 #endif
 
 /* Stack alignment macros */
 
-#define STACK_ALIGN_MASK    (CONFIG_STACK_ALIGNMENT-1)
+#define STACK_ALIGN_MASK    (STACK_ALIGNMENT-1)
 #define STACK_ALIGN_DOWN(a) ((a) & ~STACK_ALIGN_MASK)
 #define STACK_ALIGN_UP(a)   (((a) + STACK_ALIGN_MASK) & ~STACK_ALIGN_MASK)
 
@@ -125,7 +125,7 @@ int up_use_stack(struct tcb_s *tcb, void *stack, size_t stack_size)
 
   if (tcb->stack_alloc_ptr)
     {
-      /* Yes... Release the old stack allocation */
+      /* Yes.. Release the old stack allocation */
 
       up_release_stack(tcb, tcb->flags & TCB_FLAG_TTYPE_MASK);
     }
@@ -140,7 +140,7 @@ int up_use_stack(struct tcb_s *tcb, void *stack, size_t stack_size)
    * referenced as positive word offsets from sp.
    */
 
-  top_of_stack = (uint32_t)tcb->stack_alloc_ptr + stack_size - 4;
+  top_of_stack = (uintptr_t)tcb->stack_alloc_ptr + stack_size - 4;
 
   /* The RISC-V stack must be aligned to 8-byte alignment for EABI.
    * If necessary top_of_stack must be rounded down to the next
@@ -155,11 +155,11 @@ int up_use_stack(struct tcb_s *tcb, void *stack, size_t stack_size)
    * The size need not be aligned.
    */
 
-  size_of_stack = top_of_stack - (uint32_t)tcb->stack_alloc_ptr + 4;
+  size_of_stack = top_of_stack - (uintptr_t)tcb->stack_alloc_ptr + 4;
 
   /* Save the adjusted stack values in the struct tcb_s */
 
-  tcb->adj_stack_ptr  = (uint32_t *)top_of_stack;
+  tcb->adj_stack_ptr  = (uintptr_t *)top_of_stack;
   tcb->adj_stack_size = size_of_stack;
 
 #ifdef CONFIG_TLS

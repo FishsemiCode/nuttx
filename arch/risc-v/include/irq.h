@@ -30,7 +30,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -53,30 +53,8 @@
 #  include <arch/rv32im/irq.h>
 #endif
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define MSTATUS_IRQ_DISABLE         (0x00007800)
-
-typedef uint32_t  irqstate_t;
-
-/****************************************************************************
- * Public Types
- ****************************************************************************/
-
-/****************************************************************************
- * Public Variables
- ****************************************************************************/
-
-/****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-irqstate_t up_irq_save(void);
-irqstate_t up_irq_enable(void);
-irqstate_t up_irq_disable(void);
-
-void up_irq_restore(irqstate_t);
+#if defined(CONFIG_ARCH_RV64GC)
+#  include <arch/rv64gc/irq.h>
+#endif
 
 #endif /* __ARCH_RISCV_INCLUDE_IRQ_H */

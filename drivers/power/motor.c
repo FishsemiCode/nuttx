@@ -43,13 +43,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/power/motor.h>
 
@@ -78,10 +76,8 @@ static const struct file_operations motor_fops =
   motor_read,                    /* read */
   motor_write,                   /* write */
   NULL,                          /* seek */
-  motor_ioctl                    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL                         /* poll */
-#endif
+  motor_ioctl,                   /* ioctl */
+  NULL                           /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL                         /* unlink */
 #endif
@@ -209,14 +205,15 @@ static ssize_t motor_read(FAR struct file *filep, FAR char *buffer, size_t bufle
  * Name: motor_write
  ****************************************************************************/
 
-static ssize_t motor_write(FAR struct file *filep, FAR const char *buffer, size_t buflen)
+static ssize_t motor_write(FAR struct file *filep, FAR const char *buffer,
+                           size_t buflen)
 {
   return 1;
 }
 
 /****************************************************************************
  * Name: motor_ioctl
-****************************************************************************/
+ ****************************************************************************/
 
 static int motor_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
@@ -230,7 +227,7 @@ static int motor_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case PWRIOC_START:
         {
           /* Allow motor start only when some limits available
-           * and strucutre is locked.
+           * and structure is locked.
            */
 
           if ((motor->limits.lock == false) ||
@@ -361,7 +358,7 @@ static int motor_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case PWRIOC_GET_FAULT:
         {
-          uint8_t *fault = ((uint8_t*)arg);
+          FAR uint8_t *fault = ((FAR uint8_t *)arg);
 
           ret = dev->ops->fault_get(dev, fault);
           if (ret != OK)

@@ -1,35 +1,20 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_sdio.c
  *
- *   Copyright (C) 2009, 2011-2014, 2016-2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -41,7 +26,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <string.h>
 #include <assert.h>
 #include <debug.h>
@@ -72,6 +56,7 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
 /* Required system configuration options:
  *
  *   CONFIG_ARCH_DMA - Enable architecture-specific DMA subsystem
@@ -85,13 +70,13 @@
  *   CONFIG_SDIO_MUXBUS - Setting this configuration enables some locking
  *     APIs to manage concurrent accesses on the SDIO bus.  This is not
  *     needed for the simple case of a single SD card, for example.
- *   CONFIG_STM32_SDIO_DMA - Enable SDIO.  This is a marginally optional.  For
- *     most usages, SDIO will cause data overruns if used without DMA.
+ *   CONFIG_STM32_SDIO_DMA - Enable SDIO.  This is a marginally optional.
+ *     For most usages, SDIO will cause data overruns if used without DMA.
  *     NOTE the above system DMA configuration options.
  *   CONFIG_STM32_SDIO_WIDTH_D1_ONLY - This may be selected to force the
  *     driver operate with only a single data line (the default is to use
  *     all 4 SD data lines).
- *   CONFIG_SDM_DMAPRIO - SDIO DMA priority.  This can be selecte if
+ *   CONFIG_SDM_DMAPRIO - SDIO DMA priority.  This can be selected if
  *     CONFIG_STM32_SDIO_DMA is enabled.
  *   CONFIG_SDIO_XFRDEBUG - Enables some very low-level debug output
  *     This also requires CONFIG_DEBUG_FS and CONFIG_DEBUG_INFO
@@ -312,30 +297,31 @@
 
 struct stm32_dev_s
 {
-  struct sdio_dev_s  dev;        /* Standard, base SDIO interface */
+  struct sdio_dev_s  dev;             /* Standard, base SDIO interface */
 
   /* STM32-specific extensions */
+
   /* Event support */
 
-  sem_t              waitsem;    /* Implements event waiting */
-  sdio_eventset_t    waitevents; /* Set of events to be waited for */
-  uint32_t           waitmask;   /* Interrupt enables for event waiting */
+  sem_t              waitsem;         /* Implements event waiting */
+  sdio_eventset_t    waitevents;      /* Set of events to be waited for */
+  uint32_t           waitmask;        /* Interrupt enables for event waiting */
   volatile sdio_eventset_t wkupevent; /* The event that caused the wakeup */
-  WDOG_ID            waitwdog;   /* Watchdog that handles event timeouts */
+  WDOG_ID            waitwdog;        /* Watchdog that handles event timeouts */
 
   /* Callback support */
 
-  sdio_statset_t     cdstatus;   /* Card status */
-  sdio_eventset_t    cbevents;   /* Set of events to be cause callbacks */
-  worker_t           callback;   /* Registered callback function */
-  void              *cbarg;      /* Registered callback argument */
-  struct work_s      cbwork;     /* Callback work queue structure */
+  sdio_statset_t     cdstatus;        /* Card status */
+  sdio_eventset_t    cbevents;        /* Set of events to be cause callbacks */
+  worker_t           callback;        /* Registered callback function */
+  void              *cbarg;           /* Registered callback argument */
+  struct work_s      cbwork;          /* Callback work queue structure */
 
   /* Interrupt mode data transfer support */
 
-  uint32_t          *buffer;     /* Address of current R/W buffer */
-  size_t             remaining;  /* Number of bytes remaining in the transfer */
-  uint32_t           xfrmask;    /* Interrupt enables for data transfer */
+  uint32_t          *buffer;          /* Address of current R/W buffer */
+  size_t             remaining;       /* Number of bytes remaining in the transfer */
+  uint32_t           xfrmask;         /* Interrupt enables for data transfer */
 
 #ifdef CONFIG_STM32_SDIO_CARD
   /* Interrupt at SDIO_D1 pin, only for SDIO cards */
@@ -353,11 +339,12 @@ struct stm32_dev_s
 
   /* DMA data transfer support */
 
-  bool               widebus;    /* Required for DMA support */
+  bool               widebus;         /* Required for DMA support */
 #ifdef CONFIG_STM32_SDIO_DMA
-  volatile uint8_t   xfrflags;   /* Used to synchronize SDIO and DMA completion events */
-  bool               dmamode;    /* true: DMA mode transfer */
-  DMA_HANDLE         dma;        /* Handle for DMA channel */
+  volatile uint8_t   xfrflags;        /* Used to synchronize SDIO and
+                                       * DMA completion events */
+  bool               dmamode;         /* true: DMA mode transfer */
+  DMA_HANDLE         dma;             /* Handle for DMA channel */
 #endif
 };
 
@@ -392,7 +379,7 @@ struct stm32_sampleregs_s
 
 /* Low-level helpers ********************************************************/
 
-static void stm32_takesem(struct stm32_dev_s *priv);
+static int  stm32_takesem(struct stm32_dev_s *priv);
 #define     stm32_givesem(priv) (nxsem_post(&priv->waitsem))
 static inline void stm32_setclkcr(uint32_t clkcr);
 static void stm32_configwaitints(struct stm32_dev_s *priv, uint32_t waitmask,
@@ -424,13 +411,16 @@ static void stm32_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg);
 /* Data Transfer Helpers ****************************************************/
 
 static uint8_t stm32_log2(uint16_t value);
-static void stm32_dataconfig(uint32_t timeout, uint32_t dlen, uint32_t dctrl);
+static void stm32_dataconfig(uint32_t timeout, uint32_t dlen,
+                             uint32_t dctrl);
 static void stm32_datadisable(void);
 static void stm32_sendfifo(struct stm32_dev_s *priv);
 static void stm32_recvfifo(struct stm32_dev_s *priv);
-static void stm32_eventtimeout(int argc, uint32_t arg);
-static void stm32_endwait(struct stm32_dev_s *priv, sdio_eventset_t wkupevent);
-static void stm32_endtransfer(struct stm32_dev_s *priv, sdio_eventset_t wkupevent);
+static void stm32_eventtimeout(int argc, uint32_t arg, ...);
+static void stm32_endwait(struct stm32_dev_s *priv,
+                          sdio_eventset_t wkupevent);
+static void stm32_endtransfer(struct stm32_dev_s *priv,
+                              sdio_eventset_t wkupevent);
 
 /* Interrupt Handling *******************************************************/
 
@@ -533,13 +523,13 @@ struct stm32_dev_s g_sdiodev =
     .sendsetup        = stm32_sendsetup,
     .cancel           = stm32_cancel,
     .waitresponse     = stm32_waitresponse,
-    .recvR1           = stm32_recvshortcrc,
-    .recvR2           = stm32_recvlong,
-    .recvR3           = stm32_recvshort,
-    .recvR4           = stm32_recvshort,
-    .recvR5           = stm32_recvshortcrc,
-    .recvR6           = stm32_recvshortcrc,
-    .recvR7           = stm32_recvshort,
+    .recv_r1          = stm32_recvshortcrc,
+    .recv_r2          = stm32_recvlong,
+    .recv_r3          = stm32_recvshort,
+    .recv_r4          = stm32_recvshort,
+    .recv_r5          = stm32_recvshortcrc,
+    .recv_r6          = stm32_recvshortcrc,
+    .recv_r7          = stm32_recvshort,
     .waitenable       = stm32_waitenable,
     .eventwait        = stm32_eventwait,
     .callbackenable   = stm32_callbackenable,
@@ -573,9 +563,6 @@ static struct stm32_sampleregs_s g_sampleregs[DEBUG_NSAMPLES];
  ****************************************************************************/
 
 /****************************************************************************
- * Low-level Helpers
- ****************************************************************************/
-/****************************************************************************
  * Name: stm32_takesem
  *
  * Description:
@@ -586,27 +573,14 @@ static struct stm32_sampleregs_s g_sampleregs[DEBUG_NSAMPLES];
  *   dev - Instance of the SDIO device driver state structure.
  *
  * Returned Value:
- *   None
+ *   Normally OK, but may return -ECANCELED in the rare event that the task
+ *   has been canceled.
  *
  ****************************************************************************/
 
-static void stm32_takesem(struct stm32_dev_s *priv)
+static int stm32_takesem(struct stm32_dev_s *priv)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->waitsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&priv->waitsem);
 }
 
 /****************************************************************************
@@ -633,14 +607,16 @@ static inline void stm32_setclkcr(uint32_t clkcr)
 
   /* Clear CLKDIV, PWRSAV, BYPASS, WIDBUS, NEGEDGE, HWFC_EN bits */
 
-  regval &= ~(SDIO_CLKCR_CLKDIV_MASK | SDIO_CLKCR_PWRSAV | SDIO_CLKCR_BYPASS |
-              SDIO_CLKCR_WIDBUS_MASK | SDIO_CLKCR_NEGEDGE | SDIO_CLKCR_HWFC_EN |
+  regval &= ~(SDIO_CLKCR_CLKDIV_MASK | SDIO_CLKCR_PWRSAV |
+              SDIO_CLKCR_BYPASS | SDIO_CLKCR_WIDBUS_MASK |
+              SDIO_CLKCR_NEGEDGE | SDIO_CLKCR_HWFC_EN |
               SDIO_CLKCR_CLKEN);
 
   /* Replace with user provided settings */
 
-  clkcr  &=  (SDIO_CLKCR_CLKDIV_MASK | SDIO_CLKCR_PWRSAV | SDIO_CLKCR_BYPASS |
-              SDIO_CLKCR_WIDBUS_MASK | SDIO_CLKCR_NEGEDGE | SDIO_CLKCR_HWFC_EN |
+  clkcr  &=  (SDIO_CLKCR_CLKDIV_MASK | SDIO_CLKCR_PWRSAV |
+              SDIO_CLKCR_BYPASS | SDIO_CLKCR_WIDBUS_MASK |
+              SDIO_CLKCR_NEGEDGE | SDIO_CLKCR_HWFC_EN |
               SDIO_CLKCR_CLKEN);
 
   regval |=  clkcr;
@@ -654,7 +630,7 @@ static inline void stm32_setclkcr(uint32_t clkcr)
  * Name: stm32_configwaitints
  *
  * Description:
- *   Enable/disable SDIO interrupts needed to suport the wait function
+ *   Enable/disable SDIO interrupts needed to support the wait function
  *
  * Input Parameters:
  *   priv       - A reference to the SDIO device state structure
@@ -679,6 +655,7 @@ static void stm32_configwaitints(struct stm32_dev_s *priv, uint32_t waitmask,
   /* Save all of the data and set the new interrupt mask in one, atomic
    * operation.
    */
+
   flags = enter_critical_section();
 
 #ifdef CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE
@@ -686,23 +663,23 @@ static void stm32_configwaitints(struct stm32_dev_s *priv, uint32_t waitmask,
     {
       /* Do not use this in STM32_SDIO_MASK register */
 
-      waitmask &= !SDIOWAIT_WRCOMPLETE;
+      waitmask &= ~SDIOWAIT_WRCOMPLETE;
 
       pinset = GPIO_SDIO_D0 & (GPIO_PORT_MASK | GPIO_PIN_MASK);
       pinset |= (GPIO_INPUT | GPIO_FLOAT | GPIO_EXTI);
 
       /* Arm the SDIO_D Ready and install Isr */
 
-      (void)stm32_gpiosetevent(pinset, true, false, false,
-                               stm32_rdyinterrupt, priv);
+      stm32_gpiosetevent(pinset, true, false, false,
+                         stm32_rdyinterrupt, priv);
     }
 
   /* Disarm SDIO_D ready */
 
   if ((wkupevent & SDIOWAIT_WRCOMPLETE) != 0)
     {
-      (void)stm32_gpiosetevent(GPIO_SDIO_D0, false, false, false,
-                               NULL, NULL);
+      stm32_gpiosetevent(GPIO_SDIO_D0, false, false, false,
+                         NULL, NULL);
       stm32_configgpio(GPIO_SDIO_D0);
     }
 #endif
@@ -801,10 +778,6 @@ static inline uint32_t stm32_getpwrctrl(void)
 }
 
 /****************************************************************************
- * DMA Helpers
- ****************************************************************************/
-
-/****************************************************************************
  * Name: stm32_sampleinit
  *
  * Description:
@@ -815,7 +788,8 @@ static inline uint32_t stm32_getpwrctrl(void)
 #ifdef CONFIG_SDIO_XFRDEBUG
 static void stm32_sampleinit(void)
 {
-  memset(g_sampleregs, 0xff, DEBUG_NSAMPLES * sizeof(struct stm32_sampleregs_s));
+  memset(g_sampleregs, 0xff,
+         DEBUG_NSAMPLES * sizeof(struct stm32_sampleregs_s));
 }
 #endif
 
@@ -900,7 +874,8 @@ static void stm32_sdiodump(struct stm32_sdioregs_s *regs, const char *msg)
 
 #ifdef CONFIG_SDIO_XFRDEBUG
 static void stm32_dumpsample(struct stm32_dev_s *priv,
-                             struct stm32_sampleregs_s *regs, const char *msg)
+                             struct stm32_sampleregs_s *regs,
+                             const char *msg)
 {
 #if defined(CONFIG_DEBUG_DMA_INFO) && defined(CONFIG_STM32_SDIO_DMA)
   if (priv->dmamode)
@@ -924,22 +899,27 @@ static void stm32_dumpsample(struct stm32_dev_s *priv,
 #ifdef CONFIG_SDIO_XFRDEBUG
 static void stm32_dumpsamples(struct stm32_dev_s *priv)
 {
-  stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_BEFORE_SETUP], "Before setup");
+  stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_BEFORE_SETUP],
+                   "Before setup");
 
 #if defined(CONFIG_DEBUG_DMA_INFO) && defined(CONFIG_STM32_SDIO_DMA)
   if (priv->dmamode)
     {
-      stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_BEFORE_ENABLE], "Before DMA enable");
+      stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_BEFORE_ENABLE],
+                       "Before DMA enable");
     }
 #endif
 
-  stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_AFTER_SETUP], "After setup");
-  stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_END_TRANSFER], "End of transfer");
+  stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_AFTER_SETUP],
+                   "After setup");
+  stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_END_TRANSFER],
+                   "End of transfer");
 
 #if defined(CONFIG_DEBUG_DMA_INFO) && defined(CONFIG_STM32_SDIO_DMA)
   if (priv->dmamode)
     {
-      stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_DMA_CALLBACK], "DMA Callback");
+      stm32_dumpsample(priv, &g_sampleregs[SAMPLENDX_DMA_CALLBACK],
+                       "DMA Callback");
     }
 #endif
 }
@@ -972,7 +952,8 @@ static void stm32_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg)
 
   if ((status & DMA_STATUS_ERROR) != 0)
     {
-      mcerr("ERROR: DMA error %02x, remaining: %d\n", status, priv->remaining);
+      mcerr("ERROR: DMA error %02x, remaining: %d\n",
+            status, priv->remaining);
       result = SDIOWAIT_ERROR;
     }
   else
@@ -993,10 +974,6 @@ static void stm32_dmacallback(DMA_HANDLE handle, uint8_t status, void *arg)
     }
 }
 #endif
-
-/****************************************************************************
- * Data Transfer Helpers
- ****************************************************************************/
 
 /****************************************************************************
  * Name: stm32_log2
@@ -1051,8 +1028,10 @@ static void stm32_dataconfig(uint32_t timeout, uint32_t dlen, uint32_t dctrl)
    */
 
   regval  =  getreg32(STM32_SDIO_DCTRL);
-  regval &= ~(SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTMODE | SDIO_DCTRL_DBLOCKSIZE_MASK);
-  dctrl  &=  (SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTMODE | SDIO_DCTRL_DBLOCKSIZE_MASK);
+  regval &= ~(SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTMODE |
+              SDIO_DCTRL_DBLOCKSIZE_MASK);
+  dctrl  &=  (SDIO_DCTRL_DTDIR | SDIO_DCTRL_DTMODE |
+              SDIO_DCTRL_DBLOCKSIZE_MASK);
   regval |=  (dctrl | SDIO_DCTRL_DTEN | SDIO_DCTRL_SDIOEN);
   putreg32(regval, STM32_SDIO_DCTRL);
 }
@@ -1222,13 +1201,14 @@ static void stm32_recvfifo(struct stm32_dev_s *priv)
  *
  ****************************************************************************/
 
-static void stm32_eventtimeout(int argc, uint32_t arg)
+static void stm32_eventtimeout(int argc, uint32_t arg, ...)
 {
   struct stm32_dev_s *priv = (struct stm32_dev_s *)arg;
 
   /* There is always race conditions with timer expirations. */
 
-  DEBUGASSERT((priv->waitevents & SDIOWAIT_TIMEOUT) != 0 || priv->wkupevent != 0);
+  DEBUGASSERT((priv->waitevents & SDIOWAIT_TIMEOUT) != 0 ||
+              priv->wkupevent != 0);
 
   /* Is a data transfer complete event expected? */
 
@@ -1259,11 +1239,12 @@ static void stm32_eventtimeout(int argc, uint32_t arg)
  *
  ****************************************************************************/
 
-static void stm32_endwait(struct stm32_dev_s *priv, sdio_eventset_t wkupevent)
+static void stm32_endwait(struct stm32_dev_s *priv,
+                          sdio_eventset_t wkupevent)
 {
   /* Cancel the watchdog timeout */
 
-  (void)wd_cancel(priv->waitwdog);
+  wd_cancel(priv->waitwdog);
 
   /* Disable event-related interrupts */
 
@@ -1294,7 +1275,8 @@ static void stm32_endwait(struct stm32_dev_s *priv, sdio_eventset_t wkupevent)
  *
  ****************************************************************************/
 
-static void stm32_endtransfer(struct stm32_dev_s *priv, sdio_eventset_t wkupevent)
+static void stm32_endtransfer(struct stm32_dev_s *priv,
+                              sdio_eventset_t wkupevent)
 {
   /* Disable all transfer related interrupts */
 
@@ -1314,8 +1296,8 @@ static void stm32_endtransfer(struct stm32_dev_s *priv, sdio_eventset_t wkupeven
       stm32_sample(priv, SAMPLENDX_END_TRANSFER);
 
       /* Make sure that the DMA is stopped (it will be stopped automatically
-       * on normal transfers, but not necessarily when the transfer terminates
-       * on an error condition).
+       * on normal transfers, but not necessarily when the transfer
+       * terminates on an error condition).
        */
 
       stm32_dmastop(priv->dma);
@@ -1335,10 +1317,6 @@ static void stm32_endtransfer(struct stm32_dev_s *priv, sdio_eventset_t wkupeven
       stm32_endwait(priv, wkupevent);
     }
 }
-
-/****************************************************************************
- * Interrupt Handling
- ****************************************************************************/
 
 /****************************************************************************
  * Name: stm32_rdyinterrupt
@@ -1390,7 +1368,8 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
    * bits remaining, then we have work to do here.
    */
 
-  while ((enabled = getreg32(STM32_SDIO_STA) & getreg32(STM32_SDIO_MASK)) != 0)
+  while ((enabled = getreg32(STM32_SDIO_STA) &
+                    getreg32(STM32_SDIO_MASK)) != 0)
     {
       /* Handle in progress, interrupt driven data transfers ****************/
 
@@ -1412,9 +1391,9 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
                   stm32_recvfifo(priv);
                 }
 
-              /* Otherwise, Is the transmit FIFO half empty or less?  If so we must
-               * be processing a send transaction.  NOTE:  We can't be processing
-               * both!
+              /* Otherwise, Is the transmit FIFO half empty or less?  If so
+               * we must be processing a send transaction.  NOTE:  We can't
+               * be processing both!
                */
 
               else if ((pending & SDIO_STA_TXFIFOHE) != 0)
@@ -1449,7 +1428,7 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
                       stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE);
                     }
 
-                  /* Otherwise, just disable futher transfer interrupts and
+                  /* Otherwise, just disable further transfer interrupts and
                    * wait for the DMA complete event.
                    */
 
@@ -1477,8 +1456,10 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
             {
               /* Terminate the transfer with an error */
 
-              mcerr("ERROR: Data block CRC failure, remaining: %d\n", priv->remaining);
-              stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
+              mcerr("ERROR: Data block CRC failure, remaining: %d\n",
+                    priv->remaining);
+              stm32_endtransfer(priv,
+                                SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
             }
 
           /* Handle data timeout error */
@@ -1487,8 +1468,10 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
             {
               /* Terminate the transfer with an error */
 
-              mcerr("ERROR: Data timeout, remaining: %d\n", priv->remaining);
-              stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE | SDIOWAIT_TIMEOUT);
+              mcerr("ERROR: Data timeout, remaining: %d\n",
+                     priv->remaining);
+              stm32_endtransfer(priv,
+                                SDIOWAIT_TRANSFERDONE | SDIOWAIT_TIMEOUT);
             }
 
           /* Handle RX FIFO overrun error */
@@ -1497,8 +1480,10 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
             {
               /* Terminate the transfer with an error */
 
-              mcerr("ERROR: RX FIFO overrun, remaining: %d\n", priv->remaining);
-              stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
+              mcerr("ERROR: RX FIFO overrun, remaining: %d\n",
+                    priv->remaining);
+              stm32_endtransfer(priv,
+                                SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
             }
 
           /* Handle TX FIFO underrun error */
@@ -1507,8 +1492,10 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
             {
               /* Terminate the transfer with an error */
 
-              mcerr("ERROR: TX FIFO underrun, remaining: %d\n", priv->remaining);
-              stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
+              mcerr("ERROR: TX FIFO underrun, remaining: %d\n",
+                    priv->remaining);
+              stm32_endtransfer(priv,
+                                SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
             }
 
           /* Handle start bit error */
@@ -1517,8 +1504,10 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
             {
               /* Terminate the transfer with an error */
 
-              mcerr("ERROR: Start bit, remaining: %d\n", priv->remaining);
-              stm32_endtransfer(priv, SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
+              mcerr("ERROR: Start bit, remaining: %d\n",
+                    priv->remaining);
+              stm32_endtransfer(priv,
+                                SDIOWAIT_TRANSFERDONE | SDIOWAIT_ERROR);
             }
         }
 
@@ -1537,7 +1526,8 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
                 {
                   /* Yes.. wake the thread up */
 
-                  putreg32(SDIO_RESPDONE_ICR | SDIO_CMDDONE_ICR, STM32_SDIO_ICR);
+                  putreg32(SDIO_RESPDONE_ICR | SDIO_CMDDONE_ICR,
+                           STM32_SDIO_ICR);
                   stm32_endwait(priv, SDIOWAIT_RESPONSEDONE);
                 }
             }
@@ -1578,10 +1568,6 @@ static int stm32_interrupt(int irq, void *context, FAR void *arg)
 
   return OK;
 }
-
-/****************************************************************************
- * SDIO Interface Methods
- ****************************************************************************/
 
 /****************************************************************************
  * Name: stm32_lock
@@ -1832,7 +1818,6 @@ static int stm32_attach(FAR struct sdio_dev_s *dev)
   ret = irq_attach(STM32_IRQ_SDIO, stm32_interrupt, NULL);
   if (ret == OK)
     {
-
       /* Disable all interrupts at the SDIO controller and clear static
        * interrupt flags
        */
@@ -1866,7 +1851,8 @@ static int stm32_attach(FAR struct sdio_dev_s *dev)
  *
  ****************************************************************************/
 
-static int stm32_sendcmd(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t arg)
+static int stm32_sendcmd(FAR struct sdio_dev_s *dev, uint32_t cmd,
+                         uint32_t arg)
 {
   uint32_t regval;
   uint32_t cmdidx;
@@ -1954,8 +1940,9 @@ static void stm32_blocksetup(FAR struct sdio_dev_s *dev,
  *   (interrupt driven mode).  This method will do whatever controller setup
  *   is necessary.  This would be called for SD memory just BEFORE sending
  *   CMD13 (SEND_STATUS), CMD17 (READ_SINGLE_BLOCK), CMD18
- *   (READ_MULTIPLE_BLOCKS), ACMD51 (SEND_SCR), etc.  Normally, SDIO_WAITEVENT
- *   will be called to receive the indication that the transfer is complete.
+ *   (READ_MULTIPLE_BLOCKS), ACMD51 (SEND_SCR), etc.  Normally,
+ *   SDIO_WAITEVENT will be called to receive the indication that the
+ *   transfer is complete.
  *
  * Input Parameters:
  *   dev    - An instance of the SDIO device interface
@@ -1982,7 +1969,9 @@ static int stm32_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
   stm32_sampleinit();
   stm32_sample(priv, SAMPLENDX_BEFORE_SETUP);
 
-  /* Save the destination buffer information for use by the interrupt handler */
+  /* Save the destination buffer information for use by the interrupt
+   * handler.
+   */
 
   priv->buffer    = (uint32_t *)buffer;
   priv->remaining = nbytes;
@@ -2003,7 +1992,8 @@ static int stm32_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       dblocksize = stm32_log2(nbytes) << SDIO_DCTRL_DBLOCKSIZE_SHIFT;
     }
 
-  stm32_dataconfig(SDIO_DTIMER_DATATIMEOUT, nbytes, dblocksize | SDIO_DCTRL_DTDIR);
+  stm32_dataconfig(SDIO_DTIMER_DATATIMEOUT, nbytes,
+                   dblocksize | SDIO_DCTRL_DTDIR);
 
   /* And enable interrupts */
 
@@ -2016,9 +2006,9 @@ static int stm32_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
  * Name: stm32_sendsetup
  *
  * Description:
- *   Setup hardware in preparation for data transfer from the card.  This method
- *   will do whatever controller setup is necessary.  This would be called
- *   for SD memory just AFTER sending CMD24 (WRITE_BLOCK), CMD25
+ *   Setup hardware in preparation for data transfer from the card.  This
+ *   method will do whatever controller setup is necessary.  This would be
+ *   called for SD memory just AFTER sending CMD24 (WRITE_BLOCK), CMD25
  *   (WRITE_MULTIPLE_BLOCK), ... and before SDIO_SENDDATA is called.
  *
  * Input Parameters:
@@ -2031,8 +2021,8 @@ static int stm32_recvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
  *
  ****************************************************************************/
 
-static int stm32_sendsetup(FAR struct sdio_dev_s *dev, FAR const uint8_t *buffer,
-                           size_t nbytes)
+static int stm32_sendsetup(FAR struct sdio_dev_s *dev,
+                           FAR const uint8_t *buffer, size_t nbytes)
 {
   struct stm32_dev_s *priv = (struct stm32_dev_s *)dev;
   uint32_t dblocksize;
@@ -2110,7 +2100,7 @@ static int stm32_cancel(FAR struct sdio_dev_s *dev)
 
   /* Cancel any watchdog timeout */
 
-  (void)wd_cancel(priv->waitwdog);
+  wd_cancel(priv->waitwdog);
 
   /* If this was a DMA transfer, make sure that DMA is stopped */
 
@@ -2118,8 +2108,8 @@ static int stm32_cancel(FAR struct sdio_dev_s *dev)
   if (priv->dmamode)
     {
       /* Make sure that the DMA is stopped (it will be stopped automatically
-       * on normal transfers, but not necessarily when the transfer terminates
-       * on an error condition.
+       * on normal transfers, but not necessarily when the transfer
+       * terminates on an error condition.
        */
 
       stm32_dmastop(priv->dma);
@@ -2197,7 +2187,7 @@ static int stm32_waitresponse(FAR struct sdio_dev_s *dev, uint32_t cmd)
 }
 
 /****************************************************************************
- * Name: stm32_recvRx
+ * Name: stm32_recv*
  *
  * Description:
  *   Receive response to SDIO command.  Only the critical payload is
@@ -2211,14 +2201,15 @@ static int stm32_waitresponse(FAR struct sdio_dev_s *dev, uint32_t cmd)
  *
  * Returned Value:
  *   Number of bytes sent on success; a negated errno on failure.  Here a
- *   failure means only a faiure to obtain the requested reponse (due to
+ *   failure means only a faiure to obtain the requested response (due to
  *   transport problem -- timeout, CRC, etc.).  The implementation only
  *   assures that the response is returned intacta and does not check errors
  *   within the response itself.
  *
  ****************************************************************************/
 
-static int stm32_recvshortcrc(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t *rshort)
+static int stm32_recvshortcrc(FAR struct sdio_dev_s *dev, uint32_t cmd,
+                              uint32_t *rshort)
 {
 #ifdef CONFIG_DEBUG_MEMCARD_INFO
   uint32_t respcmd;
@@ -2247,7 +2238,6 @@ static int stm32_recvshortcrc(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t
    *     7:1       bit6   - bit0   CRC7
    *     0         1               End bit
    */
-
 
 #ifdef CONFIG_DEBUG_MEMCARD_INFO
   if (!rshort)
@@ -2288,7 +2278,8 @@ static int stm32_recvshortcrc(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t
           /* Check response received is of desired command */
 
           respcmd = getreg32(STM32_SDIO_RESPCMD);
-          if ((uint8_t)(respcmd & SDIO_RESPCMD_MASK) != (cmd & MMCSD_CMDIDX_MASK))
+          if ((uint8_t)(respcmd & SDIO_RESPCMD_MASK) !=
+              (cmd & MMCSD_CMDIDX_MASK))
             {
               mcerr("ERROR: RESCMD=%02x CMD=%08x\n", respcmd, cmd);
               ret = -EINVAL;
@@ -2297,14 +2288,17 @@ static int stm32_recvshortcrc(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t
 #endif
     }
 
-  /* Clear all pending message completion events and return the R1/R6 response */
+  /* Clear all pending message completion events and return the R1/R6
+   * response.
+   */
 
   putreg32(SDIO_RESPDONE_ICR | SDIO_CMDDONE_ICR, STM32_SDIO_ICR);
   *rshort = getreg32(STM32_SDIO_RESP1);
   return ret;
 }
 
-static int stm32_recvlong(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t rlong[4])
+static int stm32_recvlong(FAR struct sdio_dev_s *dev, uint32_t cmd,
+                          uint32_t rlong[4])
 {
   uint32_t regval;
   int ret = OK;
@@ -2358,7 +2352,8 @@ static int stm32_recvlong(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t rlo
   return ret;
 }
 
-static int stm32_recvshort(FAR struct sdio_dev_s *dev, uint32_t cmd, uint32_t *rshort)
+static int stm32_recvshort(FAR struct sdio_dev_s *dev, uint32_t cmd,
+                           uint32_t *rshort)
 {
   uint32_t regval;
   int ret = OK;
@@ -2513,7 +2508,21 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
    */
 
   flags = enter_critical_section();
+
+#if defined(CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE)
+  /* A card ejected while in SDIOWAIT_WRCOMPLETE can lead to a
+   * condition where there is no waitevents set and no wkupevent
+   */
+
+  if (priv->waitevents == 0 && priv->wkupevent == 0)
+    {
+      wkupevent = SDIOWAIT_ERROR;
+      goto errout_with_waitints;
+    }
+
+#else
   DEBUGASSERT(priv->waitevents != 0 || priv->wkupevent != 0);
+#endif
 
   /* Check if the timeout event is specified in the event set */
 
@@ -2536,7 +2545,7 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
       /* Start the watchdog timer */
 
       delay = MSEC2TICK(timeout);
-      ret   = wd_start(priv->waitwdog, delay, (wdentry_t)stm32_eventtimeout,
+      ret   = wd_start(priv->waitwdog, delay, stm32_eventtimeout,
                        1, (uint32_t)priv);
       if (ret < 0)
         {
@@ -2547,8 +2556,8 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
 #if defined(CONFIG_MMCSD_SDIOWAIT_WRCOMPLETE)
   if ((priv->waitevents & SDIOWAIT_WRCOMPLETE) != 0)
     {
-      /* Atomically read pin to see if ready (true) and determine if ISR fired
-       * If Pin is ready and if ISR did NOT fire end the wait here
+      /* Atomically read pin to see if ready (true) and determine if ISR
+       * fired.  If Pin is ready and if ISR did NOT fire end the wait here.
        */
 
       if (stm32_gpioread(GPIO_SDIO_D0) &&
@@ -2559,24 +2568,36 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
     }
 #endif
 
-  /* Loop until the event (or the timeout occurs). Race conditions are avoided
-   * by calling stm32_waitenable prior to triggering the logic that will cause
-   * the wait to terminate.  Under certain race conditions, the waited-for
-   * may have already occurred before this function was called!
+  /* Loop until the event (or the timeout occurs). Race conditions are
+   * avoided by calling stm32_waitenable prior to triggering the logic that
+   * will cause the wait to terminate.  Under certain race conditions, the
+   * waited-for may have already occurred before this function was called!
    */
 
   for (; ; )
     {
-      /* Wait for an event in event set to occur.  If this the event has already
-       * occurred, then the semaphore will already have been incremented and
-       * there will be no wait.
+      /* Wait for an event in event set to occur.  If this the event has
+       * already occurred, then the semaphore will already have been
+       * incremented and there will be no wait.
        */
 
-      stm32_takesem(priv);
+      ret = stm32_takesem(priv);
+      if (ret < 0)
+        {
+          /* Task canceled.  Cancel the wdog (assuming it was started) and
+           * return an SDIO error.
+           */
+
+          wd_cancel(priv->waitwdog);
+          wkupevent = SDIOWAIT_ERROR;
+          goto errout_with_waitints;
+        }
+
       wkupevent = priv->wkupevent;
 
       /* Check if the event has occurred.  When the event has occurred, then
-       * evenset will be set to 0 and wkupevent will be set to a nonzero value.
+       * evenset will be set to 0 and wkupevent will be set to a nonzero
+       * value.
        */
 
       if (wkupevent != 0)
@@ -2588,6 +2609,8 @@ static sdio_eventset_t stm32_eventwait(FAR struct sdio_dev_s *dev,
     }
 
   /* Disable event-related interrupts */
+
+errout_with_waitints:
 
   stm32_configwaitints(priv, 0, 0, 0);
 #ifdef CONFIG_STM32_SDIO_DMA
@@ -2610,7 +2633,7 @@ errout:
  *
  *   Events are automatically disabled once the callback is performed and no
  *   further callback events will occur until they are again enabled by
- *   calling this methos.
+ *   calling this method.
  *
  * Input Parameters:
  *   dev      - An instance of the SDIO device interface
@@ -2648,7 +2671,7 @@ static void stm32_callbackenable(FAR struct sdio_dev_s *dev,
  *
  * Input Parameters:
  *   dev -      Device-specific state data
- *   callback - The funtion to call on the media change
+ *   callback - The function to call on the media change
  *   arg -      A caller provided value to return with the callback
  *
  * Returned Value:
@@ -2707,7 +2730,8 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
 
   /* DMA must be possible to the buffer */
 
-  if (!stm32_dmacapable((uintptr_t)buffer, (buflen + 3) >> 2, SDIO_RXDMA32_CONFIG))
+  if (!stm32_dmacapable((uintptr_t)buffer, (buflen + 3) >> 2,
+                        SDIO_RXDMA32_CONFIG))
     {
       return -EFAULT;
     }
@@ -2736,8 +2760,8 @@ static int stm32_dmapreflight(FAR struct sdio_dev_s *dev,
  ****************************************************************************/
 
 #ifdef CONFIG_STM32_SDIO_DMA
-static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
-                              size_t buflen)
+static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev,
+                              FAR uint8_t *buffer, size_t buflen)
 {
   struct stm32_dev_s *priv = (struct stm32_dev_s *)dev;
   uint32_t dblocksize;
@@ -2756,7 +2780,9 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
   stm32_sampleinit();
   stm32_sample(priv, SAMPLENDX_BEFORE_SETUP);
 
-  /* Save the destination buffer information for use by the interrupt handler */
+  /* Save the destination buffer information for use by the interrupt
+   * handler.
+   */
 
   priv->buffer    = (uint32_t *)buffer;
   priv->remaining = buflen;
@@ -2775,7 +2801,8 @@ static int stm32_dmarecvsetup(FAR struct sdio_dev_s *dev, FAR uint8_t *buffer,
       dblocksize = stm32_log2(buflen) << SDIO_DCTRL_DBLOCKSIZE_SHIFT;
     }
 
-  stm32_dataconfig(SDIO_DTIMER_DATATIMEOUT, buflen, dblocksize | SDIO_DCTRL_DTDIR);
+  stm32_dataconfig(SDIO_DTIMER_DATATIMEOUT, buflen,
+                   dblocksize | SDIO_DCTRL_DTDIR);
 
   /* Configure the RX DMA */
 
@@ -2878,9 +2905,6 @@ static int stm32_dmasendsetup(FAR struct sdio_dev_s *dev,
 #endif
 
 /****************************************************************************
- * Initialization/uninitialization/reset
- ****************************************************************************/
-/****************************************************************************
  * Name: stm32_callback
  *
  * Description:
@@ -2936,17 +2960,19 @@ static void stm32_callback(void *arg)
 
       priv->cbevents = 0;
 
-      /* Callbacks cannot be performed in the context of an interrupt handler.
-       * If we are in an interrupt handler, then queue the callback to be
-       * performed later on the work thread.
+      /* Callbacks cannot be performed in the context of an interrupt
+       * handler.  If we are in an interrupt handler, then queue the
+       * callback to be performed later on the work thread.
        */
 
       if (up_interrupt_context())
         {
           /* Yes.. queue it */
 
-           mcinfo("Queuing callback to %p(%p)\n", priv->callback, priv->cbarg);
-          (void)work_queue(HPWORK, &priv->cbwork, (worker_t)priv->callback, priv->cbarg, 0);
+           mcinfo("Queuing callback to %p(%p)\n",
+                  priv->callback, priv->cbarg);
+           work_queue(HPWORK, &priv->cbwork, (worker_t)priv->callback,
+                      priv->cbarg, 0);
         }
       else
         {
@@ -2993,7 +3019,8 @@ static void stm32_default(void)
  *   slotno - Not used.
  *
  * Returned Value:
- *   A reference to an SDIO interface structure.  NULL is returned on failures.
+ *   A reference to an SDIO interface structure.  NULL is returned on
+ *   failures.
  *
  ****************************************************************************/
 
@@ -3004,6 +3031,7 @@ FAR struct sdio_dev_s *sdio_initialize(int slotno)
   struct stm32_dev_s *priv = &g_sdiodev;
 
   /* Initialize the SDIO slot structure */
+
   /* Initialize semaphores */
 
   nxsem_init(&priv->waitsem, 0, 0);
@@ -3056,7 +3084,7 @@ FAR struct sdio_dev_s *sdio_initialize(int slotno)
  * Name: sdio_mediachange
  *
  * Description:
- *   Called by board-specific logic -- posssible from an interrupt handler --
+ *   Called by board-specific logic -- possibly from an interrupt handler --
  *   in order to signal to the driver that a card has been inserted or
  *   removed from the slot
  *

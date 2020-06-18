@@ -133,11 +133,9 @@ static const struct file_operations g_st7032fops =
   st7032_write,  /* write */
   st7032_seek,   /* seek */
   st7032_ioctl,  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  0,              /* poll */
-#endif
+  NULL,          /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-  NULL            /* unlink */
+  NULL           /* unlink */
 #endif
 };
 
@@ -802,7 +800,7 @@ static ssize_t st7032_write(FAR struct file *filep, FAR const char *buffer,
 
           if (ch == ASCII_TAB)
             {
-              /* Blink Cursor? Shouln't it be just 4 spaces to indicate TAB? */
+              /* Blink Cursor? Shouldn't it be just 4 spaces to indicate TAB? */
 
               st7032_write_inst(priv, ST7032_DISPLAY_ON_OFF |
                                       DISPLAY_ON_OFF_D | DISPLAY_ON_OFF_C |

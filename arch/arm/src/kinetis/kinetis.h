@@ -53,7 +53,7 @@
 #include "up_internal.h"
 #include "kinetis_config.h"
 #include "chip.h"
-#include "chip/kinetis_port.h"
+#include "hardware/kinetis_port.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -118,7 +118,7 @@
 #define _PIN_OUTPUT_SLOW       (3 << _PIN_OPTIONS_SHIFT) /* xx11 Output with slow slew rate */
 #define _PIN_OUTPUT_OD_MASK    (5 << _PIN_OPTIONS_SHIFT) /* x1x1 Mask to test for open drain */
 #define _PIN_OUTPUT_OPENDRAIN  (5 << _PIN_OPTIONS_SHIFT) /* x1x1 Output with open drain enabled */
-#define _PIN_OUTPUT_DRIVE_MASK (9 << _PIN_OPTIONS_SHIFT) /* 1xx1 Mask to test for high drive strengh */
+#define _PIN_OUTPUT_DRIVE_MASK (9 << _PIN_OPTIONS_SHIFT) /* 1xx1 Mask to test for high drive strength */
 #define _PIN_OUTPUT_LOWDRIVE   (1 << _PIN_OPTIONS_SHIFT) /* 0xx1 Output with low drive strength */
 #define _PIN_OUTPUT_HIGHDRIVE  (9 << _PIN_OPTIONS_SHIFT) /* 1xx1 Output with high drive strength */
 
@@ -575,7 +575,7 @@ void kinetis_pinirqinitialize(void);
  * Name: kinetis_pinirqattach
  *
  * Description:
- *   Attach a pin interrupt handler.  The normal initalization sequence is:
+ *   Attach a pin interrupt handler.  The normal initialization sequence is:
  *
  *   1. Call kinetis_pinconfig() to configure the interrupting pin (pin interrupts
  *      will be disabled.
@@ -695,7 +695,7 @@ FAR struct sdio_dev_s *sdhc_initialize(int slotno);
  * Name: sdhc_mediachange
  *
  * Description:
- *   Called by board-specific logic -- posssible from an interrupt handler --
+ *   Called by board-specific logic -- possibly from an interrupt handler --
  *   in order to signal to the driver that a card has been inserted or
  *   removed from the slot
  *

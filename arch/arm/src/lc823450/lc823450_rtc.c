@@ -216,7 +216,7 @@ static void rtc_pmnotify(struct pm_callback_s *cb, enum pm_state_e pmstate)
             break;
           }
 
-        (void)up_rtc_getdatetime(&tm);
+        up_rtc_getdatetime(&tm);
         up_rtc_set_default_datetime(&tm);
         break;
 
@@ -282,7 +282,7 @@ static int rtc_interrupt(int irq, void *context, FAR void *arg)
  *   Get the current date and time from the date/time RTC.  This interface
  *   is only supported by the date/time RTC hardware implementation.
  *   It is used to replace the system timer.  It is only used by the RTOS during
- *   intialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
+ *   initialization to set up the system time when CONFIG_RTC and CONFIG_RTC_DATETIME
  *   are selected (and CONFIG_RTC_HIRES is not).
  *
  *   NOTE: Some date/time RTC hardware is capability of sub-second accuracy.  That
@@ -728,8 +728,8 @@ void up_rtc_set_default_datetime(struct tm *tp)
       return;
     }
 
-  (void)bchlib_write(handle, (void *)&rtc_def,
-                     CONFIG_RTC_SAVE_SECTOR_OFFSET * 512, sizeof(rtc_def));
+  bchlib_write(handle, (void *)&rtc_def,
+               CONFIG_RTC_SAVE_SECTOR_OFFSET * 512, sizeof(rtc_def));
   bchlib_teardown(handle);
 }
 
@@ -750,8 +750,8 @@ int up_rtc_get_default_datetime(struct tm *tp)
       return -1;
     }
 
-  (void)bchlib_read(handle, (void *)&rtc_def,
-                    CONFIG_RTC_SAVE_SECTOR_OFFSET * 512, sizeof(rtc_def));
+  bchlib_read(handle, (void *)&rtc_def,
+              CONFIG_RTC_SAVE_SECTOR_OFFSET * 512, sizeof(rtc_def));
   bchlib_teardown(handle);
   if (rtc_def.sig != RTC_DEFAULT_SIGNATURE)
     {
@@ -780,8 +780,8 @@ void up_rtc_clear_default(void)
     }
 
   memset(&rtc_def, 0, sizeof(rtc_def));
-  (void)bchlib_write(handle, (void *)&rtc_def,
-                     CONFIG_RTC_SAVE_SECTOR_OFFSET * 512, sizeof(rtc_def));
+  bchlib_write(handle, (void *)&rtc_def,
+               CONFIG_RTC_SAVE_SECTOR_OFFSET * 512, sizeof(rtc_def));
   bchlib_teardown(handle);
   return;
 }

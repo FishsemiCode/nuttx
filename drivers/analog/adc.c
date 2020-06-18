@@ -51,14 +51,12 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/analog/adc.h>
 #include <nuttx/random.h>
 
@@ -76,9 +74,8 @@ static int     adc_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 static int     adc_receive(FAR struct adc_dev_s *dev, uint8_t ch,
                            int32_t data);
 static void    adc_notify(FAR struct adc_dev_s *dev);
-#ifndef CONFIG_DISABLE_POLL
-static int     adc_poll(FAR struct file *filep, struct pollfd *fds, bool setup);
-#endif
+static int     adc_poll(FAR struct file *filep, struct pollfd *fds,
+                        bool setup);
 
 /****************************************************************************
  * Private Data
@@ -91,10 +88,8 @@ static const struct file_operations g_adc_fops =
   adc_read,     /* read */
   0,            /* write */
   0,            /* seek */
-  adc_ioctl     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , adc_poll    /* poll */
-#endif
+  adc_ioctl,    /* ioctl */
+  adc_poll      /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL        /* unlink */
 #endif
@@ -108,13 +103,14 @@ static const struct adc_callback_s g_adc_callback =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
-/************************************************************************************
+
+/****************************************************************************
  * Name: adc_open
  *
  * Description:
  *   This function is called whenever the ADC device is opened.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int adc_open(FAR struct file *filep)
 {
@@ -129,8 +125,8 @@ static int adc_open(FAR struct file *filep)
   if (ret >= 0)
     {
       /* Increment the count of references to the device.  If this the first
-       * time that the driver has been opened for this device, then initialize
-       * the device.
+       * time that the driver has been opened for this device, then
+       * initialize the device.
        */
 
       tmp = dev->ad_ocount + 1;
@@ -176,14 +172,14 @@ static int adc_open(FAR struct file *filep)
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: adc_close
  *
  * Description:
  *   This routine is called when the ADC device is closed.
  *   It waits for the last remaining data to be sent.
  *
- ************************************************************************************/
+ ****************************************************************************/
 
 static int adc_close(FAR struct file *filep)
 {
@@ -212,7 +208,7 @@ static int adc_close(FAR struct file *filep)
 
           /* Free the IRQ and disable the ADC device */
 
-          flags = enter_critical_section();       /* Disable interrupts */
+          flags = enter_critical_section();    /* Disable interrupts */
           dev->ad_ops->ao_shutdown(dev);       /* Disable the ADC */
           leave_critical_section(flags);
 
@@ -227,7 +223,8 @@ static int adc_close(FAR struct file *filep)
  * Name: adc_read
  ****************************************************************************/
 
-static ssize_t adc_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
+static ssize_t adc_read(FAR struct file *filep, FAR char *buffer,
+                        size_t buflen)
 {
   FAR struct inode     *inode = filep->f_inode;
   FAR struct adc_dev_s *dev   = inode->i_private;
@@ -304,14 +301,15 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
       nread = 0;
       do
         {
-          FAR struct adc_msg_s *msg = &dev->ad_recv.af_buffer[dev->ad_recv.af_head];
+          FAR struct adc_msg_s *msg =
+            &dev->ad_recv.af_buffer[dev->ad_recv.af_head];
 
           /* Will the next message in the FIFO fit into the user buffer? */
 
           if (nread + msglen > buflen)
             {
-              /* No.. break out of the loop now with nread equal to the actual
-               * number of bytes transferred.
+              /* No.. break out of the loop now with nread equal to the
+               * actual number of bytes transferred.
                */
 
               break;
@@ -331,7 +329,8 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
             }
           else if (msglen == 2)
             {
-              /* Only one channel, return only the MS 16-bits of the sample.*/
+              /* Only one channel, return only the MS 16-bits of the sample.
+               */
 
               int16_t data16 = msg->am_data >> 16;
               memcpy(&buffer[nread], &data16, 2);
@@ -388,8 +387,8 @@ static ssize_t adc_read(FAR struct file *filep, FAR char *buffer, size_t buflen)
         }
       while (dev->ad_recv.af_head != dev->ad_recv.af_tail);
 
-      /* All on the messages have bee transferred.  Return the number of bytes
-       * that were read.
+      /* All on the messages have bee transferred.  Return the number of
+       * bytes that were read.
        */
 
       ret = nread;
@@ -402,9 +401,9 @@ return_with_irqdisabled:
   return ret;
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: adc_ioctl
- ************************************************************************************/
+ ****************************************************************************/
 
 static int adc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
@@ -426,8 +425,8 @@ static int adc_receive(FAR struct adc_dev_s *dev, uint8_t ch, int32_t data)
   int                    nexttail;
   int                    errcode = -ENOMEM;
 
-  /* Check if adding this new message would over-run the drivers ability to enqueue
-   * read data.
+  /* Check if adding this new message would over-run the drivers ability to
+   * enqueue read data.
    */
 
   nexttail = fifo->af_tail + 1;
@@ -461,7 +460,6 @@ static int adc_receive(FAR struct adc_dev_s *dev, uint8_t ch, int32_t data)
  * Name: adc_pollnotify
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static void adc_pollnotify(FAR struct adc_dev_s *dev, uint32_t type)
 {
   int i;
@@ -476,7 +474,6 @@ static void adc_pollnotify(FAR struct adc_dev_s *dev, uint32_t type)
         }
     }
 }
-#endif
 
 /****************************************************************************
  * Name: adc_notify
@@ -499,16 +496,13 @@ static void adc_notify(FAR struct adc_dev_s *dev)
    * then wake them up now.
    */
 
-#ifndef CONFIG_DISABLE_POLL
-   adc_pollnotify(dev, POLLIN);
-#endif
+  adc_pollnotify(dev, POLLIN);
 }
 
-/************************************************************************************
+/****************************************************************************
  * Name: adc_poll
- ************************************************************************************/
+ ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int adc_poll(FAR struct file *filep, struct pollfd *fds, bool setup)
 {
   FAR struct inode     *inode = filep->f_inode;
@@ -581,7 +575,6 @@ return_with_irqdisabled:
   leave_critical_section(flags);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Public Functions

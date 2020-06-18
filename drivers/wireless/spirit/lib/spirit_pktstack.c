@@ -130,7 +130,8 @@ int spirit_pktstack_initialize(FAR struct spirit_library_s *spirit,
     }
 
   /* Address and control length setting: source and destination address are
-   * always present so ADDRESS_LENGTH=2 */
+   * always present so ADDRESS_LENGTH=2.
+   */
 
   regval[0] = 0x10 | (uint8_t)pktstack->ctrllen;
 
@@ -479,7 +480,7 @@ int spirit_pktstack_llp_initialize(FAR struct spirit_library_s *spirit,
       regval[1] &= ~PROTOCOL0_NMAX_RETX_MASK;
       regval[1] |= llpinit->maxretx;
 
-     /* Write registers */
+      /* Write registers */
 
       ret = spirit_reg_write(spirit, PROTOCOL1_BASE, regval, 2);
     }
@@ -706,7 +707,7 @@ uint16_t spirit_pktstack_get_payloadlen(FAR struct spirit_library_s *spirit)
 
   /* Read the PCKTLEN1 registers value */
 
-  (void)spirit_reg_read(spirit, PCKTLEN1_BASE, regval, 2);
+  spirit_reg_read(spirit, PCKTLEN1_BASE, regval, 2);
 
   /* Rebuild and return the payload length value */
 
@@ -822,7 +823,7 @@ uint8_t spirit_pktstack_get_rxsource_addrmask(FAR struct spirit_library_s *spiri
 
   /* Write value to the PCKT_FLT_GOALS_SOURCE_MASK register */
 
-  (void)spirit_reg_read(spirit, PCKT_FLT_GOALS_SOURCE_MASK_BASE, &regval, 1);
+  spirit_reg_read(spirit, PCKT_FLT_GOALS_SOURCE_MASK_BASE, &regval, 1);
 
   /* Return the read value */
 
@@ -850,7 +851,7 @@ uint16_t spirit_pktstack_get_rxpktlen(FAR struct spirit_library_s *spirit)
 
   /* Read the RX_PCKT_LENx registers value */
 
-  (void)spirit_reg_read(spirit, RX_PCKT_LEN1_BASE, regval, 2);
+  spirit_reg_read(spirit, RX_PCKT_LEN1_BASE, regval, 2);
 
   /* Rebuild and return the the length field */
 
@@ -874,7 +875,7 @@ uint16_t spirit_pktstack_get_rxpktlen(FAR struct spirit_library_s *spirit)
  *   NOTE: This filtering control is enabled by default but the source
  *   address mask is by default set to 0.  As a matter of fact the user has
  *   to enable the source filtering bit after the packet initialization
- *   because the packet initialiazation routine disables it.
+ *   because the packet initialization routine disables it.
  *
  * Input Parameters:
  *   spirit   - Reference to a Spirit library state structure instance

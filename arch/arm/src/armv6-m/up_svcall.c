@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/arm/src/armv6-m/up_svcall.c
  *
- *   Copyright (C) 2013-2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2013-2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -51,6 +51,7 @@
 #  include <syscall.h>
 #endif
 
+#include "signal/signal.h"
 #include "svcall.h"
 #include "exc_return.h"
 #include "up_internal.h"
@@ -177,7 +178,7 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
        *   R0 = SYS_save_context
        *   R1 = saveregs
        *
-       * In this case, we simply need to copy the current regsters to the
+       * In this case, we simply need to copy the current registers to the
        * save register space references in the saved R1 and return.
        */
 
@@ -222,7 +223,7 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
        *
        * In this case, we do both: We save the context registers to the save
        * register area reference by the saved contents of R1 and then set
-       * CURRENT_REGS to to the save register area referenced by the saved
+       * CURRENT_REGS to the save register area referenced by the saved
        * contents of R2.
        */
 
@@ -269,6 +270,13 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
            */
 
           regs[REG_R0]         = regs[REG_R2];
+
+          /* Handle any signal actions that were deferred while processing
+           * the system call.
+           */
+
+          rtcb->flags          &= ~TCB_FLAG_SYSCALL;
+          (void)nxsig_unmask_pendingsignal();
         }
         break;
 #endif
@@ -351,7 +359,7 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
        *   R4 = ucontext
        */
 
-#if defined(CONFIG_BUILD_PROTECTED) && !defined(CONFIG_DISABLE_SIGNALS)
+#ifdef CONFIG_BUILD_PROTECTED
       case SYS_signal_handler:
         {
           struct tcb_s *rtcb   = sched_self();
@@ -361,7 +369,7 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
           DEBUGASSERT(rtcb->xcp.sigreturn == 0);
           rtcb->xcp.sigreturn  = regs[REG_PC];
 
-          /* Set up to return to the user-space pthread start-up function in
+          /* Set up to return to the user-space trampoline function in
            * unprivileged mode.
            */
 
@@ -389,7 +397,7 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
        *   R0 = SYS_signal_handler_return
        */
 
-#if defined(CONFIG_BUILD_PROTECTED) && !defined(CONFIG_DISABLE_SIGNALS)
+#ifdef CONFIG_BUILD_PROTECTED
       case SYS_signal_handler_return:
         {
           struct tcb_s *rtcb   = sched_self();
@@ -437,7 +445,11 @@ int up_svcall(int irq, FAR void *context, FAR void *arg)
 
           /* Offset R0 to account for the reserved values */
 
-          regs[REG_R0] -= CONFIG_SYS_RESERVED;
+          regs[REG_R0]        -= CONFIG_SYS_RESERVED;
+
+          /* Indicate that we are in a syscall handler. */
+
+          rtcb->flags         |= TCB_FLAG_SYSCALL;
 #else
           svcerr("ERROR: Bad SYS call: %d\n", regs[REG_R0]);
 #endif

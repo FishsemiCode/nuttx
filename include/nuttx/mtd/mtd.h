@@ -52,6 +52,7 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Ioctl commands */
 
 #define MTDIOC_GEOMETRY   _MTDIOC(0x0001) /* IN:  Pointer to write-able struct
@@ -62,7 +63,7 @@
 #define MTDIOC_XIPBASE    _MTDIOC(0x0002) /* IN:  Pointer to pointer to void in
                                            *      which to received the XIP base.
                                            * OUT: If media is directly accessible,
-                                           *      return (void*) base address
+                                           *      return (void *) base address
                                            *      of device memory */
 #define MTDIOC_BULKERASE  _MTDIOC(0x0003) /* IN:  None
                                            * OUT: None */
@@ -274,7 +275,7 @@ FAR struct mtd_dev_s *mtd_rwb_initialize(FAR struct mtd_dev_s *mtd);
 #endif
 
 /****************************************************************************
- * Name: ftl_initialize_by_name
+ * Name: ftl_initialize_by_path
  *
  * Description:
  *   Initialize to provide a block driver wrapper around an MTD interface
@@ -322,6 +323,7 @@ int smart_initialize(int minor, FAR struct mtd_dev_s *mtd,
                      FAR const char *partname);
 
 /* MTD Driver Initialization ************************************************/
+
 /* Create an initialized MTD device instance for a particular memory device.
  * MTD devices are not registered in the file system as are other device
  * driver but, but are created as instances that can be bound to other
@@ -532,7 +534,8 @@ FAR struct mtd_dev_s *w25_initialize(FAR struct spi_dev_s *dev);
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev, uint32_t spi_devid);
+FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev,
+                                      uint32_t spi_devid);
 
 /****************************************************************************
  * Name: gd5f_initialize
@@ -542,7 +545,8 @@ FAR struct mtd_dev_s *gd25_initialize(FAR struct spi_dev_s *dev, uint32_t spi_de
  *
  ****************************************************************************/
 
-FAR struct mtd_dev_s *gd5f_initialize(FAR struct spi_dev_s *dev, uint32_t spi_devid);
+FAR struct mtd_dev_s *gd5f_initialize(FAR struct spi_dev_s *dev,
+                                      uint32_t spi_devid);
 
 /****************************************************************************
  * Name: s25fl1_initialize
@@ -592,6 +596,18 @@ FAR struct mtd_dev_s *n25qxxx_initialize(FAR struct qspi_dev_s *qspi,
                                          bool unprotect);
 
 /****************************************************************************
+ * Name: w25qxxxjv_initialize
+ *
+ * Description:
+ *   Create an initialized MTD device instance for the QuadSPI-based W25QxxxJV
+ *   FLASH part from Winbond.
+ *
+ ****************************************************************************/
+
+FAR struct mtd_dev_s *w25qxxxjv_initialize(FAR struct qspi_dev_s *qspi,
+                                         bool unprotect);
+
+/****************************************************************************
  * Name: blockmtd_initialize
  *
  * Description:
@@ -631,7 +647,7 @@ void blockmtd_teardown(FAR struct mtd_dev_s *dev);
  ****************************************************************************/
 
 FAR struct mtd_dev_s *filemtd_initialize(FAR const char *path, size_t offset,
-                                        int16_t sectsize, int32_t erasesize);
+                                         int16_t sectsize, int32_t erasesize);
 
 /****************************************************************************
  * Name: filemtd_teardown
@@ -644,7 +660,7 @@ FAR struct mtd_dev_s *filemtd_initialize(FAR const char *path, size_t offset,
  *
  ****************************************************************************/
 
-void filemtd_teardown(FAR struct mtd_dev_s* dev);
+void filemtd_teardown(FAR struct mtd_dev_s *dev);
 
 /****************************************************************************
  * Name: filemtd_isfilemtd
@@ -657,7 +673,7 @@ void filemtd_teardown(FAR struct mtd_dev_s* dev);
  *
  ****************************************************************************/
 
-bool filemtd_isfilemtd(FAR struct mtd_dev_s* mtd);
+bool filemtd_isfilemtd(FAR struct mtd_dev_s *mtd);
 
 #undef EXTERN
 #ifdef __cplusplus

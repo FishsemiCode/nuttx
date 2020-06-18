@@ -50,7 +50,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <semaphore.h>
 
 #include <poll.h>
 #include <errno.h>
@@ -125,10 +124,8 @@ static ssize_t  stmpe811_read(FAR struct file *filep, FAR char *buffer,
                   size_t len);
 static int      stmpe811_ioctl(FAR struct file *filep, int cmd,
                   unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int      stmpe811_poll(FAR struct file *filep, struct pollfd *fds,
                   bool setup);
-#endif
 
 /* Initialization logic */
 
@@ -145,12 +142,10 @@ static const struct file_operations g_stmpe811fops =
   stmpe811_open,    /* open */
   stmpe811_close,   /* close */
   stmpe811_read,    /* read */
-  0,               /* write */
-  0,               /* seek */
-  stmpe811_ioctl    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , stmpe811_poll   /* poll */
-#endif
+  NULL,             /* write */
+  NULL,             /* seek */
+  stmpe811_ioctl,   /* ioctl */
+  stmpe811_poll     /* poll */
 };
 
 /****************************************************************************
@@ -167,9 +162,7 @@ static const struct file_operations g_stmpe811fops =
 
 static void stmpe811_notify(FAR struct stmpe811_dev_s *priv)
 {
-#ifndef CONFIG_DISABLE_POLL
   int i;
-#endif
 
   /* If there are threads waiting for read data, then signal one of them
    * that the read data is available.
@@ -190,7 +183,6 @@ static void stmpe811_notify(FAR struct stmpe811_dev_s *priv)
    * then some make end up blocking after all.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   for (i = 0; i < CONFIG_STMPE811_NPOLLWAITERS; i++)
     {
       struct pollfd *fds = priv->fds[i];
@@ -201,7 +193,6 @@ static void stmpe811_notify(FAR struct stmpe811_dev_s *priv)
           nxsem_post(fds->sem);
         }
     }
-#endif
 }
 
 /****************************************************************************
@@ -307,12 +298,7 @@ static inline int stmpe811_waitsample(FAR struct stmpe811_dev_s *priv,
 
       if (ret < 0)
         {
-          /* If we are awakened by a signal, then we need to return
-           * the failure now.
-           */
-
           ierr("ERROR: nxsem_wait failed: %d\n", ret);
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
           goto errout;
         }
     }
@@ -362,10 +348,7 @@ static int stmpe811_open(FAR struct file *filep)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was cancelled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -422,10 +405,7 @@ static int stmpe811_close(FAR struct file *filep)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -485,10 +465,7 @@ static ssize_t stmpe811_read(FAR struct file *filep, FAR char *buffer, size_t le
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -600,10 +577,7 @@ static int stmpe811_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -644,7 +618,6 @@ static int stmpe811_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int stmpe811_poll(FAR struct file *filep, FAR struct pollfd *fds,
                          bool setup)
 {
@@ -668,7 +641,6 @@ static int stmpe811_poll(FAR struct file *filep, FAR struct pollfd *fds,
       /* This should only happen if the wait was canceled by an signal */
 
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -733,7 +705,6 @@ errout:
   nxsem_post(&priv->exclsem);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Name: stmpe811_timeoutworker
@@ -908,7 +879,6 @@ int stmpe811_register(STMPE811_HANDLE handle, int minor)
   if (ret < 0)
     {
       ierr("ERROR: nxsem_wait failed: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -983,7 +953,7 @@ void stmpe811_tscworker(FAR struct stmpe811_dev_s *priv, uint8_t intsta)
 
   /* Cancel the missing pen up timer */
 
-  (void)wd_cancel(priv->wdog);
+  wd_cancel(priv->wdog);
 
   /* Check for pen up or down from the TSC_STA ibit n the STMPE811_TSC_CTRL register. */
 
@@ -1123,8 +1093,8 @@ ignored:
   if (priv->sample.contact == CONTACT_DOWN ||
       priv->sample.contact == CONTACT_MOVE)
     {
-      (void)wd_start(priv->wdog, STMPE811_PENUP_TICKS, stmpe811_timeout,
-                     1, (uint32_t)((uintptr_t)priv));
+      wd_start(priv->wdog, STMPE811_PENUP_TICKS, stmpe811_timeout,
+               1, (uint32_t)((uintptr_t)priv));
     }
 
   /*  Reset and clear all data in the FIFO */

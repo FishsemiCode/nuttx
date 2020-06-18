@@ -48,6 +48,12 @@
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
+/* Cache line sizes (in bytes) for the PIC32MZ */
+
+#define PIC32MZ_DCACHE_LINESIZE 16  /* 16 bytes (4 words) */
+#define PIC32MZ_ICACHE_LINESIZE 16  /* 16 bytes (4 words) */
+
 /* GPIO IRQs ************************************************************************/
 
 #ifndef CONFIG_PIC32MZ_GPIOIRQ
@@ -384,11 +390,16 @@
 #  define CONFIG_PIC32MZ_UPLLFSEL DEVCFG2_UPLLFSEL_24MHZ
 #endif
 
-/* Not yet configurable settings (REVISIT) */
+/* System PLL Input Clock Select bit */
 
-                                           /* System PLL Input Clock Select bit */
-#define CONFIG_PIC32MZ_FPLLICLK   0        /* POSC is selected as input to the System PLL */
-                                           /* USB PLL Input Frequency Select bit */
+#undef CONFIG_PIC32MZ_FPLLICLK
+#if defined(BOARD_FPLLICLK_FRC)
+#  define CONFIG_PIC32MZ_FPLLICLK DEVCFG2_FPLLICLK
+#else
+#  define CONFIG_PIC32MZ_FPLLICLK 0        /* POSC is selected as input to the System PLL */
+#endif
+
+/* USB PLL Input Frequency Select bit */
 
 /* DEVCFG1 */
 /* Configurable settings */
@@ -507,7 +518,7 @@
 
 #undef CONFIG_PIC32MZ_FWDTEN
 #ifdef CONFIG_PIC32MZ_WDTENABLE
-#  define CONFIG_PIC32MZ_FWDTEN  DEVCFG1_FWDT_ENSABLED
+#  define CONFIG_PIC32MZ_FWDTEN  DEVCFG1_FWDT_ENABLED
 #else
 #  define CONFIG_PIC32MZ_FWDTEN  DEVCFG1_FWDT_DISABLED
 #endif

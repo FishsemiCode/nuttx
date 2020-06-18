@@ -42,13 +42,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/analog/opamp.h>
 
@@ -60,7 +58,8 @@
 
 static int     opamp_open(FAR struct file *filep);
 static int     opamp_close(FAR struct file *filep);
-static int     opamp_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static int     opamp_ioctl(FAR struct file *filep, int cmd,
+                           unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -73,10 +72,8 @@ static const struct file_operations opamp_fops =
   NULL,                          /* read */
   NULL,                          /* write */
   NULL,                          /* seek */
-  opamp_ioctl                    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL                         /* poll */
-#endif
+  opamp_ioctl,                   /* ioctl */
+  NULL                           /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL                         /* unlink */
 #endif
@@ -85,6 +82,7 @@ static const struct file_operations opamp_fops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: opamp_open
  *
@@ -106,8 +104,8 @@ static int opamp_open(FAR struct file *filep)
   if (ret >= 0)
     {
       /* Increment the count of references to the device.  If this the first
-       * time that the driver has been opened for this device, then initialize
-       * the device.
+       * time that the driver has been opened for this device, then
+       * initialize the device.
        */
 
       tmp = dev->ad_ocount + 1;
@@ -193,7 +191,7 @@ static int opamp_close(FAR struct file *filep)
 
 /****************************************************************************
  * Name: opamp_ioctl
-****************************************************************************/
+ ****************************************************************************/
 
 static int opamp_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {

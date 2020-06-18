@@ -33,7 +33,6 @@
 #
 ############################################################################
 
-
 # Files required for HostFS file system support
 
 ASRCS +=

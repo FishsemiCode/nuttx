@@ -60,10 +60,10 @@ volatile uint32_t *g_current_regs;
  ****************************************************************************/
 
 /****************************************************************************
- * Name: lm32_irq_initialize
+ * Name: up_irqinitialize
  ****************************************************************************/
 
-void lm32_irq_initialize(void)
+void up_irqinitialize(void)
 {
   /* currents_regs is non-NULL only while processing an interrupt */
 
@@ -71,7 +71,7 @@ void lm32_irq_initialize(void)
 
   /* Attach the software interrupt */
 
-  (void)irq_attach(LM32_IRQ_SWINT, lm32_swint, NULL);
+  irq_attach(LM32_IRQ_SWINT, lm32_swint, NULL);
 
   /* Enable interrupts */
 

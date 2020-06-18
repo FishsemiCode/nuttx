@@ -40,7 +40,7 @@
  ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_GATT_H
-#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_GATT_H 1
+#define __INCLUDE_NUTTX_WIRELESS_BLUETOOTH_BT_GATT_H
 
 /****************************************************************************
  * Included Files
@@ -446,7 +446,8 @@ typedef CODE uint8_t
 
 struct bt_conn_s; /* Forward reference */
 
-typedef void (*bt_gatt_rsp_func_t)(FAR struct bt_conn_s *conn, uint8_t err);
+typedef CODE void (*bt_gatt_rsp_func_t)(FAR struct bt_conn_s *conn,
+                   uint8_t err);
 
 /* Read callback function
  *

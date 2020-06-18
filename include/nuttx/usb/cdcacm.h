@@ -49,6 +49,7 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
 /* CONFIG_CDCACM
  *   Enable compilation of the USB serial driver
  * CONFIG_CDCACM_EP0MAXPACKET
@@ -97,7 +98,7 @@
  *   Size of the serial receive/transmit buffers. Default 256.
  */
 
-/* Informations needed in usbdev_devinfo_s */
+/* Information needed in usbdev_devinfo_s */
 
 #define CDCACM_NUM_EPS             (3)
 
@@ -259,6 +260,7 @@
 #endif
 
 /* IOCTL Commands ***********************************************************/
+
 /* The USB serial driver will support a subset of the TIOC IOCTL commands
  * defined in include/nuttx/serial/tioctl.h.  This subset includes:
  *
@@ -323,7 +325,7 @@ enum cdcacm_event_e
   CDCACM_EVENT_SENDBREAK       /* Send break request received */
 };
 
-typedef FAR void (*cdcacm_callback_t)(enum cdcacm_event_e event);
+typedef CODE void (*cdcacm_callback_t)(enum cdcacm_event_e event);
 
 /****************************************************************************
  * Public Function Prototypes
@@ -368,7 +370,7 @@ int cdcacm_classobject(int minor, FAR struct usbdev_devinfo_s *devinfo,
  *
  * Returned Value:
  *   Zero (OK) means that the driver was successfully registered.  On any
- *   failure, a negated errno value is retured.
+ *   failure, a negated errno value is returned.
  *
  ****************************************************************************/
 
@@ -381,7 +383,7 @@ int cdcacm_initialize(int minor, FAR void **handle);
  *
  * Description:
  *   Un-initialize the USB storage class driver.  This function is used
- *   internally by the USB composite driver to uninitialized the CDC/ACM
+ *   internally by the USB composite driver to uninitialize the CDC/ACM
  *   driver.  This same interface is available (with an untyped input
  *   parameter) when the CDC/ACM driver is used standalone.
  *

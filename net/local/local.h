@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/local/loal.h
  *
- *   Copyright (C) 2015 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -46,13 +46,13 @@
 #include <sys/un.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <queue.h>
 #include <stdint.h>
 #include <poll.h>
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
+#include <nuttx/semaphore.h>
 
 #ifdef CONFIG_NET_LOCAL
 
@@ -60,11 +60,8 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-#undef HAVE_LOCAL_POLL
-#ifndef CONFIG_DISABLE_POLL
-#  define HAVE_LOCAL_POLL 1
-#  define LOCAL_ACCEPT_NPOLLWAITERS 2
-#endif
+#define HAVE_LOCAL_POLL 1
+#define LOCAL_NPOLLWAITERS 2
 
 /* Packet format in FIFO:
  *
@@ -75,7 +72,7 @@
  */
 
 #define LOCAL_SYNC_BYTE   0x42     /* Byte in sync sequence */
-#define LOCAL_END_BYTE    0xbd     /* End of sync seqence */
+#define LOCAL_END_BYTE    0xbd     /* End of sync sequence */
 
 /****************************************************************************
  * Public Type Definitions
@@ -129,14 +126,28 @@ enum local_state_s
  *    implemented.
  */
 
+struct devif_callback_s;       /* Forward reference */
+
 struct local_conn_s
 {
+  /* Common prologue of all connection structures. */
+
   /* lc_node supports a doubly linked list: Listening SOCK_STREAM servers
    * will be linked into a list of listeners; SOCK_STREAM clients will be
    * linked to the lc_waiters and lc_conn lists.
    */
 
   dq_entry_t lc_node;          /* Supports a doubly linked list */
+
+  /* This is a list of Local connection callbacks.  Each callback represents
+   * a thread that is stalled, waiting for a device-specific event.
+   * REVISIT:  Here for commonality with other connection structures; not
+   * used in the current implementation.
+   */
+
+  FAR struct devif_callback_s *lc_list;
+
+  /* Local-socket specific content follows */
 
   /* Fields common to SOCK_STREAM and SOCK_DGRAM */
 
@@ -157,10 +168,11 @@ struct local_conn_s
 
 #ifdef HAVE_LOCAL_POLL
   /* The following is a list if poll structures of threads waiting for
-   * socket accept events.
+   * socket events.
    */
 
-  struct pollfd *lc_accept_fds[LOCAL_ACCEPT_NPOLLWAITERS];
+  struct pollfd *lc_accept_fds[LOCAL_NPOLLWAITERS];
+  struct pollfd lc_inout_fds[2*LOCAL_NPOLLWAITERS];
 #endif
 
   /* Union of fields unique to SOCK_STREAM client, server, and connected
@@ -501,7 +513,7 @@ int local_fifo_read(FAR struct file *filep, FAR uint8_t *buf, size_t *len);
  * Input Parameters:
  *   conn - The connection
  *   addr - The location to return the address
- *   addrlen - The size of the memory allocat by the caller to receive the
+ *   addrlen - The size of the memory allocate by the caller to receive the
  *             address.
  *
  * Returned Value:

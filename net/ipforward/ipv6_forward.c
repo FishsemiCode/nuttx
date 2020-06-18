@@ -75,7 +75,7 @@
  *
  * Input Parameters:
  *   ipv6  - A pointer to the IPv6 header in within the IPv6 packet.  This
- *           is immeidately followed by the L3 header which may be TCP, UDP,
+ *           is immediately followed by the L3 header which may be TCP, UDP,
  *           or ICMPv6.
  *
  * Returned Value:
@@ -159,6 +159,7 @@ static int ipv6_decr_ttl(FAR struct ipv6_hdr_s *ipv6)
     {
 #ifdef CONFIG_NET_ICMPv6
       /* Return an ICMPv6 error packet back to the sender. */
+
 #  warning Missing logic
 #endif
 
@@ -190,7 +191,7 @@ static int ipv6_decr_ttl(FAR struct ipv6_hdr_s *ipv6)
  * Returned Value:
  *   PACKET_FORWARDED     - Packet was forwarded
  *   PACKET_NOT_FORWARDED - Packet was not forwarded
- *   < 0                  - And error occurred (and packet not fowarded).
+ *   < 0                  - And error occurred (and packet not forwarded).
  *
  ****************************************************************************/
 
@@ -307,7 +308,7 @@ static int ipv6_packet_conversion(FAR struct net_driver_s *dev,
         }
     }
 
-   /* The packet was not forwarded (or the HOP limit was exceeded) */
+  /* The packet was not forwarded (or the HOP limit was exceeded) */
 
   ipv6_dropstats(ipv6);
   return ret;
@@ -347,6 +348,15 @@ static int ipv6_dev_forward(FAR struct net_driver_s *dev,
   int hdrsize;
 #endif
   int ret;
+
+  /* If the interface isn't "up", we can't forward. */
+
+  if ((fwddev->d_flags & IFF_UP) == 0)
+    {
+      nwarn("WARNING: device is DOWN\n");
+      ret = -EHOSTUNREACH;
+      goto errout;
+    }
 
   /* Perform any necessary packet conversions. */
 
@@ -414,7 +424,7 @@ static int ipv6_dev_forward(FAR struct net_driver_s *dev,
        * waiting for an IOB is a good idea
        */
 
-      fwd->f_iob = iob_tryalloc(false);
+      fwd->f_iob = iob_tryalloc(false, IOBUSER_NET_IPFORWARD);
       if (fwd->f_iob == NULL)
         {
           nwarn("WARNING: iob_tryalloc() failed\n");
@@ -432,7 +442,7 @@ static int ipv6_dev_forward(FAR struct net_driver_s *dev,
        */
 
       ret = iob_trycopyin(fwd->f_iob, (FAR const uint8_t *)ipv6,
-                          dev->d_len, 0, false);
+                          dev->d_len, 0, false, IOBUSER_NET_IPFORWARD);
       if (ret < 0)
         {
           nwarn("WARNING: iob_trycopyin() failed: %d\n", ret);
@@ -465,7 +475,7 @@ static int ipv6_dev_forward(FAR struct net_driver_s *dev,
 errout_with_iobchain:
   if (fwd != NULL && fwd->f_iob != NULL)
     {
-      iob_free_chain(fwd->f_iob);
+      iob_free_chain(fwd->f_iob, IOBUSER_NET_IPFORWARD);
     }
 
 errout_with_fwd:
@@ -483,7 +493,7 @@ errout:
  *
  * Description:
  *   This function is a callback from netdev_foreach.  It implements the
- *   the broadcase forwarding action for each network device (other than, of
+ *   the broadcast forwarding action for each network device (other than, of
  *   course, the device that received the packet).
  *
  * Input Parameters:
@@ -596,7 +606,7 @@ int ipv6_forward(FAR struct net_driver_s *dev, FAR struct ipv6_hdr_s *ipv6)
         }
     }
   else
-#if defined(CONFIG_NET_6LOWPAN) /* REVISIT:  Currently only suport for 6LoWPAN */
+#if defined(CONFIG_NET_6LOWPAN) /* REVISIT:  Currently only support for 6LoWPAN */
     {
       /* Single network device.  The use case here is where an endpoint acts
        * as a hub in a star configuration.  This is typical for a wireless star
@@ -621,17 +631,18 @@ int ipv6_forward(FAR struct net_driver_s *dev, FAR struct ipv6_hdr_s *ipv6)
 #ifdef CONFIG_NET_ETHERNET
           /* REVISIT:  For Ethernet we may have to fix up the Ethernet header:
            * - source MAC, the MAC of the current device.
-           * - dest MAC, the MAC associated with the destination IPv6 adress.
+           * - dest MAC, the MAC associated with the destination IPv6 address.
            *   This  will involve ICMPv6 and Neighbor Discovery.
            */
 
           /* Correct dev->d_buf by adding back the L1 header length */
+
 #endif
 
           /* Nothing other 6LoWPAN forwarding is currently handled and that
            * case was dealt with in ipv6_packet_conversion().
            *
-           * REVISIT: Is tht an issue?  Do other use cases make sense?
+           * REVISIT: Is this an issue?  Do other use cases make sense?
            */
 
           nwarn("WARNING: Packet forwarding supported only for 6LoWPAN\n");
@@ -699,7 +710,7 @@ void ipv6_forward_broadcast(FAR struct net_driver_s *dev,
        * of course, the device that received the packet.
        */
 
-      (void)netdev_foreach(ipv6_forward_callback, dev);
+      netdev_foreach(ipv6_forward_callback, dev);
     }
 }
 #endif

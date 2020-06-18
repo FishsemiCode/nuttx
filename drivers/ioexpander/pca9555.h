@@ -46,11 +46,9 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
-
 #include <nuttx/wdog.h>
 #include <nuttx/clock.h>
-
+#include <nuttx/semaphore.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/ioexpander/ioexpander.h>
 #include <nuttx/ioexpander/pca9555.h>
@@ -70,8 +68,6 @@
  *     I2C support is required
  *   CONFIG_IOEXPANDER
  *     Enables support for the PCA9555 I/O expander
- *
- * Other settings that effect the driver: CONFIG_DISABLE_POLL
  *
  * CONFIG_IOEXPANDER_PCA9555
  *   Enables support for the PCA9555 driver (Needs CONFIG_INPUT)

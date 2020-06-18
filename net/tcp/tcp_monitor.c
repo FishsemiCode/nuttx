@@ -217,7 +217,7 @@ static void tcp_shutdown_monitor(FAR struct tcp_conn_s *conn, uint16_t flags)
    */
 
   net_lock();
-  (void)tcp_callback(conn->dev, conn, flags);
+  tcp_callback(conn->dev, conn, flags);
 
   /* Free all allocated connection event callback structures */
 
@@ -305,7 +305,7 @@ int tcp_start_monitor(FAR struct socket *psock)
  *
  * Description:
  *   Stop monitoring TCP connection changes for a sockets associated with
- *   a given TCP connection stucture.
+ *   a given TCP connection structure.
  *
  * Input Parameters:
  *   conn - The TCP connection of interest
@@ -393,7 +393,7 @@ void tcp_close_monitor(FAR struct socket *psock)
     {
       if (cb->event != NULL && (cb->flags & TCP_CLOSE) != 0)
         {
-          (void)cb->event(conn->dev, conn, cb->priv, TCP_CLOSE);
+          cb->event(conn->dev, conn, cb->priv, TCP_CLOSE);
         }
     }
 #endif

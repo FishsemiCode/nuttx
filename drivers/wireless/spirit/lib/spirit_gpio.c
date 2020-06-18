@@ -108,7 +108,8 @@ int spirit_gpio_enable_tempsensor(FAR struct spirit_library_s *spirit,
   DEBUGASSERT(IS_SPIRIT_FUNCTIONAL_STATE(newstate));
 
   /* Reads the ANA_FUNC_CONF0 register and mask the result to enable or disable
-   * the temperature sensor */
+   * the temperature sensor.
+   */
 
   ret = spirit_reg_read(spirit, ANA_FUNC_CONF0_BASE, &regval, 1);
   if (ret >= 0)
@@ -236,7 +237,7 @@ enum spirit_outputlevel_e
 
   /* Reads the SPIRIT_GPIOx register */
 
-  (void)spirit_reg_read(spirit, gpio, &regval, 1);
+  spirit_reg_read(spirit, gpio, &regval, 1);
 
   /* Mask the GPIO_SELECT field and returns the value according */
 
@@ -280,7 +281,8 @@ int spirit_gpio_enable_clockoutput(FAR struct spirit_library_s *spirit,
   DEBUGASSERT(IS_SPIRIT_FUNCTIONAL_STATE(newstate));
 
   /* Reads the MCU_CK_CONF register and mask the result to enable or disable
-   * the clock output */
+   * the clock output.
+   */
 
   ret = spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
   if (ret >= 0)
@@ -335,7 +337,8 @@ int spirit_gpio_clockoutput_initialize(FAR struct spirit_library_s *spirit,
   DEBUGASSERT(IS_SPIRIT_CLOCK_OUTPUT_EXTRA_CYCLES(clockoutput->xtracycles));
 
   /* Calculates the register value to write according to the specified
-   * configuration */
+   * configuration.
+   */
 
   regval = ((uint8_t)(clockoutput->xoprescaler) |
             (uint8_t)(clockoutput->rcoprescaler) |
@@ -412,7 +415,7 @@ enum spirit_clockoutput_xoprescaler_e
 
   /* Reads the MCU_CLK_CONFIG register */
 
-  (void)spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
+  spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
 
   /* Mask the XO_RATIO field and return the value */
 
@@ -485,7 +488,7 @@ enum spirit_clockoutput_rcoprescaler_e
 
   /* Reads the MCU_CLK_CONFIG register */
 
-  (void)spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
+  spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
 
   /* Mask the RCO_RATIO field and returns the value */
 
@@ -529,9 +532,9 @@ int spirit_gpio_set_extracycles(FAR struct spirit_library_s *spirit,
       regval &= 0x9f;
       regval |= (uint8_t)xtracycles;
 
-     /* Write to the new number of extra clock cycles in the MCU_CLOCK
-      * register.
-      */
+      /* Write to the new number of extra clock cycles in the MCU_CLOCK
+       * register.
+       */
 
       ret = spirit_reg_write(spirit, MCU_CK_CONF_BASE, &regval, 1);
     }
@@ -561,7 +564,7 @@ enum spirit_extra_clockcycles_e
 
   /* Reads the MCU_CLK_CONFIG register */
 
-  (void)spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
+  spirit_reg_read(spirit, MCU_CK_CONF_BASE, &regval, 1);
 
   /* Mask the CLOCK_TAIL field and returns the value */
 

@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -164,7 +164,6 @@ struct xcpt_syscall_s
 
 struct xcptcontext
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-zero if there
    * are pending signals to be processed.
    */
@@ -191,8 +190,6 @@ struct xcptcontext
    */
 
   uint32_t sigreturn;
-
-# endif
 #endif
 
 #ifdef CONFIG_LIB_SYSCALL
@@ -376,4 +373,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_ARM_INCLUDE_ARMV6_M_IRQ_H */
-

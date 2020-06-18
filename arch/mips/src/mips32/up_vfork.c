@@ -84,12 +84,12 @@
  *   1) User code calls vfork().  vfork() collects context information and
  *      transfers control up up_vfork().
  *   2) up_vfork()and calls nxtask_vforksetup().
- *   3) nxtask_vforksetup() allocates and configures the child task's TCB.  This
- *      consists of:
+ *   3) nxtask_vforksetup() allocates and configures the child task's TCB.
+ *      this consists of:
  *      - Allocation of the child task's TCB.
  *      - Initialization of file descriptors and streams
  *      - Configuration of environment variables
- *      - Setup the intput parameters for the task.
+ *      - Setup the input parameters for the task.
  *      - Initialization of the TCB (including call to up_initial_state()
  *   4) up_vfork() provides any additional operating context. up_vfork must:
  *      - Allocate and initialize the stack
@@ -162,7 +162,7 @@ pid_t up_vfork(const struct vfork_s *context)
 
   /* Get the size of the parent task's stack.  Due to alignment operations,
    * the adjusted stack size may be smaller than the stack size originally
-   * requrested.
+   * requested.
    */
 
   stacksize = parent->adj_stack_size + CONFIG_STACK_ALIGNMENT - 1;
@@ -251,7 +251,7 @@ pid_t up_vfork(const struct vfork_s *context)
 #endif
   child->cmn.xcp.regs[REG_SP]  = newsp;        /* Stack pointer */
 #ifdef MIPS32_SAVE_GP
-  child->cmn.xcp.regs[REG_GP]  = newsp;        /* Global pointer */
+  child->cmn.xcp.regs[REG_GP]  = context->gp;  /* Global pointer */
 #endif
 
   /* And, finally, start the child task.  On a failure, nxtask_vforkstart()

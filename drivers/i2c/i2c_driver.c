@@ -42,7 +42,6 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -50,6 +49,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/i2c/i2c_master.h>
+#include <nuttx/semaphore.h>
 
 #ifdef CONFIG_I2C_DRIVER
 
@@ -106,16 +106,14 @@ static const struct file_operations i2cdrvr_fops =
   i2cdrvr_open,    /* open */
   i2cdrvr_close,   /* close */
 #else
-  0,               /* open */
-  0,               /* close */
+  NULL,            /* open */
+  NULL,            /* close */
 #endif
   i2cdrvr_read,    /* read */
   i2cdrvr_write,   /* write */
-  0,               /* seek */
-  i2cdrvr_ioctl    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0              /* poll */
-#endif
+  NULL,            /* seek */
+  i2cdrvr_ioctl,   /* ioctl */
+  NULL             /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , i2cdrvr_unlink /* unlink */
 #endif
@@ -241,7 +239,7 @@ static int i2cdrvr_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   FAR struct i2c_transfer_s *transfer;
   int ret;
 
-  i2cinfo("cmd=%d arg=%lu\n", cmd, arg);
+  i2cinfo("cmd=%x arg=%08x\n", cmd, arg);
 
   /* Get our private data structure */
 
@@ -342,7 +340,7 @@ static int i2cdrvr_unlink(FAR struct inode *inode)
       return OK;
     }
 
-  /* No... just mark the driver as unlinked and free the resouces when the
+  /* No... just mark the driver as unlinked and free the resources when the
    * last client closes their reference to the driver.
    */
 
@@ -411,13 +409,13 @@ int i2c_register(FAR struct i2c_master_s *i2c, int bus)
            */
 
           kmm_free(priv);
+          return ret;
         }
 
       /* Return the result of the registration */
 
       return OK;
     }
-
 
   return -ENOMEM;
 }

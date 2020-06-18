@@ -1,7 +1,7 @@
 /****************************************************************************
  * arch/z80/include/z180/types.h
  *
- *   Copyright (C) 2012 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through sys/types.h
  */
 
@@ -80,10 +80,26 @@ typedef unsigned int       _uint16_t;
 typedef signed long        _int32_t;
 typedef unsigned long      _uint32_t;
 
-/* A pointer is 2 bytes */
+typedef signed long long   _int64_t;
+typedef unsigned long long _uint64_t;
+#define __INT64_DEFINED
 
-typedef signed int         _intptr_t;
-typedef unsigned int       _uintptr_t;
+/* A size is 2 bytes */
+
+#if defined(__SIZE_TYPE__)
+/* If __SIZE_TYPE__ is defined we define ssize_t based on size_t.
+ * We simply change "unsigned" to "signed" for this single definition
+ * to make sure ssize_t and size_t only differ by their signedness.
+ */
+
+#define unsigned signed
+typedef __SIZE_TYPE__      _ssize_t;
+#undef unsigned
+typedef __SIZE_TYPE__      _size_t;
+#else
+typedef signed int         _ssize_t;
+typedef unsigned int       _size_t;
+#endif
 
 /* This is the size of the interrupt state save returned by up_irq_save() */
 

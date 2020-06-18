@@ -1,7 +1,7 @@
 /****************************************************************************
  * graphics/nxbe/nxbe_closewindow.c
  *
- *   Copyright (C) 2008-2009, 2011 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -81,36 +81,57 @@ void nxbe_closewindow(FAR struct nxbe_window_s *wnd)
 
   DEBUGASSERT(wnd != &be->bkgd);
 
-  /* Is there a window above the one being closed? */
+  /* Are we closing a modal window? */
 
-  if (wnd->above)
+  if (NXBE_ISMODAL(wnd))
     {
-      /* Yes, now the window below that one is the window below
-       * the one being closed.
+      /* Yes.. this should be the top window and the back-end should also
+       * indicate the modal state.
        */
 
-      wnd->above->below = wnd->below;
+      DEBUGASSERT(wnd->above == NULL && NXBE_STATE_ISMODAL(be));
+
+      /* Leave the modal state */
+
+      NXBE_CLRMODAL(wnd);
+      NXBE_STATE_CLRMODAL(be);
     }
-  else
+
+  /* A hidden window does not exist in the hierarchy */
+
+  if (!NXBE_ISHIDDEN(wnd))
     {
-      /* No, then the top window is the one below this (which
-       * can never be NULL because the background window is
-       * always at the true bottom of the list
+      /* Is there a window above the one being closed? */
+
+      if (wnd->above != NULL)
+        {
+          /* Yes, now the window below that one is the window below
+           * the one being closed.
+           */
+
+          wnd->above->below = wnd->below;
+        }
+      else
+        {
+          /* No, then the top window is the one below this (which
+           * can never be NULL because the background window is
+           * always at the true bottom of the list
+           */
+
+          be->topwnd = wnd->below;
+        }
+
+      /* There is always a window below the one being closed (because
+       * the background is never closed.  Now, the window above that
+       * is the window above the one that is being closed.
        */
 
-      be->topwnd = wnd->below;
+      wnd->below->above = wnd->above;
+
+      /* Redraw the windows that were below us (and may now be exposed) */
+
+      nxbe_redrawbelow(be, wnd->below, &wnd->bounds);
     }
-
-  /* There is always a window below the one being closed (because
-   * the background is never closed.  Now, the window above that
-   * is the window above the one that is being closed.
-   */
-
-  wnd->below->above = wnd->above;
-
-  /* Redraw the windows that were below us (and may now be exposed) */
-
-  nxbe_redrawbelow(be, wnd->below, &wnd->bounds);
 
 #ifdef CONFIG_NX_RAMBACKED
   /* Free any allocated, per-window framebuffer */

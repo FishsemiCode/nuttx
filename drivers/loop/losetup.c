@@ -1,36 +1,20 @@
 /****************************************************************************
  * drivers/loop/losetup.c
  *
- *   Copyright (C) 2008-2009, 2011, 2014-2015, 2017-2018 Gregory Nutt. All
- *     rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -53,13 +37,13 @@
 #include <unistd.h>
 #include <string.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include <debug.h>
 #include <errno.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/loop.h>
+#include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -79,9 +63,7 @@ struct loop_struct_s
   off_t        offset;       /* Offset (in bytes) to the first sector */
   uint16_t     sectsize;     /* The size of one sector */
   uint8_t      opencnt;      /* Count of open references to the loop device */
-#ifdef CONFIG_FS_WRITABLE
   bool         writeenabled; /* true: can write to device */
-#endif
   struct file  devfile;      /* File struct of char device/file */
 };
 
@@ -94,11 +76,9 @@ static int     loop_open(FAR struct inode *inode);
 static int     loop_close(FAR struct inode *inode);
 static ssize_t loop_read(FAR struct inode *inode, FAR unsigned char *buffer,
                        size_t start_sector, unsigned int nsectors);
-#ifdef CONFIG_FS_WRITABLE
 static ssize_t loop_write(FAR struct inode *inode,
                           FAR const unsigned char *buffer,
                           size_t start_sector, unsigned int nsectors);
-#endif
 static int     loop_geometry(FAR struct inode *inode,
                              FAR struct geometry *geometry);
 
@@ -111,11 +91,7 @@ static const struct block_operations g_bops =
   loop_open,     /* open */
   loop_close,    /* close */
   loop_read,     /* read */
-#ifdef CONFIG_FS_WRITABLE
   loop_write,    /* write */
-#else
-  NULL,          /* write */
-#endif
   loop_geometry, /* geometry */
   NULL           /* ioctl */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
@@ -133,18 +109,7 @@ static const struct block_operations g_bops =
 
 static int loop_semtake(FAR struct loop_struct_s *dev)
 {
-  int ret;
-
-  /* Take the semaphore (perhaps waiting) */
-
-  ret = nxsem_wait(&dev->sem);
-
-  /* The only case that an error should occur here is if the wait was
-   * awakened by a signal.
-   */
-
-  DEBUGASSERT(ret == OK || ret == -EINTR);
-  return ret;
+  return nxsem_wait(&dev->sem);
 }
 
 /****************************************************************************
@@ -281,7 +246,6 @@ static ssize_t loop_read(FAR struct inode *inode, FAR unsigned char *buffer,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_FS_WRITABLE
 static ssize_t loop_write(FAR struct inode *inode,
                           FAR const unsigned char *buffer,
                           size_t start_sector, unsigned int nsectors)
@@ -321,7 +285,6 @@ static ssize_t loop_write(FAR struct inode *inode,
 
   return nbyteswritten / dev->sectsize;
 }
-#endif
 
 /****************************************************************************
  * Name: loop_geometry
@@ -341,11 +304,7 @@ static int loop_geometry(FAR struct inode *inode,
       dev = (FAR struct loop_struct_s *)inode->i_private;
       geometry->geo_available     = true;
       geometry->geo_mediachanged  = false;
-#ifdef CONFIG_FS_WRITABLE
       geometry->geo_writeenabled  = dev->writeenabled;
-#else
-      geometry->geo_writeenabled  = false;
-#endif
       geometry->geo_nsectors      = dev->nsectors;
       geometry->geo_sectorsize    = dev->sectsize;
       return OK;
@@ -362,8 +321,8 @@ static int loop_geometry(FAR struct inode *inode,
  * Name: losetup
  *
  * Description:
- *   Setup the loop device so that it exports the file referenced by 'filename'
- *   as a block device.
+ *   Setup the loop device so that it exports the file referenced by
+ *   'filename' as a block device.
  *
  ****************************************************************************/
 
@@ -418,7 +377,6 @@ int losetup(FAR const char *devname, FAR const char *filename,
 
   /* Open the file. */
 
-#ifdef CONFIG_FS_WRITABLE
   /* First try to open the device R/W access (unless we are asked
    * to open it readonly).
    */
@@ -434,7 +392,6 @@ int losetup(FAR const char *devname, FAR const char *filename,
       dev->writeenabled = true; /* Success */
     }
   else
-#endif
     {
       /* If that fails, then try to open the device read-only */
 
@@ -488,8 +445,8 @@ int loteardown(FAR const char *devname)
     }
 #endif
 
-  /* Open the block driver associated with devname so that we can get the inode
-   * reference.
+  /* Open the block driver associated with devname so that we can get the
+   * inode reference.
    */
 
   ret = open_blockdriver(devname, MS_RDONLY, &inode);
@@ -521,7 +478,7 @@ int loteardown(FAR const char *devname)
 
   if (dev->devfile.f_inode != NULL)
     {
-      (void)file_close(&dev->devfile);
+      file_close(&dev->devfile);
     }
 
   kmm_free(dev);

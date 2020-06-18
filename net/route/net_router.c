@@ -54,7 +54,7 @@
 #if defined(CONFIG_NET) && defined(CONFIG_NET_ROUTE)
 
 /****************************************************************************
- * Pre-processor defintions
+ * Pre-processor Definitions
  ****************************************************************************/
 
 #ifdef CONFIG_ROUTE_IPv6_CACHEROUTE
@@ -70,7 +70,7 @@
 #endif
 
 /****************************************************************************
- * Public Types
+ * Private Types
  ****************************************************************************/
 
 #ifdef CONFIG_NET_IPv4
@@ -256,7 +256,7 @@ int net_ipv4_router(in_addr_t target, FAR in_addr_t *router)
    * will update it to the most recently accessed.
    */
 
-  (void)net_addcache_ipv4(&match.entry);
+  net_addcache_ipv4(&match.entry);
 #endif
 
   /* Return the router address. */
@@ -331,7 +331,7 @@ int net_ipv6_router(const net_ipv6addr_t target, net_ipv6addr_t router)
    * will update it to the most recently accessed.
    */
 
-  (void)net_addcache_ipv6(&match.entry);
+  net_addcache_ipv6(&match.entry);
 #endif
 
   /* Return the router address. */

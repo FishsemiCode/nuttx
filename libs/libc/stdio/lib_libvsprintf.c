@@ -42,6 +42,7 @@
 
 #include <nuttx/config.h>
 
+#include <sys/types.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,10 +132,16 @@ struct arg
 #ifdef CONFIG_LIBC_LONG_LONG
     unsigned long long ull;
 #endif
-    double d;
+    double_t d;
     FAR char *cp;
   } value;
 };
+
+ /****************************************************************************
+  * Private Constant Data
+  ****************************************************************************/
+
+ static const char g_nullstring[] = "(null)";
 
 /****************************************************************************
  * Public Functions
@@ -369,6 +376,39 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
                 }
             }
 
+          if (c == 'z')
+            {
+              switch (sizeof(size_t))
+                {
+                  /* The only known cases that the default will be hit are
+                   * (1) the eZ80 which has sizeof(size_t) = 3 which is the
+                   * same as the sizeof(int).  And (2) if CONFIG_LIBC_LONG_LONG
+                   * is not enabled and sizeof(size_t) is equal to
+                   * sizeof(unsigned long long).  This latter case is an
+                   * error.
+                   */
+
+                  default:
+                    continue;  /* Treat as integer with no size qualifier. */
+
+                  case sizeof(unsigned short):
+                    c = 'h';
+                    break;
+
+                  case sizeof(unsigned long):
+                    c = 'l';
+                    break;
+
+#if defined(CONFIG_LIBC_LONG_LONG) && ULLONG_MAX != ULONG_MAX
+                  case sizeof(unsigned long long):
+                    c = 'l';
+                    flags |= FL_LONG;
+                    flags &= ~FL_SHORT;
+                    break;
+#endif
+                }
+            }
+
           if (c == 'l')
             {
               if ((flags & FL_LONG) != 0)
@@ -487,7 +527,7 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
         }
       else if (c >= 'e' && c <= 'g')
         {
-          double value;
+          double_t value;
           int exp;              /* Exponent of master decimal digit */
           int n;
           uint8_t sign;         /* Sign character (or 0) */
@@ -536,14 +576,14 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
             }
           else
             {
-              value = va_arg(ap, double);
+              value = va_arg(ap, double_t);
             }
 #else
-          value = va_arg(ap, double);
+          value = va_arg(ap, double_t);
 #endif
 
           ndigs = __dtoa_engine(value, &_dtoa, ndigs,
-              ndecimal);
+                                ndecimal);
           exp = _dtoa.exp;
 
           sign = 0;
@@ -806,7 +846,7 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
 #else /* !CONFIG_LIBC_FLOATINGPOINT */
       if ((c >= 'E' && c <= 'G') || (c >= 'e' && c <= 'g'))
         {
-          (void)va_arg(ap, double);
+          va_arg(ap, double_t);
           pnt  = "*float*";
           size = sizeof("*float*") - 1;
           goto str_lpad;
@@ -847,6 +887,11 @@ static int vsprintf_internal(FAR struct lib_outstream_s *stream,
 #else
           pnt = va_arg(ap, FAR char *);
 #endif
+          if (pnt == NULL)
+            {
+              pnt = g_nullstring;
+            }
+
           size = strnlen(pnt, (flags & FL_PREC) ? prec : ~0);
 
         str_lpad:
@@ -1217,7 +1262,7 @@ int lib_vsprintf(FAR struct lib_outstream_s *stream,
           break;
 
         case TYPE_DOUBLE:
-          arglist[i].value.d = va_arg(ap, double);
+          arglist[i].value.d = va_arg(ap, double_t);
           break;
 
         case TYPE_CHAR_POINTER:

@@ -63,7 +63,7 @@ static FAR char *getenv_by_pid(pid_t pid, FAR const char *name)
 
   /* Verify that a string was passed */
 
-  if (!name)
+  if (name == NULL)
     {
       ret = EINVAL;
       goto errout;
@@ -76,7 +76,7 @@ static FAR char *getenv_by_pid(pid_t pid, FAR const char *name)
 
   /* Check if the variable exists */
 
-  if (!group || (pvar = env_findvar(group, name)) == NULL)
+  if (group == NULL || (pvar = env_findvar(group, name)) == NULL)
     {
       ret = ENOENT;
       goto errout_with_lock;
@@ -85,7 +85,7 @@ static FAR char *getenv_by_pid(pid_t pid, FAR const char *name)
   /* It does!  Get the value sub-string from the name=value string */
 
   pvalue = strchr(pvar, '=');
-  if (!pvalue)
+  if (pvalue == NULL)
     {
       /* The name=value string has no '='  This is a bug! */
 

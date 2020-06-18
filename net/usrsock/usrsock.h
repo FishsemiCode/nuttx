@@ -47,7 +47,8 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <queue.h>
-#include <semaphore.h>
+
+#include <nuttx/semaphore.h>
 
 #include "devif/devif.h"
 #include "socket/socket.h"
@@ -86,9 +87,27 @@ enum usrsock_conn_state_e
   USRSOCK_CONN_STATE_CONNECTING,
 };
 
+struct usrsock_poll_s
+{
+  FAR struct socket *psock;        /* Needed to handle loss of connection */
+  struct pollfd *fds;              /* Needed to handle poll events */
+  FAR struct devif_callback_s *cb; /* Needed to teardown the poll */
+};
+
 struct usrsock_conn_s
 {
+  /* Common prologue of all connection structures. */
+
   dq_entry_t node;                   /* Supports a doubly linked list */
+
+  /* This is a list of usrsock callbacks.  Each callback represents a thread
+   * that is stalled, waiting for a specific event.
+   */
+
+  FAR struct devif_callback_s *list; /* Usersock callbacks */
+
+  /* usrsock-specific content follows */
+
   uint8_t    crefs;                  /* Reference counts on this instance */
 
   enum usrsock_conn_state_e state;   /* State of kernel<->daemon link for conn */
@@ -116,9 +135,11 @@ struct usrsock_conn_s
     } datain;
   } resp;
 
-  /* Defines the list of usrsock callbacks */
+  /* The following is a list of poll structures of threads waiting for
+   * socket events.
+   */
 
-  FAR struct devif_callback_s *list;
+  struct usrsock_poll_s pollinfo[CONFIG_NET_USRSOCK_NPOLLWAITERS];
 };
 
 struct usrsock_reqstate_s
@@ -469,7 +490,7 @@ int usrsock_listen(FAR struct socket *psock, int backlog);
  *
  * Returned Value:
  *   Returns 0 (OK) on success.  On failure, it returns a negated errno
- *   value.  See accept() for a desrciption of the approriate error value.
+ *   value.  See accept() for a desrciption of the appropriate error value.
  *
  * Assumptions:
  *   The network is locked.
@@ -496,9 +517,7 @@ int usrsock_accept(FAR struct socket *psock, FAR struct sockaddr *addr,
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 int usrsock_poll(FAR struct socket *psock, FAR struct pollfd *fds, bool setup);
-#endif
 
 /****************************************************************************
  * Name: usrsock_sendto

@@ -117,17 +117,15 @@ static int     userled_ioctl(FAR struct file *filep, int cmd,
 
 static const struct file_operations userled_fops =
 {
-  userled_open,  /* open */
-  userled_close, /* close */
-  NULL,          /* read */
-  userled_write, /* write */
-  NULL,          /* seek */
-  userled_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL         /* poll */
-#endif
+  userled_open,   /* open */
+  userled_close,  /* close */
+  NULL,           /* read */
+  userled_write,  /* write */
+  NULL,           /* seek */
+  userled_ioctl,  /* ioctl */
+  NULL            /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-  , NULL         /* unlink */
+  , NULL          /* unlink */
 #endif
 };
 
@@ -141,18 +139,7 @@ static const struct file_operations userled_fops =
 
 static inline int userled_takesem(sem_t *sem)
 {
-  int ret;
-
-  /* Take a count from the semaphore, possibly waiting */
-
-  ret = nxsem_wait(sem);
-
-  /* The only case that an error should occur here is if the wait
-   * was awakened by a signal
-   */
-
-  DEBUGASSERT(ret == OK || ret == -EINTR);
-  return ret;
+  return nxsem_wait(sem);
 }
 
 /****************************************************************************
@@ -185,7 +172,7 @@ static int userled_open(FAR struct file *filep)
   opriv = (FAR struct userled_open_s *)kmm_zalloc(sizeof(struct userled_open_s));
   if (!opriv)
     {
-      lederr("ERROR: Failled to allocate open structure\n");
+      lederr("ERROR: Failed to allocate open structure\n");
       ret = -ENOMEM;
       goto errout_with_sem;
     }
@@ -461,7 +448,7 @@ static int userled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
         /* Verify that a valid LED set was provided */
 
-        if ((ledset & priv->lu_supported) == ledset)
+        if ((ledset & ~priv->lu_supported) == 0)
           {
             /* Update the LED state */
 

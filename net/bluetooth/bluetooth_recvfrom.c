@@ -50,7 +50,6 @@
 #include <netpacket/bluetooth.h>
 #include <arch/irq.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/mm/iob.h>
 #include <nuttx/net/net.h>
@@ -140,7 +139,7 @@ static ssize_t bluetooth_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
   size_t copylen;
   int ret = -EAGAIN;
 
-  /* Check if there is anyting in in the RX input queue */
+  /* Check if there is anything in in the RX input queue */
 
   DEBUGASSERT(pstate != NULL && pstate->ir_sock != NULL);
   conn = (FAR struct bluetooth_conn_s *)pstate->ir_sock->s_conn;
@@ -163,11 +162,11 @@ static ssize_t bluetooth_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
         }
 
 #if CONFIG_NET_BLUETOOTH_BACKLOG > 0
-       /* Decrement the count of frames in the queue. */
+      /* Decrement the count of frames in the queue. */
 
-       DEBUGASSERT(conn->bc_backlog > 0);
-       conn->bc_backlog--;
-       DEBUGASSERT((int)conn->bc_backlog == bluetooth_count_frames(conn));
+      DEBUGASSERT(conn->bc_backlog > 0);
+      conn->bc_backlog--;
+      DEBUGASSERT((int)conn->bc_backlog == bluetooth_count_frames(conn));
 #endif
 
       /* Extract the IOB containing the frame from the container */
@@ -184,7 +183,7 @@ static ssize_t bluetooth_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
       ninfo("Received %d bytes\n", (int)copylen);
       ret = copylen;
 
-      /* If a 'from' address poiner was supplied, copy the source address
+      /* If a 'from' address pointer was supplied, copy the source address
        * in the container there.
        */
 
@@ -198,7 +197,7 @@ static ssize_t bluetooth_recvfrom_rxqueue(FAR struct radio_driver_s *radio,
 
       /* Free both the IOB and the container */
 
-      iob_free(iob);
+      iob_free(iob, IOBUSER_NET_SOCK_BLUETOOTH);
       bluetooth_container_free(container);
     }
 
@@ -240,6 +239,7 @@ static uint16_t bluetooth_recvfrom_eventhandler(FAR struct net_driver_s *dev,
     }
 
   /* Make sure that this is the driver to which the socket is bound. */
+
 #warning Missing logic
 
   pstate = (FAR struct bluetooth_recvfrom_s *)pvpriv;
@@ -383,12 +383,8 @@ ssize_t bluetooth_recvfrom(FAR struct socket *psock, FAR void *buf,
    * hence, should not have priority inheritance enabled.
    */
 
-  (void)nxsem_init(&state.ir_sem, 0, 0); /* Doesn't really fail */
-  (void)nxsem_setprotocol(&state.ir_sem, SEM_PRIO_NONE);
-
-  /* Set the socket state to receiving */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_RECV);
+  nxsem_init(&state.ir_sem, 0, 0); /* Doesn't really fail */
+  nxsem_setprotocol(&state.ir_sem, SEM_PRIO_NONE);
 
   /* Set up the callback in the connection */
 
@@ -405,7 +401,7 @@ ssize_t bluetooth_recvfrom(FAR struct socket *psock, FAR void *buf,
        * the task sleeps and automatically re-locked when the task restarts.
        */
 
-      (void)net_lockedwait(&state.ir_sem);
+      net_lockedwait(&state.ir_sem);
 
       /* Make sure that no further events are processed */
 
@@ -417,9 +413,6 @@ ssize_t bluetooth_recvfrom(FAR struct socket *psock, FAR void *buf,
       ret = -EBUSY;
     }
 
-  /* Set the socket state to idle */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
   nxsem_destroy(&state.ir_sem);
 
 errout_with_lock:

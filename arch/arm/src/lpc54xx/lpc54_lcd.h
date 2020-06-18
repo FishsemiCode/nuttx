@@ -50,7 +50,7 @@
 
 #include <nuttx/nx/nxglib.h>
 
-#include "chip/lpc54_lcd.h"
+#include "hardware/lpc54_lcd.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -166,7 +166,7 @@
  * Description:
  *   This is a non-standard LCD interface just for the LPC54xx.  Clearing
  *   the display in the normal way by writing a sequences of runs that
- *   covers the entire display can be slow.  Here the dispaly is cleared by
+ *   covers the entire display can be slow.  Here the display is cleared by
  *   simply setting all VRAM memory to the specified color.
  *
  ****************************************************************************/

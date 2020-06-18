@@ -40,34 +40,6 @@ ifeq ($(CONFIG_DRIVERS_IEEE80211),y)
 
 # Include IEEE 802.11 drivers into the build
 
-ifeq ($(CONFIG_IEEE80211_BROADCOM_FULLMAC),y)
-  CSRCS += bcmf_driver.c
-  CSRCS += bcmf_cdc.c
-  CSRCS += bcmf_bdc.c
-  CSRCS += bcmf_utils.c
-  CSRCS += bcmf_netdev.c
-
-ifeq ($(CONFIG_IEEE80211_BROADCOM_FULLMAC_SDIO),y)
-  CSRCS += mmc_sdio.c
-  CSRCS += bcmf_sdio.c
-  CSRCS += bcmf_core.c
-  CSRCS += bcmf_sdpcm.c
-endif
-
-ifeq ($(CONFIG_IEEE80211_BROADCOM_BCM43362),y)
-CSRCS += bcmf_chip_43362.c
-endif
-
-ifeq ($(CONFIG_IEEE80211_BROADCOM_BCM43438),y)
-CSRCS += bcmf_chip_43438.c
-endif
-
-endif # CONFIG_IEEE80211_BROADCOM_FULLMAC
-
-# Include IEEE 802.11 build support
-
-DEPPATH += --dep-path wireless$(DELIM)ieee80211
-VPATH += :wireless$(DELIM)ieee80211
-CFLAGS += ${shell $(INCDIR) $(INCDIROPT) "$(CC)" $(TOPDIR)$(DELIM)drivers$(DELIM)wireless$(DELIM)ieee80211}
+include wireless$(DELIM)ieee80211$(DELIM)bcm43xxx$(DELIM)Make.defs
 
 endif # CONFIG_DRIVERS_IEEE80211

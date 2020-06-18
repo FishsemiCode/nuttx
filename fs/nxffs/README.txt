@@ -1,7 +1,7 @@
 NXFFS README
 ^^^^^^^^^^^^
 
-This README file contains information about the implemenation of the NuttX
+This README file contains information about the implementation of the NuttX
 wear-leveling FLASH file system, NXFFS.
 
 Contents:
@@ -189,4 +189,3 @@ Things to Do
   implementation of a proper truncate() method which should alter the
   size of a previously written file.  There is some fragmentary logic in
   place but even this is conditioned out with __NO_TRUNCATE_SUPPORT__.
-

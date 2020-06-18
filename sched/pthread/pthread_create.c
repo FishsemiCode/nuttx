@@ -94,10 +94,10 @@ static const char g_pthreadname[] = "<pthread>";
  *   This functions sets up parameters in the Task Control Block (TCB) in
  *   preparation for starting a new thread.
  *
- *   pthread_argsetup() is called from task_init() and nxtask_start() to create
- *   a new task (with arguments cloned via strdup) or pthread_create() which
- *   has one argument passed by value (distinguished by the pthread boolean
- *   argument).
+ *   pthread_argsetup() is called from task_init() and nxtask_start() to
+ *   create a new task (with arguments cloned via strdup) or pthread_create()
+ *   which has one argument passed by value (distinguished by the pthread
+ *   boolean argument).
  *
  * Input Parameters:
  *   tcb        - Address of the new task's TCB
@@ -108,7 +108,8 @@ static const char g_pthreadname[] = "<pthread>";
  *
  ****************************************************************************/
 
-static inline void pthread_argsetup(FAR struct pthread_tcb_s *tcb, pthread_addr_t arg)
+static inline void pthread_argsetup(FAR struct pthread_tcb_s *tcb,
+                                    pthread_addr_t arg)
 {
 #if CONFIG_TASK_NAME_SIZE > 0
   /* Copy the pthread name into the TCB */
@@ -179,14 +180,14 @@ static void pthread_start(void)
 
   /* Successfully spawned, add the pjoin to our data set. */
 
-  (void)pthread_sem_take(&group->tg_joinsem, NULL, false);
+  pthread_sem_take(&group->tg_joinsem, NULL, false);
   pthread_addjoininfo(group, pjoin);
-  (void)pthread_sem_give(&group->tg_joinsem);
+  pthread_sem_give(&group->tg_joinsem);
 
   /* Report to the spawner that we successfully started. */
 
   pjoin->started = true;
-  (void)pthread_sem_give(&pjoin->data_sem);
+  pthread_sem_give(&pjoin->data_sem);
 
   /* The priority of this thread may have been boosted to avoid priority
    * inversion problems.  If that is the case, then drop to the correct
@@ -259,7 +260,8 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
 
   /* Allocate a TCB for the new task. */
 
-  ptcb = (FAR struct pthread_tcb_s *)kmm_zalloc(sizeof(struct pthread_tcb_s));
+  ptcb = (FAR struct pthread_tcb_s *)
+            kmm_zalloc(sizeof(struct pthread_tcb_s));
   if (!ptcb)
     {
       serr("ERROR: Failed to allocate TCB\n");
@@ -372,8 +374,8 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
 
       /* Convert timespec values to system clock ticks */
 
-      (void)clock_time2ticks(&param.sched_ss_repl_period, &repl_ticks);
-      (void)clock_time2ticks(&param.sched_ss_init_budget, &budget_ticks);
+      clock_time2ticks(&param.sched_ss_repl_period, &repl_ticks);
+      clock_time2ticks(&param.sched_ss_init_budget, &budget_ticks);
 
       /* The replenishment period must be greater than or equal to the
        * budget period.
@@ -580,7 +582,7 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
        * its join structure.
        */
 
-      (void)pthread_sem_take(&pjoin->data_sem, NULL, false);
+      pthread_sem_take(&pjoin->data_sem, NULL, false);
 
       /* Return the thread information to the caller */
 
@@ -595,14 +597,14 @@ int pthread_create(FAR pthread_t *thread, FAR const pthread_attr_t *attr,
         }
 
       sched_unlock();
-      (void)nxsem_destroy(&pjoin->data_sem);
+      nxsem_destroy(&pjoin->data_sem);
     }
   else
     {
       sched_unlock();
       dq_rem((FAR dq_entry_t *)ptcb, (FAR dq_queue_t *)&g_inactivetasks);
-      (void)nxsem_destroy(&pjoin->data_sem);
-      (void)nxsem_destroy(&pjoin->exit_sem);
+      nxsem_destroy(&pjoin->data_sem);
+      nxsem_destroy(&pjoin->exit_sem);
 
       errcode = EIO;
       goto errout_with_join;
@@ -615,6 +617,7 @@ errout_with_join:
   ptcb->joininfo = NULL;
 
 errout_with_tcb:
+
   /* Clear group binding */
 
   if (ptcb && !group_joined)

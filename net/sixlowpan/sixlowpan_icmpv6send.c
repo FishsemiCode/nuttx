@@ -64,7 +64,7 @@
  *   used by the IPv6 forwarding logic.
  *
  * Input Parameters:
- *   dev    - An instance of nework device state structure
+ *   dev    - An instance of network device state structure
  *   fwddev - The network device used to send the data.  This will be the
  *            same device except for the IP forwarding case where packets
  *            are sent across devices.
@@ -103,7 +103,7 @@ void sixlowpan_icmpv6_send(FAR struct net_driver_s *dev,
 
       if (ipv6icmpv6->ipv6.proto != IP_PROTO_ICMP6)
         {
-          nwarn("WARNING: Expected ICMPv6 protoype: %u vs %s\n",
+          nwarn("WARNING: Expected ICMPv6 prototype: %u vs %s\n",
                 ipv6icmpv6->ipv6.proto, IP_PROTO_ICMP6);
         }
       else
@@ -145,7 +145,7 @@ void sixlowpan_icmpv6_send(FAR struct net_driver_s *dev,
               buf    = (FAR uint8_t *)ipv6 + hdrlen;
               buflen = dev->d_len - hdrlen;
 
-              (void)sixlowpan_queue_frames(
+              sixlowpan_queue_frames(
                       (FAR struct radio_driver_s *)fwddev,
                       &ipv6icmpv6->ipv6, buf, buflen, &destmac);
             }

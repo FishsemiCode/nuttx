@@ -35,10 +35,9 @@
 
 # Add the dirent C files to the build
 
-CSRCS += lib_readdirr.c lib_telldir.c
+CSRCS += lib_readdirr.c lib_telldir.c lib_alphasort.c lib_scandir.c
 
 # Add the dirent directory to the build
 
 DEPPATH += --dep-path dirent
 VPATH += :dirent
-

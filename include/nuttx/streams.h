@@ -51,11 +51,11 @@
 /* These are the generic representations of a streams used by the NuttX */
 
 struct lib_instream_s;
-typedef int  (*lib_getc_t)(FAR struct lib_instream_s *this);
+typedef CODE int  (*lib_getc_t)(FAR struct lib_instream_s *this);
 
 struct lib_outstream_s;
-typedef void (*lib_putc_t)(FAR struct lib_outstream_s *this, int ch);
-typedef int  (*lib_flush_t)(FAR struct lib_outstream_s *this);
+typedef CODE void (*lib_putc_t)(FAR struct lib_outstream_s *this, int ch);
+typedef CODE int  (*lib_flush_t)(FAR struct lib_outstream_s *this);
 
 struct lib_instream_s
 {
@@ -75,15 +75,15 @@ struct lib_outstream_s
 /* Seek-able streams */
 
 struct lib_sistream_s;
-typedef int   (*lib_sigetc_t)(FAR struct lib_sistream_s *this);
-typedef off_t (*lib_siseek_t)(FAR struct lib_sistream_s *this, off_t offset,
-                              int whence);
+typedef CODE int   (*lib_sigetc_t)(FAR struct lib_sistream_s *this);
+typedef CODE off_t (*lib_siseek_t)(FAR struct lib_sistream_s *this,
+                                   off_t offset, int whence);
 
 struct lib_sostream_s;
-typedef void  (*lib_soputc_t)(FAR struct lib_sostream_s *this, int ch);
-typedef int   (*lib_soflush_t)(FAR struct lib_sostream_s *this);
-typedef off_t (*lib_soseek_t)(FAR struct lib_sostream_s *this, off_t offset,
-                              int whence);
+typedef CODE void  (*lib_soputc_t)(FAR struct lib_sostream_s *this, int ch);
+typedef CODE int   (*lib_soflush_t)(FAR struct lib_sostream_s *this);
+typedef CODE off_t (*lib_soseek_t)(FAR struct lib_sostream_s *this,
+                                   off_t offset, int whence);
 
 struct lib_sistream_s
 {
@@ -315,7 +315,7 @@ void lib_rawsostream(FAR struct lib_rawsostream_s *outstream, int fd);
  *
  * Input Parameters:
  *   lowoutstream - User allocated, uninitialized instance of struct
- *                  lib_lowoutstream_s to be initialized.
+ *                  lib_outstream_s to be initialized.
  *
  * Returned Value:
  *   None (User allocated instance initialized).
@@ -365,7 +365,7 @@ void lib_nulloutstream(FAR struct lib_outstream_s *nulloutstream);
  *
  * Input Parameters:
  *   stream - User allocated, uninitialized instance of struct
- *            lib_lowoutstream_s to be initialized.
+ *            lib_syslogstream_s to be initialized.
  *
  * Returned Value:
  *   None (User allocated instance initialized).
@@ -382,7 +382,7 @@ void syslogstream_create(FAR struct lib_syslogstream_s *stream);
  *
  * Input Parameters:
  *   stream - User allocated, uninitialized instance of struct
- *            lib_lowoutstream_s to be initialized.
+ *            lib_syslogstream_s to be initialized.
  *
  * Returned Value:
  *   None (Resources freed).
@@ -404,7 +404,7 @@ void syslogstream_destroy(FAR struct lib_syslogstream_s *stream);
  *
  * Input Parameters:
  *   stream - User allocated, uninitialized instance of struct
- *            lib_lowoutstream_s to be initialized.
+ *            lib_outstream_s to be initialized.
  *
  * Returned Value:
  *   None (User allocated instance initialized).

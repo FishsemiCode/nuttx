@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather,
+/* This file should never be included directly but, rather,
  * only indirectly through nuttx/irq.h
  */
 
@@ -128,4 +128,3 @@ void up_detach_vector(int vector);
 #endif
 
 #endif /* __ARCH_ARM_INCLUDE_LPC214X_IRQ_H */
-

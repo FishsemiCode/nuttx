@@ -53,8 +53,8 @@
 
 #include "kinetis_config.h"
 #include "chip.h"
-#include "chip/kinetis_rtc.h"
-#include "chip/kinetis_sim.h"
+#include "hardware/kinetis_rtc.h"
+#include "hardware/kinetis_sim.h"
 #include "kinetis.h"
 #include "kinetis_alarm.h"
 
@@ -320,7 +320,7 @@ int up_rtc_initialize(void)
 #ifdef KINETIS_RTC_GEN2
       /* Check if the one-time initialization of the RTC has already been
        * performed. We can determine this by checking if the magic number
-       * has been writing to to back-up date register DR0.
+       * has been written to the back-up date register DR0.
        */
 
       regval = getreg32(KINETIS_RTC_MCLR);

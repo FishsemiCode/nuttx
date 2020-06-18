@@ -33,8 +33,8 @@
  *
  ****************************************************************************/
 
-#ifndef __LIBC_NETDB_LIB_NETDB_H
-#define __LIBC_NETDB_LIB_NETDB_H
+#ifndef __LIBS_LIBC_NETDB_LIB_NETDB_H
+#define __LIBS_LIBC_NETDB_LIB_NETDB_H
 
 /****************************************************************************
  * Included Files
@@ -43,6 +43,7 @@
 #include <nuttx/config.h>
 
 #include <netdb.h>
+#include <stdio.h>
 
 #ifdef CONFIG_LIBC_NETDB
 
@@ -70,6 +71,35 @@
 #  define CONFIG_NETDB_BUFSIZE 128
 #endif
 
+#ifndef CONFIG_NETDB_MAX_IPADDR
+#  define CONFIG_NETDB_MAX_IPADDR 1
+#endif
+
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+struct hostent_s
+{
+  FAR char  *h_name;       /* Official name of the host. */
+  FAR char **h_aliases;    /* A pointer to an array of pointers to the
+                            * alternative host names, terminated by a
+                            * null pointer. */
+  FAR int   *h_addrtypes;  /* A pointer to an array of address type. */
+  FAR int   *h_lengths;    /* A pointer to an array of the length, in bytes,
+                            * of the address. */
+  FAR char **h_addr_list;  /* A pointer to an array of pointers to network
+                            * addresses (in network byte order) for the host,
+                            * terminated by a null pointer. */
+};
+
+struct services_db_s
+{
+  FAR const char *s_name;
+  int s_port;
+  int s_protocol;
+};
+
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -84,10 +114,21 @@ extern "C"
 
 EXTERN struct hostent g_hostent;
 EXTERN char g_hostbuffer[CONFIG_NETDB_BUFSIZE];
+EXTERN const struct services_db_s g_services_db[];
 
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
+
+bool convert_hostent(const FAR struct hostent_s *in,
+                     int type, FAR struct hostent *out);
+
+ssize_t parse_hostfile(FAR FILE *stream, FAR struct hostent_s *host,
+                       FAR char *buf, size_t buflen);
+
+int gethostentbyname_r(FAR const char *name,
+                       FAR struct hostent_s *host, FAR char *buf,
+                       size_t buflen, FAR int *h_errnop);
 
 #undef EXTERN
 #ifdef __cplusplus
@@ -95,4 +136,4 @@ EXTERN char g_hostbuffer[CONFIG_NETDB_BUFSIZE];
 #endif
 
 #endif /* CONFIG_LIBC_NETDB */
-#endif /* __LIBC_NETDB_LIB_NETDB_H */
+#endif /* __LIBS_LIBC_NETDB_LIB_NETDB_H */

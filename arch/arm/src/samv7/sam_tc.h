@@ -46,7 +46,7 @@
 #include <debug.h>
 
 #include "chip.h"
-#include "chip/sam_tc.h"
+#include "hardware/sam_tc.h"
 
 #if defined(CONFIG_SAMV7_TC0) || defined(CONFIG_SAMV7_TC1) || \
     defined(CONFIG_SAMV7_TC2) || defined(CONFIG_SAMV7_TC3)
@@ -332,7 +332,7 @@ uint32_t sam_tc_divfreq(TC_HANDLE handle);
  * Input Parameters:
  *   frequency  Desired timer frequency.
  *   tcclks     TCCLKS field value for divisor.
- *   actual     The actual freqency of the MCK
+ *   actual     The actual frequency of the MCK
  *
  * Returned Value:
  *   Zero (OK) if a proper divisor has been found, otherwise a negated errno

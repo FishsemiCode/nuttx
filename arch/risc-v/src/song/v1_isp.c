@@ -119,7 +119,7 @@ static void up_i2c_init(void)
  * Public Functions
  ****************************************************************************/
 
-void riscv_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =

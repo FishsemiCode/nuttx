@@ -43,24 +43,16 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/signal.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/timers/oneshot.h>
 
 #ifdef CONFIG_ONESHOT
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#ifdef CONFIG_DISABLE_SIGNALS
-#  error "This driver needs SIGNAL support, remove CONFIG_DISABLE_SIGNALS"
-#endif
 
 /****************************************************************************
  * Private Type Definitions
@@ -106,13 +98,11 @@ static const struct file_operations g_oneshot_ops =
   oneshot_close, /* close */
   oneshot_read,  /* read */
   oneshot_write, /* write */
-  0,             /* seek */
-  oneshot_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0            /* poll */
-#endif
+  NULL,          /* seek */
+  oneshot_ioctl, /* ioctl */
+  NULL           /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-  , 0            /* unlink */
+  , NULL         /* unlink */
 #endif
 };
 
@@ -238,7 +228,7 @@ static int oneshot_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
     {
       /* OSIOC_MAXDELAY - Return the maximum delay that can be supported
        *                  by this timer.
-       *                  Argument: A referenct to a struct timespec in
+       *                  Argument: A reference to a struct timespec in
        *                  which the maximum time will be returned.
        */
 

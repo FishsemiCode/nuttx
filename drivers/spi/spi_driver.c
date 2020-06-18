@@ -42,13 +42,13 @@
 #include <sys/types.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/spi/spi_transfer.h>
 
 #ifdef CONFIG_SPI_DRIVER
@@ -106,16 +106,14 @@ static const struct file_operations spidrvr_fops =
   spidrvr_open,    /* open */
   spidrvr_close,   /* close */
 #else
-  0,               /* open */
-  0,               /* close */
+  NULL,            /* open */
+  NULL,            /* close */
 #endif
   spidrvr_read,    /* read */
   spidrvr_write,   /* write */
-  0,               /* seek */
-  spidrvr_ioctl    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0              /* poll */
-#endif
+  NULL,            /* seek */
+  spidrvr_ioctl,   /* ioctl */
+  NULL             /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , spidrvr_unlink /* unlink */
 #endif
@@ -149,7 +147,6 @@ static int spidrvr_open(FAR struct file *filep)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -187,7 +184,6 @@ static int spidrvr_close(FAR struct file *filep)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -259,7 +255,6 @@ static int spidrvr_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 #endif
@@ -318,7 +313,6 @@ static int spidrvr_unlink(FAR struct inode *inode)
   ret = nxsem_wait(&priv->exclsem);
   if (ret < 0)
     {
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -400,6 +394,7 @@ int spi_register(FAR struct spi_dev_s *spi, int bus)
            */
 
           kmm_free(priv);
+          return ret;
         }
 
       /* Return the result of the registration */

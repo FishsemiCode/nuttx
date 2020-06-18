@@ -79,7 +79,7 @@
  *      Fast-mode (up to 400 kHz)
  *      fI2CCLK clock source selection is based on RCC_CCIPR_I2CxSEL
  *      being set to PCLK and the calculations are based on PCLK frequency
- *      of 80 Mhz
+ *      of 80 MHz
  *
  *  - Multiple instances (shared bus)
  *  - Interrupt based operation
@@ -100,7 +100,7 @@
  *  - Wakeup from Stop mode
  *  - More effective error reporting to higher layers
  *  - Slave operation
- *  - Support of fI2CCLK frequencies other than 80 Mhz and other clock sources
+ *  - Support of fI2CCLK frequencies other than 80 MHz and other clock sources
  *  - Polled operation (code present but untested)
  *  - SMBus support
  *  - Multi-master support
@@ -201,10 +201,12 @@
  *    CONFIG_STM32L4_I2CTIMEOMS    (Timeout in milliseconds)
  *    CONFIG_STM32L4_I2CTIMEOTICKS (Timeout in ticks)
  *
- *  To configure the ISR timeout using dynamic values (CONFIG_STM32L4_I2C_DYNTIMEO=y):
+ *  To configure the ISR timeout using dynamic values
+ * (CONFIG_STM32L4_I2C_DYNTIMEO=y):
  *
  *    CONFIG_STM32L4_I2C_DYNTIMEO_USECPERBYTE  (Timeout in microseconds per byte)
- *    CONFIG_STM32L4_I2C_DYNTIMEO_STARTSTOP    (Timeout for start/stop in milliseconds)
+ *    CONFIG_STM32L4_I2C_DYNTIMEO_STARTSTOP    (Timeout for start/stop in
+ *                                              milliseconds)
  *
  *  Debugging output enabled with:
  *
@@ -259,7 +261,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -419,7 +420,10 @@ struct stm32l4_i2c_config_s
 
 struct stm32l4_i2c_priv_s
 {
-  const struct stm32l4_i2c_config_s *config; /* Port configuration */
+  /* Port configuration */
+
+  const struct stm32l4_i2c_config_s *config;
+
   int refs;                    /* Reference count */
   sem_t sem_excl;              /* Mutual exclusion semaphore */
 #ifndef CONFIG_I2C_POLLED
@@ -474,7 +478,6 @@ static inline void stm32l4_i2c_putreg32(FAR struct stm32l4_i2c_priv_s *priv,
 static inline void stm32l4_i2c_modifyreg32(FAR struct stm32l4_i2c_priv_s *priv,
                                            uint8_t offset, uint32_t clearbits,
                                            uint32_t setbits);
-static inline void stm32l4_i2c_sem_wait(FAR struct i2c_master_s *dev);
 #ifdef CONFIG_STM32L4_I2C_DYNTIMEO
 static useconds_t stm32l4_i2c_tousecs(int msgc, FAR struct i2c_msg_s *msgs);
 #endif /* CONFIG_STM32L4_I2C_DYNTIMEO */
@@ -697,8 +700,8 @@ static inline uint32_t stm32l4_i2c_getreg32(FAR struct stm32l4_i2c_priv_s *priv,
  *
  ************************************************************************************/
 
-static inline void stm32l4_i2c_putreg(FAR struct stm32l4_i2c_priv_s *priv, uint8_t offset,
-                                      uint16_t value)
+static inline void stm32l4_i2c_putreg(FAR struct stm32l4_i2c_priv_s *priv,
+                                      uint8_t offset, uint16_t value)
 {
   putreg16(value, priv->config->base + offset);
 }
@@ -717,7 +720,6 @@ static inline void stm32l4_i2c_putreg32(FAR struct stm32l4_i2c_priv_s *priv,
   putreg32(value, priv->config->base + offset);
 }
 
-
 /************************************************************************************
  * Name: stm32l4_i2c_modifyreg32
  *
@@ -731,33 +733,6 @@ static inline void stm32l4_i2c_modifyreg32(FAR struct stm32l4_i2c_priv_s *priv,
                                            uint32_t setbits)
 {
   modifyreg32(priv->config->base + offset, clearbits, setbits);
-}
-
-/************************************************************************************
- * Name: stm32l4_i2c_sem_wait
- *
- * Description:
- *   Take the exclusive access, waiting as necessary
- *
- ************************************************************************************/
-
-static inline void stm32l4_i2c_sem_wait(FAR struct i2c_master_s *dev)
-{
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&((struct stm32l4_i2c_inst_s *)dev)->priv->sem_excl);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
 }
 
 /************************************************************************************
@@ -841,7 +816,7 @@ static inline int stm32l4_i2c_sem_waitdone(FAR struct stm32l4_i2c_priv_s *priv)
     {
       /* Get the current time */
 
-      (void)clock_gettime(CLOCK_REALTIME, &abstime);
+      clock_gettime(CLOCK_REALTIME, &abstime);
 
       /* Calculate a time in the future */
 
@@ -867,14 +842,14 @@ static inline int stm32l4_i2c_sem_waitdone(FAR struct stm32l4_i2c_priv_s *priv)
           abstime.tv_nsec -= 1000 * 1000 * 1000;
         }
 #endif
+
       /* Wait until either the transfer is complete or the timeout expires */
 
-      ret = nxsem_timedwait(&priv->sem_isr, &abstime);
-      if (ret < 0 && ret != -EINTR)
+      ret = nxsem_timedwait_uninterruptible(&priv->sem_isr, &abstime);
+      if (ret < 0)
         {
           /* Break out of the loop on irrecoverable errors.  This would
            * include timeouts and mystery errors reported by nxsem_timedwait.
-           * NOTE that we try again if we are awakened by a signal (EINTR).
            */
 
           break;
@@ -956,10 +931,10 @@ static inline int stm32l4_i2c_sem_waitdone(FAR struct stm32l4_i2c_priv_s *priv)
  ************************************************************************************/
 
 static inline void
-stm32l4_i2c_set_7bit_address(FAR struct stm32l4_i2c_priv_s *priv)
+  stm32l4_i2c_set_7bit_address(FAR struct stm32l4_i2c_priv_s *priv)
 {
   stm32l4_i2c_modifyreg32(priv, STM32L4_I2C_CR2_OFFSET, I2C_CR2_SADD7_MASK,
-                          ((priv->msgv->addr & 0x7F) << I2C_CR2_SADD7_SHIFT));
+                          ((priv->msgv->addr & 0x7f) << I2C_CR2_SADD7_SHIFT));
 }
 
 /************************************************************************************
@@ -1029,7 +1004,6 @@ stm32l4_i2c_disable_reload(FAR struct stm32l4_i2c_priv_s *priv)
   stm32l4_i2c_modifyreg32(priv, STM32L4_I2C_CR2_OFFSET, I2C_CR2_RELOAD, 0);
 }
 
-
 /************************************************************************************
  * Name: stm32l4_i2c_sem_waitstop
  *
@@ -1078,7 +1052,6 @@ static inline void stm32l4_i2c_sem_waitstop(FAR struct stm32l4_i2c_priv_s *priv)
         {
           return;
         }
-
     }
 
   /* Loop until the stop is complete or a timeout occurs. */
@@ -1123,7 +1096,8 @@ static inline void stm32l4_i2c_sem_init(FAR struct i2c_master_s *dev)
    */
 
   nxsem_init(&((struct stm32l4_i2c_inst_s *)dev)->priv->sem_isr, 0, 0);
-  nxsem_setprotocol(&((struct stm32l4_i2c_inst_s *)dev)->priv->sem_isr, SEM_PRIO_NONE);
+  nxsem_setprotocol(&((struct stm32l4_i2c_inst_s *)dev)->priv->sem_isr,
+                    SEM_PRIO_NONE);
 #endif
 }
 
@@ -1187,7 +1161,7 @@ static void stm32l4_i2c_tracenew(FAR struct stm32l4_i2c_priv_s *priv,
         {
           /* Yes.. bump up the trace index (unless we are out of trace entries) */
 
-          if (priv->tndx >= (CONFIG_I2C_NTRACE-1))
+          if (priv->tndx >= (CONFIG_I2C_NTRACE - 1))
             {
               i2cerr("ERROR: Trace table overflow\n");
               return;
@@ -1228,7 +1202,7 @@ static void stm32l4_i2c_traceevent(FAR struct stm32l4_i2c_priv_s *priv,
 
       /* Bump up the trace index (unless we are out of trace entries) */
 
-      if (priv->tndx >= (CONFIG_I2C_NTRACE-1))
+      if (priv->tndx >= (CONFIG_I2C_NTRACE - 1))
         {
           i2cerr("ERROR: Trace table overflow\n");
           return;
@@ -1252,7 +1226,7 @@ static void stm32l4_i2c_tracedump(FAR struct stm32l4_i2c_priv_s *priv)
       trace = &priv->trace[i];
       syslog(LOG_DEBUG,
              "%2d. STATUS: %08x COUNT: %3d EVENT: %2d PARM: %08x TIME: %d\n",
-             i+1, trace->status, trace->count,  trace->event, trace->parm,
+             i + 1, trace->status, trace->count,  trace->event, trace->parm,
              (int)(trace->time - priv->start_time));
     }
 }
@@ -1330,133 +1304,125 @@ static void stm32l4_i2c_setclock(FAR struct stm32l4_i2c_priv_s *priv,
           stm32l4_i2c_modifyreg32(priv, STM32L4_I2C_CR1_OFFSET, I2C_CR1_PE, 0);
         }
 
-      /*  The Speed and timing calculation are based on the following
-       *  fI2CCLK = PCLK and is 80Mhz
-       *  Analog filter is on,
-       *  Digital filter off
-       *  Rise Time is 120 ns and fall is 10ns
-       *  Mode is FastMode
-       */
-
+#if defined(STM32L4_I2C_USE_HSI16) || (STM32L4_PCLK1_FREQUENCY == 16000000)
+      i2cclk_mhz = 16;
+#elif STM32L4_PCLK1_FREQUENCY == 80000000
       i2cclk_mhz = 80;
+#elif STM32L4_PCLK1_FREQUENCY == 120000000
+      i2cclk_mhz = 120;
+#else
+#   warning STM32_I2C_INIT: Peripheral clock is PCLK and the speed/timing calculations need to be redone.
+#endif
 
       if (i2cclk_mhz == 80)
         {
-          uint8_t h_time;
-          uint8_t s_time;
+          /* Default timing calculations from original STM32L4 driver: */
 
-          /* Default timing calculations from original STM32L4 driver,
-           * fI2CCLK = PCLK, 80 Mhz */
+          /*  The Speed and timing calculation are based on the following
+           *  fI2CCLK = PCLK and is 80 MHz
+           *  Analog filter is on,
+           *  Digital filter off
+           *  Rise Time is 120 ns and fall is 10 ns
+           *  Mode is FastMode
+           */
 
           if (frequency == 100000)
             {
-              /* 100 KHz values from I2C timing tool with clock 80mhz */
+              /* 100 KHz values from I2C timing tool with clock 80 MHz */
 
               presc        = 0x01;    /* PRESC - (+1) prescale I2CCLK */
               scl_l_period = 0xe7;    /* SCLL - SCL low period in master mode */
               scl_h_period = 0x9b;    /* SCLH - SCL high period in master mode */
-              h_time       = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
-              s_time       = 0x0d;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
+              sda_delay    = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
+              scl_delay    = 0x0d;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
             }
           else if (frequency == 400000)
-             {
-              /* 400 KHz values from I2C timing tool for clock of 80mhz */
+            {
+              /* 400 KHz values from I2C timing tool for clock of 80 MHz */
 
               presc        = 0x01;    /* PRESC - (+1) prescale I2CCLK */
               scl_l_period = 0x43;    /* SCLL - SCL low period in master mode */
               scl_h_period = 0x13;    /* SCLH - SCL high period in master mode */
-              h_time       = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
-              s_time       = 0x07;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
-             }
+              sda_delay    = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
+              scl_delay    = 0x07;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
+            }
           else if (frequency == 1000000)
-             {
-              /* 1000 KHhz values from I2C timing tool for clock of 80mhz */
+            {
+              /* 1000 KHz values from I2C timing tool for clock of 80 MHz */
 
               presc        = 0x01;    /* PRESC - (+1) prescale I2CCLK */
               scl_l_period = 0x14;    /* SCLL - SCL low period in master mode */
               scl_h_period = 0x13;    /* SCLH - SCL high period in master mode */
-              h_time       = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
-              s_time       = 0x05;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
-
-              frequency = 1000000;
-             }
+              sda_delay    = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
+              scl_delay    = 0x05;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
+            }
           else
             {
-              /* 10 KHz values from I2C timing tool with clock 80mhz */
+              /* 10 KHz values from I2C timing tool with clock 80 MHz */
 
               presc        = 0x0b;    /* PRESC - (+1) prescale I2CCLK */
               scl_l_period = 0xff;    /* SCLL - SCL low period in master mode */
               scl_h_period = 0xba;    /* SCLH - SCL high period in master mode */
-              h_time       = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
-              s_time       = 0x01;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
+              sda_delay    = 0x00;    /* SDADEL - (+1) data hold time after SCL falling edge */
+              scl_delay    = 0x01;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
             }
-
-          scl_delay = s_time;
-          sda_delay = h_time;
         }
-
-#if 0
-      /* TODO: Alternative clock configurations. Through Kconfig?
-       *       Or auto-detect? */
-
-      else if (i2cclk_mhz == 8)
+      else if (i2cclk_mhz == 120)
         {
-          uint8_t h_time;
-          uint8_t s_time;
-
-          /* Alternative timing calculations from original STM32L4 driver,
-           * fI2CCLK = PCLK, 8 Mhz */
+          /*  The Speed and timing calculation are based on the following
+           *  fI2CCLK = PCLK and is 120 MHz
+           *  Analog filter is on,
+           *  Digital filter off
+           *  Rise Time is 120 ns and fall is 25 ns
+           *  Mode is FastMode
+           */
 
           if (frequency == 100000)
             {
-              /* 100 KHz values from datasheet with clock 8mhz */
+              /* 100 KHz values from I2C timing tool with clock 120 MHz */
 
-              presc        = 0x01;
-              scl_l_period = 0x13;
-              scl_h_period = 0x0f;
-              h_time       = 0x02;
-              s_time       = 0x04;
+              presc        = 2;
+              scl_delay    = 14;
+              sda_delay    = 0;
+              scl_h_period = 157;
+              scl_l_period = 230;
             }
           else if (frequency == 400000)
-             {
-              /* 400 KHz values from datasheet for clock of 8mhz */
+            {
+              /* 400 KHz values from I2C timing tool for clock of 120 MHz */
 
-              presc        = 0x00;
-              scl_l_period = 0x09;
-              scl_h_period = 0x03;
-              h_time       = 0x01;
-              s_time       = 0x03;
-             }
+              presc        = 2;
+              scl_delay    = 8;
+              sda_delay    = 0;
+              scl_h_period = 21;
+              scl_l_period = 66;
+            }
           else if (frequency == 1000000)
-             {
-              /* 500 KHhz values from datasheet for clock of 8mhz */
+            {
+              /* 1000 KHz values from I2C timing tool for clock of 120 MHz */
 
-              presc        = 0x00;
-              scl_l_period = 0x06;
-              scl_h_period = 0x03;
-              h_time       = 0x00;
-              s_time       = 0x01;
-
-              frequency = 500000;
-             }
+              presc        = 2;
+              scl_delay    = 6;
+              sda_delay    = 0;
+              scl_h_period = 7;
+              scl_l_period = 20;
+            }
           else
             {
-              /* 10 KHz values from I2C timing tool with clock 8mhz */
+              /* 10 KHz values not supported */
 
-              presc        = 0x03;    /* PRESC - (+1) prescale I2CCLK */
-              scl_l_period = 0xc7;    /* SCLL - SCL low period in master mode */
-              scl_h_period = 0xc3;    /* SCLH - SCL high period in master mode */
-              h_time       = 0x02;    /* SDADEL - (+1) data hold time after SCL falling edge */
-              s_time       = 0x04;    /* SCLDEL - (+1) data setup time from SDA edge to SCL rising edge */
+              DEBUGPANIC();
             }
-
-          scl_delay = s_time;
-          sda_delay = h_time;
         }
-
       else if (i2cclk_mhz == 16)
         {
-          /* Timing calculations from STM32F7 driver, fI2CCLK = HSI 16 MHz */
+          /*  The Speed and timing calculation are based on the following
+           *  fI2CCLK = HSI and is 16Mhz
+           *  Analog filter is on,
+           *  Digital filter off
+           *  Rise Time is 120 ns and fall is 10ns
+           *  Mode is FastMode
+           */
 
           if (frequency == 100000)
             {
@@ -1465,24 +1431,23 @@ static void stm32l4_i2c_setclock(FAR struct stm32l4_i2c_priv_s *priv,
               sda_delay    = 0;
               scl_h_period = 61;
               scl_l_period = 89;
-
             }
           else if (frequency == 400000)
-             {
-               presc        = 0;
-               scl_delay    = 3;
-               sda_delay    = 0;
-               scl_h_period = 6;
-               scl_l_period = 24;
-             }
+            {
+              presc        = 0;
+              scl_delay    = 3;
+              sda_delay    = 0;
+              scl_h_period = 6;
+              scl_l_period = 24;
+            }
           else if (frequency == 1000000)
-             {
-               presc        = 0;
-               scl_delay    = 2;
-               sda_delay    = 0;
-               scl_h_period = 1;
-               scl_l_period = 5;
-             }
+            {
+              presc        = 0;
+              scl_delay    = 2;
+              sda_delay    = 0;
+              scl_h_period = 1;
+              scl_l_period = 5;
+            }
           else
             {
               presc        = 7;
@@ -1492,7 +1457,6 @@ static void stm32l4_i2c_setclock(FAR struct stm32l4_i2c_priv_s *priv,
               scl_l_period = 162;
             }
         }
-#endif
       else
         {
           DEBUGPANIC();
@@ -1772,10 +1736,8 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
 
   if (status & I2C_INT_NACK)
     {
-
       if (priv->astart == true)
         {
-
           /* NACK received on first (address) byte: address is invalid */
 
           i2cinfo("NACK: Address invalid: dcnt=%i msgc=%i status=0x%08x\n",
@@ -1837,7 +1799,6 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
 
   else if ((priv->flags & (I2C_M_READ)) == 0 && (status & (I2C_ISR_TXIS)) != 0)
     {
-
       /* TXIS interrupt occurred, address valid, ready to transmit */
 
       stm32l4_i2c_traceevent(priv, I2CEVENT_WRITE, 0);
@@ -2063,7 +2024,6 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
           priv->msgv++;
 
           stm32l4_i2c_sendstart(priv);
-
         }
       else
         {
@@ -2149,7 +2109,8 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
           priv->flags  = priv->msgv->flags;
 
           /* if this is the last message, disable reload so the
-           * TC event fires next time */
+           * TC event fires next time.
+           */
 
           if (priv->msgc == 0)
             {
@@ -2275,7 +2236,8 @@ static int stm32l4_i2c_isr_process(struct stm32l4_i2c_priv_s *priv)
       stm32l4_i2c_traceevent(priv, I2CEVENT_ISR_SHUTDOWN, 0);
 
       /* clear pointer to message content to reflect we are done
-       * with the current transaction */
+       * with the current transaction.
+       */
 
       priv->msgv = NULL;
 
@@ -2386,7 +2348,7 @@ static int stm32l4_i2c_init(FAR struct stm32l4_i2c_priv_s *priv)
 
   /* TODO:
    * - Provide means to set peripheral clock source via RCC_CCIPR_I2CxSEL
-   * - Make clock source Kconfigurable (currently PCLK = 80 Mhz)
+   * - Make clock source Kconfigurable (currently PCLK = 80 MHz)
    */
 
   /* Force a frequency update */
@@ -2550,12 +2512,12 @@ static int stm32l4_i2c_process(FAR struct i2c_master_s *dev,
 
       errval = ETIMEDOUT;
       i2cerr("ERROR: Waitdone timed out CR1: 0x%08x CR2: 0x%08x status: 0x%08x\n",
-             cr1, cr2,status);
+             cr1, cr2, status);
     }
   else
     {
       i2cinfo("Waitdone success: CR1: 0x%08x CR2: 0x%08x status: 0x%08x\n",
-             cr1, cr2,status );
+              cr1, cr2, status);
     }
 
   UNUSED(cr1);
@@ -2654,7 +2616,7 @@ static int stm32l4_i2c_process(FAR struct i2c_master_s *dev,
        */
 
       clock_t start = clock_systimer();
-      clock_t timeout = USEC2TICK(USEC_PER_SEC/priv->frequency) + 1;
+      clock_t timeout = USEC2TICK(USEC_PER_SEC / priv->frequency) + 1;
 
       status = stm32l4_i2c_getstatus(priv);
 
@@ -2687,11 +2649,21 @@ static int stm32l4_i2c_process(FAR struct i2c_master_s *dev,
  *
  ************************************************************************************/
 
-static int stm32l4_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *msgs,
-                              int count)
+static int stm32l4_i2c_transfer(FAR struct i2c_master_s *dev,
+                                FAR struct i2c_msg_s *msgs,
+                                int count)
 {
-  stm32l4_i2c_sem_wait(dev);   /* ensure that address or flags don't change meanwhile */
-  return stm32l4_i2c_process(dev, msgs, count);
+  int ret;
+
+  /* Ensure that address or flags don't change meanwhile */
+
+  ret = nxsem_wait(&((struct stm32l4_i2c_inst_s *)dev)->priv->sem_excl);
+  if (ret >= 0)
+    {
+      ret = stm32l4_i2c_process(dev, msgs, count);
+    }
+
+  return ret;
 }
 
 /************************************************************************************
@@ -2711,7 +2683,7 @@ static int stm32l4_i2c_reset(FAR struct i2c_master_s * dev)
   uint32_t scl_gpio;
   uint32_t sda_gpio;
   uint32_t frequency;
-  int ret = ERROR;
+  int ret;
 
   DEBUGASSERT(dev);
 
@@ -2725,7 +2697,13 @@ static int stm32l4_i2c_reset(FAR struct i2c_master_s * dev)
 
   /* Lock out other clients */
 
-  stm32l4_i2c_sem_wait(dev);
+  ret = nxsem_wait_uninterruptible(&priv->sem_excl);
+  if (ret < 0)
+    {
+      return ret;
+    }
+
+  ret = -EIO;
 
   /* Save the current frequency */
 
@@ -2869,6 +2847,7 @@ static int stm32l4_i2c_pm_prepare(FAR struct pm_callback_s *cb, int domain,
 
     case PM_STANDBY:
     case PM_SLEEP:
+
       /* Check if exclusive lock for I2C bus is held. */
 
       if (nxsem_getvalue(&priv->sem_excl, &sval) < 0)
@@ -2887,6 +2866,7 @@ static int stm32l4_i2c_pm_prepare(FAR struct pm_callback_s *cb, int domain,
       break;
 
     default:
+
       /* Should not get here */
 
       break;
@@ -2915,11 +2895,6 @@ FAR struct i2c_master_s *stm32l4_i2cbus_initialize(int port)
   irqstate_t irqs;
 #ifdef CONFIG_PM
   int ret;
-#endif
-
-#if STM32L4_PCLK1_FREQUENCY != 80000000
-#   warning STM32_I2C_INIT: Peripheral clock is PCLK and it must be 80mHz or the speed/timing calculations need to be redone.
-    return NULL;
 #endif
 
   /* Get I2C private structure */
@@ -3037,4 +3012,3 @@ int stm32l4_i2cbus_uninitialize(FAR struct i2c_master_s * dev)
 }
 
 #endif /* CONFIG_STM32L4_I2C1 || CONFIG_STM32L4_I2C2 || CONFIG_STM32L4_I2C3 || CONFIG_STM32L4_I2C4 */
-

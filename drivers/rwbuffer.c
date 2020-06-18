@@ -1,36 +1,20 @@
 /****************************************************************************
  * drivers/rwbuffer.c
  *
- *   Copyright (C) 2009, 2011, 2013-2014, 2017 Gregory Nutt. All rights
- *     reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -47,11 +31,11 @@
 #include <string.h>
 #include <time.h>
 #include <assert.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/wqueue.h>
 #include <nuttx/drivers/rwbuffer.h>
 
@@ -72,18 +56,6 @@
 #endif
 
 /****************************************************************************
- * Private Types
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Public Data
- ****************************************************************************/
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -91,23 +63,37 @@
  * Name: rwb_semtake
  ****************************************************************************/
 
-static void rwb_semtake(sem_t *sem)
+static int rwb_semtake(FAR sem_t *sem)
 {
-  int ret;
+  return nxsem_wait_uninterruptible(sem);
+}
+
+/****************************************************************************
+ * Name: rwb_forcetake
+ ****************************************************************************/
+
+static int rwb_forcetake(FAR sem_t *sem)
+{
+  int result;
+  int ret = OK;
 
   do
     {
-      /* Take the semaphore (perhaps waiting) */
+      result = rwb_semtake(sem);
 
-      ret = nxsem_wait(sem);
+      /* The only expected failure is if the thread is canceled */
 
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
+      DEBUGASSERT(result == OK || result == -ECANCELED);
+      if (ret == OK && result < 0)
+        {
+          /* Remember the first error */
 
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+          ret = result;
+        }
     }
-  while (ret == -EINTR);
+  while (result < 0);
+
+  return ret;
 }
 
 /****************************************************************************
@@ -144,7 +130,7 @@ static inline bool rwb_overlap(off_t blockstart1, size_t nblocks1,
  ****************************************************************************/
 
 #ifdef CONFIG_DRVR_WRITEBUFFER
-static inline void rwb_resetwrbuffer(struct rwbuffer_s *rwb)
+static inline void rwb_resetwrbuffer(FAR struct rwbuffer_s *rwb)
 {
   /* We assume that the caller holds the wrsem */
 
@@ -163,7 +149,7 @@ static inline void rwb_resetwrbuffer(struct rwbuffer_s *rwb)
  ****************************************************************************/
 
 #ifdef CONFIG_DRVR_WRITEBUFFER
-static void rwb_wrflush(struct rwbuffer_s *rwb)
+static void rwb_wrflush(FAR struct rwbuffer_s *rwb)
 {
   int ret;
 
@@ -177,7 +163,8 @@ static void rwb_wrflush(struct rwbuffer_s *rwb)
        * an error.
        */
 
-      ret = rwb->wrflush(rwb->dev, rwb->wrbuffer, rwb->wrblockstart, rwb->wrnblocks);
+      ret = rwb->wrflush(rwb->dev, rwb->wrbuffer, rwb->wrblockstart,
+                         rwb->wrnblocks);
       if (ret != rwb->wrnblocks)
         {
           ferr("ERROR: Error flushing write buffer: %d\n", ret);
@@ -185,7 +172,6 @@ static void rwb_wrflush(struct rwbuffer_s *rwb)
 
       rwb_resetwrbuffer(rwb);
     }
-
 }
 #endif
 
@@ -198,17 +184,17 @@ static void rwb_wrtimeout(FAR void *arg)
 {
   /* The following assumes that the size of a pointer is 4-bytes or less */
 
-  FAR struct rwbuffer_s *rwb = (struct rwbuffer_s *)arg;
+  FAR struct rwbuffer_s *rwb = (FAR struct rwbuffer_s *)arg;
   DEBUGASSERT(rwb != NULL);
 
   finfo("Timeout!\n");
 
-  /* If a timeout elapses with with write buffer activity, this watchdog
+  /* If a timeout elapses with write buffer activity, this watchdog
    * handler function will be evoked on the thread of execution of the
    * worker thread.
    */
 
-  rwb_semtake(&rwb->wrsem);
+  rwb_forcetake(&rwb->wrsem);
   rwb_wrflush(rwb);
   rwb_semgive(&rwb->wrsem);
 }
@@ -227,7 +213,7 @@ static void rwb_wrstarttimeout(FAR struct rwbuffer_s *rwb)
    */
 
   int ticks = MSEC2TICK(CONFIG_DRVR_WRDELAY);
-  (void)work_queue(LPWORK, &rwb->work, rwb_wrtimeout, (FAR void *)rwb, ticks);
+  work_queue(LPWORK, &rwb->work, rwb_wrtimeout, (FAR void *)rwb, ticks);
 #endif
 }
 #endif
@@ -237,10 +223,10 @@ static void rwb_wrstarttimeout(FAR struct rwbuffer_s *rwb)
  ****************************************************************************/
 
 #ifdef CONFIG_DRVR_WRITEBUFFER
-static inline void rwb_wrcanceltimeout(struct rwbuffer_s *rwb)
+static inline void rwb_wrcanceltimeout(FAR struct rwbuffer_s *rwb)
 {
 #if CONFIG_DRVR_WRDELAY != 0
-  (void)work_cancel(LPWORK, &rwb->work);
+  work_cancel(LPWORK, &rwb->work);
 #endif
 }
 #endif
@@ -273,7 +259,8 @@ static ssize_t rwb_writebuffer(FAR struct rwbuffer_s *rwb,
 
       /* Flush the write buffer */
 
-      ret = rwb->wrflush(rwb->dev, rwb->wrbuffer, rwb->wrblockstart, rwb->wrnblocks);
+      ret = rwb->wrflush(rwb->dev, rwb->wrbuffer, rwb->wrblockstart,
+                         rwb->wrnblocks);
       if (ret < 0)
         {
           ferr("ERROR: Error writing multiple from cache: %d\n", -ret);
@@ -311,7 +298,7 @@ static ssize_t rwb_writebuffer(FAR struct rwbuffer_s *rwb,
  ****************************************************************************/
 
 #ifdef CONFIG_DRVR_READAHEAD
-static inline void rwb_resetrhbuffer(struct rwbuffer_s *rwb)
+static inline void rwb_resetrhbuffer(FAR struct rwbuffer_s *rwb)
 {
   /* We assume that the caller holds the readAheadBufferSemphore */
 
@@ -326,9 +313,11 @@ static inline void rwb_resetrhbuffer(struct rwbuffer_s *rwb)
 
 #ifdef CONFIG_DRVR_READAHEAD
 static inline void
-rwb_bufferread(struct rwbuffer_s *rwb,  off_t startblock,
-               size_t nblocks, uint8_t **rdbuffer)
+rwb_bufferread(FAR struct rwbuffer_s *rwb,  off_t startblock,
+               size_t nblocks, FAR uint8_t **rdbuffer)
 {
+  FAR uint8_t *rhbuffer;
+
   /* We assume that (1) the caller holds the readAheadBufferSemphore, and (2)
    * that the caller already knows that all of the blocks are in the
    * read-ahead buffer.
@@ -342,7 +331,7 @@ rwb_bufferread(struct rwbuffer_s *rwb,  off_t startblock,
 
   /* Get the byte address in the read-ahead buffer */
 
-  uint8_t *rhbuffer    = rwb->rhbuffer + byteoffset;
+  rhbuffer           = rwb->rhbuffer + byteoffset;
 
   /* Copy the data from the read-ahead buffer into the IO buffer */
 
@@ -359,7 +348,7 @@ rwb_bufferread(struct rwbuffer_s *rwb,  off_t startblock,
  ****************************************************************************/
 
 #ifdef CONFIG_DRVR_READAHEAD
-static int rwb_rhreload(struct rwbuffer_s *rwb, off_t startblock)
+static int rwb_rhreload(FAR struct rwbuffer_s *rwb, off_t startblock)
 {
   off_t  endblock;
   size_t nblocks;
@@ -401,7 +390,9 @@ static int rwb_rhreload(struct rwbuffer_s *rwb, off_t startblock)
       rwb->rhnblocks    = nblocks;
       rwb->rhblockstart = startblock;
 
-      /* The return value is not the number of blocks we asked to be loaded. */
+      /* The return value is not the number of blocks we asked to be
+       * loaded.
+       */
 
       return nblocks;
     }
@@ -433,7 +424,11 @@ int rwb_invalidate_writebuffer(FAR struct rwbuffer_s *rwb,
 
       finfo("startblock=%d blockcount=%p\n", startblock, blockcount);
 
-      rwb_semtake(&rwb->wrsem);
+      ret = rwb_semtake(&rwb->wrsem);
+      if (ret < 0)
+        {
+          return ret;
+        }
 
       /* Now there are five cases:
        *
@@ -443,7 +438,7 @@ int rwb_invalidate_writebuffer(FAR struct rwbuffer_s *rwb,
       wrbend = rwb->wrblockstart + rwb->wrnblocks;
       invend = startblock + blockcount;
 
-      if (rwb->wrblockstart > invend || wrbend < startblock)
+      if (wrbend <= startblock || rwb->wrblockstart >= invend)
         {
           ret = OK;
         }
@@ -464,10 +459,10 @@ int rwb_invalidate_writebuffer(FAR struct rwbuffer_s *rwb,
 
       else if (rwb->wrblockstart < startblock && wrbend > invend)
         {
-          uint8_t *src;
-          off_t    block;
-          off_t    offset;
-          size_t   nblocks;
+          FAR uint8_t *src;
+          off_t block;
+          off_t offset;
+          size_t nblocks;
 
           /* Write the blocks at the end of the media to hardware */
 
@@ -485,6 +480,7 @@ int rwb_invalidate_writebuffer(FAR struct rwbuffer_s *rwb,
           /* Keep the blocks at the beginning of the buffer up the
            * start of the invalidated region.
            */
+
           else
             {
               rwb->wrnblocks = startblock - rwb->wrblockstart;
@@ -504,9 +500,9 @@ int rwb_invalidate_writebuffer(FAR struct rwbuffer_s *rwb,
 
       else /* if (rwb->wrblockstart >= startblock && wrbend > invend) */
         {
-          uint8_t *src;
-          size_t   ninval;
-          size_t   nkeep;
+          FAR uint8_t *src;
+          size_t ninval;
+          size_t nkeep;
 
           DEBUGASSERT(rwb->wrblockstart >= startblock && wrbend > invend);
 
@@ -558,9 +554,9 @@ int rwb_invalidate_writebuffer(FAR struct rwbuffer_s *rwb,
 
 #if defined(CONFIG_DRVR_READAHEAD)  && defined(CONFIG_DRVR_INVALIDATE)
 int rwb_invalidate_readahead(FAR struct rwbuffer_s *rwb,
-                               off_t startblock, size_t blockcount)
+                             off_t startblock, size_t blockcount)
 {
-  int ret;
+  int ret = OK;
 
   if (rwb->rhmaxblocks > 0 && rwb->rhnblocks > 0)
     {
@@ -569,7 +565,11 @@ int rwb_invalidate_readahead(FAR struct rwbuffer_s *rwb,
 
       finfo("startblock=%d blockcount=%p\n", startblock, blockcount);
 
-      rwb_semtake(&rwb->rhsem);
+      ret = rwb_semtake(&rwb->rhsem);
+      if (ret < 0)
+        {
+          return ret;
+        }
 
       /* Now there are five cases:
        *
@@ -620,9 +620,9 @@ int rwb_invalidate_readahead(FAR struct rwbuffer_s *rwb,
 
       else /* if (rwb->rhblockstart >= startblock && rhbend > invend) */
         {
-          uint8_t *src;
-          size_t   ninval;
-          size_t   nkeep;
+          FAR uint8_t *src;
+          size_t ninval;
+          size_t nkeep;
 
           DEBUGASSERT(rwb->rhblockstart >= startblock && rhbend > invend);
           /* Copy the data from the uninvalidated region to the beginning
@@ -665,6 +665,7 @@ int rwb_invalidate_readahead(FAR struct rwbuffer_s *rwb,
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: rwb_initialize
  ****************************************************************************/
@@ -791,7 +792,7 @@ void rwb_uninitialize(FAR struct rwbuffer_s *rwb)
  ****************************************************************************/
 
 static ssize_t rwb_read_(FAR struct rwbuffer_s *rwb, off_t startblock,
-                 size_t nblocks, FAR uint8_t *rdbuffer)
+                         size_t nblocks, FAR uint8_t *rdbuffer)
 {
   int ret = OK;
 
@@ -800,9 +801,14 @@ static ssize_t rwb_read_(FAR struct rwbuffer_s *rwb, off_t startblock,
     {
       size_t remaining;
 
+      ret = nxsem_wait(&rwb->rhsem);
+      if (ret < 0)
+        {
+          return (ssize_t)ret;
+        }
+
       /* Loop until we have read all of the requested blocks */
 
-      rwb_semtake(&rwb->rhsem);
       for (remaining = nblocks; remaining > 0; )
         {
           /* Is there anything in the read-ahead buffer? */
@@ -839,7 +845,9 @@ static ssize_t rwb_read_(FAR struct rwbuffer_s *rwb, off_t startblock,
               ret = rwb_rhreload(rwb, startblock);
               if (ret < 0)
                 {
-                  ferr("ERROR: Failed to fill the read-ahead buffer: %d\n", ret);
+                  ferr("ERROR: Failed to fill the read-ahead buffer: %d\n",
+                       ret);
+
                   rwb_semgive(&rwb->rhsem);
                   return (ssize_t)ret;
                 }
@@ -887,10 +895,16 @@ ssize_t rwb_read(FAR struct rwbuffer_s *rwb, off_t startblock,
 
   if (rwb->wrmaxblocks > 0)
     {
+      ret = nxsem_wait(&rwb->wrsem);
+      if (ret < 0)
+        {
+          return (ssize_t)ret;
+        }
+
       /* If the write buffer overlaps the block(s) requested */
 
-      rwb_semtake(&rwb->wrsem);
-      if (rwb_overlap(rwb->wrblockstart, rwb->wrnblocks, startblock, nblocks))
+      if (rwb_overlap(rwb->wrblockstart, rwb->wrnblocks, startblock,
+                      nblocks))
         {
           size_t rdblocks = 0;
           size_t wrnpass  = 0;
@@ -933,11 +947,12 @@ ssize_t rwb_read(FAR struct rwbuffer_s *rwb, off_t startblock,
 
   ret = rwb_read_(rwb, startblock, nblocks, rdbuffer);
   if (ret < 0)
-    return ret;
+    {
+      return ret;
+    }
 
   return readblocks + ret;
 }
-
 
 /****************************************************************************
  * Name: rwb_write
@@ -957,8 +972,14 @@ ssize_t rwb_write(FAR struct rwbuffer_s *rwb, off_t startblock,
        * streaming applications.
        */
 
-      rwb_semtake(&rwb->rhsem);
-      if (rwb_overlap(rwb->rhblockstart, rwb->rhnblocks, startblock, nblocks))
+      ret = nxsem_wait(&rwb->rhsem);
+      if (ret < 0)
+        {
+          return (ssize_t)ret;
+        }
+
+      if (rwb_overlap(rwb->rhblockstart, rwb->rhnblocks, startblock,
+                      nblocks))
         {
 #ifdef CONFIG_DRVR_INVALIDATE
           /* Just invalidate the read buffer startblock + nblocks data */
@@ -984,13 +1005,20 @@ ssize_t rwb_write(FAR struct rwbuffer_s *rwb, off_t startblock,
     {
       finfo("startblock=%d wrbuffer=%p\n", startblock, wrbuffer);
 
-      /* Use the block cache unless the buffer size is bigger than block cache */
+      /* Use the block cache unless the buffer size is bigger than block
+       * cache.
+       */
 
       if (nblocks > rwb->wrmaxblocks)
         {
           /* First flush the cache */
 
-          rwb_semtake(&rwb->wrsem);
+          ret = nxsem_wait(&rwb->wrsem);
+          if (ret < 0)
+            {
+              return (ssize_t)ret;
+            }
+
           rwb_wrflush(rwb);
           rwb_semgive(&rwb->wrsem);
 
@@ -1002,7 +1030,12 @@ ssize_t rwb_write(FAR struct rwbuffer_s *rwb, off_t startblock,
         {
           /* Buffer the data in the write buffer */
 
-          rwb_semtake(&rwb->wrsem);
+          ret = nxsem_wait(&rwb->wrsem);
+          if (ret < 0)
+            {
+              return (ssize_t)ret;
+            }
+
           ret = rwb_writebuffer(rwb, startblock, nblocks, wrbuffer);
           rwb_semgive(&rwb->wrsem);
         }
@@ -1068,7 +1101,12 @@ int rwb_mediaremoved(FAR struct rwbuffer_s *rwb)
 #ifdef CONFIG_DRVR_WRITEBUFFER
   if (rwb->wrmaxblocks > 0)
     {
-      rwb_semtake(&rwb->wrsem);
+      ret = rwb_semtake(&rwb->wrsem);
+      if (ret < 0)
+        {
+          return ret;
+        }
+
       rwb_resetwrbuffer(rwb);
       rwb_semgive(&rwb->wrsem);
     }
@@ -1077,7 +1115,12 @@ int rwb_mediaremoved(FAR struct rwbuffer_s *rwb)
 #ifdef CONFIG_DRVR_READAHEAD
   if (rwb->rhmaxblocks > 0)
     {
-      rwb_semtake(&rwb->rhsem);
+      ret = rwb_semtake(&rwb->rhsem);
+      if (ret < 0)
+        {
+          return ret;
+        }
+
       rwb_resetrhbuffer(rwb);
       rwb_semgive(&rwb->rhsem);
     }
@@ -1134,14 +1177,15 @@ int rwb_invalidate(FAR struct rwbuffer_s *rwb,
 #ifdef CONFIG_DRVR_WRITEBUFFER
 int rwb_flush(FAR struct rwbuffer_s *rwb)
 {
-  rwb_semtake(&rwb->wrsem);
+  int ret;
+
+  ret = rwb_forcetake(&rwb->wrsem);
   rwb_wrcanceltimeout(rwb);
   rwb_wrflush(rwb);
   rwb_semgive(&rwb->wrsem);
 
-  return OK;
+  return ret;
 }
 #endif
 
 #endif /* CONFIG_DRVR_WRITEBUFFER || CONFIG_DRVR_READAHEAD */
-

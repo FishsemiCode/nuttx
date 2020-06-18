@@ -52,15 +52,15 @@
 
 #include <nuttx/config.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 
 #include "barriers.h"
 
-#include "chip/stm32_flash.h"
+#include "hardware/stm32_flash.h"
 #include "up_arch.h"
 
 /****************************************************************************
@@ -87,28 +87,14 @@ static void up_waste(void)
 {
 }
 
-static void sem_lock(void)
+static int sem_lock(void)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = sem_wait(&g_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&g_sem);
 }
 
 static inline void sem_unlock(void)
 {
-  sem_post(&g_sem);
+  nxsem_post(&g_sem);
 }
 
 static void flash_unlock(void)
@@ -136,18 +122,36 @@ static void flash_lock(void)
  * Public Functions
  ****************************************************************************/
 
-void stm32_flash_unlock(void)
+int stm32_flash_unlock(void)
 {
-  sem_lock();
+  int ret;
+
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   flash_unlock();
   sem_unlock();
+
+  return ret;
 }
 
-void stm32_flash_lock(void)
+int stm32_flash_lock(void)
 {
-  sem_lock();
+  int ret;
+
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   flash_lock();
   sem_unlock();
+
+  return ret;
 }
 
 /****************************************************************************
@@ -328,12 +332,18 @@ ssize_t up_progmem_ispageerased(size_t page)
 
 ssize_t up_progmem_eraseblock(size_t block)
 {
+  int ret;
+
   if (block >= STM32_FLASH_NPAGES)
     {
       return -EFAULT;
     }
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
 
   /* Get flash ready and begin erasing single block */
 
@@ -365,6 +375,7 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
   uint8_t *byte = (uint8_t *)buf;
   size_t written = count;
   uintptr_t flash_base;
+  int ret;
 
   /* Check for valid address range */
 
@@ -385,7 +396,11 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
 
   addr -= flash_base;
 
-  sem_lock();
+  ret = sem_lock();
+  if (ret < 0)
+    {
+      return (ssize_t)ret;
+    }
 
   /* Get flash ready and begin flashing */
 

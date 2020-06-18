@@ -43,12 +43,12 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 
 #include <nuttx/fs/fs.h>
 #include <nuttx/drivers/drivers.h>
+#include <nuttx/semaphore.h>
 
 #include "pipe_common.h"
 
@@ -82,9 +82,7 @@ static const struct file_operations pipe_fops =
   pipecommon_write,  /* write */
   0,                 /* seek */
   pipecommon_ioctl,  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
   pipecommon_poll,   /* poll */
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   pipecommon_unlink  /* unlink */
 #endif
@@ -132,7 +130,7 @@ static inline void pipe_free(int pipeno)
   if (ret == OK)
     {
       g_pipeset &= ~(1 << pipeno);
-      (void)nxsem_post(&g_pipesem);
+      nxsem_post(&g_pipesem);
     }
 }
 
@@ -151,7 +149,7 @@ static int pipe_close(FAR struct file *filep)
   /* Perform common close operations */
 
   ret = pipecommon_close(filep);
-  if (ret == 0 && dev->d_refs == 0)
+  if (ret == 0 && inode->i_crefs == 1)
     {
       /* Release the pipe when there are no further open references to it. */
 
@@ -173,7 +171,7 @@ static int pipe_close(FAR struct file *filep)
  *   and  places them in the array pointed to by 'fd'. fd[0] is for reading,
  *   fd[1] is for writing.
  *
- *   NOTE: mkfifo2 is a special, non-standard, NuttX-only interface.  Since
+ *   NOTE: pipe2 is a special, non-standard, NuttX-only interface.  Since
  *   the NuttX FIFOs are based in in-memory, circular buffers, the ability
  *   to control the size of those buffers is critical for system tuning.
  *
@@ -210,7 +208,7 @@ int pipe2(int fd[2], size_t bufsize)
   pipeno = pipe_allocate();
   if (pipeno < 0)
     {
-      (void)nxsem_post(&g_pipesem);
+      nxsem_post(&g_pipesem);
       errcode = -pipeno;
       goto errout;
     }
@@ -228,7 +226,7 @@ int pipe2(int fd[2], size_t bufsize)
       dev = pipecommon_allocdev(bufsize);
       if (!dev)
         {
-          (void)nxsem_post(&g_pipesem);
+          nxsem_post(&g_pipesem);
           errcode = ENOMEM;
           goto errout_with_pipe;
         }
@@ -240,7 +238,7 @@ int pipe2(int fd[2], size_t bufsize)
       ret = register_driver(devname, &pipe_fops, 0666, (FAR void *)dev);
       if (ret != 0)
         {
-          (void)nxsem_post(&g_pipesem);
+          nxsem_post(&g_pipesem);
           errcode = -ret;
           goto errout_with_dev;
         }
@@ -250,7 +248,7 @@ int pipe2(int fd[2], size_t bufsize)
        g_pipecreated |= (1 << pipeno);
     }
 
-  (void)nxsem_post(&g_pipesem);
+  nxsem_post(&g_pipesem);
 
   /* Get a write file descriptor */
 

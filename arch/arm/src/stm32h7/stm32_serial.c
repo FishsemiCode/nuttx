@@ -1,9 +1,9 @@
 /****************************************************************************
  * arch/arm/src/stm32h7/stm32_serial.c
  *
- *   Copyright (C) 2015-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2015-2019 Gregory Nutt. All rights reserved.
  *   Authors: Gregory Nutt <gnutt@nuttx.org>
- *            David Sidrane <david_s5@nscdg.com>
+ *            David Sidrane <david.sidrane@nscdg.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -64,7 +63,7 @@
 
 #include "chip.h"
 #include "stm32_gpio.h"
-#include "chip/stm32_pinmap.h"
+#include "hardware/stm32_pinmap.h"
 #include "stm32_rcc.h"
 #include "stm32_uart.h"
 
@@ -133,6 +132,7 @@ struct up_dev_s
    */
 
 #ifdef CONFIG_SERIAL_TERMIOS
+  uint8_t           rxftcfg;   /* Rx FIFO threshold level */
   uint8_t           parity;    /* 0=none, 1=odd, 2=even */
   uint8_t           bits;      /* Number of bits (7 or 8) */
   bool              stopbits2; /* True: Configure with 2 stop bits instead of 1 */
@@ -460,23 +460,19 @@ static struct up_dev_s g_uart4priv =
   .parity        = CONFIG_UART4_PARITY,
   .bits          = CONFIG_UART4_BITS,
   .stopbits2     = CONFIG_UART4_2STOP,
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .iflow         = false,
+#if defined(CONFIG_SERIAL_OFLOWCONTROL) && defined(CONFIG_UART4_OFLOWCONTROL)
+  .oflow         = true,
+  .cts_gpio      = GPIO_UART4_CTS,
 #endif
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .oflow         = false,
+#if defined(CONFIG_SERIAL_IFLOWCONTROL) && defined(CONFIG_UART4_IFLOWCONTROL)
+  .iflow         = true,
+  .rts_gpio      = GPIO_UART4_RTS,
 #endif
   .baud          = CONFIG_UART4_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_UART4_BASE,
   .tx_gpio       = GPIO_UART4_TX,
   .rx_gpio       = GPIO_UART4_RX,
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .cts_gpio      = 0,
-#endif
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .rts_gpio      = 0,
-#endif
 
 #ifdef CONFIG_UART4_RS485
   .rs485_dir_gpio = GPIO_UART4_RS485_DIR,
@@ -518,23 +514,19 @@ static struct up_dev_s g_uart5priv =
   .parity        = CONFIG_UART5_PARITY,
   .bits          = CONFIG_UART5_BITS,
   .stopbits2     = CONFIG_UART5_2STOP,
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .iflow         = false,
+#if defined(CONFIG_SERIAL_OFLOWCONTROL) && defined(CONFIG_UART5_OFLOWCONTROL)
+  .oflow         = true,
+  .cts_gpio      = GPIO_UART5_CTS,
 #endif
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .oflow         = false,
+#if defined(CONFIG_SERIAL_IFLOWCONTROL) && defined(CONFIG_UART5_IFLOWCONTROL)
+  .iflow         = true,
+  .rts_gpio      = GPIO_UART5_RTS,
 #endif
   .baud          = CONFIG_UART5_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_UART5_BASE,
   .tx_gpio       = GPIO_UART5_TX,
   .rx_gpio       = GPIO_UART5_RX,
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .cts_gpio      = 0,
-#endif
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .rts_gpio      = 0,
-#endif
 
 #ifdef CONFIG_UART5_RS485
   .rs485_dir_gpio = GPIO_UART5_RS485_DIR,
@@ -680,7 +672,7 @@ static struct up_dev_s g_uart8priv =
     },
 
   .irq           = STM32_IRQ_UART8,
-  .rxftcfg       = CONFIG_USRT8_RXFIFO_THRES,
+  .rxftcfg       = CONFIG_UART8_RXFIFO_THRES,
   .parity        = CONFIG_UART8_PARITY,
   .bits          = CONFIG_UART8_BITS,
   .stopbits2     = CONFIG_UART8_2STOP,
@@ -1482,11 +1474,14 @@ static int up_interrupt(int irq, void *context, FAR void *arg)
 static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
 #if defined(CONFIG_SERIAL_TERMIOS) || defined(CONFIG_SERIAL_TIOCSERGSTRUCT) \
+    || defined(CONFIG_STM32H7_USART_SINGLEWIRE) \
     || defined(CONFIG_STM32H7_SERIALBRK_BSDCOMPAT)
   struct inode      *inode = filep->f_inode;
   struct uart_dev_s *dev   = inode->i_private;
 #endif
-#if defined(CONFIG_SERIAL_TERMIOS) || defined(CONFIG_STM32H7_SERIALBRK_BSDCOMPAT)
+#if defined(CONFIG_SERIAL_TERMIOS) \
+    || defined(CONFIG_STM32H7_USART_SINGLEWIRE) \
+    || defined(CONFIG_STM32H7_SERIALBRK_BSDCOMPAT)
   struct up_dev_s   *priv  = (struct up_dev_s *)dev->priv;
 #endif
   int                ret    = OK;
@@ -1534,18 +1529,114 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 
         uint32_t cr = up_serialin(priv, STM32_USART_CR3_OFFSET);
 
-        if (arg == SER_SINGLEWIRE_ENABLED)
+        if ((arg & SER_SINGLEWIRE_ENABLED) != 0)
           {
-            stm32_configgpio(priv->tx_gpio | GPIO_OPENDRAIN);
+            uint32_t gpio_val = GPIO_OPENDRAIN;
+            gpio_val |= (arg & SER_SINGLEWIRE_PULL_MASK) == SER_SINGLEWIRE_PULLUP ? GPIO_PULLUP : GPIO_FLOAT;
+            gpio_val |= (arg & SER_SINGLEWIRE_PULL_MASK) == SER_SINGLEWIRE_PULLDOWN ? GPIO_PULLDOWN : GPIO_FLOAT;
+            stm32_configgpio((priv->tx_gpio & ~(GPIO_PUPD_MASK | GPIO_OPENDRAIN)) | gpio_val);
             cr |= USART_CR3_HDSEL;
           }
         else
           {
-            stm32_configgpio(priv->tx_gpio | GPIO_PUSHPULL);
+            stm32_configgpio((priv->tx_gpio & ~(GPIO_PUPD_MASK | GPIO_OPENDRAIN)) | GPIO_PUSHPULL);
             cr &= ~USART_CR3_HDSEL;
           }
 
         up_serialout(priv, STM32_USART_CR3_OFFSET, cr);
+
+        /* Re-enable UE if appropriate */
+
+        up_serialout(priv, STM32_USART_CR1_OFFSET, cr1 | cr1_ue);
+        leave_critical_section(flags);
+      }
+     break;
+#endif
+
+#ifdef CONFIG_STM32H7_USART_INVERT
+    case TIOCSINVERT:
+      {
+        uint32_t cr1;
+        uint32_t cr1_ue;
+        irqstate_t flags;
+
+        flags = enter_critical_section();
+
+        /* Get the original state of UE */
+
+        cr1    = up_serialin(priv, STM32_USART_CR1_OFFSET);
+        cr1_ue = cr1 & USART_CR1_UE;
+        cr1   &= ~USART_CR1_UE;
+
+        /* Disable UE, {R,T}XINV can only be written when UE=0 */
+
+        up_serialout(priv, STM32_USART_CR1_OFFSET, cr1);
+
+        /* Enable/disable signal inversion. */
+
+        uint32_t cr = up_serialin(priv, STM32_USART_CR2_OFFSET);
+
+        if (arg & SER_INVERT_ENABLED_RX)
+          {
+            cr |= USART_CR2_RXINV;
+          }
+        else
+          {
+            cr &= ~USART_CR2_RXINV;
+          }
+
+        if (arg & SER_INVERT_ENABLED_TX)
+          {
+            cr |= USART_CR2_TXINV;
+          }
+        else
+          {
+            cr &= ~USART_CR2_TXINV;
+          }
+
+        up_serialout(priv, STM32_USART_CR2_OFFSET, cr);
+
+        /* Re-enable UE if appropriate */
+
+        up_serialout(priv, STM32_USART_CR1_OFFSET, cr1 | cr1_ue);
+        leave_critical_section(flags);
+      }
+     break;
+#endif
+
+#ifdef CONFIG_STM32H7_USART_SWAP
+    case TIOCSSWAP:
+      {
+        uint32_t cr1;
+        uint32_t cr1_ue;
+        irqstate_t flags;
+
+        flags = enter_critical_section();
+
+        /* Get the original state of UE */
+
+        cr1    = up_serialin(priv, STM32_USART_CR1_OFFSET);
+        cr1_ue = cr1 & USART_CR1_UE;
+        cr1   &= ~USART_CR1_UE;
+
+        /* Disable UE, SWAP can only be written when UE=0 */
+
+        up_serialout(priv, STM32_USART_CR1_OFFSET, cr1);
+
+        /* Enable/disable Swap mode. */
+
+        uint32_t cr = up_serialin(priv, STM32_USART_CR2_OFFSET);
+
+        if (arg == SER_SWAP_ENABLED)
+          {
+            cr |= USART_CR2_SWAP;
+          }
+        else
+          {
+            cr &= ~USART_CR2_SWAP;
+          }
+
+        up_serialout(priv, STM32_USART_CR2_OFFSET, cr);
 
         /* Re-enable UE if appropriate */
 
@@ -1701,21 +1792,12 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
 
         flags = enter_critical_section();
         cr1   = up_serialin(priv, STM32_USART_CR1_OFFSET);
-        up_serialout(priv, STM32_USART_CR1_OFFSET, cr1 | USART_CR1_SBK);
+        up_serialout(priv, STM32_USART_RQR_OFFSET, cr1 | USART_RQR_SBKRQ);
         leave_critical_section(flags);
       }
       break;
 
-    case TIOCCBRK:  /* No BSD compatibility: May turn off break too soon */
-      {
-        uint32_t cr1;
-        irqstate_t flags;
-
-        flags = enter_critical_section();
-        cr1   = up_serialin(priv, STM32_USART_CR1_OFFSET);
-        up_serialout(priv, STM32_USART_CR1_OFFSET, cr1 & ~USART_CR1_SBK);
-        leave_critical_section(flags);
-      }
+    case TIOCCBRK:  /* No BSD compatibility: HW does not support stopping a break */
       break;
 #  endif
 #endif
@@ -2230,14 +2312,14 @@ void up_serialinit(void)
   /* Register the console */
 
 #if CONSOLE_UART > 0
-  (void)uart_register("/dev/console", &g_uart_devs[CONSOLE_UART - 1]->dev);
+  uart_register("/dev/console", &g_uart_devs[CONSOLE_UART - 1]->dev);
 
 #ifndef CONFIG_STM32H7_SERIAL_DISABLE_REORDERING
   /* If not disabled, register the console UART to ttyS0 and exclude
    * it from initializing it further down
    */
 
-  (void)uart_register("/dev/ttyS0", &g_uart_devs[CONSOLE_UART - 1]->dev);
+  uart_register("/dev/ttyS0", &g_uart_devs[CONSOLE_UART - 1]->dev);
   minor = 1;
 #endif
 
@@ -2268,7 +2350,7 @@ void up_serialinit(void)
       /* Register USARTs as devices in increasing order */
 
       devname[9] = '0' + minor++;
-      (void)uart_register(devname, &g_uart_devs[i]->dev);
+      uart_register(devname, &g_uart_devs[i]->dev);
     }
 #endif /* HAVE UART */
 }

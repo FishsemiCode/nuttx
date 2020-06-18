@@ -46,7 +46,7 @@
 
 #if STM32_NETHERNET > 0
 
-#include "chip/stm32_eth.h"
+#include "hardware/stm32_eth.h"
 
 #ifndef __ASSEMBLY__
 
@@ -118,4 +118,3 @@ int stm32_phy_boardinitialize(int intf);
 #endif /* __ASSEMBLY__ */
 #endif /* STM32_NETHERNET > 0 */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_ETH_H */
-

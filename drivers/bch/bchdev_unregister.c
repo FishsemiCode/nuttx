@@ -65,15 +65,14 @@
  *
  * Description:
  *   Unregister character driver access to a block device that was created
- /
-*   by a previous call to bchdev_register().
+ *   by a previous call to bchdev_register().
  *
  ****************************************************************************/
 
 int bchdev_unregister(FAR const char *chardev)
 {
   FAR struct bchlib_s *bch;
-  FAR struct file filestruct;
+  struct file filestruct;
   int ret;
 
   /* Sanity check */
@@ -100,7 +99,7 @@ int bchdev_unregister(FAR const char *chardev)
 
   ret = file_ioctl(&filestruct, DIOC_GETPRIV,
                    (unsigned long)((uintptr_t)&bch));
-  (void)file_close(&filestruct);
+  file_close(&filestruct);
 
   if (ret < 0)
     {

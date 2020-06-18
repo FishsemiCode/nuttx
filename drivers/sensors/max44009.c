@@ -93,9 +93,7 @@ struct max44009_dev_s
   uint8_t addr;
   uint8_t cref;
   bool int_pending;
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_MAX44009_NPOLLWAITERS];
-#endif
 };
 
 /****************************************************************************
@@ -108,11 +106,10 @@ static ssize_t max44009_read(FAR struct file *filep, FAR char *buffer,
                              size_t buflen);
 static ssize_t max44009_write(FAR struct file *filep, FAR const char *buffer,
                               size_t buflen);
-static int max44009_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
+static int max44009_ioctl(FAR struct file *filep, int cmd,
+                          unsigned long arg);
 static int max44009_poll(FAR struct file *filep, FAR struct pollfd *fds,
                          bool setup);
-#endif
 
 static int max44009_read_data(FAR struct max44009_dev_s *priv,
                               FAR struct max44009_data_s *data);
@@ -128,10 +125,8 @@ static const struct file_operations g_alsops =
   max44009_read,   /* read */
   max44009_write,  /* write */
   NULL,            /* seek */
-  max44009_ioctl   /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , max44009_poll  /* poll */
-#endif
+  max44009_ioctl,  /* ioctl */
+  max44009_poll    /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL           /* unlink */
 #endif
@@ -241,17 +236,11 @@ static int max44009_open(FAR struct file *filep)
   DEBUGASSERT(inode && inode->i_private);
   priv = (FAR struct max44009_dev_s *)inode->i_private;
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->dev_sem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->dev_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   use_count = priv->cref + 1;
   if (use_count == 1)
@@ -296,17 +285,11 @@ static int max44009_close(FAR struct file *filep)
   DEBUGASSERT(inode && inode->i_private);
   priv = (FAR struct max44009_dev_s *)inode->i_private;
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->dev_sem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->dev_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   use_count = priv->cref - 1;
   if (use_count == 0)
@@ -315,7 +298,7 @@ static int max44009_close(FAR struct file *filep)
 
       /* Last user, do power off. */
 
-      (void)priv->config->set_power(priv->config, false);
+      priv->config->set_power(priv->config, false);
       priv->cref = use_count;
     }
   else
@@ -345,17 +328,11 @@ static ssize_t max44009_read(FAR struct file *filep, FAR char *buffer,
   DEBUGASSERT(inode && inode->i_private);
   priv = (FAR struct max44009_dev_s *)inode->i_private;
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->dev_sem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->dev_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return (ssize_t)ret;
     }
-  while (ret == -EINTR);
 
   ret = max44009_read_data(priv, &data);
   if (ret < 0)
@@ -702,7 +679,8 @@ static int max44009_read_data(FAR struct max44009_dev_s *priv,
    *
    * E[3..0] = Exponent, M[7..0]: Mantissa.
    *
-   * Lux can be calculated as (full resolution): (M[7..0] << E[3..0]) * 0.045.
+   * Lux can be calculated as (full resolution):
+   *     (M[7..0] << E[3..0]) * 0.045.
    *
    * Lux can also be calculated using only HBYTE:
    *     (M[7..4] << E[3..0]) * 0.72
@@ -720,7 +698,8 @@ static int max44009_read_data(FAR struct max44009_dev_s *priv,
     }
 
   /* Merge HBYTE and LBYTE to 16-bit integer:
-   *   --.--.--.--.E3.E2.E1.E0.M7.M6.M5.M4.M3.M2.M1.M0 */
+   *   --.--.--.--.E3.E2.E1.E0.M7.M6.M5.M4.M3.M2.M1.M0
+   */
 
   data->raw_value = (hvalue << 4) | (lvalue & 0xf);
 
@@ -753,17 +732,11 @@ static int max44009_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   DEBUGASSERT(inode && inode->i_private);
   priv = (FAR struct max44009_dev_s *)inode->i_private;
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->dev_sem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->dev_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   switch (cmd)
     {
@@ -794,7 +767,6 @@ static int max44009_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   return ret;
 }
 
-#ifndef CONFIG_DISABLE_POLL
 static void max44009_notify(FAR struct max44009_dev_s *priv)
 {
   DEBUGASSERT(priv != NULL);
@@ -825,7 +797,7 @@ static int max44009_poll(FAR struct file *filep, FAR struct pollfd *fds,
 {
   FAR struct inode *inode;
   FAR struct max44009_dev_s *priv;
-  int ret;
+  int ret = OK;
   int i;
 
   DEBUGASSERT(filep && fds);
@@ -834,17 +806,11 @@ static int max44009_poll(FAR struct file *filep, FAR struct pollfd *fds,
   DEBUGASSERT(inode && inode->i_private);
   priv = (FAR struct max44009_dev_s *)inode->i_private;
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->dev_sem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->dev_sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   if (setup)
     {
@@ -856,8 +822,9 @@ static int max44009_poll(FAR struct file *filep, FAR struct pollfd *fds,
           goto out;
         }
 
-      /* This is a request to set up the poll.  Find an available slot for the
-       * poll structure reference */
+      /* This is a request to set up the poll.  Find an available slot for
+       * the poll structure reference.
+       */
 
       for (i = 0; i < CONFIG_MAX44009_NPOLLWAITERS; i++)
         {
@@ -879,6 +846,7 @@ static int max44009_poll(FAR struct file *filep, FAR struct pollfd *fds,
           ret = -EBUSY;
           goto out;
         }
+
       if (priv->int_pending)
         {
           max44009_notify(priv);
@@ -896,11 +864,12 @@ static int max44009_poll(FAR struct file *filep, FAR struct pollfd *fds,
       *slot = NULL;
       fds->priv = NULL;
     }
+
 out:
+
   nxsem_post(&priv->dev_sem);
   return ret;
 }
-#endif /* !CONFIG_DISABLE_POLL */
 
 static int max44009_int_handler(int irq, FAR void *context, FAR void *arg)
 {
@@ -912,9 +881,7 @@ static int max44009_int_handler(int irq, FAR void *context, FAR void *arg)
   flags = enter_critical_section();
   priv->int_pending = true;
   leave_critical_section(flags);
-#ifndef CONFIG_DISABLE_POLL
   max44009_notify(priv);
-#endif
   max44009_dbg("MAX44009 interrupt\n");
 
   return OK;

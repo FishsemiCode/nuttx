@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/eeprom/spi_xx25xx.c
  *
- *   Copyright (C) 2014, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2018 Sebastien Lorquet. All rights reserved.
  *   Author: Sebastien Lorquet <sebastien@lorquet.fr>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -220,29 +220,63 @@ static const struct ee25xx_geom_s g_ee25xx_devices[] =
 {
   /* Microchip devices */
 
-  { 0, 1, 1, 0}, /* 25xx010A     128   16     1 */
-  { 1, 1, 1, 0}, /* 25xx020A     256   16     1 */
-  { 2, 1, 1, 1}, /* 25xx040      512   16     1+bit */
-  { 3, 1, 1, 0}, /* 25xx080     1024   16     1 */
-  { 3, 2, 2, 0}, /* 25xx080B    1024   32     2 */
-  { 4, 1, 2, 0}, /* 25xx160     2048   16     2 */
-  { 4, 2, 2, 0}, /* 25xx160B/D  2048   32     2 */
-  { 5, 2, 2, 0}, /* 25xx320     4096   32     2 */
-  { 6, 2, 2, 0}, /* 25xx640     8192   32     2 */
-  { 7, 3, 2, 0}, /* 25xx128    16384   64     2 */
-  { 8, 3, 2, 0}, /* 25xx256    32768   64     2 */
-  { 9, 4, 2, 0}, /* 25xx512    65536  128     2 */
-  {10, 5, 3, 0}, /* 25xx1024  131072  256     3 */
+  {
+    0, 1, 1, 0
+  }, /* 25xx010A     128   16     1 */
+  {
+    1, 1, 1, 0
+  }, /* 25xx020A     256   16     1 */
+  {
+    2, 1, 1, 1
+  }, /* 25xx040      512   16     1+bit */
+  {
+    3, 1, 1, 0
+  }, /* 25xx080     1024   16     1 */
+  {
+    3, 2, 2, 0
+  }, /* 25xx080B    1024   32     2 */
+  {
+    4, 1, 2, 0
+  }, /* 25xx160     2048   16     2 */
+  {
+    4, 2, 2, 0
+  }, /* 25xx160B/D  2048   32     2 */
+  {
+    5, 2, 2, 0
+  }, /* 25xx320     4096   32     2 */
+  {
+    6, 2, 2, 0
+  }, /* 25xx640     8192   32     2 */
+  {
+    7, 3, 2, 0
+  }, /* 25xx128    16384   64     2 */
+  {
+    8, 3, 2, 0
+  }, /* 25xx256    32768   64     2 */
+  {
+    9, 4, 2, 0
+  }, /* 25xx512    65536  128     2 */
+  {
+    10, 5, 3, 0
+  }, /* 25xx1024  131072  256     3 */
 
   /* Atmel devices */
 
-  { 0, 0, 1, 0}, /* AT25010B     128    8     1 */
-  { 1, 0, 1, 0}, /* AT25020B     256    8     1 */
-  { 2, 0, 1, 1}, /* AT25040B     512    8     1+bit */
+  {
+    0, 0, 1, 0
+  }, /* AT25010B     128    8     1 */
+  {
+    1, 0, 1, 0
+  }, /* AT25020B     256    8     1 */
+  {
+    2, 0, 1, 1
+  }, /* AT25040B     512    8     1+bit */
 
   /* STM devices */
 
-  {11, 5, 3, 0}, /* M95M02    262144  256     3 */
+  {
+    11, 5, 3, 0
+  }, /* M95M02    262144  256     3 */
 };
 
 /* Driver operations */
@@ -254,10 +288,8 @@ static const struct file_operations ee25xx_fops =
   ee25xx_read,  /* read */
   ee25xx_write, /* write */
   ee25xx_seek,  /* seek */
-  ee25xx_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0           /* poll */
-#endif
+  ee25xx_ioctl, /* ioctl */
+  NULL          /* poll */
 };
 
 /****************************************************************************
@@ -279,7 +311,7 @@ static void ee25xx_lock(FAR struct spi_dev_s *dev)
    * bus is unlocked.
    */
 
-  (void)SPI_LOCK(dev, true);
+  SPI_LOCK(dev, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency,
    * setbits, and setmode methods to make sure that the SPI is properly
@@ -289,8 +321,8 @@ static void ee25xx_lock(FAR struct spi_dev_s *dev)
 
   SPI_SETMODE(dev, CONFIG_EE25XX_SPIMODE);
   SPI_SETBITS(dev, 8);
-  (void)SPI_HWFEATURES(dev, 0);
-  (void)SPI_SETFREQUENCY(dev, CONFIG_EE25XX_FREQUENCY);
+  SPI_HWFEATURES(dev, 0);
+  SPI_SETFREQUENCY(dev, CONFIG_EE25XX_FREQUENCY);
 }
 
 /****************************************************************************
@@ -299,7 +331,7 @@ static void ee25xx_lock(FAR struct spi_dev_s *dev)
 
 static inline void ee25xx_unlock(FAR struct spi_dev_s *dev)
 {
-  (void)SPI_LOCK(dev, false);
+  SPI_LOCK(dev, false);
 }
 
 /****************************************************************************
@@ -363,7 +395,7 @@ static void ee25xx_waitwritecomplete(struct ee25xx_dev_s *priv)
 
       /* Send "Read Status Register (RDSR)" command */
 
-      (void)SPI_SEND(priv->spi, EE25XX_CMD_RDSR);
+      SPI_SEND(priv->spi, EE25XX_CMD_RDSR);
 
       /* Send a dummy byte to generate the clock needed to shift out the
        * status
@@ -417,8 +449,10 @@ static void ee25xx_writeenable(FAR struct spi_dev_s *spi, int enable)
  *
  ****************************************************************************/
 
-static void ee25xx_writepage(FAR struct ee25xx_dev_s *eedev, uint32_t devaddr,
-                             FAR const char *data, size_t len)
+static void ee25xx_writepage(FAR struct ee25xx_dev_s *eedev,
+                             uint32_t devaddr,
+                             FAR const char *data,
+                             size_t len)
 {
   ee25xx_lock(eedev->spi);
   SPI_SELECT(eedev->spi, SPIDEV_EEPROM(0), true);
@@ -439,23 +473,9 @@ static void ee25xx_writepage(FAR struct ee25xx_dev_s *eedev, uint32_t devaddr,
  *
  ****************************************************************************/
 
-static void ee25xx_semtake(FAR struct ee25xx_dev_s *eedev)
+static int ee25xx_semtake(FAR struct ee25xx_dev_s *eedev)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&eedev->sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&eedev->sem);
 }
 
 /****************************************************************************
@@ -489,7 +509,12 @@ static int ee25xx_open(FAR struct file *filep)
 
   DEBUGASSERT(inode && inode->i_private);
   eedev = (FAR struct ee25xx_dev_s *)inode->i_private;
-  ee25xx_semtake(eedev);
+
+  ret = ee25xx_semtake(eedev);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Increment the reference count */
 
@@ -521,7 +546,12 @@ static int ee25xx_close(FAR struct file *filep)
 
   DEBUGASSERT(inode && inode->i_private);
   eedev = (FAR struct ee25xx_dev_s *)inode->i_private;
-  ee25xx_semtake(eedev);
+
+  ret = ee25xx_semtake(eedev);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Decrement the reference count. I want the entire close operation
    * to be atomic wrt other driver operations.
@@ -556,7 +586,12 @@ static off_t ee25xx_seek(FAR struct file *filep, off_t offset, int whence)
 
   DEBUGASSERT(inode && inode->i_private);
   eedev = (FAR struct ee25xx_dev_s *)inode->i_private;
-  ee25xx_semtake(eedev);
+
+  ret = ee25xx_semtake(eedev);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Determine the new, requested file position */
 
@@ -575,6 +610,7 @@ static off_t ee25xx_seek(FAR struct file *filep, off_t offset, int whence)
       break;
 
     default:
+
       /* Return EINVAL if the whence argument is invalid */
 
       ee25xx_semgive(eedev);
@@ -583,15 +619,16 @@ static off_t ee25xx_seek(FAR struct file *filep, off_t offset, int whence)
 
   /* Opengroup.org:
    *
-   *  "The lseek() function shall allow the file offset to be set beyond the end
-   *   of the existing data in the file. If data is later written at this point,
-   *   subsequent reads of data in the gap shall return bytes with the value 0
-   *   until data is actually written into the gap."
+   *  "The lseek() function shall allow the file offset to be set beyond the
+   *  end of the existing data in the file. If data is later written at this
+   *  point, subsequent reads of data in the gap shall return bytes with the
+   *  value 0 until data is actually written into the gap."
    *
-   * We can conform to the first part, but not the second.  But return EINVAL if
+   * We can conform to the first part, but not the second.
+   * But return EINVAL if
    *
-   *  "...the resulting file offset would be negative for a regular file, block
-   *   special file, or directory."
+   *  "...the resulting file offset would be negative for a regular file,
+   *  block special file, or directory."
    */
 
   if (newpos >= 0)
@@ -621,7 +658,11 @@ static ssize_t ee25xx_read(FAR struct file *filep, FAR char *buffer,
   DEBUGASSERT(inode && inode->i_private);
   eedev = (FAR struct ee25xx_dev_s *)inode->i_private;
 
-  ee25xx_semtake(eedev);
+  ret = ee25xx_semtake(eedev);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* trim len if read would go beyond end of device */
 
@@ -694,9 +735,13 @@ static ssize_t ee25xx_write(FAR struct file *filep, FAR const char *buffer,
 
   ret = len; /* save number of bytes written */
 
-  ee25xx_semtake(eedev);
+  ret = ee25xx_semtake(eedev);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
-  /* Writes cant happen in a row like the read does.
+  /* Writes can't happen in a row like the read does.
    * The EEPROM is made of pages, and write sequences
    * cannot cross page boundaries. So every time the last
    * byte of a page is programmed, the SPI transaction is
@@ -762,11 +807,11 @@ static int ee25xx_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   DEBUGASSERT(inode && inode->i_private);
   eedev = (FAR struct ee25xx_dev_s *)inode->i_private;
+  UNUSED(eedev);
 
   switch (cmd)
     {
       default:
-        (void)eedev;
         ret = -EINVAL;
     }
 
@@ -796,7 +841,7 @@ int ee25xx_initialize(FAR struct spi_dev_s *dev, FAR char *devname,
   if ((devtype < 0) ||
       (devtype >= sizeof(g_ee25xx_devices) / sizeof(g_ee25xx_devices[0])))
     {
-     return -EINVAL;
+      return -EINVAL;
     }
 
   eedev = kmm_zalloc(sizeof(struct ee25xx_dev_s));

@@ -59,7 +59,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-int uart_rpmsg_init(const char *cpu_name, const char *dev_name,
+int uart_rpmsg_init(FAR const char *cpu_name, FAR const char *dev_name,
                     int buf_size, bool isconsole);
 
 #undef EXTERN

@@ -2,8 +2,7 @@
  * drivers/wireless/cc1101.c
  *
  *   Copyright (C) 2011 Uros Platise. All rights reserved.
- *
- *   Authors: Uros Platise <uros.platise@isotel.eu>
+ *   Author: Uros Platise <uros.platise@isotel.eu>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -111,6 +110,7 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
+#include <nuttx/signal.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/wireless/cc1101.h>
 
@@ -121,7 +121,7 @@
 #define CC1101_SPIFREQ_BURST    6500000 /* Hz, no delay */
 #define CC1101_SPIFREQ_SINGLE   9000000 /* Hz, single access only - no delay */
 
-#define CC1101_MCSM0_VALUE      0x1C
+#define CC1101_MCSM0_VALUE      0x1c
 
 /****************************************************************************
  * Chipcon CC1101 Internal Registers
@@ -139,12 +139,12 @@
 #define CC1101_PKTCTRL1         0x07        /* Packet automation control */
 #define CC1101_PKTCTRL0         0x08        /* Packet automation control */
 #define CC1101_ADDR             0x09        /* Device address */
-#define CC1101_CHANNR           0x0A        /* Channel number */
-#define CC1101_FSCTRL1          0x0B        /* Frequency synthesizer control */
-#define CC1101_FSCTRL0          0x0C        /* Frequency synthesizer control */
-#define CC1101_FREQ2            0x0D        /* Frequency control word, high byte */
-#define CC1101_FREQ1            0x0E        /* Frequency control word, middle byte */
-#define CC1101_FREQ0            0x0F        /* Frequency control word, low byte */
+#define CC1101_CHANNR           0x0a        /* Channel number */
+#define CC1101_FSCTRL1          0x0b        /* Frequency synthesizer control */
+#define CC1101_FSCTRL0          0x0c        /* Frequency synthesizer control */
+#define CC1101_FREQ2            0x0d        /* Frequency control word, high byte */
+#define CC1101_FREQ1            0x0e        /* Frequency control word, middle byte */
+#define CC1101_FREQ0            0x0f        /* Frequency control word, low byte */
 #define CC1101_MDMCFG4          0x10        /* Modem configuration */
 #define CC1101_MDMCFG3          0x11        /* Modem configuration */
 #define CC1101_MDMCFG2          0x12        /* Modem configuration */
@@ -155,12 +155,12 @@
 #define CC1101_MCSM1            0x17        /* Main Radio Cntrl State Machine config */
 #define CC1101_MCSM0            0x18        /* Main Radio Cntrl State Machine config */
 #define CC1101_FOCCFG           0x19        /* Frequency Offset Compensation config */
-#define CC1101_BSCFG            0x1A        /* Bit Synchronization configuration */
-#define CC1101_AGCCTRL2         0x1B        /* AGC control */
-#define CC1101_AGCCTRL1         0x1C        /* AGC control */
-#define CC1101_AGCCTRL0         0x1D        /* AGC control */
-#define CC1101_WOREVT1          0x1E        /* High byte Event 0 timeout */
-#define CC1101_WOREVT0          0x1F        /* Low byte Event 0 timeout */
+#define CC1101_BSCFG            0x1a        /* Bit Synchronization configuration */
+#define CC1101_AGCCTRL2         0x1b        /* AGC control */
+#define CC1101_AGCCTRL1         0x1c        /* AGC control */
+#define CC1101_AGCCTRL0         0x1d        /* AGC control */
+#define CC1101_WOREVT1          0x1e        /* High byte Event 0 timeout */
+#define CC1101_WOREVT0          0x1f        /* Low byte Event 0 timeout */
 #define CC1101_WORCTRL          0x20        /* Wake On Radio control */
 #define CC1101_FREND1           0x21        /* Front end RX configuration */
 #define CC1101_FREND0           0x22        /* Front end TX configuration */
@@ -171,11 +171,11 @@
 #define CC1101_RCCTRL1          0x27        /* RC oscillator configuration */
 #define CC1101_RCCTRL0          0x28        /* RC oscillator configuration */
 #define CC1101_FSTEST           0x29        /* Frequency synthesizer cal control */
-#define CC1101_PTEST            0x2A        /* Production test */
-#define CC1101_AGCTEST          0x2B        /* AGC test */
-#define CC1101_TEST2            0x2C        /* Various test settings */
-#define CC1101_TEST1            0x2D        /* Various test settings */
-#define CC1101_TEST0            0x2E        /* Various test settings */
+#define CC1101_PTEST            0x2a        /* Production test */
+#define CC1101_AGCTEST          0x2b        /* AGC test */
+#define CC1101_TEST2            0x2c        /* Various test settings */
+#define CC1101_TEST1            0x2d        /* Various test settings */
+#define CC1101_TEST0            0x2e        /* Various test settings */
 
 /* Status registers */
 
@@ -229,6 +229,7 @@
 #define CC1101_MCSM0_XOSC_FORCE_ON  0x01
 
 /* Chip Status Byte */
+
 /* Bit fields in the chip status byte */
 
 #define CC1101_STATUS_CHIP_RDYn_BM              0x80
@@ -259,12 +260,12 @@
 #define CC1101_MARCSTATE_REGON                  0x07
 #define CC1101_MARCSTATE_STARTCAL               0x08
 #define CC1101_MARCSTATE_BWBOOST                0x09
-#define CC1101_MARCSTATE_FS_LOCK                0x0A
-#define CC1101_MARCSTATE_IFADCON                0x0B
-#define CC1101_MARCSTATE_ENDCAL                 0x0C
-#define CC1101_MARCSTATE_RX                     0x0D
-#define CC1101_MARCSTATE_RX_END                 0x0E
-#define CC1101_MARCSTATE_RX_RST                 0x0F
+#define CC1101_MARCSTATE_FS_LOCK                0x0a
+#define CC1101_MARCSTATE_IFADCON                0x0b
+#define CC1101_MARCSTATE_ENDCAL                 0x0c
+#define CC1101_MARCSTATE_RX                     0x0d
+#define CC1101_MARCSTATE_RX_END                 0x0e
+#define CC1101_MARCSTATE_RX_RST                 0x0f
 #define CC1101_MARCSTATE_TXRX_SWITCH            0x10
 #define CC1101_MARCSTATE_RXFIFO_OVERFLOW        0x11
 #define CC1101_MARCSTATE_FSTXON                 0x12
@@ -300,10 +301,8 @@ static ssize_t cc1101_file_read(FAR struct file *filep, FAR char *buffer,
                                 size_t buflen);
 static ssize_t cc1101_file_write(FAR struct file *filep, FAR const char *buffer,
                                  size_t buflen);
-#ifndef CONFIG_DISABLE_POLL
 static int cc1101_file_poll(FAR struct file *filep, FAR struct pollfd *fds,
                             bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -316,11 +315,8 @@ static const struct file_operations g_cc1101ops =
   cc1101_file_read,  /* read */
   cc1101_file_write, /* write */
   NULL,              /* seek */
-  NULL               /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  ,
+  NULL,              /* ioctl */
   cc1101_file_poll   /* poll */
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   ,
   NULL               /* unlink */
@@ -333,18 +329,7 @@ static const struct file_operations g_cc1101ops =
 
 static int cc1101_takesem(FAR sem_t *sem)
 {
-  int ret;
-
-  /* Take a count from the semaphore, possibly waiting */
-
-  ret = nxsem_wait(sem);
-
-  /* The only case that an error should occur here is if the wait
-   * was awakened by a signal
-   */
-
-  DEBUGASSERT(ret == OK || ret == -EINTR);
-  return ret;
+  return nxsem_wait(sem);
 }
 
 /****************************************************************************
@@ -380,9 +365,6 @@ static int cc1101_file_open(FAR struct file *filep)
   ret = cc1101_takesem(&dev->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -431,14 +413,13 @@ static int cc1101_file_close(FAR struct file *filep)
   ret = cc1101_takesem(&dev->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
   dev->ops.irq(dev, false);
-  // nrf24l01_changestate(dev, ST_POWER_DOWN);
+#if 0
+  nrf24l01_changestate(dev, ST_POWER_DOWN);
+#endif
   dev->nopens--;
 
   nxsem_post(&dev->devsem);
@@ -474,9 +455,6 @@ static ssize_t cc1101_file_write(FAR struct file *filep,
   ret = cc1101_takesem(&dev->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -502,9 +480,6 @@ static void fifo_put(FAR struct cc1101_dev_s *dev, FAR uint8_t *buffer,
   ret = cc1101_takesem(&dev->sem_rx_buffer);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return;
     }
 
@@ -541,9 +516,6 @@ static uint8_t fifo_get(FAR struct cc1101_dev_s *dev, FAR uint8_t *buffer,
   ret = cc1101_takesem(&dev->sem_rx_buffer);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -593,9 +565,6 @@ static ssize_t cc1101_file_read(FAR struct file *filep, FAR char *buffer,
   ret = cc1101_takesem(&dev->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -611,9 +580,6 @@ static ssize_t cc1101_file_read(FAR struct file *filep, FAR char *buffer,
 
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -630,7 +596,6 @@ static ssize_t cc1101_file_read(FAR struct file *filep, FAR char *buffer,
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int cc1101_file_poll(FAR struct file *filep, FAR struct pollfd *fds,
                             bool setup)
 {
@@ -651,9 +616,6 @@ static int cc1101_file_poll(FAR struct file *filep, FAR struct pollfd *fds,
   ret = cc1101_takesem(&dev->devsem);
   if (ret < 0)
     {
-      /* This should only happen if the wait was canceled by an signal */
-
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
       return ret;
     }
 
@@ -686,7 +648,7 @@ static int cc1101_file_poll(FAR struct file *filep, FAR struct pollfd *fds,
        * don't wait for RX.
        */
 
-      (void)cc1101_takesem(&dev->sem_rx_buffer);
+      cc1101_takesem(&dev->sem_rx_buffer);
       if (dev->fifo_len > 0)
         {
           dev->pfd->revents |= POLLIN; /* Data available for input */
@@ -704,7 +666,6 @@ errout:
   nxsem_post(&dev->devsem);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Name: cc1101_access_begin
@@ -715,11 +676,11 @@ errout:
 
 void cc1101_access_begin(FAR struct cc1101_dev_s *dev)
 {
-  (void)SPI_LOCK(dev->spi, true);
+  SPI_LOCK(dev->spi, true);
   SPI_SELECT(dev->spi, dev->dev_id, true);
   SPI_SETMODE(dev->spi, SPIDEV_MODE0); /* CPOL=0, CPHA=0 */
   SPI_SETBITS(dev->spi, 8);
-  (void)SPI_HWFEATURES(dev->spi, 0);
+  SPI_HWFEATURES(dev->spi, 0);
 
   if (dev->ops.wait)
     {
@@ -727,7 +688,7 @@ void cc1101_access_begin(FAR struct cc1101_dev_s *dev)
     }
   else
     {
-      usleep(150 * 1000);
+      nxsig_usleep(150 * 1000);
     }
 }
 
@@ -741,7 +702,7 @@ void cc1101_access_begin(FAR struct cc1101_dev_s *dev)
 void cc1101_access_end(FAR struct cc1101_dev_s *dev)
 {
   SPI_SELECT(dev->spi, dev->dev_id, false);
-  (void)SPI_LOCK(dev->spi, false);
+  SPI_LOCK(dev->spi, false);
 }
 
 /****************************************************************************
@@ -926,7 +887,7 @@ void cc1101_dumpregs(struct cc1101_dev_s *dev, uint8_t addr, uint8_t length)
 
       for (i = 0, j = 0; i < readsize; i++, j += 3)
         {
-          (void)sprintf(&outbuf[j], " %02x", regbuf[i]);
+          sprintf(&outbuf[j], " %02x", regbuf[i]);
         }
 
       /* Dump the formatted data to the syslog output */
@@ -976,13 +937,14 @@ void cc1101_setpacketctrl(struct cc1101_dev_s *dev)
 
   values[0] = 0x07; /* No time-out */
   values[1] = 0x03; /* Clear channel if RSSI < thr && !receiving;
-                     * TX -> RX, RX -> RX: 0x3F */
+                     * TX -> RX, RX -> RX: 0x3f */
   values[2] =
       CC1101_MCSM0_VALUE; /* Calibrate on IDLE -> RX/TX, OSC Timeout = ~500 us
                            * TODO: has XOSC_FORCE_ON */
   cc1101_access(dev, CC1101_MCSM2, values, -3);
 
   /* Wake-On Radio Control */
+
   /* Not used yet. */
 
   /* WOREVT1:WOREVT0 - 16-bit timeout register */
@@ -1566,7 +1528,8 @@ void cc1101_isr_process(FAR void *arg)
 
       case CC1101_RECV:
         {
-          uint8_t buf[CC1101_FIFO_SIZE], len;
+          uint8_t buf[CC1101_FIFO_SIZE];
+          uint8_t len;
 
           memset(buf, 0, sizeof(buf));
           len = cc1101_read(dev, buf, sizeof(buf));
@@ -1580,14 +1543,12 @@ void cc1101_isr_process(FAR void *arg)
           fifo_put(dev, buf, len);
           nxsem_post(&dev->sem_rx);
 
-#ifndef CONFIG_DISABLE_POLL
           if (dev->pfd)
             {
               dev->pfd->revents |= POLLIN; /* Data available for input */
               wlinfo("Wake up polled fd\n");
               nxsem_post(dev->pfd->sem);
             }
-#endif
         }
         break;
 

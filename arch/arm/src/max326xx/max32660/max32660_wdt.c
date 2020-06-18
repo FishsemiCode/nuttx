@@ -65,7 +65,7 @@
 
 /* Clocking *****************************************************************/
 
-/* The watchdog is alway running with source clock Fpclk.  There are two
+/* The watchdog is always running with source clock Fpclk.  There are two
  * timeout periods:
  *
  * INTPERIOD - Number of PCLK cycles until a watchdog timer interrupt is
@@ -200,7 +200,7 @@ static void max326_int_enable(FAR struct max326_wdt_lowerhalf_s *priv)
     {
       /* Yes.. attach handler and enable the interrupt */
 
-      (void)irq_attach(MAX326_IRQ_WDT0, priv->handler, priv);
+      irq_attach(MAX326_IRQ_WDT0, priv->handler, priv);
       up_enable_irq(MAX326_IRQ_WDT0);
 
       /* Select the interrupt behavior (de-selecting the reset behavior) */
@@ -281,7 +281,7 @@ static uint32_t max326_time_left(FAR struct max326_wdt_lowerhalf_s *priv)
  *   exp -  max32660 time exponent
  *
  * Returned Values:
- *   The time period in millseconds.
+ *   The time period in milliseconds.
  *
  ****************************************************************************/
 

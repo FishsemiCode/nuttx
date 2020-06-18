@@ -41,7 +41,6 @@
 #include <nuttx/config.h>
 
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -51,10 +50,10 @@
 
 /* This driver requires:
  *
- * CONFIG_BATTERY - Upper half battery driver support
+ * CONFIG_BATTERY_GAUGE - Upper half battery driver support
  */
 
-#if defined(CONFIG_BATTERY)
+#if defined(CONFIG_BATTERY_GAUGE)
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -72,7 +71,7 @@
 
 static int     bat_gauge_open(FAR struct file *filep);
 static int     bat_gauge_close(FAR struct file *filep);
-static ssize_t bat_gauge_read(FAR struct file *filep, FAR char *buflen,
+static ssize_t bat_gauge_read(FAR struct file *filep, FAR char *buffer,
                  size_t buflen);
 static ssize_t bat_gauge_write(FAR struct file *filep, FAR const char *buffer,
                  size_t buflen);
@@ -89,16 +88,15 @@ static const struct file_operations g_batteryops =
   bat_gauge_close,
   bat_gauge_read,
   bat_gauge_write,
-  0,
-  bat_gauge_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , 0
-#endif
+  NULL,
+  bat_gauge_ioctl,
+  NULL
 };
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: bat_gauge_open
  *
@@ -159,7 +157,7 @@ static int bat_gauge_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   FAR struct battery_gauge_dev_s *dev  = inode->i_private;
   int ret;
 
-  /* Inforce mutually exclusive access to the battery driver */
+  /* Enforce mutually exclusive access to the battery driver */
 
   ret = nxsem_wait(&dev->batsem);
   if (ret < 0)
@@ -262,4 +260,4 @@ int battery_gauge_register(FAR const char *devpath,
 
   return ret;
 }
-#endif /* CONFIG_BATTERY */
+#endif /* CONFIG_BATTERY_GAUGE */

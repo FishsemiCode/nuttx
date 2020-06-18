@@ -30,7 +30,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -97,4 +97,3 @@
  ****************************************************************************/
 
 #endif /* __ARCH_RISCV_INCLUDE_RV32IM_CSR_H */
-

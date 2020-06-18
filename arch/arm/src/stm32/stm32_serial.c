@@ -1,9 +1,10 @@
 /****************************************************************************
  * arch/arm/src/stm32/stm32_serial.c
  *
- *   Copyright (C) 2009-2014, 2016, 2017 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
- *
+ *   Copyright (C) 2009-2014, 2016, 2017, 2019 Gregory Nutt. All rights reserved.
+ *   Authors: Gregory Nutt <gnutt@nuttx.org>
+ *            David Sidrane <david.sidrane@nscdg.com>
+*
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
@@ -43,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -78,7 +78,7 @@
  * have also been selected.
  */
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 
 #  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
 /* Verify that DMA has been enabled and the DMA channel has been defined.
@@ -193,13 +193,13 @@
 
 /* DMA priority */
 
-#  ifndef CONFIG_USART_DMAPRIO
+#  ifndef CONFIG_USART_RXDMAPRIO
 #    if defined(CONFIG_STM32_STM32L15XX) || defined(CONFIG_STM32_STM32F10XX) || \
         defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F33XX) || \
         defined(CONFIG_STM32_STM32F37XX)
-#      define CONFIG_USART_DMAPRIO  DMA_CCR_PRIMED
+#      define CONFIG_USART_RXDMAPRIO  DMA_CCR_PRIMED
 #    elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
-#      define CONFIG_USART_DMAPRIO  DMA_SCR_PRIMED
+#      define CONFIG_USART_RXDMAPRIO  DMA_SCR_PRIMED
 #    else
 #      error "Unknown STM32 DMA"
 #    endif
@@ -207,12 +207,12 @@
 #    if defined(CONFIG_STM32_STM32L15XX) || defined(CONFIG_STM32_STM32F10XX) || \
         defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F33XX) || \
         defined(CONFIG_STM32_STM32F37XX)
-#    if (CONFIG_USART_DMAPRIO & ~DMA_CCR_PL_MASK) != 0
-#      error "Illegal value for CONFIG_USART_DMAPRIO"
+#    if (CONFIG_USART_RXDMAPRIO & ~DMA_CCR_PL_MASK) != 0
+#      error "Illegal value for CONFIG_USART_RXDMAPRIO"
 #    endif
 #  elif defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
-#    if (CONFIG_USART_DMAPRIO & ~DMA_SCR_PL_MASK) != 0
-#      error "Illegal value for CONFIG_USART_DMAPRIO"
+#    if (CONFIG_USART_RXDMAPRIO & ~DMA_SCR_PL_MASK) != 0
+#      error "Illegal value for CONFIG_USART_RXDMAPRIO"
 #    endif
 #  else
 #    error "Unknown STM32 DMA"
@@ -221,14 +221,14 @@
 /* DMA control word */
 
 #  if defined(CONFIG_STM32_STM32F20XX) || defined(CONFIG_STM32_STM32F4XXX)
-#    define SERIAL_DMA_CONTROL_WORD      \
-                (DMA_SCR_DIR_P2M       | \
-                 DMA_SCR_CIRC          | \
-                 DMA_SCR_MINC          | \
-                 DMA_SCR_PSIZE_8BITS   | \
-                 DMA_SCR_MSIZE_8BITS   | \
-                 CONFIG_USART_DMAPRIO  | \
-                 DMA_SCR_PBURST_SINGLE | \
+#    define SERIAL_DMA_CONTROL_WORD       \
+                (DMA_SCR_DIR_P2M        | \
+                 DMA_SCR_CIRC           | \
+                 DMA_SCR_MINC           | \
+                 DMA_SCR_PSIZE_8BITS    | \
+                 DMA_SCR_MSIZE_8BITS    | \
+                 CONFIG_USART_RXDMAPRIO | \
+                 DMA_SCR_PBURST_SINGLE  | \
                  DMA_SCR_MBURST_SINGLE)
 #  else
 #    define SERIAL_DMA_CONTROL_WORD      \
@@ -236,7 +236,7 @@
                  DMA_CCR_MINC          | \
                  DMA_CCR_PSIZE_8BITS   | \
                  DMA_CCR_MSIZE_8BITS   | \
-                 CONFIG_USART_DMAPRIO)
+                 CONFIG_USART_RXDMAPRIO)
 # endif
 
 #endif
@@ -323,13 +323,13 @@ struct up_dev_s
   const uint32_t    cts_gpio;  /* U[S]ART CTS GPIO pin configuration */
 #endif
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
   const unsigned int rxdma_channel; /* DMA channel assigned */
 #endif
 
   /* RX DMA state */
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
   DMA_HANDLE        rxdma;     /* currently-open receive DMA stream */
   bool              rxenable;  /* DMA-based reception en/disable */
   uint32_t          rxdmanext; /* Next byte in the DMA buffer to be read */
@@ -366,7 +366,7 @@ static void up_send(struct uart_dev_s *dev, int ch);
 static void up_txint(struct uart_dev_s *dev, bool enable);
 static bool up_txready(struct uart_dev_s *dev);
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static int  up_dma_setup(struct uart_dev_s *dev);
 static void up_dma_shutdown(struct uart_dev_s *dev);
 static int  up_dma_receive(struct uart_dev_s *dev, unsigned int *status);
@@ -408,7 +408,7 @@ static const struct uart_ops_s g_uart_ops =
 };
 #endif
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static const struct uart_ops_s g_uart_dma_ops =
 {
   .setup          = up_dma_setup,
@@ -714,23 +714,19 @@ static struct up_dev_s g_uart4priv =
   .parity        = CONFIG_UART4_PARITY,
   .bits          = CONFIG_UART4_BITS,
   .stopbits2     = CONFIG_UART4_2STOP,
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .iflow         = false,
+#if defined(CONFIG_SERIAL_OFLOWCONTROL) && defined(CONFIG_UART4_OFLOWCONTROL)
+  .oflow         = true,
+  .cts_gpio      = GPIO_UART4_CTS,
 #endif
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .oflow         = false,
+#if defined(CONFIG_SERIAL_IFLOWCONTROL) && defined(CONFIG_UART4_IFLOWCONTROL)
+  .iflow         = true,
+  .rts_gpio      = GPIO_UART4_RTS,
 #endif
   .baud          = CONFIG_UART4_BAUD,
   .apbclock      = STM32_PCLK1_FREQUENCY,
   .usartbase     = STM32_UART4_BASE,
   .tx_gpio       = GPIO_UART4_TX,
   .rx_gpio       = GPIO_UART4_RX,
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .cts_gpio      = 0,
-#endif
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .rts_gpio      = 0,
-#endif
 #ifdef CONFIG_UART4_RXDMA
   .rxdma_channel = DMAMAP_UART4_RX,
   .rxfifo        = g_uart4rxfifo,
@@ -779,23 +775,19 @@ static struct up_dev_s g_uart5priv =
   .parity         = CONFIG_UART5_PARITY,
   .bits           = CONFIG_UART5_BITS,
   .stopbits2      = CONFIG_UART5_2STOP,
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .iflow         = false,
+#if defined(CONFIG_SERIAL_OFLOWCONTROL) && defined(CONFIG_UART5_OFLOWCONTROL)
+  .oflow         = true,
+  .cts_gpio      = GPIO_UART5_CTS,
 #endif
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .oflow         = false,
+#if defined(CONFIG_SERIAL_IFLOWCONTROL) && defined(CONFIG_UART5_IFLOWCONTROL)
+  .iflow         = true,
+  .rts_gpio      = GPIO_UART5_RTS,
 #endif
   .baud           = CONFIG_UART5_BAUD,
   .apbclock       = STM32_PCLK1_FREQUENCY,
   .usartbase      = STM32_UART5_BASE,
   .tx_gpio        = GPIO_UART5_TX,
   .rx_gpio        = GPIO_UART5_RX,
-#ifdef CONFIG_SERIAL_OFLOWCONTROL
-  .cts_gpio      = 0,
-#endif
-#ifdef CONFIG_SERIAL_IFLOWCONTROL
-  .rts_gpio      = 0,
-#endif
 #ifdef CONFIG_UART5_RXDMA
   .rxdma_channel = DMAMAP_UART5_RX,
   .rxfifo        = g_uart5rxfifo,
@@ -1156,7 +1148,7 @@ static void up_disableusartint(struct up_dev_s *priv, uint16_t *ie)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static int up_dma_nextrx(struct up_dev_s *priv)
 {
   size_t dmaresidual;
@@ -1583,7 +1575,7 @@ static int up_setup(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static int up_dma_setup(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -1710,7 +1702,7 @@ static void up_shutdown(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static void up_dma_shutdown(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -1838,7 +1830,7 @@ static int up_interrupt(int irq, void *context, void *arg)
        * "           "      USART_SR_ORE    Overrun Error Detected
        * USART_CR3_CTSIE    USART_SR_CTS    CTS flag                        (not used)
        *
-       * NOTE: Some of these status bits must be cleared by explicity writing zero
+       * NOTE: Some of these status bits must be cleared by explicitly writing zero
        * to the SR register: USART_SR_CTS, USART_SR_LBD. Note of those are currently
        * being used.
        */
@@ -1893,7 +1885,7 @@ static int up_interrupt(int irq, void *context, void *arg)
            * good byte will be lost.
            */
 
-          (void)up_serialin(priv, STM32_USART_RDR_OFFSET);
+          up_serialin(priv, STM32_USART_RDR_OFFSET);
 #endif
         }
 
@@ -1959,7 +1951,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
         uint32_t cr = up_serialin(priv, STM32_USART_CR3_OFFSET);
 
 #if defined(CONFIG_STM32_STM32F10XX)
-        if (arg == SER_SINGLEWIRE_ENABLED)
+        if ((arg & SER_SINGLEWIRE_ENABLED) != 0)
           {
             stm32_configgpio((priv->tx_gpio & ~(GPIO_CNF_MASK)) | GPIO_CNF_AFOD);
             cr |= USART_CR3_HDSEL;
@@ -1970,14 +1962,17 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             cr &= ~USART_CR3_HDSEL;
           }
 #else
-        if (arg == SER_SINGLEWIRE_ENABLED)
+        if ((arg & SER_SINGLEWIRE_ENABLED) != 0)
           {
-            stm32_configgpio(priv->tx_gpio | GPIO_OPENDRAIN);
+            uint32_t gpio_val = GPIO_OPENDRAIN;
+            gpio_val |= (arg & SER_SINGLEWIRE_PULL_MASK) == SER_SINGLEWIRE_PULLUP ? GPIO_PULLUP : GPIO_FLOAT;
+            gpio_val |= (arg & SER_SINGLEWIRE_PULL_MASK) == SER_SINGLEWIRE_PULLDOWN ? GPIO_PULLDOWN : GPIO_FLOAT;
+            stm32_configgpio((priv->tx_gpio & ~(GPIO_PUPD_MASK | GPIO_OPENDRAIN)) | gpio_val);
             cr |= USART_CR3_HDSEL;
           }
         else
           {
-            stm32_configgpio(priv->tx_gpio | GPIO_PUSHPULL);
+            stm32_configgpio((priv->tx_gpio & ~(GPIO_PUPD_MASK | GPIO_OPENDRAIN)) | GPIO_PUSHPULL);
             cr &= ~USART_CR3_HDSEL;
           }
 #endif
@@ -2375,7 +2370,7 @@ static bool up_rxflowcontrol(struct uart_dev_s *dev,
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static int up_dma_receive(struct uart_dev_s *dev, unsigned int *status)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -2404,7 +2399,7 @@ static int up_dma_receive(struct uart_dev_s *dev, unsigned int *status)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -2429,7 +2424,7 @@ static void up_dma_rxint(struct uart_dev_s *dev, bool enable)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static bool up_dma_rxavailable(struct uart_dev_s *dev)
 {
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
@@ -2550,7 +2545,7 @@ static bool up_txready(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 static void up_dma_rxcallback(DMA_HANDLE handle, uint8_t status, void *arg)
 {
   struct up_dev_s *priv = (struct up_dev_s *)arg;
@@ -2769,14 +2764,14 @@ void up_serialinit(void)
   /* Register the console */
 
 #if CONSOLE_UART > 0
-  (void)uart_register("/dev/console", &g_uart_devs[CONSOLE_UART - 1]->dev);
+  uart_register("/dev/console", &g_uart_devs[CONSOLE_UART - 1]->dev);
 
 #ifndef CONFIG_STM32_SERIAL_DISABLE_REORDERING
   /* If not disabled, register the console UART to ttyS0 and exclude
    * it from initializing it further down
    */
 
-  (void)uart_register("/dev/ttyS0", &g_uart_devs[CONSOLE_UART - 1]->dev);
+  uart_register("/dev/ttyS0", &g_uart_devs[CONSOLE_UART - 1]->dev);
   minor = 1;
 #endif
 
@@ -2812,7 +2807,7 @@ void up_serialinit(void)
       /* Register USARTs as devices in increasing order */
 
       devname[9] = '0' + minor++;
-      (void)uart_register(devname, &g_uart_devs[i]->dev);
+      uart_register(devname, &g_uart_devs[i]->dev);
     }
 #endif /* HAVE UART */
 }
@@ -2828,7 +2823,7 @@ void up_serialinit(void)
  *
  ****************************************************************************/
 
-#ifdef SERIAL_HAVE_DMA
+#ifdef SERIAL_HAVE_RXDMA
 void stm32_serial_dma_poll(void)
 {
     irqstate_t flags;

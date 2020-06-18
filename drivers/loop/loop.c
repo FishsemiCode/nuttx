@@ -57,7 +57,8 @@ static ssize_t loop_read(FAR struct file *filep, FAR char *buffer,
                  size_t buflen);
 static ssize_t loop_write(FAR struct file *filep, FAR const char *buffer,
                  size_t buflen);
-static int     loop_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
+static int     loop_ioctl(FAR struct file *filep, int cmd,
+                 unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -65,15 +66,13 @@ static int     loop_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
 
 static const struct file_operations g_loop_fops =
 {
-  0,             /* open */
-  0,             /* close */
+  NULL,          /* open */
+  NULL,          /* close */
   loop_read,     /* read */
   loop_write,    /* write */
-  0,             /* seek */
-  loop_ioctl     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0            /* poll */
-#endif
+  NULL,          /* seek */
+  loop_ioctl,    /* ioctl */
+  NULL           /* poll */
 };
 
 /****************************************************************************
@@ -84,7 +83,8 @@ static const struct file_operations g_loop_fops =
  * Name: loop_read
  ****************************************************************************/
 
-static ssize_t loop_read(FAR struct file *filep, FAR char *buffer, size_t len)
+static ssize_t loop_read(FAR struct file *filep, FAR char *buffer,
+                         size_t len)
 {
   return 0; /* Return EOF */
 }
@@ -117,7 +117,8 @@ static int loop_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
     case LOOPIOC_SETUP:
       {
-         FAR struct losetup_s *setup = (FAR struct losetup_s *)((uintptr_t)arg);
+         FAR struct losetup_s *setup =
+           (FAR struct losetup_s *)((uintptr_t)arg);
 
         if (setup == NULL)
           {
@@ -132,7 +133,8 @@ static int loop_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       break;
 
     /* Command:      LOOPIOC_TEARDOWN
-     * Description:  Teardown a loop device previously setup vis LOOPIOC_SETUP
+     * Description:  Teardown a loop device previously setup via
+                     LOOPIOC_SETUP
      * Argument:     A read-able pointer to the path of the device to be
      *               torn down
      * Dependencies: The loop device must be enabled (CONFIG_DEV_LOOP=y)
@@ -175,7 +177,7 @@ static int loop_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
 void loop_register(void)
 {
-  (void)register_driver("/dev/loop", &g_loop_fops, 0666, NULL);
+  register_driver("/dev/loop", &g_loop_fops, 0666, NULL);
 }
 
 #endif /* CONFIG_DEV_LOOP */

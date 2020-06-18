@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 #if defined(CONFIG_NET) && defined(CONFIG_NET_LOCAL)
 
-#include <semaphore.h>
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
@@ -48,7 +47,6 @@
 #include <debug.h>
 
 #include <nuttx/kmalloc.h>
-#include <nuttx/semaphore.h>
 
 #include "local/local.h"
 
@@ -87,12 +85,12 @@ FAR struct local_conn_s *local_alloc(void)
   FAR struct local_conn_s *conn =
     (FAR struct local_conn_s *)kmm_zalloc(sizeof(struct local_conn_s));
 
-  if (conn)
+  if (conn != NULL)
     {
-      /* Initialize non-zero elements the new connection structure */
-
-      conn->lc_infile.f_inode  = NULL;
-      conn->lc_outfile.f_inode = NULL;
+      /* Initialize non-zero elements the new connection structure.  Since
+       * Since the memory was allocated with kmm_zalloc(), it is not
+       * necessary to zerio-ize any structure elements.
+       */
 
 #ifdef CONFIG_NET_LOCAL_STREAM
       /* This semaphore is used for signaling and, hence, should not have
@@ -101,10 +99,6 @@ FAR struct local_conn_s *local_alloc(void)
 
       nxsem_init(&conn->lc_waitsem, 0, 0);
       nxsem_setprotocol(&conn->lc_waitsem, SEM_PRIO_NONE);
-
-#ifdef HAVE_LOCAL_POLL
-      memset(conn->lc_accept_fds, 0, sizeof(conn->lc_accept_fds));
-#endif
 #endif
     }
 

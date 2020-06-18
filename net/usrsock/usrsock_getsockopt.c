@@ -50,7 +50,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -122,6 +121,7 @@ static int do_getsockopt_request(FAR struct usrsock_conn_s *conn, int level,
   struct usrsock_request_getsockopt_s req =
   {
   };
+
   struct iovec bufs[1];
 
   if (level < INT16_MIN || level > INT16_MAX)
@@ -189,6 +189,7 @@ int usrsock_getsockopt(FAR struct usrsock_conn_s *conn, int level, int option,
   struct usrsock_data_reqstate_s state =
   {
   };
+
   struct iovec inbufs[1];
   ssize_t ret;
 
@@ -230,11 +231,7 @@ int usrsock_getsockopt(FAR struct usrsock_conn_s *conn, int level, int option,
     {
       /* Wait for completion of request. */
 
-      while ((ret = net_lockedwait(&state.reqstate.recvsem)) < 0)
-        {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
-
+      net_lockedwait_uninterruptible(&state.reqstate.recvsem);
       ret = state.reqstate.result;
 
       DEBUGASSERT(state.valuelen <= *value_len);

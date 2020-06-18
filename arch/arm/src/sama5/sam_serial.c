@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -55,6 +54,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/serial/serial.h>
 
 #include <arch/board/board.h>
@@ -63,7 +63,7 @@
 #include "up_internal.h"
 
 #include "chip.h"
-#include "chip/sam_uart.h"
+#include "hardware/sam_uart.h"
 #include "sam_config.h"
 #include "sam_dbgu.h"
 #include "sam_serial.h"
@@ -119,16 +119,16 @@
 #    define TTYS0_DEV           g_uart1port  /* UART1 is ttyS0 */
 #    define UART1_ASSIGNED      1
 #elif defined(CONFIG_UART2_SERIAL_CONSOLE)
-#    define CONSOLE_DEV         g_uart1port  /* UART2 is console */
-#    define TTYS0_DEV           g_uart1port  /* UART2 is ttyS0 */
+#    define CONSOLE_DEV         g_uart2port  /* UART2 is console */
+#    define TTYS0_DEV           g_uart2port  /* UART2 is ttyS0 */
 #    define UART2_ASSIGNED      1
 #elif defined(CONFIG_UART3_SERIAL_CONSOLE)
-#    define CONSOLE_DEV         g_uart1port  /* UART3 is console */
-#    define TTYS0_DEV           g_uart1port  /* UART3 is ttyS0 */
+#    define CONSOLE_DEV         g_uart3port  /* UART3 is console */
+#    define TTYS0_DEV           g_uart3port  /* UART3 is ttyS0 */
 #    define UART3_ASSIGNED      1
 #elif defined(CONFIG_UART4_SERIAL_CONSOLE)
-#    define CONSOLE_DEV         g_uart1port  /* UART4 is console */
-#    define TTYS0_DEV           g_uart1port  /* UART4 is ttyS0 */
+#    define CONSOLE_DEV         g_uart4port  /* UART4 is console */
+#    define TTYS0_DEV           g_uart4port  /* UART4 is ttyS0 */
 #    define UART4_ASSIGNED      1
 #elif defined(CONFIG_USART0_SERIAL_CONSOLE)
 #    define CONSOLE_DEV         g_usart0port /* USART0 is console */
@@ -159,13 +159,13 @@
 #    define TTYS0_DEV           g_uart1port  /* UART1 is ttyS0 */
 #    define UART1_ASSIGNED      1
 #  elif defined(CONFIG_SAMA5_UART2)
-#    define TTYS0_DEV           g_uart1port  /* UART2 is ttyS0 */
+#    define TTYS0_DEV           g_uart2port  /* UART2 is ttyS0 */
 #    define UART2_ASSIGNED      1
 #  elif defined(CONFIG_SAMA5_UART3)
-#    define TTYS0_DEV           g_uart1port  /* UART3 is ttyS0 */
+#    define TTYS0_DEV           g_uart3port  /* UART3 is ttyS0 */
 #    define UART3_ASSIGNED      1
 #  elif defined(CONFIG_SAMA5_UART4)
-#    define TTYS0_DEV           g_uart1port  /* UART4 is ttyS0 */
+#    define TTYS0_DEV           g_uart4port  /* UART4 is ttyS0 */
 #    define UART4_ASSIGNED      1
 #  elif defined(CONFIG_USART0_SERIALDRIVER)
 #    define TTYS0_DEV           g_usart0port /* USART0 is ttyS0 */
@@ -194,13 +194,13 @@
 #  define TTYS1_DEV           g_uart1port  /* UART1 is ttyS1 */
 #  define UART1_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART2) && !defined(UART2_ASSIGNED)
-#  define TTYS1_DEV           g_uart1port  /* UART2 is ttyS1 */
+#  define TTYS1_DEV           g_uart2port  /* UART2 is ttyS1 */
 #  define UART2_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART3) && !defined(UART3_ASSIGNED)
-#  define TTYS1_DEV           g_uart1port  /* UART3 is ttyS1 */
+#  define TTYS1_DEV           g_uart3port  /* UART3 is ttyS1 */
 #  define UART3_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART4) && !defined(UART4_ASSIGNED)
-#  define TTYS1_DEV           g_uart1port  /* UART4 is ttyS1 */
+#  define TTYS1_DEV           g_uart4port  /* UART4 is ttyS1 */
 #  define UART4_ASSIGNED      1
 #elif defined(CONFIG_USART0_SERIALDRIVER) && !defined(USART0_ASSIGNED)
 #  define TTYS1_DEV           g_usart0port /* USART0 is ttyS1 */
@@ -228,13 +228,13 @@
 #  define TTYS2_DEV           g_uart1port  /* UART1 is ttyS2 */
 #  define UART1_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART2) && !defined(UART2_ASSIGNED)
-#  define TTYS2_DEV           g_uart1port  /* UART2 is ttyS2 */
+#  define TTYS2_DEV           g_uart2port  /* UART2 is ttyS2 */
 #  define UART2_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART3) && !defined(UART3_ASSIGNED)
-#  define TTYS2_DEV           g_uart1port  /* UART3 is ttyS2 */
+#  define TTYS2_DEV           g_uart2port  /* UART3 is ttyS2 */
 #  define UART3_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART4) && !defined(UART4_ASSIGNED)
-#  define TTYS2_DEV           g_uart1port  /* UART4 is ttyS2 */
+#  define TTYS2_DEV           g_uart4port  /* UART4 is ttyS2 */
 #  define UART4_ASSIGNED      1
 #elif defined(CONFIG_USART0_SERIALDRIVER) && !defined(USART0_ASSIGNED)
 #  define TTYS2_DEV           g_usart0port /* USART0 is ttyS2 */
@@ -259,10 +259,10 @@
  */
 
 #if defined(CONFIG_SAMA5_UART2) && !defined(UART2_ASSIGNED)
-#  define TTYS3_DEV           g_uart1port  /* UART2 is ttyS3 */
+#  define TTYS3_DEV           g_uart2port  /* UART2 is ttyS3 */
 #  define UART2_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART3) && !defined(UART3_ASSIGNED)
-#  define TTYS3_DEV           g_uart1port  /* UART3 is ttyS3 */
+#  define TTYS3_DEV           g_uart3port  /* UART3 is ttyS3 */
 #  define UART3_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART4) && !defined(UART4_ASSIGNED)
 #  define TTYS3_DEV           g_uart1port  /* UART4 is ttyS3 */
@@ -290,10 +290,10 @@
  */
 
 #if defined(CONFIG_SAMA5_UART3) && !defined(UART3_ASSIGNED)
-#  define TTYS4_DEV           g_uart1port  /* UART3 is ttyS4 */
+#  define TTYS4_DEV           g_uart3port  /* UART3 is ttyS4 */
 #  define UART3_ASSIGNED      1
 #elif defined(CONFIG_SAMA5_UART4) && !defined(UART4_ASSIGNED)
-#  define TTYS4_DEV           g_uart1port  /* UART4 is ttyS4 */
+#  define TTYS4_DEV           g_uart4port  /* UART4 is ttyS4 */
 #  define UART4_ASSIGNED      1
 #elif defined(CONFIG_USART0_SERIALDRIVER) && !defined(USART0_ASSIGNED)
 #  define TTYS4_DEV           g_usart0port /* USART0 is ttyS4 */
@@ -807,7 +807,7 @@ static uart_dev_t g_usart2port =
   {
     .size   = CONFIG_USART2_TXBUFSIZE,
     .buffer = g_usart2txbuffer,
-   },
+  },
   .ops      = &g_uart_ops,
   .priv     = &g_usart2priv,
 };
@@ -840,7 +840,7 @@ static uart_dev_t g_usart3port =
   {
     .size   = CONFIG_USART3_TXBUFSIZE,
     .buffer = g_usart3txbuffer,
-   },
+  },
   .ops      = &g_uart_ops,
   .priv     = &g_usart3priv,
 };
@@ -873,7 +873,7 @@ static uart_dev_t g_usart4port =
   {
     .size   = CONFIG_USART4_TXBUFSIZE,
     .buffer = g_usart4txbuffer,
-   },
+  },
   .ops      = &g_uart_ops,
   .priv     = &g_usart4priv,
 };
@@ -896,7 +896,8 @@ static inline uint32_t up_serialin(struct up_dev_s *priv, int offset)
  * Name: up_serialout
  ****************************************************************************/
 
-static inline void up_serialout(struct up_dev_s *priv, int offset, uint32_t value)
+static inline void up_serialout(struct up_dev_s *priv, int offset,
+                                uint32_t value)
 {
   putreg32(value, priv->usartbase + offset);
 }
@@ -974,8 +975,8 @@ static int up_interrupt(int irq, void *context, FAR void *arg)
       imr      = up_serialin(priv, SAM_UART_IMR_OFFSET); /* Interrupt mask */
       pending  = priv->sr & imr;                         /* Mask out disabled interrupt sources */
 
-      /* Handle an incoming, receive byte.  RXRDY: At least one complete character
-       * has been received and US_RHR has not yet been read.
+      /* Handle an incoming, receive byte.  RXRDY: At least one complete
+       * character has been received and US_RHR has not yet been read.
        */
 
       if ((pending & UART_INT_RXRDY) != 0)
@@ -1026,10 +1027,10 @@ static int up_setup(struct uart_dev_s *dev)
   up_shutdown(dev);
 
 #if defined(CONFIG_SERIAL_IFLOWCONTROL) || defined(CONFIG_SERIAL_OFLOWCONTROL)
-  /* "Setting the USART to operate with hardware handshaking is performed by
-   *  writing the USART_MODE field in the Mode Register (US_MR) to the value
-   *  0x2. ... Using this mode requires using the PDC or DMAC channel for
-   *  reception. The transmitter can handle hardware handshaking in any case."
+  /* Setting the USART to operate with hardware handshaking is performed by
+   * writing the USART_MODE field in the Mode Register (US_MR) to the value
+   * 0x2. ... Using this mode requires using the PDC or DMAC channel for
+   * reception. The transmitter can handle hardware handshaking in any case.
    */
 
   if (priv->flowc)
@@ -1174,14 +1175,15 @@ static void up_shutdown(struct uart_dev_s *dev)
  * Name: up_attach
  *
  * Description:
- *   Configure the USART to operation in interrupt driven mode.  This method is
- *   called when the serial port is opened.  Normally, this is just after the
+ *   Configure the USART to operation in interrupt driven mode.  This method
+ *   is called when the serial port is opened.  Normally, this is just after
  *   the setup() method is called, however, the serial console may operate in
  *   a non-interrupt driven mode during the boot phase.
  *
- *   RX and TX interrupts are not enabled when by the attach method (unless the
- *   hardware supports multiple levels of interrupt enabling).  The RX and TX
- *   interrupts are not enabled until the txint() and rxint() methods are called.
+ *   RX and TX interrupts are not enabled when by the attach method (unless
+ *   the hardware supports multiple levels of interrupt enabling).  The RX
+ *   and TX interrupts are not enabled until the txint() and rxint() methods
+ *   are called.
  *
  ****************************************************************************/
 
@@ -1210,7 +1212,7 @@ static int up_attach(struct uart_dev_s *dev)
  *
  * Description:
  *   Detach USART interrupts.  This method is called when the serial port is
- *   closed normally just before the shutdown method is called.  The exception
+ *   closed normally just before the shutdown method is called. The exception
  *   is the serial console which is never shutdown.
  *
  ****************************************************************************/
@@ -1308,7 +1310,7 @@ static int up_ioctl(struct file *filep, int cmd, unsigned long arg)
             break;
 
           case 9:
-            termiosp->c_cflag |= CS8 /* CS9 */;
+            termiosp->c_cflag |= CS8; /* CS9 */
             break;
           }
       }
@@ -1461,8 +1463,8 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
 
   if (enable)
     {
-      /* Receive an interrupt when their is anything in the Rx data register (or an Rx
-       * timeout occurs).
+      /* Receive an interrupt when their is anything in the Rx data register
+       * (or an Rx timeout occurs).
        */
 
 #ifndef CONFIG_SUPPRESS_SERIAL_INTS
@@ -1576,6 +1578,8 @@ static bool up_txempty(struct uart_dev_s *dev)
  * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
  * Name: uart_earlyserialinit
  *
@@ -1632,6 +1636,7 @@ void uart_earlyserialinit(void)
   up_setup(&CONSOLE_DEV);
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: uart_serialinit
@@ -1647,40 +1652,40 @@ void uart_serialinit(void)
   /* Register the console */
 
 #if defined(SAMA5_HAVE_UART_CONSOLE) || defined(SAMA5_HAVE_USART_CONSOLE)
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs/USARTs */
 
 #ifdef TTYS0_DEV
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #endif
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
+  uart_register("/dev/ttyS2", &TTYS2_DEV);
 #endif
 #ifdef TTYS3_DEV
-  (void)uart_register("/dev/ttyS3", &TTYS3_DEV);
+  uart_register("/dev/ttyS3", &TTYS3_DEV);
 #endif
 #ifdef TTYS4_DEV
-  (void)uart_register("/dev/ttyS4", &TTYS4_DEV);
+  uart_register("/dev/ttyS4", &TTYS4_DEV);
 #endif
 #ifdef TTYS5_DEV
-  (void)uart_register("/dev/ttyS5", &TTYS5_DEV);
+  uart_register("/dev/ttyS5", &TTYS5_DEV);
 #endif
 #ifdef TTYS6_DEV
-  (void)uart_register("/dev/ttyS6", &TTYS6_DEV);
+  uart_register("/dev/ttyS6", &TTYS6_DEV);
 #endif
 #ifdef TTYS7_DEV
-  (void)uart_register("/dev/ttyS7", &TTYS7_DEV);
+  uart_register("/dev/ttyS7", &TTYS7_DEV);
 #endif
 #ifdef TTYS8_DEV
-  (void)uart_register("/dev/ttyS8", &TTYS8_DEV);
+  uart_register("/dev/ttyS8", &TTYS8_DEV);
 #endif
 #ifdef TTYS9_DEV
-  (void)uart_register("/dev/ttyS9", &TTYS9_DEV);
+  uart_register("/dev/ttyS9", &TTYS9_DEV);
 #endif
 }
 

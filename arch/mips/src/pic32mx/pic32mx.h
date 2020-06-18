@@ -233,8 +233,8 @@ void pic32mx_uartconfigure(uintptr_t uart_base, uint32_t baudrate,
  * Name: pic32mx_boardinitialize
  *
  * Description:
- *   This function must be provided by the board-specific logic in the  directory
- *   configs/<board-name>/pic32_boot.c.
+ *   This function must be provided by the board-specific logic in the directory
+ *   boards/mips/pic32mx/<board-name>/src/pic32mx_boot.c.
  *
  ************************************************************************************/
 
@@ -392,10 +392,10 @@ void pic32mx_dumpgpio(uint32_t pinset, const char *msg);
  *   Initialize the selected SPI port
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple SPI interfaces)
+ *   Port number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

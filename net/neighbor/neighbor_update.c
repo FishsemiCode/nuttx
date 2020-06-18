@@ -67,7 +67,7 @@
 
 void neighbor_update(const net_ipv6addr_t ipaddr)
 {
-  struct neighbor_entry *neighbor;
+  struct neighbor_entry_s *neighbor;
 
   neighbor = neighbor_findentry(ipaddr);
   if (neighbor != NULL)

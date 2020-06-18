@@ -90,7 +90,7 @@ FAR struct mbox_dev_s *g_mbox[3] =
 extern uint32_t _slog;
 extern uint32_t _logsize;
 
-void riscv_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =

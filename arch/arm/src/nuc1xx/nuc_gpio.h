@@ -50,7 +50,7 @@
 #include <nuttx/irq.h>
 
 #include "chip.h"
-#include "chip/nuc_gpio.h"
+#include "hardware/nuc_gpio.h"
 
 /****************************************************************************
  * Pre-processor Declarations
@@ -127,7 +127,7 @@
  * .... .... V... ....
  */
 
-#define GPIO_OUTPUT_SET               (1 << 7)                   /* Bit 7: If output, inital value of output */
+#define GPIO_OUTPUT_SET               (1 << 7)                   /* Bit 7: If output, initial value of output */
 #define GPIO_OUTPUT_CLEAR             (0)
 
 /* This identifies the GPIO port:

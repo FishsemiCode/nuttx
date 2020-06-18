@@ -60,14 +60,8 @@
 #ifndef CONFIG_DEV_CONSOLE
 #  undef  USE_SERIALDRIVER
 #  undef  USE_EARLYSERIALINIT
-#  undef  CONFIG_DEV_LOWCONSOLE
-#  undef  CONFIG_RAMLOG_CONSOLE
 #else
-#  if defined(CONFIG_RAMLOG_CONSOLE)
-#    undef  USE_SERIALDRIVER
-#    undef  USE_EARLYSERIALINIT
-#    undef  CONFIG_DEV_LOWCONSOLE
-#  elif defined(CONFIG_DEV_LOWCONSOLE)
+#  if defined(CONFIG_CONSOLE_SYSLOG)
 #    undef  USE_SERIALDRIVER
 #    undef  USE_EARLYSERIALINIT
 #  else
@@ -194,14 +188,14 @@ extern uint32_t g_intstack[INTERRUPT_STACKWORDS];
 
 extern uint32_t g_idlestack[IDLETHREAD_STACKWORDS];
 
-/* These 'addresses' of these values are setup by the linker script.  They are
- * not actual uint32_t storage locations! They are only used meaningfully in the
- * following way:
+/* These 'addresses' of these values are setup by the linker script.  They
+ * are not actual uint32_t storage locations! They are only used meaningfully
+ * in the following way:
  *
  *  - The linker script defines, for example, the symbol_sdata.
  *  - The declaration extern uint32_t _sdata; makes C happy.  C will believe
- *    that the value _sdata is the address of a uint32_t variable _data (it is
- *    not!).
+ *    that the value _sdata is the address of a uint32_t variable _data (it
+ *    is not!).
  *  - We can recoved the linker value then by simply taking the address of
  *    of _data.  like:  uint32_t *pdata = &_sdata;
  */
@@ -223,10 +217,11 @@ extern uint32_t _eheap;             /* End+1 of heap */
  ****************************************************************************/
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 /* Common Functions *********************************************************/
+
 /* Common functions defined in arch/xtensa/src/common.  These may be replaced
  * with chip-specific functions of the same name if needed.  See also
  * functions prototyped in include/nuttx/arch.h.
@@ -247,14 +242,6 @@ void xtensa_copystate(uint32_t *dest, uint32_t *src);
 void up_puts(const char *str);
 void up_lowputs(const char *str);
 
-/* Defined in drivers/lowconsole.c */
-
-#ifdef CONFIG_DEV_LOWCONSOLE
-void lowconsole_init(void);
-#else
-# define lowconsole_init()
-#endif
-
 /* Debug */
 
 #ifdef CONFIG_ARCH_STACKDUMP
@@ -264,6 +251,7 @@ void xtensa_dumpstate(void);
 #endif
 
 /* Common XTENSA functions */
+
 /* Initialization */
 
 #if XCHAL_CP_NUM > 0
@@ -279,7 +267,8 @@ uint32_t *xtensa_irq_dispatch(int irq, uint32_t *regs);
 uint32_t xtensa_enable_cpuint(uint32_t *shadow, uint32_t intmask);
 uint32_t xtensa_disable_cpuint(uint32_t *shadow, uint32_t intmask);
 void xtensa_panic(int xptcode, uint32_t *regs) noreturn_function;
-void xtensa_user(int exccause, uint32_t *regs) noreturn_function;
+void xtensa_user_panic(int exccause, uint32_t *regs) noreturn_function;
+uint32_t *xtensa_user(int exccause, uint32_t *regs);
 
 /* Software interrupt handler */
 
@@ -305,10 +294,11 @@ void _xtensa_sig_trampoline(void);
 void xtensa_sig_deliver(void);
 
 /* Chip-specific functions **************************************************/
+
 /* Chip specific functions defined in arch/xtensa/src/<chip> */
+
 /* IRQs */
 
-void xtensa_irq_initialize(void);
 bool xtensa_pending_irq(int irq);
 void xtensa_clrpend_irq(int irq);
 
@@ -332,9 +322,7 @@ void up_lowputc(char ch);
 void xtensa_early_serial_initialize(void);
 void xtensa_serial_initialize(void);
 
-/* System timer */
-
-void xtensa_timer_initialize(void);
+void rpmsg_serialinit(void);
 
 /* Network */
 
@@ -355,4 +343,4 @@ void up_usbuninitialize(void);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __ARCH_XTENSA_SRC_COMMON_XTENSA_H */
+#endif /* __ARCH_XTENSA_SRC_COMMON_XTENSA_H */

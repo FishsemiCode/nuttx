@@ -50,15 +50,17 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* CONFIG_SYSLOG_INTBUFFER - Enables an interrupt buffer that will be used
  *   to serialize debug output from interrupt handlers.
  * CONFIG_SYSLOG_INTBUFSIZE - The size of the interrupt buffer in bytes.
  * CONFIG_SYSLOG_DEVPATH - The full path to the system logging device
  *
  * In addition, some SYSLOG device must also be enabled that will provide
- * the syslog output "channel.  As of this writing, there are two SYSLOG
- * devices avaiable:
+ * the syslog output channel.  As of this writing, there are two SYSLOG
+ * devices available:
  *
  *   1. A RAM SYSLOGing device that will log data into a circular buffer
  *      that can be dumped using the NSH dmesg command.  This device is
@@ -94,15 +96,6 @@
 /****************************************************************************
  * Public Types
  ****************************************************************************/
-
-/* Initialization phases */
-
-enum syslog_init_e
-{
-  SYSLOG_INIT_RESET = 0, /* Power on SYSLOG initializaton phase */
-  SYSLOG_INIT_EARLY,     /* Early initialization in up_initialize() */
-  SYSLOG_INIT_LATE       /* Late initialization in nx_start(). */
-};
 
 /* This structure provides the interface to a SYSLOG device */
 
@@ -179,7 +172,7 @@ int syslog_channel(FAR const struct syslog_channel_s *channel);
  *   as a minimum a call to syslog_channel() to use the device.
  *
  * Input Parameters:
- *   phase - One of {SYSLOG_INIT_EARLY, SYSLOG_INIT_LATE}
+ *   None
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -188,9 +181,9 @@ int syslog_channel(FAR const struct syslog_channel_s *channel);
  ****************************************************************************/
 
 #ifndef CONFIG_ARCH_SYSLOG
-int syslog_initialize(enum syslog_init_e phase);
+int syslog_initialize(void);
 #else
-#  define syslog_initialize(phase)
+#  define syslog_initialize()
 #endif
 
 /****************************************************************************

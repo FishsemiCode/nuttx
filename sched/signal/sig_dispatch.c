@@ -1,8 +1,8 @@
 /****************************************************************************
  * sched/signal/sig_dispatch.c
  *
- *   Copyright (C) 2007, 2009, 2011, 2016, 2018 Gregory Nutt. All rights
- *     reserved.
+ *   Copyright (C) 2007, 2009, 2011, 2016, 2018-2019 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -301,6 +301,7 @@ static void nxsig_add_pendingsignal(FAR struct tcb_s *stcb,
 int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
 {
   irqstate_t flags;
+  bool masked;
   int ret = OK;
 
   sinfo("TCB=0x%08x signo=%d code=%d value=%d mask=%08x\n",
@@ -309,13 +310,50 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
 
   DEBUGASSERT(stcb != NULL && info != NULL);
 
-  /************************* MASKED SIGNAL HANDLING ************************/
+  /* Don't actually send a signal for signo 0. */
 
-  /* Check if the signal is masked -- if it is, it will be added to the list
-   * of pending signals.
+  if (info->si_signo == 0)
+    {
+      return OK;
+    }
+
+  /************************** MASKED SIGNAL ACTIONS *************************/
+
+  masked = (bool)sigismember(&stcb->sigprocmask, info->si_signo);
+
+#ifdef CONFIG_LIB_SYSCALL
+  /* Check if the signal is masked OR if the signal is received while we are
+   * processing a system call -- in either case, it will be added to the
+   * list of pending signals.  Unmasked user signal actions will be deferred
+   * while we process the system call.
+   *
+   * If a thread calls a blocking system call, the thread will still be
+   * unblocked when the signal occurs (see OTHER SIGNAL HANDLING below), but
+   * any associated user signal action will be deferred until the system
+   * call returns.  For example, if the application calls sem_wait(), the
+   * following would occur:
+   *
+   *   1. System call entry logic will block user signal handling and call
+   *      sem_wait() in kernel mode.
+   *   2. sem_wait() will block,
+   *   3. The receipt of the signal will cause any signal action to pend
+   *      but will unblock sem_wait(),
+   *   4. The sem_wait() system call will awaken and return EINTR,
+   *   5. The pending signal action will occur after the sem_wait() system
+   *      call returns to user mode.
+   *
+   * Syscall handlers (and logic-in-general within the OS) should not use
+   * signal handlers.
    */
 
-  if (sigismember(&stcb->sigprocmask, info->si_signo))
+  if (masked || (stcb->flags & TCB_FLAG_SYSCALL) != 0)
+#else
+  /* Check if the signal is masked.  In that  case, it will be added to the
+   * list of pending signals.
+   */
+
+  if (masked)
+#endif
     {
       /* Check if the task is waiting for this pending signal.  If so, then
        * unblock it.  This must be performed in a critical section because
@@ -343,7 +381,7 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
         }
     }
 
-  /************************ UNMASKED SIGNAL HANDLING ***********************/
+  /************************* UNMASKED SIGNAL ACTIONS ************************/
 
   else
     {
@@ -380,9 +418,16 @@ int nxsig_tcbdispatch(FAR struct tcb_s *stcb, siginfo_t *info)
        * handler attached to the signal, then the default action is
        * simply to ignore the signal
        */
+    }
 
-      /*********************** OTHER SIGNAL HANDLING ***********************/
+  /************************* OTHER SIGNAL HANDLING **************************/
 
+  /* Performed only if the signal is unmasked.  These actions also must
+   * happen within a system call.
+   */
+
+  if (!masked)
+    {
       /* If the task is blocked waiting for a semaphore, then that task must
        * be unblocked when a signal is received.
        */

@@ -266,7 +266,7 @@ static void debug(const char *fmt, ...)
   if (g_debug)
     {
       va_start(ap, fmt);
-      (void)vfprintf(stderr, fmt, ap);
+      vfprintf(stderr, fmt, ap);
       va_end(ap);
     }
 }
@@ -284,7 +284,7 @@ static void error(const char *fmt, ...)
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vfprintf(stderr, fmt, ap);
+  vfprintf(stderr, fmt, ap);
   va_end(ap);
 }
 
@@ -301,7 +301,7 @@ static void output(const char *fmt, ...)
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vfprintf(g_outfile, fmt, ap);
+  vfprintf(g_outfile, fmt, ap);
   va_end(ap);
 }
 
@@ -318,7 +318,7 @@ static void body(const char *fmt, ...)
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vfprintf(g_bodyfile, fmt, ap);
+  vfprintf(g_bodyfile, fmt, ap);
   va_end(ap);
 }
 
@@ -335,7 +335,7 @@ static void appendix(const char *fmt, ...)
   va_list ap;
 
   va_start(ap, fmt);
-  (void)vfprintf(g_apndxfile, fmt, ap);
+  vfprintf(g_apndxfile, fmt, ap);
   va_end(ap);
 }
 
@@ -365,7 +365,7 @@ static void append_file(const char *filename)
 
   while ((ch = getc(stream)) != EOF)
     {
-      (void)putc(ch, g_outfile);
+      putc(ch, g_outfile);
     }
 
   /* Close and remove the file */
@@ -423,7 +423,7 @@ static char *dequote(char *ptr)
 {
   int len;
 
-  /* Check if there is a traiing quote */
+  /* Check if there is a trailing quote */
 
   len = strlen(ptr);
   if (ptr[len-1] == '"')
@@ -517,7 +517,7 @@ static int htmlize_character(char *dest, char ch)
  * Name: htmlize_text
  *
  * Description:
- *   HTML-ize a free-text string.  This function preforms the conversions of
+ *   HTML-ize a free-text string.  This function performs the conversions of
  *   in htmlize_character() for a text string.
  *
  ****************************************************************************/
@@ -542,7 +542,7 @@ static char *htmlize_text(const char *src)
     {
       /* Expand characters as necessary.  NOTE:  There is no check if the
        * HTML-expanded text overflows the g_scratch[] buffer.  If you see
-       * errors, be suspicous.
+       * errors, be suspicious.
        */
 
       dest += htmlize_character(dest, *src);
@@ -556,7 +556,7 @@ static char *htmlize_text(const char *src)
  *
  * Description:
  *   HTML-ize an expression of configuration variables.  This function
- *   preforms the same conversions as in htmlize_character(), but also
+ *   performs the same conversions as in htmlize_character(), but also
  *   expands and adds hyper links for configuration variables.
  *
  ****************************************************************************/
@@ -708,7 +708,7 @@ static char *read_line(FILE *stream)
           g_line[len] = '\0';
         }
 
-      /* Does this continue on the next line?  Note taht this check
+      /* Does this continue on the next line?  Note that this check
        * could erroneoulsy combine two lines if a comment line ends with
        * a line continuation... Don't do that!
        */
@@ -987,7 +987,7 @@ static char *get_html_string(void)
   pend = findchar(pbegin, '"');
   if (pend)
     {
-      /* Replace the final quote with a NUL.  g_lnptr is set to to
+      /* Replace the final quote with a NUL.  g_lnptr is set to
        * the next valid character after the terminating quote.
        */
 
@@ -1544,7 +1544,7 @@ static void process_dependson(void)
  * Name: print_dependencies
  *
  * Description:
- *   Output the current stack of depenencies
+ *   Output the current stack of dependencies
  *
  ****************************************************************************/
 
@@ -1788,7 +1788,7 @@ static inline char *process_config(FILE *stream, const char *varname,
         }
     }
 
-  /* Is this an internal configuration varaible with no description?
+  /* Is this an internal configuration variable with no description?
    * If so, send the output to the appendix file.
    */
 
@@ -2574,7 +2574,7 @@ int main(int argc, char **argv, char **envp)
 
   now = time(NULL);
   ptm = localtime(&now);
-  (void)strftime(g_scratch, SCRATCH_SIZE, "%B %d, %Y", ptm);
+  strftime(g_scratch, SCRATCH_SIZE, "%B %d, %Y", ptm);
 
   /* Output header boilerplater */
 
@@ -2659,7 +2659,7 @@ int main(int argc, char **argv, char **envp)
   body("<p>\n");
   body("  <b>Overview</b>.\n");
   body("  The NuttX RTOS is highly configurable.\n");
-  body("  The NuttX configuration files are maintained using the <a href=\"http://ymorin.is-a-geek.org/projects/kconfig-frontends\">kconfig-frontends</a> tool.\n");
+  body("  The NuttX configuration files are maintained using the <a href=\"https://bitbucket.org/nuttx/tools/src/master/kconfig-frontends\">kconfig-frontends</a> tool.\n");
   body("  That configuration tool uses <code>Kconfig</code> files that can be found through the NuttX source tree.\n");
   body("  Each <code>Kconfig</code> files contains declarations of configuration variables.\n");
   body("  Each configuration variable provides one configuration option for the NuttX RTOS.\n");
@@ -2708,7 +2708,7 @@ int main(int argc, char **argv, char **envp)
   output("  These settings are presented out-of-context because they cannot be directly controlled by the user.\n");
   output("  Many of these settings are selected automatically and indirectly when other, visible configuration variables are selected.\n");
   output("  One purpose of these hidden configuration variables is to control menuing in the kconfig-frontends configuration tool.\n");
-  output("  Many configuration variables with a form like <code>CONFIG_ARCH_HAVE_</code><i>feature</i>, for example, are used only to indicate that the selected archicture supports <i>feature</i> and so addition selection associated with <i>feature</i> will become accessible to the user.\n");
+  output("  Many configuration variables with a form like <code>CONFIG_ARCH_HAVE_</code><i>feature</i>, for example, are used only to indicate that the selected architecture supports <i>feature</i> and so addition selection associated with <i>feature</i> will become accessible to the user.\n");
   output("</p>\n");
   output("<ul>\n");
 

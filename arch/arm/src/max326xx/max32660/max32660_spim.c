@@ -1,5 +1,5 @@
 /****************************************************************************
- * arch/arm/src/max326/max326_spi.c
+ * arch/arm/src/max326xx/max32660/max32660_spim.c
  *
  *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -66,7 +66,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -194,7 +193,7 @@ static void spi_setbits(struct spi_dev_s *dev, int nbits);
 static int  spi_hwfeatures(struct spi_dev_s *dev,
               spi_hwfeatures_t features);
 #endif
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd);
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd);
 static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
               void *rxbuffer, size_t nwords);
 #ifndef CONFIG_SPI_EXCHANGE
@@ -248,7 +247,10 @@ static const struct spi_ops_s g_sp0iops =
 
 static struct max326_spidev_s g_spi0dev =
 {
-  .dev      = { &g_sp0iops },
+  .dev      =
+    {
+      &g_sp0iops
+    },
   .base     = MAX326_SPI0_BASE,
 #ifdef CONFIG_MAX326_SPI_INTERRUPTS
   .irq      = MAX326_IRQ_SPI,
@@ -625,7 +627,8 @@ static int spi_poll(struct max326_spidev_s *priv)
   /* Break out if we've transmitted all the bytes and not receiving */
 
   if ((priv->rxbuffer == NULL) && priv->txbytes == length &&
-      (spi_getreg(priv, MAX326_SPI_DMA_OFFSET) & SPI_DMA_TXFIFOCNT_MASK) == 0)
+      (spi_getreg(priv, MAX326_SPI_DMA_OFFSET) &
+       SPI_DMA_TXFIFOCNT_MASK) == 0)
     {
       goto done;
     }
@@ -791,8 +794,10 @@ static int spi_interrupt(int irq, void *context, void *arg)
           /* Check if there is more Rx data to be read */
 
           regval  = spi_getreg(priv, MAX326_SPI_DMA_OFFSET);
-          rxavail = (regval & SPI_DMA_TXFIFOCNT_MASK) >> SPI_DMA_TXFIFOCNT_SHIFT;
-          rxlevel = (regval & SPI_DMA_RXFIFOLVL_MASK) >> SPI_DMA_RXFIFOLVL_SHIFT;
+          rxavail = (regval & SPI_DMA_TXFIFOCNT_MASK) >>
+                     SPI_DMA_TXFIFOCNT_SHIFT;
+          rxlevel = (regval & SPI_DMA_RXFIFOLVL_MASK) >>
+                     SPI_DMA_RXFIFOLVL_SHIFT;
         }
       while (/* RX buffer != NULL && */ rxavail > rxlevel);
     }
@@ -805,12 +810,12 @@ static int spi_interrupt(int irq, void *context, void *arg)
  * Name: spi_lock
  *
  * Description:
- *   On SPI busses where there are multiple devices, it will be necessary to
- *   lock SPI to have exclusive access to the busses for a sequence of
+ *   On SPI buses where there are multiple devices, it will be necessary to
+ *   lock SPI to have exclusive access to the buses for a sequence of
  *   transfers.  The bus should be locked before the chip is selected. After
  *   locking the SPI bus, the caller should then also call the setfrequency,
  *   setbits, and setmode methods to make sure that the SPI is properly
- *   configured for the device.  If the SPI buss is being shared, then it
+ *   configured for the device.  If the SPI bus is being shared, then it
  *   may have been left in an incompatible state.
  *
  * Input Parameters:
@@ -829,24 +834,11 @@ static int spi_lock(struct spi_dev_s *dev, bool lock)
 
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          ret = nxsem_wait(&priv->exclsem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&priv->exclsem);
     }
   else
     {
-      (void)nxsem_post(&priv->exclsem);
-      ret = OK;
+      ret = nxsem_post(&priv->exclsem);
     }
 
   return ret;
@@ -881,7 +873,7 @@ static void spi0_select(struct spi_dev_s *dev, uint32_t devid, bool selected)
   DEBUGASSERT(dev != NULL);
   max326_spi0select(dev, devid, selected);
 
-  /* The hardware requires that the SPI block be disabled and renabled at
+  /* The hardware requires that the SPI block be disabled and re-enabled at
    * end of each transaction to cancel the on ongoing transaction (while
    * chip select is inactive).
    */
@@ -1012,12 +1004,14 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
         }
 
       regval  = spi_getreg(priv, MAX326_SPI_CLKCFG_OFFSET);
-      regval &= ~(SPI_CLKCFG_LO_MASK | SPI_CLKCFG_HI_MASK | SPI_CLKCFG_SCALE_MASK);
-      regval |= (SPI_CLKCFG_LO(high) | SPI_CLKCFG_HI(high) | SPI_CLKCFG_SCALE(scale));
+      regval &= ~(SPI_CLKCFG_LO_MASK | SPI_CLKCFG_HI_MASK |
+                  SPI_CLKCFG_SCALE_MASK);
+      regval |= (SPI_CLKCFG_LO(high) | SPI_CLKCFG_HI(high) |
+                 SPI_CLKCFG_SCALE(scale));
       spi_putreg(priv, MAX326_SPI_CLKCFG_OFFSET, regval);
 
-      /* Save the frequency selection so that subsequent reconfigurations will be
-       * faster.
+      /* Save the frequency selection so that subsequent reconfigurations
+       * will be faster.
        */
 
       spiinfo("Frequency %d->%d\n", frequency, actual);
@@ -1174,9 +1168,9 @@ static int spi_hwfeatures(struct spi_dev_s *dev, spi_hwfeatures_t features)
  *
  ****************************************************************************/
 
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
-  uint16_t ret;
+  uint32_t ret;
 
   spiinfo("wd=%04u\n", wd);
   spi_exchange(dev, &wd, &ret, 1);
@@ -1204,8 +1198,8 @@ static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
  *
  ****************************************************************************/
 
-static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer, void *rxbuffer,
-                         size_t nwords)
+static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
+                         void *rxbuffer, size_t nwords)
 {
   struct max326_spidev_s *priv = (struct max326_spidev_s *)dev;
 #ifndef CONFIG_MAX326_SPI_INTERRUPTS
@@ -1345,11 +1339,11 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer, void *rxbu
  * Input Parameters:
  *   dev      - Device-specific state data
  *   txbuffer - A pointer to the buffer of data to be sent
- *   nwords   - the length of data to send from the buffer in number of words.
- *              The wordsize is determined by the number of bits-per-word
- *              selected for the SPI interface.  If nbits <= 8, the data is
- *              packed into uint8_t's; if nbits >8, the data is packed into
- *              uint16_t's
+ *   nwords   - the length of data to send from the buffer in number of
+ *              words.  The wordsize is determined by the number of
+ *              bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *              the data is packed into uint8_t's; if nbits >8, the data is
+ *              packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -1357,7 +1351,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer, void *rxbu
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_sndblock(struct spi_dev_s *dev, const void *txbuffer, size_t nwords)
+static void spi_sndblock(struct spi_dev_s *dev, const void *txbuffer,
+                         size_t nwords)
 {
   spiinfo("txbuffer=%p nwords=%d\n", txbuffer, nwords);
   spi_exchange(dev, txbuffer, NULL, nwords);
@@ -1372,12 +1367,12 @@ static void spi_sndblock(struct spi_dev_s *dev, const void *txbuffer, size_t nwo
  *
  * Input Parameters:
  *   dev      - Device-specific state data
- *   rxbuffer - A pointer to the buffer in which to recieve data
- *   nwords   - the length of data that can be received in the buffer in number
- *              of words.  The wordsize is determined by the number of bits-per-word
- *              selected for the SPI interface.  If nbits <= 8, the data is
- *              packed into uint8_t's; if nbits >8, the data is packed into
- *              uint16_t's
+ *   rxbuffer - A pointer to the buffer in which to receive data
+ *   nwords   - the length of data that can be received in the buffer in
+ *              number of words.  The wordsize is determined by the number of
+ *              bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *              the data is packed into uint8_t's; if nbits >8, the data is
+ *              packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -1385,7 +1380,8 @@ static void spi_sndblock(struct spi_dev_s *dev, const void *txbuffer, size_t nwo
  ****************************************************************************/
 
 #ifndef CONFIG_SPI_EXCHANGE
-static void spi_recvblock(struct spi_dev_s *dev, void *rxbuffer, size_t nwords)
+static void spi_recvblock(struct spi_dev_s *dev, void *rxbuffer,
+                          size_t nwords)
 {
   spiinfo("rxbuffer=%p nwords=%d\n", rxbuffer, nwords);
   spi_exchange(dev, NULL, rxbuffer, nwords);
@@ -1396,8 +1392,8 @@ static void spi_recvblock(struct spi_dev_s *dev, void *rxbuffer, size_t nwords)
  * Name: spi_bus_initialize
  *
  * Description:
- *   Initialize the selected SPI bus in its default state (Master, 8-bit, mode 0,
- *   etc.)
+ *   Initialize the selected SPI bus in its default state (Master, 8-bit,
+ *   mode 0, etc.)
  *
  * Input Parameters:
  *   priv   - private SPI device structure
@@ -1419,7 +1415,8 @@ static void spi_bus_initialize(struct max326_spidev_s *priv)
 
   /* Setup slaved select timing (even in Master mode?) */
 
-  regval = (SPI_SSTIME_SSACT1(1) | SPI_SSTIME_SSACT2(1) | SPI_SSTIME_SSINACT(1));
+  regval = (SPI_SSTIME_SSACT1(1) | SPI_SSTIME_SSACT2(1) |
+            SPI_SSTIME_SSINACT(1));
   spi_putreg(priv, MAX326_SPI_SSTIME_OFFSET, regval);
 
   /* Configure CTRL0. Default configuration:

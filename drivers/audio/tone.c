@@ -53,7 +53,6 @@
 #include <ctype.h>
 #include <unistd.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <assert.h>
 #include <errno.h>
@@ -62,9 +61,10 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 #include <nuttx/timers/oneshot.h>
 #include <nuttx/audio/tone.h>
+#include <nuttx/semaphore.h>
 
 #include <arch/irq.h>
 
@@ -180,13 +180,11 @@ static const struct file_operations g_toneops =
   tone_close,                   /* close */
   tone_read,                    /* read */
   tone_write,                   /* write */
-  0,                            /* seek */
-  0                             /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0                           /* poll */
-#endif
+  NULL,                         /* seek */
+  NULL,                         /* ioctl */
+  NULL                          /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-  , 0                           /* unlink */
+  , NULL                        /* unlink */
 #endif
 };
 

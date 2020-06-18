@@ -81,7 +81,7 @@ static int setenv_by_pid(pid_t pid, FAR const char *name, FAR const char *value,
 
   if (!value || *value == '\0')
     {
-      /* If overwite is set then this is the same as unsetenv */
+      /* If overwrite is set then this is the same as unsetenv */
 
       if (overwrite)
         {
@@ -128,7 +128,7 @@ static int setenv_by_pid(pid_t pid, FAR const char *name, FAR const char *value,
        * the environment buffer; this will happen below.
        */
 
-      (void)env_removevar(group, pvar);
+      env_removevar(group, pvar);
     }
 
   /* Get the size of the new name=value string.  The +2 is for the '=' and for

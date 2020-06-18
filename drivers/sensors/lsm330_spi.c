@@ -46,11 +46,10 @@
 #include <errno.h>
 #include <debug.h>
 #include <string.h>
-#include <semaphore.h>
 
 #include <nuttx/kmalloc.h>
-
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/sensors/lsm330.h>
 
 /****************************************************************************
@@ -165,10 +164,8 @@ static const struct file_operations g_lsm330a_fops =
   lsm330acl_read,
   lsm330acl_write,
   lsm330acl_seek,
-  lsm330_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  lsm330_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL
 #endif
@@ -181,10 +178,8 @@ static const struct file_operations g_lsm330g_fops =
   lsm330gyro_read,
   lsm330gyro_write,
   lsm330gyro_seek,
-  lsm330_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  lsm330_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL
 #endif
@@ -250,9 +245,9 @@ static struct lsm330_reg_pair_s g_default_lsm330_aclcr_values[] =
   /*     0000=Off         0   0   0   0=all disabled */
 
   {
-   .addr  = LSM330_ACL_CTRL_REG5,
-   .value = 0x00
- },
+    .addr  = LSM330_ACL_CTRL_REG5,
+    .value = 0x00
+  },
 
   /* CR6 BW[2:1]   FSCALE[2:0] - -  SIM       */
   /*     00=800Hz   10 0=16g   0 0  0=4-wire  */
@@ -321,7 +316,7 @@ static struct lsm330_reg_pair_s g_default_lsm330_gyrocr_values[] =
 
   {
     .addr =  LSM330_GYRO_CTRL_REG1,
-    .value = 0xFF
+    .value = 0xff
   },
 
   /* CR2 EXTRen LVLen HPM[1:0]  HPCF[3:0]     */
@@ -405,12 +400,11 @@ static uint8_t lsm330_read_register(FAR struct lsm330_dev_s *dev,
  * Name: lsm330_read_acl_registerblk
  ******************************************************************************/
 
- static void lsm330_read_acl_registerblk(FAR struct lsm330_dev_s *dev,
-                                         uint8_t reg_addr,
-                                         FAR uint8_t *reg_data,
-                                         uint8_t xfercnt)
+static void lsm330_read_acl_registerblk(FAR struct lsm330_dev_s *dev,
+                                        uint8_t reg_addr,
+                                        FAR uint8_t *reg_data,
+                                        uint8_t xfercnt)
 {
-
   /* Lock the SPI bus so that only one device can access it at the same time */
 
   SPI_LOCK(dev->spi, true);
@@ -430,7 +424,7 @@ static uint8_t lsm330_read_register(FAR struct lsm330_dev_s *dev,
 
   /* Write idle bytes while receiving the requested data */
 
-  while ( 0 != xfercnt-- )
+  while (0 != xfercnt--)
     {
       *reg_data++ = (uint8_t)SPI_SEND(dev->spi, 0xff);
     }
@@ -448,10 +442,10 @@ static uint8_t lsm330_read_register(FAR struct lsm330_dev_s *dev,
  * Name: lsm330_read_gyro_registerblk
  ******************************************************************************/
 
- static void lsm330_read_gyro_registerblk(FAR struct lsm330_dev_s *dev,
-                                          uint8_t reg_addr,
-                                          FAR uint8_t *reg_data,
-                                          uint8_t xfercnt)
+static void lsm330_read_gyro_registerblk(FAR struct lsm330_dev_s *dev,
+                                         uint8_t reg_addr,
+                                         FAR uint8_t *reg_data,
+                                         uint8_t xfercnt)
 {
   /* Lock the SPI bus so that only one device can access it at the same time */
 
@@ -468,11 +462,12 @@ static uint8_t lsm330_read_register(FAR struct lsm330_dev_s *dev,
 
   /* Transmit the register address from where we want to start reading */
 
-  SPI_SEND(dev->spi, reg_addr | LSM330_READ | (xfercnt>1 ? LSM330_GYRO_AUTO : 0));
+  SPI_SEND(dev->spi, reg_addr | LSM330_READ |
+           (xfercnt > 1 ? LSM330_GYRO_AUTO : 0));
 
   /* Write idle bytes while receiving the requested data */
 
-  while ( 0 != xfercnt-- )
+  while (0 != xfercnt--)
     {
       *reg_data++ = (uint8_t)SPI_SEND(dev->spi, 0xff);
     }
@@ -528,10 +523,10 @@ static void lsm330_write_register(FAR struct lsm330_dev_s *dev,
  * Name: lsm330_write_acl_registerblk
  ****************************************************************************/
 
- static void lsm330_write_acl_registerblk(FAR struct lsm330_dev_s *dev,
-                                          uint8_t reg_addr,
-                                          FAR uint8_t *reg_data,
-                                          uint8_t xfercnt)
+static void lsm330_write_acl_registerblk(FAR struct lsm330_dev_s *dev,
+                                         uint8_t reg_addr,
+                                         FAR uint8_t *reg_data,
+                                         uint8_t xfercnt)
 {
   /* Lock the SPI bus so that only one device can access it at the same time */
 
@@ -552,7 +547,7 @@ static void lsm330_write_register(FAR struct lsm330_dev_s *dev,
 
   /* Transmit the content which should be written in the register block */
 
-  while ( 0 != xfercnt-- )
+  while (0 != xfercnt--)
     {
       SPI_SEND(dev->spi, *reg_data++);
     }
@@ -570,10 +565,10 @@ static void lsm330_write_register(FAR struct lsm330_dev_s *dev,
  * Name: lsm330_write_gyro_registerblk
  ****************************************************************************/
 
- static void lsm330_write_gyro_registerblk(FAR struct lsm330_dev_s *dev,
-                                           uint8_t reg_addr,
-                                           FAR uint8_t *reg_data,
-                                           uint8_t xfercnt)
+static void lsm330_write_gyro_registerblk(FAR struct lsm330_dev_s *dev,
+                                          uint8_t reg_addr,
+                                          FAR uint8_t *reg_data,
+                                          uint8_t xfercnt)
 {
   /* Lock the SPI bus so that only one device can access it at the same time */
 
@@ -590,11 +585,12 @@ static void lsm330_write_register(FAR struct lsm330_dev_s *dev,
 
   /* Transmit the register address to where we want to start writing */
 
-  SPI_SEND(dev->spi, reg_addr | LSM330_WRITE | (xfercnt>1 ? LSM330_GYRO_AUTO : 0));
+  SPI_SEND(dev->spi, reg_addr | LSM330_WRITE |
+           (xfercnt > 1 ? LSM330_GYRO_AUTO : 0));
 
   /* Transmit the content which should be written in the register block */
 
-  while ( 0 != xfercnt-- )
+  while (0 != xfercnt--)
     {
       SPI_SEND(dev->spi, *reg_data++);
     }
@@ -686,7 +682,7 @@ static int lsm330acl_dvr_open(FAR void *instance_handle, int32_t arg)
 
   sninfo("LSM330_ACL_IDREG = 0x%02x\n", reg_content);
 
-  if (reg_content!=LSM330_ACL_IDREG_VALUE)
+  if (reg_content != LSM330_ACL_IDREG_VALUE)
     {
       /* Made info log level to permit open being used as a device probe. */
 
@@ -780,7 +776,7 @@ static int lsm330gyro_dvr_open(FAR void *instance_handle, int32_t arg)
 
   sninfo("LSM330_GYRO_IDREG = 0x%02x\n", reg_content);
 
-  if (reg_content!=LSM330_GYRO_IDREG_VALUE)
+  if (reg_content != LSM330_GYRO_IDREG_VALUE)
     {
       /* Made warning log level to permit open being used as a device probe. */
 

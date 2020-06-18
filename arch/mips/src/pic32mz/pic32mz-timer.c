@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <debug.h>
 
@@ -59,7 +58,7 @@
 #include "up_internal.h"
 #include "up_arch.h"
 
-#include "chip/pic32mz-timer.h"
+#include "hardware/pic32mz-timer.h"
 #include "pic32mz-timer.h"
 #include "pic32mz-gpio.h"
 
@@ -80,7 +79,7 @@
  * If mode32 is enabled the consecutive odd timers will be automatically
  * enabled through menuconfig.
  * This is an indication for the user that the odd timer is in use
- * and to avoid a seperate, incorrect, utilization.
+ * and to avoid a separate, incorrect, utilization.
  * Undef it here so its (useless in this case) structures won't be created
  * later.
  */
@@ -153,7 +152,8 @@ static inline void pic32mz_putreg(FAR struct pic32mz_timer_dev_s *dev,
                                   uint16_t offset, uint32_t value);
 static inline bool pic32mz_timer_mode32(FAR struct pic32mz_timer_dev_s *dev);
 static inline uint32_t pic32mz_timer_oddoffset(uint32_t evenoffset);
-static inline uint32_t pic32mz_timer_nextirq(FAR struct pic32mz_timer_dev_s *dev);
+static inline uint32_t
+  pic32mz_timer_nextirq(FAR struct pic32mz_timer_dev_s *dev);
 
 static void pic32mz_timer_stopinidle(FAR struct pic32mz_timer_dev_s *dev,
                                     bool stop);
@@ -587,11 +587,11 @@ static inline bool pic32mz_timer_mode32(FAR struct pic32mz_timer_dev_s *dev)
 
 static inline uint32_t pic32mz_timer_oddoffset(uint32_t evenoffset)
 {
-  /* To access the consecutive odd timer the base needs te be changed.
+  /* To access the consecutive odd timer the base needs be changed.
    * PIC32MZ_TIMERn_OFFSET(1) represents the offset between timers' base.
    * An even timer's base + PIC32MZ_TIMERn_OFFSET(1) gives the base of
    * the next odd timer.
-   * This wil allow the access of the odd timer from the dev of its
+   * This will allow the access of the odd timer from the dev of its
    * previous even timer.
    */
 
@@ -606,7 +606,8 @@ static inline uint32_t pic32mz_timer_oddoffset(uint32_t evenoffset)
  *
  ****************************************************************************/
 
-static inline uint32_t pic32mz_timer_nextirq(FAR struct pic32mz_timer_dev_s *dev)
+static inline uint32_t
+  pic32mz_timer_nextirq(FAR struct pic32mz_timer_dev_s *dev)
 {
   uint32_t irq;
 
@@ -856,10 +857,10 @@ static void pic32mz_timer_setperiod(FAR struct pic32mz_timer_dev_s *dev,
 
   if (pic32mz_timer_mode32(dev))
     {
-      pic32mz_putreg(dev, PIC32MZ_TIMER_PR_OFFSET, period & 0x00000FFFF);
+      pic32mz_putreg(dev, PIC32MZ_TIMER_PR_OFFSET, period & 0x00000ffff);
 
       pic32mz_putreg(dev, pic32mz_timer_oddoffset(PIC32MZ_TIMER_PR_OFFSET),
-                     (period >> 16) & 0x00000FFFF);
+                     (period >> 16) & 0x00000ffff);
     }
   else
     {
@@ -898,7 +899,6 @@ static uint32_t pic32mz_timer_getcounter(FAR struct pic32mz_timer_dev_s *dev)
     {
       return pic32mz_getreg(dev, PIC32MZ_TIMER_CNT_OFFSET);
     }
-
 }
 
 /****************************************************************************
@@ -919,11 +919,10 @@ static void pic32mz_timer_setcounter(FAR struct pic32mz_timer_dev_s *dev,
 
   if (pic32mz_timer_mode32(dev))
     {
-
-      pic32mz_putreg(dev, PIC32MZ_TIMER_CNT_OFFSET, count & 0x00000FFFF);
+      pic32mz_putreg(dev, PIC32MZ_TIMER_CNT_OFFSET, count & 0x00000ffff);
 
       pic32mz_putreg(dev, pic32mz_timer_oddoffset(PIC32MZ_TIMER_CNT_OFFSET),
-                     (count >> 16) & 0x00000FFFF);
+                     (count >> 16) & 0x00000ffff);
     }
   else
     {
@@ -974,7 +973,6 @@ static bool pic32mz_timer_setfreq(FAR struct pic32mz_timer_dev_s *dev,
                                   uint32_t freq)
 {
   uint16_t prescale;
-  uint32_t tmrfreq;
 
   DEBUGASSERT(dev != NULL);
 
@@ -1046,9 +1044,7 @@ static bool pic32mz_timer_setfreq(FAR struct pic32mz_timer_dev_s *dev,
       return false;
     }
 
-  tmrfreq = pic32mz_timer_getfreq(dev);
-
-  tmrinfo("Timer's frequency set to %luHz\n", tmrfreq);
+  tmrinfo("Timer's frequency set to %luHz\n", pic32mz_timer_getfreq(dev));
 
   return true;
 }

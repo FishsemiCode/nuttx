@@ -59,8 +59,8 @@
  * Name: bchlib_write
  *
  * Description:
- *   Write to the block device set-up by bchlib_setup as if it were a character
- *   device.
+ *   Write to the block device set-up by bchlib_setup as if it were a
+ *   character device.
  *
  ****************************************************************************/
 
@@ -195,4 +195,3 @@ ssize_t bchlib_write(FAR void *handle, FAR const char *buffer, size_t offset,
 
   return byteswritten;
 }
-

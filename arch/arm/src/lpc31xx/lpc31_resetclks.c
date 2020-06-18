@@ -133,11 +133,11 @@ void lpc31_resetclks(void)
 
       putreg32(regval, regaddr);
 
-      /* Set/clear the RUN bit in the PCR regiser of  all clocks, depending
+      /* Set/clear the RUN bit in the PCR register of  all clocks, depending
        * upon if the clock is needed by the board logic or not
        */
 
-      (void)lpc31_defclk((enum lpc31_clockid_e)i);
+      lpc31_defclk((enum lpc31_clockid_e)i);
     }
 
   /* Disable all fractional dividers */

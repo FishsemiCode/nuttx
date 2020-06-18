@@ -1,5 +1,5 @@
 /****************************************************************************
- * arm/arm/src/efm32/efm32_spi.c
+ * arch/arm/src/efm32/efm32_spi.c
  *
  *   Copyright (C) 2014, 2016-2017 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2014 Bouteville Pierre-Noel. All rights reserved.
@@ -44,7 +44,6 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -62,7 +61,7 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "chip/efm32_usart.h"
+#include "hardware/efm32_usart.h"
 #include "efm32_config.h"
 #include "efm32_dma.h"
 #include "efm32_lowputc.h"
@@ -74,7 +73,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* SPI DMA */
 
 #ifndef CONFIG_EFM32_SPI_DMA_TIMEO_NSEC
@@ -146,6 +147,7 @@ struct efm32_spidev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* Low level SPI access */
 
 static uint32_t  spi_getreg(const struct efm32_spiconfig_s *config,
@@ -195,7 +197,7 @@ static uint8_t   spi_status(struct spi_dev_s *dev, uint32_t devid);
 static int       spi_cmddata(struct spi_dev_s *dev, uint32_t devid,
                    bool cmd);
 #endif
-static uint16_t  spi_send(struct spi_dev_s *dev, uint16_t wd);
+static uint32_t  spi_send(struct spi_dev_s *dev, uint32_t wd);
 static void      spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
                    void *rxbuffer, size_t nwords);
 #ifndef CONFIG_SPI_EXCHANGE
@@ -373,11 +375,12 @@ static void spi_rxflush(const struct efm32_spiconfig_s *config)
 {
   /* Loop while data is available */
 
-  while ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) & USART_STATUS_RXDATAV) != 0)
+  while ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) &
+         USART_STATUS_RXDATAV) != 0)
     {
       /* Read and discard the data */
 
-      (void)spi_getreg(config, EFM32_USART_RXDATA_OFFSET);
+      spi_getreg(config, EFM32_USART_RXDATA_OFFSET);
     }
 }
 
@@ -410,7 +413,8 @@ static void spi_dma_timeout(int argc, uint32_t arg1, ...)
 
   /* Mark DMA timeout error and wakeup form RX and TX waiters */
 
-  DEBUGASSERT(priv->rxresult == EINPROGRESS || priv->txresult == EINPROGRESS);
+  DEBUGASSERT(priv->rxresult == EINPROGRESS ||
+              priv->txresult == EINPROGRESS);
   if (priv->rxresult == EINPROGRESS)
     {
       priv->rxresult = ETIMEDOUT;
@@ -437,24 +441,11 @@ static void spi_dma_timeout(int argc, uint32_t arg1, ...)
 static void spi_dmarxwait(struct efm32_spidev_s *priv)
 {
   irqstate_t flags;
-  int ret;
 
   /* Take the semaphore (perhaps waiting). */
 
   flags = enter_critical_section();
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->rxdmasem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  nxsem_wait_uninterruptible(&priv->rxdmasem);
 
   /* Cancel the timeout only if both the RX and TX transfers have completed */
 
@@ -480,24 +471,11 @@ static void spi_dmarxwait(struct efm32_spidev_s *priv)
 static void spi_dmatxwait(struct efm32_spidev_s *priv)
 {
   irqstate_t flags;
-  int ret;
 
   /* Take the semaphore (perhaps waiting). */
 
   flags = enter_critical_section();
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->txdmasem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  nxsem_wait_uninterruptible(&priv->txdmasem);
 
   /* Cancel the timeout only if both the RX and TX transfers have completed */
 
@@ -522,7 +500,7 @@ static void spi_dmatxwait(struct efm32_spidev_s *priv)
 #ifdef CONFIG_EFM32_SPI_DMA
 static inline void spi_dmarxwakeup(struct efm32_spidev_s *priv)
 {
-  (void)nxsem_post(&priv->rxdmasem);
+  nxsem_post(&priv->rxdmasem);
 }
 #endif
 
@@ -537,7 +515,7 @@ static inline void spi_dmarxwakeup(struct efm32_spidev_s *priv)
 #ifdef CONFIG_EFM32_SPI_DMA
 static inline void spi_dmatxwakeup(struct efm32_spidev_s *priv)
 {
-  (void)nxsem_post(&priv->txdmasem);
+  nxsem_post(&priv->txdmasem);
 }
 #endif
 
@@ -755,27 +733,15 @@ static inline void spi_dmatxstart(FAR struct efm32_spidev_s *priv)
 static int spi_lock(struct spi_dev_s *dev, bool lock)
 {
   struct efm32_spidev_s *priv = (struct efm32_spidev_s *)dev;
+  int ret;
 
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          ret = nxsem_wait(&priv->exclsem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&priv->exclsem);
     }
   else
     {
-      (void)nxsem_post(&priv->exclsem);
-      ret = OK;
+      ret = nxsem_post(&priv->exclsem);
     }
 
   return ret;
@@ -841,7 +807,7 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
 
   if (frequency == priv->frequency)
     {
-      /* No... just return the actual frequency from the last calcualtion */
+      /* No... just return the actual frequency from the last calculation */
 
       actual = priv->actual;
     }
@@ -854,7 +820,9 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
        *
        * CLKDIV = 256 * (fHFPERCLK/(2 * br) - 1)
        * or
-       * CLKDIV = (256 * fHFPERCLK)/(2 * br) - 256 = (128 * fHFPERCLK)/br - 256
+       * CLKDIV = (256 * fHFPERCLK)/(2 * br) - 256
+       * or
+       * CLKDIV = (128 * fHFPERCLK)/br - 256
        *
        * The basic problem with integer division in the above formula is that
        * the dividend (128 * fHFPERCLK) may become higher than max 32 bit
@@ -864,7 +832,7 @@ static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency)
        *
        * One can possibly factorize 128 and br. However, since the last
        * 6 bits of CLKDIV are don't care, we can base our integer arithmetic
-       * on the below formula without loosing any extra precision:
+       * on the below formula without losing any extra precision:
        *
        * CLKDIV / 64 = (2 * fHFPERCLK)/br - 4
        *
@@ -946,19 +914,23 @@ static void spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode)
       switch (mode)
         {
         case SPIDEV_MODE0: /* CPOL=0; CPHA=0 */
-          setting = USART_CTRL_CLKPOL_IDLELOW | USART_CTRL_CLKPHA_SAMPLELEADING;
+          setting = USART_CTRL_CLKPOL_IDLELOW |
+                    USART_CTRL_CLKPHA_SAMPLELEADING;
           break;
 
         case SPIDEV_MODE1: /* CPOL=0; CPHA=1 */
-          setting = USART_CTRL_CLKPOL_IDLELOW | USART_CTRL_CLKPHA_SAMPLETRAILING;
+          setting = USART_CTRL_CLKPOL_IDLELOW |
+                    USART_CTRL_CLKPHA_SAMPLETRAILING;
           break;
 
         case SPIDEV_MODE2: /* CPOL=1; CPHA=0 */
-          setting = USART_CTRL_CLKPOL_IDLEHIGH | USART_CTRL_CLKPHA_SAMPLELEADING;
+          setting = USART_CTRL_CLKPOL_IDLEHIGH |
+                    USART_CTRL_CLKPHA_SAMPLELEADING;
           break;
 
         case SPIDEV_MODE3: /* CPOL=1; CPHA=1 */
-          setting = USART_CTRL_CLKPOL_IDLEHIGH | USART_CTRL_CLKPHA_SAMPLETRAILING;
+          setting = USART_CTRL_CLKPOL_IDLEHIGH |
+                    USART_CTRL_CLKPHA_SAMPLETRAILING;
           break;
 
         default:
@@ -1097,7 +1069,8 @@ static void spi_setbits(struct spi_dev_s *dev, int nbits)
  ****************************************************************************/
 
 #ifdef CONFIG_SPI_HWFEATURES
-static int spi_hwfeatures(FAR struct spi_dev_s *dev, spi_hwfeatures_t features)
+static int spi_hwfeatures(FAR struct spi_dev_s *dev,
+                          spi_hwfeatures_t features)
 {
 #ifdef CONFIG_SPI_BITORDER
   struct efm32_spidev_s *priv = (struct efm32_spidev_s *)dev;
@@ -1233,11 +1206,11 @@ static int spi_cmddata(struct spi_dev_s *dev, uint32_t devid,
  *
  ****************************************************************************/
 
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
   struct efm32_spidev_s *priv = (struct efm32_spidev_s *)dev;
   const struct efm32_spiconfig_s *config;
-  uint16_t ret;
+  uint32_t ret;
 
   DEBUGASSERT(priv && priv->config);
   config = priv->config;
@@ -1252,12 +1225,12 @@ static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
 
   /* Write the data */
 
-  spi_putreg(config, EFM32_USART_TXDATA_OFFSET, (uint32_t)wd);
+  spi_putreg(config, EFM32_USART_TXDATA_OFFSET, wd);
 
   /* Wait for receive data to be available */
 
   spi_wait_status(config, _USART_STATUS_RXDATAV_MASK, USART_STATUS_RXDATAV);
-  ret = (uint16_t)spi_getreg(config, EFM32_USART_RXDATA_OFFSET);
+  ret = spi_getreg(config, EFM32_USART_RXDATA_OFFSET);
 
   spiinfo("Sent: %04x Return: %04x \n", wd, ret);
   return ret;
@@ -1321,10 +1294,11 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       while (unrecvd > 0)
         {
           /* REVISIT:  Could this cause RX data overruns??? */
+
           /* Send data if there is space in the TX buffer. */
 
-          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) & USART_STATUS_TXBL) != 0 &&
-              unsent > 0)
+          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) &
+              USART_STATUS_TXBL) != 0 && unsent > 0)
             {
               /* Get the next word to write.  Is there a source buffer? */
 
@@ -1345,8 +1319,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
 
           /* Receive data if there is data available */
 
-          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) & USART_STATUS_RXDATAV) != 0 &&
-              unrecvd > 0)
+          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) &
+              USART_STATUS_RXDATAV) != 0 && unrecvd > 0)
             {
               /* Receive the data */
 
@@ -1375,10 +1349,11 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       while (unrecvd > 0)
         {
           /* REVISIT:  Could this cause RX data overruns??? */
+
           /* Send data if there is space in the TX buffer. */
 
-          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) & USART_STATUS_TXBL) != 0 &&
-                 unsent > 0)
+          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) &
+              USART_STATUS_TXBL) != 0 && unsent > 0)
             {
               /* Get the next word to write.  Is there a source buffer? */
 
@@ -1399,8 +1374,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
 
           /* Receive data if there is data available */
 
-          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) & USART_STATUS_RXDATAV) != 0 &&
-              unrecvd > 0)
+          if ((spi_getreg(config, EFM32_USART_STATUS_OFFSET) &
+              USART_STATUS_RXDATAV) != 0 && unrecvd > 0)
             {
               /* Receive the data */
 
@@ -1490,7 +1465,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
        * when both RX and TX transfers complete.
        */
 
-      ret = wd_start(priv->wdog, (int)ticks, spi_dma_timeout, 1, (uint32_t)priv);
+      ret = wd_start(priv->wdog, (int)ticks, spi_dma_timeout, 1,
+                     (uint32_t)priv);
       if (ret < 0)
         {
           spierr("ERROR: Failed to start timeout: %d\n", ret);
@@ -1542,7 +1518,7 @@ static void spi_sndblock(struct spi_dev_s *dev, const void *txbuffer,
  *
  * Input Parameters:
  *   dev      - Device-specific state data
- *   rxbuffer - A pointer to the buffer in which to recieve data
+ *   rxbuffer - A pointer to the buffer in which to receive data
  *   nwords   - The length of data that can be received in the buffer in
  *              number of words.  The wordsize is determined by the number
  *              of bits-per-word selected for the SPI interface.  If nbits
@@ -1597,8 +1573,8 @@ static int spi_portinitialize(struct efm32_spidev_s *priv)
 
   /* Set bits for synchronous mode */
 
-  regval = _USART_CTRL_RESETVALUE | USART_CTRL_SYNC | USART_CTRL_CLKPOL_IDLELOW |
-            USART_CTRL_CLKPHA_SAMPLELEADING;
+  regval = _USART_CTRL_RESETVALUE | USART_CTRL_SYNC |
+            USART_CTRL_CLKPOL_IDLELOW | USART_CTRL_CLKPHA_SAMPLELEADING;
 
   /* MSB First, 8 bits */
 
@@ -1631,7 +1607,7 @@ static int spi_portinitialize(struct efm32_spidev_s *priv)
   priv->rxdmach = efm32_dmachannel();
   if (!priv->rxdmach)
     {
-      spierr("ERROR: Failed to allocate the RX DMA channel for SPI port: %d\n",
+      spierr("ERROR: Failed to allocate RX DMA channel for SPI port: %d\n",
              port);
       goto errout;
     }
@@ -1639,7 +1615,7 @@ static int spi_portinitialize(struct efm32_spidev_s *priv)
   priv->txdmach = efm32_dmachannel();
   if (!priv->txdmach)
     {
-      spierr("ERROR: Failed to allocate the TX DMA channel for SPI port: %d\n",
+      spierr("ERROR: Failed to allocate TX DMA channel for SPI port: %d\n",
              port);
       goto errout_with_rxdmach;
     }
@@ -1655,20 +1631,21 @@ static int spi_portinitialize(struct efm32_spidev_s *priv)
 
   /* Initialized semaphores used to wait for DMA completion */
 
-  (void)nxsem_init(&priv->rxdmasem, 0, 0);
-  (void)nxsem_init(&priv->txdmasem, 0, 0);
+  nxsem_init(&priv->rxdmasem, 0, 0);
+  nxsem_init(&priv->txdmasem, 0, 0);
 
   /* These semaphores are used for signaling and, hence, should not have
    * priority inheritance enabled.
    */
 
-   nxsem_setprotocol(&priv->rxdmasem, SEM_PRIO_NONE);
-   nxsem_setprotocol(&priv->txdmasem, SEM_PRIO_NONE);
+  nxsem_setprotocol(&priv->rxdmasem, SEM_PRIO_NONE);
+  nxsem_setprotocol(&priv->txdmasem, SEM_PRIO_NONE);
 #endif
 
   /* Enable SPI */
 
-  spi_putreg(config, EFM32_USART_CMD_OFFSET, USART_CMD_RXEN | USART_CMD_TXEN);
+  spi_putreg(config, EFM32_USART_CMD_OFFSET,
+             USART_CMD_RXEN | USART_CMD_TXEN);
   return OK;
 
 #ifdef CONFIG_EFM32_SPI_DMA

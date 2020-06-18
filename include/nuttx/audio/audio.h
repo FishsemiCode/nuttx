@@ -1,7 +1,7 @@
 /****************************************************************************
  * include/nuttx/audio/audio.h
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2019 Gregory Nutt. All rights reserved.
  *   Copyright (C) 2013 Ken Pettit. All rights reserved.
  *   Author: Ken Pettit <pettitkd@gmail.com>
  *
@@ -43,7 +43,7 @@
  *
  * The Audio driver is split into two parts:
  *
- * 1) An "upper half", generic driver that provides the comman Audio interface
+ * 1) An "upper half", generic driver that provides the common Audio interface
  *    to application level code, and
  * 2) A "lower half", platform-specific driver that implements the low-level
  *    controls to configure and communicate with the audio device(s).
@@ -57,9 +57,10 @@
 #include <nuttx/compiler.h>
 
 #include <nuttx/fs/ioctl.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/spi/spi.h>
+
 #include <queue.h>
-#include <semaphore.h>
 
 #ifdef CONFIG_AUDIO
 
@@ -364,7 +365,9 @@ struct audio_caps_s
     uint8_t  b[4];          /*   by this lower-half driver. */
     uint16_t hw[2];
     uint32_t w;
+#ifdef CONFIG_HAVE_LONG_LONG
     uint64_t qw;
+#endif
   } ac_controls;
 };
 
@@ -402,7 +405,7 @@ struct ap_buffer_info_s
 
 /* This structure describes an Audio Pipeline Buffer */
 
-begin_packed_struct struct ap_buffer_s
+struct ap_buffer_s
 {
   struct dq_entry_s     dq_entry;   /* Double linked queue entry */
   struct audio_info_s   i;          /* The info for samples in this buffer */
@@ -416,7 +419,7 @@ begin_packed_struct struct ap_buffer_s
   uint16_t              flags;      /* Buffer flags */
   uint16_t              crefs;      /* Number of reference counts */
   FAR uint8_t           *samp;      /* Offset of the first sample */
-} end_packed_struct;
+};
 
 /* Structure defining the messages passed to a listening audio thread
  * for dequeuing buffers and other operations.  Also used to allocate

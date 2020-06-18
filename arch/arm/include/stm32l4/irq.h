@@ -33,7 +33,7 @@
  *
  ************************************************************************************/
 
-/* This file should never be included directed but, rather,
+/* This file should never be included directly but, rather,
  * only indirectly through nuttx/irq.h
  */
 
@@ -116,4 +116,3 @@ extern "C"
 #endif
 
 #endif /* __ARCH_ARM_INCLUDE_STM32L4_IRQ_H */
-

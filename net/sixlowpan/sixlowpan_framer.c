@@ -53,6 +53,7 @@
 
 #ifdef CONFIG_NET_6LOWPAN
 
+#ifdef CONFIG_WIRELESS_IEEE802154
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -143,14 +144,13 @@ static inline bool sixlowpan_eaddrnull(FAR const uint8_t *eaddr)
  *   meta    - Location to return the corresponding meta data.
  *
  * Returned Value:
- *   Ok is returned on success; Othewise a negated errno value is returned.
+ *   Ok is returned on success; Otherwise a negated errno value is returned.
  *
  * Assumptions:
  *   Called with the network locked.
  *
  ****************************************************************************/
 
-#ifdef CONFIG_WIRELESS_IEEE802154
 int sixlowpan_meta_data(FAR struct radio_driver_s *radio,
                         FAR const struct ieee802_txmetadata_s *pktmeta,
                         FAR struct ieee802154_frame_meta_s *meta)
@@ -206,17 +206,7 @@ int sixlowpan_meta_data(FAR struct radio_driver_s *radio,
       /* Extended destination address mode */
 
       meta->destaddr.mode = IEEE802154_ADDRMODE_EXTENDED;
-
-      /* 802.15.4 layer expects address in Little-Endian byte order */
-
-      meta->destaddr.eaddr[0] = pktmeta->dest.nm_addr[7];
-      meta->destaddr.eaddr[1] = pktmeta->dest.nm_addr[6];
-      meta->destaddr.eaddr[2] = pktmeta->dest.nm_addr[5];
-      meta->destaddr.eaddr[3] = pktmeta->dest.nm_addr[4];
-      meta->destaddr.eaddr[4] = pktmeta->dest.nm_addr[3];
-      meta->destaddr.eaddr[5] = pktmeta->dest.nm_addr[2];
-      meta->destaddr.eaddr[6] = pktmeta->dest.nm_addr[1];
-      meta->destaddr.eaddr[7] = pktmeta->dest.nm_addr[0];
+      sixlowpan_eaddrcopy(&meta->destaddr.eaddr, pktmeta->dest.nm_addr);
     }
   else
     {
@@ -236,7 +226,7 @@ int sixlowpan_meta_data(FAR struct radio_driver_s *radio,
   meta->destaddr.panid[1] = pktmeta->dpanid[0];
 
   /* Handle associated with MSDU.  Will increment once per packet, not
-   * necesarily per frame:  The same MSDU handle will be used for each
+   * necessarily per frame:  The same MSDU handle will be used for each
    * fragment of a disassembled packet.
    */
 
@@ -269,7 +259,7 @@ int sixlowpan_meta_data(FAR struct radio_driver_s *radio,
  *   meta - Meta data that describes the MAC header
  *
  * Returned Value:
- *   The frame header length is returnd on success; otherwise, a negated
+ *   The frame header length is returned on success; otherwise, a negated
  *   errno value is return on failure.
  *
  ****************************************************************************/

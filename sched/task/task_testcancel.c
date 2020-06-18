@@ -56,12 +56,12 @@
  * Description:
  *   The task_testcancel() function creates a cancellation point in the
  *   calling thread. The task_testcancel() function has no effect if
- *   cancelability is disabled
+ *   cancellability is disabled
  *
  ****************************************************************************/
 
 void task_testcancel(void)
 {
-  (void)enter_cancellation_point();
+  enter_cancellation_point();
   leave_cancellation_point();
 }

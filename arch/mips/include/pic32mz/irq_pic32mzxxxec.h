@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -299,4 +299,3 @@ extern "C"
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_MIPS_INCLUDE_PIC32MZ_IRQ_PIC32MZXXXEC_H */
-

@@ -60,7 +60,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* CONFIG_RTC - Enables general support for a hardware RTC.  Specific
  *   architectures may require other specific settings.
  *
@@ -114,13 +116,8 @@
 #  endif
 #endif
 
-#ifdef CONFIG_RTC_ALARM
-#  ifdef CONFIG_DISABLE_SIGNALS
-#    error RTC driver alarm support depends on signals
-#  endif
-#  ifndef CONFIG_RTC_NALARMS
-#    define CONFIG_RTC_NALARMS 1
-#  endif
+#if defined(CONFIG_RTC_ALARM) && !defined(CONFIG_RTC_NALARMS)
+#  define CONFIG_RTC_NALARMS 1
 #endif
 
 /* The remainder of the contain of this header file is only valid if the
@@ -130,6 +127,7 @@
 #ifdef CONFIG_RTC_DRIVER
 
 /* IOCTL Commands ***********************************************************/
+
 /* RTC driver IOCTL commands.  These are Linux compatible command names, not
  * all of these commands are supported by all RTC drivers, however.
  */
@@ -149,7 +147,6 @@
  */
 
 #define RTC_SET_TIME       _RTCIOC(0x0002)
-
 
 /* RTC_HAVE_SET_TIME checks if RTC's time had been set
  *
@@ -214,10 +211,10 @@
 
 #define RTC_USER_IOCBASE     0x000a
 
-
 /****************************************************************************
  * Public Types
  ****************************************************************************/
+
 /* IOCTL data structures */
 
 /* Broken-out time representation used with RTC IOCTL commands:
@@ -235,11 +232,9 @@ struct rtc_time
   int tm_mday;    /* Day of the month (1-31) */
   int tm_mon;     /* Month (0-11) */
   int tm_year;    /* Years since 1900 */
-#if defined(CONFIG_LIBC_LOCALTIME) || defined(CONFIG_TIME_EXTENDED)
   int tm_wday;    /* Day of the week (0-6) (unused) */
   int tm_yday;    /* Day of the year (0-365) (unused) */
   int tm_isdst;   /* Non-0 if daylight savings time is in effect (unused) */
-#endif
 #if defined(CONFIG_RTC_HIRES) || defined(CONFIG_ARCH_HAVE_RTC_SUBSECONDS)
   long tm_nsec;   /* Nanosecond (0-999999999) */
 #endif
@@ -252,32 +247,32 @@ struct rtc_time
 
 struct rtc_rdalarm_s
 {
-  uint8_t id;               /* Indicates the alarm being queried */
-  bool active;              /* Alarm actively timing or disabled */
-  struct rtc_time time;     /* Current RTC time (if enabled) */
+  uint8_t id;                /* Indicates the alarm being queried */
+  bool active;               /* Alarm actively timing or disabled */
+  struct rtc_time time;      /* Current RTC time (if enabled) */
 };
 
 /* Structure used with the RTC_SET_ALARM IOCTL command. */
 
 struct rtc_setalarm_s
 {
-  uint8_t id;               /* Indicates the alarm to be set */
-  pid_t pid;                /* Identifies task to be notified (0=caller) */
-  struct sigevent event;    /* Describe the way a task is to be notified */
-  struct rtc_time time;     /* Alarm time */
+  uint8_t id;                /* Indicates the alarm to be set */
+  pid_t pid;                 /* Identifies task to be notified (0=caller) */
+  struct sigevent event;     /* Describe the way a task is to be notified */
+  struct rtc_time time;      /* Alarm time */
 };
 
 /* Structure used with the RTC_SET_RELATIVE IOCTL command. */
 
 struct rtc_setrelative_s
 {
-  uint8_t id;               /* Indicates the alarm to be set */
-  pid_t pid;                /* Identifies task to be notified (0=caller) */
-  struct sigevent event;    /* Describe the way a task is to be notified */
-  time_t reltime;           /* Relative time in seconds */
+  uint8_t id;                /* Indicates the alarm to be set */
+  pid_t pid;                 /* Identifies task to be notified (0=caller) */
+  struct sigevent event;     /* Describe the way a task is to be notified */
+  time_t reltime;            /* Relative time in seconds */
 };
 
-/* Callback type used by the RTC harware to notify the RTC driver when the
+/* Callback type used by the RTC hardware to notify the RTC driver when the
  * alarm expires.
  */
 
@@ -287,29 +282,29 @@ typedef CODE void (*rtc_alarm_callback_t)(FAR void *priv, int alarmid);
 
 struct lower_setalarm_s
 {
-  uint8_t id;               /* Indicates the alarm to be set */
-  rtc_alarm_callback_t cb;  /* Callback when the alarm expires */
-  FAR void *priv;           /* Private argument to accompany callback */
-  struct rtc_time time;     /* Alarm time */
+  uint8_t id;                /* Indicates the alarm to be set */
+  rtc_alarm_callback_t cb;   /* Callback when the alarm expires */
+  FAR void *priv;            /* Private argument to accompany callback */
+  struct rtc_time time;      /* Alarm time */
 };
 
 /* Structure used with the setrelative method */
 
 struct lower_setrelative_s
 {
-  uint8_t id;               /* Indicates the alarm to be set */
-  rtc_alarm_callback_t cb;  /* Callback when the alarm expires */
-  FAR void *priv;           /* Private argument to accompany callback */
-  time_t reltime;           /* Relative time in seconds */
+  uint8_t id;                /* Indicates the alarm to be set */
+  rtc_alarm_callback_t cb;   /* Callback when the alarm expires */
+  FAR void *priv;            /* Private argument to accompany callback */
+  time_t reltime;            /* Relative time in seconds */
 };
 
 /* Structure used with the rdalarm method */
 
 struct lower_rdalarm_s
 {
-  uint8_t id;               /* Indicates the alarm to be set */
-  FAR void *priv;           /* Private argument to accompany callback */
-  FAR struct rtc_time *time;/* Queried RTC time pointer */
+  uint8_t id;                /* Indicates the alarm to be set */
+  FAR void *priv;            /* Private argument to accompany callback */
+  FAR struct rtc_time *time; /* Queried RTC time pointer */
 };
 #endif
 
@@ -319,13 +314,13 @@ struct lower_rdalarm_s
 
 struct rtc_setperiodic_s
 {
-  uint8_t id;               /* Indicates the alarm to be set */
-  pid_t pid;                /* Identifies task to be notified (0=caller) */
-  struct sigevent event;    /* Describe the way a task is to be notified */
-  struct timespec period;   /* Period between wakeups */
+  uint8_t id;                /* Indicates the alarm to be set */
+  pid_t pid;                 /* Identifies task to be notified (0=caller) */
+  struct sigevent event;     /* Describe the way a task is to be notified */
+  struct timespec period;    /* Period between wakeups */
 };
 
-/* Callback type used by the RTC harware to notify the RTC driver when the
+/* Callback type used by the RTC hardware to notify the RTC driver when the
  * wakeup period expires.
  */
 
@@ -405,16 +400,16 @@ struct rtc_ops_s
 #endif
 
 #ifdef CONFIG_RTC_IOCTL
-   /* Support for architecture-specific RTC operations */
+  /* Support for architecture-specific RTC operations */
 
   CODE int (*ioctl)(FAR struct rtc_lowerhalf_s *lower, int cmd,
                     unsigned long arg);
 #endif
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-   /* The driver has been unlinked and there are no further open references
-    * to the driver.
-    */
+  /* The driver has been unlinked and there are no further open references
+   * to the driver.
+   */
 
   CODE int (*destroy)(FAR struct rtc_lowerhalf_s *lower);
 #endif
@@ -453,7 +448,7 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/
 
 /****************************************************************************

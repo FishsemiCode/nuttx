@@ -59,6 +59,7 @@
  ****************************************************************************/
 
 static void mac802154_assoctimeout(FAR void *arg);
+static void mac802154_extract_assocresp(FAR void *arg);
 
 /****************************************************************************
  * Public MAC Functions
@@ -94,7 +95,7 @@ int mac802154_req_associate(MACHANDLE mac,
       return -EINVAL;
     }
 
-  /* Get exlusive access to the operation sempaphore. This must happen before
+  /* Get exclusive access to the operation semaphore. This must happen before
    * getting exclusive access to the MAC struct or else there could be a
    * lockup condition. This would occur if another thread is using the
    * cmdtrans but needs access to the MAC in order to unlock it.
@@ -146,7 +147,7 @@ int mac802154_req_associate(MACHANDLE mac,
 
   /* Allocate an IOB to put the frame in */
 
-  iob = iob_alloc(false);
+  iob = iob_alloc(false, IOBUSER_WIRELESS_MAC802154);
   DEBUGASSERT(iob != NULL);
 
   iob->io_flink  = NULL;
@@ -159,7 +160,7 @@ int mac802154_req_associate(MACHANDLE mac,
   ret = mac802154_txdesc_alloc(priv, &txdesc, true);
   if (ret < 0)
     {
-      iob_free(iob);
+      iob_free(iob, IOBUSER_WIRELESS_MAC802154);
       mac802154_unlock(priv)
       mac802154_givesem(&priv->opsem);
       return ret;
@@ -234,8 +235,9 @@ int mac802154_req_associate(MACHANDLE mac,
 
   txdesc->frame = iob;
   txdesc->frametype = IEEE802154_FRAME_COMMAND;
+  txdesc->ackreq = true;
 
-  /* Save a copy of the destination addressing infromation into the tx
+  /* Save a copy of the destination addressing information into the tx
    * descriptor.  We only do this for commands to help with handling their
    * progession.
    */
@@ -332,7 +334,7 @@ int mac802154_resp_associate(MACHANDLE mac,
 
   /* Allocate an IOB to put the frame in */
 
-  iob = iob_alloc(false);
+  iob = iob_alloc(false, IOBUSER_WIRELESS_MAC802154);
   DEBUGASSERT(iob != NULL);
 
   iob->io_flink  = NULL;
@@ -406,7 +408,7 @@ int mac802154_resp_associate(MACHANDLE mac,
    ret = mac802154_lock(priv, true);
    if (ret < 0)
      {
-       iob_free(iob);
+       iob_free(iob, IOBUSER_WIRELESS_MAC802154);
        return ret;
      }
 
@@ -415,13 +417,14 @@ int mac802154_resp_associate(MACHANDLE mac,
   ret = mac802154_txdesc_alloc(priv, &txdesc, true);
   if (ret < 0)
     {
-      iob_free(iob);
+      iob_free(iob, IOBUSER_WIRELESS_MAC802154);
       mac802154_unlock(priv)
       return ret;
     }
 
   txdesc->frame = iob;
   txdesc->frametype = IEEE802154_FRAME_COMMAND;
+  txdesc->ackreq = true;
 
   txdesc->destaddr.mode = IEEE802154_ADDRMODE_EXTENDED;
   IEEE802154_PANIDCOPY(txdesc->destaddr.panid, priv->addr.panid);
@@ -454,7 +457,6 @@ void mac802154_txdone_assocreq(FAR struct ieee802154_privmac_s *priv,
                                FAR struct ieee802154_txdesc_s *txdesc)
 {
   enum ieee802154_status_e status;
-  FAR struct ieee802154_txdesc_s *respdesc;
   FAR struct ieee802154_primitive_s *primitive =
     (FAR struct ieee802154_primitive_s *)txdesc->conf;
 
@@ -551,19 +553,13 @@ void mac802154_txdone_assocreq(FAR struct ieee802154_privmac_s *priv,
           DEBUGASSERT(priv->pandesc.coordaddr.mode !=
                       IEEE802154_ADDRMODE_NONE);
 
-          /* Send the Data Request MAC command after macResponseWaitTime to
-           * extract the data from the coordinator.
+          /* Off-load extracting the Association Response to the work queue to
+           * avoid locking up the calling thread.
            */
 
-          mac802154_txdesc_alloc(priv, &respdesc, false);
-
-          mac802154_createdatareq(priv, &priv->pandesc.coordaddr,
-                                  IEEE802154_ADDRMODE_EXTENDED, respdesc);
-
-          priv->curr_cmd = IEEE802154_CMD_DATA_REQ;
-
-          priv->radio->txdelayed(priv->radio, respdesc,
-            (priv->resp_waittime*IEEE802154_BASE_SUPERFRAME_DURATION));
+          DEBUGASSERT(work_available(&priv->macop_work));
+          work_queue(LPWORK, &priv->macop_work, mac802154_extract_assocresp,
+                     priv, 0);
         }
 
       /* Deallocate the data conf notification as it is no longer needed. */
@@ -768,7 +764,7 @@ void mac802154_rx_assocresp(FAR struct ieee802154_privmac_s *priv,
        *
        * TODO: What is supposed to happen in this situation. Are we supposed
        * to accept the request? Are we supposed to Disassociate with the
-       * network as a convienience to the PAN Coordinator. So that it does
+       * network as a convenience to the PAN Coordinator. So that it does
        * not need to waste space holding our information?
        */
 
@@ -901,4 +897,37 @@ static void mac802154_assoctimeout(FAR void *arg)
   mac802154_lock(priv, false);
   mac802154_notify(priv, primitive);
   mac802154_unlock(priv)
+}
+
+/****************************************************************************
+ * Name: mac802154_extract_assocrespj
+ *
+ * Description:
+ *   Create and send a Data request command to extract the Association response
+ *   from the Coordinator.
+ *
+ * Assumptions:
+ *   Called with the MAC unlocked.
+ *
+ ****************************************************************************/
+
+static void mac802154_extract_assocresp(FAR void *arg)
+{
+  FAR struct ieee802154_privmac_s *priv =
+    (FAR struct ieee802154_privmac_s *)arg;
+  FAR struct ieee802154_txdesc_s *respdesc;
+
+  mac802154_lock(priv, false);
+
+  mac802154_txdesc_alloc(priv, &respdesc, false);
+
+  mac802154_createdatareq(priv, &priv->pandesc.coordaddr,
+                          IEEE802154_ADDRMODE_EXTENDED, respdesc);
+
+  mac802154_unlock(priv)
+
+  priv->curr_cmd = IEEE802154_CMD_DATA_REQ;
+
+  priv->radio->txdelayed(priv->radio, respdesc,
+    (priv->resp_waittime*IEEE802154_BASE_SUPERFRAME_DURATION));
 }

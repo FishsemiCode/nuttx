@@ -50,7 +50,7 @@
 #include <arch/stm32f7/chip.h>
 
 #include "up_arch.h"
-#include "chip/stm32_syscfg.h"
+#include "hardware/stm32_syscfg.h"
 #include "stm32_gpio.h"
 
 /* Content of this file requires verification before it is used with other
@@ -118,7 +118,7 @@ const uint32_t g_gpiobase[STM32F7_NGPIO] =
  *
  * Returned Value:
  *   OK on success
- *   A negated errono value on invalid port, or when pin is locked as ALT
+ *   A negated errno value on invalid port, or when pin is locked as ALT
  *   function.
  *
  * To-Do: Auto Power Enable

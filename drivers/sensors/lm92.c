@@ -82,6 +82,7 @@ struct lm92_dev_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* I2C Helpers */
 
 static int     lm92_i2c_write(FAR struct lm92_dev_s *priv,
@@ -117,10 +118,8 @@ static const struct file_operations g_lm92fops =
   lm92_read,
   lm92_write,
   NULL,
-  lm92_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  lm92_ioctl,
+  NULL
 };
 
 /****************************************************************************

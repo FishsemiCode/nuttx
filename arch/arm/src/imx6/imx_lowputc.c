@@ -45,9 +45,9 @@
 
 #include "up_arch.h"
 
-#include "chip/imx_iomuxc.h"
-#include "chip/imx_ccm.h"
-#include "chip/imx_uart.h"
+#include "hardware/imx_iomuxc.h"
+#include "hardware/imx_ccm.h"
+#include "hardware/imx_uart.h"
 #include "imx_config.h"
 #include "imx_iomuxc.h"
 #include "imx_gpio.h"
@@ -55,7 +55,7 @@
 
 #include "up_internal.h"
 
-#include "chip/imx_pinmux.h"
+#include "hardware/imx_pinmux.h"
 #include <arch/board/board.h> /* Include last:  has dependencies */
 
 /****************************************************************************
@@ -188,13 +188,13 @@ void imx_lowsetup(void)
    * control is enabled.  REVISIT: DTR, DCD, RI, and DSR -- not configured.
    */
 
-  (void)imx_config_gpio(GPIO_UART1_RX_DATA);
-  (void)imx_config_gpio(GPIO_UART1_TX_DATA);
+  imx_config_gpio(GPIO_UART1_RX_DATA);
+  imx_config_gpio(GPIO_UART1_TX_DATA);
 #ifdef CONFIG_UART1_OFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART1_CTS);
+  imx_config_gpio(GPIO_UART1_CTS);
 #endif
 #ifdef CONFIG_UART1_IFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART1_RTS);
+  imx_config_gpio(GPIO_UART1_RTS);
 #endif
 #endif
 
@@ -210,13 +210,13 @@ void imx_lowsetup(void)
    * control is enabled.
    */
 
-  (void)imx_config_gpio(GPIO_UART2_RX_DATA);
-  (void)imx_config_gpio(GPIO_UART2_TX_DATA);
+  imx_config_gpio(GPIO_UART2_RX_DATA);
+  imx_config_gpio(GPIO_UART2_TX_DATA);
 #ifdef CONFIG_UART1_OFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART2_CTS);
+  imx_config_gpio(GPIO_UART2_CTS);
 #endif
 #ifdef CONFIG_UART1_IFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART2_RTS);
+  imx_config_gpio(GPIO_UART2_RTS);
 #endif
 #endif
 
@@ -232,13 +232,13 @@ void imx_lowsetup(void)
    * control is enabled.
    */
 
-  (void)imx_config_gpio(GPIO_UART3_RX_DATA);
-  (void)imx_config_gpio(GPIO_UART3_TX_DATA);
+  imx_config_gpio(GPIO_UART3_RX_DATA);
+  imx_config_gpio(GPIO_UART3_TX_DATA);
 #ifdef CONFIG_UART1_OFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART3_CTS);
+  imx_config_gpio(GPIO_UART3_CTS);
 #endif
 #ifdef CONFIG_UART1_IFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART3_RTS);
+  imx_config_gpio(GPIO_UART3_RTS);
 #endif
 #endif
 
@@ -254,13 +254,13 @@ void imx_lowsetup(void)
    * control is enabled.
    */
 
-  (void)imx_config_gpio(GPIO_UART4_RX_DATA);
-  (void)imx_config_gpio(GPIO_UART4_TX_DATA);
+  imx_config_gpio(GPIO_UART4_RX_DATA);
+  imx_config_gpio(GPIO_UART4_TX_DATA);
 #ifdef CONFIG_UART1_OFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART4_CTS);
+  imx_config_gpio(GPIO_UART4_CTS);
 #endif
 #ifdef CONFIG_UART1_IFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART4_RTS);
+  imx_config_gpio(GPIO_UART4_RTS);
 #endif
 #endif
 
@@ -276,20 +276,20 @@ void imx_lowsetup(void)
    * control is enabled.
    */
 
-  (void)imx_config_gpio(GPIO_UART5_RX_DATA);
-  (void)imx_config_gpio(GPIO_UART5_TX_DATA);
+  imx_config_gpio(GPIO_UART5_RX_DATA);
+  imx_config_gpio(GPIO_UART5_TX_DATA);
 #ifdef CONFIG_UART1_OFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART5_CTS);
+  imx_config_gpio(GPIO_UART5_CTS);
 #endif
 #ifdef CONFIG_UART1_IFLOWCONTROL
-  (void)imx_config_gpio(GPIO_UART5_RTS);
+  imx_config_gpio(GPIO_UART5_RTS);
 #endif
 #endif
 
 #ifdef IMX_HAVE_UART_CONSOLE
   /* Configure the serial console for initial, non-interrupt driver mode */
 
-  (void)imx_uart_configure(IMX_CONSOLE_VBASE, &g_console_config);
+  imx_uart_configure(IMX_CONSOLE_VBASE, &g_console_config);
 #endif
 #endif /* IMX_HAVE_UART */
 #endif /* CONFIG_SUPPRESS_UART_CONFIG */
@@ -367,7 +367,7 @@ int imx_uart_configure(uint32_t base, FAR const struct uart_config_s *config)
 #if 0
   if (config->hwfc)
     {
-      /* CTS controled by Rx FIFO */
+      /* CTS controlled by Rx FIFO */
 
       ucr2 |= UART_UCR2_CTSC;
 
@@ -521,7 +521,7 @@ int imx_uart_configure(uint32_t base, FAR const struct uart_config_s *config)
   putreg32(den - 1, base + UART_UBIR_OFFSET);
   putreg32(num - 1, base + UART_UBMR_OFFSET);
 
-  /* Fixup the divisor, the value in the UFCR regiser is
+  /* Fixup the divisor, the value in the UFCR register is
    *
    *   000 = Divide input clock by 6
    *   001 = Divide input clock by 5
@@ -601,7 +601,7 @@ void imx_lowputc(int ch)
 
       putreg32((uint32_t)'\r', IMX_CONSOLE_VBASE + UART_TXD_OFFSET);
 
-      /* Wait for the tranmsit regiser to be emptied. When the TXFE bit is non-zero,
+      /* Wait for the tranmsit register to be emptied. When the TXFE bit is non-zero,
        * the TX Buffer FIFO is empty.
        */
 
@@ -612,7 +612,7 @@ void imx_lowputc(int ch)
 
   putreg32((uint32_t)ch, IMX_CONSOLE_VBASE + UART_TXD_OFFSET);
 
-  /* Wait for the tranmsit regiser to be emptied. When the TXFE bit is non-zero,
+  /* Wait for the tranmsit register to be emptied. When the TXFE bit is non-zero,
    * the TX Buffer FIFO is empty.
    */
 

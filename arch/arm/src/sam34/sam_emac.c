@@ -78,7 +78,7 @@
 #include "up_internal.h"
 
 #include "chip.h"
-#include "chip/sam_pinmap.h"
+#include "hardware/sam_pinmap.h"
 #include "sam_gpio.h"
 #include "sam_periphclks.h"
 #include "sam_cmcc.h"
@@ -600,7 +600,7 @@ static uint16_t sam_txfree(struct sam_emac_s *priv)
  *
  * Description:
  *   Allocate aligned TX and RX descriptors and buffers.  For the case of
- *   pre-allocated structures, the function degenerates to a few assignements.
+ *   pre-allocated structures, the function degenerates to a few assignments.
  *
  * Input Parameters:
  *   priv - The EMAC driver state
@@ -808,8 +808,8 @@ static int sam_transmit(struct sam_emac_s *priv)
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->txtimeout, SAM_TXTIMEOUT, sam_txtimeout_expiry, 1,
-                 (uint32_t)priv);
+  wd_start(priv->txtimeout, SAM_TXTIMEOUT, sam_txtimeout_expiry, 1,
+           (uint32_t)priv);
 
   /* Set d_len to zero meaning that the d_buf[] packet buffer is again
    * available.
@@ -952,7 +952,7 @@ static void sam_dopoll(struct sam_emac_s *priv)
     {
       /* If we have the descriptor, then poll the network for new XMIT data. */
 
-      (void)devif_poll(dev, sam_txpoll);
+      devif_poll(dev, sam_txpoll);
     }
 }
 
@@ -1275,7 +1275,7 @@ static void sam_receive(struct sam_emac_s *priv)
 #ifdef CONFIG_NET_IPv6
       if (BUF->type == HTONS(ETHTYPE_IP6))
         {
-          ninfo("Iv6 frame\n");
+          ninfo("IPv6 frame\n");
 
           /* Give the IPv6 packet to the network layer */
 
@@ -1773,12 +1773,12 @@ static void sam_poll_work(FAR void *arg)
     {
       /* Update TCP timing states and poll the network for new XMIT data. */
 
-      (void)devif_timer(dev, sam_txpoll);
+      devif_timer(dev, SAM_WDDELAY, sam_txpoll);
     }
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->txpoll, SAM_WDDELAY, sam_poll_expiry, 1, priv);
+  wd_start(priv->txpoll, SAM_WDDELAY, sam_poll_expiry, 1, priv);
   net_unlock();
 }
 
@@ -1877,7 +1877,7 @@ static int sam_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->txpoll, SAM_WDDELAY, sam_poll_expiry, 1, (uint32_t)priv);
+  wd_start(priv->txpoll, SAM_WDDELAY, sam_poll_expiry, 1, (uint32_t)priv);
 
   /* Enable the EMAC interrupt */
 
@@ -2504,7 +2504,7 @@ static int sam_phyintenable(struct sam_emac_s *priv)
       /* Enable link up/down interrupts */
 
       ret = sam_phywrite(priv, priv->phyaddr, MII_KSZ8081_INT,
-                        (MII_KSZ80x1_INT_LDEN | MII_KSZ80x1_INT_LUEN));
+                        (MII_KSZ80X1_INT_LDEN | MII_KSZ80X1_INT_LUEN));
     }
 
   /* Disable management port (probably) */
@@ -2858,7 +2858,7 @@ static int sam_autonegotiate(struct sam_emac_s *priv)
   regval |= EMAC_NCR_MPE;
   sam_putreg(priv, SAM_EMAC_NCR, regval);
 
-  /* Verify tht we can read the PHYID register */
+  /* Verify that we can read the PHYID register */
 
   ret = sam_phyread(priv, priv->phyaddr, MII_PHYID1, &phyid1);
   if (ret < 0)
@@ -3504,7 +3504,7 @@ static void sam_ipv6multicast(struct sam_emac_s *priv)
   ninfo("IPv6 Multicast: %02x:%02x:%02x:%02x:%02x:%02x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  (void)sam_addmac(dev, mac);
+  sam_addmac(dev, mac);
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
   /* Add the IPv6 all link-local nodes Ethernet address.  This is the
@@ -3512,7 +3512,7 @@ static void sam_ipv6multicast(struct sam_emac_s *priv)
    * packets.
    */
 
-  (void)sam_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
+  sam_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
 #ifdef CONFIG_NET_ICMPv6_ROUTER
@@ -3521,7 +3521,7 @@ static void sam_ipv6multicast(struct sam_emac_s *priv)
    * packets.
    */
 
-  (void)sam_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
+  sam_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_ROUTER */
 }
@@ -3571,7 +3571,7 @@ static int sam_emac_configure(struct sam_emac_s *priv)
 
   /* Clear any pending interrupts */
 
-  (void)sam_getreg(priv, SAM_EMAC_ISR);
+  sam_getreg(priv, SAM_EMAC_ISR);
 
   /* Enable/disable the copy of data into the buffers, ignore broadcasts.
    * Don't copy FCS.

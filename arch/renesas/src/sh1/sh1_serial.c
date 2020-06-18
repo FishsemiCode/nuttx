@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -440,7 +439,7 @@ static int up_setup(struct uart_dev_s *dev)
 
   up_udelay(100);
 
-  /* Then enable the transmitter and reciever */
+  /* Then enable the transmitter and receiver */
 
   priv->scr |= (SH1_SCISCR_TE | SH1_SCISCR_RE);
   up_serialout(priv, SH1_SCI_SCR_OFFSET, priv->scr);
@@ -509,12 +508,12 @@ static int up_attach(struct uart_dev_s *dev)
 
           /* Detach the ERI interrupt on failure */
 
-          (void)irq_detach(priv->irq + SH1_ERI_IRQ_OFFSET);
+          irq_detach(priv->irq + SH1_ERI_IRQ_OFFSET);
         }
 
       /* Detach the RXI interrupt on failure */
 
-      (void)irq_detach(priv->irq + SH1_RXI_IRQ_OFFSET);
+      irq_detach(priv->irq + SH1_RXI_IRQ_OFFSET);
     }
 
   return ret;
@@ -540,9 +539,9 @@ static void up_detach(struct uart_dev_s *dev)
 
   /* Detach the SCI interrupts */
 
-  (void)irq_detach(priv->irq + SH1_RXI_IRQ_OFFSET);
-  (void)irq_detach(priv->irq + SH1_ERI_IRQ_OFFSET);
-  (void)irq_detach(priv->irq + SH1_RXI_IRQ_OFFSET);
+  irq_detach(priv->irq + SH1_RXI_IRQ_OFFSET);
+  irq_detach(priv->irq + SH1_ERI_IRQ_OFFSET);
+  irq_detach(priv->irq + SH1_RXI_IRQ_OFFSET);
 
 #ifdef CONFIG_ARCH_IRQPRIO
   /* Set the interrupt priority to zero (masking all SCI interrupts).  NOTE
@@ -561,7 +560,7 @@ static void up_detach(struct uart_dev_s *dev)
  *   when an interrupt received on the 'irq'  It should call
  *   uart_transmitchars or uart_receivechar to perform the
  *   appropriate data transfers.  The interrupt handling logic\
- *   must be able to map the 'irq' number into the approprite
+ *   must be able to map the 'irq' number into the appropriate
  *   up_dev_s structure in order to call these functions.
  *
  ****************************************************************************/
@@ -865,15 +864,15 @@ void up_consoleinit(void)
   /* Register the console */
 
 #ifdef HAVE_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all SCIs */
 
 #ifdef TTYS0_DEV
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 #endif
 }

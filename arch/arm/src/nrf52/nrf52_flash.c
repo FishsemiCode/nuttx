@@ -54,8 +54,8 @@
 
 #include "up_arch.h"
 
-#include "chip/nrf52_ficr.h"
-#include "chip/nrf52_nvmc.h"
+#include "hardware/nrf52_ficr.h"
+#include "hardware/nrf52_nvmc.h"
 #include "nrf52_nvmc.h"
 
 /****************************************************************************
@@ -323,7 +323,6 @@ ssize_t up_progmem_write(size_t addr, const void *buf, size_t count)
     {
       return -EFAULT;
     }
-
 
   /* Get flash ready and begin flashing */
 

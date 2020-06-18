@@ -54,7 +54,7 @@
 #define TCGETS          _TIOC(0x0001)  /* Get serial port settings: FAR struct termios* */
 #define TCSETS          _TIOC(0x0002)  /* Set serial port settings: FAR const struct termios* */
 #define TCSETSW         _TIOC(0x0003)  /* Drain output and set serial port settings: FAR const struct termios* */
-#define TCSETSF         _TIOC(0x0004)  /* Drain output, discard intput, and set serial port settings: FAR const struct termios* */
+#define TCSETSF         _TIOC(0x0004)  /* Drain output, discard input, and set serial port settings: FAR const struct termios* */
 #define TCGETA          _TIOC(0x0005)  /* See TCGETS: FAR struct termio* */
 #define TCSETA          _TIOC(0x0006)  /* See TCSETS: FAR const struct termio* */
 #define TCSETAW         _TIOC(0x0007)  /* See TCSETSF: FAR const struct termio* */
@@ -174,7 +174,7 @@
 
 /* Definitions for flags used in struct serial_rs485 (Linux compatible) */
 
-#  define SER_RS485_ENABLED        (1 << 0) /* Enable/disble RS-485 support */
+#  define SER_RS485_ENABLED        (1 << 0) /* Enable/disable RS-485 support */
 #  define SER_RS485_RTS_ON_SEND    (1 << 1) /* Logic level for RTS pin when sending */
 #  define SER_RS485_RTS_AFTER_SEND (1 << 2) /* Logic level for RTS pin after sent */
 #  define SER_RS485_RX_DURING_TX   (1 << 4)
@@ -184,11 +184,31 @@
 #define TIOCSSINGLEWIRE _TIOC(0x0030)  /* Set single-wire mode */
 #define TIOCGSINGLEWIRE _TIOC(0x0031)  /* Get single-wire mode */
 
-#  define SER_SINGLEWIRE_ENABLED   (1 << 0) /* Enable/disable single-wire support */
+#  define SER_SINGLEWIRE_ENABLED      (1 << 0) /* Enable/disable single-wire support */
+#  define SER_SINGLEWIRE_PULL_SHIFT   (1)      /* RX/TX Line Pullup/down control */
+#  define SER_SINGLEWIRE_PULL_MASK    (3 << SER_SINGLEWIRE_PULL_SHIFT)
+#  define SER_SINGLEWIRE_PULL_DISABLE (0 << SER_SINGLEWIRE_PULL_SHIFT) /* Float RX/TX Line */
+#  define SER_SINGLEWIRE_PULLUP       (1 << SER_SINGLEWIRE_PULL_SHIFT) /* Enable Pull up the RX/TX Line */
+#  define SER_SINGLEWIRE_PULLDOWN     (2 << SER_SINGLEWIRE_PULL_SHIFT) /* Enable Pull down the RX/TX Line */
 
 /* Debugging */
 
 #define TIOCSERGSTRUCT  _TIOC(0x0032) /* Get device TTY structure */
+
+/* Inversion Support */
+
+#define TIOCSINVERT     _TIOC(0x0033)  /* Set Signal Inversion */
+#define TIOCGINVERT     _TIOC(0x0034)  /* Get Signal Inversion */
+
+#define SER_INVERT_ENABLED_RX   (1 << 0) /* Enable/disable signal inversion for RX */
+#define SER_INVERT_ENABLED_TX   (1 << 1) /* Enable/disable signal inversion for TX */
+
+/* RX/TX Swap Support */
+
+#define TIOCSSWAP       _TIOC(0x0035)  /* Set RX/TX Swap */
+#define TIOCGSWAP       _TIOC(0x0036)  /* Get RX/TX Swap */
+
+#define SER_SWAP_ENABLED   (1 << 0) /* Enable/disable RX/TX swap */
 
 /********************************************************************************************
  * Public Type Definitions

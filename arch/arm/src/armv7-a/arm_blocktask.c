@@ -58,50 +58,35 @@
  * Name: up_block_task
  *
  * Description:
- *   The currently executing task at the head of
- *   the ready to run list must be stopped.  Save its context
- *   and move it to the inactive list specified by task_state.
+ *   The currently executing task at the head of the ready to run list must
+ *   be stopped.  Save its context and move it to the inactive list
+ *   specified by task_state.
  *
  * Input Parameters:
- *   tcb: Refers to a task in the ready-to-run list (normally
- *     the task at the head of the list).  It most be
- *     stopped, its context saved and moved into one of the
- *     waiting task lists.  It it was the task at the head
- *     of the ready-to-run list, then a context to the new
+ *   tcb: Refers to a task in the ready-to-run list (normally the task at
+ *     the head of the list).  It must be stopped, its context saved and
+ *     moved into one of the waiting task lists.  If it was the task at the
+ *     head of the ready-to-run list, then a context switch to the new
  *     ready to run task must be performed.
- *   task_state: Specifies which waiting task list should be
- *     hold the blocked task TCB.
+ *   task_state: Specifies which waiting task list should hold the blocked
+ *     task TCB.
  *
  ****************************************************************************/
 
 void up_block_task(struct tcb_s *tcb, tstate_t task_state)
 {
-  struct tcb_s *rtcb;
+  struct tcb_s *rtcb = this_task();
   bool switch_needed;
-#ifdef CONFIG_SMP
-  int cpu;
-
-  /* Get the TCB of the currently executing task on this CPU (avoid using
-   * this_task() because the TCBs may be in an inappropriate state right
-   * now).
-   */
-
-  cpu  = this_cpu();
-  rtcb = current_task(cpu);
-#else
-  rtcb = this_task();
-#endif
 
   /* Verify that the context switch can be performed */
 
   DEBUGASSERT((tcb->task_state >= FIRST_READY_TO_RUN_STATE) &&
               (tcb->task_state <= LAST_READY_TO_RUN_STATE));
 
-  /* Remove the tcb task from the ready-to-run list.  If we
-   * are blocking the task at the head of the task list (the
-   * most likely case), then a context switch to the next
-   * ready-to-run task is needed. In this case, it should
-   * also be true that rtcb == tcb.
+  /* Remove the tcb task from the ready-to-run list.  If we are blocking the
+   * task at the head of the task list (the most likely case), then a
+   * context switch to the next ready-to-run task is needed. In this case,
+   * it should also be true that rtcb == tcb.
    */
 
   switch_needed = sched_removereadytorun(tcb);
@@ -141,11 +126,7 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
            * of the ready-to-run task list.
            */
 
-#ifdef CONFIG_SMP
-          rtcb = current_task(cpu);
-#else
           rtcb = this_task();
-#endif
 
           /* Reset scheduler parameters */
 
@@ -169,11 +150,7 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
            * of the ready-to-run task list.
            */
 
-#ifdef CONFIG_SMP
-          rtcb = current_task(cpu);
-#else
           rtcb = this_task();
-#endif
 
 #ifdef CONFIG_ARCH_ADDRENV
           /* Make sure that the address environment for the previously
@@ -182,7 +159,7 @@ void up_block_task(struct tcb_s *tcb, tstate_t task_state)
            * thread at the head of the ready-to-run list.
            */
 
-          (void)group_addrenv(rtcb);
+          group_addrenv(rtcb);
 #endif
           /* Reset scheduler parameters */
 

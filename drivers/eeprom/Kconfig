@@ -3,7 +3,14 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+menuconfig EEPROM
+	bool "EEPROM support"
+	default n
+	---help---
+		This directory holds implementations of EEPROM drivers.
+
 if EEPROM
+
 config SPI_EE_25XX
 	bool "Microchip 25xxNNN / Atmel AT25NNN / ST M95NNN SPI EEPROM devices"
 	default n
@@ -41,6 +48,15 @@ config EE24XX_FREQUENCY
 	default 100000
 	depends on I2C_EE_24XX
 
+config AT24CS_UUID
+	bool "Device driver support for Atmel AT24CSxx UUID"
+	default n
+	depends on I2C_EE_24XX
+	---help---
+		The Atmel AT24CSxx family have a 128-bit UUID which appears as
+		another I2C slave whose address is offset from the EEPROM by +8.
+		This option registers a char device driver with the ".uuid" suffix.
+
 endif # I2C_EE_24XX
 
-endif # EEPROM
+endif

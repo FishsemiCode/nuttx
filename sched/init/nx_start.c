@@ -51,6 +51,7 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
 #include <nuttx/lib/lib.h>
+#include <nuttx/mm/iob.h>
 #include <nuttx/mm/mm.h>
 #include <nuttx/mm/shm.h>
 #include <nuttx/kmalloc.h>
@@ -90,6 +91,7 @@
  ****************************************************************************/
 
 /* Task Lists ***************************************************************/
+
 /* The state of a task is indicated both by the task_state field of the TCB
  * and by a series of task lists.  All of these tasks lists are declared
  * below. Although it is not always necessary, most of these lists are
@@ -164,11 +166,9 @@ volatile dq_queue_t g_pendingtasks;
 
 volatile dq_queue_t g_waitingforsemaphore;
 
-#ifndef CONFIG_DISABLE_SIGNALS
 /* This is the list of all tasks that are blocked waiting for a signal */
 
 volatile dq_queue_t g_waitingforsignal;
-#endif
 
 #ifndef CONFIG_DISABLE_MQUEUE
 /* This is the list of all tasks that are blocked waiting for a message
@@ -193,7 +193,9 @@ volatile dq_queue_t g_waitingforfill;
 #endif
 
 #ifdef CONFIG_SIG_SIGSTOP_ACTION
-/* This is the list of all tasks that have been stopped via SIGSTOP or SIGSTP */
+/* This is the list of all tasks that have been stopped
+ * via SIGSTOP or SIGSTP
+ */
 
 volatile dq_queue_t g_stoppedtasks;
 #endif
@@ -267,14 +269,11 @@ const struct tasklist_s g_tasklisttable[NUM_TASK_STATES] =
   {                                              /* TSTATE_WAIT_SEM */
     &g_waitingforsemaphore,
     TLIST_ATTR_PRIORITIZED
-  }
-#ifndef CONFIG_DISABLE_SIGNALS
-  ,
+  },
   {                                              /* TSTATE_WAIT_SIG */
     &g_waitingforsignal,
     0
   }
-#endif
 #ifndef CONFIG_DISABLE_MQUEUE
   ,
   {                                              /* TSTATE_WAIT_MQNOTEMPTY */
@@ -312,6 +311,7 @@ uint8_t g_nx_initstate;  /* See enum nx_initstate_e */
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
 /* This is an array of task control block (TCB) for the IDLE thread of each
  * CPU.  For the non-SMP case, this is a a single TCB; For the SMP case,
  * there is one TCB per CPU.  NOTE: The system boots on CPU0 into the IDLE
@@ -369,11 +369,7 @@ static FAR char *g_idleargv[1][2];
 
 void nx_start(void)
 {
-#ifdef CONFIG_SMP
-  int cpu;
-#else
-# define cpu 0
-#endif
+  int cpu = 0;
   int i;
 
   sinfo("Entry\n");
@@ -383,14 +379,13 @@ void nx_start(void)
   g_nx_initstate = OSINIT_BOOT;
 
   /* Initialize RTOS Data ***************************************************/
+
   /* Initialize all task lists */
 
   dq_init(&g_readytorun);
   dq_init(&g_pendingtasks);
   dq_init(&g_waitingforsemaphore);
-#ifndef CONFIG_DISABLE_SIGNALS
   dq_init(&g_waitingforsignal);
-#endif
 #ifndef CONFIG_DISABLE_MQUEUE
   dq_init(&g_waitingformqnotfull);
   dq_init(&g_waitingformqnotempty);
@@ -447,7 +442,7 @@ void nx_start(void)
 
       /* Set the entry point.  This is only for debug purposes.  NOTE: that
        * the start_t entry point is not saved.  That is acceptable, however,
-       * becaue it can be used only for restarting a task: The IDLE task
+       * because it can be used only for restarting a task: The IDLE task
        * cannot be restarted.
        */
 
@@ -518,7 +513,7 @@ void nx_start(void)
       g_idleargv[cpu][1]  = NULL;
       g_idletcb[cpu].argv = &g_idleargv[cpu][0];
 
-      /* Then add the idle task's TCB to the head of the corrent ready to
+      /* Then add the idle task's TCB to the head of the current ready to
        * run list.
        */
 
@@ -554,38 +549,48 @@ void nx_start(void)
     defined(CONFIG_MM_PGALLOC)
   /* Initialize the memory manager */
 
-  {
-    FAR void *heap_start;
-    size_t heap_size;
+    {
+      FAR void *heap_start;
+      size_t heap_size;
 
 #ifdef MM_KERNEL_USRHEAP_INIT
-    /* Get the user-mode heap from the platform specific code and configure
-     * the user-mode memory allocator.
-     */
+      /* Get the user-mode heap from the platform specific code and configure
+       * the user-mode memory allocator.
+       */
 
-    up_allocate_heap(&heap_start, &heap_size);
-    kumm_initialize(heap_start, heap_size);
+      up_allocate_heap(&heap_start, &heap_size);
+      kumm_initialize(heap_start, heap_size);
 #endif
 
 #ifdef CONFIG_MM_KERNEL_HEAP
-    /* Get the kernel-mode heap from the platform specific code and configure
-     * the kernel-mode memory allocator.
-     */
+      /* Get the kernel-mode heap from the platform specific code and
+       * configure the kernel-mode memory allocator.
+       */
 
-    up_allocate_kheap(&heap_start, &heap_size);
-    kmm_initialize(heap_start, heap_size);
+      up_allocate_kheap(&heap_start, &heap_size);
+      kmm_initialize(heap_start, heap_size);
+#endif
+
+#ifdef CONFIG_ARCH_USE_MODULE_TEXT
+    up_module_text_init();
 #endif
 
 #ifdef CONFIG_MM_PGALLOC
-    /* If there is a page allocator in the configuration, then get the page
-     * heap information from the platform-specific code and configure the
-     * page allocator.
-     */
+      /* If there is a page allocator in the configuration, then get the page
+       * heap information from the platform-specific code and configure the
+       * page allocator.
+       */
 
-    up_allocate_pgheap(&heap_start, &heap_size);
-    mm_pginitialize(heap_start, heap_size);
+      up_allocate_pgheap(&heap_start, &heap_size);
+      mm_pginitialize(heap_start, heap_size);
 #endif
-  }
+    }
+#endif
+
+#ifdef CONFIG_MM_IOB
+  /* Initialize IO buffering */
+
+  iob_initialize();
 #endif
 
   /* The memory manager is available */
@@ -639,7 +644,6 @@ void nx_start(void)
     }
 #endif
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* Initialize the signal facility (if in link) */
 
 #ifdef CONFIG_HAVE_WEAKFUNCTIONS
@@ -648,7 +652,6 @@ void nx_start(void)
     {
       nxsig_initialize();
     }
-#endif
 
 #ifndef CONFIG_DISABLE_MQUEUE
   /* Initialize the named message queue facility (if in link) */
@@ -726,6 +729,7 @@ void nx_start(void)
 #endif
 
   /* IDLE Group Initialization **********************************************/
+
   /* Announce that the CPU0 IDLE task has started */
 
   sched_note_start(&g_idletcb[0].cmn);
@@ -767,12 +771,13 @@ void nx_start(void)
     }
 
   /* Start SYSLOG ***********************************************************/
+
   /* Late initialization of the system logging device.  Some SYSLOG channel
    * must be initialized late in the initialization sequence because it may
    * depend on having IDLE task file structures setup.
    */
 
-  syslog_initialize(SYSLOG_INIT_LATE);
+  syslog_initialize();
 
 #ifdef CONFIG_SMP
   /* Start all CPUs *********************************************************/
@@ -794,6 +799,7 @@ void nx_start(void)
 #endif /* CONFIG_SMP */
 
   /* Bring Up the System ****************************************************/
+
   /* The OS is fully initialized and we are beginning multi-tasking */
 
   g_nx_initstate = OSINIT_OSREADY;
@@ -810,6 +816,7 @@ void nx_start(void)
 #endif /* CONFIG_SMP */
 
   /* The IDLE Loop **********************************************************/
+
   /* When control is return to this point, the system is idle. */
 
   sinfo("CPU0: Beginning Idle Loop\n");

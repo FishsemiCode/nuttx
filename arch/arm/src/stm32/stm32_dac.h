@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "chip/stm32_dac.h"
+#include "hardware/stm32_dac.h"
 
 #include <nuttx/analog/dac.h>
 
@@ -134,7 +134,7 @@ extern "C"
  *   intf - The DAC interface number.
  *
  * Returned Value:
- *   Valid dac device structure reference on succcess; a NULL on failure
+ *   Valid DAC device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -148,4 +148,3 @@ FAR struct dac_dev_s *stm32_dacinitialize(int intf);
 #endif /* __ASSEMBLY__ */
 
 #endif /* __ARCH_ARM_SRC_STM32_STM32_DAC_H */
-

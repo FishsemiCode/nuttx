@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h (via arch/irq.h)
  */
 
@@ -186,7 +186,6 @@ struct xcptcontext
 
   chipreg_t regs[XCPTCONTEXT_REGS];
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-zero if there
    * are pending signals to be processed.
    */
@@ -203,7 +202,6 @@ struct xcptcontext
 
   uint16_t saved_pc;    /* Saved return address */
   uint16_t saved_i;     /* Saved interrupt state */
-#endif
 };
 #endif
 
@@ -248,4 +246,3 @@ irqstate_t up_irq_enable(void);
 #endif
 
 #endif /* __ARCH_Z80_INCLUDE_Z180_IRQ_H */
-

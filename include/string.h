@@ -45,9 +45,11 @@
 #include <limits.h>
 #include <stddef.h>
 
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
+/* Non-standard support for cases where CHAR_BIT != 8 carried in strings.h
+ * only for convenience.  See include/nuttx/b2c.h.
+ */
+
+#include <nuttx/b2c.h>
 
 #if CHAR_BIT == 8
 #  define CHAR_BYTE  1

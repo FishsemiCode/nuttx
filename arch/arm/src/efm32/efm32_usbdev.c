@@ -60,7 +60,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/efm32_cmu.h"
+#include "hardware/efm32_cmu.h"
 
 #include "efm32_usb.h"
 
@@ -254,7 +254,7 @@
 
 #define EP0                          (0)
 
-/* The set of all enpoints available to the class implementation (1-3) */
+/* The set of all endpoints available to the class implementation (1-3) */
 
 #define EFM32_EP_AVAILABLE           (0x0e)       /* All available endpoints */
 
@@ -454,12 +454,12 @@ struct efm32_usbdev_s
    *   the accompanying EP0 IN data in ep0data[] before the SETUP command is
    *   processed.
    *
-   *   For IN SETUP requests, the DATA phase will occurr AFTER the SETUP
+   *   For IN SETUP requests, the DATA phase will occur AFTER the SETUP
    *   control request is processed.  In that case, ep0data[] may be used as
    *   the response buffer.
    *
    * ep0datlen
-   *   Lenght of OUT DATA received in ep0data[] (Not used with OUT data)
+   *   Length of OUT DATA received in ep0data[] (Not used with OUT data)
    */
 
   struct usb_ctrlreq_s    ctrlreq;
@@ -809,7 +809,7 @@ static uint32_t efm32_getreg(uint32_t addr)
 
   uint32_t val = getreg32(addr);
 
-  /* Is this the same value that we read from the same registe last time?  Are
+  /* Is this the same value that we read from the same register last time?  Are
    * we polling the register?  If so, suppress some of the output.
    */
 
@@ -1398,7 +1398,7 @@ static void efm32_rxfifo_read(FAR struct efm32_ep_s *privep,
   int i;
 
   /* Get the address of the RxFIFO.  Note:  there is only one RxFIFO so
-   * we might as well use the addess associated with EP0.
+   * we might as well use the address associated with EP0.
    */
 
   regaddr = EFM32_USB_FIFO_BASE(EP0);
@@ -1452,7 +1452,7 @@ static void efm32_rxfifo_discard(FAR struct efm32_ep_s *privep, int len)
       for (i = 0; i < len; i += 4)
         {
           volatile uint32_t data = efm32_getreg(regaddr);
-          (void)data;
+          UNUSED(data);
         }
     }
 }
@@ -2223,7 +2223,7 @@ static inline void efm32_ep0out_stdrequest(struct efm32_usbdev_s *priv,
               {
                 /* Actually, I think we could just stall here. */
 
-                (void)efm32_req_dispatch(priv, &priv->ctrlreq);
+                efm32_req_dispatch(priv, &priv->ctrlreq);
               }
           }
         else
@@ -2269,7 +2269,7 @@ static inline void efm32_ep0out_stdrequest(struct efm32_usbdev_s *priv,
               {
                 /* Actually, I think we could just stall here. */
 
-                (void)efm32_req_dispatch(priv, &priv->ctrlreq);
+                efm32_req_dispatch(priv, &priv->ctrlreq);
               }
             else
               {
@@ -2333,7 +2333,7 @@ static inline void efm32_ep0out_stdrequest(struct efm32_usbdev_s *priv,
         usbtrace(TRACE_INTDECODE(EFM32_TRACEINTID_GETSETDESC), 0);
         if ((ctrlreq->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE)
           {
-            (void)efm32_req_dispatch(priv, &priv->ctrlreq);
+            efm32_req_dispatch(priv, &priv->ctrlreq);
           }
         else
           {
@@ -2358,7 +2358,7 @@ static inline void efm32_ep0out_stdrequest(struct efm32_usbdev_s *priv,
             ctrlreq->index == 0 &&
             ctrlreq->len == 1)
           {
-            (void)efm32_req_dispatch(priv, &priv->ctrlreq);
+            efm32_req_dispatch(priv, &priv->ctrlreq);
           }
         else
           {
@@ -2430,7 +2430,7 @@ static inline void efm32_ep0out_stdrequest(struct efm32_usbdev_s *priv,
 
       {
         usbtrace(TRACE_INTDECODE(EFM32_TRACEINTID_GETSETIF), 0);
-        (void)efm32_req_dispatch(priv, &priv->ctrlreq);
+        efm32_req_dispatch(priv, &priv->ctrlreq);
       }
       break;
 
@@ -2508,7 +2508,7 @@ static inline void efm32_ep0out_setup(struct efm32_usbdev_s *priv)
     {
       /* Dispatch any non-standard requests */
 
-      (void)efm32_req_dispatch(priv, &priv->ctrlreq);
+      efm32_req_dispatch(priv, &priv->ctrlreq);
     }
   else
     {
@@ -2525,7 +2525,7 @@ static inline void efm32_ep0out_setup(struct efm32_usbdev_s *priv)
       efm32_ep0_stall(priv);
     }
 
-  /* Reset state/data associated with thie SETUP request */
+  /* Reset state/data associated with the SETUP request */
 
    priv->ep0datlen = 0;
 }
@@ -2659,7 +2659,7 @@ static inline void efm32_epout_interrupt(FAR struct efm32_usbdev_s *priv)
           doepint  = efm32_getreg(EFM32_USB_DOEPINT(epno));
           doepint &= efm32_getreg(EFM32_USB_DOEPMSK);
 
-          /* Transfer completed interrupt.  This interrupt is trigged when
+          /* Transfer completed interrupt.  This interrupt is triggered when
            * efm32_rxinterrupt() removes the last packet data from the RxFIFO.
            * In this case, core internally sets the NAK bit for this endpoint to
            * prevent it from receiving any more packets.
@@ -2806,7 +2806,7 @@ static inline void efm32_epin_txfifoempty(FAR struct efm32_usbdev_s *priv, int e
   FAR struct efm32_ep_s *privep = &priv->epin[epno];
 
   /* Continue processing the write request queue.  This may mean sending
-   * more data from the exisiting request or terminating the current requests
+   * more data from the existing request or terminating the current requests
    * and (perhaps) starting the IN transfer from the next write request.
    */
 
@@ -4007,17 +4007,17 @@ static void efm32_ep0_configure(FAR struct efm32_usbdev_s *priv)
 {
   /* Enable EP0 IN and OUT */
 
-  (void)efm32_epin_configure(&priv->epin[EP0], USB_EP_ATTR_XFER_CONTROL,
-                             CONFIG_USBDEV_EP0_MAXSIZE);
-  (void)efm32_epout_configure(&priv->epout[EP0], USB_EP_ATTR_XFER_CONTROL,
-                              CONFIG_USBDEV_EP0_MAXSIZE);
+  efm32_epin_configure(&priv->epin[EP0], USB_EP_ATTR_XFER_CONTROL,
+                       CONFIG_USBDEV_EP0_MAXSIZE);
+  efm32_epout_configure(&priv->epout[EP0], USB_EP_ATTR_XFER_CONTROL,
+                        CONFIG_USBDEV_EP0_MAXSIZE);
 }
 
 /****************************************************************************
  * Name: efm32_epout_disable
  *
  * Description:
- *   Diable an OUT endpoint will no longer be used
+ *   Disable an OUT endpoint will no longer be used
  *
  ****************************************************************************/
 
@@ -4064,7 +4064,7 @@ static void efm32_epout_disable(FAR struct efm32_ep_s *privep)
 
   efm32_putreg(USB_DOEPINT_EPDISBLD, EFM32_USB_DOEPINT(privep->epphy));
 
-  /* Then disble the Global OUT NAK mode to continue receiving data
+  /* Then disable the Global OUT NAK mode to continue receiving data
    * from other non-disabled OUT endpoints.
    */
 
@@ -5206,7 +5206,7 @@ static void efm32_hwinitialize(FAR struct efm32_usbdev_s *priv)
    */
 
   /* I never saw this in original EFM32 lib
-   * and in refrence manual I found:
+   * and in reference manual I found:
    *    "Non-periodic TxFIFO Empty Level (can be enabled only when the core is
    *    operating in Slave mode as a host.)"
    */
@@ -5531,7 +5531,7 @@ void up_usbuninitialize(void)
 
   usbtrace(TRACE_DEVUNINIT, 0);
 
-  /* To be sure that usb ref are writen, turn on USB clocking */
+  /* To be sure that usb ref are written, turn on USB clocking */
 
   modifyreg32(EFM32_CMU_HFCORECLKEN0, 0,
               CMU_HFCORECLKEN0_USB | CMU_HFCORECLKEN0_USBC);

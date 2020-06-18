@@ -296,9 +296,9 @@ static inline void nxtask_groupexit(FAR struct task_group_s *group)
  *
  ****************************************************************************/
 
-#if defined(CONFIG_SCHED_HAVE_PARENT) && !defined(CONFIG_DISABLE_SIGNALS)
+#ifdef CONFIG_SCHED_HAVE_PARENT
 #ifdef HAVE_GROUP_MEMBERS
-static inline void nxtask_sigchild(gid_t pgid, FAR struct tcb_s *ctcb,
+static inline void nxtask_sigchild(grpid_t pgrpid, FAR struct tcb_s *ctcb,
                                    int status)
 {
   FAR struct task_group_s *chgrp = ctcb->group;
@@ -312,14 +312,14 @@ static inline void nxtask_sigchild(gid_t pgid, FAR struct tcb_s *ctcb,
    * this case, the child task group has been orphaned.
    */
 
-  pgrp = group_findbygid(pgid);
+  pgrp = group_findby_grpid(pgrpid);
   if (!pgrp)
     {
       /* Set the task group ID to an invalid group ID.  The dead parent
        * task group ID could get reused some time in the future.
        */
 
-      chgrp->tg_pgid = INVALID_GROUP_ID;
+      chgrp->tg_pgrpid = INVALID_GROUP_ID;
       return;
     }
 
@@ -363,7 +363,7 @@ static inline void nxtask_sigchild(gid_t pgid, FAR struct tcb_s *ctcb,
 
       /* Send the signal to one thread in the group */
 
-      (void)group_signal(pgrp, &info);
+      group_signal(pgrp, &info);
     }
 }
 
@@ -418,16 +418,16 @@ static inline void nxtask_sigchild(FAR struct tcb_s *ptcb,
        * can provide the correct si_code value with the signal.
        */
 
-      (void)nxsig_tcbdispatch(ptcb, &info);
+      nxsig_tcbdispatch(ptcb, &info);
     }
 }
 
 #endif /* HAVE_GROUP_MEMBERS */
-#else /* CONFIG_SCHED_HAVE_PARENT && !CONFIG_DISABLE_SIGNALS */
+#else /* CONFIG_SCHED_HAVE_PARENT */
 
 #  define nxtask_sigchild(x,ctcb,status)
 
-#endif /* CONFIG_SCHED_HAVE_PARENT && !CONFIG_DISABLE_SIGNALS */
+#endif /* CONFIG_SCHED_HAVE_PARENT */
 
 /****************************************************************************
  * Name: nxtask_signalparent
@@ -449,7 +449,7 @@ static inline void nxtask_signalparent(FAR struct tcb_s *ctcb, int status)
 
   /* Send SIGCHLD to all members of the parent's task group */
 
-  nxtask_sigchild(ctcb->group->tg_pgid, ctcb, status);
+  nxtask_sigchild(ctcb->group->tg_pgrpid, ctcb, status);
   sched_unlock();
 #else
   FAR struct tcb_s *ptcb;
@@ -459,9 +459,7 @@ static inline void nxtask_signalparent(FAR struct tcb_s *ctcb, int status)
   sched_lock();
 
   /* Get the TCB of the receiving, parent task.  We do this early to
-   * handle multiple calls to nxtask_signalparent.  ctcb->group->tg_ppid is
-   * set to an invalid value below and the following call will fail if we
-   * are called again.
+   * handle multiple calls to nxtask_signalparent.
    */
 
   ptcb = sched_gettcb(ctcb->group->tg_ppid);
@@ -473,13 +471,13 @@ static inline void nxtask_signalparent(FAR struct tcb_s *ctcb, int status)
       return;
     }
 
-  /* Send SIGCHLD to all members of the parent's task group */
+  /* Send SIGCHLD to all members of the parent's task group.  NOTE that the
+   * SIGCHLD signal is only sent once either (1) if this is the final thread
+   * of the task group that is exiting (HAVE_GROUP_MEMBERS) or (2) if the
+   * main thread of the group is exiting (!HAVE_GROUP_MEMBERS).
+   */
 
   nxtask_sigchild(ptcb, ctcb, status);
-
-  /* Forget who our parent was */
-
-  ctcb->group->tg_ppid = INVALID_PROCESS_ID;
   sched_unlock();
 #endif
 }
@@ -574,9 +572,9 @@ static inline void nxtask_flushstreams(FAR struct tcb_s *tcb)
     {
 #if (defined(CONFIG_BUILD_PROTECTED) || defined(CONFIG_BUILD_KERNEL)) && \
      defined(CONFIG_MM_KERNEL_HEAP)
-      (void)lib_flushall(tcb->group->tg_streamlist);
+      lib_flushall(tcb->group->tg_streamlist);
 #else
-      (void)lib_flushall(&tcb->group->tg_streamlist);
+      lib_flushall(&tcb->group->tg_streamlist);
 #endif
     }
 }
@@ -617,9 +615,9 @@ static inline void nxtask_flushstreams(FAR struct tcb_s *tcb)
 
 void nxtask_exithook(FAR struct tcb_s *tcb, int status, bool nonblocking)
 {
-  /* Under certain conditions, nxtask_exithook() can be called multiple times.
-   * A bit in the TCB was set the first time this function was called.  If
-   * that bit is set, then just exit doing nothing more..
+  /* Under certain conditions, nxtask_exithook() can be called multiple
+   * times.  A bit in the TCB was set the first time this function was
+   * called.  If that bit is set, then just exit doing nothing more..
    */
 
   if ((tcb->flags & TCB_FLAG_EXIT_PROCESSING) != 0)
@@ -649,7 +647,7 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status, bool nonblocking)
    *    a bug.
    * 2. We cannot call the exit functions if nonblocking is requested:  These
    *    functions might block.
-   * 3. This function will only be called with with non-blocking == true
+   * 3. This function will only be called with non-blocking == true
    *    only when called through _exit(). _exit() behaviors requires that
    *    the exit functions *not* be called.
    */
@@ -684,7 +682,7 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status, bool nonblocking)
    * NOTES:
    * 1. We cannot flush the buffered I/O if nonblocking is requested.
    *    that might cause this logic to block.
-   * 2. This function will only be called with with non-blocking == true
+   * 2. This function will only be called with non-blocking == true
    *    only when called through _exit(). _exit() behavior does not
    *    require that the streams be flushed
    */
@@ -700,11 +698,9 @@ void nxtask_exithook(FAR struct tcb_s *tcb, int status, bool nonblocking)
 
   group_leave(tcb);
 
-#ifndef CONFIG_DISABLE_SIGNALS
   /* Deallocate anything left in the TCB's queues */
 
   nxsig_cleanup(tcb); /* Deallocate Signal lists */
-#endif
 
   /* This function can be re-entered in certain cases.  Set a flag
    * bit in the TCB to not that we have already completed this exit

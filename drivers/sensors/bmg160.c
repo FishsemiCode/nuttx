@@ -44,12 +44,11 @@
 #include <errno.h>
 #include <debug.h>
 #include <string.h>
-#include <semaphore.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/wqueue.h>
-
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/sensors/bmg160.h>
 #include <nuttx/random.h>
 
@@ -117,10 +116,8 @@ static const struct file_operations g_bmg160_fops =
   bmg160_read,
   bmg160_write,
   NULL,
-  bmg160_ioctl
-#ifndef CONFIG_DISABLE_POLL
-  , NULL
-#endif
+  bmg160_ioctl,
+  NULL
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL
 #endif
@@ -207,7 +204,7 @@ static void bmg160_write_register(FAR struct bmg160_dev_s *dev,
 
 static void bmg160_reset(FAR struct bmg160_dev_s *dev)
 {
-  bmg160_write_register(dev, BMG160_BGW_SOFTRESET_REG, 0xB6);
+  bmg160_write_register(dev, BMG160_BGW_SOFTRESET_REG, 0xb6);
 
   up_mdelay(100);
 }
@@ -222,17 +219,18 @@ static void bmg160_read_measurement_data(FAR struct bmg160_dev_s *dev)
 
   /* Read Gyroscope */
 
-  uint16_t x_gyr = 0, y_gyr = 0, z_gyr = 0;
+  uint16_t x_gyr = 0;
+  uint16_t y_gyr = 0;
+  uint16_t z_gyr = 0;
 
   bmg160_read_gyroscope_data(dev, &x_gyr, &y_gyr, &z_gyr);
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   ret = nxsem_wait(&dev->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire dev->datasem: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
+      snerr("ERROR: Could not acquire dev->datasem: %d\n", ret);
       return;
     }
 
@@ -456,13 +454,12 @@ static ssize_t bmg160_read(FAR struct file *filep, FAR char *buffer,
       return -ENOSYS;
     }
 
-  /* Aquire the semaphore before the data is copied */
+  /* Acquire the semaphore before the data is copied */
 
   ret = nxsem_wait(&priv->datasem);
   if (ret < 0)
     {
-      snerr("ERROR: Could not aquire priv->datasem: %d\n", ret);
-      DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
+      snerr("ERROR: Could not acquire priv->datasem: %d\n", ret);
       return ret;
     }
 
@@ -590,7 +587,8 @@ int bmg160_register(FAR const char *devpath, FAR struct spi_dev_s *spi,
 
   /* Since we support multiple BMG160 devices, we will need to add this new
    * instance to a list of device instances so that it can be found by the
-   * interrupt handler based on the received IRQ number. */
+   * interrupt handler based on the received IRQ number.
+   */
 
   priv->flink = g_bmg160_list;
   g_bmg160_list = priv;

@@ -54,7 +54,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <errno.h>
@@ -72,7 +71,7 @@
 #include <arch/board/board.h>
 
 #include "up_arch.h"
-#include "chip/sam_adc.h"
+#include "hardware/sam_adc.h"
 #include "sam_adc.h"
 #include "sam_tsd.h"
 
@@ -81,7 +80,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Driver support ***********************************************************/
+
 /* This format is used to construct the /dev/input[n] device driver path.  It
  * defined here so that it will be used consistently in all places.
  */
@@ -185,9 +186,7 @@ struct sam_tsd_s
    * retained in the f_priv field of the 'struct file'.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   struct pollfd *fds[CONFIG_SAMA5_TSD_NPOLLWAITERS];
-#endif
 };
 
 /****************************************************************************
@@ -210,9 +209,7 @@ static int  sam_tsd_open(struct file *filep);
 static int  sam_tsd_close(struct file *filep);
 static ssize_t sam_tsd_read(struct file *filep, char *buffer, size_t len);
 static int  sam_tsd_ioctl(struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int  sam_tsd_poll(struct file *filep, struct pollfd *fds, bool setup);
-#endif
 
 /* Initialization and configuration */
 
@@ -234,12 +231,10 @@ static const struct file_operations g_tsdops =
   sam_tsd_open,    /* open */
   sam_tsd_close,   /* close */
   sam_tsd_read,    /* read */
-  0,               /* write */
-  0,               /* seek */
-  sam_tsd_ioctl    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , sam_tsd_poll   /* poll */
-#endif
+  NULL,            /* write */
+  NULL,            /* seek */
+  sam_tsd_ioctl,   /* ioctl */
+  sam_tsd_poll     /* poll */
 };
 
 /* The driver state structure is pre-allocated. */
@@ -256,9 +251,7 @@ static struct sam_tsd_s g_tsd;
 
 static void sam_tsd_notify(struct sam_tsd_s *priv)
 {
-#ifndef CONFIG_DISABLE_POLL
   int i;
-#endif
 
   /* If there are threads waiting for read data, then signal one of them
    * that the read data is available.
@@ -279,7 +272,6 @@ static void sam_tsd_notify(struct sam_tsd_s *priv)
    * then some make end up blocking after all.
    */
 
-#ifndef CONFIG_DISABLE_POLL
   for (i = 0; i < CONFIG_SAMA5_TSD_NPOLLWAITERS; i++)
     {
       struct pollfd *fds = priv->fds[i];
@@ -290,7 +282,6 @@ static void sam_tsd_notify(struct sam_tsd_s *priv)
           nxsem_post(fds->sem);
         }
     }
-#endif
 }
 
 /****************************************************************************
@@ -388,12 +379,7 @@ static int sam_tsd_waitsample(struct sam_tsd_s *priv, struct sam_sample_s *sampl
 
       if (ret < 0)
         {
-          /* If we are awakened by a signal, then we need to return
-           * the failure now.
-           */
-
           ierr("ERROR: nxsem_wait: %d\n", ret);
-          DEBUGASSERT(ret == -EINTR || ret  == -ECANCELED);
           goto errout;
         }
     }
@@ -434,7 +420,7 @@ errout:
  *
  * Input Parameters:
  *   priv - The touchscreen private data structure
- *   tsav - The new (shifted) value of the TSAV field of the ADC TSMR regsiter.
+ *   tsav - The new (shifted) value of the TSAV field of the ADC TSMR register.
  *
  * Returned Value:
  *   None
@@ -592,13 +578,13 @@ static void sam_tsd_bottomhalf(void *arg)
     {
       /* If we have not yet processed the last pen up event, then we
        * cannot handle this pen down event. We will have to discard it.  That
-       * should be okay because we will set the timer to to sample again
+       * should be okay because we will set the timer to sample again
        * a little later.  NOTE that pen interrupts are not re-enabled in
        * this case; we rely on the timer expiry to get us going again.
        */
 
-      (void)wd_start(priv->wdog, TSD_WDOG_DELAY, sam_tsd_expiry, 1,
-                     (uint32_t)priv);
+      wd_start(priv->wdog, TSD_WDOG_DELAY, sam_tsd_expiry, 1,
+               (uint32_t)priv);
       ier = 0;
       goto ignored;
     }
@@ -676,8 +662,8 @@ static void sam_tsd_bottomhalf(void *arg)
 
       /* Continue to sample the position while the pen is down */
 
-      (void)wd_start(priv->wdog, TSD_WDOG_DELAY, sam_tsd_expiry, 1,
-                     (uint32_t)priv);
+      wd_start(priv->wdog, TSD_WDOG_DELAY, sam_tsd_expiry, 1,
+               (uint32_t)priv);
 
       /* Check the thresholds.  Bail if (1) this is not the first
        * measurement and (2) there is no significant difference from
@@ -763,6 +749,7 @@ static void sam_tsd_bottomhalf(void *arg)
   /* Exit, re-enabling touchscreen interrupts */
 
 ignored:
+
   /* Re-enable touchscreen interrupts as appropriate. */
 
   sam_adc_putreg(priv->adc, SAM_ADC_IER, ier);
@@ -822,7 +809,7 @@ static void sam_tsd_expiry(int argc, uint32_t arg1, ...)
 
   /* Schedule touchscreen work */
 
-  (void)sam_tsd_schedule(priv);
+  sam_tsd_schedule(priv);
 }
 
 /****************************************************************************
@@ -1071,7 +1058,6 @@ static int sam_tsd_ioctl(struct file *filep, int cmd, unsigned long arg)
  * Name: sam_tsd_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int sam_tsd_poll(struct file *filep, struct pollfd *fds, bool setup)
 {
   struct inode *inode;
@@ -1151,7 +1137,6 @@ errout:
   sam_adc_unlock(priv->adc);
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Initialization and Configuration
@@ -1680,7 +1665,7 @@ int sam_tsd_register(struct sam_adc_s *adc, int minor)
 
   /* Register the device as an input device */
 
-  (void)snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
+  snprintf(devname, DEV_NAMELEN, DEV_FORMAT, minor);
   iinfo("Registering %s\n", devname);
 
   ret = register_driver(devname, &g_tsdops, 0666, priv);

@@ -40,7 +40,6 @@
 #include <nuttx/config.h>
 
 #include <sys/types.h>
-#include <semaphore.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -51,6 +50,7 @@
 #include <nuttx/clock.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/misc/misc_rpmsg.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/timers/rtc.h>
 
 /****************************************************************************
@@ -137,16 +137,14 @@ static const struct file_operations rtc_fops =
   rtc_open,      /* open */
   rtc_close,     /* close */
 #else
-  0,             /* open */
-  0,             /* close */
+  NULL,          /* open */
+  NULL,          /* close */
 #endif
   rtc_read,      /* read */
   rtc_write,     /* write */
-  0,             /* seek */
+  NULL,          /* seek */
   rtc_ioctl,     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  0,             /* poll */
-#endif
+  NULL,          /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   rtc_unlink     /* unlink */
 #endif
@@ -237,10 +235,6 @@ static void rtc_periodic_callback(FAR void *priv, int alarmid)
       nxsig_notification(alarminfo->pid, &alarminfo->event,
                          SI_QUEUE, &alarminfo->work);
     }
-
-  /* The alarm is no longer active */
-
-  alarminfo->active = false;
 }
 #endif
 
@@ -477,7 +471,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             if (ops->cancelalarm)
               {
-                (void)ops->cancelalarm(upper->lower, alarmid);
+                ops->cancelalarm(upper->lower, alarmid);
               }
 
             upperinfo->active = false;
@@ -548,7 +542,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             if (ops->cancelalarm)
               {
-                (void)ops->cancelalarm(upper->lower, alarmid);
+                ops->cancelalarm(upper->lower, alarmid);
               }
 
             upperinfo->active = false;
@@ -682,7 +676,7 @@ static int rtc_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
             if (ops->cancelperiodic)
               {
-                (void)ops->cancelperiodic(upper->lower, id);
+                ops->cancelperiodic(upper->lower, id);
               }
 
             upperinfo->active = false;

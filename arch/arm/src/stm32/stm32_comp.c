@@ -991,7 +991,7 @@ static int comp_ioctl(FAR struct comp_dev_s *dev, int cmd, unsigned long arg)
  *   intf - The COMP interface number.
  *
  * Returned Value:
- *   Valid COMP device structure reference on succcess; a NULL on failure.
+ *   Valid COMP device structure reference on success; a NULL on failure.
  *
  * Assumptions:
  *   1. Clock to the COMP block has enabled,
@@ -1075,8 +1075,8 @@ FAR struct comp_dev_s* stm32_compinitialize(int intf)
   return dev;
 }
 
-#endif  /* CONFIG_STM32_STM32F30XX || CONFIG_STM32_STM32F33XX ||
-         * CONFIG_STM32_STM32F37XX*/
+#endif /* CONFIG_STM32_STM32F30XX || CONFIG_STM32_STM32F33XX ||
+        * CONFIG_STM32_STM32F37XX*/
 
-#endif  /* CONFIG_STM32_COMP2 || CONFIG_STM32_COMP4 ||
-         * CONFIG_STM32_COMP6 */
+#endif /* CONFIG_STM32_COMP2 || CONFIG_STM32_COMP4 ||
+        * CONFIG_STM32_COMP6 */

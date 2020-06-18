@@ -145,10 +145,10 @@ uint8_t *up_doirq(uint8_t irq, uint8_t *regs);
  *   Initialize the selected SPI port
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple SPI interfaces)
+ *   Port number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -161,7 +161,7 @@ FAR struct spi_dev_s *avr_spibus_initialize(int port);
  *   These external functions must be provided by board-specific logic.  They are
  *   implementations of the select, status, and cmddata methods of the SPI interface
  *   defined by struct spi_ops_s (see include/nuttx/spi/spi.h). All other methods
- *   including avr_spibus_initialize()) are provided by common LPC17xx logic.  To use
+ *   including avr_spibus_initialize()) are provided by common AVR logic.  To use
  *   this common SPI logic on your board:
  *
  *   1. Provide logic in <arch>_boardinitialize() to configure SPI chip select
@@ -190,5 +190,4 @@ int avr_spicmddata(FAR struct spi_dev_s *dev, uint32_t devid, bool cmd);
 #endif
 
 #endif /* __ASSEMBLY__ */
-#endif  /* __ARCH_AVR_SRC_AVR_AVR_H */
-
+#endif /* __ARCH_AVR_SRC_AVR_AVR_H */

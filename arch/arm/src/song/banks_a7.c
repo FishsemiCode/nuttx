@@ -126,7 +126,7 @@ void up_earlyinitialize(void)
 #endif
 }
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
 #ifdef CONFIG_TIMER_DW
   static const struct dw_timer_config_s config0 =

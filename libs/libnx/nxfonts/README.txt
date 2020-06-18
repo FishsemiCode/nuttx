@@ -56,7 +56,7 @@ Installing New Fonts
        ...
 
   New Add the font to the NX build system.  There are several files that
-  you have to modify to to this.  Look how the build system uses the
+  you have to modify to do this.  Look how the build system uses the
   font CONFIG_NXFONT_SANS23X27 for examaples:
 
     5. nuttx/graphics/Makefile.  This file needs logic to auto-generate
@@ -67,10 +67,10 @@ Installing New Fonts
 
        genfontsources:
          ifeq ($(CONFIG_NXFONT_SANS23X27),y)
-          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRADEFINES=$(EXTRADEFINES)
+          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=1 EXTRAFLAGS=$(EXTRAFLAGS)
         endif
          ifeq ($(CONFIG_NXFONT_MYFONT),y)
-          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRADEFINES=$(EXTRADEFINES)
+          @$(MAKE) -C nxfonts -f Makefile.sources TOPDIR=$(TOPDIR) NXFONTS_FONTID=2 EXTRAFLAGS=$(EXTRAFLAGS)
         endif
 
     6. nuttx/graphics/nxfonts/Make.defs.  Set the make variable NXFSET_CSRCS.

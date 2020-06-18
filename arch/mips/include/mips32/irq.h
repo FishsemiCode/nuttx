@@ -33,7 +33,7 @@
  *
  ****************************************************************************/
 
-/* This file should never be included directed but, rather, only indirectly
+/* This file should never be included directly but, rather, only indirectly
  * through nuttx/irq.h
  */
 
@@ -120,7 +120,7 @@
 #define REG_R24_NDX         27
 #define REG_R25_NDX         28
 
-/* $26-$27 = ko-k1: Reserved for use in exeption handers.  These do not need
+/* $26-$27 = ko-k1: Reserved for use in exception handers.  These do not need
  * to be saved.
  */
 
@@ -329,7 +329,6 @@ struct xcpt_syscall_s
 
 struct xcptcontext
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-NULL if there are pending signals
    * to be processed.
    */
@@ -348,14 +347,13 @@ struct xcptcontext
   uint32_t saved_epc;    /* Trampoline PC */
   uint32_t saved_status; /* Status with interrupts disabled. */
 
-# ifdef CONFIG_BUILD_KERNEL
+#ifdef CONFIG_BUILD_KERNEL
   /* This is the saved address to use when returning from a user-space
    * signal handler.
    */
 
   uint32_t sigreturn;
 
-# endif
 #endif
 
 #ifdef CONFIG_BUILD_KERNEL
@@ -585,4 +583,3 @@ void up_irq_enable(void);
 
 #endif /* __ASSEMBLY */
 #endif /* __ARCH_MIPS_INCLUDE_MIPS32_IRQ_H */
-

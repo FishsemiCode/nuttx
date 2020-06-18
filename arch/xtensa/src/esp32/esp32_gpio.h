@@ -6,7 +6,7 @@
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Derivies in part from sample code provided by Expressif Systems:
+ * Derives in part from sample code provided by Espressif Systems:
  *
  *   Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
  *
@@ -198,11 +198,6 @@ void esp32_gpioirqdisable(int irq);
 #else
 #  define esp32_gpioirqdisable(irq)
 #endif
-
-int digitalRead(uint8_t pin);
-
-void attachInterrupt(uint8_t pin, void (*)(void), int mode);
-void detachInterrupt(uint8_t pin);
 
 #ifdef __cplusplus
 }

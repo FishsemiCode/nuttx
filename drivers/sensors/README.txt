@@ -128,7 +128,7 @@ open(): This function performs the below actions...
      sensor configuration is specified. (The custom configuration is
      basically an array of (device_reg_address, value) pairs that are
      written to the sensor via "single register write" operations.
-     If a custom sensor configuration was specified, then the that
+     If a custom sensor configuration was specified, then that
      configuration is written to the sensor, otherwise the "default
      sensor configuration" is written to the sensor.
      (A side effect of writing this data may result in interrupts
@@ -462,3 +462,9 @@ shared worker task that collects the data.
 
 The cluster driver close() function calls the close functions of the leaf
 drivers.
+
+ADT7320 (Augusto Fraga Giachero)
+=======
+
+The ADT7320 is a SPI temperature sensor with a temperature range of
+−40°C to +150°C.

@@ -1,35 +1,20 @@
 /****************************************************************************
  * syscall/syscall_lookup.h
  *
- *   Copyright (C) 2011, 2013-2019 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -47,6 +32,7 @@ SYSCALL_LOOKUP1(_exit,                     1, STUB__exit)
 SYSCALL_LOOKUP(exit,                       1, STUB_exit)
 SYSCALL_LOOKUP(get_errno,                  0, STUB_get_errno)
 SYSCALL_LOOKUP(getpid,                     0, STUB_getpid)
+
 SYSCALL_LOOKUP(sched_getparam,             2, STUB_sched_getparam)
 SYSCALL_LOOKUP(sched_getscheduler,         1, STUB_sched_getscheduler)
 SYSCALL_LOOKUP(sched_lock,                 0, STUB_sched_lock)
@@ -56,8 +42,24 @@ SYSCALL_LOOKUP(sched_setparam,             2, STUB_sched_setparam)
 SYSCALL_LOOKUP(sched_setscheduler,         3, STUB_sched_setscheduler)
 SYSCALL_LOOKUP(sched_unlock,               0, STUB_sched_unlock)
 SYSCALL_LOOKUP(sched_yield,                0, STUB_sched_yield)
+
+#ifdef CONFIG_SMP
+SYSCALL_LOOKUP(sched_getaffinity,          3, STUB_sched_getaffinity)
+SYSCALL_LOOKUP(sched_getcpu,               0, STUB_sched_getcpu)
+SYSCALL_LOOKUP(sched_setaffinity,          3, STUB_sched_setaffinity)
+#endif
+
 SYSCALL_LOOKUP(set_errno,                  1, STUB_set_errno)
 SYSCALL_LOOKUP(uname,                      1, STUB_uname)
+
+/* User identity */
+
+#ifdef CONFIG_SCHED_USER_IDENTITY
+SYSCALL_LOOKUP(setuid,                     1, STUB_setuid)
+SYSCALL_LOOKUP(getuid,                     0, STUB_getuid)
+SYSCALL_LOOKUP(setgid,                     1, STUB_setgid)
+SYSCALL_LOOKUP(getgid,                     0, STUB_getgid)
+#endif
 
 /* Semaphores */
 
@@ -81,6 +83,9 @@ SYSCALL_LOOKUP(sem_unlink,                 1, STUB_sem_unlink)
 
 #ifndef CONFIG_BUILD_KERNEL
 SYSCALL_LOOKUP(task_create,                5, STUB_task_create)
+#ifdef CONFIG_BUILD_PROTECTED
+SYSCALL_LOOKUP(nx_task_spawn,              1, STUB_nx_task_spawn)
+#endif
 #else
 SYSCALL_LOOKUP(pgalloc,                    2, STUB_pgalloc)
 #endif
@@ -96,7 +101,7 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
 
 /* The following can be individually enabled */
 
-#ifdef CONFIG_ARCH_HAVE_VFORK
+#if defined(CONFIG_SCHED_WAITPID) && defined(CONFIG_ARCH_HAVE_VFORK)
   SYSCALL_LOOKUP(vfork,                    0, STUB_vfork)
 #endif
 
@@ -148,7 +153,6 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
  * configuration.
  */
 
-#ifndef CONFIG_DISABLE_SIGNALS
   SYSCALL_LOOKUP(kill,                     2, STUB_kill)
   SYSCALL_LOOKUP(sigaction,                3, STUB_sigaction)
   SYSCALL_LOOKUP(sigpending,               1, STUB_sigpending)
@@ -158,7 +162,6 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(sigtimedwait,             3, STUB_sigtimedwait)
   SYSCALL_LOOKUP(sigwaitinfo,              2, STUB_sigwaitinfo)
   SYSCALL_LOOKUP(clock_nanosleep,          4, STUB_clock_nanosleep)
-#endif
 
 /* The following are only defined if the system clock is enabled in the
  * NuttX configuration.
@@ -180,6 +183,8 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(timer_getoverrun,         1, STUB_timer_getoverrun)
   SYSCALL_LOOKUP(timer_gettime,            2, STUB_timer_gettime)
   SYSCALL_LOOKUP(timer_settime,            4, STUB_timer_settime)
+  SYSCALL_LOOKUP(getitimer,                2, STUB_getitimer)
+  SYSCALL_LOOKUP(setitimer,                3, STUB_setitimer)
 #endif
 
 /* System logging */
@@ -206,12 +211,10 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(aio_fsync,                2, STUB_aio_fsync)
   SYSCALL_LOOKUP(aio_cancel,               2, STUB_aio_cancel)
 #endif
-#ifndef CONFIG_DISABLE_POLL
   SYSCALL_LOOKUP(poll,                     3, STUB_poll)
   SYSCALL_LOOKUP(select,                   5, STUB_select)
   SYSCALL_LOOKUP(ppoll,                    4, STUB_ppoll)
   SYSCALL_LOOKUP(pselect,                  6, STUB_pselect)
-#endif
 #ifdef CONFIG_NETDEV_IFINDEX
   SYSCALL_LOOKUP(if_indextoname,           2, STUB_if_indextoname)
   SYSCALL_LOOKUP(if_nametoindex,           1, STUB_if_nametoindex)
@@ -245,6 +248,10 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(fstatfs,                  2, STUB_fstatfs)
   SYSCALL_LOOKUP(telldir,                  1, STUB_telldir)
 
+#if defined(CONFIG_FS_RAMMAP)
+  SYSCALL_LOOKUP(munmap,                   2, STUB_munmap)
+#endif
+
 #if defined(CONFIG_PSEUDOFS_SOFTLINKS)
   SYSCALL_LOOKUP(link,                     2, STUB_link)
   SYSCALL_LOOKUP(readlink,                 3, STUB_readlink)
@@ -268,9 +275,7 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
 #endif
 
 #if !defined(CONFIG_DISABLE_MOUNTPOINT)
-#  if defined(CONFIG_FS_READABLE)
   SYSCALL_LOOKUP(mount,                    5, STUB_mount)
-#  endif
   SYSCALL_LOOKUP(fsync,                    1, STUB_fsync)
   SYSCALL_LOOKUP(ftruncate,                2, STUB_ftruncate)
   SYSCALL_LOOKUP(mkdir,                    2, STUB_mkdir)
@@ -299,6 +304,8 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(pthread_create,           4, STUB_pthread_create)
   SYSCALL_LOOKUP(pthread_detach,           1, STUB_pthread_detach)
   SYSCALL_LOOKUP(pthread_exit,             1, STUB_pthread_exit)
+  SYSCALL_LOOKUP(pthread_get_stackaddr_np, 1, STUB_pthread_get_stackaddr_np)
+  SYSCALL_LOOKUP(pthread_get_stacksize_np, 1, STUB_pthread_get_stacksize_np)
   SYSCALL_LOOKUP(pthread_getschedparam,    3, STUB_pthread_getschedparam)
   SYSCALL_LOOKUP(pthread_getspecific,      1, STUB_pthread_getspecific)
   SYSCALL_LOOKUP(pthread_join,             2, STUB_pthread_join)
@@ -315,19 +322,17 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
   SYSCALL_LOOKUP(pthread_setschedparam,    3, STUB_pthread_setschedparam)
   SYSCALL_LOOKUP(pthread_setschedprio,     2, STUB_pthread_setschedprio)
   SYSCALL_LOOKUP(pthread_setspecific,      2, STUB_pthread_setspecific)
-#  ifdef CONFIG_SMP
+#ifdef CONFIG_SMP
   SYSCALL_LOOKUP(pthread_setaffinity,      3, STUB_pthread_setaffinity)
   SYSCALL_LOOKUP(pthread_getaffinity,      3, STUB_pthread_getaffinity)
-#  endif
-#  ifndef CONFIG_DISABLE_SIGNALS
+#endif
   SYSCALL_LOOKUP(pthread_cond_timedwait,   3, STUB_pthread_cond_timedwait)
   SYSCALL_LOOKUP(pthread_kill,             2, STUB_pthread_kill)
   SYSCALL_LOOKUP(pthread_sigmask,          3, STUB_pthread_sigmask)
-#  endif
-#  ifdef CONFIG_PTHREAD_CLEANUP
+#ifdef CONFIG_PTHREAD_CLEANUP
   SYSCALL_LOOKUP(pthread_cleanup_push,     2, STUB_pthread_cleanup_push)
   SYSCALL_LOOKUP(pthread_cleanup_pop,      1, STUB_pthread_cleanup_pop)
-#  endif
+#endif
 #endif
 
 /* The following are defined only if message queues are enabled */
@@ -386,16 +391,13 @@ SYSCALL_LOOKUP(up_assert,                  2, STUB_up_assert)
 #endif
 
 /* The following is defined only if entropy pool random number generator
- * is enabled. */
+ * is enabled.
+ */
 
 #ifdef CONFIG_CRYPTO_RANDOM_POOL
   SYSCALL_LOOKUP(getrandom,               2, STUB_getrandom)
 #endif
 
 /****************************************************************************
- * Private Functions
- ****************************************************************************/
-
-/****************************************************************************
- * Public Functions
+ * Public Function Prototypes
  ****************************************************************************/

@@ -1,35 +1,20 @@
 /************************************************************************************
  * drivers/serial/serial.c
  *
- *   Copyright (C) 2007-2009, 2011-2013, 2016-2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ************************************************************************************/
 
@@ -54,7 +39,6 @@
 #include <nuttx/clock.h>
 #include <nuttx/sched.h>
 #include <nuttx/signal.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/serial/serial.h>
 #include <nuttx/fs/ioctl.h>
@@ -82,7 +66,6 @@
 
 /* Timing */
 
-#define POLL_DELAY_MSEC 1
 #define POLL_DELAY_USEC 1000
 
 /************************************************************************************
@@ -94,9 +77,7 @@
  ************************************************************************************/
 
 static int     uart_takesem(FAR sem_t *sem, bool errout);
-#ifndef CONFIG_DISABLE_POLL
 static void    uart_pollnotify(FAR uart_dev_t *dev, pollevent_t eventset);
-#endif
 
 /* Write support */
 
@@ -110,11 +91,10 @@ static int     uart_tcdrain(FAR uart_dev_t *dev, clock_t timeout);
 static int     uart_open(FAR struct file *filep);
 static int     uart_close(FAR struct file *filep);
 static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen);
-static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer, size_t buflen);
+static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
+                          size_t buflen);
 static int     uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int     uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup);
-#endif
 
 /************************************************************************************
  * Private Data
@@ -127,10 +107,8 @@ static const struct file_operations g_serialops =
   uart_read,  /* read */
   uart_write, /* write */
   0,          /* seek */
-  uart_ioctl  /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , uart_poll /* poll */
-#endif
+  uart_ioctl, /* ioctl */
+  uart_poll   /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL      /* unlink */
 #endif
@@ -146,34 +124,14 @@ static const struct file_operations g_serialops =
 
 static int uart_takesem(FAR sem_t *sem, bool errout)
 {
-  int ret;
-
-  do
+  if (errout)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(sem);
-      if (ret < 0)
-        {
-          /* The only case that an error should occur here is if the wait was
-           * awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-
-          /* When the signal is received, should we errout? Or should we just
-           * continue waiting until we have the semaphore?
-           */
-
-          if (errout)
-            {
-              return ret;
-            }
-        }
+      return nxsem_wait(sem);
     }
-  while (ret == -EINTR);
-
-  return ret;
+  else
+    {
+      return nxsem_wait_uninterruptible(sem);
+    }
 }
 
 /************************************************************************************
@@ -182,11 +140,10 @@ static int uart_takesem(FAR sem_t *sem, bool errout)
 
 #define uart_givesem(sem) (void)nxsem_post(sem)
 
-/****************************************************************************
+/************************************************************************************
  * Name: uart_pollnotify
- ****************************************************************************/
+ ************************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static void uart_pollnotify(FAR uart_dev_t *dev, pollevent_t eventset)
 {
   int i;
@@ -203,15 +160,28 @@ static void uart_pollnotify(FAR uart_dev_t *dev, pollevent_t eventset)
 #endif
           if (fds->revents != 0)
             {
+              irqstate_t flags;
+              int semcount;
+
               finfo("Report events: %02x\n", fds->revents);
-              nxsem_post(fds->sem);
+
+              /* Limit the number of times that the semaphore is posted.
+               * The critical section is needed to make the following
+               * operation atomic.
+               */
+
+              flags = enter_critical_section();
+              nxsem_getvalue(fds->sem, &semcount);
+              if (semcount < 1)
+                {
+                  nxsem_post(fds->sem);
+                }
+
+              leave_critical_section(flags);
             }
         }
     }
 }
-#else
-#  define uart_pollnotify(dev,event)
-#endif
 
 /************************************************************************************
  * Name: uart_putxmitchar
@@ -222,6 +192,10 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
   irqstate_t flags;
   int nexthead;
   int ret;
+
+#ifdef CONFIG_SMP
+  irqstate_t flags2 = enter_critical_section();
+#endif
 
   /* Increment to see what the next head pointer will be.  We need to use the "next"
    * head pointer to determine when the circular buffer would overrun
@@ -245,7 +219,8 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
 
           dev->xmit.buffer[dev->xmit.head] = ch;
           dev->xmit.head = nexthead;
-          return OK;
+          ret = OK;
+          goto err_out;
         }
 
       /* The TX buffer is full.  Should be block, waiting for the hardware
@@ -302,7 +277,7 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
                * the semaphore.
                */
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_TXDMA
               uart_dmatxavail(dev);
 #endif
               uart_enabletxint(dev);
@@ -319,9 +294,11 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
 
           if (dev->disconnected)
             {
-              return -ENOTCONN;
+              ret = -ENOTCONN;
+              goto err_out;
             }
 #endif
+
           /* Check if we were awakened by signal. */
 
           if (ret < 0)
@@ -330,7 +307,8 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
                * non-full will abort the transfer.
                */
 
-              return -EINTR;
+              ret = -EINTR;
+              goto err_out;
             }
         }
 
@@ -340,7 +318,8 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
 
       else
         {
-          return -EAGAIN;
+          ret = -EAGAIN;
+          goto err_out;
         }
     }
 
@@ -348,7 +327,15 @@ static int uart_putxmitchar(FAR uart_dev_t *dev, int ch, bool oktoblock)
    * unreachable.
    */
 
-  return OK;
+  ret = OK;
+
+err_out:
+
+#ifdef CONFIG_SMP
+  leave_critical_section(flags2);
+#endif
+
+  return ret;
 }
 
 /************************************************************************************
@@ -485,7 +472,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev, clock_t timeout)
                * the semaphore.
                */
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_TXDMA
               uart_dmatxavail(dev);
 #endif
               uart_enabletxint(dev);
@@ -516,11 +503,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev, clock_t timeout)
             {
               clock_t elapsed;
 
-#ifndef CONFIG_DISABLE_SIGNALS
               nxsig_usleep(POLL_DELAY_USEC);
-#else
-              up_mdelay(POLL_DELAY_MSEC);
-#endif
 
               /* Check for a timeout */
 
@@ -530,7 +513,7 @@ static int uart_tcdrain(FAR uart_dev_t *dev, clock_t timeout)
                   return -ETIMEDOUT;
                 }
             }
-         }
+        }
 
       uart_givesem(&dev->xmit.sem);
     }
@@ -579,6 +562,7 @@ static int uart_open(FAR struct file *filep)
 #endif
 
   /* Start up serial port */
+
   /* Increment the count of references to the device. */
 
   tmp = dev->open_count + 1;
@@ -619,12 +603,12 @@ static int uart_open(FAR struct file *filep)
       ret = uart_attach(dev);
       if (ret < 0)
         {
-           uart_shutdown(dev);
-           leave_critical_section(flags);
-           goto errout_with_sem;
+          uart_shutdown(dev);
+          leave_critical_section(flags);
+          goto errout_with_sem;
         }
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
       /* Notify DMA that there is free space in the RX buffer */
 
       uart_dmarxfree(dev);
@@ -660,13 +644,13 @@ static int uart_close(FAR struct file *filep)
   FAR uart_dev_t   *dev   = inode->i_private;
   irqstate_t        flags;
 
-  /* Get exclusive access to the close semaphore (to synchronize open/close operations.
-   * NOTE: that we do not let this wait be interrupted by a signal.  Technically, we
-   * should, but almost no one every checks the return value from close() so we avoid
-   * a potential memory leak by ignoring signals in this case.
+  /* Get exclusive access to the close semaphore (to synchronize open/close
+   * operations.  NOTE: that we do not let this wait be interrupted by a signal.
+   * Technically, we should, but almost no one every checks the return value from
+   * close() so we avoid a potential memory leak by ignoring signals in this case.
    */
 
-  (void)uart_takesem(&dev->closesem, false);
+  uart_takesem(&dev->closesem, false);
   if (dev->open_count > 1)
     {
       dev->open_count--;
@@ -688,7 +672,7 @@ static int uart_close(FAR struct file *filep)
     {
       /* Now we wait for the transmit buffer(s) to clear */
 
-      (void)uart_tcdrain(dev, 4 * TICK_PER_SEC);
+      uart_tcdrain(dev, 4 * TICK_PER_SEC);
     }
 
   /* Free the IRQ and disable the UART */
@@ -855,20 +839,20 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
             }
 
           break;
-       }
+        }
 #else
       /* No... the circular buffer is empty.  Have we returned anything
        * to the caller?
        */
 
       else if (recvd > 0)
-       {
+        {
           /* Yes.. break out of the loop and return the number of bytes
            * received up to the wait condition.
            */
 
           break;
-       }
+        }
 
       /* No... then we would have to wait to get receive some data.
        * If the user has specified the O_NONBLOCK option, then do not
@@ -883,11 +867,12 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
           break;
         }
 #endif
+
       /* Otherwise we are going to have to wait for data to arrive */
 
       else
         {
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
           /* Disable all interrupts and test again...
            * uart_disablerxint() is insufficient for the check in DMA mode.
            */
@@ -910,7 +895,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
                * additional data to be received.
                */
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
               /* Notify DMA that there is free space in the RX buffer */
 
               uart_dmarxfree(dev);
@@ -939,7 +924,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
                 }
               else
 #endif
-               {
+                {
                   /* Now wait with the Rx interrupt enabled.  NuttX will
                    * automatically re-enable global interrupts when this
                    * thread goes to sleep.
@@ -991,7 +976,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
                * the loop.
                */
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
               leave_critical_section(flags);
 #else
               uart_enablerxint(dev);
@@ -1000,7 +985,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
         }
     }
 
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_RXDMA
   /* Notify DMA that there is free space in the RX buffer */
 
   flags = enter_critical_section();
@@ -1008,7 +993,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
   leave_critical_section(flags);
 #endif
 
-#ifndef CONFIG_SERIAL_DMA
+#ifndef CONFIG_SERIAL_RXDMA
   /* RX interrupt could be disabled by RX buffer overflow. Enable it now. */
 
   uart_enablerxint(dev);
@@ -1037,7 +1022,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
        * crossed.  It will probably deactivate RX flow control.
        */
 
-      (void)uart_rxflowcontrol(dev, nbuffered, false);
+      uart_rxflowcontrol(dev, nbuffered, false);
     }
 #else
   /* Is the RX buffer empty? */
@@ -1046,7 +1031,7 @@ static ssize_t uart_read(FAR struct file *filep, FAR char *buffer, size_t buflen
     {
       /* Deactivate RX flow control. */
 
-      (void)uart_rxflowcontrol(dev, 0, false);
+      uart_rxflowcontrol(dev, 0, false);
     }
 #endif
 #endif
@@ -1224,7 +1209,7 @@ static ssize_t uart_write(FAR struct file *filep, FAR const char *buffer,
 
   if (dev->xmit.head != dev->xmit.tail)
     {
-#ifdef CONFIG_SERIAL_DMA
+#ifdef CONFIG_SERIAL_TXDMA
       uart_dmatxavail(dev);
 #endif
       uart_enabletxint(dev);
@@ -1244,6 +1229,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   FAR uart_dev_t   *dev   = inode->i_private;
 
   /* Handle TTY-level IOCTLs here */
+
   /* Let low-level driver handle the call first */
 
   int ret = dev->ops->ioctl(filep, cmd, arg);
@@ -1347,7 +1333,7 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 #ifdef CONFIG_SERIAL_IFLOWCONTROL
                   /* De-activate RX flow control. */
 
-                  (void)uart_rxflowcontrol(dev, 0, false);
+                  uart_rxflowcontrol(dev, 0, false);
 #endif
                 }
 
@@ -1455,11 +1441,10 @@ static int uart_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
   return ret;
 }
 
-/****************************************************************************
+/************************************************************************************
  * Name: uart_poll
- ****************************************************************************/
+ ************************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 {
   FAR struct inode *inode = filep->f_inode;
@@ -1472,7 +1457,7 @@ static int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
   /* Some sanity checking */
 
 #ifdef CONFIG_DEBUG_FEATURES
-  if (!dev || !fds)
+  if (dev == NULL || fds == NULL)
     {
       return -ENODEV;
     }
@@ -1526,7 +1511,7 @@ static int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
        */
 
       eventset = 0;
-      (void)uart_takesem(&dev->xmit.sem, false);
+      uart_takesem(&dev->xmit.sem, false);
 
       ndx = dev->xmit.head + 1;
       if (ndx >= dev->xmit.size)
@@ -1535,9 +1520,9 @@ static int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
         }
 
       if (ndx != dev->xmit.tail)
-       {
-         eventset |= (fds->events & POLLOUT);
-       }
+        {
+          eventset |= (fds->events & POLLOUT);
+        }
 
       uart_givesem(&dev->xmit.sem);
 
@@ -1548,11 +1533,11 @@ static int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
        * would be a little awkward).
        */
 
-      (void)uart_takesem(&dev->recv.sem, false);
+      uart_takesem(&dev->recv.sem, false);
       if (dev->recv.head != dev->recv.tail)
-       {
-         eventset |= (fds->events & POLLIN);
-       }
+        {
+          eventset |= (fds->events & POLLIN);
+        }
 
       uart_givesem(&dev->recv.sem);
 
@@ -1569,13 +1554,12 @@ static int uart_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
         {
           uart_pollnotify(dev, eventset);
         }
-
     }
-  else if (fds->priv)
+  else if (fds->priv != NULL)
     {
       /* This is a request to tear down the poll. */
 
-      struct pollfd **slot = (struct pollfd **)fds->priv;
+      FAR struct pollfd **slot = (FAR struct pollfd **)fds->priv;
 
 #ifdef CONFIG_DEBUG_FEATURES
       if (!slot)
@@ -1595,7 +1579,6 @@ errout:
   uart_givesem(&dev->pollsem);
   return ret;
 }
-#endif
 
 /************************************************************************************
  * Public Functions
@@ -1639,9 +1622,7 @@ int uart_register(FAR const char *path, FAR uart_dev_t *dev)
   nxsem_init(&dev->closesem, 0, 1);
   nxsem_init(&dev->xmitsem,  0, 0);
   nxsem_init(&dev->recvsem,  0, 0);
-#ifndef CONFIG_DISABLE_POLL
   nxsem_init(&dev->pollsem,  0, 1);
-#endif
 
   /* The recvsem and xmitsem are used for signaling and, hence, should not have
    * priority inheritance enabled.
@@ -1675,7 +1656,7 @@ void uart_datareceived(FAR uart_dev_t *dev)
       /* Yes... wake it up */
 
       dev->recvwaiting = false;
-      (void)nxsem_post(&dev->recvsem);
+      nxsem_post(&dev->recvsem);
     }
 
   /* Notify all poll/select waiters that they can read from the recv buffer */
@@ -1713,7 +1694,7 @@ void uart_datasent(FAR uart_dev_t *dev)
       /* Yes... wake it up */
 
       dev->xmitwaiting = false;
-      (void)nxsem_post(&dev->xmitsem);
+      nxsem_post(&dev->xmitsem);
     }
 
   /* Notify all poll/select waiters that they can write to xmit buffer */
@@ -1765,7 +1746,7 @@ void uart_connected(FAR uart_dev_t *dev, bool connected)
           /* Yes... wake it up */
 
           dev->xmitwaiting = false;
-          (void)nxsem_post(&dev->xmitsem);
+          nxsem_post(&dev->xmitsem);
         }
 
       /* Is there a thread waiting for read data?  */
@@ -1775,7 +1756,7 @@ void uart_connected(FAR uart_dev_t *dev, bool connected)
           /* Yes... wake it up */
 
           dev->recvwaiting = false;
-          (void)nxsem_post(&dev->recvsem);
+          nxsem_post(&dev->recvsem);
         }
 
       /* Notify all poll/select waiters that a hangup occurred */
@@ -1791,8 +1772,8 @@ void uart_connected(FAR uart_dev_t *dev, bool connected)
  * Name: uart_reset_sem
  *
  * Description:
- *   This function is called when need reset uart semphore, this may used in kill one
- *   process, but this process was reading/writing with the semphore.
+ *   This function is called when need reset uart semaphore, this may used in kill
+ *   one process, but this process was reading/writing with the semaphore.
  *
  ************************************************************************************/
 
@@ -1802,7 +1783,5 @@ void uart_reset_sem(FAR uart_dev_t *dev)
   nxsem_reset(&dev->recvsem,  0);
   nxsem_reset(&dev->xmit.sem, 1);
   nxsem_reset(&dev->recv.sem, 1);
-#ifndef CONFIG_DISABLE_POLL
   nxsem_reset(&dev->pollsem,  1);
-#endif
 }

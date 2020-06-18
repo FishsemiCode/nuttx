@@ -42,7 +42,6 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <semaphore.h>
 #include <mqueue.h>
 #include <fcntl.h>
 #include <assert.h>
@@ -79,7 +78,7 @@ static inline void nxmu_disconnect(FAR struct nxmu_conn_s *conn)
 
   /* Close the outgoing client message queue */
 
-  (void)mq_close(conn->swrmq);
+  mq_close(conn->swrmq);
 }
 
 /****************************************************************************
@@ -119,7 +118,7 @@ static inline void nxmu_connect(FAR struct nxmu_conn_s *conn)
  * Name: nxmu_shutdown
  ****************************************************************************/
 
-static inline void nxmu_shutdown(FAR struct nxmu_state_s *fe)
+static inline void nxmu_shutdown(FAR struct nxmu_state_s *nxmu)
 {
   FAR struct nxbe_window_s *wnd;
 
@@ -131,27 +130,29 @@ static inline void nxmu_shutdown(FAR struct nxmu_state_s *fe)
    * background window, thus close all of the servers message queues.
    */
 
-  for (wnd = fe->be.topwnd; wnd; wnd = wnd->below)
+  for (wnd = nxmu->be.topwnd; wnd; wnd = wnd->below)
     {
-       (void)nxmu_disconnect(wnd->conn);
+       nxmu_disconnect(wnd->conn);
     }
 }
 
 /****************************************************************************
- * Name: nxmu_blocked
+ * Name: nxmu_event
  ****************************************************************************/
 
-static inline void nxmu_blocked(FAR struct nxbe_window_s *wnd, FAR void *arg)
+static void nxmu_event(FAR struct nxbe_window_s *wnd, enum nx_event_e event,
+                       FAR void *arg)
 {
-  struct nxclimsg_blocked_s outmsg;
+  struct nxclimsg_event_s outmsg;
   int ret;
 
-  outmsg.msgid = NX_CLIMSG_BLOCKED;
+  outmsg.msgid = NX_CLIMSG_EVENT;
   outmsg.wnd   = wnd;
   outmsg.arg   = arg;
+  outmsg.event = event;
 
   ret = nxmu_sendclient(wnd->conn, &outmsg,
-                        sizeof(struct nxclimsg_blocked_s));
+                        sizeof(struct nxclimsg_event_s));
   if (ret < 0)
     {
       gerr("ERROR: nxmu_sendclient failed: %d\n", ret);
@@ -163,16 +164,16 @@ static inline void nxmu_blocked(FAR struct nxbe_window_s *wnd, FAR void *arg)
  ****************************************************************************/
 
 static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
-                             FAR struct nxmu_state_s *fe)
+                             FAR struct nxmu_state_s *nxmu)
 {
   struct mq_attr attr;
   int            ret;
 
-  memset(fe, 0, sizeof(struct nxmu_state_s));
+  memset(nxmu, 0, sizeof(struct nxmu_state_s));
 
   /* Configure the framebuffer/LCD device */
 
-  ret = nxbe_configure(dev, &fe->be);
+  ret = nxbe_configure(dev, &nxmu->be);
   if (ret < 0)
     {
       gerr("ERROR: nxbe_configure failed: %d\n", ret);
@@ -189,7 +190,7 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
 #endif /* CONFIG_FB_CMAP */
 
   /* Initialize the non-NULL elements of the server connection structure.
-   * Oddly, this strcture represents the connection between the server and
+   * Oddly, this structure represents the connection between the server and
    * itself.
    *
    * Open the incoming server MQ.  The server receives messages on the
@@ -200,8 +201,8 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
   attr.mq_msgsize = NX_MXSVRMSGLEN;
   attr.mq_flags   = 0;
 
-  fe->conn.crdmq = mq_open(mqname, O_RDONLY | O_CREAT, 0666, &attr);
-  if (fe->conn.crdmq == (mqd_t)-1)
+  nxmu->conn.crdmq = mq_open(mqname, O_RDONLY | O_CREAT, 0666, &attr);
+  if (nxmu->conn.crdmq == (mqd_t)-1)
     {
       int errcode = get_errno();
       gerr("ERROR: mq_open(%s) failed: %d\n", mqname, errcode);
@@ -217,38 +218,38 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
    * the server message loop.
    */
 
-  fe->conn.swrmq = mq_open(mqname, O_WRONLY);
-  if (fe->conn.swrmq == (mqd_t)-1)
+  nxmu->conn.swrmq = mq_open(mqname, O_WRONLY);
+  if (nxmu->conn.swrmq == (mqd_t)-1)
     {
       int errcode = get_errno();
       gerr("ERROR: mq_open(%s) failed: %d\n", mqname, errcode);
-      mq_close(fe->conn.crdmq);
+      mq_close(nxmu->conn.crdmq);
       return -errcode;
     }
 
   /* The server is now "connected" to itself via the background window */
 
-  fe->conn.state = NX_CLISTATE_CONNECTED;
+  nxmu->conn.state = NX_CLISTATE_CONNECTED;
 
   /* Initialize the non-NULL elements of the background window */
 
-  fe->be.bkgd.conn = &fe->conn;
-  fe->be.bkgd.be   = (FAR struct nxbe_state_s *)fe;
+  nxmu->be.bkgd.conn = &nxmu->conn;
+  nxmu->be.bkgd.be   = (FAR struct nxbe_state_s *)nxmu;
 
-  fe->be.bkgd.bounds.pt2.x = fe->be.vinfo.xres - 1;
-  fe->be.bkgd.bounds.pt2.y = fe->be.vinfo.yres - 1;
+  nxmu->be.bkgd.bounds.pt2.x = nxmu->be.vinfo.xres - 1;
+  nxmu->be.bkgd.bounds.pt2.y = nxmu->be.vinfo.yres - 1;
 
   /* Complete initialization of the server state structure.  The
    * window list contains only one element:  The background window
    * with nothing else above or below it
    */
 
-  fe->be.topwnd = &fe->be.bkgd;
+  nxmu->be.topwnd = &nxmu->be.bkgd;
 
   /* Initialize the mouse position */
 
 #ifdef CONFIG_NX_XYINPUT
-  nxmu_mouseinit(fe->be.vinfo.xres, fe->be.vinfo.yres);
+  nxmu_mouseinit(nxmu->be.vinfo.xres, nxmu->be.vinfo.yres);
 #endif
   return OK;
 }
@@ -279,7 +280,7 @@ static inline int nxmu_setup(FAR const char *mqname, FAR NX_DRIVERTYPE *dev,
 
 int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 {
-  struct nxmu_state_s    fe;
+  struct nxmu_state_s    nxmu;
   FAR struct nxsvrmsg_s *msg;
   char                   buffer[NX_MXSVRMSGLEN];
   int                    nbytes;
@@ -291,7 +292,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 
   /* Initialize and configure the server */
 
-  ret = nxmu_setup(mqname, dev, &fe);
+  ret = nxmu_setup(mqname, dev, &nxmu);
   if (ret < 0)
     {
       return ret;
@@ -299,7 +300,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 
   /* Produce the initial, background display */
 
-  nxbe_redraw(&fe.be, &fe.be.bkgd, &fe.be.bkgd.bounds);
+  nxbe_redraw(&nxmu.be, &nxmu.be.bkgd, &nxmu.be.bkgd.bounds);
 
   /* Message Loop ***********************************************************/
 
@@ -309,7 +310,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
     {
        /* Receive the next server message */
 
-       nbytes = nxmq_receive(fe.conn.crdmq, buffer, NX_MXSVRMSGLEN, 0);
+       nbytes = nxmq_receive(nxmu.conn.crdmq, buffer, NX_MXSVRMSGLEN, 0);
        if (nbytes < 0)
          {
            if (nbytes != -EINTR)
@@ -349,7 +350,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_OPENWINDOW: /* Create a new window */
            {
              FAR struct nxsvrmsg_openwindow_s *openmsg = (FAR struct nxsvrmsg_openwindow_s *)buffer;
-             nxmu_openwindow(&fe.be, openmsg->wnd);
+             nxmu_openwindow(&nxmu.be, openmsg->wnd);
            }
            break;
 
@@ -360,23 +361,54 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
            }
            break;
 
-         case NX_SVRMSG_BLOCKED: /* Block messsages to a window */
+         case NX_SVRMSG_BLOCKED: /* Block messages to a window */
            {
              FAR struct nxsvrmsg_blocked_s *blocked = (FAR struct nxsvrmsg_blocked_s *)buffer;
-             nxmu_blocked(blocked->wnd, blocked->arg);
+             nxmu_event(blocked->wnd, NXEVENT_BLOCKED, blocked->arg);
            }
            break;
+
+         case NX_SVRMSG_SYNCH: /* Synchronization request */
+           {
+             FAR struct nxsvrmsg_synch_s *synch = (FAR struct nxsvrmsg_synch_s *)buffer;
+             nxmu_event(synch->wnd, NXEVENT_SYNCHED, synch->arg);
+           }
+           break;
+
+#if defined(CONFIG_NX_SWCURSOR) || defined(CONFIG_NX_HWCURSOR)
+         case NX_SVRMSG_CURSOR_ENABLE: /* Enable/disable cursor */
+           {
+             FAR struct nxsvrmsg_curenable_s *enabmsg = (FAR struct nxsvrmsg_curenable_s *)buffer;
+             nxbe_cursor_enable(&nxmu.be, enabmsg->enable);
+           }
+           break;
+
+#if defined(CONFIG_NX_HWCURSORIMAGE) || defined(CONFIG_NX_SWCURSOR)
+         case NX_SVRMSG_CURSOR_IMAGE: /* Set cursor image */
+           {
+             FAR struct nxsvrmsg_curimage_s *imgmsg = (FAR struct nxsvrmsg_curimage_s *)buffer;
+             nxbe_cursor_setimage(&nxmu.be, &imgmsg->image);
+           }
+           break;
+#endif
+         case NX_SVRMSG_CURSOR_SETPOS: /* Set cursor position */
+           {
+             FAR struct nxsvrmsg_curpos_s *posmsg = (FAR struct nxsvrmsg_curpos_s *)buffer;
+             nxbe_cursor_setposition(&nxmu.be, &posmsg->pos);
+           }
+           break;
+#endif
 
          case NX_SVRMSG_REQUESTBKGD: /* Give access to the background window */
            {
              FAR struct nxsvrmsg_requestbkgd_s *rqbgmsg = (FAR struct nxsvrmsg_requestbkgd_s *)buffer;
-             nxmu_requestbkgd(rqbgmsg->conn, &fe.be, rqbgmsg->cb, rqbgmsg->arg);
+             nxmu_requestbkgd(rqbgmsg->conn, &nxmu.be, rqbgmsg->cb, rqbgmsg->arg);
            }
            break;
 
          case NX_SVRMSG_RELEASEBKGD: /* End access to the background window */
            {
-             nxmu_releasebkgd(&fe);
+             nxmu_releasebkgd(&nxmu);
            }
            break;
 
@@ -412,6 +444,21 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
            {
              FAR struct nxsvrmsg_lower_s *lowermsg = (FAR struct nxsvrmsg_lower_s *)buffer;
              nxbe_lower(lowermsg->wnd);
+           }
+           break;
+
+         case NX_SVRMSG_MODAL: /* Select/De-select window modal state */
+           {
+             FAR struct nxsvrmsg_modal_s *modalmsg = (FAR struct nxsvrmsg_modal_s *)buffer;
+             nxbe_modal(modalmsg->wnd, modalmsg->modal);
+           }
+           break;
+
+         case NX_SVRMSG_SETVISIBILITY: /* Show or hide a window */
+           {
+             FAR struct nxsvrmsg_setvisibility_s *vismsg =
+               (FAR struct nxsvrmsg_setvisibility_s *)buffer;
+             nxbe_setvisibility(vismsg->wnd, vismsg->hide);
            }
            break;
 
@@ -473,12 +520,12 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
 
              /* Has the background color changed? */
 
-             if (!nxgl_colorcmp(fe.be.bgcolor, bgcolormsg->color))
+             if (!nxgl_colorcmp(nxmu.be.bgcolor, bgcolormsg->color))
                {
                  /* Yes.. fill the background */
 
-                 nxgl_colorcopy(fe.be.bgcolor, bgcolormsg->color);
-                 nxbe_fill(&fe.be.bkgd, &fe.be.bkgd.bounds, bgcolormsg->color);
+                 nxgl_colorcopy(nxmu.be.bgcolor, bgcolormsg->color);
+                 nxbe_fill(&nxmu.be.bkgd, &nxmu.be.bkgd.bounds, bgcolormsg->color);
                }
            }
            break;
@@ -487,7 +534,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_MOUSEIN: /* New mouse report from mouse client */
            {
              FAR struct nxsvrmsg_mousein_s *mousemsg = (FAR struct nxsvrmsg_mousein_s *)buffer;
-             nxmu_mousein(&fe, &mousemsg->pt, mousemsg->buttons);
+             nxmu_mousein(&nxmu, &mousemsg->pt, mousemsg->buttons);
            }
            break;
 #endif
@@ -495,7 +542,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_KBDIN: /* New keyboard report from keyboard client */
            {
              FAR struct nxsvrmsg_kbdin_s *kbdmsg = (FAR struct nxsvrmsg_kbdin_s *)buffer;
-             nxmu_kbdin(&fe, kbdmsg->nch, kbdmsg->ch);
+             nxmu_kbdin(&nxmu, kbdmsg->nch, kbdmsg->ch);
            }
            break;
 #endif
@@ -503,7 +550,7 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_SVRMSG_REDRAWREQ: /* Request re-drawing of rectangular region */
            {
              FAR struct nxsvrmsg_redrawreq_s *redrawmsg = (FAR struct nxsvrmsg_redrawreq_s *)buffer;
-             nxmu_redrawreq(redrawmsg->wnd, &redrawmsg->rect);
+             nxmu_redraw(redrawmsg->wnd, &redrawmsg->rect);
            }
            break;
 
@@ -512,11 +559,11 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          case NX_CLIMSG_REDRAW: /* Re-draw the background window */
             {
               FAR struct nxclimsg_redraw_s *redraw = (FAR struct nxclimsg_redraw_s *)buffer;
-              DEBUGASSERT(redraw->wnd == &fe.be.bkgd);
+              DEBUGASSERT(redraw->wnd == &nxmu.be.bkgd);
               ginfo("Re-draw background rect={(%d,%d),(%d,%d)}\n",
                     redraw->rect.pt1.x, redraw->rect.pt1.y,
                     redraw->rect.pt2.x, redraw->rect.pt2.y);
-              nxbe_fill(&fe.be.bkgd, &redraw->rect, fe.be.bgcolor);
+              nxbe_fill(&nxmu.be.bkgd, &redraw->rect, nxmu.be.bgcolor);
             }
           break;
 
@@ -532,10 +579,10 @@ int nx_runinstance(FAR const char *mqname, FAR NX_DRIVERTYPE *dev)
          }
     }
 
-  nxmu_shutdown(&fe);
+  nxmu_shutdown(&nxmu);
   return OK;
 
 errout:
-  nxmu_shutdown(&fe);
+  nxmu_shutdown(&nxmu);
   return ret;
 }

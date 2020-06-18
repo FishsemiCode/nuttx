@@ -48,13 +48,13 @@
 
 #include <arch/sama5/chip.h>
 
-#include "chip/sam_memorymap.h"
+#include "hardware/sam_memorymap.h"
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
 
-/* Definitions and types customized for each SAMA5Dx familiy */
+/* Definitions and types customized for each SAMA5Dx family */
 
 #if defined(ATSAMA5D2)
 #  include "sama5d2x_pio.h"

@@ -42,8 +42,6 @@
 #include <assert.h>
 #include <errno.h>
 
-#include <nuttx/semaphore.h>
-
 #include "semaphore/semaphore.h"
 
 #ifdef CONFIG_PRIORITY_INHERITANCE
@@ -58,7 +56,7 @@
  * Description:
  *    Set semaphore protocol attribute.
  *
- *    One particularly important use of this furnction is when a semaphore
+ *    One particularly important use of this function is when a semaphore
  *    is used for inter-task communication like:
  *
  *      TASK A                 TASK B
@@ -96,6 +94,7 @@ int nxsem_setprotocol(FAR sem_t *sem, int protocol)
   switch (protocol)
     {
       case SEM_PRIO_NONE:
+
         /* Disable priority inheritance */
 
         sem->flags |= PRIOINHERIT_FLAGS_DISABLE;
@@ -106,12 +105,14 @@ int nxsem_setprotocol(FAR sem_t *sem, int protocol)
         return OK;
 
       case SEM_PRIO_INHERIT:
+
         /* Enable priority inheritance (dangerous) */
 
         sem->flags &= ~PRIOINHERIT_FLAGS_DISABLE;
         return OK;
 
       case SEM_PRIO_PROTECT:
+
         /* Not yet supported */
 
         return -ENOSYS;
@@ -129,7 +130,7 @@ int nxsem_setprotocol(FAR sem_t *sem, int protocol)
  * Description:
  *    Set semaphore protocol attribute.
  *
- *    One particularly important use of this furnction is when a semaphore
+ *    One particularly important use of this function is when a semaphore
  *    is used for inter-task communication like:
  *
  *      TASK A                 TASK B

@@ -43,10 +43,6 @@
 #include <dsp.h>
 
 /****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
  * Private Functions
  ****************************************************************************/
 
@@ -221,7 +217,7 @@ void foc_vbase_update(FAR struct foc_data_s *foc, float vbase)
 
   if (vbase >= 0.0f)
     {
-      scale = 1.0f/vbase;
+      scale = 1.0f / vbase;
       mag_max = vbase;
     }
 
@@ -273,7 +269,7 @@ void foc_process(FAR struct foc_data_s *foc,
 
   foc_current_control(foc);
 
-  /* Inverse Park tranform (voltage dq -> voltage alpha-beta) */
+  /* Inverse Park transform (voltage dq -> voltage alpha-beta) */
 
   inv_park_transform(angle, &foc->v_dq, &foc->v_ab);
 

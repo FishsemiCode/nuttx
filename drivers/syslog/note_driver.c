@@ -63,15 +63,13 @@ static ssize_t note_read(FAR struct file *filep, FAR char *buffer,
 
 static const struct file_operations note_fops =
 {
-  0,             /* open */
-  0,             /* close */
+  NULL,          /* open */
+  NULL,          /* close */
   note_read,     /* read */
-  0,             /* write */
-  0,             /* seek */
-  0              /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , 0            /* poll */
-#endif
+  NULL,          /* write */
+  NULL,          /* seek */
+  NULL,          /* ioctl */
+  NULL           /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , 0            /* unlink */
 #endif
@@ -150,7 +148,7 @@ static ssize_t note_read(FAR struct file *filep, FAR char *buffer,
  *
  * Description:
  *   Register a serial driver at /dev/note that can be used by an
- *   application to read data from the circular not buffer.
+ *   application to read data from the circular note buffer.
  *
  * Input Parameters:
  *   None.

@@ -52,11 +52,11 @@
  * Drivers, however, will use the pin selection without the numeric suffix.
  * Additional definitions are required in the board.h file.  For example, if
  * CAN1_RX connects vis PA11 on some board, then the following definitions should
- * appear inthe board.h header file for that board:
+ * appear in the board.h header file for that board:
  *
  * #define GPIO_CAN1_RX GPIO_CAN1_RX_1
  *
- * The driver will then automatically configre PA11 as the CAN1 RX pin.
+ * The driver will then automatically configure PA11 as the CAN1 RX pin.
  */
 
 /* WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!! WARNING!!!

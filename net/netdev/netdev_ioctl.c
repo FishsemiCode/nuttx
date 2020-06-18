@@ -168,23 +168,14 @@ static int ioctl_add_ipv4route(FAR struct rtentry *rtentry)
   in_addr_t netmask;
   in_addr_t router;
 
-  addr    = (FAR struct sockaddr_in *)rtentry->rt_target;
+  addr    = (FAR struct sockaddr_in *)&rtentry->rt_dst;
   target  = (in_addr_t)addr->sin_addr.s_addr;
 
-  addr    = (FAR struct sockaddr_in *)rtentry->rt_netmask;
+  addr    = (FAR struct sockaddr_in *)&rtentry->rt_genmask;
   netmask = (in_addr_t)addr->sin_addr.s_addr;
 
-  /* The router is an optional argument */
-
-  if (rtentry->rt_router)
-    {
-      addr   = (FAR struct sockaddr_in *)rtentry->rt_router;
-      router = (in_addr_t)addr->sin_addr.s_addr;
-    }
-  else
-    {
-      router = 0;
-    }
+  addr    = (FAR struct sockaddr_in *)&rtentry->rt_gateway;
+  router  = (in_addr_t)addr->sin_addr.s_addr;
 
   return net_addroute_ipv4(target, netmask, router);
 }
@@ -206,25 +197,19 @@ static int ioctl_add_ipv6route(FAR struct rtentry *rtentry)
 {
   FAR struct sockaddr_in6 *target;
   FAR struct sockaddr_in6 *netmask;
+  FAR struct sockaddr_in6 *gateway;
   net_ipv6addr_t router;
 
-  target    = (FAR struct sockaddr_in6 *)rtentry->rt_target;
-  netmask    = (FAR struct sockaddr_in6 *)rtentry->rt_netmask;
+  target  = (FAR struct sockaddr_in6 *)&rtentry->rt_dst;
+  netmask = (FAR struct sockaddr_in6 *)&rtentry->rt_genmask;
 
   /* The router is an optional argument */
 
-  if (rtentry->rt_router)
-    {
-      FAR struct sockaddr_in6 *addr;
-      addr = (FAR struct sockaddr_in6 *)rtentry->rt_router;
-      net_ipv6addr_copy(router, addr->sin6_addr.s6_addr16);
-    }
-  else
-    {
-      net_ipv6addr_copy(router, in6addr_any.s6_addr16);
-    }
+  gateway = (FAR struct sockaddr_in6 *)&rtentry->rt_gateway;
+  net_ipv6addr_copy(router, gateway->sin6_addr.s6_addr16);
 
-  return net_addroute_ipv6(target->sin6_addr.s6_addr16, netmask->sin6_addr.s6_addr16, router);
+  return net_addroute_ipv6(target->sin6_addr.s6_addr16,
+                           netmask->sin6_addr.s6_addr16, router);
 }
 #endif /* HAVE_WRITABLE_IPv6ROUTE */
 
@@ -246,10 +231,10 @@ static int ioctl_del_ipv4route(FAR struct rtentry *rtentry)
   in_addr_t target;
   in_addr_t netmask;
 
-  addr    = (FAR struct sockaddr_in *)rtentry->rt_target;
+  addr    = (FAR struct sockaddr_in *)&rtentry->rt_dst;
   target  = (in_addr_t)addr->sin_addr.s_addr;
 
-  addr    = (FAR struct sockaddr_in *)rtentry->rt_netmask;
+  addr    = (FAR struct sockaddr_in *)&rtentry->rt_genmask;
   netmask = (in_addr_t)addr->sin_addr.s_addr;
 
   return net_delroute_ipv4(target, netmask);
@@ -273,10 +258,11 @@ static int ioctl_del_ipv6route(FAR struct rtentry *rtentry)
   FAR struct sockaddr_in6 *target;
   FAR struct sockaddr_in6 *netmask;
 
-  target    = (FAR struct sockaddr_in6 *)rtentry->rt_target;
-  netmask    = (FAR struct sockaddr_in6 *)rtentry->rt_netmask;
+  target  = (FAR struct sockaddr_in6 *)&rtentry->rt_dst;
+  netmask = (FAR struct sockaddr_in6 *)&rtentry->rt_genmask;
 
-  return net_delroute_ipv6(target->sin6_addr.s6_addr16, netmask->sin6_addr.s6_addr16);
+  return net_delroute_ipv6(target->sin6_addr.s6_addr16,
+                           netmask->sin6_addr.s6_addr16);
 }
 #endif /* HAVE_WRITABLE_IPv6ROUTE */
 
@@ -300,6 +286,7 @@ static void ioctl_get_ipv4addr(FAR struct sockaddr *outaddr,
   dest->sin_family              = AF_INET;
   dest->sin_port                = 0;
   dest->sin_addr.s_addr         = inaddr;
+  memset(dest->sin_zero, 0, sizeof(dest->sin_zero));
 }
 #endif
 
@@ -324,6 +311,7 @@ static void inline ioctl_get_ipv4broadcast(FAR struct sockaddr *outaddr,
   dest->sin_family              = AF_INET;
   dest->sin_port                = 0;
   dest->sin_addr.s_addr         = net_ipv4addr_broadcast(inaddr, netmask);
+  memset(dest->sin_zero, 0, sizeof(dest->sin_zero));
 }
 #endif
 
@@ -335,7 +323,7 @@ static void inline ioctl_get_ipv4broadcast(FAR struct sockaddr *outaddr,
  *
  * Input Parameters:
  *   outaddr - Pointer to the user-provided memory to receive the address.
- *   inaddr - The source IP adress in the device structure.
+ *   inaddr - The source IP address in the device structure.
  *
  ****************************************************************************/
 
@@ -990,7 +978,8 @@ static int netdev_ifr_ioctl(FAR struct socket *psock, int cmd,
           if (dev)
             {
 #ifdef CONFIG_NET_ETHERNET
-              if (dev->d_lltype == NET_LL_ETHERNET)
+              if (dev->d_lltype == NET_LL_ETHERNET ||
+                  dev->d_lltype == NET_LL_IEEE80211)
                 {
                   memcpy(dev->d_mac.ether.ether_addr_octet,
                          req->ifr_hwaddr.sa_data, IFHWADDRLEN);
@@ -1346,14 +1335,14 @@ static int netdev_rt_ioctl(FAR struct socket *psock, int cmd,
         {
           /* The target address and the netmask are required values */
 
-          if (!rtentry || !rtentry->rt_target || !rtentry->rt_netmask)
+          if (rtentry == NULL)
             {
               return -EINVAL;
             }
 
 #ifdef CONFIG_NET_IPv4
 #ifdef CONFIG_NET_IPv6
-          if (rtentry->rt_target->ss_family == AF_INET)
+          if (rtentry->rt_dst.ss_family == AF_INET)
 #endif
             {
 #ifdef HAVE_WRITABLE_IPv4ROUTE
@@ -1383,14 +1372,14 @@ static int netdev_rt_ioctl(FAR struct socket *psock, int cmd,
         {
           /* The target address and the netmask are required values */
 
-          if (!rtentry || !rtentry->rt_target || !rtentry->rt_netmask)
+          if (rtentry == 0)
             {
               return -EINVAL;
             }
 
 #ifdef CONFIG_NET_IPv4
 #ifdef CONFIG_NET_IPv6
-          if (rtentry->rt_target->ss_family == AF_INET)
+          if (rtentry->rt_dst.ss_family == AF_INET)
 #endif
             {
 #ifdef HAVE_WRITABLE_IPv4ROUTE
@@ -1553,18 +1542,21 @@ ssize_t net_ioctl_arglen(int cmd)
             return sizeof(struct iwreq);
           }
 #  endif
+
 #  ifdef CONFIG_WIRELESS_IEEE802154
         if (_MAC802154IOCVALID(cmd))
           {
             return sizeof(struct ieee802154_netmac_s);
           }
 #  endif
+
 #  ifdef CONFIG_WIRELESS_PKTRADIO
         if (WL_ISPKTRADIOCMD(cmd))
           {
             return sizeof(struct pktradio_ifreq_s);
           }
 #  endif
+
 #  ifdef CONFIG_WIRELESS_BLUETOOTH
         if (WL_IBLUETOOTHCMD(cmd))
           {
@@ -1572,6 +1564,7 @@ ssize_t net_ioctl_arglen(int cmd)
           }
 #  endif
 #endif
+
         return -ENOTTY;
     }
 }
@@ -1795,7 +1788,7 @@ void netdev_ifdown(FAR struct net_driver_s *dev)
 
       /* Notify clients that the network has been taken down */
 
-      (void)devif_dev_event(dev, NULL, NETDEV_DOWN);
+      devif_dev_event(dev, NULL, NETDEV_DOWN);
 
 #ifdef CONFIG_NETDOWN_NOTIFIER
       /* Provide signal notifications to threads that want to be
@@ -1806,4 +1799,3 @@ void netdev_ifdown(FAR struct net_driver_s *dev)
 #endif
     }
 }
-

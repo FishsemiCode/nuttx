@@ -46,9 +46,9 @@
 
 #include "up_arch.h"
 
-#include "chip/lpc54_syscon.h"
-#include "chip/lpc54_inputmux.h"
-#include "chip/lpc54_pint.h"
+#include "hardware/lpc54_syscon.h"
+#include "hardware/lpc54_inputmux.h"
+#include "hardware/lpc54_pint.h"
 #include "lpc54_gpio.h"
 
 #ifdef CONFIG_LPC54_GPIOIRQ
@@ -323,7 +323,7 @@ int lpc54_gpio_irqno(lpc54_pinset_t pinset)
  * Description:
  *   Acknowledge edge interrupts by clearing the associated bits in the rising and
  *   falling registers.  This acknowledgemment is, of course, not needed for level
- *   interupts.
+ *   interrupts.
  *
  ************************************************************************************/
 

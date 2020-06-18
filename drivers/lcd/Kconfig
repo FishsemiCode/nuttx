@@ -14,10 +14,14 @@ menuconfig LCD
 		drivers support interfaces as defined in include/nuttx/lcd/lcd.h
 
 		This selection is necessary to enable support for LCD drivers in
-		drivers/lcd as well as for board-specific LCD drivers in the configs/
+		drivers/lcd as well as for board-specific LCD drivers in the boards/
 		subdirectories.
 
 if LCD
+
+config LCD_HWCURSOR
+	bool
+	default n
 
 config LCD_PACKEDMSFIRST
 	bool
@@ -39,7 +43,7 @@ config LCD_FRAMEBUFFER
 		standard, NuttX frame buffer driver.
 
 		NOTE: Some LCD drivers implement an internal framebuffer for
-		effeciency reasons but do not export a framebuffer interface.  So
+		efficiency reasons but do not export a framebuffer interface.  So
 		those LCD cannot be used as framebuffer drivers.  If the option is
 		available, then such internal framebuffer support should be
 		disabled because this external common framebuffer interface will
@@ -69,7 +73,7 @@ config LCD_NOGETRUN
 	default n
 	---help---
 		Many LCD hardware interfaces provide only minimal graphics capability.  In
-		particulary, many simple LCD interfaces are write only.  That is we, can
+		particularly, many simple LCD interfaces are write only.  That is we, can
 		write graphics data to the LCD device memory, but we cannot read it back.
 		If the LCD hardware does not support reading the graphics memory, then
 		this option should be defined so that the NX layer can taking alternative
@@ -96,7 +100,7 @@ config LCD_MAXPOWER
 	range 1 255
 	---help---
 		Maximum value of LCD power setting.  This normally equates to brightness:
-		The brighter the screen, the hight the power usage.
+		The brighter the screen, the high the power usage.
 
 		On LCDs that have a backlight, this value corresponds directly to that
 		backlight setting.  Board-specific logic may place restrictions on this
@@ -147,7 +151,7 @@ config P14201_FRAMEBUFFER
 		Reading graphics memory cannot be supported, and
 
 		All pixel writes must be aligned to byte boundaries.
-		The latter limitation effectively reduces the 128x96 disply to 64x96.
+		The latter limitation effectively reduces the 128x96 display to 64x96.
 
 		NOTE: This option should not be used if CONFIG_LCD_FRAMBEBUFFER is
 		enabled.  That options provides for a more generalized, external
@@ -186,7 +190,7 @@ config MAX7219_NVERTICALBLKS
 config MAX7219_INTENSITY
 	int "Default LED Matrix bright intensity"
 	default 10
-        range 0 15
+	range 0 15
 	---help---
 		Specifies the default LEDs bright intensity to use.
 
@@ -892,6 +896,132 @@ config LCD_RLANDSCAPE
 
 endchoice
 
+config LCD_LPM013M091A
+	bool "JDI LPM013M091A LCD Driver"
+	default n
+	---help---
+		JDI LPM013M091A LCD Driver.
+		This driver doesn't support reading data.
+		Recommended to use DMA to transfer data or displayed image would be
+		broken.
+
+config LCD_ILI9340
+	bool "ILI9340 LCD Single Chip Driver"
+	default n
+	---help---
+		LCD Single Chip Driver, ILI9340, ILI Technology Corp.
+
+		Required LCD driver settings:
+		LCD_MAXCONTRAST should be 255, but any value >0 and <=255 will be accepted.
+		LCD_MAXPOWER should be 1:  0=off, 1=on
+
+config LCD_ILI9340_NINTERFACES
+	int "Number of supported display driver"
+	range 1 2
+	default 1
+	depends on LCD_ILI9340
+	---help---
+		Define the number of supported  displays driven by a ili9340 LCD Single
+		Chip Driver.
+
+config LCD_ILI9340_IFACE0
+	bool "(1) LCD Display"
+	depends on LCD_ILI9340_NINTERFACES = 1 || LCD_ILI9340_NINTERFACES = 2
+	---help---
+		Configure first LCD Display.
+
+if LCD_ILI9340_IFACE0
+choice
+	prompt "LCD Orientation"
+	default LCD_ILI9340_IFACE0_LANDSCAPE
+	---help---
+		Configure display orientation.
+
+config LCD_ILI9340_IFACE0_LANDSCAPE
+	bool "Landscape orientation"
+	---help---
+		Define for "landscape" orientation support.
+
+config LCD_ILI9340_IFACE0_PORTRAIT
+	bool "Portrait orientation"
+	---help---
+		Define for "portrait" orientation support.
+
+config LCD_ILI9340_IFACE0_RLANDSCAPE
+	bool "Reverse landscape orientation"
+	---help---
+		Define for "reverse landscape" orientation support.
+
+config LCD_ILI9340_IFACE0_RPORTRAIT
+	bool "Reverse portrait display"
+	---help---
+		Define for "reverse portrait" orientation support.
+
+endchoice
+
+choice
+	prompt "Color format"
+	default LCD_ILI9340_IFACE0_RGB565
+	---help---
+		LCD color format.
+
+config LCD_ILI9340_IFACE0_RGB565
+	bool "16 bpp RGB565 color format"
+	---help---
+	16 bpp RGB565 color format
+
+endchoice
+endif
+
+config LCD_ILI9340_IFACE1
+	bool "(2) LCD Display"
+	depends on LCD_ILI9340_NINTERFACES = 2
+	---help---
+		Configure second LCD Display.
+
+if LCD_ILI9340_IFACE1
+choice
+	prompt "LCD Orientation"
+	default LCD_ILI9340_IFACE1_LANDSCAPE
+	---help---
+		Configure display orientation.
+
+config LCD_ILI9340_IFACE1_LANDSCAPE
+	bool "Landscape orientation"
+	---help---
+		Define for "landscape" orientation support.
+
+config LCD_ILI9340_IFACE1_PORTRAIT
+	bool "Portrait orientation"
+	---help---
+		Define for "portrait" orientation support.
+
+config LCD_ILI9340_IFACE1_RLANDSCAPE
+	bool "Reverse landscape orientation"
+	---help---
+		Define for "reverse landscape" orientation support.
+
+config LCD_ILI9340_IFACE1_RPORTRAIT
+	bool "Reverse portrait display"
+	---help---
+		Define for "reverse portrait" orientation support.
+
+endchoice
+
+choice
+	prompt "Color format"
+	default LCD_ILI9340_IFACE1_RGB565
+	---help---
+		LCD color format.
+
+config LCD_ILI9340_IFACE1_RGB565
+	bool "16 bpp RGB565 color format"
+	---help---
+		16 bpp RGB565 color format
+
+endchoice
+endif
+
 config LCD_ILI9341
 	bool "ILI9341 LCD Single Chip Driver"
 	default n
@@ -907,7 +1037,7 @@ config LCD_ILI9341_NINTERFACES
 	int "Number of supported display driver"
 	range 1 2
 	default 1
-    depends on LCD_ILI9341
+	depends on LCD_ILI9341
 	---help---
 		Define the number of supported  displays driven by a ili9341 LCD Single
 		Chip Driver.
@@ -1009,6 +1139,23 @@ config LCD_ILI9341_IFACE1_RGB565
 
 endchoice
 endif
+
+config LCD_LCDDRV_SPIIF
+	bool "Generic SPI Interface Driver (for ILI9341 or others)"
+	default n
+	depends on LCD_ILI9341
+	---help---
+		SPI Interface shim to allow LCD and ePaper to be bound to
+		a normal SPI port.
+
+config LCD_LCDDRV_SPEED
+        int "Generic SPI Interface speed"
+	default 10000000
+	depends on LCD_LCDDRV_SPIIF
+	---help---
+		SPI Interface speed. According to the specification this is generally
+		quite limited, but people have had success with much faster
+		speeds than the spec sheets say. YMMV.
 
 config LCD_RA8875
 	bool "RA8875 LCD Display Controller"
@@ -1159,12 +1306,12 @@ menuconfig SLCD
 	bool "Alphanumeric/Segment LCD Devices"
 	default n
 	---help---
-		Drivers for Alphanumeric ans Segment LCDs (SLCDs).  These
+		Drivers for Alphanumeric and Segment LCDs (SLCDs).  These
 		drivers support interfaces as defined in include/nuttx/lcd/slcd_ioctl.h
 		amd slcd_codec.h
 
 		This selection is necessary to enable support for SLCD drivers in
-		drivers/lcd as well as for board-specific LCD drivers in the configs/
+		drivers/lcd as well as for board-specific LCD drivers in the boards/
 		subdirectories.
 
 if SLCD
@@ -1188,8 +1335,7 @@ config LCD_LCD1602
 		HD44780U LCD controller.  See also include/nuttx/lcd/hd4478ou.h.
 
 		NOTE:  There is no common implementation of the LCD1602 driver.
-		Rather, there are board-by-board implementations.  See, for example,
-		configs/pcblogic-pic32mx/src/up_lcd1602.c.
+		Rather, there are board-by-board implementations.
 
 config LCD_BACKPACK
 	bool "PCF8574 LCD Backpack"

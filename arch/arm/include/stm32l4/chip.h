@@ -199,7 +199,7 @@
 #else
 #  define STM32L4_NPORTS                   8   /* 8 GPIO ports, GPIOA-H */
 #endif
-#  define STM32L4_NADC                     3   /* 12-bit ADC1-3, upto 24 channels */
+#  define STM32L4_NADC                     3   /* 12-bit ADC1-3, up to 24 channels */
 #  define STM32L4_NDAC                     2   /* 12-bit DAC1-2 */
 #  define STM32L4_NCRC                     1   /* CRC */
 #  define STM32L4_NCOMP                    2   /* Comparators */
@@ -285,7 +285,7 @@
 #  define STM32L4_NLPTIM                   2   /* Two low-power timers, LPTIM1-2 */
 #  define STM32L4_NRNG                     1   /* Random number generator (RNG) */
 #  define STM32L4_NUART                    0   /* No UART */
-#  define STM32L4_NUSART                   4   /* USART 1-4 */
+#  define STM32L4_NUSART                   3   /* USART 1-3 */
 #  define STM32L4_NLPUART                  1   /* LPUART 1 */
 #  define STM32L4_QSPI                     1   /* QuadSPI1 */
 #  define STM32L4_NSPI                     3   /* SPI1-SPI3 */

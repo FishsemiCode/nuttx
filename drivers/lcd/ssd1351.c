@@ -75,7 +75,7 @@
  * CONFIG_SSD1351_VDDEXT       - external VDD
  * CONFIG_SSD1351_TRST         - reset period
  * CONFIG_SSD1351_TPRECHG1     - first pre-charge period
- * CONFIG_SSD1351_PERFENHANCE  - enhace display performance
+ * CONFIG_SSD1351_PERFENHANCE  - enhance display performance
  * CONFIG_SSD1351_CLKDIV       - clock divider
  * CONFIG_SSD1351_OSCFREQ      - oscillator frequency
  * CONFIG_SSD1351_TPRECHG2     - second pre-charge period
@@ -360,7 +360,7 @@
 
 struct ssd1351_dev_s
 {
-  /* Publically visible device structure */
+  /* Publicly visible device structure */
 
   struct lcd_dev_s          dev;
 
@@ -499,8 +499,8 @@ static void ssd1351_select(FAR struct ssd1351_dev_s *priv)
 
   SPI_SETMODE(spi, CONFIG_SSD1351_SPIMODE);
   SPI_SETBITS(spi, SSD1351_SPIBITS);
-  (void)SPI_HWFEATURES(spi, 0);
-  (void)SPI_SETFREQUENCY(spi, CONFIG_SSD1351_SPIFREQ);
+  SPI_HWFEATURES(spi, 0);
+  SPI_SETFREQUENCY(spi, CONFIG_SSD1351_SPIFREQ);
 }
 #endif
 
@@ -554,7 +554,7 @@ static void ssd1351_read(FAR struct ssd1351_dev_s *priv, uint8_t cmd,
 
   if (cmd == SSD1351_CMD_RAMREAD)
     {
-      (void)lcd->read(lcd);
+      lcd->read(lcd);
     }
 
   /* Read all of the data */
@@ -622,7 +622,7 @@ static void ssd1351_write(FAR struct ssd1351_dev_s *priv, uint8_t cmd,
 
   /* Send the line buffer */
 
-  (void)SPI_SNDBLOCK(priv->spi, priv->rowbuffer, datlen+1);
+  SPI_SNDBLOCK(priv->spi, priv->rowbuffer, datlen+1);
 }
 #elif defined(CONFIG_SSD1351_SPI4WIRE)
 static void ssd1351_write(FAR struct ssd1351_dev_s *priv, uint8_t cmd,
@@ -637,11 +637,11 @@ static void ssd1351_write(FAR struct ssd1351_dev_s *priv, uint8_t cmd,
 
   /* Select command transfer */
 
-  (void)SPI_CMDDATA(spi, SPIDEV_DISPLAY(0), true);
+  SPI_CMDDATA(spi, SPIDEV_DISPLAY(0), true);
 
   /* Send the command */
 
-  (void)SPI_SEND(spi, cmd);
+  SPI_SEND(spi, cmd);
 
   /* Do we have any data to send? */
 
@@ -649,11 +649,11 @@ static void ssd1351_write(FAR struct ssd1351_dev_s *priv, uint8_t cmd,
     {
       /* Yes, select data transfer */
 
-      (void)SPI_CMDDATA(spi, SPIDEV_DISPLAY(0), false);
+      SPI_CMDDATA(spi, SPIDEV_DISPLAY(0), false);
 
       /* Transfer all of the data */
 
-      (void)SPI_SNDBLOCK(spi, data, datlen);
+      SPI_SNDBLOCK(spi, data, datlen);
     }
 }
 #endif

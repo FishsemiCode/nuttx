@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -720,7 +719,7 @@ static int up_attach(struct uart_dev_s *dev)
         {
           /* Detach the ERI interrupt on failure */
 
-          (void)irq_detach(priv->rcvirq);
+          irq_detach(priv->rcvirq);
         }
     }
 
@@ -747,8 +746,8 @@ static void up_detach(struct uart_dev_s *dev)
 
   /* Detach the UART interrupts */
 
-  (void)irq_detach(priv->rcvirq);
-  (void)irq_detach(priv->xmtirq);
+  irq_detach(priv->rcvirq);
+  irq_detach(priv->xmtirq);
 }
 
 /****************************************************************************
@@ -758,7 +757,7 @@ static void up_detach(struct uart_dev_s *dev)
  *   This is the UART receive interrupt handler.  It will be invoked when an
  *   interrupt received on the 'irq'  It should call uart_receivechar to
  *   perform the appropriate data transfer.  The interrupt handling logic
- *   must be able to map the 'irq' number into the approprite up_dev_s
+ *   must be able to map the 'irq' number into the appropriate up_dev_s
  *   structure in order to call these functions.
  *
  ****************************************************************************/
@@ -901,7 +900,7 @@ static bool up_rxavailable(struct uart_dev_s *dev)
  *   when an interrupt received on the 'irq'  It should call
  *   uart_transmitchars or uart_receivechar to perform the
  *   appropriate data transfers.  The interrupt handling logic
- *   must be able to map the 'irq' number into the approprite
+ *   must be able to map the 'irq' number into the appropriate
  *   up_dev_s structure in order to call these functions.
  *
  ****************************************************************************/
@@ -1076,17 +1075,17 @@ void up_consoleinit(void)
   /* Register the console */
 
 #ifdef HAVE_SERIALCONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs */
 
 #ifdef TTYS0_DEV
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
+  uart_register("/dev/ttyS2", &TTYS2_DEV);
 #endif
 #endif
 #endif
@@ -1158,4 +1157,3 @@ int up_putc(int ch)
 #elif defined(CONFIG_UART0_SERIAL_CONSOLE) || defined(CONFIG_UART1_SERIAL_CONSOLE)|| defined(CONFIG_UART2_SERIAL_CONSOLE)
 #    error "A serial console selected, but corresponding UART not enabled"
 #endif /* CONFIG_M16C_UART0 || CONFIG_M16C_UART1 || CONFIG_M16C_UART2 */
-

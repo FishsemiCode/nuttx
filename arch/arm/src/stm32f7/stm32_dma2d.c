@@ -46,7 +46,6 @@
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
-#include <semaphore.h>
 
 #include <nuttx/irq.h>
 #include <nuttx/kmalloc.h>
@@ -57,9 +56,9 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
-#include "chip/stm32_ltdc.h"
-#include "chip/stm32_dma2d.h"
-#include "chip/stm32_dtcm.h"
+#include "hardware/stm32_ltdc.h"
+#include "hardware/stm32_dma2d.h"
+#include "hardware/stm32_dtcm.h"
 #include "stm32_dma2d.h"
 #include "stm32_ltdc.h"
 #include "stm32_gpio.h"
@@ -809,7 +808,7 @@ static int stm32_dma2d_setclut(FAR const struct fb_cmap_s *cmap)
  * Input Parameters:
  *   oinfo - Overlay to fill
  *   area  - Reference to the valid area structure select the area
- *   argb  - Color to fill the selected area. Color must be argb8888 formated.
+ *   argb  - Color to fill the selected area. Color must be argb8888 formatted.
  *
  * Returned Value:
  *    OK        - On success
@@ -1131,7 +1130,7 @@ int stm32_dma2dinitialize(void)
 
       /* Attach DMA2D interrupt vector */
 
-      (void)irq_attach(g_interrupt.irq, stm32_dma2dirq, NULL);
+      irq_attach(g_interrupt.irq, stm32_dma2dirq, NULL);
 
       /* Enable the IRQ at the NVIC */
 

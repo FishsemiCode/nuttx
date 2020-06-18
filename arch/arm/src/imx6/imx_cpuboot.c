@@ -48,7 +48,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/imx_src.h"
+#include "hardware/imx_src.h"
 #include "sctlr.h"
 #include "smp.h"
 #include "scu.h"
@@ -202,7 +202,7 @@ void imx_cpu_disable(void)
  *
  * Description:
  *   Called from CPU0 to enable all other CPUs.  The enabled CPUs will start
- *   execution at __cpuN_start and, after very low-level CPU initialzation
+ *   execution at __cpuN_start and, after very low-level CPU initialization
  *   has been performed, will branch to arm_cpu_boot()
  *   (see arch/arm/src/armv7-a/smp.h)
  *
@@ -298,7 +298,7 @@ void arm_cpu_boot(int cpu)
 #ifndef CONFIG_SUPPRESS_INTERRUPTS
   /* And finally, enable interrupts */
 
-  (void)up_irq_enable();
+  up_irq_enable();
 #endif
 
   /* The next thing that we expect to happen is for logic running on CPU0

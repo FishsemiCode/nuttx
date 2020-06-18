@@ -201,7 +201,8 @@ bool sched_addreadytorun(FAR struct tcb_s *btcb)
 
   /* Determine the desired new task state.  First, if the new task priority
    * is higher then the priority of the lowest priority, running task, then
-   * the new task will be running and a context switch switch will be required.
+   * the new task will be running and a context switch switch will be
+   * required.
    */
 
   if (rtcb->sched_priority < btcb->sched_priority)
@@ -262,7 +263,7 @@ bool sched_addreadytorun(FAR struct tcb_s *btcb)
        * Add the task to the ready-to-run (but not running) task list
        */
 
-      (void)sched_addprioritized(btcb, (FAR dq_queue_t *)&g_readytorun);
+      sched_addprioritized(btcb, (FAR dq_queue_t *)&g_readytorun);
 
       btcb->task_state = TSTATE_TASK_READYTORUN;
       doswitch         = false;
@@ -401,7 +402,7 @@ bool sched_addreadytorun(FAR struct tcb_s *btcb)
                   tasklist         = (FAR dq_queue_t *)&g_readytorun;
                 }
 
-              (void)sched_addprioritized(next, tasklist);
+              sched_addprioritized(next, tasklist);
             }
 
           doswitch = true;
@@ -413,8 +414,8 @@ bool sched_addreadytorun(FAR struct tcb_s *btcb)
            * REVISIT: I have seen this assertion fire.  Apparently another
            * CPU may add another, higher priority task to the same
            * g_assignedtasks[] list sometime after sched_cpu_select() was
-           * called above, leaving this TCB in the wrong task list if task_state
-           * is TSTATE_TASK_ASSIGNED).
+           * called above, leaving this TCB in the wrong task list if
+           * task_state is TSTATE_TASK_ASSIGNED).
            */
 
           DEBUGASSERT(task_state == TSTATE_TASK_ASSIGNED);

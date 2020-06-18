@@ -44,20 +44,8 @@
 #include "pgalloc.h"
 #include "up_internal.h"
 
-#if ((defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
-      defined(CONFIG_BUILD_PROTECTED)) && !defined(CONFIG_DISABLE_SIGNALS)
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+#if (defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
+     defined(CONFIG_BUILD_PROTECTED)
 
 /****************************************************************************
  * Public Functions
@@ -105,8 +93,8 @@ void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
     {
       /* Yes.. Let sys_call4() do all of the work to get us into user space */
 
-      (void)sys_call4(SYS_signal_handler, (uintptr_t)sighand, (uintptr_t)signo,
-                      (uintptr_t)info, (uintptr_t)ucontext);
+      sys_call4(SYS_signal_handler, (uintptr_t)sighand, (uintptr_t)signo,
+                (uintptr_t)info, (uintptr_t)ucontext);
     }
   else
     {
@@ -116,4 +104,4 @@ void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
     }
 }
 
-#endif /* (CONFIG_BUILD_PROTECTED || CONFIG_BUILD_PROTECTED) && !CONFIG_DISABLE_SIGNALS */
+#endif /* CONFIG_BUILD_PROTECTED || CONFIG_BUILD_PROTECTED */

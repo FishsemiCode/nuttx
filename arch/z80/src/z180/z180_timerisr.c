@@ -46,7 +46,7 @@
 #include <arch/board/board.h>
 
 #include "clock/clock.h"
-#include "up_internal.h"
+#include "z80_internal.h"
 
 #include "chip.h"
 
@@ -91,9 +91,9 @@ static int z180_timerisr(int irq, chipreg_t *regs, void *arg)
    * the higher or lower byte of TMDR0 is read."
    */
 
-  (void)inp(Z180_PRT_TCR);
-  (void)inp(Z180_PRT0_DRL);
-  (void)inp(Z180_PRT0_DRH);
+  inp(Z180_PRT_TCR);
+  inp(Z180_PRT0_DRL);
+  inp(Z180_PRT0_DRH);
 
   /* Process timer interrupt */
 
@@ -106,7 +106,7 @@ static int z180_timerisr(int irq, chipreg_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function: z80_timer_initialize
+ * Function: up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize the timer
@@ -114,7 +114,7 @@ static int z180_timerisr(int irq, chipreg_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void z80_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint8_t regval;
 
@@ -142,7 +142,7 @@ void z80_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(Z180_PRT0, (xcpt_t)z180_timerisr, NULL);
+  irq_attach(Z180_PRT0, (xcpt_t)z180_timerisr, NULL);
 
   /* And enable the timer interrupt */
 

@@ -44,12 +44,7 @@
 #include <nuttx/i2c/i2c_master.h>
 
 #include "chip.h"
-#if defined(CONFIG_STM32_STM32F30XX) || defined(CONFIG_STM32_STM32F37XX) || \
-    defined(CONFIG_STM32_STM32F33XX)
-#  include "chip/stm32f30xxx_i2c.h"
-#else
-#  include "chip/stm32_i2c.h"
-#endif
+#include "hardware/stm32_i2c.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -83,7 +78,7 @@
  *   Port number (for hardware that has multiple I2C interfaces)
  *
  * Returned Value:
- *   Valid I2C device structure reference on succcess; a NULL on failure
+ *   Valid I2C device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 

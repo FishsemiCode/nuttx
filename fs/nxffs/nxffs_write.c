@@ -48,7 +48,6 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/mtd/mtd.h>
 
@@ -742,7 +741,7 @@ int nxffs_wrextend(FAR struct nxffs_volume_s *volume,
  *   On successful return the following are also valid:
  *
  *   volume->ioblock - Read/write block number of the block containing the
- *     candidate oject position
+ *     candidate object position
  *   volume->iooffset - The offset in the block to the candidate object
  *     position.
  *   volume->froffset - Updated offset to the first free FLASH block after
@@ -829,13 +828,13 @@ int nxffs_wrreserve(FAR struct nxffs_volume_s *volume, size_t size)
  *   following settings (left by nxffs_wrreserve()):
  *
  *   volume->ioblock - Read/write block number of the block containing the
- *     candidate oject position
+ *     candidate object position
  *   volume->iooffset - The offset in the block to the candidate object
  *     position.
  *
  * Input Parameters:
  *   volume - Describes the NXFFS volume
- *   size - The size of the object to be verifed.
+ *   size - The size of the object to be verified.
  *
  * Returned Value:
  *   Zero is returned on success.  Otherwise, a negated errno value is
@@ -899,15 +898,15 @@ int nxffs_wrverify(FAR struct nxffs_volume_s *volume, size_t size)
 
                   if (nerased >= size)
                     {
-                       /* Yes.. this this is where we will put the object */
+                      /* Yes.. this this is where we will put the object */
 
-                       off_t offset =
-                         volume->ioblock * volume->geo.blocksize + iooffset;
+                      off_t offset =
+                        volume->ioblock * volume->geo.blocksize + iooffset;
 
-                       /* Update the free flash offset and return success */
+                      /* Update the free flash offset and return success */
 
-                       volume->froffset = offset + size;
-                       return OK;
+                      volume->froffset = offset + size;
+                      return OK;
                     }
                 }
 
@@ -938,7 +937,8 @@ int nxffs_wrverify(FAR struct nxffs_volume_s *volume, size_t size)
         }
 
       volume->iooffset = SIZEOF_NXFFS_BLOCK_HDR;
-      volume->froffset = volume->ioblock * volume->geo.blocksize + SIZEOF_NXFFS_BLOCK_HDR;
+      volume->froffset = volume->ioblock * volume->geo.blocksize +
+                         SIZEOF_NXFFS_BLOCK_HDR;
     }
 
   /* Return -ENOSPC if there is no erased memory left in the volume for
@@ -983,7 +983,8 @@ int nxffs_wrblkhdr(FAR struct nxffs_volume_s *volume,
 
   /* Update the entire data block CRC (including the header) */
 
-  wrfile->crc = crc32(&volume->cache[volume->iooffset], wrfile->datlen + SIZEOF_NXFFS_DATA_HDR);
+  wrfile->crc = crc32(&volume->cache[volume->iooffset],
+                      wrfile->datlen + SIZEOF_NXFFS_DATA_HDR);
   nxffs_wrle32(dathdr->crc, wrfile->crc);
 
   /* And write the data block to FLASH */

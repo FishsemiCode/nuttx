@@ -89,7 +89,7 @@ ssize_t readlink(FAR const char *path, FAR char *buf, size_t bufsize)
 
   DEBUGASSERT(path != NULL && buf != NULL && bufsize > 0);
 
-  /* Find the inode that includes this path (without derefencing the final)
+  /* Find the inode that includes this path (without dereferencing the final)
    * symbolic link node.
    */
 
@@ -122,7 +122,7 @@ ssize_t readlink(FAR const char *path, FAR char *buf, size_t bufsize)
   /* Copy the link target pathto the user-provided buffer. */
 
   *buf = '\0';
-  (void)strncpy(buf, node->u.i_link, bufsize);
+  strncpy(buf, node->u.i_link, bufsize);
 
   /* Release our reference on the inode and return the length */
 

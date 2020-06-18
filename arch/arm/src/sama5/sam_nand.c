@@ -52,13 +52,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <string.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/ioctl.h>
 #include <nuttx/mtd/mtd.h>
 #include <nuttx/mtd/nand.h>
@@ -139,13 +137,14 @@
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* Low-level HSMC Helpers */
 
 #if NAND_NBANKS > 1
-void            nand_lock(void);
+int             nand_lock(void);
 void            nand_unlock(void);
 #else
-#  define       nand_lock()
+#  define       nand_lock() (0)
 #  define       nand_unlock()
 #endif
 
@@ -267,6 +266,7 @@ static void     nand_reset(struct sam_nandcs_s *priv);
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
 /* These pre-allocated structures hold the state of the MTD driver for NAND
  * on CS0..3 as configured.
  */
@@ -306,21 +306,15 @@ struct sam_nand_s g_nand;
  *   None
  *
  * Returned Value:
- *   None
+ *  Normally success (OK) is returned, but the error -ECANCELED may be
+ *  return in the event that task has been canceled.
  *
  ****************************************************************************/
 
 #if NAND_NBANKS > 1
-void nand_lock(void)
+static int nand_lock(void)
 {
-  int ret;
-
-  do
-    {
-      ret = nxsem_wait(&g_nand.exclsem);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&g_nand.exclsem);
 }
 #endif
 
@@ -339,7 +333,7 @@ void nand_lock(void)
  ****************************************************************************/
 
 #if NAND_NBANKS > 1
-void nand_unlock(void)
+static void nand_unlock(void)
 {
   nxsem_post(&g_nand.exclsem);
 }
@@ -657,8 +651,10 @@ static void nand_nfc_cleale(struct sam_nandcs_s *priv, uint8_t mode,
     }
 
   cmd = (rw | regval | NFCADDR_CMD_CSID(priv->cs) | acycle |
-         (((mode & HSMC_CLE_VCMD2_EN) == HSMC_CLE_VCMD2_EN) ? NFCADDR_CMD_VCMD2 : 0) |
-         (cmd1 << NFCADDR_CMD_CMD1_SHIFT) | (cmd2 << NFCADDR_CMD_CMD2_SHIFT));
+         (((mode & HSMC_CLE_VCMD2_EN) == HSMC_CLE_VCMD2_EN) ?
+         NFCADDR_CMD_VCMD2 : 0) |
+         (cmd1 << NFCADDR_CMD_CMD1_SHIFT) |
+         (cmd2 << NFCADDR_CMD_CMD2_SHIFT));
 
   nand_nfc_cmdsend(priv, cmd, acycle1234, acycle0);
 }
@@ -681,15 +677,13 @@ static void nand_wait_cmddone(struct sam_nandcs_s *priv)
 {
 #ifdef CONFIG_SAMA5_NAND_HSMCINTERRUPTS
   irqstate_t flags;
-  int ret;
 
   /* Wait for the CMDDONE interrupt to occur */
 
   flags = enter_critical_section();
   do
     {
-      ret = nxsem_wait(&g_nand.waitsem);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      nxsem_wait_uninterruptible(&g_nand.waitsem);
     }
   while (!g_nand.cmddone);
 
@@ -703,7 +697,7 @@ static void nand_wait_cmddone(struct sam_nandcs_s *priv)
 
   do
     {
-      (void)nand_nfc_poll();
+      nand_nfc_poll();
     }
   while (!g_nand.cmddone);
 #endif
@@ -746,7 +740,7 @@ static void nand_setup_cmddone(struct sam_nandcs_s *priv)
 #else
   /* Just sample and clear any pending NFC status, then clear CMDDONE status */
 
-  (void)nand_nfc_poll();
+  nand_nfc_poll();
   g_nand.cmddone = false;
 #endif
 }
@@ -769,15 +763,13 @@ static void nand_wait_xfrdone(struct sam_nandcs_s *priv)
 {
 #ifdef CONFIG_SAMA5_NAND_HSMCINTERRUPTS
   irqstate_t flags;
-  int ret;
 
   /* Wait for the XFRDONE interrupt to occur */
 
   flags = enter_critical_section();
   do
     {
-      ret = nxsem_wait(&g_nand.waitsem);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      nxsem_wait_uninterruptible(&g_nand.waitsem);
     }
   while (!g_nand.xfrdone);
 
@@ -791,7 +783,7 @@ static void nand_wait_xfrdone(struct sam_nandcs_s *priv)
 
   do
     {
-      (void)nand_nfc_poll();
+      nand_nfc_poll();
     }
   while (!g_nand.xfrdone);
 #endif
@@ -834,7 +826,7 @@ static void nand_setup_xfrdone(struct sam_nandcs_s *priv)
 #else
   /* Just sample and clear any pending NFC status, then clear XFRDONE status */
 
-  (void)nand_nfc_poll();
+  nand_nfc_poll();
   g_nand.xfrdone = false;
 #endif
 }
@@ -857,15 +849,13 @@ static void nand_wait_rbedge(struct sam_nandcs_s *priv)
 {
 #ifdef CONFIG_SAMA5_NAND_HSMCINTERRUPTS
   irqstate_t flags;
-  int ret;
 
   /* Wait for the RBEDGE0 interrupt to occur */
 
   flags = enter_critical_section();
   do
     {
-      ret = nxsem_wait(&g_nand.waitsem);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      nxsem_wait_uninterruptible(&g_nand.waitsem);
     }
   while (!g_nand.rbedge);
 
@@ -879,7 +869,7 @@ static void nand_wait_rbedge(struct sam_nandcs_s *priv)
 
   do
     {
-      (void)nand_nfc_poll();
+      nand_nfc_poll();
     }
   while (!g_nand.rbedge);
 #endif
@@ -922,7 +912,7 @@ static void nand_setup_rbedge(struct sam_nandcs_s *priv)
 #else
   /* Just sample and clear any pending NFC status, then clear RBEDGE0 status */
 
-  (void)nand_nfc_poll();
+  nand_nfc_poll();
   g_nand.rbedge = false;
 #endif
 }
@@ -989,10 +979,6 @@ static uint32_t nand_nfc_poll(void)
 
   sr = nand_getreg(SAM_HSMC_SR);
 
-#ifndef CONFIG_SAMA5_NAND_REGDEBUG
-  // finfo("sr=%08x\n", sr);
-#endif
-
   /* When set to one, this XFRDONE indicates that the NFC has terminated
    * the data transfer. This flag is reset after the status read.
    */
@@ -1015,10 +1001,10 @@ static uint32_t nand_nfc_poll(void)
       g_nand.cmddone = true;
     }
 
-  /* If set to one, the RBEDGE0 flag indicates that an edge has been detected
-   * on the Ready/Busy Line x. Depending on the EDGE CTRL field located in the
-   * SMC_CFG register, only rising or falling edge is detected. This flag is
-   * reset after the status read.
+  /* If set to one, the RBEDGE0 flag indicates that an edge has been
+   * detected on the Ready/Busy Line x. Depending on the EDGE CTRL field
+   * located in the SMC_CFG register, only rising or falling edge is
+   * detected. This flag is reset after the status read.
    */
 
   if ((sr & HSMC_NFCINT_RBEDGE0) != 0)
@@ -1089,10 +1075,10 @@ static int hsmc_interrupt(int irq, void *context, FAR void *arg)
       nand_putreg(SAM_HSMC_IDR, HSMC_NFCINT_CMDDONE);
     }
 
-  /* If set to one, the RBEDGE0 flag indicates that an edge has been detected
-   * on the Ready/Busy Line x. Depending on the EDGE CTRL field located in the
-   * SMC_CFG register, only rising or falling edge is detected. This flag is
-   * reset after the status read.
+  /* If set to one, the RBEDGE0 flag indicates that an edge has been
+   * detected on the Ready/Busy Line x. Depending on the EDGE CTRL field
+   * located in the SMC_CFG register, only rising or falling edge is
+   * detected. This flag is reset after the status read.
    */
 
   if (g_nand.rbedge && (imr & HSMC_NFCINT_RBEDGE0) != 0)
@@ -1161,17 +1147,21 @@ static void nand_dma_sampledone(struct sam_nandcs_s *priv, int result)
   sam_dmasample(priv->dma, &priv->dmaregs[DMA_END_TRANSFER]);
 
   /* Then dump the sampled DMA registers */
+
   /* Initial register values */
 
-  sam_dmadump(priv->dma, &priv->dmaregs[DMA_INITIAL], "Initial Registers");
+  sam_dmadump(priv->dma, &priv->dmaregs[DMA_INITIAL],
+              "Initial Registers");
 
   /* Register values after DMA setup */
 
-  sam_dmadump(priv->dma, &priv->dmaregs[DMA_AFTER_SETUP], "After DMA Setup");
+  sam_dmadump(priv->dma, &priv->dmaregs[DMA_AFTER_SETUP],
+              "After DMA Setup");
 
   /* Register values after DMA start */
 
-  sam_dmadump(priv->dma, &priv->dmaregs[DMA_AFTER_START], "After DMA Start");
+  sam_dmadump(priv->dma, &priv->dmaregs[DMA_AFTER_START],
+              "After DMA Start");
 
   /* Register values at the time of the TX and RX DMA callbacks
    * -OR- DMA timeout.
@@ -1184,15 +1174,18 @@ static void nand_dma_sampledone(struct sam_nandcs_s *priv, int result)
 #if 0 /* No timeout */
   if (result == -ETIMEDOUT || result == -EINTR)
     {
-      sam_dmadump(priv->dma, &priv->dmaregs[DMA_TIMEOUT], "At DMA timeout");
+      sam_dmadump(priv->dma, &priv->dmaregs[DMA_TIMEOUT],
+                  "At DMA timeout");
     }
   else
 #endif
     {
-      sam_dmadump(priv->dma, &priv->dmaregs[DMA_CALLBACK], "At DMA callback");
+      sam_dmadump(priv->dma, &priv->dmaregs[DMA_CALLBACK],
+                  "At DMA callback");
     }
 
-  sam_dmadump(priv->dma, &priv->dmaregs[DMA_END_TRANSFER], "At End-of-Transfer");
+  sam_dmadump(priv->dma, &priv->dmaregs[DMA_END_TRANSFER],
+              "At End-of-Transfer");
 }
 #endif
 
@@ -1213,12 +1206,9 @@ static void nand_dma_sampledone(struct sam_nandcs_s *priv, int result)
 #ifdef CONFIG_SAMA5_NAND_DMA
 static int nand_wait_dma(struct sam_nandcs_s *priv)
 {
-  int ret;
-
   while (!priv->dmadone)
     {
-      ret = nxsem_wait(&priv->waitsem);
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      nxsem_wait_uninterruptible(&priv->waitsem);
     }
 
   finfo("Awakened: result=%d\n", priv->result);
@@ -1390,9 +1380,10 @@ static int nand_dma_write(struct sam_nandcs_s *priv,
   sam_dmaconfig(priv->dma, dmaflags);
 
   /* Setup the Memory-to-Memory DMA.  The semantics of the DMA module are
-   * awkward here.  We will treat the NAND (dest) as the peripheral destination
-   * and memory as the source.  Internally, the DMA module will realize taht
-   * this is a memory to memory transfer and should do the right thing.
+   * awkward here.  We will treat the NAND (dest) as the peripheral
+   * destination and memory as the source.  Internally, the DMA module will
+   * realize that this is a memory to memory transfer and should do the
+   * right thing.
    */
 
   ret = sam_dmatxsetup(priv->dma, pdest, psrc, nbytes);
@@ -1470,7 +1461,8 @@ static int nand_nfcsram_read(struct sam_nandcs_s *priv, uint8_t *buffer,
 
       /* Transfer using DMA */
 
-      ret = nand_dma_read(priv, src, (uintptr_t)buffer, buflen, NFCSRAM_DMA_FLAGS);
+      ret = nand_dma_read(priv, src, (uintptr_t)buffer, buflen,
+                          NFCSRAM_DMA_FLAGS);
     }
   else
 #endif
@@ -1497,8 +1489,9 @@ static int nand_nfcsram_read(struct sam_nandcs_s *priv, uint8_t *buffer,
  * Name: nand_read
  *
  * Description:
- *   Read data directly from the NAND data address.  Currently this only used
- *   by the PMECC logic which I could not get working if I read from NFC SRAM.
+ *   Read data directly from the NAND data address.  Currently this only
+ *   used by the PMECC logic which I could not get working if I read from
+ *   NFC SRAM.
  *
  * Input Parameters:
  *   priv     - Lower-half, private NAND FLASH device state
@@ -1527,7 +1520,7 @@ static int nand_read(struct sam_nandcs_s *priv, uint8_t *buffer,
 #ifdef CONFIG_SAMA5_NAND_DMA
   /* Then perform the transfer via memory-to-memory DMA or not, depending
    * on if we have a DMA channel assigned and if the transfer is
-   * sufficiently large.  Small DMAs (e.g., for spare data) are not peformed
+   * sufficiently large.  Small DMAs (e.g., for spare data) are not performed
    * because the DMA context switch can take more time that the DMA itself.
    */
 
@@ -1554,7 +1547,8 @@ static int nand_read(struct sam_nandcs_s *priv, uint8_t *buffer,
       remaining = buflen;
       if (buswidth == 16)
         {
-          volatile uint16_t *src16  = (volatile uint16_t *)priv->raw.dataaddr;
+          volatile uint16_t *src16  =
+            (volatile uint16_t *)priv->raw.dataaddr;
           uint16_t *dest16 = (uint16_t *)buffer;
 
           DEBUGASSERT(((uintptr_t)buffer & 1) == 0);
@@ -1596,7 +1590,7 @@ static int nand_read(struct sam_nandcs_s *priv, uint8_t *buffer,
  *   data  - Buffer where the data area will be stored.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -1677,7 +1671,8 @@ static int nand_read_pmecc(struct sam_nandcs_s *priv, off_t block,
 
 #if 0 /* Don't use NFC SRAM */
   nand_nfc_cleale(priv,
-                  HSMC_ALE_COL_EN | HSMC_ALE_ROW_EN | HSMC_CLE_VCMD2_EN | HSMC_CLE_DATA_EN,
+                  HSMC_ALE_COL_EN | HSMC_ALE_ROW_EN | HSMC_CLE_VCMD2_EN |
+                  HSMC_CLE_DATA_EN,
                   COMMAND_READ_1, COMMAND_READ_2, 0, rowaddr);
 #else
   nand_setup_rbedge(priv);
@@ -1763,17 +1758,19 @@ static int nand_nfcsram_write(struct sam_nandcs_s *priv, uint8_t *buffer,
 #ifdef CONFIG_SAMA5_NAND_DMA
   /* Then perform the transfer via memory-to-memory DMA or not, depending
    * on if we have a DMA channel assigned and if the transfer is
-   * sufficiently large.  Small DMAs (e.g., for spare data) are not peformed
+   * sufficiently large.  Small DMAs (e.g., for spare data) are not performed
    * because the DMA context switch can take more time that the DMA itself.
    */
 
   if (priv->dma && buflen > CONFIG_SAMA5_NAND_DMA_THRESHOLD)
     {
-      DEBUGASSERT(((uintptr_t)buffer & 3) == 0 && ((uintptr_t)dest & 3) == 0);
+      DEBUGASSERT(((uintptr_t)buffer & 3) == 0 &&
+                  ((uintptr_t)dest & 3) == 0);
 
       /* Transfer using DMA */
 
-      ret = nand_dma_write(priv, (uintptr_t)buffer, dest, buflen, NFCSRAM_DMA_FLAGS);
+      ret = nand_dma_write(priv, (uintptr_t)buffer, dest, buflen,
+                           NFCSRAM_DMA_FLAGS);
     }
   else
 #endif
@@ -1831,7 +1828,7 @@ static int nand_write(struct sam_nandcs_s *priv, uint8_t *buffer,
 #ifdef CONFIG_SAMA5_NAND_DMA
   /* Then perform the transfer via memory-to-memory DMA or not, depending
    * on if we have a DMA channel assigned and if the transfer is
-   * sufficiently large.  Small DMAs (e.g., for spare data) are not peformed
+   * sufficiently large.  Small DMAs (e.g., for spare data) are not performed
    * because the DMA context switch can take more time that the DMA itself.
    */
 
@@ -1898,7 +1895,7 @@ static int nand_write(struct sam_nandcs_s *priv, uint8_t *buffer,
  *   spare - Buffer where the spare area will be stored.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -1912,7 +1909,8 @@ static int nand_readpage_noecc(struct sam_nandcs_s *priv, off_t block,
   off_t coladdr;
   int ret;
 
-  finfo("block=%d page=%d data=%p spare=%p\n", (int)block, page, data, spare);
+  finfo("block=%d page=%d data=%p spare=%p\n",
+        (int)block, page, data, spare);
   DEBUGASSERT(priv && (data || spare));
 
   /* Get page and spare sizes */
@@ -1951,8 +1949,9 @@ static int nand_readpage_noecc(struct sam_nandcs_s *priv, off_t block,
 
   /* Configure the SMC */
 
-  regval |= (HSMC_CFG_RBEDGE | HSMC_CFG_DTOCYC(15) | HSMC_CFG_DTOMUL_1048576 |
-             HSMC_CFG_NFCSPARESIZE((sparesize - 1) >> 2));
+  regval |= HSMC_CFG_RBEDGE | HSMC_CFG_DTOCYC(15) |
+            HSMC_CFG_DTOMUL_1048576 |
+            HSMC_CFG_NFCSPARESIZE((sparesize - 1) >> 2);
   nand_putreg(SAM_HSMC_CFG, regval);
 
   /* Calculate actual address of the page */
@@ -1964,7 +1963,8 @@ static int nand_readpage_noecc(struct sam_nandcs_s *priv, off_t block,
 
   nand_setup_xfrdone(priv);
   nand_nfc_cleale(priv,
-                  HSMC_ALE_COL_EN | HSMC_ALE_ROW_EN | HSMC_CLE_VCMD2_EN | HSMC_CLE_DATA_EN,
+                  HSMC_ALE_COL_EN | HSMC_ALE_ROW_EN | HSMC_CLE_VCMD2_EN |
+                  HSMC_CLE_DATA_EN,
                   COMMAND_READ_1, COMMAND_READ_2, coladdr, rowaddr);
   nand_wait_xfrdone(priv);
 
@@ -1982,7 +1982,7 @@ static int nand_readpage_noecc(struct sam_nandcs_s *priv, off_t block,
 
   /* Read the spare area if so requested.  If there is no data, then the
    * spare data will appear at offset 0; If there is data, thenthe spare data
-   * will appear followign the data at offset pagesize.
+   * will appear following the data at offset pagesize.
    */
 
   if (spare)
@@ -1991,7 +1991,8 @@ static int nand_readpage_noecc(struct sam_nandcs_s *priv, off_t block,
       ret = nand_nfcsram_read(priv, (uint8_t *)spare, sparesize, offset);
       if (ret < 0)
         {
-          ferr("ERROR: nand_nfcsram_read for spare region failed: %d\n", ret);
+          ferr("ERROR: nand_nfcsram_read for spare region failed: %d\n",
+               ret);
           return ret;
         }
     }
@@ -2013,7 +2014,7 @@ static int nand_readpage_noecc(struct sam_nandcs_s *priv, off_t block,
  *   data  - Buffer where the data area will be stored.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2033,7 +2034,12 @@ static int nand_readpage_pmecc(struct sam_nandcs_s *priv, off_t block,
    * is properly configured for this CS.
    */
 
-  pmecc_lock();
+  ret = pmecc_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = pmecc_configure(priv, false);
   if (ret < 0)
     {
@@ -2059,6 +2065,7 @@ static int nand_readpage_pmecc(struct sam_nandcs_s *priv, off_t block,
   if (regval)
     {
       /* Bad sectors.  Check if this is because spare area has been erased */
+
       /* First, re-read the spare area.  REVISIT:  Is this necessary? */
 
       ret = nand_readpage_noecc(priv, block, page, NULL, priv->raw.spare);
@@ -2130,11 +2137,11 @@ errout:
  *   priv  - Lower-half, private NAND FLASH device state
  *   block - Number of the block where the page to write resides.
  *   page  - Number of the page to write inside the given block.
- *   data  - Buffer containing the data to be writting
- *   spare - Buffer conatining the spare data to be written.
+ *   data  - Buffer containing the data to be writing
+ *   spare - Buffer containing the spare data to be written.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2147,7 +2154,8 @@ static int nand_writepage_noecc(struct sam_nandcs_s *priv, off_t block,
   off_t rowaddr;
   int ret = OK;
 
-  finfo("block=%d page=%d data=%p spare=%p\n", (int)block, page, data, spare);
+  finfo("block=%d page=%d data=%p spare=%p\n",
+        (int)block, page, data, spare);
 
   /* Get page and spare sizes */
 
@@ -2185,8 +2193,9 @@ static int nand_writepage_noecc(struct sam_nandcs_s *priv, off_t block,
 
   /* Configure the SMC */
 
-  regval |= (HSMC_CFG_RBEDGE | HSMC_CFG_DTOCYC(15) | HSMC_CFG_DTOMUL_1048576 |
-             HSMC_CFG_NFCSPARESIZE((sparesize - 1) >> 2));
+  regval |= HSMC_CFG_RBEDGE | HSMC_CFG_DTOCYC(15) |
+            HSMC_CFG_DTOMUL_1048576 |
+            HSMC_CFG_NFCSPARESIZE((sparesize - 1) >> 2);
 
   if (spare)
     {
@@ -2208,16 +2217,19 @@ static int nand_writepage_noecc(struct sam_nandcs_s *priv, off_t block,
       ret = nand_nfcsram_write(priv, (uint8_t *)data, pagesize, 0);
       if (ret < 0)
         {
-          ferr("ERROR: nand_nfcsram_write for data region failed: %d\n", ret);
+          ferr("ERROR: nand_nfcsram_write for data region failed: %d\n",
+               ret);
           return ret;
         }
 
       if (spare)
         {
-          ret = nand_nfcsram_write(priv, (uint8_t *)spare, sparesize, pagesize);
+          ret = nand_nfcsram_write(priv, (uint8_t *)spare, sparesize,
+                                   pagesize);
           if (ret < 0)
             {
-              ferr("ERROR: nand_nfcsram_write for data region failed: %d\n", ret);
+              ferr("ERROR: nand_nfcsram_write for data region failed: %d\n",
+                   ret);
               return ret;
             }
         }
@@ -2284,10 +2296,10 @@ static int nand_writepage_noecc(struct sam_nandcs_s *priv, off_t block,
  *   priv  - Lower-half, private NAND FLASH device state
  *   block - Number of the block where the page to write resides.
  *   page  - Number of the page to write inside the given block.
- *   data  - Buffer containing the data to be writting
+ *   data  - Buffer containing the data to be writing
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2306,7 +2318,7 @@ static int nand_writepage_pmecc(struct sam_nandcs_s *priv, off_t block,
   unsigned int eccsize;
   unsigned int sector;
   unsigned int i;
-  int ret = 0;
+  int ret;
 
   finfo("block=%d page=%d data=%p\n", (int)block, page, data);
   DEBUGASSERT(priv && data);
@@ -2315,7 +2327,12 @@ static int nand_writepage_pmecc(struct sam_nandcs_s *priv, off_t block,
    * is properly configured for this CS.
    */
 
-  pmecc_lock();
+  ret = pmecc_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
+
   ret = pmecc_configure(priv, false);
   if (ret < 0)
     {
@@ -2340,7 +2357,8 @@ static int nand_writepage_pmecc(struct sam_nandcs_s *priv, off_t block,
   ret = nand_nfcsram_write(priv, (uint8_t *)data, pagesize, 0);
   if (ret < 0)
     {
-      ferr("ERROR: Block %d page %d nand_nfcsram_write for data region failed: %d\n",
+      ferr("ERROR: Block %d page %d nand_nfcsram_write for data region "
+           "failed: %d\n",
            block, page, ret);
       goto errout;
     }
@@ -2462,7 +2480,8 @@ static int nand_writepage_pmecc(struct sam_nandcs_s *priv, off_t block,
   ret = nand_write(priv, (uint8_t *)g_nand.ecctab, eccsize, 0);
   if (ret < 0)
     {
-      ferr("ERROR: Block %d page %d nand_write for spare region failed: %d\n",
+      ferr("ERROR: Block %d page %d nand_write for spare region "
+           "failed: %d\n",
            block, page, ret);
       goto errout;
     }
@@ -2499,7 +2518,7 @@ errout:
  *   block  - Number of the physical block to erase.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2534,17 +2553,21 @@ static int nand_eraseblock(struct nand_raw_s *raw, off_t block)
 {
   struct sam_nandcs_s *priv = (struct sam_nandcs_s *)raw;
   int retries = NAND_ERASE_NRETRIES;
-  int ret = OK;
+  int ret;
 
   DEBUGASSERT(priv);
 
   finfo("block=%d\n", (int)block);
 
-  /* Get exclusvie access to the HSMC hardware.
+  /* Get exclusive access to the HSMC hardware.
    * REVISIT:  The scope of this exclusivity is just NAND.
    */
 
-  nand_lock();
+  ret = nand_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Try up to NAND_ERASE_NRETRIES times to erase the FLASH */
 
@@ -2582,7 +2605,7 @@ static int nand_eraseblock(struct nand_raw_s *raw, off_t block)
  *   spare - Buffer where the spare area will be stored.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2598,9 +2621,13 @@ static int nand_rawread(struct nand_raw_s *raw, off_t block,
    * REVISIT:  The scope of this exclusivity is just NAND.
    */
 
-  nand_lock();
-  ret = nand_readpage_noecc(priv, block, page, data, spare);
-  nand_unlock();
+  ret = nand_lock();
+  if (ret >= 0)
+    {
+      ret = nand_readpage_noecc(priv, block, page, data, spare);
+      nand_unlock();
+    }
+
   return ret;
 }
 
@@ -2615,11 +2642,11 @@ static int nand_rawread(struct nand_raw_s *raw, off_t block,
  *   raw   - Lower-half, raw NAND FLASH interface
  *   block - Number of the block where the page to write resides.
  *   page  - Number of the page to write inside the given block.
- *   data  - Buffer containing the data to be writting
+ *   data  - Buffer containing the data to be writing
  *   spare - Buffer containing the spare data to be written.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2636,9 +2663,13 @@ static int nand_rawwrite(struct nand_raw_s *raw, off_t block,
    * REVISIT:  The scope of this exclusivity is just NAND.
    */
 
-  nand_lock();
-  ret = nand_writepage_noecc(priv, block, page, data, spare);
-  nand_unlock();
+  ret = nand_lock();
+  if (ret >= 0)
+    {
+      ret = nand_writepage_noecc(priv, block, page, data, spare);
+      nand_unlock();
+    }
+
   return ret;
 }
 
@@ -2658,7 +2689,7 @@ static int nand_rawwrite(struct nand_raw_s *raw, off_t block,
  *   spare - Buffer where the spare area will be stored.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2675,7 +2706,11 @@ static int nand_readpage(struct nand_raw_s *raw, off_t block,
    * REVISIT:  The scope of this exclusivity is just NAND.
    */
 
-  nand_lock();
+  ret = nand_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Read the page */
 
@@ -2716,11 +2751,11 @@ static int nand_readpage(struct nand_raw_s *raw, off_t block,
  *   raw   - Lower-half, raw NAND FLASH interface
  *   block - Number of the block where the page to write resides.
  *   page  - Number of the page to write inside the given block.
- *   data  - Buffer containing the data to be writting
- *   spare - Buffer conatining the spare data to be written.
+ *   data  - Buffer containing the data to be writing
+ *   spare - Buffer containing the spare data to be written.
  *
  * Returned Value:
- *   OK is returned in succes; a negated errno value is returned on failure.
+ *   OK is returned in success; a negated errno value is returned on failure.
  *
  ****************************************************************************/
 
@@ -2738,7 +2773,11 @@ static int nand_writepage(struct nand_raw_s *raw, off_t block,
    * REVISIT:  The scope of this exclusivity is just NAND.
    */
 
-  nand_lock();
+  ret = nand_lock();
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   /* Write the page */
 
@@ -2986,6 +3025,7 @@ struct mtd_dev_s *sam_nand_initialize(int cs)
           return NULL;
         }
 #endif
+
       /* Disable all interrupts at the HSMC */
 
       nand_putreg(SAM_HSMC_IDR, HSMC_NFCINT_ALL);
@@ -2999,14 +3039,16 @@ struct mtd_dev_s *sam_nand_initialize(int cs)
     }
 
   /* Initialize the NAND hardware for this CS */
-  /* Perform board-specific SMC initialization for this CS.  This should include:
+
+  /* Perform board-specific SMC initialization for this CS.  This should
+   * include:
    *
    *   1. Enabling of clocking to the HSMC
    *   2. Configuration of timing for the HSMC NAND CS
    *   3. Configuration of PIO pins
    *
-   * Other than enabling the HSMC, these are all things that the board-cognizant
-   * logic is best prepared to handle.
+   * Other than enabling the HSMC, these are all things that the board-
+   * cognizant logic is best prepared to handle.
    */
 
   ret = board_nandflash_config(cs);
@@ -3055,7 +3097,8 @@ struct mtd_dev_s *sam_nand_initialize(int cs)
  * Name: nand_checkreg
  *
  * Description:
- *   Check if the current HSMC register access is a duplicate of the preceding.
+ *   Check if the current HSMC register access is a duplicate of the
+ *   preceding.
  *
  * Input Parameters:
  *   regval   - The value to be written
@@ -3103,4 +3146,3 @@ bool nand_checkreg(bool wr, uintptr_t regaddr, uint32_t regval)
   return true;
 }
 #endif
-

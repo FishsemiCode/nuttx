@@ -1,5 +1,5 @@
 /****************************************************************************
- * configs/nuttx/spi/spi_bitbang.c
+ * include/nuttx/spi/spi_bitbang.c
  *
  *   Copyright (C) 2013 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -156,7 +156,7 @@ static uint32_t spi_setfrequency(FAR struct spi_bitbang_s *priv, uint32_t freque
   uint32_t pnsec;
 
   /* SPI frequency cannot be precisely controlled with a bit-bang interface.
-   * Freqency corresponds to delay in toggle the SPI clock line:  Set high,
+   * Frequency corresponds to delay in toggle the SPI clock line:  Set high,
    * wait, set low, wait, set high, wait, etc.
    *
    * Here we calcalute the half period of the frequency in nanoseconds (i.e.,
@@ -593,7 +593,7 @@ static uint16_t spi_exchange(FAR struct spi_bitbang_s *priv, uint16_t dataout)
    * rate.
    */
 
-  shift =  priv->nbits - 1
+  shift =  priv->nbits - 1;
   for (bit = 1 << shift; bit != 0; bit >>= 1)
     {
       /* Shift to make space for the next, less significant bit.

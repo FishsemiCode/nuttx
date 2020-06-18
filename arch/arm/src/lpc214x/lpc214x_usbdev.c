@@ -74,7 +74,7 @@
 #  define CONFIG_USBDEV_EP0_MAXSIZE 64
 #endif
 
-#ifndef  CONFIG_USBDEV_MAXPOWER
+#ifndef CONFIG_USBDEV_MAXPOWER
 #  define CONFIG_USBDEV_MAXPOWER 100  /* mA */
 #endif
 
@@ -204,7 +204,7 @@
 #define DEVSTATUS_RESET(s)      (((s)&USBDEV_DEVSTATUS_RESET)!=0)
 
 /* If this bit is set in the lpc214x_epread response, it means that the
- * recevied packet was overwritten by a later setup packet (ep0 only).
+ * received packet was overwritten by a later setup packet (ep0 only).
  */
 
 #define LPC214X_READOVERRUN_BIT (0x80000000)
@@ -214,7 +214,7 @@
  *
  * UBS_UDCA is is list of 32 pointers to DMA descriptors located at the
  * beginning of USB RAM.  Each pointer points to a DMA descriptor with
- * assocated DMA buffer.
+ * associated DMA buffer.
  */
 
 #define USB_UDCA           (uint32_t *)LPC214X_USBDEV_RAMBASE)
@@ -263,7 +263,7 @@
 #define LPC214X_EP0MAXPACKET         (64)          /* EP0 max packet size (1-64) */
 #define LPC214X_BULKMAXPACKET        (64)          /* Bulk endpoint max packet (8/16/32/64) */
 #define LPC214X_INTRMAXPACKET        (64)          /* Interrupt endpoint max packet (1 to 64) */
-#define LPC214X_ISOCMAXPACKET        (512)         /* Acutally 1..1023 */
+#define LPC214X_ISOCMAXPACKET        (512)         /* Actually 1..1023 */
 
 /* EP0 status.  EP0 transfers occur in a number of different contexts.  A
  * simple state machine is required to handle the various transfer complete
@@ -323,7 +323,7 @@ struct lpc214x_ep_s
 #ifdef CONFIG_LPC214X_USBDEV_DMA
 struct lpc214x_dmadesc_s
 {
-  uint32_t                nextdesc;      /* Address of the next DMA descripto in RAM */
+  uint32_t                nextdesc;      /* Address of the next DMA descriptor in RAM */
   uint32_t                config;        /* Misc. bit encoded configuration information */
   uint32_t                start;         /* DMA start address */
   uint32_t                status;        /* Misc. bit encoded status inforamation */
@@ -838,8 +838,8 @@ static void lpc214x_epwrite(uint8_t epphy, const uint8_t *data, uint32_t nbytes)
   /* Done */
 
   lpc214x_putreg(0, LPC214X_USBDEV_CTRL);
-  (void)lpc214x_usbcmd(CMD_USB_EP_SELECT | epphy, 0);
-  (void)lpc214x_usbcmd(CMD_USB_EP_VALIDATEBUFFER, 0);
+  lpc214x_usbcmd(CMD_USB_EP_SELECT | epphy, 0);
+  lpc214x_usbcmd(CMD_USB_EP_VALIDATEBUFFER, 0);
 }
 
 /****************************************************************************
@@ -911,11 +911,11 @@ static int lpc214x_epread(uint8_t epphy, uint8_t *data, uint32_t nbytes)
   /* Done */
 
   lpc214x_putreg(0, LPC214X_USBDEV_CTRL);
-  (void)lpc214x_usbcmd(CMD_USB_EP_SELECT | epphy, 0);
+  lpc214x_usbcmd(CMD_USB_EP_SELECT | epphy, 0);
   result = lpc214x_usbcmd(CMD_USB_EP_CLRBUFFER, 0);
 
   /* The packet overrun bit in the clear buffer response is applicable only
-   * on EP0 transfers.  If set it means that the recevied packet was overwritten
+   * on EP0 transfers.  If set it means that the received packet was overwritten
    * by a later setup packet.
    */
 
@@ -1674,7 +1674,7 @@ static inline void lpc214x_ep0setup(struct lpc214x_usbdev_s *priv)
                  (privep = lpc214x_epfindbyaddr(priv, index)) != NULL)
           {
             privep->halted = 0;
-            (void)lpc214x_epstall(&privep->ep, true);
+            lpc214x_epstall(&privep->ep, true);
             lpc214x_epwrite(LPC214X_EP0_IN, NULL, 0);
             priv->ep0state = LPC214X_EP0STATUSIN;
           }
@@ -2198,7 +2198,7 @@ static int lpc214x_usbinterrupt(int irq, FAR void *context, FAR void *arg)
                 {
                   /* On the first time through the loop, pending will be
                    * the bitset of high priority pending interrupts; on the
-                   * second time throught it will be the bitset of low
+                   * second time through it will be the bitset of low
                    * priority interrupts.
                    */
 
@@ -2231,7 +2231,7 @@ static int lpc214x_usbinterrupt(int irq, FAR void *context, FAR void *arg)
                       /* Clear the endpoint interrupt */
 
                       usbtrace(TRACE_INTDECODE(LPC214X_TRACEINTID_EP0IN), priv->ep0state);
-                      (void)lpc214x_epclrinterrupt(LPC214X_CTRLEP_IN);
+                      lpc214x_epclrinterrupt(LPC214X_CTRLEP_IN);
                       lpc214x_ep0dataininterrupt(priv);
                     }
                   pending >>= 2;
@@ -2246,9 +2246,9 @@ static int lpc214x_usbinterrupt(int irq, FAR void *context, FAR void *arg)
                         {
                           /* Yes.. clear the endpoint interrupt */
 
-                          (void)lpc214x_epclrinterrupt(epphy);
+                          lpc214x_epclrinterrupt(epphy);
 
-                          /* Get the endpoint sructure corresponding to the physical
+                          /* Get the endpoint structure corresponding to the physical
                            * endpoint number.
                            */
 
@@ -2342,7 +2342,7 @@ static int lpc214x_usbinterrupt(int irq, FAR void *context, FAR void *arg)
         {
           /* On the first time through the loop, pending will be
            * the bitset of high priority pending interrupts; on the
-           * second time throught it will be the bitset of low
+           * second time through it will be the bitset of low
            * priority interrupts. Note that EP0 IN and OUT are
            * omitted.
            */
@@ -2884,7 +2884,7 @@ static int lpc214x_epstall(FAR struct usbdev_ep_s *ep, bool resume)
 
   if (resume)
     {
-      (void)lpc214x_wrrequest(privep);
+      lpc214x_wrrequest(privep);
     }
   leave_critical_section(flags);
   return OK;

@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * include/nuttx/mbox/mbox.h
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
@@ -31,7 +31,7 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_MBOX_MBOX_H
 #define __INCLUDE_NUTTX_MBOX_MBOX_H
@@ -86,7 +86,8 @@
  *
  ****************************************************************************/
 
-#define MBOX_REGISTER_CALLBACK(d,c,cb,a) ((d)->ops->registercallback(d,c,cb,a))
+#define MBOX_REGISTER_CALLBACK(d,c,cb,a) \
+  ((d)->ops->registercallback(d,c,cb,a))
 
 /****************************************************************************
  * Name: MBOX_UNREGISTER_CALLBACK
@@ -103,25 +104,26 @@
  *
  ****************************************************************************/
 
-#define MBOX_UNREGISTER_CALLBACK(d,c) ((d)->ops->registercallback(d,c,NULL,NULL))
+#define MBOX_UNREGISTER_CALLBACK(d,c) \
+  ((d)->ops->registercallback(d,c,NULL,NULL))
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
 struct mbox_dev_s;
-typedef int (*mbox_receive_t)(void *arg, uintptr_t msg);
+typedef CODE int (*mbox_receive_t)(FAR void *arg, uintptr_t msg);
 
 struct mbox_ops_s
 {
-  int (*send)(struct mbox_dev_s *dev, uint32_t ch, uintptr_t msg);
-  int (*registercallback)(struct mbox_dev_s *dev, uint32_t ch,
-                    mbox_receive_t callback, void *arg);
+  CODE int (*send)(FAR struct mbox_dev_s *dev, uint32_t ch, uintptr_t msg);
+  CODE int (*registercallback)(FAR struct mbox_dev_s *dev, uint32_t ch,
+                               mbox_receive_t callback, FAR void *arg);
 };
 
 struct mbox_dev_s
 {
-  const struct mbox_ops_s *ops;
+  FAR const struct mbox_ops_s *ops;
 };
 
 /****************************************************************************

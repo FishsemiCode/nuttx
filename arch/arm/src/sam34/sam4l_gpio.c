@@ -53,7 +53,7 @@
 
 #include "chip.h"
 #include "sam_gpio.h"
-#include "chip/sam4l_gpio.h"
+#include "hardware/sam4l_gpio.h"
 
 /****************************************************************************
  * Private Data
@@ -562,4 +562,3 @@ int sam_dumpgpio(uint32_t pinset, const char *msg)
   return OK;
 }
 #endif
-

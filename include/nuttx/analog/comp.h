@@ -46,8 +46,9 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
+
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 
 #ifndef CONFIG_DEV_COMP_NPOLLWAITERS
 #  define CONFIG_DEV_COMP_NPOLLWAITERS 2
@@ -114,14 +115,13 @@ struct comp_dev_s
   /* Fields managed by common upper half COMP logic */
 
   uint8_t ad_ocount;            /* The number of times the device has been opened */
+  uint8_t val;                 /* Comparator value after output transition event */
   sem_t   ad_sem;               /* Used to serialize access  */
   sem_t   ad_readsem;           /* Blocking read */
 
-#ifndef CONFIG_DISABLE_POLL
-  struct pollfd *d_fds[CONFIG_DEV_COMP_NPOLLWAITERS]; /* pollfds for output transition events */
-  uint8_t        val;           /* Comparator value after output transition event */
-#endif
+  /* pollfd's for output transition events */
 
+  struct pollfd *d_fds[CONFIG_DEV_COMP_NPOLLWAITERS];
 #endif
 
   /* Fields provided by lower half COMP logic */

@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -570,7 +569,7 @@ static int max326_interrupt(int irq, void *context, void *arg)
       if ((intfl & UART_INT_RXERRORS) != 0)
         {
           /* And now do... what?  Should we reset FIFOs on a FIFO error? */
-#warning Misssing logic
+#warning Missing logic
 
           handled = true;
         }
@@ -842,14 +841,14 @@ void up_serialinit(void)
 #ifdef HAVE_UART_CONSOLE
   /* Register the serial console */
 
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs */
 
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 }
 

@@ -47,14 +47,14 @@
 
 #include <nuttx/irq.h>
 #include <nuttx/arch.h>
-#include <nuttx/drivers/pwm.h>
+#include <nuttx/timers/pwm.h>
 #include <arch/board/board.h>
 
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/efm32_cmu.h"
-#include "chip/efm32_timer.h"
+#include "hardware/efm32_cmu.h"
+#include "hardware/efm32_timer.h"
 #include "efm32_timer.h"
 #include "efm32_config.h"
 #include "efm32_gpio.h"
@@ -481,7 +481,7 @@ static int pwm_interrupt(int irq, void *context, FAR void *arg)
 
       /* Disable first interrupts, stop and reset the timer */
 
-      (void)pwm_stop((FAR struct pwm_lowerhalf_s *)priv);
+      pwm_stop((FAR struct pwm_lowerhalf_s *)priv);
 
       /* Then perform the callback into the upper half driver */
 

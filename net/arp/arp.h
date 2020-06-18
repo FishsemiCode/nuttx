@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/arp/arp.h
  *
- *   Copyright (C) 2014-2016, 2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014-2016, 2018-2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -53,12 +53,13 @@
 #include <nuttx/config.h>
 
 #include <stdint.h>
-#include <semaphore.h>
+#include <queue.h>
 #include <errno.h>
 
 #include <netinet/in.h>
 
 #include <nuttx/net/netdev.h>
+#include <nuttx/semaphore.h>
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -106,7 +107,7 @@ struct arp_hdr_s
   uint8_t  ah_protolen;      /*  8-bit Procotol address size (4) */
   uint16_t ah_opcode;        /* 16-bit Operation */
   uint8_t  ah_shwaddr[6];    /* 48-bit Sender hardware address */
-  uint16_t ah_sipaddr[2];    /* 32-bit Sender IP adress */
+  uint16_t ah_sipaddr[2];    /* 32-bit Sender IP address */
   uint8_t  ah_dhwaddr[6];    /* 48-bit Target hardware address */
   uint16_t ah_dipaddr[2];    /* 32-bit Target IP address */
 };
@@ -142,17 +143,6 @@ struct arp_send_s
   uint8_t   snd_ifname[IFNAMSIZ];      /* Interface name */
   int16_t   snd_result;                /* The result of the send operation */
   in_addr_t snd_ipaddr;                /* The IP address to be queried */
-};
-#endif
-
-#ifdef CONFIG_NET_ARP_SEND
-/* For symmetry with other protocols, a "connection" structure is
- * provided.  But it is a singleton for the case of ARP packet transfers.
- */
-
-struct arp_conn_s
-{
-  FAR struct devif_callback_s *list;   /* ARP callbacks */
 };
 #endif
 
@@ -296,14 +286,13 @@ int arp_wait_cancel(FAR struct arp_notify_s *notify);
  *   timeout occurs.
  *
  * Assumptions:
- *   This function is called from ARP send and mut execute with the network
+ *   This function is called from ARP send and must execute with the network
  *   un-locked.
  *
  ****************************************************************************/
 
 #ifdef CONFIG_NET_ARP_SEND
-struct timespec;
-int arp_wait(FAR struct arp_notify_s *notify, FAR struct timespec *timeout);
+int arp_wait(FAR struct arp_notify_s *notify, unsigned int timeout);
 #else
 #  define arp_wait(n,t) (0)
 #endif
@@ -427,6 +416,33 @@ int arp_update(in_addr_t ipaddr, FAR uint8_t *ethaddr);
 void arp_hdr_update(FAR uint16_t *pipaddr, FAR uint8_t *ethaddr);
 
 /****************************************************************************
+ * Name: arp_snapshot
+ *
+ * Description:
+ *   Take a snapshot of the current state of the ARP table.
+ *
+ * Input Parameters:
+ *   snapshot  - Location to return the ARP table copy
+ *   nentries  - The size of the user provided 'dest' in entries, each of
+ *               size sizeof(struct arp_entry_s)
+ *
+ * Returned Value:
+ *   On success, the number of entries actually copied is returned.  Unused
+ *   entries are not returned.
+ *
+ * Assumptions
+ *   The network is locked to assure exclusive access to the ARP table
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NETLINK_ROUTE
+unsigned int arp_snapshot(FAR struct arp_entry_s *snapshot,
+                          unsigned int nentries);
+#else
+#  define arp_snapshot(s,n) (0)
+#endif
+
+/****************************************************************************
  * Name: arp_dump
  *
  * Description:
@@ -461,6 +477,7 @@ void arp_dump(FAR struct arp_hdr_s *arp);
 #  define arp_delete(i)
 #  define arp_update(i,m);
 #  define arp_hdr_update(i,m);
+#  define arp_snapshot(s,n) (0)
 #  define arp_dump(arp)
 
 #endif /* CONFIG_NET_ARP */

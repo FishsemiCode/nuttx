@@ -1,4 +1,4 @@
-/********************************************************************************************
+/****************************************************************************
  * include/nuttx/rptun/rptun.h
  *
  *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
@@ -31,18 +31,18 @@
  * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  *
- ********************************************************************************************/
+ ****************************************************************************/
 
 #ifndef __INCLUDE_NUTTX_RPTUN_RPTUN_H
 #define __INCLUDE_NUTTX_RPTUN_RPTUN_H
-
-#ifdef CONFIG_RPTUN
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
+
+#ifdef CONFIG_RPTUN
 
 #include <nuttx/fs/ioctl.h>
 #include <openamp/open_amp.h>
@@ -96,7 +96,7 @@
  * Name: RPTUN_GET_ADDRENV
  *
  * Description:
- *   Get adress env list
+ *   Get address env list
  *
  * Input Parameters:
  *   dev  - Device-specific state data
@@ -112,7 +112,7 @@
  * Name: RPTUN_GET_RESOURCE
  *
  * Description:
- *   Get rptun resouce
+ *   Get rptun resource
  *
  * Input Parameters:
  *   dev  - Device-specific state data
@@ -259,7 +259,7 @@
  * Public Types
  ****************************************************************************/
 
-typedef int (*rptun_callback_t)(void *arg, uint32_t vqid);
+typedef CODE int (*rptun_callback_t)(FAR void *arg, uint32_t vqid);
 
 struct rptun_addrenv_s
 {
@@ -282,26 +282,26 @@ struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
 struct rptun_dev_s;
 struct rptun_ops_s
 {
-  const char *(*get_cpuname)(struct rptun_dev_s *dev);
-  const char *(*get_firmware)(struct rptun_dev_s *dev);
+  CODE FAR const char *(*get_cpuname)(FAR struct rptun_dev_s *dev);
+  CODE FAR const char *(*get_firmware)(FAR struct rptun_dev_s *dev);
 
-  const struct rptun_addrenv_s *(*get_addrenv)(struct rptun_dev_s *dev);
-  struct rptun_rsc_s *(*get_resource)(struct rptun_dev_s *dev);
+  CODE FAR const struct rptun_addrenv_s *(*get_addrenv)(FAR struct rptun_dev_s *dev);
+  CODE FAR struct rptun_rsc_s *(*get_resource)(FAR struct rptun_dev_s *dev);
 
-  bool (*is_autostart)(struct rptun_dev_s *dev);
-  bool (*is_master)(struct rptun_dev_s *dev);
+  CODE bool (*is_autostart)(FAR struct rptun_dev_s *dev);
+  CODE bool (*is_master)(FAR struct rptun_dev_s *dev);
 
-  int (*config)(struct rptun_dev_s *dev, void *data);
-  int (*start)(struct rptun_dev_s *dev);
-  int (*stop)(struct rptun_dev_s *dev);
-  int (*notify)(struct rptun_dev_s *dev, uint32_t vqid);
-  int (*register_callback)(struct rptun_dev_s *dev,
-                    rptun_callback_t callback, void *arg);
+  CODE int (*config)(struct rptun_dev_s *dev, void *data);
+  CODE int (*start)(FAR struct rptun_dev_s *dev);
+  CODE int (*stop)(FAR struct rptun_dev_s *dev);
+  CODE int (*notify)(FAR struct rptun_dev_s *dev, uint32_t vqid);
+  CODE int (*register_callback)(FAR struct rptun_dev_s *dev,
+                                rptun_callback_t callback, FAR void *arg);
 };
 
 struct rptun_dev_s
 {
-  const struct rptun_ops_s *ops;
+  FAR const struct rptun_ops_s *ops;
 };
 
 /****************************************************************************
@@ -316,8 +316,8 @@ extern "C"
 #define EXTERN extern
 #endif
 
-int rptun_initialize(struct rptun_dev_s *dev);
-int rptun_boot(const char *cpuname);
+int rptun_initialize(FAR struct rptun_dev_s *dev);
+int rptun_boot(FAR const char *cpuname);
 
 #ifdef __cplusplus
 }

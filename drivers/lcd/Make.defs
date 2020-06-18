@@ -35,7 +35,7 @@
 
 ifeq ($(CONFIG_LCD),y)
 
-# Support for the generic LCD framebufer front-end
+# Support for the generic LCD framebuffer front-end
 
 ifeq ($(CONFIG_LCD_FRAMEBUFFER),y)
   CSRCS += lcd_framebuffer.c
@@ -54,6 +54,10 @@ ifeq ($(CONFIG_LCD_FT80X_SPI),y)
 else ifeq ($(CONFIG_LCD_FT80X_I2C),y)
   CSRCS += ft80x_i2c.c
 endif
+endif
+
+ifeq ($(CONFIG_LCD_LPM013M091A),y)
+  CSRCS += lpm013m091a.c
 endif
 
 ifeq ($(CONFIG_LCD_P14201),y)
@@ -116,8 +120,16 @@ ifeq ($(CONFIG_LCD_SHARP_MEMLCD),y)
   CSRCS += memlcd.c
 endif
 
+ifeq ($(CONFIG_LCD_ILI9340),y)
+  CSRCS += ili9340.c
+endif
+
 ifeq ($(CONFIG_LCD_ILI9341),y)
   CSRCS += ili9341.c
+endif
+
+ifeq ($(CONFIG_LCD_LCDDRV_SPIIF),y)
+  CSRCS += lcddrv_spiif.c
 endif
 
 ifeq ($(CONFIG_LCD_RA8875),y)

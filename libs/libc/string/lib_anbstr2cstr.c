@@ -44,11 +44,12 @@
 
 #include "libc.h"
 
+#if CHAR_BIT != 8
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#if CHAR_BIT != 8
 FAR char *anbstr2cstr(FAR const char *src, size_t maxlen)
 {
   FAR char *dst;
@@ -64,4 +65,5 @@ FAR char *anbstr2cstr(FAR const char *src, size_t maxlen)
 
   return dst;
 }
+
 #endif

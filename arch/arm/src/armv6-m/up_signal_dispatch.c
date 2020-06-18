@@ -43,20 +43,8 @@
 #include "svcall.h"
 #include "up_internal.h"
 
-#if ((defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
-      defined(CONFIG_BUILD_KERNEL)) && !defined(CONFIG_DISABLE_SIGNALS)
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-/****************************************************************************
- * Private Data
- ****************************************************************************/
-
-/****************************************************************************
- * Private Functions
- ****************************************************************************/
+#if (defined(CONFIG_BUILD_PROTECTED) && defined(__KERNEL__)) || \
+     defined(CONFIG_BUILD_KERNEL)
 
 /****************************************************************************
  * Public Functions
@@ -72,9 +60,9 @@
  *   This kernel-mode stub will then be called transfer control to the user
  *   mode signal handler by calling this function.
  *
- *   Normally the a user-mode signalling handling stub will also execute
+ *   Normally the user-mode signalling handling stub will also execute
  *   before the ultimate signal handler is called.  See
- *   arch/arm/src/armv[6\7]/up_signal_handler.  This function is the
+ *   arch/arm/src/armv6-m/up_signal_handler.S.  This function is the
  *   user-space, signal handler trampoline function.  It is called from
  *   up_signal_dispatch() in user-mode.
  *
@@ -96,8 +84,8 @@ void up_signal_dispatch(_sa_sigaction_t sighand, int signo,
 {
   /* Let sys_call4() do all of the work */
 
-  (void)sys_call4(SYS_signal_handler, (uintptr_t)sighand, (uintptr_t)signo,
-                  (uintptr_t)info, (uintptr_t)ucontext);
+  sys_call4(SYS_signal_handler, (uintptr_t)sighand, (uintptr_t)signo,
+            (uintptr_t)info, (uintptr_t)ucontext);
 }
 
 #endif /* (CONFIG_BUILD_PROTECTED || CONFIG_BUILD_KERNEL) && !CONFIG_DISABLE_PTHREAD */

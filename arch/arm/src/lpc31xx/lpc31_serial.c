@@ -43,7 +43,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -751,6 +750,8 @@ static bool up_txempty(struct uart_dev_s *dev)
  * Public Functions
  ****************************************************************************/
 
+#ifdef USE_EARLYSERIALINIT
+
 /****************************************************************************
  * Name: up_earlyserialinit
  *
@@ -779,6 +780,7 @@ void up_earlyserialinit(void)
   up_setup(&g_uartport);
 #endif
 }
+#endif
 
 /****************************************************************************
  * Name: up_serialinit
@@ -792,9 +794,9 @@ void up_earlyserialinit(void)
 void up_serialinit(void)
 {
 #if defined(CONFIG_UART_SERIAL_CONSOLE)
-  (void)uart_register("/dev/console", &g_uartport);
+  uart_register("/dev/console", &g_uartport);
 #endif
-  (void)uart_register("/dev/ttyS0", &g_uartport);
+  uart_register("/dev/ttyS0", &g_uartport);
 }
 
 /****************************************************************************

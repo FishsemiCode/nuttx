@@ -106,7 +106,7 @@ static int qemu_timerisr(int irq, uint32_t *regs, void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  x86_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -114,7 +114,7 @@ static int qemu_timerisr(int irq, uint32_t *regs, void *arg)
  *
  ****************************************************************************/
 
-void x86_timer_initialize(void)
+void up_timer_initialize(void)
 {
   /* uint32_t to avoid compile time overflow errors */
 
@@ -123,7 +123,7 @@ void x86_timer_initialize(void)
 
   /* Attach to the timer interrupt handler */
 
-  (void)irq_attach(IRQ0, (xcpt_t)qemu_timerisr, NULL);
+  irq_attach(IRQ0, (xcpt_t)qemu_timerisr, NULL);
 
   /* Send the command byte to configure counter 0 */
 

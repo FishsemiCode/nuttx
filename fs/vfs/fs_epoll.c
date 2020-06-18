@@ -49,8 +49,6 @@
 
 #include <nuttx/kmalloc.h>
 
-#ifndef CONFIG_DISABLE_POLL
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
@@ -234,5 +232,3 @@ int epoll_wait(int epfd, FAR struct epoll_event *evs, int maxevents,
 
   return i;
 }
-
-#endif /* CONFIG_DISABLE_POLL */

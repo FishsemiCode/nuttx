@@ -48,16 +48,12 @@
 
 #include "up_arch.h"
 #include "up_internal.h"
+#include "nvic.h"
 
 #include "sam_clockconfig.h"
 #include "sam_lowputc.h"
 #include "sam_cmcc.h"
 #include "sam_userspace.h"
-
-#ifdef CONFIG_ARCH_FPU
-#  include "nvic.h"
-#endif
-
 #include "sam_start.h"
 
 /****************************************************************************
@@ -309,7 +305,7 @@ void __start(void)
 
   /* Copy any necessary code sections from FLASH to RAM.  The correct
    * destination in SRAM is geive by _sramfuncs and _eramfuncs.  The
-   * temporary location is in flash after the data initalization code
+   * temporary location is in flash after the data initialization code
    * at _framfuncs.  This must be done before sam_clockconfig() can be
    * called (at least for the SAM4L family).
    */
@@ -338,7 +334,7 @@ void __start(void)
   /* For the case of the separate user-/kernel-space build, perform whatever
    * platform specific initialization of the user memory is required.
    * Normally this just means initializing the user space .data and .bss
-   * segements.
+   * segments.
    */
 
 #ifdef CONFIG_BUILD_PROTECTED

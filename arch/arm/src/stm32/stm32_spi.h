@@ -45,7 +45,7 @@
 #include <nuttx/spi/spi.h>
 
 #include "chip.h"
-#include "chip/stm32_spi.h"
+#include "hardware/stm32_spi.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -79,10 +79,10 @@ struct spi_dev_s;
  *   Initialize the selected SPI bus
  *
  * Input Parameters:
- *   bus number (for hardware that has mutiple SPI interfaces)
+ *   bus number (for hardware that has multiple SPI interfaces)
  *
  * Returned Value:
- *   Valid SPI device structure reference on succcess; a NULL on failure
+ *   Valid SPI device structure reference on success; a NULL on failure
  *
  ************************************************************************************/
 
@@ -212,4 +212,3 @@ int stm32_spi6register(FAR struct spi_dev_s *dev, spi_mediachange_t callback,
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_STC_STM32_STM32_SPI_H */
-

@@ -45,12 +45,12 @@
 
 #include "up_arch.h"
 
-#include "chip/sam_pm.h"
-#include "chip/sam_supc.h"
-#include "chip/sam_oscctrl.h"
-#include "chip/sam_osc32kctrl.h"
-#include "chip/sam_gclk.h"
-#include "chip/sam_nvmctrl.h"
+#include "hardware/sam_pm.h"
+#include "hardware/sam_supc.h"
+#include "hardware/sam_oscctrl.h"
+#include "hardware/sam_osc32kctrl.h"
+#include "hardware/sam_gclk.h"
+#include "hardware/sam_nvmctrl.h"
 #include "sam_gclk.h"
 
 #include "sam_periphclks.h"
@@ -456,7 +456,7 @@ static uint32_t sam_xoscctrl(const struct sam_xosc_config_s *config)
   /* Get the XOSCTCTL register *configuration */
 
   regval = OSCCTRL_XOSCCTRL_IPTAT(ipta) | OSCCTRL_XOSCCTRL_IMULT(imult) |
-           OSCCTRL_XOSCCTRL_STARTUP(config->starup) |
+           OSCCTRL_XOSCCTRL_STARTUP(config->startup) |
            OSCCTRL_XOSCCTRL_CFDPRESC(cfdpresc);
 
   if (config->enable)
@@ -828,7 +828,7 @@ static void sam_dfll_gclkready(const struct sam_dfll_config_s *config)
     {
     }
 
-  /* Set the source of GCLK0 to to the configured source. */
+  /* Set the source of GCLK0 to the configured source. */
 
   regval32  = getreg32(SAM_GCLK_GENCTRL(0));
   regval32 &= ~GCLK_GENCTRL_SRC_MASK;

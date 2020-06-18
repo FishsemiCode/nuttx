@@ -5,6 +5,30 @@
 
 if IEEE802154_XBEE
 
+config XBEE_DEFAULT_PREFIX_0
+	hex "IPv6 Prefix 0"
+	default 0xfe80
+	---help---
+		First section of IPv6 Prefix
+
+config XBEE_DEFAULT_PREFIX_1
+	hex "IPv6 Prefix 1"
+	default 0x0000
+	---help---
+		Second section of IPv6 Prefix
+
+config XBEE_DEFAULT_PREFIX_2
+	hex "IPv6 Prefix 2"
+	default 0x0000
+	---help---
+		Third section of IPv6 Prefix
+
+config XBEE_DEFAULT_PREFIX_3
+	hex "IPv6 Prefix 3"
+	default 0x0000
+	---help---
+		Fourth section of IPv6 Prefix
+
 config IEEE802154_XBEE_FREQUENCY
 	int "SPI Frequency for XBee Radio"
 	default 2000000
@@ -12,7 +36,7 @@ config IEEE802154_XBEE_FREQUENCY
 		SPI SLCK frequency in Hz
 
 config XBEE_NETDEV_RECVRPRIO
-	int "Priority of frame receiver registerd with the MAC layer"
+	int "Priority of frame receiver registered with the MAC layer"
 	default 1
 	---help---
 		When the MAC layer receives an incoming data frame, it passes the frame
@@ -28,5 +52,19 @@ config XBEE_NETDEV_RECVRPRIO
 		MAC layer will call the next highest priority receiver, in this case,
 		the MAC character driver (which should always be lowest priority since
 		it is a "catch-all" type receiver).
+
+config XBEE_LOCKUP_WORKAROUND
+	bool "Enable workaround to counteract XBee lockup"
+	default y
+	---help---
+		When receiving large amounts of data over the XBee, there is some probability
+		that the XBee will lockup and stop sending us data over SPI. In most cases,
+		querying the XBee will get it out of this state and communication will resume.
+		In some cases however, the XBee will freeze completely and won't ever respond
+		to our queries.
+
+		This workaround periodically queries the XBee if there hasn't been any
+		recent interaction. Additionally, if any query does not get a response
+		after 10 attempts, the XBee is reset.
 
 endif # IEEE802154_XBEE

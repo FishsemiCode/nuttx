@@ -3,6 +3,14 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+menuconfig SENSORS
+	bool "Sensor Device Support"
+	default n
+	---help---
+		Drivers for various sensors
+
+if SENSORS
+
 config SENSORS_APDS9960
 	bool "Avago APDS-9960 Gesture Sensor support"
 	default n
@@ -15,6 +23,13 @@ config APDS9960_I2C_FREQUENCY
 	default 400000
 	depends on SENSORS_APDS9960
 
+config SENSORS_AK09912
+	bool "Asahi AK09911/AK09912 Compass Sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver for AK09911/AK09912 Compass sensor.
+
 config SENSORS_AS5048B
 	bool "AMS AS5048B Magnetic Rotary Encoder support"
 	default n
@@ -22,6 +37,13 @@ config SENSORS_AS5048B
 	select SENSORS_QENCODER
 	---help---
 		Enable driver support for the AMS AS5048B magnetic rotary encoder.
+
+config SENSORS_AS726X
+	bool "AMS AS726X Spetral sensor support"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the AS726X Spectral Sensor.
 
 config SENSORS_BH1750FVI
 	bool "Rohm BH1750FVI Ambient Light Sensor support"
@@ -42,12 +64,66 @@ config SENSORS_BMG160
 	---help---
 		Enable driver support for the Bosch BMG160 gyroscope sensor.
 
+
+config SENSORS_BMI160
+	bool "Bosch BMI160 Inertial Measurement Sensor support"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Bosch BMI160 Inertial
+		Measurement sensor
+
+if SENSORS_BMI160
+
+choice
+	prompt "BMI160 Interface"
+	default SENSORS_BMI160_SPI
+
+config SENSORS_BMI160_I2C
+	bool "BMI160 I2C Interface"
+	select I2C
+	---help---
+		Enables support for the I2C interface
+
+config SENSORS_BMI160_SPI
+	bool "BMI160 SPI Interface"
+	select SPI
+	---help---
+		Enables support for the SPI interface
+
+endchoice
+
+choice
+	prompt "I2C Address"
+	default BMI160_I2C_ADDR_68
+
+config BMI160_I2C_ADDR_68
+	bool "0x68"
+	---help---
+		Default address.
+		If SDO pin is pulled to VDDIO, use 0x69
+
+config BMI160_I2C_ADDR_69
+	bool "0x69"
+	---help---
+		If SDO pin is pulled to VDDIO, use 0x69
+
+endchoice
+endif
+
 config SENSORS_BMP180
 	bool "Bosch BMP180 Barometer Sensor support"
 	default n
 	select I2C
 	---help---
 		Enable driver support for the Bosch BMP180 barometer sensor.
+
+config SENSORS_BMP280
+	bool "Bosch BMP280 Barometic Pressure Sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver for the Bosch BMP280 barometic pressure sensor.
 
 config SENSORS_DHTXX
 	bool "DHTxx humidity/temperature Sensor support"
@@ -64,18 +140,33 @@ config SENSORS_HCSR04
 if SENSORS_HCSR04
 
 config HCSR04_DEBUG
-        bool "Debug support for the HC-SR04"
-        default n
-        ---help---
-                Enables debug features for the HC-SR04
+	bool "Debug support for the HC-SR04"
+	default n
+	---help---
+		Enables debug features for the HC-SR04
 
 config HCSR04_NPOLLWAITERS
-        int "Number of waiters to poll"
-        default 1
-        ---help---
-                Number of waiters to poll
+	int "Number of waiters to poll"
+	default 1
+	---help---
+		Number of waiters to poll
 
 endif # SENSORS_HCSR04
+
+config SENSORS_ISL29023
+	bool "Renesas ISL29023 ALS sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Renesas ISL29023 ambient light sensor.
+
+if SENSORS_ISL29023
+
+config ISL29023_I2C_FREQUENCY
+	int "ISL29023 I2C frequency"
+	default 400000
+
+endif # SENSORS_ISL29023
 
 config SENSORS_HTS221
 	bool "STMicro HTS221 humidity sensor"
@@ -432,10 +523,10 @@ config SENSORS_ADXL372
 		Enable driver support for the Analog Devices ADXL372 Sensor.
 
 config SENSORS_MPU60X0
-       bool "Invensense MPU60x0 Sensor support"
-       default n
-       ---help---
-               Enable driver support for Invensense MPU60x0 MotionTracker(tm) device.
+	bool "Invensense MPU60x0 Sensor support"
+	default n
+	---help---
+		Enable driver support for Invensense MPU60x0 MotionTracker(tm) device.
 
 if SENSORS_MPU60X0
 
@@ -462,7 +553,7 @@ config MPU60X0_EXTI
 	bool "Enable interrupts"
 	default n
 	---help---
-                Select this when the MPU60x0's INT pin is connected to an
+		Select this when the MPU60x0's INT pin is connected to an
 		interrupt line on the host processor, and identify the pin
 		during device registration. The driver will use interrupts to
 		manage FIFO-full and/or sample-ready events, depending on how
@@ -608,6 +699,20 @@ config SGP30_DEBUG
 
 endif # SENSORS_SGP30
 
+config SENSORS_AHT10
+        bool "ASAIR AHT10 temperature and humidity sensor"
+        default n
+        select I2C
+        ---help---
+                Enable driver support for the ASAIR AHT10 temperature and humidity sensors.
+
+if SENSORS_AHT10
+config AHT10_I2C_FREQUENCY
+	int "AHT10 I2C frequency"
+	default 400000
+	range 1 400000
+endif # SENSORS_AHT10
+
 config SENSORS_SHT21
 	bool "Sensirion SHT21 temperature and humidity sensor"
 	default n
@@ -631,6 +736,34 @@ config SHT21_DEBUG
 		Enables debug features for the SHT21
 
 endif # SENSORS_SHT21
+
+config SENSORS_SHT3X
+	bool "Sensirion SHT3x temperature and humidity sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the Sensirion SHT3x temperature
+		and humidity sensors.
+
+if SENSORS_SHT3X
+
+config SHT3X_I2C_FREQUENCY
+	int "SHT3x I2C frequency"
+	default 400000
+	range 1 400000
+
+config SHT3X_I2C_ADDR
+	hex "SHT3x I2C addr"
+	default 0x44
+	range 0x44 0x45
+
+config SHT3X_DEBUG
+	bool "Debug support for the SHT3x"
+	default n
+	---help---
+		Enables debug features for the SHT3x
+
+endif # SENSORS_SHT3X
 
 config SENSORS_SPS30
 	bool "Sensirion SPS30 particulate matter sensor"
@@ -687,6 +820,13 @@ config VEML6070_I2C_FREQUENCY
 	default 100000
 	depends on SENSORS_VEML6070
 
+config SENSORS_VL53L1X
+	bool "ST VL53L1X TOF sensor"
+	default n
+	select I2C
+	---help---
+		Enable driver support for the VL53L1X Time Of Flight sensor.
+
 config SENSORS_XEN1210
 	bool "Sensixs XEN1210 Magnetometer"
 	default n
@@ -705,9 +845,18 @@ config SENSORS_ZEROCROSS
 	bool "Zero Cross Sensor"
 	default n
 
+config SENSORS_ADT7320
+	bool "Analog Devices ADT7320 Driver"
+	default n
+	select SPI
+	---help---
+		Enables support for the ADT7320 Driver
+
 config SENSORS_CS1237
 	bool "ChipSea CS1237 Temperature Sensor support"
 	default n
 	depends on IOEXPANDER
 	---help---
 		Enable driver support for the ChipSea CS1237 temperature sensor.
+
+endif # SENSORS

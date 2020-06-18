@@ -45,7 +45,7 @@
 #include <stdbool.h>
 
 #include "chip.h"
-#include "chip/stm32_sdio.h"
+#include "hardware/stm32_sdio.h"
 
 /************************************************************************************
  * Public Functions
@@ -83,7 +83,7 @@ FAR struct sdio_dev_s *sdio_initialize(int slotno);
  * Name: sdio_mediachange
  *
  * Description:
- *   Called by board-specific logic -- posssible from an interrupt handler --
+ *   Called by board-specific logic -- possibly from an interrupt handler --
  *   in order to signal to the driver that a card has been inserted or
  *   removed from the slot
  *
@@ -146,4 +146,3 @@ void sdio_set_sdio_card_isr(FAR struct sdio_dev_s *dev,
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_STM32_STM32_SDIO_H */
-

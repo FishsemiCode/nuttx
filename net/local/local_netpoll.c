@@ -44,7 +44,7 @@
 #include <errno.h>
 #include <debug.h>
 
-#include <nuttx/kmalloc.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/fs/fs.h>
 
@@ -73,7 +73,7 @@ static int local_accept_pollsetup(FAR struct local_conn_s *conn,
        * slot for the poll structure reference
        */
 
-      for (i = 0; i < LOCAL_ACCEPT_NPOLLWAITERS; i++)
+      for (i = 0; i < LOCAL_NPOLLWAITERS; i++)
         {
           /* Find an available slot */
 
@@ -87,7 +87,7 @@ static int local_accept_pollsetup(FAR struct local_conn_s *conn,
             }
         }
 
-      if (i >= LOCAL_ACCEPT_NPOLLWAITERS)
+      if (i >= LOCAL_NPOLLWAITERS)
         {
           fds->priv = NULL;
           ret = -EBUSY;
@@ -143,7 +143,7 @@ void local_accept_pollnotify(FAR struct local_conn_s *conn,
 #ifdef CONFIG_NET_LOCAL_STREAM
   int i;
 
-  for (i = 0; i < LOCAL_ACCEPT_NPOLLWAITERS; i++)
+  for (i = 0; i < LOCAL_NPOLLWAITERS; i++)
     {
       struct pollfd *fds = conn->lc_accept_fds[i];
       if (fds)
@@ -215,21 +215,30 @@ int local_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
               goto pollerr;
             }
 
-          /* Allocate shadow pollfds. */
+          /* Find shadow pollfds. */
 
-          shadowfds = kmm_zalloc(2 * sizeof(struct pollfd));
-          if (!shadowfds)
+          net_lock();
+
+          shadowfds = conn->lc_inout_fds;
+          while (shadowfds->fd != 0)
             {
-              return -ENOMEM;
+              shadowfds += 2;
+              if (shadowfds >= &conn->lc_inout_fds[2*LOCAL_NPOLLWAITERS])
+                {
+                  net_unlock();
+                  return -ENOMEM;
+                }
             }
 
-          shadowfds[0].fd     = 0; /* Does not matter */
+          shadowfds[0].fd     = 1; /* Does not matter */
           shadowfds[0].sem    = fds->sem;
           shadowfds[0].events = fds->events & ~POLLOUT;
 
-          shadowfds[1].fd     = 1; /* Does not matter */
+          shadowfds[1].fd     = 0; /* Does not matter */
           shadowfds[1].sem    = fds->sem;
           shadowfds[1].events = fds->events & ~POLLIN;
+
+          net_unlock();
 
           /* Setup poll for both shadow pollfds. */
 
@@ -239,20 +248,19 @@ int local_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
               ret = file_poll(&conn->lc_outfile, &shadowfds[1], true);
               if (ret < 0)
                 {
-                  (void)file_poll(&conn->lc_infile, &shadowfds[0], false);
+                  file_poll(&conn->lc_infile, &shadowfds[0], false);
                 }
             }
 
           if (ret < 0)
             {
-              kmm_free(shadowfds);
+              shadowfds[0].fd = 0;
               fds->priv = NULL;
               goto pollerr;
             }
           else
             {
               fds->priv = shadowfds;
-              ret = OK;
             }
         }
         break;
@@ -293,10 +301,12 @@ int local_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds)
 
   return ret;
 
+#ifdef CONFIG_NET_LOCAL_STREAM
 pollerr:
   fds->revents |= POLLERR;
   nxsem_post(fds->sem);
   return OK;
+#endif
 }
 
 /****************************************************************************
@@ -318,14 +328,13 @@ pollerr:
 int local_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
 {
   FAR struct local_conn_s *conn;
-  int status = OK;
-  int ret = -ENOSYS;
+  int ret = OK;
 
   conn = (FAR struct local_conn_s *)psock->s_conn;
 
   if (conn->lc_proto == SOCK_DGRAM)
     {
-      return ret;
+      return -ENOSYS;
     }
 
 #ifdef CONFIG_NET_LOCAL_STREAM
@@ -345,6 +354,7 @@ int local_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
       case (POLLIN | POLLOUT):
         {
           FAR struct pollfd *shadowfds = fds->priv;
+          int ret2;
 
           if (shadowfds == NULL)
             {
@@ -354,20 +364,15 @@ int local_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
           /* Teardown for both shadow pollfds. */
 
           ret = file_poll(&conn->lc_infile, &shadowfds[0], false);
-          if (ret < 0)
+          ret2 = file_poll(&conn->lc_outfile, &shadowfds[1], false);
+          if (ret2 < 0)
             {
-              status = ret;
-            }
-
-          ret = file_poll(&conn->lc_outfile, &shadowfds[1], false);
-          if (ret < 0)
-            {
-              status = ret;
+              ret = ret2;
             }
 
           fds->revents |= shadowfds[0].revents | shadowfds[1].revents;
           fds->priv = NULL;
-          kmm_free(shadowfds);
+          shadowfds[0].fd = 0;
         }
         break;
 
@@ -378,7 +383,7 @@ int local_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
               return OK;
             }
 
-          status = file_poll(&conn->lc_infile, fds, false);
+          ret = file_poll(&conn->lc_infile, fds, false);
         }
         break;
 
@@ -389,7 +394,7 @@ int local_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
               return OK;
             }
 
-          status = file_poll(&conn->lc_outfile, fds, false);
+          ret = file_poll(&conn->lc_outfile, fds, false);
         }
         break;
 
@@ -398,7 +403,7 @@ int local_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds)
     }
 #endif
 
-  return status;
+  return ret;
 }
 
 #endif /* HAVE_LOCAL_POLL */

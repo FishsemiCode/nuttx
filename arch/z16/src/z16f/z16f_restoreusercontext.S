@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 #include <arch/irq.h>
-#include "chip/chip.h"
+#include "chip.h"
 
 /*************************************************************************
  * External References / External Definitions
@@ -71,8 +71,8 @@
 
 _up_restoreusercontext:
 	/* Disable interrupts while we are accessing the TCB's register
-	 * save structure.  The correct interrupt state will be retored by
-	 * the iret instruction below
+	 * save structure.  The correct interrupt state will be restored
+	 * by the iret instruction below.
 	 */
 
 	di
@@ -99,5 +99,3 @@ _up_restoreusercontext:
 	iret2						/* Return from interrupt */
 
 	end
-
-

@@ -42,7 +42,7 @@
 #include <arch/irq.h>
 
 #include "chip/switch.h"
-#include "up_internal.h"
+#include "z80_internal.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -74,4 +74,3 @@ void z180_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src)
       *dest++ = *src++;
     }
 }
-

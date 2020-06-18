@@ -1,36 +1,20 @@
 /****************************************************************************
  * arch/z80/src/ez80/ez80_i2c.c
  *
- *   Copyright(C) 2009, 2011, 2013, 2016-2017 Gregory Nutt. All rights
- *     reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES(INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -43,25 +27,25 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
 
+#include <nuttx/semaphore.h>
 #include <nuttx/i2c/i2c_master.h>
 #include <nuttx/kmalloc.h>
 #include <arch/io.h>
 #include <arch/board/board.h>
 
 #include "ez80f91.h"
-#include "ez80f91_i2c.h"
+#include "ez80_i2c.h"
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
 #define EZ80_NOSTOP    (1 << 0)   /* Bit 0: No STOP on this transfer */
-#define EZ80_NOSTART   (1 << 1)   /* Bit 1: No address or START on this tranfers */
+#define EZ80_NOSTART   (1 << 1)   /* Bit 1: No address or START on this transfers */
 
 /****************************************************************************
  * Private Types
@@ -102,14 +86,6 @@ static int      ez80_i2c_transfer(FAR struct i2c_master_s *dev,
                   FAR struct i2c_msg_s *msgs, int count);
 
 /****************************************************************************
- * Public Function Prototypes
- ****************************************************************************/
-
-/* This function is normally prototyped int the ZiLOG header file sio.h */
-
-extern uint32_t get_freq(void);
-
-/****************************************************************************
  * Private Data
  ****************************************************************************/
 
@@ -124,6 +100,7 @@ const struct i2c_ops_s g_ops =
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
+
 /****************************************************************************
  * Name: ez80_i2c_semtake/ez80_i2c_semgive
  *
@@ -138,26 +115,10 @@ const struct i2c_ops_s g_ops =
  *
  ****************************************************************************/
 
-static void ez80_i2c_semtake(void)
+static int ez80_i2c_semtake(void)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&g_i2csem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait(&g_i2csem);
 }
-
-#define ez80_i2c_semgive() nxsem_post(&g_i2csem)
 
 /****************************************************************************
  * Name: ez80_i2c_setccr
@@ -208,65 +169,65 @@ static uint16_t ez80_i2c_getccr(uint32_t fscl)
    *   fscl = sysclock / 10 / (M + 1) / 2**N
    *        = fsamp / 10 / (M + 1)
    *
-   * The fsmp must be >= 10 * fscl.  The best solution is the smallest value of
-   * N so that the sampling rate is the highest subject to:
+   * The fsmp must be >= 10 * fscl.  The best solution is the smallest value
+   * of N so that the sampling rate is the highest subject to:
    *
    * The minimum value of the fsamp is given by:
    */
 
-   fsamp = 10 * fscl;
+  fsamp = 10 * fscl;
 
-   /* Now, serarch for the smallest value of N that results in the actual
-    * fsamp >= the ideal fsamp.  Fortunately, we only have to check at most
-    * eight values.
-    */
+  /* Now, serarch for the smallest value of N that results in the actual
+   * fsamp >= the ideal fsamp.  Fortunately, we only have to check at most
+   * eight values.
+   */
 
-   if (fsamp >= EZ80_SYS_CLK_FREQ)
-     {
-       ftmp = EZ80_SYS_CLK_FREQ / 10;
-       n    = 0;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 1))
-     {
-       ftmp = (EZ80_SYS_CLK_FREQ >> 1) / 10;
-       n    = 1;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 2))
-     {
-       ftmp = (EZ80_SYS_CLK_FREQ >> 2) / 10;
-       n    = 2;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 3))
-     {
-       ftmp = (EZ80_SYS_CLK_FREQ >> 3) / 10;
-       n    = 3;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 4))
-     {
-       ftmp = (EZ80_SYS_CLK_FREQ >> 4) / 10;
-       n     = 4;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 5))
-     {
-       ftmp = (EZ80_SYS_CLK_FREQ >> 5) / 10;
-       n    = 5;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 6))
-     {
-       ftmp = (EZ80_SYS_CLK_FREQ >> 6) / 10;
-       n     = 6;
-     }
-   else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 7))
-     {
-       ftmp  = (EZ80_SYS_CLK_FREQ >> 7) / 10;
-       n     = 7;
-     }
-   else
-     {
-       ftmp  = (EZ80_SYS_CLK_FREQ >> 7) / 10;
-       fscl  = ftmp;
-       n     = 7;
-     }
+  if (fsamp >= EZ80_SYS_CLK_FREQ)
+    {
+      ftmp = EZ80_SYS_CLK_FREQ / 10;
+      n    = 0;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 1))
+    {
+      ftmp = (EZ80_SYS_CLK_FREQ >> 1) / 10;
+      n    = 1;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 2))
+    {
+      ftmp = (EZ80_SYS_CLK_FREQ >> 2) / 10;
+      n    = 2;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 3))
+    {
+      ftmp = (EZ80_SYS_CLK_FREQ >> 3) / 10;
+      n    = 3;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 4))
+    {
+      ftmp = (EZ80_SYS_CLK_FREQ >> 4) / 10;
+      n     = 4;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 5))
+    {
+      ftmp = (EZ80_SYS_CLK_FREQ >> 5) / 10;
+      n    = 5;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 6))
+    {
+      ftmp = (EZ80_SYS_CLK_FREQ >> 6) / 10;
+      n     = 6;
+    }
+  else if (fsamp >= (EZ80_SYS_CLK_FREQ >> 7))
+    {
+      ftmp  = (EZ80_SYS_CLK_FREQ >> 7) / 10;
+      n     = 7;
+    }
+  else
+    {
+      ftmp  = (EZ80_SYS_CLK_FREQ >> 7) / 10;
+      fscl  = ftmp;
+      n     = 7;
+    }
 
   /* Finally, get M:
    *
@@ -275,12 +236,12 @@ static uint16_t ez80_i2c_getccr(uint32_t fscl)
 
   m = ftmp / fscl;
   if (m > 0)
-  {
-    if (--m > 15)
-      {
-        m = 15;
-      }
-  }
+    {
+      if (--m > 15)
+        {
+          m = 15;
+        }
+    }
 
   /* Return the value for CCR */
 
@@ -291,9 +252,10 @@ static uint16_t ez80_i2c_getccr(uint32_t fscl)
  * Name: ez80_i2c_waitiflg
  *
  * Description:
- *   In polled mode, we have to spin until the IFLG bit in the xxx register
- *   goes to 1, signalling that the last send or receive is complete.  This
- *   could be used to generate an interrupt for a non-polled driver.
+ *   In polled mode, we have to spin until the IFLG bit in the I2C_CTL
+ *   register goes to 1, signaling that the last send or receive is
+ *   complete.  This could be used to generate an interrupt for a non-
+ *   polled driver.
  *
  * Input Parameters:
  *   priv -    Device-specific state data
@@ -383,7 +345,7 @@ static void ez80_i2c_stop(void)
  *   Send the 8- or 11-bit address for either a read or a write transaction.
  *
  * Input Parameters:
- *   priv -    Device-specific state data
+ *   priv    - Device-specific state data
  *   readbit - 0 or I2C_READBIT
  *
  * Returned Value:
@@ -391,7 +353,7 @@ static void ez80_i2c_stop(void)
 
  *   Or <0: Negated error value.  IFLG is cleared.
  *
- *   -EIO: Irrecoverable (or unexpected) error occured
+ *   -EIO: Irrecoverable (or unexpected) error occurred
  *   -EAGAIN: And
  *
  ****************************************************************************/
@@ -410,7 +372,7 @@ static int ez80_i2c_sendaddr(struct ez80_i2cdev_s *priv, uint8_t readbit)
     {
       /* This error should never occur */
 
-      _err("ERROR: Bad START status: %02x\n", sr);
+      i2cerr("ERROR: Bad START status: %02x\n", sr);
       ez80_i2c_clriflg();
       return -EIO;
     }
@@ -432,7 +394,7 @@ static int ez80_i2c_sendaddr(struct ez80_i2cdev_s *priv, uint8_t readbit)
       sr = ez80_i2c_waitiflg();
       if (sr != I2C_SR_MADDRWRACK && sr != I2C_SR_MADDRWR)
         {
-          _err("ERROR: Bad ADDR8 status: %02x\n", sr);
+          i2cerr("ERROR: Bad ADDR8 status: %02x\n", sr);
           goto failure;
         }
     }
@@ -451,8 +413,8 @@ static int ez80_i2c_sendaddr(struct ez80_i2cdev_s *priv, uint8_t readbit)
       sr = ez80_i2c_waitiflg();
       if (sr != I2C_SR_MADDRWRACK && sr != I2C_SR_MADDRWR)
         {
-         _err("ERROR: Bad ADDR10H status: %02x\n", sr);
-         goto failure;
+          i2cerr("ERROR: Bad ADDR10H status: %02x\n", sr);
+          goto failure;
         }
 
       /* Now send the lower 8 bits of the 10-bit address */
@@ -465,7 +427,7 @@ static int ez80_i2c_sendaddr(struct ez80_i2cdev_s *priv, uint8_t readbit)
       sr = ez80_i2c_waitiflg();
       if (sr != I2C_SR_MADDR2WRACK && sr != I2C_SR_MADDR2WR)
         {
-          _err("ERROR: Bad ADDR10L status: %02x\n", sr);
+          i2cerr("ERROR: Bad ADDR10L status: %02x\n", sr);
           goto failure;
         }
     }
@@ -480,17 +442,18 @@ failure:
     {
       case I2C_SR_ARBLOST1: /* Arbitration lost in address or data byte */
       case I2C_SR_ARBLOST2: /* Arbitration lost in address as master, slave
-                             * address and Write bit received, ACK transmitted */
+                             * address and Write bit received, ACK
+                             * transmitted */
       case I2C_SR_ARBLOST3: /* Arbitration lost in address as master, General
                              * Call address received, ACK transmitted */
       case I2C_SR_ARBLOST4: /* Arbitration lost in address as master, slave
                              * address and Read bit received, ACK transmitted */
-        _err("ERROR: Arbitration lost: %02x\n", sr);
+        i2cerr("ERROR: Arbitration lost: %02x\n", sr);
         ez80_i2c_clriflg();
         return -EAGAIN;
 
       default:
-        _err("ERROR: Unexpected status: %02x\n", sr);
+        i2cerr("ERROR: Unexpected status: %02x\n", sr);
         ez80_i2c_clriflg();
         return -EIO;
     }
@@ -511,7 +474,8 @@ failure:
  *
  * Input Parameters:
  *   dev    - Device-specific state data
- *   buffer - A pointer to a buffer of data to receive the data from the device
+ *   buffer - A pointer to a buffer of data to receive the data from the
+ *            device
  *   buflen - The requested number of bytes to be read
  *   flags  - Determines is a START and/or STOP indication is needed.
  *
@@ -598,61 +562,64 @@ static int ez80_i2c_read_transfer(FAR struct ez80_i2cdev_s *priv,
           /* Data byte received in MASTER mode, ACK transmitted */
 
           if (regval == I2C_SR_MDATARDACK)
-          {
-            /* Since we just ACKed the incoming byte, it must NOT be the last */
+            {
+              /* Since we just ACKed the incoming byte, it must NOT be the
+               * last
+               */
 
-            DEBUGASSERT(count > 1);
+              DEBUGASSERT(count > 1);
 
-            /* Receive the data and clear the IFLGS */
+              /* Receive the data and clear the IFLGS */
 
-            *ptr++ = inp(EZ80_I2C_DR);
-            ez80_i2c_clriflg();
-          }
+              *ptr++ = inp(EZ80_I2C_DR);
+              ez80_i2c_clriflg();
+            }
 
-        /* Data byte received in MASTER mode, NACK transmitted */
+          /* Data byte received in MASTER mode, NACK transmitted */
 
-        else if (regval == I2C_SR_MDATARDNAK)
-          {
-            /* Since we just NACKed the incoming byte, it must be the last */
+          else if (regval == I2C_SR_MDATARDNAK)
+            {
+              /* Since we just NACKed the incoming byte, it must be the last */
 
-            DEBUGASSERT(count <= 1);
+              DEBUGASSERT(count <= 1);
 
               if ((flags & EZ80_NOSTOP) == 0)
                 {
                   /* When all bytes are received and the NACK has been sent,
                    * then the microcontroller must write 1 to the STP bit in
                    * the I2C_CTL register. The I2C then transmits a STOP
-                   * condition, clears the STP bit and returns to an idle state.
+                   * condition, clears the STP bit and returns to an idle
+                   * state.
                    */
 
                   ez80_i2c_stop();
                 }
 
-            ez80_i2c_clriflg();
-            return OK;
-          }
+              ez80_i2c_clriflg();
+              return OK;
+            }
 
-        /* Arbitration lost in address or data byte */
+          /* Arbitration lost in address or data byte */
 
-        else if (regval == I2C_SR_ARBLOST1)
-          {
-            /* Clear the IFLG and break out of the inner loop.
-             * this will cause the whole transfer to start over
-             */
+          else if (regval == I2C_SR_ARBLOST1)
+            {
+              /* Clear the IFLG and break out of the inner loop.
+               * this will cause the whole transfer to start over
+               */
 
-            _err("ERROR: Arbitration lost: %02x\n", regval);
-            ez80_i2c_clriflg();
-            break;
-          }
+              i2cerr("ERROR: Arbitration lost: %02x\n", regval);
+              ez80_i2c_clriflg();
+              break;
+            }
 
-        /* Unexpected status response */
+          /* Unexpected status response */
 
-        else
-          {
-            _err("ERROR: Unexpected status: %02x\n", regval);
-            ez80_i2c_clriflg();
-            return-EIO;
-          }
+          else
+            {
+              i2cerr("ERROR: Unexpected status: %02x\n", regval);
+              ez80_i2c_clriflg();
+              return -EIO;
+            }
         }
     }
 
@@ -669,8 +636,9 @@ static int ez80_i2c_read_transfer(FAR struct ez80_i2cdev_s *priv,
  *   and pend until this write completes. Required.
  *
  * Input Parameters:
- *   dev -    Device-specific state data
- *   buffer - A pointer to the read-only buffer of data to be written to device
+ *   dev    - Device-specific state data
+ *   buffer - A pointer to the read-only buffer of data to be written to
+ *            device
  *   buflen - The number of bytes to send from the buffer
  *   flags  - Determines is a START and/or STOP indication is needed.
  *
@@ -725,8 +693,8 @@ static int ez80_i2c_write_transfer(FAR struct ez80_i2cdev_s *priv,
       ptr = buffer;
       for (count = buflen; count; count--)
         {
-          /* Load the I2C_DR with next data byte and clear the IFLG.  Clearing
-           * the IFLAG will cause the data to be transferred.
+          /* Load the I2C_DR with next data byte and clear the IFLG.
+           * Clearing the IFLAG will cause the data to be transferred.
            */
 
           outp(EZ80_I2C_DR, *ptr++);
@@ -737,15 +705,15 @@ static int ez80_i2c_write_transfer(FAR struct ez80_i2cdev_s *priv,
           sr = ez80_i2c_waitiflg();
           if (sr != I2C_SR_MDATAWRACK && sr != I2C_SR_MDATAWR)
             {
-              _err("ERROR: Bad DATA status: %02x\n", sr);
+              i2cerr("ERROR: Bad DATA status: %02x\n", sr);
               ez80_i2c_clriflg();
               if (sr == I2C_SR_ARBLOST1)
                 {
-                   /* Arbitration lost, break out of the inner loop and
-                    * try sending the message again
-                    */
+                  /* Arbitration lost, break out of the inner loop and
+                   * try sending the message again
+                   */
 
-                   break;
+                  break;
                 }
 
               /* Otherwise, it is fatal (shouldn't happen) */
@@ -838,7 +806,7 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
   FAR struct i2c_msg_s *msg;
   bool nostop;
   uint8_t flags;
-  int ret = OK;
+  int ret;
   int i;
 
   /* Perform each segment of the transfer, message at a time */
@@ -847,9 +815,13 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
 
   /* Get exclusive access to the I2C bus */
 
-  ez80_i2c_semtake();
+  ret = nxsem_wait(&g_i2csem);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
-  /* The process each message seqment */
+  /* The process each message segment */
 
   for (i = 0; i < count; i++)
     {
@@ -866,7 +838,7 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
 
       nostop = false;
       if (i < (count - 1))
-       {
+        {
           FAR struct i2c_msg_s *next;
 
           /* No... Check if the next message should have a repeated start or
@@ -879,7 +851,8 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
 
           next = &msgs[i + 1];
           if ((msg->flags & I2C_M_NOSTART) != 0 &&
-              (msg->flags & (I2C_M_READ | I2C_M_TEN)) == (next->flags & (I2C_M_READ | I2C_M_TEN)) &&
+              (msg->flags & (I2C_M_READ | I2C_M_TEN)) ==
+              (next->flags & (I2C_M_READ | I2C_M_TEN)) &&
               msg->addr == next->addr)
             {
               nostop = true;
@@ -891,11 +864,13 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
       flags |= (nostop) ? EZ80_NOSTOP : 0;
       if ((msg->flags & I2C_M_READ) != 0)
         {
-          ret = ez80_i2c_read_transfer(priv, msg->buffer, msg->length, flags);
+          ret = ez80_i2c_read_transfer(priv, msg->buffer, msg->length,
+                                       flags);
         }
       else
         {
-          ret = ez80_i2c_write_transfer(priv, msg->buffer, msg->length, flags);
+          ret = ez80_i2c_write_transfer(priv, msg->buffer, msg->length,
+                                        flags);
         }
 
       /* Check for I2C transfer errors */
@@ -912,7 +887,7 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
       flags = (nostop) ? EZ80_NOSTART : 0;
     }
 
-  ez80_i2c_semgive();
+  nxsem_post(&g_i2csem);
   return ret;
 }
 
@@ -930,10 +905,10 @@ static int ez80_i2c_transfer(FAR struct i2c_master_s *dev,
  *   different frequency and slave address.
  *
  * Input Parameters:
- *   Port number (for hardware that has mutiple I2C interfaces)
+ *   Port number (for hardware that has multiple I2C interfaces)
  *
  * Returned Value:
- *   Valid I2C device structre reference on succcess; a NULL on failure
+ *   Valid I2C device structure reference on success; a NULL on failure
  *
  ****************************************************************************/
 
@@ -947,7 +922,7 @@ FAR struct i2c_master_s *ez80_i2cbus_initialize(int port)
     {
       /* Set up some initial BRG value */
 
-      ccr = ez80_i2c_getccr(100*1000);
+      ccr = ez80_i2c_getccr(100 * 1000);
       ez80_i2c_setccr(ccr);
 
       /* No GPIO setup is required -- I2C pints, SCL/SDA are not multiplexed */
@@ -965,8 +940,9 @@ FAR struct i2c_master_s *ez80_i2cbus_initialize(int port)
 
   /* Now, allocate an I2C instance for this caller */
 
-  i2c = (FAR struct ez80_i2cdev_s *)kmm_zalloc(sizeof(FAR struct ez80_i2cdev_s));
-  if (i2c)
+  i2c = (FAR struct ez80_i2cdev_s *)
+    kmm_zalloc(sizeof(FAR struct ez80_i2cdev_s));
+  if (i2c != NULL)
     {
       /* Initialize the allocated instance */
 

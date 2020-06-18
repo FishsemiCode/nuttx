@@ -44,7 +44,7 @@
 
 #include <nuttx/arch.h>
 
-#include "chip/chip.h"
+#include "chip.h"
 #include "up_internal.h"
 
 /****************************************************************************
@@ -55,7 +55,7 @@
  * Function:  z16f_sysexec
  *
  * Description:
- *   Handle a Z16F system execption
+ *   Handle a Z16F system exception
  *
  ****************************************************************************/
 

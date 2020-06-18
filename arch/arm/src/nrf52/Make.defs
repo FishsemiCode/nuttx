@@ -38,6 +38,12 @@ HEAD_ASRC  =
 CMN_ASRCS  = up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
 CMN_ASRCS += up_testset.S vfork.S
 
+ifeq ($(CONFIG_ARCH_SETJMP_H),y)
+ifeq ($(CONFIG_ARCH_TOOLCHAIN_GNU),y)
+CMN_ASRCS += up_setjmp.S
+endif
+endif
+
 CMN_CSRCS  = up_assert.c up_blocktask.c up_copyfullstate.c
 CMN_CSRCS += up_createstack.c up_doirq.c up_exit.c up_hardfault.c
 CMN_CSRCS += up_initialize.c up_initialstate.c up_interruptcontext.c
@@ -60,10 +66,8 @@ endif
 
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
 CMN_CSRCS += up_mpu.c up_task_start.c up_pthread_start.c
-ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 CMN_CSRCS += up_signal_dispatch.c
 CMN_UASRCS += up_signal_handler.S
-endif
 endif
 
 ifeq ($(CONFIG_STACK_COLORATION),y)
@@ -97,7 +101,11 @@ ifneq ($(CONFIG_ARCH_IDLE_CUSTOM),y)
 CHIP_CSRCS += nrf52_idle.c
 endif
 
-ifeq ($(CONFIG_NRF52_HAVE_UART),y)
+ifeq ($(CONFIG_NRF52_GPIOTE),y)
+CHIP_CSRCS += nrf52_gpiote.c
+endif
+
+ifeq ($(CONFIG_NRF52_UART),y)
 CHIP_CSRCS += nrf52_serial.c
 endif
 
@@ -113,3 +121,15 @@ ifeq ($(CONFIG_NRF52_RNG),y)
 CHIP_CSRCS += nrf52_rng.c
 endif
 
+ifeq ($(CONFIG_NRF52_SPI_MASTER),y)
+CHIP_CSRCS += nrf52_spi.c
+endif
+
+ifeq ($(CONFIG_NRF52_I2C_MASTER),y)
+CHIP_CSRCS += nrf52_i2c.c
+endif
+
+ifeq ($(CONFIG_NRF52_RADIO),y)
+CHIP_CSRCS += nrf52_radio.c
+
+endif

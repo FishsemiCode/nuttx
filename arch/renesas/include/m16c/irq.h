@@ -33,7 +33,7 @@
  *
  ************************************************************************************/
 
-/* This file should never be included directed but, rather,
+/* This file should never be included directly but, rather,
  * only indirectly through nuttx/irq.h
  */
 
@@ -242,7 +242,6 @@
 #ifndef __ASSEMBLY__
 struct xcptcontext
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   /* The following function pointer is non-zero if there are pending signals
    * to be processed.
    */
@@ -259,7 +258,6 @@ struct xcptcontext
 
   uint8_t saved_pc[2];
   uint8_t saved_flg;
-#endif
 
   /* Register save area */
 
@@ -350,4 +348,3 @@ static inline irqstate_t up_irq_enable(void)
 #endif
 
 #endif /* __ARCH_RENESAS_INCLUDE_M16C_IRQ_H */
-

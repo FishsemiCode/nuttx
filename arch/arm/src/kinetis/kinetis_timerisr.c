@@ -103,7 +103,7 @@ static int kinetis_timerisr(int irq, uint32_t *regs, FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -111,7 +111,7 @@ static int kinetis_timerisr(int irq, uint32_t *regs, FAR void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
 
@@ -122,7 +122,7 @@ void arm_timer_initialize(void)
   regval |= (NVIC_SYSH_PRIORITY_DEFAULT << NVIC_SYSH_PRIORITY_PR15_SHIFT);
   putreg32(regval, NVIC_SYSH12_15_PRIORITY);
 
-  /* Note that is should not be neccesary to set the SYSTICK clock source:
+  /* Note that it should not be necessary to set the SYSTICK clock source:
    * "The CLKSOURCE bit in SysTick Control and Status register is always set
    *  to select the core clock."
    */
@@ -139,7 +139,7 @@ void arm_timer_initialize(void)
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(KINETIS_IRQ_SYSTICK, (xcpt_t)kinetis_timerisr, NULL);
+  irq_attach(KINETIS_IRQ_SYSTICK, (xcpt_t)kinetis_timerisr, NULL);
 
   /* Enable SysTick interrupts */
 

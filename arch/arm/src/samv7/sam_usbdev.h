@@ -47,7 +47,7 @@
 #include <nuttx/usb/usbdev.h>
 #include <arch/samv7/chip.h>
 
-#include "chip/sam_usbhs.h"
+#include "hardware/sam_usbhs.h"
 
 /************************************************************************************
  * Public Functions
@@ -84,4 +84,3 @@ void sam_usbsuspend(FAR struct usbdev_s *dev, bool resume);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SAMV7_SAM_USBDEV_H */
-

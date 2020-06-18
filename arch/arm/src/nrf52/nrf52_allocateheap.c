@@ -52,14 +52,16 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/nrf52_memorymap.h"
+#include "hardware/nrf52_memorymap.h"
 
 #include <arch/board/board.h>
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* Terminology.  In the flat build (CONFIG_BUILD_FLAT=y), there is only a
  * single heap access with the standard allocations (malloc/free).  This
  * heap is referred to as the user heap.  In the protected build

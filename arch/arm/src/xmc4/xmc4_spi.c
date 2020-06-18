@@ -45,7 +45,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 #include <debug.h>
@@ -66,9 +65,9 @@
 #include "xmc4_gpio.h"
 #include "xmc4_spi.h"
 #include "xmc4_usic.h"
-#include "chip/xmc4_spi.h"
-#include "chip/xmc4_usic.h"
-#include "chip/xmc4_pinmux.h"
+#include "hardware/xmc4_spi.h"
+#include "hardware/xmc4_usic.h"
+#include "hardware/xmc4_pinmux.h"
 
 #if defined(CONFIG_XMC4_SPI0) || defined(CONFIG_XMC4_SPI1) || \
     defined(CONFIG_XMC4_SPI2) || defined(CONFIG_XMC4_SPI3) || \
@@ -79,6 +78,7 @@
  ****************************************************************************/
 
 /* Configuration ************************************************************/
+
 /* When SPI DMA is enabled, small DMA transfers will still be performed by
  * polling logic.  But we need a threshold value to determine what is small.
  * That value is provided by CONFIG_XMC4_SPI_DMATHRESHOLD.
@@ -130,6 +130,7 @@
 #endif
 
 /* Clocking *****************************************************************/
+
 /* Select MCU-specific settings */
 
 #if defined(CONFIG_ARCH_CHIP_XMC4)
@@ -288,7 +289,7 @@ static void     spi_select(struct spi_dev_s *dev, uint32_t devid,
 static uint32_t spi_setfrequency(struct spi_dev_s *dev, uint32_t frequency);
 static void     spi_setmode(struct spi_dev_s *dev, enum spi_mode_e mode);
 static void     spi_setbits(struct spi_dev_s *dev, int nbits);
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t ch);
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd);
 
 #ifdef CONFIG_XMC4_SPI_DMA
 static void     spi_exchange_nodma(struct spi_dev_s *dev,
@@ -910,7 +911,7 @@ static void spi_dma_sampledone(struct xmc4_spics_s *spics)
  ****************************************************************************/
 
 #ifdef CONFIG_XMC4_SPI_DMA
-static void spi_dmatimeout(int argc, uint32_t arg)
+static void spi_dmatimeout(int argc, uint32_t arg, ...)
 {
   struct xmc4_spics_s *spics = (struct xmc4_spics_s *)arg;
 
@@ -957,7 +958,7 @@ static void spi_rxcallback(DMA_HANDLE handle, void *arg, int result)
 
   /* Cancel the watchdog timeout */
 
-  (void)wd_cancel(spics->dmadog);
+  wd_cancel(spics->dmadog);
 
   /* Sample DMA registers at the time of the callback */
 
@@ -1067,26 +1068,11 @@ static int spi_lock(struct spi_dev_s *dev, bool lock)
   spiinfo("lock=%d\n", lock);
   if (lock)
     {
-      /* Take the semaphore (perhaps waiting) */
-
-      do
-        {
-          /* Take the semaphore (perhaps waiting) */
-
-          ret = nxsem_wait(&spi->spisem);
-
-          /* The only case that an error should occur here is if the wait
-           * was awakened by a signal.
-           */
-
-          DEBUGASSERT(ret == OK || ret == -EINTR);
-        }
-      while (ret == -EINTR);
+      ret = nxsem_wait_uninterruptible(&spi->spisem);
     }
   else
     {
-      (void)nxsem_post(&spi->spisem);
-      ret = OK;
+      ret = nxsem_post(&spi->spisem);
     }
 
   return ret;
@@ -1285,7 +1271,7 @@ static void spi_setbits(struct spi_dev_s *dev, int nbits)
 
   if (nbits != spics->nbits)
     {
-      /* Yes... Configure the new word lenght */
+      /* Yes... Configure the new word length */
 
       regval  = spi_getreg(spi, XMC4_USIC_SCTR_OFFSET);
       regval &= ~(USIC_SCTR_WLE_MASK);
@@ -1316,7 +1302,7 @@ static void spi_setbits(struct spi_dev_s *dev, int nbits)
  *
  ****************************************************************************/
 
-static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
+static uint32_t spi_send(struct spi_dev_s *dev, uint32_t wd)
 {
   uint8_t txbyte;
   uint8_t rxbyte;
@@ -1331,7 +1317,7 @@ static uint16_t spi_send(struct spi_dev_s *dev, uint16_t wd)
   spi_exchange(dev, &txbyte, &rxbyte, 1);
 
   spiinfo("Sent %02x received %02x\n", txbyte, rxbyte);
-  return (uint16_t)rxbyte;
+  return (uint32_t)rxbyte;
 }
 
 /****************************************************************************
@@ -1411,7 +1397,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
 
   /* Loop, sending each word in the user-provided data buffer.
    *
-   * Note: Good SPI performance would require that we implement DMA transfers!
+   * Note: Good SPI performance would require that we implement
+   * DMA transfers!
    */
 
   for (; nwords > 0; nwords--)
@@ -1435,7 +1422,7 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
 
       spi_putreg(spi, data, XMC4_USIC_TBUF_OFFSET);
 
-      /* Wait until the last bit be transfered */
+      /* Wait until the last bit be transferred */
 
       while ((spi_getreg(spi, XMC4_USIC_PSR_OFFSET) &
              (USIC_PSR_TSIF)) == 0)
@@ -1451,7 +1438,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
         {
         }
 
-      spi_putreg(spi, (USIC_PSCR_CRIF | USIC_PSCR_CAIF), XMC4_USIC_PSCR_OFFSET);
+      spi_putreg(spi, (USIC_PSCR_CRIF | USIC_PSCR_CAIF),
+                 XMC4_USIC_PSCR_OFFSET);
 
       /* Read the received data from the SPI Data Register. */
 
@@ -1567,7 +1555,8 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
        * the DMA completes
        */
 
-      xmc4_cmcc_invalidate((uintptr_t)rxbuffer, (uintptr_t)rxbuffer + nbytes);
+      xmc4_cmcc_invalidate((uintptr_t)rxbuffer,
+                           (uintptr_t)rxbuffer + nbytes);
 
       /* Use normal RX memory incrementing. */
 
@@ -1672,7 +1661,7 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
       /* Start (or re-start) the watchdog timeout */
 
       ret = wd_start(spics->dmadog, DMA_TIMEOUT_TICKS,
-                     (wdentry_t)spi_dmatimeout, 1, (uint32_t)spics);
+                     spi_dmatimeout, 1, (uint32_t)spics);
       if (ret != OK)
         {
            spierr("ERROR: wd_start failed: %d\n", ret);
@@ -1680,17 +1669,15 @@ static void spi_exchange(struct spi_dev_s *dev, const void *txbuffer,
 
       /* Wait for the DMA complete */
 
-      ret = nxsem_wait(&spics->dmawait);
+      ret = nxsem_wait_uninterruptible(&spics->dmawait);
 
       /* Cancel the watchdog timeout */
 
-      (void)wd_cancel(spics->dmadog);
+      wd_cancel(spics->dmadog);
 
-      /* Check if we were awakened by an error of some kind.  EINTR is not a
-       * failure.  It simply means that the wait was awakened by a signal.
-       */
+      /* Check if we were awakened by an error of some kind. */
 
-      if (ret < 0 && ret != -EINTR)
+      if (ret < 0)
         {
           DEBUGPANIC();
           return;
@@ -1765,10 +1752,10 @@ static void spi_sndblock(struct spi_dev_s *dev, const void *buffer,
  *   dev -    Device-specific state data
  *   buffer - A pointer to the buffer in which to receive data
  *   nwords - the length of data that can be received in the buffer in number
- *            of words.  The wordsize is determined by the number of bits-per-word
- *            selected for the SPI interface.  If nbits <= 8, the data is
- *            packed into uint8_t's; if nbits >8, the data is packed into
- *            uint16_t's
+ *            of words.  The wordsize is determined by the number of
+ *            bits-per-word selected for the SPI interface.  If nbits <= 8,
+ *            the data is packed into uint8_t's; if nbits >8, the data is
+ *            packed into uint16_t's
  *
  * Returned Value:
  *   None
@@ -1908,13 +1895,14 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
     }
   else
 #endif
-   {
+    {
       spierr("ERROR:  spino invalid: %d\n", spino);
-   }
+    }
 
   /* Save the chip select and SPI controller numbers */
 
-  /*spics->cs    = csno; */
+  /* spics->cs    = csno; */
+
   spics->cs     = 0;
   spics->spino  = spino;
 
@@ -1952,9 +1940,9 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
            * select pins must be selected by board-specific logic.
            */
 
-          (void)xmc4_gpio_config(GPIO_SPI0_MISO);
-          (void)xmc4_gpio_config(GPIO_SPI0_MOSI);
-          (void)xmc4_gpio_config(GPIO_SPI0_SCLK);
+          xmc4_gpio_config(GPIO_SPI0_MISO);
+          xmc4_gpio_config(GPIO_SPI0_MOSI);
+          xmc4_gpio_config(GPIO_SPI0_SCLK);
         }
       else
 #endif
@@ -1965,9 +1953,9 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
            * select pins must be selected by board-specific logic.
            */
 
-          (void)xmc4_gpio_config(GPIO_SPI1_MISO);
-          (void)xmc4_gpio_config(GPIO_SPI1_MOSI);
-          (void)xmc4_gpio_config(GPIO_SPI1_SCLK);
+          xmc4_gpio_config(GPIO_SPI1_MISO);
+          xmc4_gpio_config(GPIO_SPI1_MOSI);
+          xmc4_gpio_config(GPIO_SPI1_SCLK);
         }
       else
 #endif
@@ -1978,9 +1966,9 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
            * select pins must be selected by board-specific logic.
            */
 
-          (void)xmc4_gpio_config(GPIO_SPI2_MISO);
-          (void)xmc4_gpio_config(GPIO_SPI2_MOSI);
-          (void)xmc4_gpio_config(GPIO_SPI2_SCLK);
+          xmc4_gpio_config(GPIO_SPI2_MISO);
+          xmc4_gpio_config(GPIO_SPI2_MOSI);
+          xmc4_gpio_config(GPIO_SPI2_SCLK);
         }
       else
 #endif
@@ -1991,9 +1979,9 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
            * select pins must be selected by board-specific logic.
            */
 
-          (void)xmc4_gpio_config(GPIO_SPI3_MISO);
-          (void)xmc4_gpio_config(GPIO_SPI3_MOSI);
-          (void)xmc4_gpio_config(GPIO_SPI3_SCLK);
+          xmc4_gpio_config(GPIO_SPI3_MISO);
+          xmc4_gpio_config(GPIO_SPI3_MOSI);
+          xmc4_gpio_config(GPIO_SPI3_SCLK);
         }
       else
 #endif
@@ -2004,9 +1992,9 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
            * select pins must be selected by board-specific logic.
            */
 
-          (void)xmc4_gpio_config(GPIO_SPI4_MISO);
-          (void)xmc4_gpio_config(GPIO_SPI4_MOSI);
-          (void)xmc4_gpio_config(GPIO_SPI4_SCLK);
+          xmc4_gpio_config(GPIO_SPI4_MISO);
+          xmc4_gpio_config(GPIO_SPI4_MOSI);
+          xmc4_gpio_config(GPIO_SPI4_SCLK);
         }
       else
 #endif
@@ -2017,15 +2005,15 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
            * select pins must be selected by board-specific logic.
            */
 
-          (void)xmc4_gpio_config(GPIO_SPI5_MISO);
-          (void)xmc4_gpio_config(GPIO_SPI5_MOSI);
-          (void)xmc4_gpio_config(GPIO_SPI5_SCLK);
+          xmc4_gpio_config(GPIO_SPI5_MISO);
+          xmc4_gpio_config(GPIO_SPI5_MOSI);
+          xmc4_gpio_config(GPIO_SPI5_SCLK);
         }
       else
 #endif
-       {
+        {
           spierr("ERROR:  spino invalid: %d\n", spino);
-       }
+        }
 
       /* Leave critical section */
 
@@ -2072,7 +2060,7 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
                USIC_PCR_SSCMODE_FEM | USIC_PCR_SSCMODE_SELINV;
       spi_putreg(spi, regval, XMC4_USIC_PCR_OFFSET);
 
-      /* Define SPI Mode 0 by defaul */
+      /* Define SPI Mode 0 by default */
 
       regval  = spi_getreg(spi, XMC4_USIC_BRG_OFFSET);
       regval &= ~(USIC_BRG_SCLKCFG_MASK);
@@ -2081,7 +2069,7 @@ struct spi_dev_s *xmc4_spibus_initialize(int channel)
 
       /* Clear protocol status */
 
-      spi_putreg(spi, 0xffffffffUL, XMC4_USIC_PSCR_OFFSET);
+      spi_putreg(spi, 0xfffffffful, XMC4_USIC_PSCR_OFFSET);
 
       /* Disable the parity */
 

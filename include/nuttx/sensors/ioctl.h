@@ -1,7 +1,7 @@
 /************************************************************************************
  * include/nuttx/sensors/ioctl.h
  *
- *   Copyright (C) 2016-2018 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2016-2019 Gregory Nutt. All rights reserved.
  *   Author: Alan Carvalho de Assis <acassis@gmail.com>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -209,5 +209,22 @@
 /* SNIOC_READ_CONVERT_DATA */                     /* Arg: struct sps30_conv_data_s* */
 #define SNIOC_SET_CLEAN_INTERVAL   _SNIOC(0x005d) /* Arg: uint32_t value (seconds) */
 #define SNIOC_START_FAN_CLEANING   _SNIOC(0x005e) /* Arg: None */
+
+/* IOCTL commands unique to the ADT7320 */
+
+#define SNIOC_READSTAT             _SNIOC(0x005f) /* Arg: uint8_t* pointer */
+
+/* IOCTL commands unique to the VL53L1X */
+
+#define SNIOC_DISTANCESHORT        _SNIOC(0x0060) /* Arg: None */
+#define SNIOC_DISTANCELONG         _SNIOC(0x0061) /* Arg: None */
+#define SNIOC_CALIBRATE            _SNIOC(0x0062) /* Arg: b16_t value */
+#define SNIOC_TEMPUPDATE           _SNIOC(0x0063) /* Arg: b16_t value */
+
+/* IOCTL commands unique to the ISL29023 */
+
+#define SNIOC_SET_OPERATIONAL_MODE _SNIOC(0x0064) /* Arg: uint8_t value */
+#define SNIOC_SET_RESOLUTION       _SNIOC(0x0065) /* Arg: uint8_t value */
+#define SNIOC_SET_RANGE            _SNIOC(0x0066) /* Arg: uint8_t value */
 
 #endif /* __INCLUDE_NUTTX_SENSORS_IOCTL_H */

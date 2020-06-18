@@ -46,6 +46,12 @@ CMN_UCSRCS =
 CMN_ASRCS  = up_saveusercontext.S up_fullcontextrestore.S up_switchcontext.S
 CMN_ASRCS += up_testset.S up_fetchadd.S vfork.S
 
+ifeq ($(CONFIG_ARCH_SETJMP_H),y)
+ifeq ($(CONFIG_ARCH_TOOLCHAIN_GNU),y)
+CMN_ASRCS += up_setjmp.S
+endif
+endif
+
 CMN_CSRCS  = up_assert.c up_blocktask.c up_copyfullstate.c up_createstack.c
 CMN_CSRCS += up_doirq.c up_exit.c up_hardfault.c up_initialize.c
 CMN_CSRCS += up_initialstate.c up_interruptcontext.c up_mdelay.c
@@ -87,10 +93,8 @@ ifeq ($(CONFIG_ARM_MPU),y)
 CMN_CSRCS += up_mpu.c
 ifeq ($(CONFIG_BUILD_PROTECTED),y)
 CMN_CSRCS += up_task_start.c up_pthread_start.c
-ifneq ($(CONFIG_DISABLE_SIGNALS),y)
 CMN_CSRCS += up_signal_dispatch.c
 CMN_UASRCS += up_signal_handler.S
-endif
 endif
 endif
 
@@ -102,7 +106,7 @@ endif
 
 CHIP_ASRCS  =
 CHIP_CSRCS  = sam_start.c sam_clockconfig.c sam_irq.c sam_allocateheap.c
-CHIP_CSRCS += sam_lowputc.c sam_serial.c sam_gpio.c sam_pck.c
+CHIP_CSRCS += sam_lowputc.c sam_serial.c sam_gpio.c sam_pck.c sam_uid.c
 
 # Configuration-dependent SAMV7 files
 
@@ -195,7 +199,7 @@ CHIP_CSRCS += sam_trng.c
 endif
 
 ifeq ($(CONFIG_SAMV7_PROGMEM),y)
-CHIP_CSRCS += sam_progmem.c
+CHIP_CSRCS += sam_progmem.c sam_eefc.c
 endif
 
 ifeq ($(CONFIG_SAMV7_DAC),y)

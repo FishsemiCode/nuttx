@@ -115,7 +115,7 @@ static int cc2564_load(FAR const struct btuart_lowerhalf_s *lower,
   for (data = chipdata; *data++; data += length)
     {
       uint16_t opcode;
-      opcode = ((uint16_t)(*(data+1)) << 8) + *data;
+      opcode = ((uint16_t)(*(data + 1)) << 8) + *data;
 
       length = data[2] + sizeof(opcode) + sizeof(data[2]);
 
@@ -216,7 +216,7 @@ int btuart_register(FAR const struct btuart_lowerhalf_s *lower)
   ret = bt_netdev_register(&upper->dev);
   if (ret < 0)
     {
-      wlerr("ERROR: bt_driver_register failed: %d\n", ret);
+      wlerr("ERROR: bt_netdev_register failed: %d\n", ret);
       kmm_free(upper);
     }
 

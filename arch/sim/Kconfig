@@ -24,6 +24,10 @@ config HOST_ARM
 
 endchoice # Host CPU Type
 
+config ARCH_CHIP
+	string
+	default "sim"
+
 config SIM_M32
 	bool "Build 32-bit simulation on 64-bit machine"
 	default n
@@ -35,7 +39,7 @@ config SIM_M32
 
 		The workaround on 64-bit machines for now is to build for a 32-bit target on the
 		64-bit machine.  The workaround for this issue has been included in NuttX 6.15 and
-		beyond.  For thoses versions, you must add SIM_M32=y to the .config file in
+		beyond.  For those versions, you must add SIM_M32=y to the .config file in
 		order to enable building a 32-bit image on a 64-bit platform.
 
 config SIM_CYGWIN_DECORATED
@@ -109,32 +113,60 @@ config SIM_WALLTIME
 config SIM_NETDEV
 	bool "Simulated Network Device"
 	default y
-	depends on NET
+	depends on NET_ETHERNET
 	select ARCH_HAVE_NETDEV_STATISTICS
+	select SCHED_LPWORK
+	select SIM_WALLTIME
+	---help---
+		Build in support for a simulated network device.
+
+if SIM_NETDEV
+
+choice
+	prompt "Simulated Network Device Type"
+	default SIM_NETDEV_TAP
+
+config SIM_NETDEV_TAP
+	bool "Simulated Network Device with TAP/WPCAP"
+	depends on (HOST_LINUX || HOST_WINDOWS)
 	---help---
 		Build in support for a simulated network device using a TAP device on Linux or
 		WPCAP on Windows.
+
+config SIM_NETDEV_VPNKIT
+	bool "Simulated Network Device with VPNKit"
+	---help---
+		Build in support for a simulated network device using VPNKit.
+
+endchoice
+
+endif
+
+config SIM_NETDEV_VPNKIT_PATH
+	string "Unix domain socket to communicate with VPNKit"
+	default "/tmp/vpnkit-nuttx"
+	depends on SIM_NETDEV_VPNKIT
 
 if HOST_LINUX
 choice
 	prompt "Simulation Network Type"
 	default SIM_NET_HOST_ROUTE
-	depends on SIM_NETDEV
+	depends on SIM_NETDEV_TAP
 
 config SIM_NET_HOST_ROUTE
 	bool "Use local host route"
 	---help---
 		Add a host route for the simulation that points to the created tap device.  The
 		simulation will not be able to access the public network unless iptables is
-		configured to masquerade for it.  See configs/sim/NETWORK-LINUX.txt for more
-		information.
+		configured to masquerade for it.  See boards/sim/sim sim/NETWORK-LINUX.txt
+		for more information.
 
 config SIM_NET_BRIDGE
 	bool "Attach to Linux bridge"
-	 ---help---
+	---help---
 		Add the created tap device to the specified bridge.  You will need to manually
 		configure the bridge IP address (if any) and routes that point to the bridge.
-		See configs/sim/NETWORK-LINUX.txt for more information.
+		See boards/sim/sim/sim/NETWORK-LINUX.txt for more information.
 
 endchoice
 endif
@@ -148,6 +180,10 @@ config SIM_NET_BRIDGE_DEVICE
 		TAP interface should be added.
 
 endif
+
+config SIM_RPTUN_MASTER
+	bool "Remote Processor Tunneling Role"
+	depends on RPTUN
 
 config SIM_LCDDRIVER
 	bool "Build a simulated LCD driver"
@@ -168,6 +204,8 @@ if SIM_FRAMEBUFFER
 config SIM_X11FB
 	bool "Use X11 window"
 	default n
+	select SCHED_LPWORK
+	select SIM_WALLTIME
 	---help---
 		Use an X11 graphics window to simulate the graphics device"
 
@@ -225,7 +263,7 @@ endif # SIM_X11FB && INPUT
 config SIM_TCNWAITERS
 	bool "Maximum number poll() waiters"
 	default 4
-	depends on !POLL_DISABLE && SIM_TOUCHSCREEN
+	depends on SIM_TOUCHSCREEN
 	---help---
 		The maximum number of threads that can be waiting on poll() for a
 		touchscreen event. Default: 4

@@ -54,6 +54,7 @@
 #include <nuttx/irq.h>
 #include <nuttx/wdog.h>
 #include <nuttx/wqueue.h>
+#include <nuttx/net/netconfig.h>
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/ip.h>
 #include <nuttx/net/loopback.h>
@@ -62,13 +63,13 @@
 #  include <nuttx/net/pkt.h>
 #endif
 
-#ifdef CONFIG_NETDEV_LOOPBACK
+#ifdef CONFIG_NET_LOOPBACK
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* We need to have the work queue to handle SPI interrupts */
+/* We need to have the work queue to handle interrupts */
 
 #if !defined(CONFIG_SCHED_WORKQUEUE)
 #  error Worker thread support is required (CONFIG_SCHED_WORKQUEUE)
@@ -78,7 +79,7 @@
 
 #define LO_WDDELAY   (1*CLK_TCK)
 
-/* This is a helper pointer for accessing the contents of the Ethernet header */
+/* This is a helper pointer for accessing the contents of the IP header */
 
 #define IPv4BUF ((FAR struct ipv4_hdr_s *)priv->lo_dev.d_buf)
 #define IPv6BUF ((FAR struct ipv6_hdr_s *)priv->lo_dev.d_buf)
@@ -108,7 +109,7 @@ struct lo_driver_s
  ****************************************************************************/
 
 static struct lo_driver_s g_loopback;
-static uint8_t g_iobuffer[MAX_NETDEV_PKTSIZE + CONFIG_NET_GUARDSIZE];
+static uint8_t g_iobuffer[NET_LO_PKTSIZE + CONFIG_NET_GUARDSIZE];
 
 /****************************************************************************
  * Private Function Prototypes
@@ -190,7 +191,7 @@ static int lo_txpoll(FAR struct net_driver_s *dev)
 #ifdef CONFIG_NET_IPv6
       if ((IPv6BUF->vtc & IP_VERSION_MASK) == IPv6_VERSION)
         {
-          ninfo("Iv6 frame\n");
+          ninfo("IPv6 frame\n");
           NETDEV_RXIPV6(&priv->lo_dev);
           ipv6_input(&priv->lo_dev);
         }
@@ -234,7 +235,7 @@ static void lo_poll_work(FAR void *arg)
 
   net_lock();
   priv->lo_txdone = false;
-  (void)devif_timer(&priv->lo_dev, lo_txpoll);
+  devif_timer(&priv->lo_dev, LO_WDDELAY, lo_txpoll);
 
   /* Was something received and looped back? */
 
@@ -243,12 +244,12 @@ static void lo_poll_work(FAR void *arg)
       /* Yes, poll again for more TX data */
 
       priv->lo_txdone = false;
-      (void)devif_poll(&priv->lo_dev, lo_txpoll);
+      devif_poll(&priv->lo_dev, lo_txpoll);
     }
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry, 1, priv);
+  wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry, 1, priv);
   net_unlock();
 }
 
@@ -307,15 +308,16 @@ static int lo_ifup(FAR struct net_driver_s *dev)
 #endif
 #ifdef CONFIG_NET_IPv6
   ninfo("Bringing up: %04x:%04x:%04x:%04x:%04x:%04x:%04x:%04x\n",
-        dev->d_ipv6addr[0], dev->d_ipv6addr[1], dev->d_ipv6addr[2],
-        dev->d_ipv6addr[3], dev->d_ipv6addr[4], dev->d_ipv6addr[5],
-        dev->d_ipv6addr[6], dev->d_ipv6addr[7]);
+        ntohs(dev->d_ipv6addr[0]), ntohs(dev->d_ipv6addr[1]),
+        ntohs(dev->d_ipv6addr[2]), ntohs(dev->d_ipv6addr[3]),
+        ntohs(dev->d_ipv6addr[4]), ntohs(dev->d_ipv6addr[5]),
+        ntohs(dev->d_ipv6addr[6]), ntohs(dev->d_ipv6addr[7]));
 #endif
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry,
-                 1, (wdparm_t)priv);
+  wd_start(priv->lo_polldog, LO_WDDELAY, lo_poll_expiry,
+           1, (wdparm_t)priv);
 
   priv->lo_bifup = true;
   return OK;
@@ -382,7 +384,7 @@ static void lo_txavail_work(FAR void *arg)
           /* If so, then poll the network for new XMIT data */
 
           priv->lo_txdone = false;
-          (void)devif_poll(&priv->lo_dev, lo_txpoll);
+          devif_poll(&priv->lo_dev, lo_txpoll);
         }
       while (priv->lo_txdone);
     }
@@ -529,7 +531,7 @@ int localhost_initialize(void)
    * performed.
    */
 
-  (void)netdev_register(&priv->lo_dev, NET_LL_LOOPBACK);
+  netdev_register(&priv->lo_dev, NET_LL_LOOPBACK);
 
   /* Set the local loopback IP address */
 
@@ -551,4 +553,4 @@ int localhost_initialize(void)
   return lo_ifup(&priv->lo_dev);
 }
 
-#endif /* CONFIG_NETDEV_LOOPBACK */
+#endif /* CONFIG_NET_LOOPBACK */

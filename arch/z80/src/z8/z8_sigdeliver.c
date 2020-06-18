@@ -49,9 +49,7 @@
 
 #include "chip/switch.h"
 #include "sched/sched.h"
-#include "up_internal.h"
-
-#ifndef CONFIG_DISABLE_SIGNALS
+#include "z80_internal.h"
 
 /****************************************************************************
  * Private Functions
@@ -77,7 +75,7 @@ static void z8_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src)
  ****************************************************************************/
 
 /****************************************************************************
- * Name: up_sigdeliver
+ * Name: z80_sigdeliver
  *
  * Description:
  *   This is the a signal handling trampoline.  When a signal action was
@@ -86,9 +84,8 @@ static void z8_copystate(FAR chipreg_t *dest, FAR const chipreg_t *src)
  *
  ****************************************************************************/
 
-void up_sigdeliver(void)
+void z80_sigdeliver(void)
 {
-#ifndef CONFIG_DISABLE_SIGNALS
   FAR struct tcb_s *rtcb = this_task();
   chipreg_t regs[XCPTCONTEXT_REGS];
 
@@ -127,7 +124,7 @@ void up_sigdeliver(void)
    */
 
   sinfo("Resuming\n");
-  (void)up_irq_save();
+  up_irq_save();
   rtcb->pterrno        = saved_errno;
 
   /* Modify the saved return state with the actual saved values in the
@@ -148,7 +145,4 @@ void up_sigdeliver(void)
 
   board_autoled_off(LED_SIGNAL);
   z8_restorecontext(regs);
-#endif
 }
-
-#endif /* CONFIG_DISABLE_SIGNALS */

@@ -49,7 +49,6 @@
 #include <arch/irq.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -111,6 +110,7 @@ static int do_close_request(FAR struct usrsock_conn_s *conn)
   struct usrsock_request_close_s req =
   {
   };
+
   struct iovec bufs[1];
 
   /* Prepare request for daemon to read. */
@@ -140,6 +140,7 @@ int usrsock_close(FAR struct usrsock_conn_s *conn)
   struct usrsock_reqstate_s state =
   {
   };
+
   int ret;
 
   net_lock();
@@ -177,10 +178,7 @@ int usrsock_close(FAR struct usrsock_conn_s *conn)
     {
       /* Wait for completion of request. */
 
-      while ((ret = net_lockedwait(&state.recvsem)) < OK)
-        {
-          DEBUGASSERT(ret == -EINTR || ret == -ECANCELED);
-        }
+      net_lockedwait_uninterruptible(&state.recvsem);
 
       ret = state.result;
       if (ret < 0)
@@ -188,6 +186,7 @@ int usrsock_close(FAR struct usrsock_conn_s *conn)
           /* TODO: Error handling for close? Mark closed anyway? There is not
            * much we can do if this happens.
            */
+
           ninfo("user-space daemon reported error %d for usockid=%d\n",
                 state.result, conn->usockid);
 

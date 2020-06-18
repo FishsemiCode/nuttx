@@ -978,7 +978,7 @@ static inline uint8_t *tiva_allocbuffer(FAR struct tiva_ethmac_s *priv)
 
 static inline void tiva_freebuffer(FAR struct tiva_ethmac_s *priv, uint8_t *buffer)
 {
-  /* Free the buffer by adding it to to the end of the free buffer list */
+  /* Free the buffer by adding it to the end of the free buffer list */
 
   sq_addlast((FAR sq_entry_t *)buffer, &priv->freeb);
 }
@@ -1100,7 +1100,7 @@ static int tiva_transmit(FAR struct tiva_ethmac_s *priv)
 
               txdesc->tdes0 |= (EMAC_TDES0_LS | EMAC_TDES0_IC);
 
-              /* This segement is, most likely, of fractional buffersize */
+              /* This segment is, most likely, of fractional buffersize */
 
               txdesc->tdes1  = lastsize;
               buffer        += lastsize;
@@ -1211,7 +1211,7 @@ static int tiva_transmit(FAR struct tiva_ethmac_s *priv)
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->txtimeout, TIVA_TXTIMEOUT, tiva_txtimeout_expiry, 1, (uint32_t)priv);
+  wd_start(priv->txtimeout, TIVA_TXTIMEOUT, tiva_txtimeout_expiry, 1, (uint32_t)priv);
   return OK;
 }
 
@@ -1375,7 +1375,7 @@ static void tiva_dopoll(FAR struct tiva_ethmac_s *priv)
 
       if (dev->d_buf)
         {
-          (void)devif_poll(dev, tiva_txpoll);
+          devif_poll(dev, tiva_txpoll);
 
           /* We will, most likely end up with a buffer to be freed.  But it
            * might not be the same one that we allocated above.
@@ -1492,7 +1492,7 @@ static void tiva_freesegment(FAR struct tiva_ethmac_s *priv,
       rxdesc = (struct emac_rxdesc_s *)rxdesc->rdes3;
     }
 
-  /* Reset the segment managment logic */
+  /* Reset the segment management logic */
 
   priv->rxcurr   = NULL;
   priv->segments = 0;
@@ -1637,7 +1637,7 @@ static int tiva_recvframe(FAR struct tiva_ethmac_s *priv)
               dev->d_buf    = (uint8_t *)rxcurr->rdes2;
               rxcurr->rdes2 = (uint32_t)buffer;
 
-              /* Return success, remebering where we should re-start scanning
+              /* Return success, remembering where we should re-start scanning
                * and resetting the segment scanning logic
                */
 
@@ -2152,7 +2152,7 @@ static int tiva_interrupt(int irq, FAR void *context, FAR void *arg)
 
       if (priv->handler != NULL)
         {
-          (void)priv->handler(irq, context, priv->arg);
+          priv->handler(irq, context, priv->arg);
         }
     }
 #endif
@@ -2283,7 +2283,7 @@ static void tiva_poll_work(FAR void *arg)
           /* Update TCP timing states and poll the network for new XMIT data.
            */
 
-          (void)devif_timer(dev, tiva_txpoll);
+          devif_timer(dev, TIVA_WDDELAY, tiva_txpoll);
 
           /* We will, most likely end up with a buffer to be freed.  But it
            * might not be the same one that we allocated above.
@@ -2300,8 +2300,8 @@ static void tiva_poll_work(FAR void *arg)
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->txpoll, TIVA_WDDELAY, tiva_poll_expiry,
-                 1, (uint32_t)priv);
+  wd_start(priv->txpoll, TIVA_WDDELAY, tiva_poll_expiry,
+           1, (uint32_t)priv);
   net_unlock();
 }
 
@@ -2376,8 +2376,8 @@ static int tiva_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->txpoll, TIVA_WDDELAY, tiva_poll_expiry,
-                 1, (uint32_t)priv);
+  wd_start(priv->txpoll, TIVA_WDDELAY, tiva_poll_expiry,
+           1, (uint32_t)priv);
 
   /* Enable the Ethernet interrupt */
 
@@ -2999,7 +2999,7 @@ static void tiva_phy_intenable(bool enable)
           if (ret == OK)
             {
               phyval |= EPHY_SCR_INTEN;
-              (void)tiva_phywrite(CONFIG_TIVA_PHYADDR, TIVA_EPHY_SCR, phyval);
+              tiva_phywrite(CONFIG_TIVA_PHYADDR, TIVA_EPHY_SCR, phyval);
             }
         }
     }
@@ -3295,7 +3295,7 @@ static int tiva_phyinit(FAR struct tiva_ethmac_s *priv)
     }
 #endif
 
-#else /* Auto-negotion not selected */
+#else /* Auto-negotiation not selected */
 
   phyval = 0;
 #ifdef CONFIG_TIVA_ETHFD
@@ -3830,7 +3830,7 @@ static void tiva_ipv6multicast(FAR struct tiva_ethmac_s *priv)
   ninfo("IPv6 Multicast: %02x:%02x:%02x:%02x:%02x:%02x\n",
         mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
-  (void)tiva_addmac(dev, mac);
+  tiva_addmac(dev, mac);
 
 #ifdef CONFIG_NET_ICMPv6_AUTOCONF
   /* Add the IPv6 all link-local nodes Ethernet address.  This is the
@@ -3838,7 +3838,7 @@ static void tiva_ipv6multicast(FAR struct tiva_ethmac_s *priv)
    * packets.
    */
 
-  (void)tiva_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
+  tiva_addmac(dev, g_ipv6_ethallnodes.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_AUTOCONF */
 #ifdef CONFIG_NET_ICMPv6_ROUTER
@@ -3847,7 +3847,7 @@ static void tiva_ipv6multicast(FAR struct tiva_ethmac_s *priv)
    * packets.
    */
 
-  (void)tiva_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
+  tiva_addmac(dev, g_ipv6_ethallrouters.ether_addr_octet);
 
 #endif /* CONFIG_NET_ICMPv6_ROUTER */
 }
@@ -4163,7 +4163,7 @@ int tiva_ethinitialize(int intf)
 #if TIVA_NETHCONTROLLERS == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
-  (void)tiva_ethinitialize(0);
+  tiva_ethinitialize(0);
 }
 #endif
 
@@ -4220,7 +4220,7 @@ void up_netinitialize(void)
  *             signal tasks in user space.  A value of NULL can be passed
  *             in order to detach and disable the PHY interrupt.
  *   arg     - The argument that will accompany the interrupt
- *   enable  - A function pointer that be unsed to enable or disable the
+ *   enable  - A function pointer that be unused to enable or disable the
  *             PHY interrupt.
  *
  * Returned Value:

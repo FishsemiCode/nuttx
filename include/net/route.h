@@ -60,9 +60,11 @@
 
 struct rtentry
 {
-  FAR struct sockaddr_storage *rt_target;  /* Address of the network */
-  FAR struct sockaddr_storage *rt_netmask; /* Network mask defining the sub-net */
-  FAR struct sockaddr_storage *rt_router;  /* Gateway address associated with the hop */
+  struct sockaddr_storage rt_dst;     /* Address of the network */
+  struct sockaddr_storage rt_gateway; /* Gateway address associated with
+                                       * the hop */
+  struct sockaddr_storage rt_genmask; /* Network mask defining the sub-net */
+  uint16_t rt_flags;
 };
 
 /****************************************************************************
@@ -108,8 +110,8 @@ int addroute(int sockfd, FAR struct sockaddr_storage *target,
  * Name: net_delroute
  *
  * Description:
- *   Add a new route to the routing table.  This is just a convenience
- *   wrapper for the SIOCADDRT ioctl call.
+ *   Delete a route from the routing table.  This is just a convenience
+ *   wrapper for the SIOCDELRT ioctl call.
  *
  * Input Parameters:
  *   sockfd   - Any socket descriptor

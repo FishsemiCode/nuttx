@@ -1,7 +1,7 @@
-#!/bin/bash
-# refresh.sh
+#!/usr/bin/env bash
+# tools/refresh.sh
 #
-#   Copyright (C) 2014, 2016-2017 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2014, 2016-2017, 2019 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,134 +32,91 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-USAGE="USAGE: $0 [options] <board>/<config>"
+WD=`test -d ${0%/*} && cd ${0%/*}; pwd`
+
+USAGE="USAGE: $0 [options] <board>:<config>+"
 ADVICE="Try '$0 --help' for more information"
 
-unset CONFIG
-silent=n
+unset CONFIGS
+debug=n
 defaults=n
 prompt=y
+nocopy=n
 
 while [ ! -z "$1" ]; do
-    case $1 in
-    --debug )
-        set -x
-        ;;
-    --silent )
-        silent=y
-        defaults=y
-        prompt=n
-        ;;
-    --prompt )
-        prompt=y
-        ;;
-    --defaults )
-        defaults=y
-        ;;
-    --help )
-        echo "$0 is a tool for refreshing board configurations"
-        echo ""
-        echo $USAGE
-        echo ""
-        echo "Where [options] include:"
-        echo "  --debug"
-        echo "     Enable script debug"
-        echo "  --silent"
-        echo "     Update board configuration without interaction.  Implies --defaults."
-        echo "     Assumes no prompt for save.  Use --silent --prompt to prompt before saving."
-        echo "  --prompt"
-        echo "     Prompt before updating and overwriting the defconfig file.  Default is to"
-        echo "     prompt unless --silent"
-        echo "  --defaults"
-        echo "     Do not prompt for new default selections; accept all recommended default values"
-        echo "  --help"
-        echo "     Show this help message and exit"
-        echo "  <board>"
-        echo "     The board directory under nuttx/configs"
-        echo "  <config>"
-        echo "     The board configuration directory under nuttx/configs/<board>"
-        exit 0
-        ;;
-    * )
-        CONFIG=$1
-        break
-        ;;
-    esac
-    shift
-done
-
-# Get the board configuration
-
-if [ -z "$1" ]; then
-    echo "ERROR: No configuration provided"
+  case $1 in
+  --debug )
+    debug=y
+    ;;
+  --silent )
+    defaults=y
+    prompt=n
+    ;;
+  --prompt )
+    prompt=y
+    ;;
+  --defaults )
+    defaults=y
+    ;;
+  --nocopy )
+    nocopy=y
+    ;;
+  --help )
+    echo "$0 is a tool for refreshing board configurations"
+    echo ""
     echo $USAGE
-    echo $ADVICE
-    exit 1
-fi
-
-BOARDSUBDIR=`echo $1 | cut -d'/' -f1`
-CONFIGSUBDIR=`echo $1 | cut -d'/' -f2`
+    echo ""
+    echo "Where [options] include:"
+    echo "  --debug"
+    echo "     Enable script debug"
+    echo "  --silent"
+    echo "     Update board configuration without interaction.  Implies --defaults."
+    echo "     Assumes no prompt for save.  Use --silent --prompt to prompt before saving."
+    echo "  --prompt"
+    echo "     Prompt before updating and overwriting the defconfig file.  Default is to"
+    echo "     prompt unless --silent"
+    echo "  --defaults"
+    echo "     Do not prompt for new default selections; accept all recommended default values"
+    echo "  --nocopy"
+    echo "     Do not copy defconfig from nuttx/boards/<board>/boards to nuttx/.config"
+    echo "  --help"
+    echo "     Show this help message and exit"
+    echo "  <board>"
+    echo "     The board directory under nuttx/boards"
+    echo "  <config>"
+    echo "     The board configuration directory under nuttx/boards/<board>/boards"
+    echo "  Note: all configuration is refreshed if <board>:<config> equals all."
+    exit 0
+    ;;
+  * )
+    CONFIGS=$*
+    break
+    ;;
+  esac
+  shift
+done
 
 # Where are we
 
 MYNAME=`basename $0`
 
+cd $WD
 if [ -x ./${MYNAME} ] ; then
-   cd .. || { echo "ERROR: cd .. failed" ; exit 1 ; }
+  cd .. || { echo "ERROR: cd .. failed" ; exit 1 ; }
 fi
 
 if [ ! -x tools/${MYNAME} ] ; then
-   echo "ERROR:  This file must be executed from the top-level NuttX directory: $PWD"
-   exit 1
+  echo "ERROR:  This file must be executed from the top-level NuttX directory: $PWD"
+  exit 1
 fi
 
-# Set up the environment
-
-WD=${PWD}
-
-BOARDDIR=configs/$BOARDSUBDIR
-SCRIPTSDIR=$BOARDDIR/scripts
-MAKEDEFS1=$SCRIPTSDIR/Make.defs
-
-CONFIGDIR=$BOARDDIR/$CONFIGSUBDIR
-DEFCONFIG=$CONFIGDIR/defconfig
-MAKEDEFS2=$CONFIGDIR/Make.defs
+# If the cmpconfig executable does not exist, then build it
 
 CMPCONFIG_TARGET=cmpconfig
 CMPCONFIG1=tools/cmpconfig
 CMPCONFIG2=tools/cmpconfig.exe
 CMPCONFIGMAKEFILE=Makefile.host
 CMPCONFIGMAKEDIR=tools
-
-# Check the board configuration directory
-
-if [ ! -d "$BOARDDIR" ]; then
-  echo "No board directory found at $BOARDDIR"
-  exit 1
-fi
-
-if [ ! -d "$CONFIGDIR" ]; then
-  echo "No configuration directory found at $CONFIGDIR"
-  exit 1
-fi
-
-if [ ! -r "$DEFCONFIG" ]; then
-  echo "No readable defconfig file at $DEFCONFIG"
-  exit 1
-fi
-
-if [ -r "$MAKEDEFS1" ]; then
-  MAKEDEFS=$MAKEDEFS1
-else
-  if [ -r "$MAKEDEFS2" ]; then
-    MAKEDEFS=$MAKEDEFS2
-  else
-    echo "No readable Make.defs file at $MAKEDEFS1 or $MAKEDEFS2"
-    exit 1
-  fi
-fi
-
-# If the cmpconfig executable does not exist, then build it
 
 if [ -x ${CMPCONFIG1} ]; then
   CMPCONFIG=${CMPCONFIG1}
@@ -183,70 +140,155 @@ else
   fi
 fi
 
-# Copy the .config and Make.defs to the toplevel directory
+# Get the board configuration
 
-rm -f SAVEconfig
-if [ -e .config ]; then
-  mv .config SAVEconfig || \
-    { echo "ERROR: Failed to move .config to SAVEconfig"; exit 1; }
+if [ -z "${CONFIGS}" ]; then
+  echo "ERROR: No configuration provided"
+  echo $USAGE
+  echo $ADVICE
+  exit 1
 fi
 
-cp -a $DEFCONFIG .config || \
-  { echo "ERROR: Failed to copy $DEFCONFIG to .config"; exit 1; }
-
-rm -f SAVEMake.defs
-if [ -e Make.defs ]; then
-  mv Make.defs SAVEMake.defs || \
-    { echo "ERROR: Failed to move Make.defs to SAVEMake.defs"; exit 1; }
+if [ "X${CONFIGS}" == "Xall" ]; then
+  CONFIGS=`find boards -name defconfig | cut -d'/' -f4,6`
 fi
 
-cp -a $MAKEDEFS Make.defs || \
-  { echo "ERROR: Failed to copy $MAKEDEFS to Make.defs"; exit 1; }
+for CONFIG in ${CONFIGS}; do
+  echo "Refresh ${CONFIG}"
 
-# Then run oldconfig or oldefconfig
+  # Set up the environment
 
-if [ "X${defaults}" == "Xy" ]; then
-  make olddefconfig
-else
-  make oldconfig
-fi
+  CONFIGSUBDIR=`echo ${CONFIG} | cut -s -d':' -f2`
+  if [ -z "${CONFIGSUBDIR}" ]; then
+    CONFIGSUBDIR=`echo ${CONFIG} | cut -s -d'/' -f2`
+    if [ -z "${CONFIGSUBDIR}" ]; then
+      echo "ERROR: Malformed configuration: ${CONFIG}"
+      echo $USAGE
+      echo $ADVICE
+      exit 1
+    else
+      BOARDSUBDIR=`echo ${CONFIG} | cut -d'/' -f1`
+    fi
+  else
+    BOARDSUBDIR=`echo ${CONFIG} | cut -d':' -f1`
+  fi
 
-# Run savedefconfig to create the new defconfig file
+  BOARDDIR=boards/*/*/$BOARDSUBDIR
+  SCRIPTSDIR=$BOARDDIR/scripts
+  MAKEDEFS1=$SCRIPTSDIR/Make.defs
 
-make savedefconfig
+  CONFIGDIR=$BOARDDIR/boards/$CONFIGSUBDIR
+  DEFCONFIG=$CONFIGDIR/defconfig
+  MAKEDEFS2=$CONFIGDIR/Make.defs
 
-# Show differences
+  # Check the board configuration directory
 
-# sed -i -e "s/^CONFIG_APPS_DIR/# CONFIG_APPS_DIR/g" defconfig
-$CMPCONFIG $DEFCONFIG defconfig
+  if [ ! -d $BOARDDIR ]; then
+    echo "No board directory found at $BOARDDIR"
+    exit 1
+  fi
 
-# Save the refreshed configuration
+  if [ ! -d $CONFIGDIR ]; then
+    echo "No configuration directory found at $CONFIGDIR"
+    exit 1
+  fi
 
-if [ "X${prompt}" == "Xy" ]; then
-  read -p "Save the new configuration (y/n)?" -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]
-  then
+  if [ ! -r $DEFCONFIG ]; then
+    echo "No readable defconfig file at $DEFCONFIG"
+    exit 1
+  fi
+
+  if [ -r $MAKEDEFS2 ]; then
+    MAKEDEFS=$MAKEDEFS2
+  else
+    if [ -r $MAKEDEFS1 ]; then
+      MAKEDEFS=$MAKEDEFS1
+    else
+      echo "No readable Make.defs file at $MAKEDEFS1 or $MAKEDEFS2"
+      exit 1
+    fi
+  fi
+
+  # Copy the .config and Make.defs to the toplevel directory
+
+  rm -f SAVEconfig
+  rm -f SAVEMake.defs
+
+  if [ "X${nocopy}" != "Xy" ]; then
+    if [ -e .config ]; then
+      mv .config SAVEconfig || \
+        { echo "ERROR: Failed to move .config to SAVEconfig"; exit 1; }
+    fi
+
+    cp -a $DEFCONFIG .config || \
+      { echo "ERROR: Failed to copy $DEFCONFIG to .config"; exit 1; }
+
+    if [ -e Make.defs ]; then
+      mv Make.defs SAVEMake.defs || \
+        { echo "ERROR: Failed to move Make.defs to SAVEMake.defs"; exit 1; }
+    fi
+
+    cp -a $MAKEDEFS Make.defs || \
+      { echo "ERROR: Failed to copy $MAKEDEFS to Make.defs"; exit 1; }
+
+    # Then run oldconfig or oldefconfig
+
+    if [ "X${defaults}" == "Xy" ]; then
+      if [ "X${debug}" = "Xy" ]; then
+        make olddefconfig V=1
+      else
+        make olddefconfig 1>/dev/null
+      fi
+    else
+      if [ "X${debug}" = "Xy" ]; then
+        make oldconfig V=1
+      else
+        make oldconfig 1>/dev/null
+      fi
+    fi
+  fi
+
+  # Run savedefconfig to create the new defconfig file
+
+  if [ "X${debug}" = "Xy" ]; then
+    make savedefconfig V=1
+  else
+    make savedefconfig 1>/dev/null
+  fi
+
+  # Save the refreshed configuration
+
+  if [ "X${prompt}" == "Xy" ]; then
+
+    # Show differences
+
+    $CMPCONFIG $DEFCONFIG defconfig
+
+    read -p "Save the new configuration (y/n)?" -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]
+    then
+      echo "Saving the new configuration file"
+      mv defconfig $DEFCONFIG || \
+          { echo "ERROR: Failed to move defconfig to $DEFCONFIG"; exit 1; }
+      chmod 644 $DEFCONFIG
+    fi
+  else
     echo "Saving the new configuration file"
     mv defconfig $DEFCONFIG || \
         { echo "ERROR: Failed to move defconfig to $DEFCONFIG"; exit 1; }
     chmod 644 $DEFCONFIG
   fi
-else
-  echo "Saving the new configuration file"
-  mv defconfig $DEFCONFIG || \
-      { echo "ERROR: Failed to move defconfig to $DEFCONFIG"; exit 1; }
-  chmod 644 $DEFCONFIG
-fi
 
-# Restore any previous .config and Make.defs files
+  # Restore any previous .config and Make.defs files
 
-if [ -e SAVEconfig ]; then
-  mv SAVEconfig .config || \
-    { echo "ERROR: Failed to move SAVEconfig to .config"; exit 1; }
-fi
+  if [ -e SAVEconfig ]; then
+    mv SAVEconfig .config || \
+      { echo "ERROR: Failed to move SAVEconfig to .config"; exit 1; }
+  fi
 
-if [ -e SAVEMake.defs ]; then
-  mv SAVEMake.defs Make.defs || \
-    { echo "ERROR: Failed to move SAVEMake.defs to Make.defs"; exit 1; }
-fi
+  if [ -e SAVEMake.defs ]; then
+    mv SAVEMake.defs Make.defs || \
+      { echo "ERROR: Failed to move SAVEMake.defs to Make.defs"; exit 1; }
+  fi
+done

@@ -1,7 +1,7 @@
 ############################################################################
 # tools/LibTargets.mk
 #
-#   Copyright (C) 2007-2012, 2014, 2018 Gregory Nutt. All rights reserved.
+#   Copyright (C) 2007-2012, 2014, 2019 Gregory Nutt. All rights reserved.
 #   Author: Gregory Nutt <gnutt@nuttx.org>
 #
 # Redistribution and use in source and binary forms, with or without
@@ -79,20 +79,17 @@ staging$(DELIM)libsched$(LIBEXT): sched$(DELIM)libsched$(LIBEXT)
 net$(DELIM)libnet$(LIBEXT): context
 	$(Q) $(MAKE) -C net -f $(TOPDIR)$(DELIM)net$(DELIM)Makefile -I $(TOPDIR)$(DELIM)net TOPDIR="$(TOPDIR)" libnet$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
-
 staging$(DELIM)libnet$(LIBEXT): net$(DELIM)libnet$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
-configs$(DELIM)libconfigs$(LIBEXT): context
-	$(Q) $(MAKE) -C configs -f $(TOPDIR)$(DELIM)configs$(DELIM)Makefile -I $(TOPDIR)$(DELIM)configs TOPDIR="$(TOPDIR)" libconfigs$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+boards$(DELIM)libboards$(LIBEXT): context
+	$(Q) $(MAKE) -C boards -f $(TOPDIR)$(DELIM)boards$(DELIM)Makefile -I $(TOPDIR)$(DELIM)boards TOPDIR="$(TOPDIR)" libboards$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
-
-staging$(DELIM)libconfigs$(LIBEXT): configs$(DELIM)libconfigs$(LIBEXT)
+staging$(DELIM)libboards$(LIBEXT): boards$(DELIM)libboards$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
 crypto$(DELIM)libcrypto$(LIBEXT): context
 	$(Q) $(MAKE) -C crypto -f $(TOPDIR)$(DELIM)crypto$(DELIM)Makefile -I $(TOPDIR)$(DELIM)crypto TOPDIR="$(TOPDIR)" libcrypto$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
-
 
 staging$(DELIM)libcrypto$(LIBEXT): crypto$(DELIM)libcrypto$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
@@ -125,6 +122,12 @@ audio$(DELIM)libaudio$(LIBEXT): context
 	$(Q) $(MAKE) -C audio -f $(TOPDIR)$(DELIM)audio$(DELIM)Makefile -I $(TOPDIR)$(DELIM)audio TOPDIR="$(TOPDIR)" libaudio$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
 
 staging$(DELIM)libaudio$(LIBEXT): audio$(DELIM)libaudio$(LIBEXT)
+	$(Q) $(call INSTALL_LIB,$<,$@)
+
+video$(DELIM)libvideo$(LIBEXT): context
+	$(Q) $(MAKE) -C video TOPDIR="$(TOPDIR)" libvideo$(LIBEXT) KERNEL=y EXTRADEFINES=$(KDEFINE)
+
+staging$(DELIM)libvideo$(LIBEXT): video$(DELIM)libvideo$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
 wireless$(DELIM)libwireless$(LIBEXT): context
@@ -188,7 +191,7 @@ staging$(DELIM)libuarch$(LIBEXT): $(ARCH_SRC)$(DELIM)libuarch$(LIBEXT)
 libs$(DELIM)libxx$(DELIM)$(LIBXX)$(LIBEXT): context
 	$(Q) $(MAKE) -C libs$(DELIM)libxx -f $(TOPDIR)$(DELIM)libs$(DELIM)libxx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libs$(DELIM)libxx TOPDIR="$(TOPDIR)"  $(LIBXX)$(LIBEXT) KERNEL=n
 
-staging$(DELIM)$(LIBXX)$(LIBEXT): libs$(DELIM)libxx$(DELIM)$(LIBXX)$(LIBEXT)
+staging$(DELIM)libxx$(LIBEXT): libs$(DELIM)libxx$(DELIM)libxx$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
 $(APPDIR)$(DELIM)libapps$(LIBEXT): context

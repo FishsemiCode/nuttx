@@ -43,7 +43,7 @@
 #include <nuttx/config.h>
 
 #include "chip.h"
-#include "chip/sam_emac.h"
+#include "hardware/sam_emac.h"
 
 #ifdef CONFIG_SAM34_EMAC
 
@@ -121,4 +121,3 @@ int sam_phy_boardinitialize(int intf);
 #endif /* __ASSEMBLY__ */
 #endif /* CONFIG_SAM34_EMAC */
 #endif /* __ARCH_ARM_SRC_SAM34_SAM_ETHERNET_H */
-

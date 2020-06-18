@@ -50,8 +50,8 @@
 #include "up_arch.h"
 
 #include "chip.h"
-#include "chip/chip/nuc_gcr.h"
-#include "chip/chip/nuc_clk.h"
+#include "hardware/nuc_gcr.h"
+#include "hardware/nuc_clk.h"
 
 #include "nuc_clockconfig.h"
 
@@ -151,7 +151,7 @@ void nuc_clockconfig(void)
    * Power down mode (PD)       = Normal mode (0)
    * Bypass (BP)                = Normal mode (0)
    * FOUT enable (OE)           = PLL FOUT enabled (0)
-   * PLL srouce clock (PLL_SRC) = External high speed crystal (0)
+   * PLL source clock (PLL_SRC) = External high speed crystal (0)
    */
 
   regval = getreg32(NUC_CLK_PLLCON);

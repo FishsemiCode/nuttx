@@ -34,7 +34,7 @@
  ****************************************************************************/
 
 #ifndef __MM_IOB_IOB_H
-#define __MM_IOB_IOB_H 1
+#define __MM_IOB_IOB_H
 
 /****************************************************************************
  * Included Files
@@ -42,10 +42,10 @@
 
 #include <nuttx/config.h>
 
-#include <semaphore.h>
 #include <debug.h>
 
 #include <nuttx/mm/iob.h>
+#include <nuttx/semaphore.h>
 
 #ifdef CONFIG_MM_IOB
 
@@ -176,6 +176,46 @@ FAR struct iob_qentry_s *iob_free_qentry(FAR struct iob_qentry_s *iobq);
 
 #ifdef CONFIG_IOB_NOTIFIER
 void iob_notifier_signal(void);
+#endif
+
+/****************************************************************************
+ * Name: iob_stats_onalloc
+ *
+ * Description:
+ *   An IOB has just been allocated for the consumer. This is a hook for the
+ *   IOB statistics to be updated when /proc/iobinfo is enabled.
+ *
+ * Input Parameters:
+ *   consumerid - id representing who is consuming the IOB
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_PROCFS) && \
+    defined(CONFIG_MM_IOB) && !defined(CONFIG_FS_PROCFS_EXCLUDE_IOBINFO)
+void iob_stats_onalloc(enum iob_user_e consumerid);
+#endif
+
+/****************************************************************************
+ * Name: iob_stats_onfree
+ *
+ * Description:
+ *   An IOB has just been freed by the producer. This is a hook for the
+ *   IOB statistics to be updated when /proc/iobinfo is enabled.
+ *
+ * Input Parameters:
+ *   consumerid - id representing who is consuming the IOB
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#if !defined(CONFIG_DISABLE_MOUNTPOINT) && defined(CONFIG_FS_PROCFS) && \
+    defined(CONFIG_MM_IOB) && !defined(CONFIG_FS_PROCFS_EXCLUDE_IOBINFO)
+void iob_stats_onfree(enum iob_user_e producerid);
 #endif
 
 #endif /* CONFIG_MM_IOB */

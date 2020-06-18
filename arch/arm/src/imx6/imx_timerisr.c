@@ -47,8 +47,8 @@
 
 #include "up_arch.h"
 #include "gic.h"
-#include "chip/imx_ccm.h"
-#include "chip/imx_gpt.h"
+#include "hardware/imx_ccm.h"
+#include "hardware/imx_gpt.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -153,7 +153,7 @@ static int imx_timerisr(int irq, uint32_t *regs, FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -161,7 +161,7 @@ static int imx_timerisr(int irq, uint32_t *regs, FAR void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint32_t regval;
   uint32_t cr;
@@ -256,11 +256,11 @@ void arm_timer_initialize(void)
 
   /* Configure as a (rising) edge-triggered interrupt */
 
-  (void)arm_gic_irq_trigger(IMX_IRQ_GPT, true);
+  arm_gic_irq_trigger(IMX_IRQ_GPT, true);
 
   /* Attach the timer interrupt vector */
 
-  (void)irq_attach(IMX_IRQ_GPT, (xcpt_t)imx_timerisr, NULL);
+  irq_attach(IMX_IRQ_GPT, (xcpt_t)imx_timerisr, NULL);
 
   /* Enable all three GPT output compare interrupts */
 

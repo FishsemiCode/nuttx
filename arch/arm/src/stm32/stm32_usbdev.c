@@ -272,8 +272,8 @@
 enum stm32_ep0state_e
 {
   EP0STATE_IDLE = 0,        /* No request in progress */
-  EP0STATE_SETUP_OUT,       /* Set up recived with data for device OUT in progress */
-  EP0STATE_SETUP_READY,     /* Set up was recived prior and is in ctrl,
+  EP0STATE_SETUP_OUT,       /* Set up received with data for device OUT in progress */
+  EP0STATE_SETUP_READY,     /* Set up was received prior and is in ctrl,
                              * now the data has arrived */
   EP0STATE_WRREQUEST,       /* Write request in progress */
   EP0STATE_RDREQUEST,       /* Read request in progress */
@@ -365,7 +365,7 @@ struct stm32_usbdev_s
    *   ep0data[] before the SETUP command is re-processed.
    *
    * ep0datlen
-   *   Lenght of OUT DATA received in ep0data[]
+   *   Length of OUT DATA received in ep0data[]
    */
 
   struct usb_ctrlreq_s   ctrl;          /* Last EP0 request */
@@ -1440,7 +1440,7 @@ static int stm32_wrrequest(struct stm32_usbdev_s *priv, struct stm32_ep_s *prive
  *
  * Description:
  *   This function is called from the stm32_ep0out handler when the ep0state
- *   is EP0STATE_SETUP_OUT and uppon new incoming data is available in the endpoint
+ *   is EP0STATE_SETUP_OUT and upon new incoming data is available in the endpoint
  *   0's buffer.  This function will simply copy the OUT data into ep0data.
  *
  ****************************************************************************/
@@ -1623,7 +1623,7 @@ static void stm32_epdone(struct stm32_usbdev_s *priv, uint8_t epno)
         {
           /* Read host data into the current read request */
 
-          (void)stm32_rdrequest(priv, privep);
+          stm32_rdrequest(priv, privep);
 
           /* "After the received data is processed, the application software
            *  should set the STAT_RX bits to '11' (Valid) in the USB_EPnR,
@@ -1673,11 +1673,11 @@ static void stm32_epdone(struct stm32_usbdev_s *priv, uint8_t epno)
       priv->txstatus = USB_EPR_STATTX_NAK;
       if (epno == EP0)
         {
-          (void)stm32_wrrequest_ep0(priv, privep);
+          stm32_wrrequest_ep0(priv, privep);
         }
       else
         {
-          (void)stm32_wrrequest(priv, privep);
+          stm32_wrrequest(priv, privep);
         }
 
       /* Set the new TX status */
@@ -1746,6 +1746,11 @@ static void stm32_ep0setup(struct stm32_usbdev_s *priv)
 
   ep0->stalled  = 0;
   ep0->txbusy   = 0;
+
+  value.w       = 0;
+  index.w       = 0;
+  len.w         = 0;
+  response.w    = 0;
 
   /* Check to see if called from the DATA phase of a SETUP Transfer */
 
@@ -1931,7 +1936,7 @@ static void stm32_ep0setup(struct stm32_usbdev_s *priv)
               {
                 privep         = &priv->eplist[epno];
                 privep->halted = 0;
-                (void)stm32_epstall(&privep->ep, true);
+                stm32_epstall(&privep->ep, true);
               }
             else
               {
@@ -1975,7 +1980,7 @@ static void stm32_ep0setup(struct stm32_usbdev_s *priv)
               {
                 privep         = &priv->eplist[epno];
                 privep->halted = 1;
-                (void)stm32_epstall(&privep->ep, false);
+                stm32_epstall(&privep->ep, false);
               }
             else
               {
@@ -2223,7 +2228,7 @@ static void stm32_ep0out(struct stm32_usbdev_s *priv)
                                           * last set up command with the OUT
                                           * data
                                           */
-        priv->ep0state = EP0STATE_IDLE;  /* There is no notion of reciving OUT
+        priv->ep0state = EP0STATE_IDLE;  /* There is no notion of receiving OUT
                                           * data greater then the length of
                                           * CONFIG_USBDEV_SETUP_MAXDATASIZE
                                           * so we are done
@@ -3218,11 +3223,11 @@ static int stm32_epstall(struct usbdev_ep_s *ep, bool resume)
               priv->txstatus = USB_EPR_STATTX_NAK;
               if (epno == EP0)
                 {
-                  (void)stm32_wrrequest_ep0(priv, privep);
+                  stm32_wrrequest_ep0(priv, privep);
                 }
               else
                 {
-                  (void)stm32_wrrequest(priv, privep);
+                  stm32_wrrequest(priv, privep);
                 }
 
               /* Set the new TX status */
@@ -3713,8 +3718,8 @@ void up_usbinitialize(void)
   /* Configure USB GPIO alternate function pins */
 
 #ifdef CONFIG_STM32_STM32F30XX
-  (void)stm32_configgpio(GPIO_USB_DM);
-  (void)stm32_configgpio(GPIO_USB_DP);
+  stm32_configgpio(GPIO_USB_DM);
+  stm32_configgpio(GPIO_USB_DP);
 #endif
 
   /* Power up the USB controller, but leave it in the reset state */

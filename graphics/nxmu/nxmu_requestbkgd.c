@@ -89,12 +89,11 @@ void nxmu_requestbkgd(FAR struct nxmu_conn_s *conn,
 
   /* Redraw the background window */
 
-  nxmu_redrawreq(&be->bkgd, &be->bkgd.bounds);
-
-  /* Provide the mouse settings */
+  nxmu_redraw(&be->bkgd, &be->bkgd.bounds);
 
 #ifdef CONFIG_NX_XYINPUT
+  /* Provide the mouse settings */
+
   nxmu_mousereport(&be->bkgd);
 #endif
 }
-

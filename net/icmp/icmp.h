@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/icmp/icmp.h
  *
- *   Copyright (C) 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -70,14 +70,38 @@
  * Public types
  ****************************************************************************/
 
+struct socket;    /* Forward reference */
+struct sockaddr;  /* Forward reference */
+struct pollfd;    /* Forward reference */
+
 #ifdef CONFIG_NET_ICMP_SOCKET
 /* Representation of a IPPROTO_ICMP socket connection */
 
 struct devif_callback_s;         /* Forward reference */
 
+/* This is a container that holds the poll-related information */
+
+struct icmp_poll_s
+{
+  FAR struct socket *psock;        /* IPPROTO_ICMP socket structure */
+  FAR struct pollfd *fds;          /* Needed to handle poll events */
+  FAR struct devif_callback_s *cb; /* Needed to teardown the poll */
+};
+
 struct icmp_conn_s
 {
-  dq_entry_t node;               /* Supports a double linked list */
+  /* Common prologue of all connection structures. */
+
+  dq_entry_t node;               /* Supports a doubly linked list */
+
+  /* This is a list of ICMP callbacks.  Each callback represents a thread
+   * that is stalled, waiting for a device-specific event.
+   */
+
+  FAR struct devif_callback_s *list;
+
+  /* ICMP-specific content follows */
+
   uint16_t   id;                 /* ICMP ECHO request ID */
   uint8_t    nreqs;              /* Number of requests with no response received */
   uint8_t    crefs;              /* Reference counts on this instance */
@@ -86,18 +110,18 @@ struct icmp_conn_s
 
   FAR struct net_driver_s *dev;  /* Needed to free the callback structure */
 
-#ifdef CONFIG_MM_IOB
   /* ICMP response read-ahead list.  A singly linked list of type struct
    * iob_qentry_s where the ICMP read-ahead data for the current ID is
    * retained.
    */
 
   struct iob_queue_s readahead;  /* Read-ahead buffering */
-#endif
 
-  /* Defines the list of ICMP callbacks */
+  /* The following is a list of poll structures of threads waiting for
+   * socket events.
+   */
 
-  FAR struct devif_callback_s *list;
+  struct icmp_poll_s pollinfo[CONFIG_NET_ICMP_NPOLLWAITERS];
 };
 #endif
 
@@ -122,10 +146,6 @@ EXTERN const struct sock_intf_s g_icmp_sockif;
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-
-struct socket;    /* Forward reference */
-struct sockaddr;  /* Forward reference */
-struct pollfd;    /* Forward reference */
 
 /****************************************************************************
  * Name: icmp_input

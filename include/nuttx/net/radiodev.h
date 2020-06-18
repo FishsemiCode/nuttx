@@ -101,7 +101,7 @@ struct radiodev_properties_s
  *     the reassembled packet.
  *
  *     For fagemented frames, d_buf provided by radio driver will not be
- *     used.  6LoWPAN must handle mutliple reassemblies from different
+ *     used.  6LoWPAN must handle multiple reassemblies from different
  *     sources simultaneously.  To support this, 6LoWPAN will allocate a
  *     unique reassembly buffer for each active reassembly, based on the
  *     reassembly tag and source radio address.  These reassembly buffers
@@ -113,7 +113,7 @@ struct radiodev_properties_s
  * compatible with 'struct net_driver_s' when dev->d_lltype ==
  * NET_LL_IEEE802154 or dev->d_lltype == NET_LL_PKTRADIO.
  *
- * The radio network driver has reponsibility for initializing this
+ * The radio network driver has responsibility for initializing this
  * structure.  In general, all fields must be set to NULL.  In addition:
  *
  * 1. On a TX poll, the radio network driver should provide its driver
@@ -236,7 +236,7 @@ struct radio_driver_s
    *
    * Input Parameters:
    *   netdev     - The network device to be queried
-   *   properties - Location where radio properities will be returned.
+   *   properties - Location where radio properties will be returned.
    *
    * Returned Value:
    *   Zero (OK) returned on success; a negated errno value is returned on

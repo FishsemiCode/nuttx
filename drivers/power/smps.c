@@ -43,13 +43,11 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <debug.h>
 
 #include <nuttx/arch.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/power/smps.h>
 
@@ -78,10 +76,8 @@ static const struct file_operations smps_fops =
   smps_read,                    /* read */
   smps_write,                   /* write */
   NULL,                         /* seek */
-  smps_ioctl                    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL                        /* poll */
-#endif
+  smps_ioctl,                   /* ioctl */
+  NULL                          /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL                        /* unlink */
 #endif
@@ -210,14 +206,15 @@ static ssize_t smps_read(FAR struct file *filep, FAR char *buffer, size_t buflen
  * Name: smps_write
  ****************************************************************************/
 
-static ssize_t smps_write(FAR struct file *filep, FAR const char *buffer, size_t buflen)
+static ssize_t smps_write(FAR struct file *filep, FAR const char *buffer,
+                          size_t buflen)
 {
   return 1;
 }
 
 /****************************************************************************
  * Name: smps_ioctl
-****************************************************************************/
+ ****************************************************************************/
 
 static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
@@ -231,14 +228,14 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
       case PWRIOC_START:
         {
           /* Allow SMPS start only when some limits available
-           * and strucutre is locked.
+           * and structure is locked.
            * REVISIT: not sure if it is needed here
            */
 
           if ((smps->limits.lock == false) ||
               (smps->limits.v_in <= 0 && smps->limits.v_out <= 0 &&
                smps->limits.i_in <= 0 && smps->limits.i_out <= 0 &&
-               smps->limits.p_in <= 0 && smps->limits.p_out <= 0 ))
+               smps->limits.p_in <= 0 && smps->limits.p_out <= 0))
             {
               pwrerr("ERROR: SMPS limits data must be set"
                      " and locked before SMPS start\n");
@@ -371,7 +368,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
       case PWRIOC_GET_FAULT:
         {
-          uint8_t *fault = ((uint8_t*)arg);
+          FAR uint8_t *fault = ((FAR uint8_t *)arg);
 
           ret = dev->ops->fault_get(dev, fault);
           if (ret != OK)
@@ -409,7 +406,7 @@ static int smps_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           if ((smps->limits.lock == false) ||
               (smps->limits.v_in <= 0 && smps->limits.v_out <= 0 &&
                smps->limits.i_in <= 0 && smps->limits.i_out <= 0 &&
-               smps->limits.p_in <= 0 && smps->limits.p_out <= 0 ))
+               smps->limits.p_in <= 0 && smps->limits.p_out <= 0))
             {
               pwrerr("ERROR: limits must be set prior to params!\n");
 

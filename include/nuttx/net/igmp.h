@@ -3,7 +3,7 @@
  * The definitions in this header file are intended only for internal use
  * by the NuttX network stack.
  *
- *   Copyright (C) 2010, 2012, 2014 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2010, 2012, 2014, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * The NuttX implementation of IGMP was inspired by the IGMP add-on for the
@@ -19,23 +19,25 @@
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of CITEL Technologies Ltd nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
+ *    notice, this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ * 3. Neither the name NuttX nor the names of its contributors may be
+ *    used to endorse or promote products derived from this software
  *    without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY CITEL TECHNOLOGIES AND CONTRIBUTORS ``AS IS''
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL CITEL TECHNOLOGIES OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+ * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+ * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
+ * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
+ * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ * POSSIBILITY OF SUCH DAMAGE.
  *
  ****************************************************************************/
 
@@ -50,9 +52,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <semaphore.h>
-
-#include <netinet/in.h>
 
 #include <nuttx/net/netconfig.h>
 #include <nuttx/net/netdev.h>
@@ -72,14 +71,9 @@
 #define IGMPv3_MEMBERSHIP_REPORT 0x22    /* IGMP Ver. 3 Membership Report */
 #define IGMP_LEAVE_GROUP         0x17    /* Leave Group */
 
-/* Header sizes:
- *
- * IGMP_HDRLEN   - Size of IGMP header in bytes
- * IPIGMP_HDRLEN - Size of IP + Size of IGMP header + Size of router alert
- */
+/*  Size of IGMP header in bytes */
 
 #define IGMP_HDRLEN              8
-#define IPIGMP_HDRLEN            (IGMP_HDRLEN + IPv4_HDRLEN + 4)
 
 /* Time-to-Live must be one */
 
@@ -89,13 +83,7 @@
  * Public Types
  ****************************************************************************/
 
-/* IGMPv2 packet structure as defined by RFC 2236.
- *
- * The Max Response Time (maxresp) specifies the time limit for the
- * corresponding report. The field has a resolution of 100 miliseconds, the
- * value is taken directly. This field is meaningful only in Membership Query
- * (0x11); in other messages it is set to 0 and ignored by the receiver.
- */
+/* Convenience [re-]definition of the IPv4 header with the router alert */
 
 struct igmp_iphdr_s
 {
@@ -115,7 +103,18 @@ struct igmp_iphdr_s
   /* Router Alert IP header option */
 
   uint16_t ra[2];            /* RFC 2113 */
+};
 
+/* IGMPv2 packet structure as defined by RFC 2236.
+ *
+ * The Max Response Time (maxresp) specifies the time limit for the
+ * corresponding report. The field has a resolution of 100 milliseconds, the
+ * value is taken directly. This field is meaningful only in Membership Query
+ * (0x11); in other messages it is set to 0 and ignored by the receiver.
+ */
+
+struct igmp_hdr_s
+{
   /* IGMPv2 header:
    *
    *  0                   1                   2                   3

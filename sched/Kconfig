@@ -27,13 +27,16 @@ config DISABLE_POSIX_TIMERS
 	bool "Disable POSIX timers"
 	default y if DEFAULT_SMALL
 	default n if !DEFAULT_SMALL
+	---help---
+		Disable support for the the entire POSIX timer family
+		including timer_create(), timer_gettime(), timer_settime(),
+		etc.
+
+		NOTE:  This option will also disable getitimer() and
+		setitimer() which are not, strictly speaking, POSIX timers.
 
 config DISABLE_PTHREAD
 	bool "Disable pthread support"
-	default n
-
-config DISABLE_SIGNALS
-	bool "Disable signal support"
 	default n
 
 config DISABLE_MQUEUE
@@ -259,7 +262,7 @@ config SPINLOCK
 	default n
 	depends on ARCH_HAVE_TESTSET
 	---help---
-		Enables suppport for spinlocks.  Spinlocks are used primarily for
+		Enables support for spinlocks.  Spinlocks are used primarily for
 		synchronization in SMP configurations but are available for general
 		synchronization between CPUs.  Use in a single CPU configuration would
 		most likely be fatal.  Note, however, that this does not depend on
@@ -271,7 +274,7 @@ config SPINLOCK_IRQ
 	default n
 	depends on ARCH_GLOBAL_IRQDISABLE
 	---help---
-		Enables suppport for spinlocks with IRQ control. This feature can be
+		Enables support for spinlocks with IRQ control. This feature can be
 		used to protect data in SMP mode.
 
 config IRQCHAIN
@@ -326,7 +329,7 @@ config SMP_NCPUS
 
 config SMP_IDLETHREAD_STACKSIZE
 	int "CPU IDLE stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
 		Each CPU will have its own IDLE task.  System initialization occurs
 		on CPU0 and uses CONFIG_IDLETHREAD_STACKSIZE which will probably be
@@ -387,7 +390,7 @@ config INIT_SYMTAB
 	default EXECFUNCS_SYMTAB_ARRAY if EXECFUNCS_HAVE_SYMTAB
 	depends on !BUILD_PROTECTED && !BUILD_KERNEL
 	---help---
-		The name of othe global array that holds the exported symbol table.
+		The name of other global array that holds the exported symbol table.
 		The special string "NULL" may be provided if there is no symbol
 		table.  Quotation marks will be stripped when config.h is generated.
 
@@ -452,7 +455,7 @@ config RR_INTERVAL
 	default 0
 	---help---
 		The round robin timeslice will be set this number of milliseconds;
-		Round roben scheduling (SCHED_RR) is enabled by setting this
+		Round robin scheduling (SCHED_RR) is enabled by setting this
 		interval to a positive, non-zero value.
 
 config SCHED_SPORADIC
@@ -493,11 +496,11 @@ config TASK_NAME_SIZE
 	int "Maximum task name size"
 	default 31
 	---help---
-		Spcifies that maximum size of a task name to save in the TCB.
+		Specifies the maximum size of a task name to save in the TCB.
 		Useful if scheduler instrumentation is selected.  Set to zero to
 		disable.  Excludes the NUL terminator; the actual allocated size
-		willl be TASK_NAME_SIZE + 1.  The default of 31 then results in
-		a align-able 32-byte allocation.::
+		will be TASK_NAME_SIZE + 1.  The default of 31 then results in
+		a align-able 32-byte allocation.
 
 config MAX_TASKS
 	int "Max number of tasks"
@@ -524,7 +527,7 @@ config SCHED_CHILD_STATUS
 	---help---
 		If this option is selected, then the exit status of the child task
 		will be retained after the child task exits.  This option should be
-		selected if you require knowledge of a child process' exit status.
+		selected if you require knowledge of a child process's exit status.
 		Without this setting, wait(), waitpid() or waitid() may fail.  For
 		example, if you do:
 
@@ -624,6 +627,17 @@ config SCHED_EXIT_KILL_CHILDREN
 		of what you are doing.  Uninformed of this option can often lead to
 		memory leaks since, for example, memory allocations held by threads
 		are not automatically freed!
+
+config SCHED_USER_IDENTITY
+	bool "Support per-task User Identity"
+	default n
+	---help---
+		This selection enables functionality of getuid(), setuid(), getgid(),
+		setgid().  If this option is not selected, then stub, root-only
+		versions of these interfaces are available.  When selected, these
+		interfaces will associate a UID and/or GID with each task group.
+		Those can then be managed using the interfaces.  Child tasks will
+		inherit the UID and GID of its parent.
 
 endmenu # Tasks and Scheduling
 
@@ -989,7 +1003,7 @@ config SCHED_INSTRUMENTATION_BUFFER
 		If this option is selected, then in-memory buffering logic is
 		enabled to capture scheduler instrumentation data.  This has
 		the advantage that (1) the platform logic does not have to provide
-		the sched_note_* interaces described for the previous settings.
+		the sched_note_* interfaces described for the previous settings.
 		Instead, the buffering logic catches all of these.  It encodes
 		timestamps the scheduler note and adds the note to an in-memory,
 		circular buffer.  And (2) buffering the scheduler instrumentation
@@ -1100,7 +1114,13 @@ config NAME_MAX
 	int "Maximum size of a file name"
 	default 32
 	---help---
-	The maximum size of a file name.
+		The maximum size of a file name.
+
+config PATH_MAX
+	int "Maximum size of path name"
+	default 256
+	---help---
+		The maximum size of path name.
 
 endmenu # Files and I/O
 
@@ -1112,13 +1132,13 @@ menuconfig PRIORITY_INHERITANCE
 		When this option is enabled, the initial configuration of all seamphores
 		and mutexes will be with priority inheritance enabled.  That configuration
 		may not be appropriate in all cases (such as when the semaphore or mutex
-		is used for signaling).  In such cases, priority inheritance be be
+		is used for signaling).  In such cases, priority inheritance can be
 		disabled for individual semaphores by calling:
 
 			int ret = sem_setprotocol(&sem, SEM_PRIO_NONE);
 
 		From applications, the functionally equivalent OS internal interface,
-		nxsem_setrotocol() should be used within the OS
+		nxsem_setprotocol(), should be used within the OS
 
 		And for individual pthread mutexes by setting the protocol attribute
 		before initializing the mutex:
@@ -1195,7 +1215,7 @@ config BOARD_EARLY_INITIALIZE
 		phase may be used, for example, to initialize more complex,
 		board-specific device drivers.
 
-		Waiting for events, use of I2C, SPI, etc are permissable in the
+		Waiting for events, use of I2C, SPI, etc are permissible in the
 		context of board_late_initialize().  That is because
 		board_late_initialize() will run on a temporary, internal kernel
 		thread.
@@ -1243,7 +1263,7 @@ config BOARD_LATE_INITIALIZE
 		phase may be used, for example, to initialize more complex,
 		board-specific device drivers.
 
-		Waiting for events, use of I2C, SPI, etc are permissable in the
+		Waiting for events, use of I2C, SPI, etc are permissible in the
 		context of board_late_initialize().  That is because
 		board_late_initialize() will run on a temporary, internal kernel
 		thread.
@@ -1252,7 +1272,7 @@ if BOARD_LATE_INITIALIZE
 
 config BOARD_INITTHREAD_STACKSIZE
 	int "Board initialization thread stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
 		The size of the stack to allocate when starting the board
 		initialization thread.
@@ -1334,16 +1354,21 @@ config SIG_EVTHREAD
 		feature on the PROTECTED or KERNEL build.
 
 config SIG_EVTHREAD_HPWORK
-	bool "SIGEV_THHREAD use HPWORK"
+	bool "SIGEV_EVTHREAD use HPWORK"
 	default n
-	depends on SIG_EVTHREAD
+	depends on SIG_EVTHREAD && SCHED_HPWORK
 	---help---
-		SIGEV_THHREAD use HPWORK, if n, use LPWORK.
+		if selected, SIGEV_THHREAD will use the high priority work queue.
+		If not, it will use the low priority work queue (if available).
+
+		REVISIT:  This solution is non-optimal.  Some notifications should
+		be high priority and others should be lower priority.  Ideally, you
+		should be able to determine which work queue is used on a
+		notification-by-notification basis.
 
 menuconfig SIG_DEFAULT
 	bool "Default signal actions"
 	default n
-	depends on !DISABLE_SIGNALS
 	---help---
 		Enable to support default signal actions.
 
@@ -1402,10 +1427,15 @@ config SIG_SIGKILL_ACTION
 		Enable the default action for SIGINT and SIGKILL (terminate the
 		task).
 
+config SIG_SIGPIPE_ACTION
+	bool "SIGPIPE"
+	default y
+	---help---
+		Enable the default action for SIGPIPE (terminate the task).
+
 endif # SIG_DEFAULT
 
 menu "Signal Numbers"
-	depends on !DISABLE_SIGNALS
 
 comment "Standard Signal Numbers"
 
@@ -1489,6 +1519,14 @@ config SIG_INT
 
 endif # SIG_DEFAULT
 
+config SIG_PIPE
+	int "SIGPIPE"
+	default 11
+	---help---
+		The SIGPIPE signal is sent to a task termination event.
+		This signal is generated when write on a pipe with no one to read it.
+		SIGPIPE may be ignored.
+
 comment "Non-standard Signal Numbers"
 
 config SIG_SIGCONDTIMEDOUT
@@ -1534,6 +1572,7 @@ config MODULE
 	bool "Enable loadable OS modules"
 	default n
 	select LIBC_MODLIB
+	select ARCH_USE_MODULE_TEXT if ARCH_HAVE_MODULE_TEXT
 	---help---
 		Enable support for loadable OS modules.  Default: n
 
@@ -1543,7 +1582,6 @@ config SCHED_WORKQUEUE
 #	bool "Enable worker thread"
 	bool
 	default n
-	depends on !DISABLE_SIGNALS
 	---help---
 		Create dedicated "worker" threads to handle delayed or asynchronous
 		processing.
@@ -1561,7 +1599,6 @@ config WQUEUE_NOTIFIER
 config SCHED_HPWORK
 	bool "High priority (kernel) worker thread"
 	default n
-	depends on !DISABLE_SIGNALS
 	select SCHED_WORKQUEUE
 	---help---
 		Create a dedicated high-priority "worker" thread to handle delayed
@@ -1619,7 +1656,7 @@ config SCHED_HPWORKPRIORITY
 
 config SCHED_HPWORKSTACKSIZE
 	int "High priority worker thread stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
 		The stack size allocated for the worker thread.  Default: 2K.
 
@@ -1628,7 +1665,6 @@ endif # SCHED_HPWORK
 config SCHED_LPWORK
 	bool "Low priority (kernel) worker thread"
 	default n
-	depends on !DISABLE_SIGNALS
 	select SCHED_WORKQUEUE
 	---help---
 		If SCHED_LPWORK is defined then a lower-priority work queue will
@@ -1719,7 +1755,7 @@ config SCHED_LPWORKPRIOMAX
 
 config SCHED_LPWORKSTACKSIZE
 	int "Low priority worker thread stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
 		The stack size allocated for the lower priority worker thread.  Default: 2K.
 
@@ -1739,7 +1775,7 @@ config IDLETHREAD_STACKSIZE
 
 config USERMAIN_STACKSIZE
 	int "Main thread stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
 		The size of the stack to allocate for the user initialization thread
 		that is started as soon as the OS completes its initialization.
@@ -1752,7 +1788,7 @@ config PTHREAD_STACK_MIN
 
 config PTHREAD_STACK_DEFAULT
 	int "Default pthread stack size"
-	default 2048
+	default DEFAULT_TASK_STACKSIZE
 	---help---
 		Default pthread stack size
 

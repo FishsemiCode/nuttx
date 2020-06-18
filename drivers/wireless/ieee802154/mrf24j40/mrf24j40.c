@@ -47,14 +47,11 @@
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-#include <semaphore.h>
 
 #include <sys/types.h>
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/wqueue.h>
-#include <nuttx/semaphore.h>
-
 #include <nuttx/mm/iob.h>
 
 #include <nuttx/wireless/ieee802154/mrf24j40.h>
@@ -141,7 +138,7 @@ static int mrf24j40_energydetect(FAR struct mrf24j40_radio_s *dev,
  * Function: mrf24j40_dopoll_csma
  *
  * Description:
- *   This function is called in order to preform an out-of-sequence TX poll.
+ *   This function is called in order to perform an out-of-sequence TX poll.
  *   This is done:
  *
  *   1. After completion of a transmission (mrf24j40_txdone_csma),
@@ -199,7 +196,7 @@ void mrf24j40_dopoll_csma(FAR void *arg)
  * Function: mrf24j40_dopoll_gts
  *
  * Description:
- *   This function is called in order to preform an out-of-sequence TX poll.
+ *   This function is called in order to perform an out-of-sequence TX poll.
  *   This is done:
  *
  *   1. After completion of a transmission (mrf24j40_txdone_gts),
@@ -355,7 +352,6 @@ void mrf24j40_beacon_trigger(FAR struct mrf24j40_radio_s *dev)
 void mrf24j40_gts_setup(FAR struct mrf24j40_radio_s *dev, uint8_t fifo,
                         FAR struct iob_s *frame)
 {
-
 }
 
 /****************************************************************************
@@ -369,23 +365,24 @@ void mrf24j40_setup_fifo(FAR struct mrf24j40_radio_s *dev,
                          FAR const uint8_t *buf, uint8_t length,
                          uint32_t fifo_addr)
 {
-
+  uint16_t frame_ctrl;
+  uint16_t addrmode;
   int hlen = 3; /* Include frame control and seq number */
   int i;
-  uint16_t frame_ctrl;
 
   /* Analyze frame control to compute header length */
 
   frame_ctrl = buf[0];
   frame_ctrl |= (buf[1] << 8);
 
-  if ((frame_ctrl & IEEE802154_FRAMECTRL_DADDR) ==
-      IEEE802154_ADDRMODE_SHORT)
+  addrmode = (frame_ctrl & IEEE802154_FRAMECTRL_DADDR) >>
+             IEEE802154_FRAMECTRL_SHIFT_DADDR;
+
+  if (addrmode == IEEE802154_ADDRMODE_SHORT)
     {
       hlen += 2 + 2; /* Destination PAN + shortaddr */
     }
-  else if ((frame_ctrl & IEEE802154_FRAMECTRL_DADDR) ==
-           IEEE802154_ADDRMODE_EXTENDED)
+  else if (addrmode == IEEE802154_ADDRMODE_EXTENDED)
     {
       hlen += 2 + 8; /* Destination PAN + extaddr */
     }
@@ -395,13 +392,14 @@ void mrf24j40_setup_fifo(FAR struct mrf24j40_radio_s *dev,
       hlen += 2; /* No PAN compression, source PAN is different from dest PAN */
     }
 
-  if ((frame_ctrl & IEEE802154_FRAMECTRL_SADDR) ==
-      IEEE802154_ADDRMODE_SHORT)
+  addrmode = (frame_ctrl & IEEE802154_FRAMECTRL_SADDR) >>
+             IEEE802154_FRAMECTRL_SHIFT_SADDR;
+
+  if (addrmode == IEEE802154_ADDRMODE_SHORT)
     {
       hlen += 2; /* Source saddr */
     }
-  else if ((frame_ctrl & IEEE802154_FRAMECTRL_SADDR) ==
-           IEEE802154_ADDRMODE_EXTENDED)
+  else if (addrmode == IEEE802154_ADDRMODE_EXTENDED)
     {
       hlen += 8; /* Ext saddr */
     }
@@ -467,6 +465,7 @@ FAR struct ieee802154_radio_s *
   dev->radio.txnotify     = mrf24j40_txnotify;
   dev->radio.txdelayed    = mrf24j40_txdelayed;
   dev->radio.rxenable     = mrf24j40_rxenable;
+  dev->radio.energydetect = mrf24j40_energydetect;
   dev->radio.beaconstart  = mrf24j40_beaconstart;
   dev->radio.beaconupdate = mrf24j40_beaconupdate;
   dev->radio.beaconstop   = mrf24j40_beaconstop;
@@ -480,4 +479,3 @@ FAR struct ieee802154_radio_s *
   dev->lower->enable(dev->lower, true);
   return &dev->radio;
 }
-

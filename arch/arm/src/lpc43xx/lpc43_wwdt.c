@@ -50,7 +50,7 @@
 
 #include "up_arch.h"
 #include "lpc43_wdt.h"
-#include "chip/lpc43_wwdt.h"
+#include "hardware/lpc43_wwdt.h"
 
 #if defined(CONFIG_WATCHDOG) && defined(CONFIG_LPC43_WWDT)
 
@@ -66,7 +66,7 @@
 #define LPC43_MAX_WWDT_WINDOW  0xFFFFFF /* 24-bit max value */
 #define LPC43_MIN_WWDT_WINDOW  0x100    /* Minimum window value allowed */
 #define WWDT_WARNINT_VALUE     0x3FF    /* 10-bit max value */
-#define WWDT_MAXTIMEOUT        5592     /* Max timeout value in miliseconds */
+#define WWDT_MAXTIMEOUT        5592     /* Max timeout value in milliseconds */
 
 /* Configuration ************************************************************/
 
@@ -99,7 +99,7 @@ struct lpc43_lowerhalf_wwdt_s
 static void   lpc43_setwindow(uint32_t window);
 static void   lpc43_setwarning(uint32_t warning);
 
-/* Interrupt hanlding *******************************************************/
+/* Interrupt handling *******************************************************/
 
 static int    lpc43_interrupt(int irq, FAR void *context, FAR void *arg);
 
@@ -463,7 +463,7 @@ static int lpc43_settimeout(FAR struct watchdog_lowerhalf_s *lower,
   /* Remember the selected values */
 
   priv->reload = reload;
-  wdinfo("reload=%d timout=%d\n", reload, priv->timeout);
+  wdinfo("reload=%d timeout=%d\n", reload, priv->timeout);
   regval = reload;
   putreg32(regval, LPC43_WWDT_TC);
 
@@ -644,7 +644,7 @@ void lpc43_wwdtinitialize(FAR const char *devpath)
 
   /* Attach our watchdog interrupt handler (But don't enable it yet) */
 
-  (void)irq_attach(LPC43M4_IRQ_WWDT, lpc43_interrupt, NULL);
+  irq_attach(LPC43M4_IRQ_WWDT, lpc43_interrupt, NULL);
 
   /* Select an arbitrary initial timeout value.  But don't start the watchdog
    * yet. NOTE: If the "Hardware watchdog" feature is enabled through the
@@ -656,7 +656,7 @@ void lpc43_wwdtinitialize(FAR const char *devpath)
 
   /* Register the watchdog driver as /dev/watchdog0 */
 
-  (void)watchdog_register(devpath, (FAR struct watchdog_lowerhalf_s *)priv);
+  watchdog_register(devpath, (FAR struct watchdog_lowerhalf_s *)priv);
 }
 
 #endif /* CONFIG_WATCHDOG && CONFIG_LPC43_WWDT */

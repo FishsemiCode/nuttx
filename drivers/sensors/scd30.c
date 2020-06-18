@@ -84,7 +84,7 @@
 #define SCD30_CMD_SET_FRC               0x5204
 #define SCD30_CMD_SET_TEMP_OFFSET       0x5403
 #define SCD30_CMD_SET_ALT_COMPENSATION  0x5102
-#define SCD30_CMD_SOFT_RESET            0xD304
+#define SCD30_CMD_SOFT_RESET            0xd304
 
 #define SCD30_DEFAULT_MEASUREMENT_INTERVAL  2 /* seconds */
 #define SCD30_DEFAULT_PRESSURE_COMPENSATION 0
@@ -131,6 +131,7 @@ struct scd30_word_s
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
+
 /* IO Helpers */
 
 #ifdef CONFIG_SCD30_I2C
@@ -152,8 +153,9 @@ static void scd30_set_command_param(FAR struct scd30_word_s *param,
                                     uint16_t value);
 static int scd30_check_data_crc(FAR const struct scd30_word_s *words,
                                 unsigned int num_words);
-static uint16_t scd30_data_word_to_uint16(FAR const struct scd30_word_s *word);
-static float scd30_data_words_to_float(FAR const struct scd30_word_s words[2]);
+static uint16_t scd30_data_word2uint16(FAR const struct scd30_word_s *word);
+static float scd30_data_words_to_float(
+                                FAR const struct scd30_word_s words[2]);
 
 /* Driver features */
 
@@ -193,10 +195,8 @@ static const struct file_operations g_scd30fops =
   scd30_read,     /* read */
   scd30_write,    /* write */
   NULL,           /* seek */
-  scd30_ioctl     /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL          /* poll */
-#endif
+  scd30_ioctl,    /* ioctl */
+  NULL            /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , scd30_unlink /* unlink */
 #endif
@@ -228,6 +228,7 @@ static int scd30_do_transfer(FAR struct i2c_master_s *i2c,
       else
         {
           /* Some error. Try to reset I2C bus and keep trying. */
+
 #ifdef CONFIG_I2C_RESET
           if (retries == SCD30_I2C_RETRIES - 1)
             {
@@ -332,7 +333,8 @@ static uint8_t scd30_crc_word(uint16_t word)
     0x00, 0x31, 0x62, 0x53, 0xc4, 0xf5, 0xa6, 0x97,
     0xb9, 0x88, 0xdb, 0xea, 0x7d, 0x4c, 0x1f, 0x2e
   };
-  uint8_t crc = 0xFF;
+
+  uint8_t crc = 0xff;
 
   crc ^= word >> 8;
   crc = (crc << 4) ^ crc_table[crc >> 4];
@@ -360,7 +362,8 @@ static void scd30_set_command_param(FAR struct scd30_word_s *param,
  * Name: scd30_data_words_to_float
  ****************************************************************************/
 
-static float scd30_data_words_to_float(FAR const struct scd30_word_s words[2])
+static float scd30_data_words_to_float(
+  FAR const struct scd30_word_s words[2])
 {
   uint8_t data[4];
   float value;
@@ -374,10 +377,10 @@ static float scd30_data_words_to_float(FAR const struct scd30_word_s words[2])
 }
 
 /****************************************************************************
- * Name: scd30_data_word_to_uint16
+ * Name: scd30_data_word2uint16
  ****************************************************************************/
 
-static uint16_t scd30_data_word_to_uint16(FAR const struct scd30_word_s *word)
+static uint16_t scd30_data_word2uint16(FAR const struct scd30_word_s *word)
 {
   return (word[0].data[0] << 8) | (word[0].data[1]);
 }
@@ -391,7 +394,7 @@ static int scd30_check_data_crc(FAR const struct scd30_word_s *words,
 {
   while (num_words)
     {
-      if (scd30_crc_word(scd30_data_word_to_uint16(words)) != words->crc)
+      if (scd30_crc_word(scd30_data_word2uint16(words)) != words->crc)
         {
           return -1;
         }
@@ -486,7 +489,7 @@ static int scd30_read_values(FAR struct scd30_dev_s *priv, FAR float *temp,
               return ret;
             }
 
-          if (scd30_data_word_to_uint16(data) != 0x0001)
+          if (scd30_data_word2uint16(data) != 0x0001)
             {
               if (!wait)
                 {
@@ -559,17 +562,17 @@ static int scd30_configure(FAR struct scd30_dev_s *priv, bool start)
   /* Set measurement interval. */
 
   scd30_set_command_param(&param, priv->interval);
-  (void)scd30_write_cmd(priv, SCD30_CMD_SET_INTERVAL, &param, 1);
+  scd30_write_cmd(priv, SCD30_CMD_SET_INTERVAL, &param, 1);
 
   /* Set altitude compensation. */
 
   scd30_set_command_param(&param, priv->altitude_comp);
-  (void)scd30_write_cmd(priv, SCD30_CMD_SET_ALT_COMPENSATION, &param, 1);
+  scd30_write_cmd(priv, SCD30_CMD_SET_ALT_COMPENSATION, &param, 1);
 
   /* Set temperature offset. */
 
   scd30_set_command_param(&param, priv->temperature_offset);
-  (void)scd30_write_cmd(priv, SCD30_CMD_SET_TEMP_OFFSET, &param, 1);
+  scd30_write_cmd(priv, SCD30_CMD_SET_TEMP_OFFSET, &param, 1);
 
   if (!start)
     {
@@ -609,21 +612,15 @@ static int scd30_open(FAR struct file *filep)
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct scd30_dev_s *priv  = inode->i_private;
-  int ret;
+  int ret = OK;
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* Increment the count of open references on the driver */
 
@@ -662,17 +659,11 @@ static int scd30_close(FAR struct file *filep)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* Decrement the count of open references on the driver */
 
@@ -715,17 +706,11 @@ static ssize_t scd30_read(FAR struct file *filep, FAR char *buffer,
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return (ssize_t)ret;
     }
-  while (ret == -EINTR);
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   if (priv->unlinked)
@@ -795,17 +780,11 @@ static int scd30_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   if (priv->unlinked)
@@ -844,7 +823,8 @@ static int scd30_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           /* Start measurements (and set pressure compensation). */
 
           scd30_set_command_param(&param, priv->pressure_comp);
-          ret = scd30_write_cmd(priv, SCD30_CMD_START_MEASUREMENT, &param, 1);
+          ret = scd30_write_cmd(priv, SCD30_CMD_START_MEASUREMENT,
+                                &param, 1);
           if (ret >= 0)
             {
               priv->started = true;
@@ -1019,17 +999,11 @@ static int scd30_unlink(FAR struct inode *inode)
 
   /* Get exclusive access */
 
-  do
+  ret = nxsem_wait_uninterruptible(&priv->devsem);
+  if (ret < 0)
     {
-      ret = nxsem_wait(&priv->devsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      return ret;
     }
-  while (ret == -EINTR);
 
   /* Are there open references to the driver data structure? */
 
@@ -1046,7 +1020,7 @@ static int scd30_unlink(FAR struct inode *inode)
 
   priv->unlinked = true;
   nxsem_post(&priv->devsem);
-  return ret;
+  return OK;
 }
 #endif
 
@@ -1081,7 +1055,7 @@ int scd30_register_i2c(FAR const char *devpath, FAR struct i2c_master_s *i2c,
 
   DEBUGASSERT(i2c != NULL);
   DEBUGASSERT(addr == CONFIG_SCD30_ADDR);
-  DEBUGASSERT(scd30_crc_word(0xBEEF) == 0x92);
+  DEBUGASSERT(scd30_crc_word(0xbeef) == 0x92);
 
   /* Initialize the device structure */
 

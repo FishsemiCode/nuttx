@@ -45,7 +45,7 @@
 #include <stdint.h>
 
 #include "chip.h"
-#include "chip/sam_udphs.h"
+#include "hardware/sam_udphs.h"
 
 /************************************************************************************
  * Public Functions
@@ -82,4 +82,3 @@ void sam_usbsuspend(FAR struct usbdev_s *dev, bool resume);
 
 #endif /* __ASSEMBLY__ */
 #endif /* __ARCH_ARM_SRC_SAMA5_SAM_UDPHS_H */
-

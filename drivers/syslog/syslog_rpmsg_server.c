@@ -61,7 +61,7 @@
 struct syslog_rpmsg_server_s
 {
   struct rpmsg_endpoint ept;
-  char                  *tmpbuf;
+  FAR char              *tmpbuf;
   unsigned int          nextpos;
   unsigned int          alloced;
 };
@@ -70,22 +70,24 @@ struct syslog_rpmsg_server_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static void syslog_rpmsg_write(const char *buf1, size_t len1,
-                               const char *buf2, size_t len2);
-static void syslog_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
-                                 const char *name, uint32_t dest);
-static void syslog_rpmsg_ns_unbind(struct rpmsg_endpoint *ept);
-static int  syslog_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                                size_t len, uint32_t src, void *priv_);
+static void syslog_rpmsg_write(FAR const char *buf1, size_t len1,
+                               FAR const char *buf2, size_t len2);
+static void syslog_rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
+                                 FAR void *priv_, FAR const char *name,
+                                 uint32_t dest);
+static void syslog_rpmsg_ns_unbind(FAR struct rpmsg_endpoint *ept);
+static int  syslog_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept,
+                                FAR void *data, size_t len, uint32_t src,
+                                FAR void *priv_);
 
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
 
-static void syslog_rpmsg_write(const char *buf1, size_t len1,
-                               const char *buf2, size_t len2)
+static void syslog_rpmsg_write(FAR const char *buf1, size_t len1,
+                               FAR const char *buf2, size_t len2)
 {
-  const char *nl;
+  FAR const char *nl;
   size_t len;
 
   nl = memchr(buf2, '\n', len2);
@@ -116,10 +118,11 @@ static void syslog_rpmsg_write(const char *buf1, size_t len1,
     }
 }
 
-static void syslog_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
-                                 const char *name, uint32_t dest)
+static void syslog_rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
+                                 FAR void *priv_, FAR const char *name,
+                                 uint32_t dest)
 {
-  struct syslog_rpmsg_server_s *priv;
+  FAR struct syslog_rpmsg_server_s *priv;
   int ret;
 
   if (strcmp(name, SYSLOG_RPMSG_EPT_NAME))
@@ -144,9 +147,9 @@ static void syslog_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
     }
 }
 
-static void syslog_rpmsg_ns_unbind(struct rpmsg_endpoint *ept)
+static void syslog_rpmsg_ns_unbind(FAR struct rpmsg_endpoint *ept)
 {
-  struct syslog_rpmsg_server_s *priv = ept->priv;
+  FAR struct syslog_rpmsg_server_s *priv = ept->priv;
 
   if (priv->nextpos)
     {
@@ -159,19 +162,19 @@ static void syslog_rpmsg_ns_unbind(struct rpmsg_endpoint *ept)
   kmm_free(priv);
 }
 
-static int syslog_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                               size_t len, uint32_t src, void *priv_)
+static int syslog_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept, FAR void *data,
+                               size_t len, uint32_t src, FAR void *priv_)
 {
-  struct syslog_rpmsg_server_s *priv = priv_;
-  struct syslog_rpmsg_header_s *header = data;
+  FAR struct syslog_rpmsg_server_s *priv = priv_;
+  FAR struct syslog_rpmsg_header_s *header = data;
 
   if (header->command == SYSLOG_RPMSG_TRANSFER)
     {
-      struct syslog_rpmsg_transfer_s *msg = data;
+      FAR struct syslog_rpmsg_transfer_s *msg = data;
       struct syslog_rpmsg_header_s done;
       unsigned int copied = msg->count;
       unsigned int printed = 0;
-      const char *nl;
+      FAR const char *nl;
 
       nl = memrchr(msg->data, '\n', msg->count);
       if (nl != NULL)
@@ -206,6 +209,7 @@ static int syslog_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
                   copied = priv->alloced - priv->nextpos;
                 }
             }
+
           memcpy(priv->tmpbuf + priv->nextpos, msg->data + printed, copied);
           priv->nextpos += copied;
         }
@@ -219,7 +223,7 @@ static int syslog_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
 }
 
 /****************************************************************************
- * Public Funtions
+ * Public Functions
  ****************************************************************************/
 
 int syslog_rpmsg_server_init(void)

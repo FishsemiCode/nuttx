@@ -1,7 +1,7 @@
 /****************************************************************************
  * syscall/syscall_stublookup.c
  *
- *   Copyright (C) 2011-2013, 2015-2019 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2011-2013, 2015-2020 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,10 +49,6 @@
 #if defined(CONFIG_LIB_SYSCALL)
 
 /****************************************************************************
- * Pre-processor definitions
- ****************************************************************************/
-
-/****************************************************************************
  * Stub Function Prototypes
  ****************************************************************************/
 
@@ -64,6 +60,7 @@ uintptr_t STUB__exit(int nbr, uintptr_t parm1);
 uintptr_t STUB_exit(int nbr, uintptr_t parm1);
 uintptr_t STUB_get_errno(int nbr);
 uintptr_t STUB_getpid(int nbr);
+
 uintptr_t STUB_sched_getparam(int nbr, uintptr_t parm1, uintptr_t parm2);
 uintptr_t STUB_sched_getscheduler(int nbr, uintptr_t parm1);
 uintptr_t STUB_sched_lock(int nbr);
@@ -75,15 +72,30 @@ uintptr_t STUB_sched_setscheduler(int nbr, uintptr_t parm1, uintptr_t parm2,
             uintptr_t parm3);
 uintptr_t STUB_sched_unlock(int nbr);
 uintptr_t STUB_sched_yield(int nbr);
+
+uintptr_t STUB_sched_getaffinity(int nbr, uintptr_t parm1, uintptr_t parm2,
+            uintptr_t parm3);
+uintptr_t STUB_sched_getcpu(int nbr);
+uintptr_t STUB_sched_setaffinity(int nbr, uintptr_t parm1, uintptr_t parm2,
+            uintptr_t parm3);
+
 uintptr_t STUB_set_errno(int nbr, uintptr_t parm1);
 uintptr_t STUB_uname(int nbr, uintptr_t parm1);
+
+/* User identity */
+
+uintptr_t STUB_setuid(int nbr, uintptr_t parm1);
+uintptr_t STUB_getuid(int nbr);
+uintptr_t STUB_setgid(int nbr, uintptr_t parm1);
+uintptr_t STUB_getgid(int nbr);
 
 /* Semaphores */
 
 uintptr_t STUB_sem_close(int nbr, uintptr_t parm1);
 uintptr_t STUB_sem_destroy(int nbr, uintptr_t parm1);
 uintptr_t STUB_sem_open(int nbr, uintptr_t parm1, uintptr_t parm2,
-            uintptr_t parm3, uintptr_t parm4, uintptr_t parm5, uintptr_t parm6);
+            uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
+            uintptr_t parm6);
 uintptr_t STUB_sem_post(int nbr, uintptr_t parm1);
 uintptr_t STUB_sem_setprotocol(int nbr, uintptr_t parm1, uintptr_t parm2);
 uintptr_t STUB_sem_timedwait(int nbr, uintptr_t parm1, uintptr_t parm2);
@@ -94,6 +106,7 @@ uintptr_t STUB_sem_wait(int nbr, uintptr_t parm1);
 uintptr_t STUB_pgalloc(int nbr, uintptr_t parm1, uintptr_t parm2);
 uintptr_t STUB_task_create(int nbr, uintptr_t parm1, uintptr_t parm2,
             uintptr_t parm3, uintptr_t parm4, uintptr_t parm5);
+uintptr_t STUB_nx_task_spawn(int nbr, uintptr_t parm1);
 uintptr_t STUB_task_delete(int nbr, uintptr_t parm1);
 uintptr_t STUB_task_restart(int nbr, uintptr_t parm1);
 uintptr_t STUB_task_setcancelstate(int nbr, uintptr_t parm1,
@@ -175,6 +188,9 @@ uintptr_t STUB_timer_getoverrun(int nbr, uintptr_t parm1);
 uintptr_t STUB_timer_gettime(int nbr, uintptr_t parm1, uintptr_t parm2);
 uintptr_t STUB_timer_settime(int nbr, uintptr_t parm1, uintptr_t parm2,
             uintptr_t parm3, uintptr_t parm4);
+uintptr_t STUB_getitimer(int nbr, uintptr_t parm1, uintptr_t parm2);
+uintptr_t STUB_setitimer(int nbr, uintptr_t parm1, uintptr_t parm2,
+            uintptr_t parm3);
 
 /* System logging */
 
@@ -244,6 +260,7 @@ uintptr_t STUB_lseek(int nbr, uintptr_t parm1, uintptr_t parm2,
 uintptr_t STUB_mmap(int nbr, uintptr_t parm1, uintptr_t parm2,
             uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
             uintptr_t parm6);
+uintptr_t STUB_munmap(int nbr, uintptr_t parm1, uintptr_t parm2);
 uintptr_t STUB_open(int nbr, uintptr_t parm1, uintptr_t parm2,
             uintptr_t parm3, uintptr_t parm4, uintptr_t parm5,
             uintptr_t parm6);
@@ -308,6 +325,8 @@ uintptr_t STUB_pthread_join(int nbr, uintptr_t parm1, uintptr_t parm2);
 uintptr_t STUB_pthread_key_create(int nbr, uintptr_t parm1,
             uintptr_t parm2);
 uintptr_t STUB_pthread_key_delete(int nbr, uintptr_t parm1);
+uintptr_t STUB_pthread_get_stackaddr_np(int nbr, uintptr_t parm1);
+uintptr_t STUB_pthread_get_stacksize_np(int nbr, uintptr_t parm1);
 uintptr_t STUB_pthread_mutex_destroy(int nbr, uintptr_t parm1);
 uintptr_t STUB_pthread_mutex_init(int nbr, uintptr_t parm1,
             uintptr_t parm2);
@@ -407,7 +426,8 @@ uintptr_t STUB_prctl(int nbr, uintptr_t parm1, uintptr_t parm2,
             uintptr_t parm3, uintptr_t parm4, uintptr_t parm5);
 
 /* The following is defined only if entropy pool random number generator
- * is enabled. */
+ * is enabled.
+ */
 
 uintptr_t STUB_getrandom(int nbr, uintptr_t parm1, uintptr_t parm2);
 

@@ -62,7 +62,7 @@
 
 struct progmem_dev_s
 {
-  /* Publically visible representation of the interface */
+  /* Publicly visible representation of the interface */
 
   struct mtd_dev_s mtd;
 
@@ -124,10 +124,10 @@ static struct progmem_dev_s g_progmem =
  ****************************************************************************/
 
 /****************************************************************************
- * Name: progmem_erase
+ * Name: progmem_log2
  *
  * Description:
- *   Erase several blocks, each of the size previously reported.
+ *   Check block size is exact powers of two.
  *
  ****************************************************************************/
 

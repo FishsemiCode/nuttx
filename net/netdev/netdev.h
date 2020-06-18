@@ -159,16 +159,27 @@ FAR struct net_driver_s *netdev_findbyname(FAR const char *ifname);
  * Name: netdev_foreach
  *
  * Description:
- *   Enumerate each registered network device.
+ *   Enumerate each registered network device.  This function will terminate
+ *   when either (1) all devices have been enumerated or (2) when a callback
+ *   returns any non-zero value.
  *
- *   NOTE: netdev semaphore held throughout enumeration.
+ *   NOTE 1:  The network must be locked throughout the enumeration.
+ *   NOTE 2:  No checks are made on devices.  For examples, callbacks will
+ *            will be made on network devices that are in the 'down' state.
+ *            The callback implementations must take into account all
+ *            network device state.  Typically, a network in the down state
+ *            would not terminate the traversal.
  *
  * Input Parameters:
  *   callback - Will be called for each registered device
- *   arg      - User argument passed to callback()
+ *   arg      - Opaque user argument passed to callback()
  *
  * Returned Value:
- *  0:Enumeration completed 1:Enumeration terminated early by callback
+ *  0: Enumeration completed
+ *  1: Enumeration terminated early by callback
+ *
+ * Assumptions:
+ *  The network is locked.
  *
  ****************************************************************************/
 
@@ -453,7 +464,7 @@ int netdev_count(void);
  *   failure.
  *
  * Assumptions:
- *  The nework is locked
+ *  The network is locked
  *
  ****************************************************************************/
 
@@ -477,7 +488,7 @@ int netdev_ipv4_ifconf(FAR struct ifconf *ifc);
  *   failure.
  *
  * Assumptions:
- *  The nework is locked
+ *  The network is locked
  *
  ****************************************************************************/
 
@@ -490,9 +501,9 @@ int netdev_ipv6_ifconf(FAR struct lifconf *lifc);
  * Name: netdown_notifier_setup
  *
  * Description:
- *   Set up to perform a callback to the worker function the network goes
- *   down.  The worker function will execute on the high priority worker
- *   thread.
+ *   Set up to perform a callback to the worker function when the network
+ *   goes down.  The worker function will execute on the high priority
+ *   worker thread.
  *
  * Input Parameters:
  *   worker - The worker function to execute on the high priority work

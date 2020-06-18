@@ -41,7 +41,7 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include "chip/efm32_timer.h"
+#include "hardware/efm32_timer.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -52,4 +52,3 @@ void efm32_timer_dumpregs(uintptr_t base, FAR const char *msg);
 int efm32_timer_set_freq(uintptr_t base, uint32_t clk_freq, uint32_t freq);
 
 #endif /* __ARCH_ARM_SRC_EFM32_EFM32_TIMER_H */
-

@@ -196,7 +196,7 @@ static uint32_t sam34_getreg(uint32_t addr)
 
   uint32_t val = getreg32(addr);
 
-  /* Is this the same value that we read from the same registe last time?  Are
+  /* Is this the same value that we read from the same register last time?  Are
    * we polling the register?  If so, suppress some of the output.
    */
 
@@ -539,7 +539,7 @@ static int sam34_settimeout(FAR struct timer_lowerhalf_s *lower,
   timeout = (1000000ULL * priv->clkticks) / RTT_FCLK;          /* Truncated timeout */
   priv->adjustment = priv->timeout - timeout;                  /* Truncated time to be added to next interval (dither) */
 
-  tmrinfo("fclk=%d clkticks=%d timout=%d, adjustment=%d\n",
+  tmrinfo("fclk=%d clkticks=%d timeout=%d, adjustment=%d\n",
          RTT_FCLK, priv->clkticks, priv->timeout, priv->adjustment);
 
   return OK;
@@ -650,7 +650,7 @@ void sam_rttinitialize(FAR const char *devpath)
 
   priv->ops = &g_tcops;
 
-  (void)irq_attach(SAM_IRQ_RTT, sam34_interrupt, priv);
+  irq_attach(SAM_IRQ_RTT, sam34_interrupt, priv);
 
   /* Enable NVIC interrupt. */
 
@@ -658,7 +658,7 @@ void sam_rttinitialize(FAR const char *devpath)
 
   /* Register the timer driver as /dev/timerX */
 
-  (void)timer_register(devpath, (FAR struct timer_lowerhalf_s *)priv);
+  timer_register(devpath, (FAR struct timer_lowerhalf_s *)priv);
 }
 
 #endif /* CONFIG_TIMER && CONFIG_SAM34_TCx */

@@ -240,7 +240,9 @@ static void tiva_ethreset(struct tiva_driver_s *priv);
 #if 0 /* Not used */
 static void tiva_phywrite(struct tiva_driver_s *priv, int regaddr, uint16_t value);
 #endif
+#ifndef CONFIG_TIVA_WITH_QEMU
 static uint16_t tiva_phyread(struct tiva_driver_s *priv, int regaddr);
+#endif
 
 /* Common TX logic */
 
@@ -466,6 +468,7 @@ static void tiva_phywrite(struct tiva_driver_s *priv, int regaddr, uint16_t valu
  *
  ****************************************************************************/
 
+#ifndef CONFIG_TIVA_WITH_QEMU
 static uint16_t tiva_phyread(struct tiva_driver_s *priv, int regaddr)
 {
   /* Wait for any MII transactions in progress to complete */
@@ -486,6 +489,7 @@ static uint16_t tiva_phyread(struct tiva_driver_s *priv, int regaddr)
 
   return (uint16_t)(tiva_ethin(priv, TIVA_MAC_MRXD_OFFSET) & MAC_MTRD_MASK);
 }
+#endif
 
 /****************************************************************************
  * Function: tiva_transmit
@@ -579,8 +583,8 @@ static int tiva_transmit(struct tiva_driver_s *priv)
 
       /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-      (void)wd_start(priv->ld_txtimeout, TIVA_TXTIMEOUT,
-                     tiva_txtimeout_expiry, 1, (uint32_t)priv);
+      wd_start(priv->ld_txtimeout, TIVA_TXTIMEOUT,
+               tiva_txtimeout_expiry, 1, (uint32_t)priv);
       ret = OK;
     }
 
@@ -713,7 +717,7 @@ static void tiva_receive(struct tiva_driver_s *priv)
 
       /* Check if the pktlen is valid.  It should be large enough to hold
        * an Ethernet header and small enough to fit entirely in the I/O
-       * buffer.  Six is subtracted to acount for the 2-byte length/type
+       * buffer.  Six is subtracted to account for the 2-byte length/type
        * and 4 byte FCS that are not copied into the network packet.
        */
 
@@ -736,7 +740,7 @@ static void tiva_receive(struct tiva_driver_s *priv)
 
           while (wordlen--)
             {
-              (void)tiva_ethin(priv, TIVA_MAC_DATA_OFFSET);
+              tiva_ethin(priv, TIVA_MAC_DATA_OFFSET);
             }
 
           /* Check for another packet */
@@ -848,7 +852,7 @@ static void tiva_receive(struct tiva_driver_s *priv)
 #ifdef CONFIG_NET_IPv6
       if (ETHBUF->type == HTONS(ETHTYPE_IP6))
         {
-          ninfo("Iv6 frame\n");
+          ninfo("IPv6 frame\n");
           NETDEV_RXIPV6(&priv->ld_dev);
 
           /* Give the IPv6 packet to the network layer */
@@ -936,7 +940,7 @@ static void tiva_txdone(struct tiva_driver_s *priv)
   /* Verify that the Tx FIFO is not in use.  The NEWTX bit initiates an
    * Ethernet transmission once the packet has been placed in the TX FIFO.
    * This bit is cleared once the transmission has been completed.  Since
-   * we get here because of of TXEMP which indicates that the packet was
+   * we get here because of TXEMP which indicates that the packet was
    * transmitted and that the TX FIFO is empty, NEWTX should always be zero
    * at this point.
    */
@@ -945,7 +949,7 @@ static void tiva_txdone(struct tiva_driver_s *priv)
 
   /* Then poll the network for new XMIT data */
 
-  (void)devif_poll(&priv->ld_dev, tiva_txpoll);
+  devif_poll(&priv->ld_dev, tiva_txpoll);
 }
 
 /****************************************************************************
@@ -1139,7 +1143,7 @@ static void tiva_txtimeout_work(void *arg)
 
   /* Then poll the network for new XMIT data */
 
-  (void)devif_poll(&priv->ld_dev, tiva_txpoll);
+  devif_poll(&priv->ld_dev, tiva_txpoll);
   net_unlock();
 }
 
@@ -1218,12 +1222,12 @@ static void tiva_poll_work(void *arg)
        * data.
        */
 
-      (void)devif_timer(&priv->ld_dev, tiva_txpoll);
+      devif_timer(&priv->ld_dev, TIVA_WDDELAY, tiva_txpoll);
 
       /* Setup the watchdog poll timer again */
 
-      (void)wd_start(priv->ld_txpoll, TIVA_WDDELAY, tiva_poll_expiry,
-                     1, priv);
+      wd_start(priv->ld_txpoll, TIVA_WDDELAY, tiva_poll_expiry,
+               1, priv);
     }
 
   net_unlock();
@@ -1279,7 +1283,9 @@ static int tiva_ifup(struct net_driver_s *dev)
   irqstate_t flags;
   uint32_t regval;
   uint32_t div;
+#ifndef CONFIG_TIVA_WITH_QEMU
   uint16_t phyreg;
+#endif
 
   ninfo("Bringing up: %d.%d.%d.%d\n",
         dev->d_ipaddr & 0xff, (dev->d_ipaddr >> 8) & 0xff,
@@ -1345,6 +1351,7 @@ static int tiva_ifup(struct net_driver_s *dev)
    * set
    */
 
+#ifndef CONFIG_TIVA_WITH_QEMU
   ninfo("Waiting for link\n");
   do
     {
@@ -1352,6 +1359,7 @@ static int tiva_ifup(struct net_driver_s *dev)
     }
   while ((phyreg & MII_MSR_LINKSTATUS) == 0);
   ninfo("Link established\n");
+#endif
 
   /* Reset the receive FIFO */
 
@@ -1405,8 +1413,8 @@ static int tiva_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->ld_txpoll, TIVA_WDDELAY, tiva_poll_expiry,
-                 1, (uint32_t)priv);
+  wd_start(priv->ld_txpoll, TIVA_WDDELAY, tiva_poll_expiry,
+           1, (uint32_t)priv);
 
   priv->ld_bifup = true;
   leave_critical_section(flags);
@@ -1532,7 +1540,7 @@ static void tiva_txavail_work(void *arg)
        * for new Tx data
        */
 
-      (void)devif_poll(&priv->ld_dev, tiva_txpoll);
+      devif_poll(&priv->ld_dev, tiva_txpoll);
     }
 
   net_unlock();
@@ -1733,7 +1741,7 @@ static inline int tiva_ethinitialize(int intf)
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->ld_dev, NET_LL_ETHERNET);
+  netdev_register(&priv->ld_dev, NET_LL_ETHERNET);
   return OK;
 }
 
@@ -1751,7 +1759,7 @@ static inline int tiva_ethinitialize(int intf)
 #if TIVA_NETHCONTROLLERS == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
-  (void)tiva_ethinitialize(0);
+  tiva_ethinitialize(0);
 }
 #endif
 

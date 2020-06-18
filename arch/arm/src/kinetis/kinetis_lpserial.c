@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -64,8 +63,8 @@
 #include "up_internal.h"
 
 #include "kinetis.h"
-#include "chip/kinetis_lpuart.h"
-#include "chip/kinetis_pinmux.h"
+#include "hardware/kinetis_lpuart.h"
+#include "hardware/kinetis_pinmux.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -746,7 +745,7 @@ static int kinetis_interrupt(int irq, void *context, void *arg)
 
           if ((stat & LPUART_STAT_OR) != LPUART_STAT_OR)
             {
-              (void) kinetis_serialin(priv, KINETIS_LPUART_DATA_OFFSET);
+              kinetis_serialin(priv, KINETIS_LPUART_DATA_OFFSET);
             }
 
           /* Reset any Errors */
@@ -849,6 +848,12 @@ static int kinetis_ioctl(struct file *filep, int cmd, unsigned long arg)
 #ifdef CONFIG_KINETIS_UART_SINGLEWIRE
     case TIOCSSINGLEWIRE:
       {
+        if ((arg & SER_SINGLEWIRE_PULLUP) != 0)
+          {
+            ret = -EINVAL; // Not supported
+            break;
+          }
+
         /* Change to single-wire operation. the RXD pin is disconnected from
          * the UART and the UART implements a half-duplex serial connection.
          * The UART uses the TXD pin for both receiving and transmitting
@@ -856,7 +861,7 @@ static int kinetis_ioctl(struct file *filep, int cmd, unsigned long arg)
 
         regval = kinetis_serialin(priv, KINETIS_LPUART_CTRL_OFFSET);
 
-        if (arg == SER_SINGLEWIRE_ENABLED)
+        if ((arg & SER_SINGLEWIRE_ENABLED) != 0)
           {
             regval |= (LPUART_CTRL_LOOPS | LPUART_CTRL_RSRC);
           }
@@ -1361,44 +1366,44 @@ unsigned int kinetis_lpuart_serialinit(unsigned int first)
 /* Register the console */
 
 #ifdef HAVE_LPUART_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 #if !defined(CONFIG_KINETIS_MERGE_TTY)
   /* Register all LPUARTs as LPn devices */
 
-  (void)uart_register("/dev/ttyLP0", &TTYS0_DEV);
+  uart_register("/dev/ttyLP0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyLP1", &TTYS1_DEV);
+  uart_register("/dev/ttyLP1", &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyLP2", &TTYS2_DEV);
+  uart_register("/dev/ttyLP2", &TTYS2_DEV);
 #endif
 #ifdef TTYS3_DEV
-  (void)uart_register("/dev/ttyLP3", &TTYS3_DEV);
+  uart_register("/dev/ttyLP3", &TTYS3_DEV);
 #endif
 #ifdef TTYS4_DEV
-  (void)uart_register("/dev/ttyLP4", &TTYS4_DEV);
+  uart_register("/dev/ttyLP4", &TTYS4_DEV);
 #endif
 
 #else
 
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS0_DEV);
+  uart_register(devname, &TTYS0_DEV);
 #ifdef TTYS1_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS1_DEV);
+  uart_register(devname, &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS2_DEV);
+  uart_register(devname, &TTYS2_DEV);
 #endif
 #ifdef TTYS3_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS3_DEV);
+  uart_register(devname, &TTYS3_DEV);
 #endif
 #ifdef TTYS4_DEV
   devname[(sizeof(devname)/sizeof(devname[0]))-2] = '0' + first++;
-  (void)uart_register(devname, &TTYS4_DEV);
+  uart_register(devname, &TTYS4_DEV);
 #endif
 #endif
 

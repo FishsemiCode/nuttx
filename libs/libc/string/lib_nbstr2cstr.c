@@ -41,11 +41,12 @@
 
 #include <stdlib.h>
 
+#if !defined(CONFIG_ENDIAN_BIG) && CHAR_BIT != 8
+
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
 
-#if !defined(CONFIG_ENDIAN_BIG) && CHAR_BIT != 8
 void nbstr2cstr(FAR char *dst, FAR const char *src, size_t maxlen)
 {
   while (1)
@@ -65,7 +66,9 @@ void nbstr2cstr(FAR char *dst, FAR const char *src, size_t maxlen)
               return;
             }
         }
+
       src++;
     }
 }
+
 #endif

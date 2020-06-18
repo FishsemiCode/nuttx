@@ -49,7 +49,7 @@
 
 #include "up_arch.h"
 
-#include "chip/pic32mz-ioport.h"
+#include "hardware/pic32mz-ioport.h"
 #include "pic32mz-gpio.h"
 
 #if CHIP_NPORTS > 0
@@ -61,6 +61,7 @@
 /****************************************************************************
  * Public Data
  ****************************************************************************/
+
 /* This table can be used to map a port number to a IOPORT base address.  For
  * example, an index of zero would correspond to IOPORTA, one with IOPORTB,
  * etc.
@@ -113,17 +114,12 @@ static inline bool pic32mz_output(pinset_t pinset)
 
 static inline bool pic32mz_opendrain(pinset_t pinset)
 {
-  return ((pinset & GPIO_MODE_MASK) == GPIO_OPENDRAN);
+  return ((pinset & GPIO_MODE_MASK) == GPIO_OPENDRAIN);
 }
 
 static inline bool pic32mz_outputhigh(pinset_t pinset)
 {
   return ((pinset & GPIO_VALUE_MASK) != 0);
-}
-
-static inline bool pic32mz_value(pinset_t pinset)
-{
-  return ((pinset & GPIO_VALUE_MASK) != GPIO_VALUE_ZERO);
 }
 
 static inline unsigned int pic32mz_portno(pinset_t pinset)
@@ -139,6 +135,23 @@ static inline unsigned int pic32mz_pinno(pinset_t pinset)
 static inline unsigned int pic32mz_analog(pinset_t pinset)
 {
   return ((pinset & GPIO_ANALOG_MASK) != 0);
+}
+
+static inline unsigned int pic32mz_slewrate(pinset_t pinset)
+{
+  return ((pinset & GPIO_SR_MASK) >> GPIO_SR_SHIFT);
+}
+
+static inline unsigned int pic32mz_slewratecon0(pinset_t pinset)
+{
+  return (pic32mz_slewrate(pinset) & GPIO_SR_CON0_MASK) >>
+         GPIO_SR_CON0_SHIFT;
+}
+
+static inline unsigned int pic32mz_slewratecon1(pinset_t pinset)
+{
+  return (pic32mz_slewrate(pinset) & GPIO_SR_CON1_MASK) >>
+         GPIO_SR_CON1_SHIFT;
 }
 
 /****************************************************************************
@@ -172,16 +185,31 @@ int pic32mz_configgpio(pinset_t cfgset)
 
       base = g_gpiobase[port];
 
+      sched_lock();
+
+      /* Is Slew Rate control enabled? */
+
+      if (pic32mz_slewrate(cfgset) != GPIO_FASTEST)
+        {
+          /* Note: not every port nor every pin has the Slew Rate feature.
+           * Writing to an unimplemented port/pin will have no effect.
+           */
+
+          putreg32(pic32mz_slewratecon0(cfgset),
+                   base + PIC32MZ_IOPORT_SRCON0_OFFSET);
+          putreg32(pic32mz_slewratecon1(cfgset),
+                   base + PIC32MZ_IOPORT_SRCON1_OFFSET);
+        }
+
       /* Is this an input or an output? */
 
-      sched_lock();
       if (pic32mz_output(cfgset))
         {
           /* Not analog */
 
           putreg32(mask, base + PIC32MZ_IOPORT_ANSELCLR_OFFSET);
 
-          /* It is an output; clear the corresponding bit in the TRIS register */
+          /* It is an output; clear the corresponding bit in TRIS register */
 
           putreg32(mask, base + PIC32MZ_IOPORT_TRISCLR_OFFSET);
 
@@ -210,7 +238,7 @@ int pic32mz_configgpio(pinset_t cfgset)
         }
       else
         {
-          /* It is an input; set the corresponding bit in the TRIS register. */
+          /* It is an input; set the corresponding bit in TRIS register. */
 
           putreg32(mask, base + PIC32MZ_IOPORT_TRISSET_OFFSET);
           putreg32(mask, base + PIC32MZ_IOPORT_ODCCLR_OFFSET);
@@ -260,11 +288,11 @@ void pic32mz_gpiowrite(pinset_t pinset, bool value)
 
       if (value)
         {
-          putreg32(1 << pin, base + PIC32MZ_IOPORT_PORTSET_OFFSET);
+          putreg32(1 << pin, base + PIC32MZ_IOPORT_LATSET_OFFSET);
         }
       else
         {
-          putreg32(1 << pin, base + PIC32MZ_IOPORT_PORTCLR_OFFSET);
+          putreg32(1 << pin, base + PIC32MZ_IOPORT_LATCLR_OFFSET);
         }
     }
 }
@@ -291,7 +319,7 @@ bool pic32mz_gpioread(pinset_t pinset)
 
       base = g_gpiobase[port];
 
-      /* Get ane return the input value */
+      /* Get and return the input value */
 
       return (getreg32(base + PIC32MZ_IOPORT_PORT_OFFSET) & (1 << pin)) != 0;
     }
@@ -308,7 +336,7 @@ bool pic32mz_gpioread(pinset_t pinset)
  ****************************************************************************/
 
 #ifdef CONFIG_DEBUG_GPIO_INFO
-void pic32mz_dumpgpio(uint32_t pinset, const char *msg)
+void pic32mz_dumpgpio(pinset_t pinset, const char *msg)
 {
   unsigned int port = pic32mz_portno(pinset);
   irqstate_t   flags;

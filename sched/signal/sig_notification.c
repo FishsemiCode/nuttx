@@ -44,13 +44,24 @@
 
 #include <nuttx/config.h>
 
-#include <debug.h>
+#include <string.h>
 #include <signal.h>
+#include <debug.h>
 
 #include <nuttx/signal.h>
 
 #include "sched/sched.h"
 #include "signal/signal.h"
+
+#ifdef CONFIG_SIG_EVTHREAD_HPWORK
+#  define SIG_EVTHREAD_WORK HPWORK
+#else
+#  define SIG_EVTHREAD_WORK LPWORK
+#endif
+
+/****************************************************************************
+ * Pre-processor Definitions
+ ****************************************************************************/
 
 #ifdef CONFIG_SIG_EVTHREAD_HPWORK
 #  define SIG_EVTHREAD_WORK HPWORK
@@ -81,11 +92,7 @@ static void nxsig_notification_worker(FAR void *arg)
 
   /* Perform the callback */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
   work->func(work->value);
-#else
-  work->func(work->value.sival_ptr);
-#endif
 }
 
 #endif /* CONFIG_SIG_EVTHREAD */
@@ -98,7 +105,7 @@ static void nxsig_notification_worker(FAR void *arg)
  * Name: nxsig_notification
  *
  * Description:
- *   Notify a client an event via either a singal or function call
+ *   Notify a client an event via either a signal or function call
  *   base on the sigev_notify field.
  *
  * Input Parameters:
@@ -106,7 +113,9 @@ static void nxsig_notification_worker(FAR void *arg)
  *   event - The instance of struct sigevent that describes how to signal
  *           the client.
  *   code  - Source: SI_USER, SI_QUEUE, SI_TIMER, SI_ASYNCIO, or SI_MESGQ
- *   work  - The work structure to queue
+ *   work  - The work structure to queue.  Must be non-NULL if
+ *           event->sigev_notify == SIGEV_THREAD.  Ignored if
+ *           CONFIG_SIG_EVTHREAD is not defined.
  *
  * Returned Value:
  *   This is an internal OS interface and should not be used by applications.
@@ -135,11 +144,18 @@ int nxsig_notification(pid_t pid, FAR struct sigevent *event,
       info.si_signo  = event->sigev_signo;
       info.si_code   = code;
       info.si_errno  = OK;
-      info.si_value  = event->sigev_value;
 #ifdef CONFIG_SCHED_HAVE_PARENT
       info.si_pid    = rtcb->pid;
       info.si_status = OK;
 #endif
+
+      /* Some compilers (e.g., SDCC), do not permit assignment of aggregates.
+       * Use of memcpy() is overkill;  We could just copy the larger of the
+       * nt and FAR void * members in the union.  memcpy(), however, does
+       * not require that we know which is larger.
+       */
+
+      memcpy(&info.si_value, &event->sigev_value, sizeof(union sigval));
 
       /* Send the signal */
 
@@ -153,12 +169,8 @@ int nxsig_notification(pid_t pid, FAR struct sigevent *event,
     {
       /* Initialize the work information */
 
-#ifdef CONFIG_CAN_PASS_STRUCTS
       work->value = event->sigev_value;
-#else
-      work->value.sival_ptr = event->sigev_value.sival_ptr;
-#endif
-      work->func = event->sigev_notify_function;
+      work->func  = event->sigev_notify_function;
 
       /* Then queue the work */
 

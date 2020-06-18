@@ -5,6 +5,59 @@
 
 menu "Timer Driver Support"
 
+config ARCH_HAVE_PWM_PULSECOUNT
+	bool
+	default n
+
+config ARCH_HAVE_PWM_MULTICHAN
+	bool
+	default n
+
+config PWM
+	bool "PWM Driver Support"
+	default n
+	---help---
+		This selection enables building of the "upper-half" PWM driver.
+		See include/nuttx/timers/pwm.h for further PWM driver information.
+
+if PWM
+
+config PWM_PULSECOUNT
+	bool "PWM Pulse Count Support"
+	default n
+	depends on ARCH_HAVE_PWM_PULSECOUNT
+	---help---
+		Some hardware will support generation of a fixed number of pulses.
+		This might be used, for example to support a stepper motor.  If the
+		hardware will support a fixed pulse count, then this configuration
+		should be set to enable the capability.
+
+config PWM_MULTICHAN
+	bool "PWM Multiple Output Channel Support"
+	default n
+	depends on ARCH_HAVE_PWM_MULTICHAN
+	depends on !PWM_PULSECOUNT
+	---help---
+		Enables support for multiple output channels per timer.
+
+if PWM_MULTICHAN
+
+config PWM_NCHANNELS
+	int "Number of Output Channels Per Timer"
+	default 1
+	range 1 6
+	---help---
+		Specifies the number of output channels per timer.  Each timer
+		may support fewer output channels than this value.
+
+endif # PWM_MULTICHAN
+
+config PWM_SONG
+	bool "Song PWM Driver"
+	depends on ARCH_CHIP_SONG
+
+endif # PWM
+
 config TIMER
 	bool "Timer Support"
 	default n
@@ -64,7 +117,7 @@ config ONESHOT_SONG_SLEEPENTER_THRESH
 		According to flash writing lifetime, interval between two
 		writes should more than 1 hours.
 		Rules:
-		ONESHOT_SONG_SLEEPENTER_THRESH <= PM_SLEEPENTER_COUNT * PM_SLICEMS
+		ONESHOT_SONG_SLEEPENTER_THRESH <= PM_GOVERNOR_SLEEPENTER_COUNT * PM_GOVERNOR_SLICEMS
 
 config ONESHOT_SONG_STANDBYENTER_THRESH
 	int "Song oneshot STANDBY enter threshold(millisecond)"
@@ -73,7 +126,7 @@ config ONESHOT_SONG_STANDBYENTER_THRESH
 		According to comsumption and warmreset time,
 		PM_STANDBY is suitable when idle time is more than 1 s.
 		Rules:
-		ONESHOT_SONG_STANDBYENTER_THRESH <= PM_STANDBYENTER_COUNT * PM_SLICEMS
+		ONESHOT_SONG_STANDBYENTER_THRESH <= PM_GOVERNOR_STANDBYENTER_COUNT * PM_GOVERNOR_SLICEMS
 
 config ONESHOT_SONG_IDLEENTER_THRESH
 	int "Song oneshot IDLE enter threshold(millisecond)"
@@ -82,7 +135,7 @@ config ONESHOT_SONG_IDLEENTER_THRESH
 		According to comsumption and clock gating time,
 		PM_IDLE is suitable when idle time is more than 10 ms.
 		Rules:
-		ONESHOT_SONG_IDLEENTER_THRESH <= PM_IDLEENTER_COUNT * PM_SLICEMS
+		ONESHOT_SONG_IDLEENTER_THRESH <= PM_GOVERNOR_IDLEENTER_COUNT * PM_GOVERNOR_SLICEMS
 
 endif # ONESHOT_SONG && PM
 
@@ -337,7 +390,7 @@ config WATCHDOG_AUTOMONITOR
 	bool "Auto-monitor"
 	---help---
 		The auto-monitor provides an OS-internal mechanism for automatically
-		start and repeatly reset the counting after the watchdog is register.
+		start and repeatedly reset the counting after the watchdog is register.
 
 if WATCHDOG_AUTOMONITOR
 

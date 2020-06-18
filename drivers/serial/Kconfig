@@ -3,13 +3,19 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
-config DEV_LOWCONSOLE
-	bool "Low-level console support"
+config ARCH_HAVE_SERIAL_TERMIOS
+	bool
 	default n
-	depends on ARCH_LOWPUTC
-	depends on DEV_CONSOLE
+
+menuconfig SERIAL
+	bool "Serial Driver Support"
+	default y
 	---help---
-		Use the simple, low-level, write-only serial console driver (minimal support)
+		Front-end character drivers for chip-specific UARTs.  This provide
+		some TTY-like functionality and are commonly used (but not required
+		for) the NuttX system console.  See also include/nuttx/serial/serial.h
+
+if SERIAL
 
 config SERIAL_PM_ACTIVITY_DOMAIN
 	int "PM activity domain"
@@ -17,15 +23,15 @@ config SERIAL_PM_ACTIVITY_DOMAIN
 	depends on PM
 	---help---
 		When characters are received on a console device, pm_activity()
-		will be called with this PM domain
+		will be called with this PM domain.
 
 config SERIAL_PM_ACTIVITY_PRIORITY
-	int "PM activity priority when reive character"
+	int "PM activity priority when receive character"
 	default 6
 	depends on PM
 	---help---
 		When characters are received on a console device, pm_activity()
-		will be called with this PM priority
+		will be called with this PM priority.
 
 config SERIAL_REMOVABLE
 	bool
@@ -71,13 +77,14 @@ config RPMSG_UART
 	default n
 	depends on OPENAMP
 	select ARCH_HAVE_SERIAL_TERMIOS
-	select SERIAL_DMA
+	select SERIAL_RXDMA
+	select SERIAL_TXDMA
 	select SERIAL_REMOVABLE
 	select SERIAL_IFLOWCONTROL
 
 config RPMSG_SERIALINIT
 	bool "Add dummy up_serialinit for UART rpmsg"
-	default !16550_UART && !CMSDK_UART && !MCU_SERIAL
+	default y if !16550_UART && !MCU_SERIAL
 	depends on RPMSG_UART
 
 #
@@ -88,14 +95,13 @@ config STANDARD_SERIAL
 	bool "Enable standard \"upper-half\" serial driver"
 	default y if MCU_SERIAL
 	default n if !MCU_SERIAL
-	depends on !DEV_LOWCONSOLE
 	---help---
 		Enable the standard, upper-half serial driver used by most MCU serial peripherals.
 
 config SERIAL_NPOLLWAITERS
 	int "Number of poll threads"
 	default 2
-	depends on !DISABLE_POLL && STANDARD_SERIAL
+	depends on STANDARD_SERIAL
 	---help---
 		Maximum number of threads than can be waiting for POLL events.
 		Default: 2
@@ -104,11 +110,21 @@ config SERIAL_IFLOWCONTROL
 	bool
 	default n
 
+config SERIAL_RS485CONTROL
+	bool
+	default n
+	---help---
+		Use RTS pin to control RS485 direction (Asserted while transmitting).
+
 config SERIAL_OFLOWCONTROL
 	bool
 	default n
 
-config SERIAL_DMA
+config SERIAL_TXDMA
+	bool
+	default n
+
+config SERIAL_RXDMA
 	bool
 	default n
 
@@ -158,10 +174,6 @@ config SERIAL_TIOCSERGSTRUCT
 		supports the TIOCSERGSTRUCT ioctl, and (2) this option is selected, then
 		support for the TIOCSERGSTRUCT will be enabled.
 
-config ARCH_HAVE_SERIAL_TERMIOS
-	bool
-	default n
-
 config SERIAL_TERMIOS
 	bool "Serial TERMIOS support"
 	depends on ARCH_HAVE_SERIAL_TERMIOS
@@ -175,7 +187,7 @@ config TTY_SIGINT
 	bool "Support SIGINT"
 	default n
 	select SIG_SIGKILL_ACTION
-	depends on !DISABLE_SIGNALS && SERIAL_TERMIOS
+	depends on SERIAL_TERMIOS
 	---help---
 		Whether support Ctrl-c/x event.  Enabled automatically for console
 		devices.  May be enabled for other serial devices using the ISIG bit
@@ -220,7 +232,7 @@ config TTY_SIGSTP
 	bool "Support SIGSTP"
 	default n
 	select CONFIG_SIG_SIGSTOP_ACTION
-	depends on !DISABLE_SIGNALS && SERIAL_TERMIOS
+	depends on SERIAL_TERMIOS
 	---help---
 		Whether support Ctrl-z event.  Enabled automatically for console
 		devices.  May be enabled for other serial devices using the ISIG bit
@@ -420,6 +432,61 @@ config SCI1_SERIAL_CONSOLE
 	depends on SCI1_SERIALDRIVER
 	select SERIAL_CONSOLE
 
+config SCI2_SERIAL_CONSOLE
+	bool "SCI2"
+	depends on SCI2_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI3_SERIAL_CONSOLE
+	bool "SCI3"
+	depends on SCI3_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI4_SERIAL_CONSOLE
+	bool "SCI4"
+	depends on SCI4_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI5_SERIAL_CONSOLE
+	bool "SCI5"
+	depends on SCI5_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI6_SERIAL_CONSOLE
+	bool "SCI6"
+	depends on SCI6_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI7_SERIAL_CONSOLE
+	bool "SCI7"
+	depends on SCI7_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI8_SERIAL_CONSOLE
+	bool "SCI8"
+	depends on SCI8_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI9_SERIAL_CONSOLE
+	bool "SCI9"
+	depends on SCI9_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI10_SERIAL_CONSOLE
+	bool "SCI10"
+	depends on SCI10_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI11_SERIAL_CONSOLE
+	bool "SCI11"
+	depends on SCI11_SERIALDRIVER
+	select SERIAL_CONSOLE
+
+config SCI12_SERIAL_CONSOLE
+	bool "SCI12"
+	depends on SCI12_SERIALDRIVER
+	select SERIAL_CONSOLE
+
 config OTHER_SERIAL_CONSOLE
 	bool "Other serial console"
 	select SERIAL_CONSOLE
@@ -489,12 +556,19 @@ config UART_OFLOWCONTROL
 	---help---
 		Enable UART CTS flow control
 
-config UART_DMA
-	bool "UART DMA support"
+config UART_TXDMA
+	bool "UART Tx DMA support"
 	default n
-	select SERIAL_DMA
+	select SERIAL_TXDMA
 	---help---
-		Enable DMA transfers on UART
+		Enable Tx DMA transfers on UART
+
+config UART_RXDMA
+	bool "UART Rx DMA support"
+	default n
+	select SERIAL_RXDMA
+	---help---
+		Enable Rx DMA transfers on UART
 
 endmenu
 
@@ -504,7 +578,7 @@ source drivers/serial/Kconfig-usart
 source drivers/serial/Kconfig-sci
 
 menuconfig PSEUDOTERM
-	bool "Pseudo-Terminal (PTY) suppport"
+	bool "Pseudo-Terminal (PTY) support"
 	default n
 	select PIPES
 	select ARCH_HAVE_SERIAL_TERMIOS
@@ -554,3 +628,5 @@ config PSEUDOTERM_TXBUFSIZE
 		Slave-to-master pipe buffer size.  Default: 256
 
 endif # PSEUDOTERM
+
+endif # SERIAL

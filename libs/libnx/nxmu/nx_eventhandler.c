@@ -1,7 +1,8 @@
 /****************************************************************************
  * libs/libnx/nxmu/nx_eventhandler.c
  *
- *   Copyright (C) 2008-2009, 2011-2013, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011-2013, 2017, 2019 Gregory Nutt. All
+ *     rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -79,8 +80,8 @@ static inline void nx_disconnected(FAR struct nxmu_conn_s *conn)
 {
   /* Close the server and client MQs */
 
-  (void)mq_close(conn->cwrmq);
-  (void)mq_close(conn->crdmq);
+  mq_close(conn->cwrmq);
+  mq_close(conn->crdmq);
 
   /* And free the client structure */
 
@@ -229,14 +230,14 @@ int nx_eventhandler(NXHANDLE handle)
       break;
 #endif
 
-    case NX_CLIMSG_BLOCKED:
+    case NX_CLIMSG_EVENT:
       {
-        FAR struct nxclimsg_blocked_s *blocked = (FAR struct nxclimsg_blocked_s *)buffer;
-        wnd = blocked->wnd;
+        FAR struct nxclimsg_event_s *event = (FAR struct nxclimsg_event_s *)buffer;
+        wnd = event->wnd;
         DEBUGASSERT(wnd);
-        if (wnd->cb->blocked)
+        if (wnd->cb->event)
           {
-            wnd->cb->blocked((NXWINDOW)wnd, wnd->arg, blocked->arg);
+            wnd->cb->event((NXWINDOW)wnd, event->event, wnd->arg, event->arg);
           }
         }
       break;

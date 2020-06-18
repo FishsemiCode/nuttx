@@ -1564,7 +1564,7 @@ static void stm32l4_rxfifo_discard(FAR struct stm32l4_ep_s *privep, int len)
       for (i = 0; i < len; i += 4)
         {
           volatile uint32_t data = stm32l4_getreg(regaddr);
-          (void)data;
+          UNUSED(data);
         }
 
       uinfo("<<< discarding %d\n", len);
@@ -2336,7 +2336,7 @@ static inline void stm32l4_ep0out_stdrequest(struct stm32l4_usbdev_s *priv,
               {
                 /* Actually, I think we could just stall here. */
 
-                (void)stm32l4_req_dispatch(priv, &priv->ctrlreq);
+                stm32l4_req_dispatch(priv, &priv->ctrlreq);
               }
           }
         else
@@ -2382,7 +2382,7 @@ static inline void stm32l4_ep0out_stdrequest(struct stm32l4_usbdev_s *priv,
               {
                 /* Actually, I think we could just stall here. */
 
-                (void)stm32l4_req_dispatch(priv, &priv->ctrlreq);
+                stm32l4_req_dispatch(priv, &priv->ctrlreq);
               }
             else
               {
@@ -2446,7 +2446,7 @@ static inline void stm32l4_ep0out_stdrequest(struct stm32l4_usbdev_s *priv,
         usbtrace(TRACE_INTDECODE(STM32L4_TRACEINTID_GETSETDESC), 0);
         if ((ctrlreq->type & USB_REQ_RECIPIENT_MASK) == USB_REQ_RECIPIENT_DEVICE)
           {
-            (void)stm32l4_req_dispatch(priv, &priv->ctrlreq);
+            stm32l4_req_dispatch(priv, &priv->ctrlreq);
           }
         else
           {
@@ -2471,7 +2471,7 @@ static inline void stm32l4_ep0out_stdrequest(struct stm32l4_usbdev_s *priv,
             ctrlreq->index == 0 &&
             ctrlreq->len == 1)
           {
-            (void)stm32l4_req_dispatch(priv, &priv->ctrlreq);
+            stm32l4_req_dispatch(priv, &priv->ctrlreq);
           }
         else
           {
@@ -2543,7 +2543,7 @@ static inline void stm32l4_ep0out_stdrequest(struct stm32l4_usbdev_s *priv,
 
       {
         usbtrace(TRACE_INTDECODE(STM32L4_TRACEINTID_GETSETIF), 0);
-        (void)stm32l4_req_dispatch(priv, &priv->ctrlreq);
+        stm32l4_req_dispatch(priv, &priv->ctrlreq);
       }
       break;
 
@@ -2621,7 +2621,7 @@ static inline void stm32l4_ep0out_setup(struct stm32l4_usbdev_s *priv)
     {
       /* Dispatch any non-standard requests */
 
-      (void)stm32l4_req_dispatch(priv, &priv->ctrlreq);
+      stm32l4_req_dispatch(priv, &priv->ctrlreq);
     }
   else
     {
@@ -2638,7 +2638,7 @@ static inline void stm32l4_ep0out_setup(struct stm32l4_usbdev_s *priv)
       stm32l4_ep0_stall(priv);
     }
 
-  /* Reset state/data associated with thie SETUP request */
+  /* Reset state/data associated with the SETUP request */
 
    priv->ep0datlen = 0;
 }
@@ -2773,7 +2773,7 @@ static inline void stm32l4_epout_interrupt(FAR struct stm32l4_usbdev_s *priv)
           doepint  = stm32l4_getreg(STM32L4_OTGFS_DOEPINT(epno));
           doepint &= stm32l4_getreg(STM32L4_OTGFS_DOEPMSK);
 
-          /* Transfer completed interrupt.  This interrupt is trigged when
+          /* Transfer completed interrupt.  This interrupt is triggered when
            * stm32l4_rxinterrupt() removes the last packet data from the RxFIFO.
            * In this case, core internally sets the NAK bit for this endpoint to
            * prevent it from receiving any more packets.
@@ -4129,17 +4129,17 @@ static void stm32l4_ep0_configure(FAR struct stm32l4_usbdev_s *priv)
 {
   /* Enable EP0 IN and OUT */
 
-  (void)stm32l4_epin_configure(&priv->epin[EP0], USB_EP_ATTR_XFER_CONTROL,
-                               CONFIG_USBDEV_EP0_MAXSIZE);
-  (void)stm32l4_epout_configure(&priv->epout[EP0], USB_EP_ATTR_XFER_CONTROL,
-                                CONFIG_USBDEV_EP0_MAXSIZE);
+  stm32l4_epin_configure(&priv->epin[EP0], USB_EP_ATTR_XFER_CONTROL,
+                         CONFIG_USBDEV_EP0_MAXSIZE);
+  stm32l4_epout_configure(&priv->epout[EP0], USB_EP_ATTR_XFER_CONTROL,
+                          CONFIG_USBDEV_EP0_MAXSIZE);
 }
 
 /****************************************************************************
  * Name: stm32l4_epout_disable
  *
  * Description:
- *   Diable an OUT endpoint will no longer be used
+ *   Disable an OUT endpoint will no longer be used
  *
  ****************************************************************************/
 

@@ -72,7 +72,7 @@
 #include "up_internal.h"
 
 #include "pic32mz-config.h"
-#include "chip/pic32mz-ethernet.h"
+#include "hardware/pic32mz-ethernet.h"
 
 /* Does this chip have and Ethernet controller? */
 
@@ -81,7 +81,9 @@
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
+
 /* If processing is not done at the interrupt level, then work queue support
  * is required.
  */
@@ -112,8 +114,8 @@
 #endif
 
 /* The logic here has a few hooks for support for multiple interfaces, but
- * that capability is not yet in place (and I won't worry about it until I get
- * the first multi-interface PIC32MZ).
+ * that capability is not yet in place (and I won't worry about it until I
+ * get the first multi-interface PIC32MZ).
  */
 
 #if CONFIG_PIC32MZ_NINTERFACES > 1
@@ -142,21 +144,44 @@
 #  define CONFIG_PIC32MZ_ETH_NRXDESC 4
 #endif
 
+/* Align descriptors' size to D-Cache line size */
+
+#define DMA_BUFFER_MASK   (PIC32MZ_DCACHE_LINESIZE - 1)
+#define DMA_ALIGN_UP(n)   (((n) + DMA_BUFFER_MASK) & ~DMA_BUFFER_MASK)
+#define DMA_ALIGN_DOWN(n) ((n) & ~DMA_BUFFER_MASK)
+
+/* A circular linked list of descriptors is used in this implementation.
+ * This means the size of a descriptor is 20 bytes. If however a linear
+ * implementation is used, the descriptor size will be 16 bytes and no
+ * padding is required.
+ */
+
+#define DESC_SIZE      20
+#define DESC_PADSIZE   DMA_ALIGN_UP(DESC_SIZE)
+
 /* Make sure that the size of each buffer is a multiple of 4 bytes.  This
  * will force alignment of all buffers to 4-byte boundaries (this is needed
  * by the queuing logic which will cast each buffer address to a pointer
  * type).
+ * Furthermore, the buffers should be aligned to D-Cache line size,
+ * so that there are no spill-over effects at the borders of the
+ * cleaned line when D-Cache is enabled.
+ *
+ * D-Cache line size is 16 bytes, then we will fulfill both of the conditions
+ * above by aligning the buffer to D-Cache size.
  */
 
-#define PIC32MZ_ALIGNED_BUFSIZE ((CONFIG_NET_ETH_PKTSIZE + 3) & ~3)
+#define PIC32MZ_ALIGNED_BUFSIZE DMA_ALIGN_UP(CONFIG_NET_ETH_PKTSIZE)
 
 /* The number of buffers will, then, be one for each descriptor plus one extra */
 
 #define PIC32MZ_NBUFFERS (CONFIG_PIC32MZ_ETH_NRXDESC + CONFIG_PIC32MZ_ETH_NTXDESC + 1)
 
-/* Debug Configuration *****************************************************/
-/* Register/Descriptor debug -- can only happen of CONFIG_DEBUG_FEATURES is selected.
- * This will probably generate much more output than you care to see.
+/* Debug Configuration ******************************************************/
+
+/* Register/Descriptor debug -- can only happen if CONFIG_DEBUG_FEATURES is
+ * selected. This will probably generate much more output than you care
+ * to see.
  */
 
 #ifndef CONFIG_DEBUG_FEATURES
@@ -188,7 +213,7 @@
 
 #define PIC32MZ_TXTIMEOUT      (60*CLK_TCK)
 
-/* PHY timout = 1 minute */
+/* PHY read/write delays in loop counts */
 
 #define PIC32MZ_MIITIMEOUT     (666666)
 
@@ -231,16 +256,18 @@
 
 /* Interrupts ***************************************************************/
 
-#define ETH_RXINTS             (ETH_INT_RXOVFLW | ETH_INT_RXBUFNA | ETH_INT_RXDONE | ETH_INT_RXBUSE)
-#define ETH_TXINTS             (ETH_INT_TXABORT | ETH_INT_TXDONE | ETH_INT_TXBUSE)
+#define ETH_RXINTS (ETH_INT_RXOVFLW | ETH_INT_RXBUFNA |\
+                    ETH_INT_RXDONE | ETH_INT_RXBUSE)
+#define ETH_TXINTS (ETH_INT_TXABORT | ETH_INT_TXDONE | ETH_INT_TXBUSE)
 
-/* Misc. Helpers ***********************************************************/
+/* Misc. Helpers ************************************************************/
 
 /* This is a helper pointer for accessing the contents of the Ethernet header */
 
 #define BUF ((struct eth_hdr_s *)priv->pd_dev.d_buf)
 
 /* PHYs *********************************************************************/
+
 /* Select PHY-specific values.  Add more PHYs as needed. */
 
 #if defined(CONFIG_ETH0_PHY_KS8721)
@@ -307,22 +334,28 @@
 #define PHYS_ADDR(va) ((uint32_t)(va) & 0x1fffffff)
 #define VIRT_ADDR(pa) (KSEG1_BASE | (uint32_t)(pa))
 
-/* Ever-present MIN and MAX macros */
-
-#ifndef MIN
-#  define MIN(a,b) (a < b ? a : b)
-#endif
-
-#ifndef MAX
-#  define MAX(a,b) (a > b ? a : b)
-#endif
-
 /****************************************************************************
  * Private Types
  ****************************************************************************/
 
-/* The pic32mz_driver_s encapsulates all state information for a single hardware
- * interface
+/* This union type forces the allocated size of RX descriptors to be the
+ * padded to a exact multiple of the PIC32MZ D-Cache line size.
+ */
+
+union pic32mz_txdesc_u
+{
+  uint8_t pad[DESC_PADSIZE];
+  struct pic32mz_txdesc_s txdesc;
+};
+
+union pic32mz_rxdesc_u
+{
+  uint8_t pad[DESC_PADSIZE];
+  struct pic32mz_rxdesc_s rxdesc;
+};
+
+/* The pic32mz_driver_s encapsulates all state information for a single
+ * single interface
  */
 
 struct pic32mz_driver_s
@@ -356,17 +389,22 @@ struct pic32mz_driver_s
   /* This holds the information visible to the NuttX network */
 
   struct net_driver_s pd_dev;  /* Interface understood by the network */
-
-  /* Descriptors and packet buffers */
-
-  struct pic32mz_rxdesc_s pd_rxdesc[CONFIG_PIC32MZ_ETH_NRXDESC];
-  struct pic32mz_txdesc_s pd_txdesc[CONFIG_PIC32MZ_ETH_NTXDESC];
-  uint8_t pd_buffers[PIC32MZ_NBUFFERS * PIC32MZ_ALIGNED_BUFSIZE];
 };
 
 /****************************************************************************
  * Private Data
  ****************************************************************************/
+
+/* Descriptors and packet buffers */
+
+union pic32mz_rxdesc_u g_rxdesc[CONFIG_PIC32MZ_ETH_NRXDESC]
+  __attribute__((aligned(PIC32MZ_DCACHE_LINESIZE)));
+
+union pic32mz_txdesc_u g_txdesc[CONFIG_PIC32MZ_ETH_NTXDESC]
+  __attribute__((aligned(PIC32MZ_DCACHE_LINESIZE)));
+
+uint8_t g_buffers[PIC32MZ_NBUFFERS * PIC32MZ_ALIGNED_BUFSIZE]
+  __attribute__((aligned(PIC32MZ_DCACHE_LINESIZE)));
 
 /* Array of ethernet driver status structures */
 
@@ -384,30 +422,35 @@ static void pic32mz_checkreg(uint32_t addr, uint32_t val, bool iswrite);
 static uint32_t pic32mz_getreg(uint32_t addr);
 static void pic32mz_putreg(uint32_t val, uint32_t addr);
 #else
-# define pic32mz_getreg(addr)     getreg32(addr)
-# define pic32mz_putreg(val,addr) putreg32(val,addr)
+#  define pic32mz_getreg(addr)     getreg32(addr)
+#  define pic32mz_putreg(val,addr) putreg32(val,addr)
 #endif
 
 /* Buffer and descriptor management */
 
 #ifdef CONFIG_NET_DESCDEBUG
-static void pic32mz_dumptxdesc(struct pic32mz_txdesc_s *txdesc, const char *msg);
-static void pic32mz_dumprxdesc(struct pic32mz_rxdesc_s *rxdesc, const char *msg);
+static void pic32mz_dumptxdesc(struct pic32mz_txdesc_s *txdesc,
+                               const char *msg);
+static void pic32mz_dumprxdesc(struct pic32mz_rxdesc_s *rxdesc,
+                               const char *msg);
 #else
-# define pic32mz_dumptxdesc(txdesc,msg)
-# define pic32mz_dumprxdesc(rxdesc,msg)
+#  define pic32mz_dumptxdesc(txdesc,msg)
+#  define pic32mz_dumprxdesc(rxdesc,msg)
 #endif
 
 static inline void pic32mz_bufferinit(struct pic32mz_driver_s *priv);
 static uint8_t *pic32mz_allocbuffer(struct pic32mz_driver_s *priv);
-static void pic32mz_freebuffer(struct pic32mz_driver_s *priv, uint8_t *buffer);
+static void pic32mz_freebuffer(struct pic32mz_driver_s *priv,
+                               uint8_t *buffer);
 
 static inline void pic32mz_txdescinit(struct pic32mz_driver_s *priv);
 static inline void pic32mz_rxdescinit(struct pic32mz_driver_s *priv);
-static inline struct pic32mz_txdesc_s *pic32mz_txdesc(struct pic32mz_driver_s *priv);
+static inline struct pic32mz_txdesc_s *pic32mz_txdesc(
+  struct pic32mz_driver_s *priv);
 static inline void pic32mz_txnext(struct pic32mz_driver_s *priv);
 static inline void pic32mz_rxreturn(struct pic32mz_rxdesc_s *rxdesc);
-static struct pic32mz_rxdesc_s *pic32mz_rxdesc(struct pic32mz_driver_s *priv);
+static struct pic32mz_rxdesc_s *pic32mz_rxdesc(
+  struct pic32mz_driver_s *priv);
 
 /* Common TX logic */
 
@@ -509,8 +552,8 @@ static void pic32mz_checkreg(uint32_t addr, uint32_t val, bool iswrite)
   static uint32_t count = 0;
   static bool     prevwrite = false;
 
-  /* Is this the same value that we read from/wrote to the same register last time?
-   * Are we polling the register?  If so, suppress the output.
+  /* Is this the same value that we read from/wrote to the same register
+   * last time? Are we polling the register?  If so, suppress the output.
    */
 
   if (addr == prevaddr && val == preval && prevwrite == iswrite)
@@ -616,14 +659,17 @@ static void pic32mz_putreg(uint32_t val, uint32_t addr)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_DESCDEBUG
-static void pic32mz_dumptxdesc(struct pic32mz_txdesc_s *txdesc, const char *msg)
+static void pic32mz_dumptxdesc(struct pic32mz_txdesc_s *txdesc,
+                               const char *msg)
 {
   ninfo("TX Descriptor [%p]: %s\n", txdesc, msg);
   ninfo("   status: %08x\n", txdesc->status);
-  ninfo("  address: %08x [%08x]\n", txdesc->address, VIRT_ADDR(txdesc->address));
+  ninfo("  address: %08x [%08x]\n",
+        txdesc->address, VIRT_ADDR(txdesc->address));
   ninfo("     tsv1: %08x\n", txdesc->tsv1);
   ninfo("     tsv2: %08x\n", txdesc->tsv2);
-  ninfo("   nexted: %08x [%08x]\n", txdesc->nexted, VIRT_ADDR(txdesc->nexted));
+  ninfo("   nexted: %08x [%08x]\n",
+        txdesc->nexted, VIRT_ADDR(txdesc->nexted));
 }
 #endif
 
@@ -643,14 +689,17 @@ static void pic32mz_dumptxdesc(struct pic32mz_txdesc_s *txdesc, const char *msg)
  ****************************************************************************/
 
 #ifdef CONFIG_NET_DESCDEBUG
-static void pic32mz_dumprxdesc(struct pic32mz_rxdesc_s *rxdesc, const char *msg)
+static void pic32mz_dumprxdesc(struct pic32mz_rxdesc_s *rxdesc,
+                               const char *msg)
 {
   ninfo("RX Descriptor [%p]: %s\n", rxdesc, msg);
   ninfo("   status: %08x\n", rxdesc->status);
-  ninfo("  address: %08x [%08x]\n", rxdesc->address, VIRT_ADDR(rxdesc->address));
+  ninfo("  address: %08x [%08x]\n",
+        rxdesc->address, VIRT_ADDR(rxdesc->address));
   ninfo("     rsv1: %08x\n", rxdesc->rsv1);
   ninfo("     rsv2: %08x\n", rxdesc->rsv2);
-  ninfo("   nexted: %08x [%08x]\n", rxdesc->nexted, VIRT_ADDR(rxdesc->nexted));
+  ninfo("   nexted: %08x [%08x]\n",
+        rxdesc->nexted, VIRT_ADDR(rxdesc->nexted));
 }
 #endif
 
@@ -673,16 +722,16 @@ static inline void pic32mz_bufferinit(struct pic32mz_driver_s *priv)
   uint8_t *buffer;
   int i;
 
-  for (i = 0, buffer = priv->pd_buffers; i < PIC32MZ_NBUFFERS; i++)
-   {
-     /* Add the buffer to the end of the list of free buffers */
+  for (i = 0, buffer = g_buffers; i < PIC32MZ_NBUFFERS; i++)
+    {
+      /* Add the buffer to the end of the list of free buffers */
 
-     sq_addlast((sq_entry_t *)buffer, &priv->pd_freebuffers);
+      sq_addlast((sq_entry_t *)buffer, &priv->pd_freebuffers);
 
-     /* Get the address of the next buffer */
+      /* Get the address of the next buffer */
 
-     buffer += PIC32MZ_ALIGNED_BUFSIZE;
-   }
+      buffer += PIC32MZ_ALIGNED_BUFSIZE;
+    }
 }
 
 /****************************************************************************
@@ -720,11 +769,12 @@ static uint8_t *pic32mz_allocbuffer(struct pic32mz_driver_s *priv)
  *
  ****************************************************************************/
 
-static void pic32mz_freebuffer(struct pic32mz_driver_s *priv, uint8_t *buffer)
+static void pic32mz_freebuffer(struct pic32mz_driver_s *priv,
+                               uint8_t *buffer)
 {
   /* Add the buffer to the end of the free buffer list */
 
-   sq_addlast((sq_entry_t *)buffer, &priv->pd_freebuffers);
+  sq_addlast((sq_entry_t *)buffer, &priv->pd_freebuffers);
 }
 
 /****************************************************************************
@@ -749,14 +799,14 @@ static inline void pic32mz_txdescinit(struct pic32mz_driver_s *priv)
   int i;
 
   /* Assign a buffer to each TX descriptor.  For now, just mark each TX
-   * descriptor as owned by softare andnot linked.
+   * descriptor as owned by softare and not linked.
    */
 
   for (i = 0; i < CONFIG_PIC32MZ_ETH_NTXDESC; i++)
     {
       /* Point to the next entry */
 
-      txdesc          = &priv->pd_txdesc[i];
+      txdesc          = &g_txdesc[i].txdesc;
 
       /* Initialize the buffer.  It is idle, owned by software and has
        * no buffer assigned to it.
@@ -772,17 +822,24 @@ static inline void pic32mz_txdescinit(struct pic32mz_driver_s *priv)
        * creating a ring.
        */
 
-      if (i == (CONFIG_PIC32MZ_ETH_NRXDESC-1))
+      if (i == (CONFIG_PIC32MZ_ETH_NRXDESC - 1))
         {
-          txdesc->nexted = PHYS_ADDR(priv->pd_txdesc);
+          txdesc->nexted = PHYS_ADDR(g_txdesc);
         }
       else
         {
-          txdesc->nexted = PHYS_ADDR(&priv->pd_txdesc[i+1]);
+          txdesc->nexted = PHYS_ADDR(&g_txdesc[i + 1]);
         }
 
       pic32mz_dumptxdesc(txdesc, "Initial");
     }
+
+  /* Flush all of the initialized TX descriptors to physical memory */
+
+  up_flush_dcache((uintptr_t)g_txdesc,
+                  (uintptr_t)g_txdesc +
+                  CONFIG_PIC32MZ_ETH_NTXDESC *
+                  sizeof(union pic32mz_txdesc_u));
 
   /* Position the Tx index to the first descriptor in the ring */
 
@@ -792,7 +849,7 @@ static inline void pic32mz_txdescinit(struct pic32mz_driver_s *priv)
    * the TX descriptors list.
    */
 
-  pic32mz_putreg(PHYS_ADDR(priv->pd_txdesc), PIC32MZ_ETH_TXST);
+  pic32mz_putreg(PHYS_ADDR(g_txdesc), PIC32MZ_ETH_TXST);
 }
 
 /****************************************************************************
@@ -827,7 +884,7 @@ static inline void pic32mz_rxdescinit(struct pic32mz_driver_s *priv)
     {
       /* Point to the next entry */
 
-      rxdesc = &priv->pd_rxdesc[i];
+      rxdesc = &g_rxdesc[i].rxdesc;
 
       /* Initialize the descriptor.  Assign it a buffer and make it ready
        * for reception.
@@ -836,30 +893,37 @@ static inline void pic32mz_rxdescinit(struct pic32mz_driver_s *priv)
       rxdesc->rsv1    = 0;
       rxdesc->rsv2    = 0;
       rxdesc->address = PHYS_ADDR(pic32mz_allocbuffer(priv));
-      rxdesc->status  = RXDESC_STATUS_EOWN | TXDESC_STATUS_NPV;
+      rxdesc->status  = RXDESC_STATUS_EOWN | RXDESC_STATUS_NPV;
 
       /* Set the NEXTED pointer.  If this is the last descriptor in the
        * list, then set the NEXTED pointer back to the first entry,
        * creating a ring.
        */
 
-      if (i == (CONFIG_PIC32MZ_ETH_NRXDESC-1))
+      if (i == (CONFIG_PIC32MZ_ETH_NRXDESC - 1))
         {
-          rxdesc->nexted = PHYS_ADDR(priv->pd_rxdesc);
+          rxdesc->nexted = PHYS_ADDR(g_rxdesc);
         }
       else
         {
-          rxdesc->nexted = PHYS_ADDR(&priv->pd_rxdesc[i+1]);
+          rxdesc->nexted = PHYS_ADDR(&g_rxdesc[i + 1]);
         }
 
       pic32mz_dumprxdesc(rxdesc, "Initial");
     }
 
+  /* Flush all of the initialized RX descriptors to physical memory */
+
+  up_flush_dcache((uintptr_t)g_rxdesc,
+                  (uintptr_t)g_rxdesc +
+                  CONFIG_PIC32MZ_ETH_NRXDESC *
+                  sizeof(union pic32mz_rxdesc_u));
+
   /* Update the ETHRXST register with the physical address of the head of the
    * RX descriptors list.
    */
 
-  pic32mz_putreg(PHYS_ADDR(priv->pd_rxdesc), PIC32MZ_ETH_RXST);
+  pic32mz_putreg(PHYS_ADDR(g_rxdesc), PIC32MZ_ETH_RXST);
 }
 
 /****************************************************************************
@@ -877,13 +941,22 @@ static inline void pic32mz_rxdescinit(struct pic32mz_driver_s *priv)
  *
  ****************************************************************************/
 
-static inline struct pic32mz_txdesc_s *pic32mz_txdesc(struct pic32mz_driver_s *priv)
+static inline struct pic32mz_txdesc_s *
+  pic32mz_txdesc(struct pic32mz_driver_s *priv)
 {
   struct pic32mz_txdesc_s *txdesc;
 
   /* Get a reference to the next Tx descriptor in the ring */
 
-  txdesc = &priv->pd_txdesc[priv->pd_txnext];
+  txdesc = &g_txdesc[priv->pd_txnext].txdesc;
+
+  /* Force re-reading of the TX descriptor from physical memory.
+   * The descriptor may have been owned by the Ethernet controller.
+   * Cache data would be stale in this case.
+   */
+
+  up_invalidate_dcache((uintptr_t)txdesc,
+                       (uintptr_t)txdesc + sizeof(union pic32mz_txdesc_u));
 
   /* Check if the EOWN bit is cleared. If it is, this descriptor is now under
    * software control and the message has been transmitted.
@@ -965,8 +1038,13 @@ static inline void pic32mz_rxreturn(struct pic32mz_rxdesc_s *rxdesc)
 {
   rxdesc->rsv1   = 0;
   rxdesc->rsv2   = 0;
-  rxdesc->status = RXDESC_STATUS_EOWN | TXDESC_STATUS_NPV;
+  rxdesc->status = RXDESC_STATUS_EOWN | RXDESC_STATUS_NPV;
   pic32mz_dumprxdesc(rxdesc, "Returned to hardware");
+
+  /* Flush the content of the modified TX descriptor into physical memory. */
+
+  up_flush_dcache((uintptr_t)rxdesc,
+                  (uintptr_t)rxdesc + sizeof(union pic32mz_rxdesc_u));
 }
 
 /****************************************************************************
@@ -994,16 +1072,23 @@ static struct pic32mz_rxdesc_s *pic32mz_rxdesc(struct pic32mz_driver_s *priv)
   int i;
 
   /* Inspect the list of RX descriptors to see if the EOWN bit is cleared.
-   * If it is, this descriptor is now under software control and a message was
-   * received. Use SOP and EOP to extract the message, use BYTE_COUNT, RXF_RSV,
-   * RSV and PKT_CHECKSUM to get the message characteristics.
+   * If it is, this descriptor is now under software control and a message
+   * was received. Use SOP and EOP to extract the message, use BYTE_COUNT,
+   * RXF_RSV, RSV and PKT_CHECKSUM to get the message characteristics.
    */
 
   for (i = 0; i < CONFIG_PIC32MZ_ETH_NRXDESC; i++)
     {
       /* Check if software owns this descriptor */
 
-      rxdesc = &priv->pd_rxdesc[i];
+      rxdesc = &g_rxdesc[i].rxdesc;
+
+      /* Forces the first RX descriptor to be re-read from physical memory */
+
+      up_invalidate_dcache((uintptr_t)rxdesc,
+                           (uintptr_t)rxdesc +
+                            sizeof(union pic32mz_rxdesc_u));
+
       if ((rxdesc->status & RXDESC_STATUS_EOWN) == 0)
         {
           /* Yes.. return a pointer to the descriptor */
@@ -1053,15 +1138,21 @@ static int pic32mz_transmit(struct pic32mz_driver_s *priv)
   /* Increment statistics and dump the packet (if so configured) */
 
   NETDEV_TXPACKETS(&priv->pd_dev);
-  pic32mz_dumppacket("Transmit packet", priv->pd_dev.d_buf, priv->pd_dev.d_len);
+  pic32mz_dumppacket("Transmit packet",
+                      priv->pd_dev.d_buf, priv->pd_dev.d_len);
+
+  /* Flush the content of the TX buffer into physical memory */
+
+  up_flush_dcache((uintptr_t)priv->pd_dev.d_buf,
+                  (uintptr_t)priv->pd_dev.d_buf + PIC32MZ_ALIGNED_BUFSIZE);
 
   /* In order to transmit a message:
    *
    * The SOP, EOP, DATA_BUFFER_ADDRESS and BYTE_COUNT will be updated when a
    * particular message has to be transmitted. The DATA_BUFFER_ADDRESS will
-   * contain the physical address of the message, the BYTE_COUNT message size.
-   * SOP and EOP are set depending on how many packets are needed to transmit
-   * the message.
+   * contain the physical address of the message, the BYTE_COUNT message
+   * size. SOP and EOP are set depending on how many packets are needed to
+   * transmit the message.
    */
 
   /* Find the next available TX descriptor.  We are guaranteed that is will
@@ -1084,18 +1175,23 @@ static int pic32mz_transmit(struct pic32mz_driver_s *priv)
    * contained in the buffer.
    */
 
-  status             = ((uint32_t)priv->pd_dev.d_len << TXDESC_STATUS_BYTECOUNT_SHIFT);
+  status = ((uint32_t)priv->pd_dev.d_len << TXDESC_STATUS_BYTECOUNT_SHIFT);
   priv->pd_dev.d_len = 0;
 
-  /* Set EOWN = 1 to indicate that the packet belongs to Ethernet and set both
-   * SOP and EOP to indicate that the packet both begins and ends with this
-   * frame.
+  /* Set EOWN = 1 to indicate that the packet belongs to Ethernet and set
+   * both SOP and EOP to indicate that the packet both begins and ends with
+   * this frame.
    */
 
   status        |= (TXDESC_STATUS_EOWN | TXDESC_STATUS_NPV |
                     TXDESC_STATUS_EOP | TXDESC_STATUS_SOP);
   txdesc->status = status;
   pic32mz_dumptxdesc(txdesc, "After transmit setup");
+
+  /* Flush the content of the modified TX descriptor into physical memory */
+
+  up_flush_dcache((uintptr_t)txdesc,
+                  (uintptr_t)txdesc + sizeof(union pic32mz_txdesc_u));
 
   /* Update the index to the next descriptor to use in the Tx ring */
 
@@ -1112,8 +1208,8 @@ static int pic32mz_transmit(struct pic32mz_driver_s *priv)
 
   /* Setup the TX timeout watchdog (perhaps restarting the timer) */
 
-  (void)wd_start(priv->pd_txtimeout, PIC32MZ_TXTIMEOUT, pic32mz_txtimeout_expiry,
-                 1, (uint32_t)priv);
+  wd_start(priv->pd_txtimeout, PIC32MZ_TXTIMEOUT,
+           pic32mz_txtimeout_expiry, 1, (uint32_t)priv);
 
   return OK;
 }
@@ -1178,8 +1274,8 @@ static int pic32mz_txpoll(struct net_driver_s *dev)
 
       if (!devif_loopback(&priv->pd_dev))
         {
-          /* Send this packet.  In this context, we know that there is space for
-           * at least one more packet in the descriptor list.
+          /* Send this packet.  In this context, we know that there is space
+           * for at least one more packet in the descriptor list.
            */
 
           pic32mz_transmit(priv);
@@ -1190,7 +1286,9 @@ static int pic32mz_txpoll(struct net_driver_s *dev)
 
           if (pic32mz_txdesc(priv) == NULL)
             {
-              /* There are no more TX descriptors/buffers available.. stop the poll */
+              /* There are no more TX descriptors/buffers available..
+               * stop the poll
+               */
 
               return -EAGAIN;
             }
@@ -1200,15 +1298,17 @@ static int pic32mz_txpoll(struct net_driver_s *dev)
           priv->pd_dev.d_buf = pic32mz_allocbuffer(priv);
           if (priv->pd_dev.d_buf == NULL)
             {
-              /* We have no more buffers available for the nex Tx.. stop the poll */
+              /* We have no more buffers available for the next Tx..
+               * stop the poll
+               */
 
               return -ENOMEM;
             }
         }
     }
 
-  /* If zero is returned, the polling will continue until all connections have
-   * been examined.
+  /* If zero is returned, the polling will continue until all connections
+   * have been examined.
    */
 
   return ret;
@@ -1247,7 +1347,7 @@ static void pic32mz_poll(struct pic32mz_driver_s *priv)
           /* And perform the poll */
 
           priv->pd_polling = true;
-          (void)devif_poll(&priv->pd_dev, pic32mz_txpoll);
+          devif_poll(&priv->pd_dev, pic32mz_txpoll);
 
           /* Free any buffer left attached after the poll */
 
@@ -1256,10 +1356,10 @@ static void pic32mz_poll(struct pic32mz_driver_s *priv)
               pic32mz_freebuffer(priv, priv->pd_dev.d_buf);
               priv->pd_dev.d_buf = NULL;
             }
+
           priv->pd_polling = false;
         }
     }
-
 }
 
 /****************************************************************************
@@ -1293,7 +1393,7 @@ static void pic32mz_timerpoll(struct pic32mz_driver_s *priv)
           /* And perform the poll */
 
           priv->pd_polling = true;
-          (void)devif_timer(&priv->pd_dev, pic32mz_txpoll);
+          devif_timer(&priv->pd_dev, PIC32MZ_WDDELAY, pic32mz_txpoll);
 
           /* Free any buffer left attached after the poll */
 
@@ -1302,6 +1402,7 @@ static void pic32mz_timerpoll(struct pic32mz_driver_s *priv)
               pic32mz_freebuffer(priv, priv->pd_dev.d_buf);
               priv->pd_dev.d_buf = NULL;
             }
+
           priv->pd_polling = false;
         }
     }
@@ -1312,7 +1413,7 @@ static void pic32mz_timerpoll(struct pic32mz_driver_s *priv)
  *
  * Description:
  *   While processing an RxDone event, higher logic decides to send a packet,
- *   possibly a response to the incoming packet (but probably not, in reality).
+ *   possibly a response to the incoming packet (but probably not in reality)
  *   However, since the Rx and Tx operations are decoupled, there is no
  *   guarantee that there will be a Tx descriptor available at that time.
  *   This function will perform that check and, if no Tx descriptor is
@@ -1340,19 +1441,19 @@ static void pic32mz_response(struct pic32mz_driver_s *priv)
   txdesc = pic32mz_txdesc(priv);
   if (txdesc != NULL)
     {
-       /* Yes.. queue the packet now. */
+      /* Yes.. queue the packet now. */
 
-       pic32mz_transmit(priv);
+      pic32mz_transmit(priv);
     }
   else
     {
-       /* No.. mark the Tx as pending and halt further Rx interrupts */
+      /* No.. mark the Tx as pending and halt further Rx interrupts */
 
-       DEBUGASSERT((priv->pd_inten & ETH_INT_TXDONE) != 0);
+      DEBUGASSERT((priv->pd_inten & ETH_INT_TXDONE) != 0);
 
-       priv->pd_txpending = true;
-       priv->pd_inten    &= ~ETH_RXINTS;
-       pic32mz_putreg(priv->pd_inten, PIC32MZ_ETH_IEN);
+      priv->pd_txpending = true;
+      priv->pd_inten    &= ~ETH_RXINTS;
+      pic32mz_putreg(priv->pd_inten, PIC32MZ_ETH_IEN);
     }
 }
 
@@ -1397,15 +1498,17 @@ static void pic32mz_rxdone(struct pic32mz_driver_s *priv)
 
           return;
         }
+
       pic32mz_dumprxdesc(rxdesc, "RX Complete");
+
+      /* Get the packet length */
+
+      priv->pd_dev.d_len = (rxdesc->rsv2 & RXDESC_RSV2_BYTECOUNT_MASK) >>
+                            RXDESC_RSV2_BYTECOUNT_SHIFT;
 
       /* Update statistics */
 
       NETDEV_RXPACKETS(&priv->pd_dev);
-
-      /* Get the packet length */
-
-      priv->pd_dev.d_len = (rxdesc->rsv2 & RXDESC_RSV2_BYTECOUNT_MASK) >> RXDESC_RSV2_BYTECOUNT_SHIFT;
 
       /* Check for errors */
 
@@ -1417,8 +1520,8 @@ static void pic32mz_rxdone(struct pic32mz_driver_s *priv)
           pic32mz_rxreturn(rxdesc);
         }
 
-      /* If the packet length is greater then the buffer, then we cannot accept
-       * the packet.  Also, since the DMA packet buffers are set up to
+      /* If the packet length is greater then the buffer, then we cannot
+       * accept the packet.  Also, since the DMA packet buffers are set up to
        * be the same size as our max packet size, any fragments also
        * imply that the packet is too big.
        */
@@ -1448,6 +1551,15 @@ static void pic32mz_rxdone(struct pic32mz_driver_s *priv)
           /* Get the Rx buffer address from the Rx descriptor */
 
           priv->pd_dev.d_buf = (uint8_t *)VIRT_ADDR(rxdesc->address);
+
+          /* Force the completed RX DMA buffer to be re-read from
+           * physical memory.
+           */
+
+          up_invalidate_dcache((uintptr_t)priv->pd_dev.d_buf,
+                               (uintptr_t)priv->pd_dev.d_buf +
+                               PIC32MZ_ALIGNED_BUFSIZE);
+
           DEBUGASSERT(priv->pd_dev.d_buf != NULL);
 
           /* Replace the buffer in the RX descriptor with a new one */
@@ -1509,7 +1621,7 @@ static void pic32mz_rxdone(struct pic32mz_driver_s *priv)
 
                   /* And send the packet */
 
-                      pic32mz_response(priv);
+                  pic32mz_response(priv);
                 }
             }
           else
@@ -1517,7 +1629,7 @@ static void pic32mz_rxdone(struct pic32mz_driver_s *priv)
 #ifdef CONFIG_NET_IPv6
           if (BUF->type == HTONS(ETHTYPE_IP6))
             {
-              ninfo("Iv6 frame\n");
+              ninfo("IPv6 frame\n");
               NETDEV_RXIPV6(&priv->pd_dev);
 
               /* Give the IPv6 packet to the network layer */
@@ -1530,7 +1642,7 @@ static void pic32mz_rxdone(struct pic32mz_driver_s *priv)
                */
 
               if (priv->pd_dev.d_len > 0)
-               {
+                {
                   /* Update the Ethernet header with the correct MAC address */
 
 #ifdef CONFIG_NET_IPv4
@@ -1632,14 +1744,23 @@ static void pic32mz_txdone(struct pic32mz_driver_s *priv)
 
   DEBUGASSERT(pic32mz_txdesc(priv) != NULL);
 
-  /* Inspect the list of TX descriptors to see if the EOWN bit is cleared. If it
-   * is, this descriptor is now under software control and the message was
-   * transmitted. Use TSV to check for the transmission result.
+  /* Inspect the list of TX descriptors to see if the EOWN bit is cleared.
+   * If it is, this descriptor is now under software control and the message
+   * was transmitted. Use TSV to check for the transmission result.
    */
 
   for (i = 0; i < CONFIG_PIC32MZ_ETH_NTXDESC; i++)
     {
-      txdesc = &priv->pd_txdesc[i];
+      txdesc = &g_txdesc[i].txdesc;
+
+      /* Force re-reading of the TX descriptor from physical memory.
+       * The descriptor may have been owned by the Ethernet controller.
+       * Cache data would be stale in this case.
+       */
+
+      up_invalidate_dcache((uintptr_t)txdesc,
+                           (uintptr_t)txdesc +
+                           sizeof(union pic32mz_txdesc_u));
 
       /* Check if software owns this descriptor */
 
@@ -1653,7 +1774,8 @@ static void pic32mz_txdone(struct pic32mz_driver_s *priv)
 
               /* Free the TX buffer */
 
-              pic32mz_freebuffer(priv, (uint8_t *)VIRT_ADDR(txdesc->address));
+              pic32mz_freebuffer(priv,
+                                 (uint8_t *)VIRT_ADDR(txdesc->address));
               txdesc->address = 0;
 
               /* Reset status */
@@ -1661,7 +1783,14 @@ static void pic32mz_txdone(struct pic32mz_driver_s *priv)
               txdesc->tsv1    = 0;
               txdesc->tsv2    = 0;
               txdesc->status  = TXDESC_STATUS_SOWN | TXDESC_STATUS_NPV;
+
               pic32mz_dumptxdesc(txdesc, "TX buffer freed");
+
+              /* Flush the content of the modified TX descriptor. */
+
+              up_flush_dcache((uintptr_t)txdesc,
+                              (uintptr_t)txdesc +
+                              sizeof(union pic32mz_txdesc_u));
             }
         }
     }
@@ -1729,10 +1858,12 @@ static void pic32mz_interrupt_work(void *arg)
       pic32mz_putreg(status, PIC32MZ_ETH_IRQCLR);
 
       /* Handle each pending interrupt **************************************/
+
       /* Receive Errors *****************************************************/
+
       /* RXOVFLW: Receive FIFO Over Flow Error.  RXOVFLW is set by the RXBM
        * Logic for an RX FIFO Overflow condition. It is cleared by either a
-       * Reset or CPU write of a ‘1’ to the CLR register.
+       * Reset or CPU write of a '1' to the CLR register.
        */
 
       if ((status & ETH_INT_RXOVFLW) != 0)
@@ -1743,18 +1874,19 @@ static void pic32mz_interrupt_work(void *arg)
 
       /* RXBUFNA: Receive Buffer Not Available Interrupt.  This bit is set by
        * a RX Buffer Descriptor Overrun condition. It is cleared by either a
-       * Reset or a CPU write of a ‘1’ to the CLR register.
+       * Reset or a CPU write of a '1' to the CLR register.
        */
 
       if ((status & ETH_INT_RXBUFNA) != 0)
         {
-          nerr("ERROR: RX buffer descriptor overrun. status: %08x\n", status);
+          nerr("ERROR: RX buffer descriptor overrun. status: %08x\n",
+                status);
           NETDEV_RXERRORS(&priv->pd_dev);
         }
 
       /* RXBUSE: Receive BVCI Bus Error Interrupt.  This bit is set when the
        * RX DMA encounters a BVCI Bus error during a memory access. It is
-       * cleared by either a Reset or CPU write of a ‘1’ to the CLR register.
+       * cleared by either a Reset or CPU write of a '1' to the CLR register.
        */
 
       if ((status & ETH_INT_RXBUSE) != 0)
@@ -1764,20 +1896,21 @@ static void pic32mz_interrupt_work(void *arg)
         }
 
       /* Receive Normal Events **********************************************/
-      /* RXACT: Receive Activity Interrupt.  This bit is set whenever RX packet
-       * data is stored in the RXBM FIFO. It is cleared by either a Reset or CPU
-       * write of a ‘1’ to the CLR register.
+
+      /* RXACT: Receive Activity Interrupt.  This bit is set whenever RX
+       * packet data is stored in the RXBM FIFO. It is cleared by either
+       * a Reset or CPU write of a '1' to the CLR register.
        */
 
       /* PKTPEND: Packet Pending Interrupt.  This bit is set when the BUFCNT
-       * counter has a value other than ‘0’. It is cleared by either a Reset
+       * counter has a value other than '0'. It is cleared by either a Reset
        * or by writing the BUFCDEC bit to decrement the BUFCNT counter.
-       * Writing a ‘0’ or a ‘1’ has no effect.
+       * Writing a '0' or a '1' has no effect.
        */
 
-      /* RXDONE: Receive Done Interrupt.  This bit is set whenever an RX packet
-       * is successfully received. It is cleared by either a Reset or CPU
-       * write of a ‘1’ to the CLR register.
+      /* RXDONE: Receive Done Interrupt.  This bit is set whenever an RX
+       * packet is successfully received. It is cleared by either a Reset
+       * or CPU write of a '1' to the CLR register.
        */
 
       if ((status & ETH_INT_RXDONE) != 0)
@@ -1788,6 +1921,7 @@ static void pic32mz_interrupt_work(void *arg)
         }
 
       /* Transmit Errors ****************************************************/
+
       /* TXABORT: Transmit Abort Condition Interrupt.  This bit is set when
        * the MAC aborts the transmission of a TX packet for one of the
        * following reasons:
@@ -1796,7 +1930,7 @@ static void pic32mz_interrupt_work(void *arg)
        * - Excessive defer abort
        * - Late collision abort
        * - Excessive collisions abort
-       * This bit is cleared by either a Reset or CPU write of a ‘1’ to the
+       * This bit is cleared by either a Reset or CPU write of a '1' to the
        * CLR register.
        */
 
@@ -1808,7 +1942,7 @@ static void pic32mz_interrupt_work(void *arg)
 
       /* TXBUSE: Transmit BVCI Bus Error Interrupt. This bit is set when the
        * TX DMA encounters a BVCI Bus error during a memory access. It is
-       * cleared by either a Reset or CPU write of a ‘1’ to the CLR register.
+       * cleared by either a Reset or CPU write of a '1' to the CLR register.
        */
 
       if ((status & ETH_INT_TXBUSE) != 0)
@@ -1820,7 +1954,7 @@ static void pic32mz_interrupt_work(void *arg)
       /* TXDONE: Transmit Done Interrupt.  This bit is set when the currently
        * transmitted TX packet completes transmission, and the Transmit
        * Status Vector is loaded into the first descriptor used for the
-       * packet. It is cleared by either a Reset or CPU write of a ‘1’ to
+       * packet. It is cleared by either a Reset or CPU write of a '1' to
        * the CLR register.
        */
 
@@ -1834,18 +1968,19 @@ static void pic32mz_interrupt_work(void *arg)
         }
 
       /* Watermark Events ***************************************************/
+
       /* EWMARK: Empty Watermark Interrupt.  This bit is set when the RX
        * Descriptor Buffer Count is less than or equal to the value in the
        * RXEWM bit (ETHRXWM:0-7) value. It is cleared by BUFCNT bit
-       * (ETHSTAT:16-23) being incremented by hardware. Writing a ‘0’ or a ‘1’
-       * has no effect.
+       * (ETHSTAT:16-23) being incremented by hardware. Writing a '0' or
+       * a '1' has no effect.
        */
 
       /* FWMARK: Full Watermark Interrupt.  This bit is set when the RX
        * escriptor Buffer Count is greater than or equal to the value in the
-       * RXFWM bit (ETHRXWM:16-23) field. It is cleared by writing the BUFCDEC
-       * (ETHCON1:0) bit to decrement the BUFCNT counter. Writing a ‘0’ or a
-       * ‘1’ has no effect.
+       * RXFWM bit (ETHRXWM:16-23) field. It is cleared by writing the
+       * BUFCDEC (ETHCON1:0) bit to decrement the BUFCNT counter. Writing a
+       * '0' or a '1' has no effect.
        */
     }
 
@@ -1959,10 +2094,10 @@ static void pic32mz_txtimeout_work(void *arg)
        * it back up.
        */
 
-      (void)pic32mz_ifup(&priv->pd_dev);
+      pic32mz_ifup(&priv->pd_dev);
 
-      /* Then poll the network for new XMIT data (We are guaranteed to have a free
-       * buffer here).
+      /* Then poll the network for new XMIT data (We are guaranteed to have
+       * a free buffer here).
        */
 
       pic32mz_poll(priv);
@@ -2048,8 +2183,8 @@ static void pic32mz_poll_work(void *arg)
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->pd_txpoll, PIC32MZ_WDDELAY, pic32mz_poll_expiry,
-                 1, priv);
+  wd_start(priv->pd_txpoll, PIC32MZ_WDDELAY, pic32mz_poll_expiry,
+           1, priv);
   net_unlock();
 }
 
@@ -2112,6 +2247,7 @@ static int pic32mz_ifup(struct net_driver_s *dev)
   pic32mz_ethreset(priv);
 
   /* MAC Initialization *****************************************************/
+
   /* Configuration:
    * - Use the configuration fuse setting FETHIO bit (DEVCFG3:25) to detect
    *   the alternate/default I/O configuration
@@ -2122,8 +2258,9 @@ static int pic32mz_ifup(struct net_driver_s *dev)
   /* Pin Configuration:
    *
    * No GPIO pin configuration is required.  Enabling the Ethernet Controller
-   * will configure the I/O pin direction as defined by the Ethernet Controller
-   * control bits. The port TRIS and LATCH registers will be overridden.
+   * will configure the IO pin direction as defined by the Ethernet
+   * Controller control bits. The port TRIS and LATCH registers will be
+   * overridden.
    *
    * I/O Pin    MII     RMII   Pin  Description
    *   Name   Required Required Type
@@ -2139,7 +2276,8 @@ static int pic32mz_ifup(struct net_driver_s *dev)
    * ERXCLK   Yes      No       I    Ethernet MII RX Clock
    * EREF_CLK No       Yes      I    Ethernet RMII Ref Clock
    * ERXDV    Yes      No       I    Ethernet MII Receive Data Valid
-   * ECRS_DV  No       Yes      I    Ethernet RMII Carrier Sense/Receive Data Valid
+   * ECRS_DV  No       Yes      I    Ethernet RMII Carrier Sense/Receive
+   *                                 Data Valid
    * ERXD0    Yes      Yes      I    Ethernet Data Receive 0
    * ERXD1    Yes      Yes      I    Ethernet Data Receive 1
    * ERXD2    Yes      No       I    Ethernet Data Receive 2
@@ -2162,7 +2300,8 @@ static int pic32mz_ifup(struct net_driver_s *dev)
 
 #if CONFIG_PIC32MZ_FMIIEN == 0
   pic32mz_putreg(EMAC1_SUPP_RESETRMII, PIC32MZ_EMAC1_SUPPSET);
-  pic32mz_putreg((EMAC1_SUPP_RESETRMII | EMAC1_SUPP_SPEEDRMII), PIC32MZ_EMAC1_SUPPCLR);
+  pic32mz_putreg((EMAC1_SUPP_RESETRMII | EMAC1_SUPP_SPEEDRMII),
+                 PIC32MZ_EMAC1_SUPPCLR);
 #endif
 
   /* Issue an MIIM block reset, by setting the RESETMGMT (EMAC1MCFG:15) bit,
@@ -2183,11 +2322,13 @@ static int pic32mz_ifup(struct net_driver_s *dev)
    * preamble, no scan increment.
    */
 
-  regval &= ~(EMAC1_MCFG_CLKSEL_MASK | EMAC1_MCFG_NOPRE | EMAC1_MCFG_SCANINC);
+  regval &= ~(EMAC1_MCFG_CLKSEL_MASK | EMAC1_MCFG_NOPRE |
+              EMAC1_MCFG_SCANINC);
   regval |= EMAC1_MCFG_CLKSEL_DIV;
   pic32mz_putreg(regval, PIC32MZ_EMAC1_MCFG);
 
   /* PHY Initialization *****************************************************/
+
   /* Initialize the PHY and wait for the link to be established */
 
   ret = pic32mz_phyinit(priv);
@@ -2198,6 +2339,7 @@ static int pic32mz_ifup(struct net_driver_s *dev)
     }
 
   /* MAC Configuration ******************************************************/
+
   /* Set other misc configuration-related registers to default values */
 
   pic32mz_putreg(0, PIC32MZ_EMAC1_CFG2);
@@ -2219,16 +2361,19 @@ static int pic32mz_ifup(struct net_driver_s *dev)
    */
 
   /* Program EMAC1IPGT with the back-to-back inter-packet gap */
+
   /* Use EMAC1IPGR for setting the non back-to-back inter-packet gap */
 
-   pic32mz_putreg(((12 << EMAC1_IPGR_GAP1_SHIFT) | (12 << EMAC1_IPGR_GAP2_SHIFT)),
-                  PIC32MZ_EMAC1_IPGR);
+  pic32mz_putreg(((12 << EMAC1_IPGR_GAP1_SHIFT) |
+                  (12 << EMAC1_IPGR_GAP2_SHIFT)),
+                 PIC32MZ_EMAC1_IPGR);
 
   /* Set the collision window and the maximum number of retransmissions in
    * EMAC1CLRT.
    */
 
-  pic32mz_putreg(((15 << EMAC1_CLRT_RETX_SHIFT) | (55 << EMAC1_CLRT_CWINDOW_SHIFT)),
+  pic32mz_putreg(((15 << EMAC1_CLRT_RETX_SHIFT) |
+                  (55 << EMAC1_CLRT_CWINDOW_SHIFT)),
                  PIC32MZ_EMAC1_CLRT);
 
   /* Set the maximum frame length in EMAC1MAXF.  "This field resets to
@@ -2240,7 +2385,7 @@ static int pic32mz_ifup(struct net_driver_s *dev)
 
   pic32mz_putreg(CONFIG_NET_ETH_PKTSIZE, PIC32MZ_EMAC1_MAXF);
 
-  /*  Configure the MAC station address in the EMAC1SA0, EMAC1SA1 and
+  /* Configure the MAC station address in the EMAC1SA0, EMAC1SA1 and
    * EMAC1SA2 registers (these registers are loaded at reset from the
    * factory preprogrammed station address).
    */
@@ -2260,23 +2405,30 @@ static int pic32mz_ifup(struct net_driver_s *dev)
 #else
   regval = pic32mz_getreg(PIC32MZ_EMAC1_SA0);
   priv->pd_dev.d_mac.ether.ether_addr_octet[4] = (uint32_t)(regval & 0xff);
-  priv->pd_dev.d_mac.ether.ether_addr_octet[5] = (uint32_t)((regval >> 8) & 0xff);
+  priv->pd_dev.d_mac.ether.ether_addr_octet[5] = (uint32_t)((regval >> 8) &
+                                                             0xff);
 
   regval = pic32mz_getreg(PIC32MZ_EMAC1_SA1);
   priv->pd_dev.d_mac.ether.ether_addr_octet[2] = (uint32_t)(regval & 0xff);
-  priv->pd_dev.d_mac.ether.ether_addr_octet[3] = (uint32_t)((regval >> 8) & 0xff);
+  priv->pd_dev.d_mac.ether.ether_addr_octet[3] = (uint32_t)((regval >> 8) &
+                                                             0xff);
 
   regval = pic32mz_getreg(PIC32MZ_EMAC1_SA2);
   priv->pd_dev.d_mac.ether.ether_addr_octet[0] = (uint32_t)(regval & 0xff);
-  priv->pd_dev.d_mac.ether.ether_addr_octet[1] = (uint32_t)((regval >> 8) & 0xff);
+  priv->pd_dev.d_mac.ether.ether_addr_octet[1] = (uint32_t)((regval >> 8) &
+                                                             0xff);
 
   ninfo("MAC: %02x:%02x:%02x:%02x:%02x:%02x\n",
-        dev->d_mac.ether.ether_addr_octet[0], dev->d_mac.ether.ether_addr_octet[1],
-        dev->d_mac.ether.ether_addr_octet[2], dev->d_mac.ether.ether_addr_octet[3],
-        dev->d_mac.ether.ether_addr_octet[4], dev->d_mac.ether.ether_addr_octet[5]);
+        dev->d_mac.ether.ether_addr_octet[0],
+        dev->d_mac.ether.ether_addr_octet[1],
+        dev->d_mac.ether.ether_addr_octet[2],
+        dev->d_mac.ether.ether_addr_octet[3],
+        dev->d_mac.ether.ether_addr_octet[4],
+        dev->d_mac.ether.ether_addr_octet[5]);
 #endif
 
   /* Continue Ethernet Controller Initialization ****************************/
+
   /* If planning to turn on the flow control, update the PTV value
    * (ETHCON1:16-31).
    */
@@ -2290,8 +2442,8 @@ static int pic32mz_ifup(struct net_driver_s *dev)
   /* Set the RX filters by updating the ETHHT0, ETHHT1, ETHPMM0, ETHPMM1,
    * ETHPMCS and ETHRXFC registers.
    *
-   * Set up RX filter and configure to accept broadcast addresses and multicast
-   * addresses (if so configured).   NOTE: There is a selection
+   * Set up RX filter and configure to accept broadcast addresses and
+   * multicast addresses (if so configured).  NOTE: There is a selection
    * CONFIG_NET_BROADCAST, but this enables receipt of UDP broadcast packets
    * inside of the stack.
    */
@@ -2310,7 +2462,7 @@ static int pic32mz_ifup(struct net_driver_s *dev)
 
   pic32mz_putreg(ETH_CON2_RXBUFSZ(CONFIG_NET_ETH_PKTSIZE), PIC32MZ_ETH_CON2);
 
-  /* Reset state varialbes */
+  /* Reset state variables */
 
   priv->pd_polling   = false;
   priv->pd_txpending = false;
@@ -2347,20 +2499,20 @@ static int pic32mz_ifup(struct net_driver_s *dev)
 
   pic32mz_putreg(0xffffffff, PIC32MZ_ETH_IRQCLR);
 
-  /* Configure interrupts.  The Ethernet interrupt was attached during one-time
-   * initialization, so we only need to set the interrupt priority, configure
-   * interrupts, and enable them.
+  /* Configure interrupts.  The Ethernet interrupt was attached during
+   * one-time initialization, so we only need to set the interrupt priority,
+   * configure interrupts, and enable them.
    */
 
-  /* If the user provided an interrupt priority, then set the interrupt to that
-   * priority
+  /* If the user provided an interrupt priority, then set the interrupt
+   * to that priority.
    */
 
 #if defined(CONFIG_PIC32MZ_ETH_PRIORITY) && defined(CONFIG_ARCH_IRQPRIO)
 #if CONFIG_PIC32MZ_NINTERFACES > 1
-  (void)up_prioritize_irq(priv->pd_irq, CONFIG_PIC32MZ_ETH_PRIORITY);
+  up_prioritize_irq(priv->pd_irq, CONFIG_PIC32MZ_ETH_PRIORITY);
 #else
-  (void)up_prioritize_irq(PIC32MZ_IRQ_ETH, CONFIG_PIC32MZ_ETH_PRIORITY);
+  up_prioritize_irq(PIC32MZ_IRQ_ETH, CONFIG_PIC32MZ_ETH_PRIORITY);
 #endif
 #endif
 
@@ -2374,8 +2526,8 @@ static int pic32mz_ifup(struct net_driver_s *dev)
 
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->pd_txpoll, PIC32MZ_WDDELAY, pic32mz_poll_expiry, 1,
-                (uint32_t)priv);
+  wd_start(priv->pd_txpoll, PIC32MZ_WDDELAY, pic32mz_poll_expiry, 1,
+           (uint32_t)priv);
 
   /* Finally, enable the Ethernet interrupt at the interrupt controller */
 
@@ -2463,8 +2615,8 @@ static void pic32mz_txavail_work(void *arg)
 
       if (pic32mz_txdesc(priv) != NULL)
         {
-          /* If so, then poll the network for new XMIT data.  First allocate a buffer
-           * to perform the poll
+          /* If so, then poll the network for new XMIT data.
+           * First allocate a buffer to perform the poll
            */
 
           pic32mz_poll(priv);
@@ -2546,8 +2698,8 @@ static int pic32mz_addmac(struct net_driver_s *dev, const uint8_t *mac)
  * Function: pic32mz_rmmac
  *
  * Description:
- *   NuttX Callback: Remove the specified MAC address from the hardware multicast
- *   address filtering
+ *   NuttX Callback: Remove the specified MAC address from the hardware
+ *   multicast address filtering.
  *
  * Input Parameters:
  *   dev  - Reference to the NuttX driver state structure
@@ -2643,7 +2795,8 @@ static void pic32mz_phybusywait(void)
  ****************************************************************************/
 
 #ifdef PIC32MZ_HAVE_PHY
-static void pic32mz_phywrite(uint8_t phyaddr, uint8_t regaddr, uint16_t phydata)
+static void pic32mz_phywrite(uint8_t phyaddr, uint8_t regaddr,
+                             uint16_t phydata)
 {
   uint32_t regval;
 
@@ -2661,9 +2814,15 @@ static void pic32mz_phywrite(uint8_t phyaddr, uint8_t regaddr, uint16_t phydata)
 
   pic32mz_putreg((uint32_t)phydata, PIC32MZ_EMAC1_MWTD);
 
-  /* Two clock cycles until busy is set from the write operation */
+  /* Sixteen clock cycles until busy is set from the write operation */
 
-  __asm__ __volatile__ ("nop; nop;");
+  __asm__ __volatile__
+    (
+      "nop; nop; nop; nop;"
+      "nop; nop; nop; nop;"
+      "nop; nop; nop; nop;"
+      "nop; nop; nop; nop;"
+    );
 }
 #endif
 
@@ -2701,16 +2860,25 @@ static uint16_t pic32mz_phyread(uint8_t phyaddr, uint8_t regaddr)
 
   /* Set up to read */
 
-  pic32mz_putreg(EMAC1_MCMD_READ, PIC32MZ_EMAC1_MCMD);
+  pic32mz_putreg(EMAC1_MCMD_READ, PIC32MZ_EMAC1_MCMDSET);
 
-  /* Four clock cycles until busy is set from the write operation */
+  /* Sixteen clock cycles until busy is set from the write operation */
 
-  __asm__ __volatile__ ("nop; nop; nop; nop;");
+  __asm__ __volatile__
+    (
+      "nop; nop; nop; nop;"
+      "nop; nop; nop; nop;"
+      "nop; nop; nop; nop;"
+      "nop; nop; nop; nop;"
+    );
 
   /* Wait for the PHY command to complete */
 
   pic32mz_phybusywait();
-  pic32mz_putreg(0, PIC32MZ_EMAC1_MCMD);
+
+  /* Clear the read bit */
+
+  pic32mz_putreg(EMAC1_MCMD_READ, PIC32MZ_EMAC1_MCMDCLR);
 
   /* Return the PHY register data */
 
@@ -2779,7 +2947,7 @@ static inline int pic32mz_phyreset(uint8_t phyaddr)
  *   None
  *
  * Assumptions:
- *   The adverisement regiser has already been configured.
+ *   The adverisement register has already been configured.
  *
  ****************************************************************************/
 
@@ -2924,9 +3092,11 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
 
 #ifdef CONFIG_ETH0_PHY_DP83848C
   /* The RMII/MII of operation can be selected by strap options or register
-   * control (using the RBR register). For RMII mode, it is required to use the
-   * strap option, since it requires a 50 MHz clock instead of the normal 25 MHz.
+   * control (using the RBR register). For RMII mode, it is required to use
+   * the strap option, since it requires a 50 MHz clock instead of the normal
+   * 25 MHz.
    */
+
 #endif
 
 #else
@@ -2968,13 +3138,15 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
        * PHY address.
        */
 
-       phyreg = (unsigned int)pic32mz_phyread(phyaddr, MII_PHYID1);
-       ninfo("Addr: %d PHY ID1: %04x EXPECT: %04x\n", phyaddr, phyreg, PIC32MZ_PHYID1);
+      phyreg = (unsigned int)pic32mz_phyread(phyaddr, MII_PHYID1);
+      ninfo("Addr: %d PHY ID1: %04x EXPECT: %04x\n",
+            phyaddr, phyreg, PIC32MZ_PHYID1);
 
-       if (phyreg == PIC32MZ_PHYID1)
+      if (phyreg == PIC32MZ_PHYID1)
         {
           phyreg = pic32mz_phyread(phyaddr, MII_PHYID2);
-          ninfo("Addr: %d PHY ID2: %04x EXPECT: %04x\n", phyaddr, phyreg, PIC32MZ_PHYID2);
+          ninfo("Addr: %d PHY ID2: %04x EXPECT: %04x\n",
+                phyaddr, phyreg, PIC32MZ_PHYID2);
 
           if (phyreg == PIC32MZ_PHYID2)
             {
@@ -3060,8 +3232,8 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
   /* Set up the fixed PHY configuration
    *
    * If auto-negotiation is not supported/selected, update the PHY Duplex and
-   * Speed settings directly (use Control Register 0 and possibly some vendor-
-   * pecific registers).
+   * Speed settings directly (use Control Register 0 and possibly some
+   * vendor-specific registers).
    */
 
   ret = pic32mz_phymode(phyaddr, PIC32MZ_MODE_DEFLT);
@@ -3121,7 +3293,8 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
         nerr("ERROR: Unrecognized mode: %04x\n", phyreg);
         return -ENODEV;
     }
-#elif defined(CONFIG_ETH0_PHY_LAN8720) || defined(CONFIG_ETH0_PHY_LAN8740) || defined(CONFIG_ETH0_PHY_LAN8740A)
+#elif defined(CONFIG_ETH0_PHY_LAN8720) || defined(CONFIG_ETH0_PHY_LAN8740) ||\
+      defined(CONFIG_ETH0_PHY_LAN8740A)
   {
     uint16_t advertise;
     uint16_t lpa;
@@ -3141,7 +3314,7 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
     /* Check for 100BASETX half duplex */
 
     else if ((advertise & MII_ADVERTISE_100BASETXHALF) != 0 &&
-        (lpa & MII_LPA_100BASETXHALF) != 0)
+             (lpa & MII_LPA_100BASETXHALF) != 0)
       {
         priv->pd_mode = PIC32MZ_100BASET_HD;
       }
@@ -3149,7 +3322,7 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
     /* Check for 10BASETX full duplex */
 
     else if ((advertise & MII_ADVERTISE_10BASETXFULL) != 0 &&
-        (lpa & MII_LPA_10BASETXFULL) != 0)
+             (lpa & MII_LPA_10BASETXFULL) != 0)
       {
         priv->pd_mode = PIC32MZ_10BASET_FD;
       }
@@ -3157,7 +3330,7 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
     /* Check for 10BASETX half duplex */
 
     else if ((advertise & MII_ADVERTISE_10BASETXHALF) != 0 &&
-        (lpa & MII_LPA_10BASETXHALF) != 0)
+             (lpa & MII_LPA_10BASETXHALF) != 0)
       {
         priv->pd_mode = PIC32MZ_10BASET_HD;
       }
@@ -3172,8 +3345,10 @@ static inline int pic32mz_phyinit(struct pic32mz_driver_s *priv)
 #endif
 
   ninfo("%dBase-T %s duplex\n",
-        (priv->pd_mode & PIC32MZ_SPEED_MASK) ==  PIC32MZ_SPEED_100 ? 100 : 10,
-        (priv->pd_mode & PIC32MZ_DUPLEX_MASK) == PIC32MZ_DUPLEX_FULL ?"full" : "half");
+        (priv->pd_mode & PIC32MZ_SPEED_MASK) ==
+          PIC32MZ_SPEED_100 ? 100 : 10,
+        (priv->pd_mode & PIC32MZ_DUPLEX_MASK) ==
+          PIC32MZ_DUPLEX_FULL ?"full" : "half");
 
   /* Disable auto-configuration.  Set the fixed speed/duplex mode.
    * (probably more than little redundant).
@@ -3220,8 +3395,8 @@ static void pic32mz_macmode(uint8_t mode)
 
       /* Set MAC to operate in full duplex mode with CRC and Pad enabled */
 
-      pic32mz_putreg((EMAC1_CFG2_FULLDPLX | EMAC1_CFG2_CRCEN | EMAC1_CFG2_PADCRCEN),
-                     PIC32MZ_EMAC1_CFG2SET);
+      pic32mz_putreg((EMAC1_CFG2_FULLDPLX | EMAC1_CFG2_CRCEN |
+                      EMAC1_CFG2_PADCRCEN), PIC32MZ_EMAC1_CFG2SET);
     }
   else
     {
@@ -3232,7 +3407,8 @@ static void pic32mz_macmode(uint8_t mode)
       /* Set MAC to operate in half duplex mode with CRC and Pad enabled */
 
       pic32mz_putreg(EMAC1_CFG2_FULLDPLX, PIC32MZ_EMAC1_CFG2CLR);
-      pic32mz_putreg((EMAC1_CFG2_CRCEN | EMAC1_CFG2_PADCRCEN), PIC32MZ_EMAC1_CFG2SET);
+      pic32mz_putreg((EMAC1_CFG2_CRCEN | EMAC1_CFG2_PADCRCEN),
+                     PIC32MZ_EMAC1_CFG2SET);
     }
 
   /* Set the RMII MAC speed. */
@@ -3275,6 +3451,7 @@ static void pic32mz_ethreset(struct pic32mz_driver_s *priv)
   flags = enter_critical_section();
 
   /* Ethernet Controller Initialization *************************************/
+
   /* Disable Ethernet interrupts in the EVIC */
 
 #if CONFIG_PIC32MZ_NINTERFACES > 1
@@ -3285,7 +3462,8 @@ static void pic32mz_ethreset(struct pic32mz_driver_s *priv)
 
   /* Turn the Ethernet Controller off: Clear the ON, RXEN and TXRTS bits */
 
-  pic32mz_putreg(ETH_CON1_RXEN | ETH_CON1_TXRTS | ETH_CON1_ON, PIC32MZ_ETH_CON1CLR);
+  pic32mz_putreg(ETH_CON1_RXEN | ETH_CON1_TXRTS | ETH_CON1_ON,
+                 PIC32MZ_ETH_CON1CLR);
 
   /* Wait activity abort by polling the ETHBUSY bit */
 
@@ -3323,11 +3501,13 @@ static void pic32mz_ethreset(struct pic32mz_driver_s *priv)
   pic32mz_putreg(0xffffffff, PIC32MZ_ETH_RXSTCLR);
 
   /* MAC Initialization *****************************************************/
+
   /* Put the MAC into the reset state */
 
-  pic32mz_putreg((EMAC1_CFG1_TXRST    | EMAC1_CFG1_MCSTXRST | EMAC1_CFG1_RXRST |
-                 EMAC1_CFG1_MCSRXRST | EMAC1_CFG1_SIMRST   | EMAC1_CFG1_SOFTRST),
-                 PIC32MZ_EMAC1_CFG1);
+  pic32mz_putreg((EMAC1_CFG1_TXRST  | EMAC1_CFG1_MCSTXRST |
+                  EMAC1_CFG1_RXRST  | EMAC1_CFG1_MCSRXRST |
+                  EMAC1_CFG1_SIMRST | EMAC1_CFG1_SOFTRST),
+                  PIC32MZ_EMAC1_CFG1);
 
   /* Take the MAC out of the reset state */
 
@@ -3381,10 +3561,10 @@ static inline int pic32mz_ethinitialize(int intf)
   priv->pd_dev.d_private = (void *)priv;    /* Used to recover private state from dev */
 
 #if CONFIG_PIC32MZ_NINTERFACES > 1
-# error "A mechanism to associate base address an IRQ with an interface is needed"
-  priv->pd_base          = ??;            /* Ethernet controller base address */
-  priv->pd_irq           = ??;            /* Ethernet controller IRQ vector number */
-  priv->pd_irqsrc        = ??;            /* Ethernet controller IRQ source number */
+#  error "A mechanism to associate base address an IRQ with an interface is needed"
+  priv->pd_base          = ;            /* Ethernet controller base address */
+  priv->pd_irq           = ;            /* Ethernet controller IRQ vector number */
+  priv->pd_irqsrc        = ;            /* Ethernet controller IRQ source number */
 #endif
 
   /* Create a watchdog for timing polling for and timing of transmissions */
@@ -3393,6 +3573,7 @@ static inline int pic32mz_ethinitialize(int intf)
   priv->pd_txtimeout     = wd_create();   /* Create TX timeout timer */
 
   /* Configure Ethernet peripheral pin selections */
+
   /* Controlled by DEVCFG FMIIEN and FETHIO settings */
 
   /* Reset the Ethernet controller and leave in the ifdown state.  The
@@ -3418,7 +3599,7 @@ static inline int pic32mz_ethinitialize(int intf)
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->pd_dev, NET_LL_ETHERNET);
+  netdev_register(&priv->pd_dev, NET_LL_ETHERNET);
   return OK;
 }
 
@@ -3436,7 +3617,7 @@ static inline int pic32mz_ethinitialize(int intf)
 #if CONFIG_PIC32MZ_NINTERFACES == 1 && !defined(CONFIG_NETDEV_LATEINIT)
 void up_netinitialize(void)
 {
-  (void)pic32mz_ethinitialize(0);
+  pic32mz_ethinitialize(0);
 }
 #endif
 #endif /* CHIP_NETHERNET > 0 */

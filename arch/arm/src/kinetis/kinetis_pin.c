@@ -49,8 +49,8 @@
 #include "up_internal.h"
 
 #include "kinetis.h"
-#include "chip/kinetis_port.h"
-#include "chip/kinetis_gpio.h"
+#include "hardware/kinetis_port.h"
+#include "hardware/kinetis_gpio.h"
 
 /****************************************************************************
  * Public Functions
@@ -61,7 +61,7 @@
  *
  * Description:
  *   Configure a PIN based on bit-encoded description of the pin.  NOTE that
- *   DMA/interrupts are disabled at the initial PIN configuratin.
+ *   DMA/interrupts are disabled at the initial PIN configuration.
  *
  ****************************************************************************/
 

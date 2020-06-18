@@ -169,6 +169,7 @@ begin_packed_struct struct hostfs_rpmsg_statfs_s
     struct statfs              buf;
     uint32_t                   reserved[16];
   };
+
   char                         pathname[0];
 } end_packed_struct;
 
@@ -193,6 +194,7 @@ begin_packed_struct struct hostfs_rpmsg_stat_s
     struct stat                buf;
     uint32_t                   reserved[16];
   };
+
   char                         pathname[0];
 } end_packed_struct;
 

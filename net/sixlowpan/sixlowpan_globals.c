@@ -1,7 +1,7 @@
 /****************************************************************************
  * net/sixlowpan/sixlowpan_globals.c
  *
- *   Copyright (C) 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2017, 2020 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -49,9 +49,9 @@
 
 /* The following data values are used to hold intermediate settings while
  * processing IEEE802.15.4 frames.  These globals are shared with incoming
- * and outgoing frame processing and possibly with mutliple IEEE802.15.4 MAC
+ * and outgoing frame processing and possibly with multiple IEEE802.15.4 MAC
  * devices.  The network lock provides exclusive use of these globals
- * during that processing
+ * during that processing.
  */
 
 /* g_uncomp_hdrlen is the length of the headers before compression (if HC2
@@ -66,5 +66,9 @@ uint8_t g_uncomp_hdrlen;
  */
 
 uint8_t g_frame_hdrlen;
+
+/****************************************************************************
+ * Public Functions
+ ****************************************************************************/
 
 #endif /* CONFIG_NET_6LOWPAN */

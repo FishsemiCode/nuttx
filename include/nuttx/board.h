@@ -35,7 +35,7 @@
 /* This header file contains function prototypes for the interfaces between
  * (1) the nuttx core-code, (2) the microprocessor specific logic that
  * resides under the arch/ sub-directory, and (3) the board-specific logic
- * that resides under configs/
+ * that resides under boards/
  *
  * Naming conventions:
  *
@@ -75,21 +75,21 @@
  *
  *    Board related declarations are retained in this header file.
  *
- *    There is also a configs/<board>/include/board.h header file that
- *    can be used to communicate other board-specific information between
- *    the architecture logic and even application logic.  Any definitions
- *    which are common between a single architecture and several boards
- *    should go in this board.h header file; this file is reserved for
- *    board-related definitions common to all architectures.
+ *    There is also a boards/<arch>/<chip>/<board>/include/board.h header
+ *    file that can be used to communicate other board-specific information
+ *    between the architecture logic and even application logic.  Any
+ *    definitions that are common between a single architecture and several
+ *    boards should go in this board.h header file; this file is reserved
+ *    for board-related definitions common to all architectures.
  *
  * 4. Board-Specific Interfaces.
  *
- *    Any interface which is unique to a board should be prefixed with
+ *    Any interface that is unique to a board should be prefixed with
  *    the board name, for example stm32f4discovery_. Sometimes the board
  *    name is too long so stm32_ would be okay too. These should be
- *    prototyped in configs/<board>/src/<board>.h and should not be used
- *    outside of that board directory since board-specific definitions
- *    have no meaning outside of the board directory.
+ *    prototyped in boards/<arch>/<chip>/<board>/src/<board>.h and should
+ *    not be used outside of that board directory since board-specific
+ *    definitions have no meaning outside of the board directory.
  */
 
 #ifndef __INCLUDE_NUTTX_BOARD_H
@@ -159,7 +159,7 @@ void board_early_initialize(void);
  *   specific device drivers for which board_early_initialize() is not
  *   suitable.
  *
- *   Waiting for events, use of I2C, SPI, etc are permissable in the context
+ *   Waiting for events, use of I2C, SPI, etc are permissible in the context
  *   of board_late_initialize().  That is because board_late_initialize()
  *   will run on a temporary, internal kernel thread.
  *
@@ -181,7 +181,7 @@ void board_late_initialize(void);
  *   arg - The boardctl() argument is passed to the board_app_initialize()
  *         implementation without modification.  The argument has no
  *         meaning to NuttX; the meaning of the argument is a contract
- *         between the board-specific initalization logic and the
+ *         between the board-specific initialization logic and the
  *         matching application logic.  The value cold be such things as a
  *         mode enumeration value, a set of DIP switch switch settings, a
  *         pointer to configuration data read from a file or serial FLASH,
@@ -245,13 +245,14 @@ int board_power_off(int status);
  * Name: board_reset
  *
  * Description:
- *   Reset board.  This function may or may not be supported by a
- *   particular board architecture.
+ *   Reset board.  Support for this function is required by board-level
+ *   logic if CONFIG_BOARDCTL_RESET is selected.
  *
  * Input Parameters:
  *   status - Status information provided with the reset event.  This
- *     meaning of this status information is board-specific.  If not used by
- *     a board, the value zero may be provided in calls to board_reset.
+ *            meaning of this status information is board-specific.  If not
+ *            used by a board, the value zero may be provided in calls to
+ *            board_reset().
  *
  * Returned Value:
  *   If this function returns, then it was not possible to power-off the
@@ -281,7 +282,7 @@ int board_reset(int status);
  *     length.
  *
  * Returned Value:
- *   Zero (OK) is returned on success.  Otherwize a negated errno value is
+ *   Zero (OK) is returned on success.  Otherwise a negated errno value is
  *   returned indicating the nature of the failure.
  *
  ****************************************************************************/
@@ -540,9 +541,9 @@ void board_autoled_off(int led);
  *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
  *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then this interfaces may be
  *   available to control the LEDs directly from user board logic or
- *   indirectly user applications (via the common LED charater driver).
+ *   indirectly user applications (via the common LED character driver).
  *
- *   Most boards have only a few LEDs and in thoses cases all LEDs may be
+ *   Most boards have only a few LEDs and in those cases all LEDs may be
  *   used by the NuttX LED logic exclusively and may not be available for
  *   use by user logic if CONFIG_ARCH_LEDS=y.
  *
@@ -566,9 +567,9 @@ void board_userled_initialize(void);
  *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
  *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then this interfaces may be
  *   available to control the LEDs directly from user board logic or
- *   indirectly user applications (via the common LED charater driver).
+ *   indirectly user applications (via the common LED character driver).
  *
- *   Most boards have only a few LEDs and in thoses cases all LEDs may be
+ *   Most boards have only a few LEDs and in those cases all LEDs may be
  *   used by the NuttX LED logic exclusively and may not be available for
  *   use by user logic if CONFIG_ARCH_LEDS=y.
  *
@@ -592,9 +593,9 @@ void board_userled(int led, bool ledon);
  *   If CONFIG_ARCH_LEDS is defined, then NuttX will control the on-board
  *   LEDs.  If CONFIG_ARCH_LEDS is not defined, then this interfaces may be
  *   available to control the LEDs directly from user board logic or
- *   indirectly user applications (via the common LED charater driver).
+ *   indirectly user applications (via the common LED character driver).
  *
- *   Most boards have only a few LEDs and in thoses cases all LEDs may be
+ *   Most boards have only a few LEDs and in those cases all LEDs may be
  *   used by the NuttX LED logic exclusively and may not be available for
  *   use by user logic if CONFIG_ARCH_LEDS=y.
  *
@@ -700,7 +701,7 @@ void board_crashdump(uintptr_t currentsp, FAR void *tcb,
  * Description:
  *   If CONFIG_BOARD_INITRNGSEED is selected then board_init_rngseed is
  *   called at up_randompool_initialize() to feed initial random seed
- *   to RNG. Implemenation of this functions should feed at least
+ *   to RNG. Implementation of this functions should feed at least
  *   MIN_SEED_NEW_ENTROPY_WORDS 32-bit random words to entropy-pool using
  *   up_rngaddentropy() or up_rngaddint().
  *

@@ -63,16 +63,16 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
-/* In the original design, it was planned that sched_timer_reasses() be
+/* In the original design, it was planned that sched_timer_reassess() be
  * called whenever there was a change at the head of the ready-to-run
  * list.  That call was intended to establish a new time-slice or to
  * stop an old time-slice timer.  However, it turns out that that
  * solution is too fragile:  The system is too vulnerable at the time
- * that the read-to-run list is modified in order to muck with timers.
+ * that the ready-to-run list is modified in order to muck with timers.
  *
  * The kludge/work-around is simple to keep the timer running all of the
  * time with an interval of no more than the timeslice interval.  If we
- * this, then there is really no need to do anything when on context
+ * do this, then there is really no need to do anything when on context
  * switches.
  */
 
@@ -562,7 +562,7 @@ void nxsched_timer_expiration(void)
 #ifdef CONFIG_SCHED_SPORADIC
   /* Save the last time that the scheduler ran */
 
-  (void)up_timer_gettime(&g_sched_time);
+  up_timer_gettime(&g_sched_time);
 #endif
 
   /* Process the timer ticks and set up the next interval (or not) */
@@ -610,7 +610,7 @@ unsigned int sched_timer_cancel(void)
   ts.tv_sec  = g_stop_time.tv_sec;
   ts.tv_nsec = g_stop_time.tv_nsec;
 
-  (void)up_alarm_cancel(&g_stop_time);
+  up_alarm_cancel(&g_stop_time);
 
 #ifdef CONFIG_SCHED_SPORADIC
   /* Save the last time that the scheduler ran */
@@ -654,7 +654,7 @@ unsigned int sched_timer_cancel(void)
 
   /* Get the time remaining on the interval timer and cancel the timer. */
 
-  (void)up_timer_cancel(&ts);
+  up_timer_cancel(&ts);
 
 #ifdef CONFIG_SCHED_SPORADIC
   /* Save the last time that the scheduler ran */
@@ -716,7 +716,7 @@ void sched_timer_resume(void)
 #ifdef CONFIG_SCHED_SPORADIC
   /* Save the last time that the scheduler ran */
 
-  (void)up_timer_gettime(&g_sched_time);
+  up_timer_gettime(&g_sched_time);
 #endif
 
   /* Reassess the next deadline (by simply processing a zero ticks expired)
@@ -740,12 +740,12 @@ void sched_timer_resume(void)
  *   - When pre-emption is re-enabled.  A previous time slice may have
  *     expired while pre-emption was enabled and now needs to be executed.
  *
- *   In the original design, it was also planned that sched_timer_reasses()
+ *   In the original design, it was also planned that sched_timer_reassess()
  *   be called whenever there was a change at the head of the ready-to-run
  *   list.  That call was intended to establish a new time-slice for the
  *   newly activated task or to stop the timer if time-slicing is no longer
  *   needed.  However, it turns out that that solution is too fragile:  The
- *   system is too vulnerable at the time that the read-to-run list is
+ *   system is too vulnerable at the time that the ready-to-run list is
  *   modified in order to muck with timers.
  *
  *   The kludge/work-around is simple to keep the timer running all of the

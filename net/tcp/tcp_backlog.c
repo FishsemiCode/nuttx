@@ -1,7 +1,8 @@
 /****************************************************************************
  * net/tcp/tcp_backlog.c
  *
- *   Copyright (C) 2008-2009, 2011-2013 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2008-2009, 2011-2013, 2020 Gregory Nutt. All rights
+ *     reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -179,30 +180,31 @@ int tcp_backlogdestroy(FAR struct tcp_conn_s *conn)
 
   if (conn->backlog)
     {
-       /* Remove the backlog structure reference from the connection */
+      /* Remove the backlog structure reference from the connection */
 
-       blg           = conn->backlog;
-       conn->backlog = NULL;
+      blg           = conn->backlog;
+      conn->backlog = NULL;
 
-       /* Handle any pending connections in the backlog */
+      /* Handle any pending connections in the backlog */
 
-       while ((blc = (FAR struct tcp_blcontainer_s *)sq_remfirst(&blg->bl_pending)) != NULL)
-         {
-           blconn = blc->bc_conn;
-           if (blconn)
-             {
-               /* REVISIT -- such connections really need to be gracefully closed */
+      while ((blc = (FAR struct tcp_blcontainer_s *)
+                    sq_remfirst(&blg->bl_pending)) != NULL)
+        {
+          blconn = blc->bc_conn;
+          if (blconn)
+            {
+              /* REVISIT -- such connections really need to be gracefully closed */
 
-               blconn->blparent = NULL;
-               blconn->backlog  = NULL;
-               blconn->crefs    = 0;
-               tcp_free(blconn);
-             }
-         }
+              blconn->blparent = NULL;
+              blconn->backlog  = NULL;
+              blconn->crefs    = 0;
+              tcp_free(blconn);
+            }
+        }
 
-       /* Then free the entire backlog structure */
+      /* Then free the entire backlog structure */
 
-       kmm_free(blg);
+      kmm_free(blg);
     }
 
   return OK;
@@ -239,12 +241,12 @@ int tcp_backlogadd(FAR struct tcp_conn_s *conn, FAR struct tcp_conn_s *blconn)
   bls = conn->backlog;
   if (bls && blconn)
     {
-      /* Allocate a container for the connection from the free list */
+      /* Get a container for the connection from the free list */
 
       blc = (FAR struct tcp_blcontainer_s *)sq_remfirst(&bls->bl_free);
       if (!blc)
         {
-          nerr("ERROR: Failed to allocate container\n");
+          nerr("ERROR: There are no free containers for TCP BACKLOG!\n");
           ret = -ENOMEM;
         }
       else
@@ -274,12 +276,10 @@ int tcp_backlogadd(FAR struct tcp_conn_s *conn, FAR struct tcp_conn_s *blconn)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 bool tcp_backlogavailable(FAR struct tcp_conn_s *conn)
 {
   return (conn && conn->backlog && !sq_empty(&conn->backlog->bl_pending));
 }
-#endif
 
 /****************************************************************************
  * Name: tcp_backlogremove
@@ -364,7 +364,8 @@ int tcp_backlogdelete(FAR struct tcp_conn_s *conn,
     {
       /* Find the container hold the connection */
 
-      for (blc = (FAR struct tcp_blcontainer_s *)sq_peek(&bls->bl_pending), prev = NULL;
+      for (blc = (FAR struct tcp_blcontainer_s *)sq_peek(&bls->bl_pending),
+           prev = NULL;
            blc;
            prev = blc, blc = (FAR struct tcp_blcontainer_s *)sq_next(&blc->bc_node))
         {
@@ -376,7 +377,7 @@ int tcp_backlogdelete(FAR struct tcp_conn_s *conn,
                    * pending connections
                    */
 
-                  (void)sq_remafter(&prev->bc_node, &bls->bl_pending);
+                  sq_remafter(&prev->bc_node, &bls->bl_pending);
                 }
               else
                 {
@@ -384,7 +385,7 @@ int tcp_backlogdelete(FAR struct tcp_conn_s *conn,
                    * pending connections
                    */
 
-                  (void)sq_remfirst(&bls->bl_pending);
+                  sq_remfirst(&bls->bl_pending);
                 }
 
               /* Put container in the free list */

@@ -142,11 +142,12 @@ static int ifconf_ipv4_callback(FAR struct net_driver_s *dev, FAR void *arg)
           inaddr->sin_family = AF_INET;
           inaddr->sin_port   = 0;
           net_ipv4addr_copy(inaddr->sin_addr.s_addr, dev->d_ipaddr);
+          memset(inaddr->sin_zero, 0, sizeof(inaddr->sin_zero));
         }
 
-       /* Increment the size of the buffer in any event */
+      /* Increment the size of the buffer in any event */
 
-       ifc->ifc_len += sizeof(struct ifreq);
+      ifc->ifc_len += sizeof(struct ifreq);
     }
 
   return 0;
@@ -221,9 +222,9 @@ static int ifconf_ipv6_callback(FAR struct net_driver_s *dev, FAR void *arg)
           net_ipv6addr_copy(inaddr->sin6_addr.s6_addr16, dev->d_ipv6addr);
         }
 
-       /* Increment the size of the buffer in any event */
+      /* Increment the size of the buffer in any event */
 
-       lifc->lifc_len += sizeof(struct lifreq);
+      lifc->lifc_len += sizeof(struct lifreq);
     }
 
   return 0;
@@ -250,7 +251,7 @@ static int ifconf_ipv6_callback(FAR struct net_driver_s *dev, FAR void *arg)
  *   failure.
  *
  * Assumptions:
- *  The nework is locked
+ *  The network is locked
  *
  ****************************************************************************/
 
@@ -283,7 +284,7 @@ int netdev_ipv4_ifconf(FAR struct ifconf *ifc)
  *   failure.
  *
  * Assumptions:
- *  The nework is locked
+ *  The network is locked
  *
  ****************************************************************************/
 

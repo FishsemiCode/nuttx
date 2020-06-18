@@ -117,9 +117,7 @@ static const struct file_operations i2schar_fops =
   i2schar_write,        /* write */
   NULL,                 /* seek  */
   i2schar_ioctl,        /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
   NULL,                 /* poll  */
-#endif
 };
 
 /****************************************************************************
@@ -441,6 +439,7 @@ int i2schar_register(FAR struct i2s_dev_s *i2s, int minor)
            */
 
           kmm_free(priv);
+          return ret;
         }
 
       /* Return the result of the registration */

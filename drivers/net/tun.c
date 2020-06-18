@@ -47,10 +47,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <debug.h>
-
-#ifndef CONFIG_DISABLE_POLL
-#  include <poll.h>
-#endif
+#include <poll.h>
 
 #include <arpa/inet.h>
 
@@ -137,17 +134,13 @@ struct tun_device_s
 {
   bool              bifup;     /* true:ifup false:ifdown */
   bool              read_wait;
+  bool              write_wait;
   WDOG_ID           txpoll;    /* TX poll timer */
   struct work_s     work;      /* For deferring poll work to the work queue */
-
-  FAR struct file  *filep;
-
-#ifndef CONFIG_DISABLE_POLL
   FAR struct pollfd *poll_fds;
-#endif
-
   sem_t             waitsem;
   sem_t             read_wait_sem;
+  sem_t             write_wait_sem;
   size_t            read_d_len;
   size_t            write_d_len;
 
@@ -173,12 +166,12 @@ struct tun_driver_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static void tun_lock(FAR struct tun_device_s *priv);
+static int  tun_lock(FAR struct tun_device_s *priv);
 static void tun_unlock(FAR struct tun_device_s *priv);
 
 /* Common TX logic */
 
-static int  tun_fd_transmit(FAR struct tun_device_s *priv);
+static void tun_fd_transmit(FAR struct tun_device_s *priv);
 static int  tun_txpoll(FAR struct net_driver_s *dev);
 #ifdef CONFIG_NET_ETHERNET
 static int  tun_txpoll_tap(FAR struct net_driver_s *dev);
@@ -209,13 +202,11 @@ static int tun_txavail(FAR struct net_driver_s *dev);
 static int tun_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 static int tun_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
 #endif
-#ifdef CONFIG_NET_ICMPv6
-static void tun_ipv6multicast(FAR struct tun_device_s *priv);
-#endif
 
-static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
+static int tun_dev_init(FAR struct tun_device_s *priv,
+                        FAR struct file *filep,
                         FAR const char *devfmt, bool tun);
-static int tun_dev_uninit(FAR struct tun_device_s *priv);
+static void tun_dev_uninit(FAR struct tun_device_s *priv);
 
 /* File interface */
 
@@ -226,10 +217,8 @@ static ssize_t tun_read(FAR struct file *filep, FAR char *buffer,
 static ssize_t tun_write(FAR struct file *filep, FAR const char *buffer,
                          size_t buflen);
 static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg);
-#ifndef CONFIG_DISABLE_POLL
 static int tun_poll(FAR struct file *filep, FAR struct pollfd *fds,
                     bool setup);
-#endif
 
 /****************************************************************************
  * Private Data
@@ -244,13 +233,11 @@ static const struct file_operations g_tun_file_ops =
   tun_close,    /* close */
   tun_read,     /* read */
   tun_write,    /* write */
-  0,            /* seek */
+  NULL,         /* seek */
   tun_ioctl,    /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
   tun_poll,     /* poll */
-#endif
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
-  0,            /* unlink */
+  NULL,         /* unlink */
 #endif
 };
 
@@ -262,23 +249,9 @@ static const struct file_operations g_tun_file_ops =
  * Name: tundev_lock
  ****************************************************************************/
 
-static void tundev_lock(FAR struct tun_driver_s *tun)
+static int tundev_lock(FAR struct tun_driver_s *tun)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&tun->waitsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&tun->waitsem);
 }
 
 /****************************************************************************
@@ -294,23 +267,9 @@ static void tundev_unlock(FAR struct tun_driver_s *tun)
  * Name: tun_lock
  ****************************************************************************/
 
-static void tun_lock(FAR struct tun_device_s *priv)
+static int tun_lock(FAR struct tun_device_s *priv)
 {
-  int ret;
-
-  do
-    {
-      /* Take the semaphore (perhaps waiting) */
-
-      ret = nxsem_wait(&priv->waitsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
-       */
-
-      DEBUGASSERT(ret == OK || ret == -EINTR);
-    }
-  while (ret == -EINTR);
+  return nxsem_wait_uninterruptible(&priv->waitsem);
 }
 
 /****************************************************************************
@@ -326,11 +285,22 @@ static void tun_unlock(FAR struct tun_device_s *priv)
  * Name: tun_pollnotify
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 static void tun_pollnotify(FAR struct tun_device_s *priv,
                            pollevent_t eventset)
 {
   FAR struct pollfd *fds = priv->poll_fds;
+
+  if (priv->read_wait && (eventset & POLLIN))
+    {
+      priv->read_wait = false;
+      nxsem_post(&priv->read_wait_sem);
+    }
+
+  if (priv->write_wait && (eventset & POLLOUT))
+    {
+      priv->write_wait = false;
+      nxsem_post(&priv->write_wait_sem);
+    }
 
   if (fds == NULL)
     {
@@ -345,9 +315,6 @@ static void tun_pollnotify(FAR struct tun_device_s *priv,
       nxsem_post(fds->sem);
     }
 }
-#else
-#  define tun_pollnotify(dev, event)
-#endif
 
 /****************************************************************************
  * Name: tun_fd_transmit
@@ -360,7 +327,7 @@ static void tun_pollnotify(FAR struct tun_device_s *priv,
  *   priv - Reference to the driver state structure
  *
  * Returned Value:
- *   OK on success; a negated errno on failure
+ *   None
  *
  * Assumptions:
  *   May or may not be called from an interrupt handler.  In either case,
@@ -369,23 +336,10 @@ static void tun_pollnotify(FAR struct tun_device_s *priv,
  *
  ****************************************************************************/
 
-static int tun_fd_transmit(FAR struct tun_device_s *priv)
+static void tun_fd_transmit(FAR struct tun_device_s *priv)
 {
   NETDEV_TXPACKETS(&priv->dev);
-
-  /* Verify that the hardware is ready to send another packet.  If we get
-   * here, then we are committed to sending a packet; Higher level logic
-   * must have assured that there is no transmission in progress.
-   */
-
-  if (priv->read_wait)
-    {
-      priv->read_wait = false;
-      nxsem_post(&priv->read_wait_sem);
-    }
-
   tun_pollnotify(priv, POLLIN);
-  return OK;
 }
 
 /****************************************************************************
@@ -496,8 +450,8 @@ static int tun_txpoll_tap(FAR struct net_driver_s *dev)
         }
     }
 
-  /* If zero is returned, the polling will continue until all connections have
-   * been examined.
+  /* If zero is returned, the polling will continue until all connections
+   * have been examined.
    */
 
   return 0;
@@ -633,70 +587,18 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
 
       arp_ipin(&priv->dev);
       ipv4_input(&priv->dev);
-
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field d_len will set to a value > 0.
-       */
-
-      if (priv->dev.d_len > 0)
-        {
-          /* Update the Ethernet header with the correct MAC address */
-
-#ifdef CONFIG_NET_IPv6
-          if (IFF_IS_IPv4(priv->dev.d_flags))
-#endif
-            {
-              arp_out(&priv->dev);
-            }
-#ifdef CONFIG_NET_IPv6
-          else
-            {
-              neighbor_out(&priv->dev);
-            }
-#endif
-
-          /* And send the packet */
-
-          priv->write_d_len = priv->dev.d_len;
-          tun_fd_transmit(priv);
-        }
     }
   else
 #endif
 #ifdef CONFIG_NET_IPv6
   if (BUF->type == HTONS(ETHTYPE_IP6))
     {
-      ninfo("Iv6 frame\n");
+      ninfo("IPv6 frame\n");
       NETDEV_RXIPV6(&priv->dev);
 
       /* Give the IPv6 packet to the network layer. */
 
       ipv6_input(&priv->dev);
-
-      /* If the above function invocation resulted in data that should be
-       * sent out on the network, the field d_len will set to a value > 0.
-       */
-
-      if (priv->dev.d_len > 0)
-        {
-          /* Update the Ethernet header with the correct MAC address */
-
-#ifdef CONFIG_NET_IPv4
-          if (IFF_IS_IPv4(priv->dev.d_flags))
-            {
-              arp_out(&priv->dev);
-            }
-          else
-#endif
-#ifdef CONFIG_NET_IPv6
-            {
-              neighbor_out(&priv->dev);
-            }
-#endif
-
-          priv->write_d_len = priv->dev.d_len;
-          tun_fd_transmit(priv);
-        }
     }
   else
 #endif
@@ -714,12 +616,41 @@ static void tun_net_receive_tap(FAR struct tun_device_s *priv)
         {
           priv->write_d_len = priv->dev.d_len;
           tun_fd_transmit(priv);
+          priv->dev.d_len = 0;
         }
     }
   else
 #endif
     {
       NETDEV_RXDROPPED(&priv->dev);
+      priv->dev.d_len = 0;
+    }
+
+  /* If the above function invocation resulted in data that should be
+   * sent out on the network, the field d_len will set to a value > 0.
+   */
+
+  if (priv->dev.d_len > 0)
+    {
+      /* Update the Ethernet header with the correct MAC address */
+
+#ifdef CONFIG_NET_IPv6
+      if (IFF_IS_IPv4(priv->dev.d_flags))
+#endif
+        {
+          arp_out(&priv->dev);
+        }
+#ifdef CONFIG_NET_IPv6
+      else
+        {
+          neighbor_out(&priv->dev);
+        }
+#endif
+
+      /* And send the packet */
+
+      priv->write_d_len = priv->dev.d_len;
+      tun_fd_transmit(priv);
     }
 }
 #endif
@@ -773,7 +704,7 @@ static void tun_net_receive_tun(FAR struct tun_device_s *priv)
 #if defined(CONFIG_NET_IPv6)
   if ((IPv6BUF->vtc & IP_VERSION_MASK) == IPv6_VERSION)
     {
-      ninfo("Iv6 frame\n");
+      ninfo("IPv6 frame\n");
       NETDEV_RXIPV6(&priv->dev);
 
       /* Give the IPv6 packet to the network layer. */
@@ -824,7 +755,7 @@ static void tun_txdone(FAR struct tun_device_s *priv)
   /* Then poll the network for new XMIT data */
 
   priv->dev.d_buf = priv->read_buf;
-  (void)devif_poll(&priv->dev, tun_txpoll);
+  devif_poll(&priv->dev, tun_txpoll);
 }
 
 /****************************************************************************
@@ -847,10 +778,21 @@ static void tun_txdone(FAR struct tun_device_s *priv)
 static void tun_poll_work(FAR void *arg)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)arg;
+  int ret;
 
   /* Perform the poll */
 
-  tun_lock(priv);
+  ret = tun_lock(priv);
+  if (ret < 0)
+    {
+      /* This would indicate that the worker thread was canceled.. not a
+       * likely event.
+       */
+
+      DEBUGASSERT(ret == -ECANCELED);
+      return;
+    }
+
   net_lock();
 
   /* Check if there is room in the send another TX packet.  We cannot perform
@@ -862,12 +804,12 @@ static void tun_poll_work(FAR void *arg)
       /* If so, poll the network for new XMIT data. */
 
       priv->dev.d_buf = priv->read_buf;
-      (void)devif_timer(&priv->dev, tun_txpoll);
+      devif_timer(&priv->dev, TUN_WDDELAY, tun_txpoll);
     }
 
   /* Setup the watchdog poll timer again */
 
-  (void)wd_start(priv->txpoll, TUN_WDDELAY, tun_poll_expiry, 1, priv);
+  wd_start(priv->txpoll, TUN_WDDELAY, tun_poll_expiry, 1, priv);
 
   net_unlock();
   tun_unlock(priv);
@@ -933,20 +875,10 @@ static int tun_ifup(FAR struct net_driver_s *dev)
         dev->d_ipv6addr[6], dev->d_ipv6addr[7]);
 #endif
 
-  /* Initialize PHYs, the Ethernet interface, and setup up Ethernet interrupts */
-
-  /* Instantiate the MAC address from priv->dev.d_mac.ether.ether_addr_octet */
-
-#ifdef CONFIG_NET_ICMPv6
-  /* Set up IPv6 multicast address filtering */
-
-  tun_ipv6multicast(priv);
-#endif
-
   /* Set and activate a timer process */
 
-  (void)wd_start(priv->txpoll, TUN_WDDELAY, tun_poll_expiry,
-                 1, (wdparm_t)priv);
+  wd_start(priv->txpoll, TUN_WDDELAY, tun_poll_expiry,
+           1, (wdparm_t)priv);
 
   priv->bifup = true;
   return OK;
@@ -1009,8 +941,15 @@ static int tun_ifdown(FAR struct net_driver_s *dev)
 static void tun_txavail_work(FAR void *arg)
 {
   FAR struct tun_device_s *priv = (FAR struct tun_device_s *)arg;
+  int ret;
 
-  tun_lock(priv);
+  ret = tun_lock(priv);
+  if (ret < 0)
+    {
+      /* Thread has been canceled, skip poll-related work */
+
+      return;
+    }
 
   /* Check if there is room to hold another network packet. */
 
@@ -1026,7 +965,7 @@ static void tun_txavail_work(FAR void *arg)
       /* Poll the network for new XMIT data */
 
       priv->dev.d_buf = priv->read_buf;
-      (void)devif_poll(&priv->dev, tun_txpoll);
+      devif_poll(&priv->dev, tun_txpoll);
     }
 
   net_unlock();
@@ -1121,28 +1060,6 @@ static int tun_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 #endif
 
 /****************************************************************************
- * Name: tun_ipv6multicast
- *
- * Description:
- *   Configure the IPv6 multicast MAC address.
- *
- * Input Parameters:
- *   priv - A reference to the private driver state structure
- *
- * Returned Value:
- *   OK on success; Negated errno on failure.
- *
- * Assumptions:
- *
- ****************************************************************************/
-
-#ifdef CONFIG_NET_ICMPv6
-static void tun_ipv6multicast(FAR struct tun_device_s *priv)
-{
-}
-#endif /* CONFIG_NET_ICMPv6 */
-
-/****************************************************************************
  * Name: tun_dev_init
  *
  * Description:
@@ -1157,7 +1074,8 @@ static void tun_ipv6multicast(FAR struct tun_device_s *priv)
  *
  ****************************************************************************/
 
-static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
+static int tun_dev_init(FAR struct tun_device_s *priv,
+                        FAR struct file *filep,
                         FAR const char *devfmt, bool tun)
 {
   int ret;
@@ -1178,16 +1096,18 @@ static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
 
   nxsem_init(&priv->waitsem, 0, 1);
   nxsem_init(&priv->read_wait_sem, 0, 0);
+  nxsem_init(&priv->write_wait_sem, 0, 0);
 
   /* The wait semaphore is used for signaling and, hence, should not have
    * priority inheritance enabled.
    */
 
   nxsem_setprotocol(&priv->read_wait_sem, SEM_PRIO_NONE);
+  nxsem_setprotocol(&priv->write_wait_sem, SEM_PRIO_NONE);
 
   /* Create a watchdog for timing polling for and timing of transmissions */
 
-  priv->txpoll        = wd_create();  /* Create periodic poll timer */
+  priv->txpoll = wd_create(); /* Create periodic poll timer */
 
   /* Assign d_ifname if specified. */
 
@@ -1203,12 +1123,11 @@ static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
     {
       nxsem_destroy(&priv->waitsem);
       nxsem_destroy(&priv->read_wait_sem);
+      nxsem_destroy(&priv->write_wait_sem);
       return ret;
     }
 
-  priv->filep         = filep;        /* Set link to file */
-  filep->f_priv       = priv;         /* Set link to TUN device */
-
+  filep->f_priv = priv; /* Set link to TUN device */
   return ret;
 }
 
@@ -1216,7 +1135,7 @@ static int tun_dev_init(FAR struct tun_device_s *priv, FAR struct file *filep,
  * Name: tun_dev_uninit
  ****************************************************************************/
 
-static int tun_dev_uninit(FAR struct tun_device_s *priv)
+static void tun_dev_uninit(FAR struct tun_device_s *priv)
 {
   /* Put the interface in the down state */
 
@@ -1224,12 +1143,11 @@ static int tun_dev_uninit(FAR struct tun_device_s *priv)
 
   /* Remove the device from the OS */
 
-  (void)netdev_unregister(&priv->dev);
+  netdev_unregister(&priv->dev);
 
   nxsem_destroy(&priv->waitsem);
   nxsem_destroy(&priv->read_wait_sem);
-
-  return OK;
+  nxsem_destroy(&priv->write_wait_sem);
 }
 
 /****************************************************************************
@@ -1239,7 +1157,6 @@ static int tun_dev_uninit(FAR struct tun_device_s *priv)
 static int tun_open(FAR struct file *filep)
 {
   filep->f_priv = 0;
-
   return OK;
 }
 
@@ -1253,6 +1170,7 @@ static int tun_close(FAR struct file *filep)
   FAR struct tun_driver_s *tun  = inode->i_private;
   FAR struct tun_device_s *priv = filep->f_priv;
   int intf;
+  int ret;
 
   if (priv == NULL)
     {
@@ -1260,14 +1178,16 @@ static int tun_close(FAR struct file *filep)
     }
 
   intf = priv - g_tun_devices;
-  tundev_lock(tun);
+  ret  = tundev_lock(tun);
+  if (ret >= 0)
+    {
+      tun->free_tuns |= (1 << intf);
+      tun_dev_uninit(priv);
 
-  tun->free_tuns |= (1 << intf);
-  (void)tun_dev_uninit(priv);
+      tundev_unlock(tun);
+    }
 
-  tundev_unlock(tun);
-
-  return OK;
+  return ret;
 }
 
 /****************************************************************************
@@ -1278,43 +1198,58 @@ static ssize_t tun_write(FAR struct file *filep, FAR const char *buffer,
                          size_t buflen)
 {
   FAR struct tun_device_s *priv = filep->f_priv;
-  ssize_t ret;
+  ssize_t nwritten = 0;
+  int ret;
 
-  if (priv == NULL)
+  if (priv == NULL || buflen > CONFIG_NET_TUN_PKTSIZE)
     {
       return -EINVAL;
     }
 
-  tun_lock(priv);
-
-  if (priv->write_d_len > 0)
+  for (; ; )
     {
+      /* Write must return immediately if interrupted by a signal (or if the
+       * thread is canceled) and no data has yet been written.
+       */
+
+      ret = nxsem_wait(&priv->waitsem);
+      if (ret < 0)
+        {
+          return nwritten == 0 ? (ssize_t)ret : nwritten;
+        }
+
+      /* Check if there are free space to write */
+
+      if (priv->write_d_len == 0)
+        {
+          memcpy(priv->write_buf, buffer, buflen);
+
+          net_lock();
+          priv->dev.d_buf = priv->write_buf;
+          priv->dev.d_len = buflen;
+
+          tun_net_receive(priv);
+          net_unlock();
+
+          nwritten = buflen;
+          break;
+        }
+
+      /* Wait if there are no free space to write */
+
+      if ((filep->f_oflags & O_NONBLOCK) != 0)
+        {
+          nwritten = -EAGAIN;
+          break;
+        }
+
+      priv->write_wait = true;
       tun_unlock(priv);
-      return -EBUSY;
+      nxsem_wait(&priv->write_wait_sem);
     }
 
-  net_lock();
-
-  if (buflen > CONFIG_NET_TUN_PKTSIZE)
-    {
-      ret = -EINVAL;
-    }
-  else
-    {
-      memcpy(priv->write_buf, buffer, buflen);
-
-      priv->dev.d_buf = priv->write_buf;
-      priv->dev.d_len = buflen;
-
-      tun_net_receive(priv);
-
-      ret = (ssize_t)buflen;
-    }
-
-  net_unlock();
   tun_unlock(priv);
-
-  return ret;
+  return nwritten;
 }
 
 /****************************************************************************
@@ -1325,86 +1260,91 @@ static ssize_t tun_read(FAR struct file *filep, FAR char *buffer,
                         size_t buflen)
 {
   FAR struct tun_device_s *priv = filep->f_priv;
-  ssize_t ret;
-  size_t write_d_len;
-  size_t read_d_len;
+  ssize_t nread = 0;
+  int ret;
 
   if (priv == NULL)
     {
       return -EINVAL;
     }
 
-  tun_lock(priv);
-
-  /* Check if there are data to read in write buffer */
-
-  write_d_len = priv->write_d_len;
-  if (write_d_len > 0)
+  for (; ; )
     {
-      if (buflen < write_d_len)
+      /* Read must return immediately if interrupted by a signal (or if the
+       * thread is canceled) and no data has yet been read.
+       */
+
+      ret = nxsem_wait(&priv->waitsem);
+      if (ret < 0)
         {
-          ret = -EINVAL;
-          goto out;
+          return nread == 0 ? (ssize_t)ret : nread;
         }
 
-      memcpy(buffer, priv->write_buf, write_d_len);
-      ret = (ssize_t)write_d_len;
+      /* Check if there are data to read in write buffer */
 
-      priv->write_d_len = 0;
-      NETDEV_TXDONE(&priv->dev);
-      tun_pollnotify(priv, POLLOUT);
+      if (priv->write_d_len > 0)
+        {
+          if (buflen < priv->write_d_len)
+            {
+              nread = -EINVAL;
+              break;
+            }
 
-      goto out;
-    }
+          memcpy(buffer, priv->write_buf, priv->write_d_len);
+          nread = priv->write_d_len;
+          priv->write_d_len = 0;
 
-  if (priv->read_d_len == 0)
-    {
+          NETDEV_TXDONE(&priv->dev);
+          tun_pollnotify(priv, POLLOUT);
+          break;
+        }
+
+      /* Check if there are data to read in read buffer */
+
+      if (priv->read_d_len > 0)
+        {
+          if (buflen < priv->read_d_len)
+            {
+              nread = -EINVAL;
+              break;
+            }
+
+          memcpy(buffer, priv->read_buf, priv->read_d_len);
+          nread = priv->read_d_len;
+          priv->read_d_len = 0;
+
+          net_lock();
+          tun_txdone(priv);
+          net_unlock();
+          break;
+        }
+
+      /* Wait if there are no data to read */
+
       if ((filep->f_oflags & O_NONBLOCK) != 0)
         {
-          ret = -EAGAIN;
-          goto out;
+          nread = -EAGAIN;
+          break;
         }
 
       priv->read_wait = true;
       tun_unlock(priv);
-      (void)nxsem_wait(&priv->read_wait_sem);
-      tun_lock(priv);
+      nxsem_wait(&priv->read_wait_sem);
     }
 
-  net_lock();
-
-  read_d_len = priv->read_d_len;
-  if (buflen < read_d_len)
-    {
-      ret = -EINVAL;
-    }
-  else
-    {
-      memcpy(buffer, priv->read_buf, read_d_len);
-      ret = (ssize_t)read_d_len;
-    }
-
-  priv->read_d_len = 0;
-  tun_txdone(priv);
-
-  net_unlock();
-
-out:
   tun_unlock(priv);
-
-  return ret;
+  return nread;
 }
 
 /****************************************************************************
  * Name: tun_poll
  ****************************************************************************/
 
-#ifndef CONFIG_DISABLE_POLL
 int tun_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 {
   FAR struct tun_device_s *priv = filep->f_priv;
   pollevent_t eventset;
-  int ret = OK;
+  int ret;
 
   /* Some sanity checking */
 
@@ -1413,7 +1353,11 @@ int tun_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
       return -EINVAL;
     }
 
-  tun_lock(priv);
+  ret = tun_lock(priv);
+  if (ret < 0)
+    {
+      return ret;
+    }
 
   if (setup)
     {
@@ -1455,10 +1399,8 @@ int tun_poll(FAR struct file *filep, FAR struct pollfd *fds, bool setup)
 
 errout:
   tun_unlock(priv);
-
   return ret;
 }
-#endif
 
 /****************************************************************************
  * Name: tun_ioctl
@@ -1484,7 +1426,11 @@ static int tun_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           return -EINVAL;
         }
 
-      tundev_lock(tun);
+      ret = tundev_lock(tun);
+      if (ret < 0)
+        {
+          return ret;
+        }
 
       free_tuns = tun->free_tuns;
 
@@ -1544,7 +1490,7 @@ int tun_initialize(void)
 
   g_tun.free_tuns = (1 << CONFIG_TUN_NINTERFACES) - 1;
 
-  (void)register_driver("/dev/tun", &g_tun_file_ops, 0644, &g_tun);
+  register_driver("/dev/tun", &g_tun_file_ops, 0644, &g_tun);
   return OK;
 }
 

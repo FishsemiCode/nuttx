@@ -45,9 +45,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <poll.h>
-#include <semaphore.h>
 
 #include <nuttx/wqueue.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/spi/spi.h>
 
 /****************************************************************************
@@ -262,7 +262,7 @@ extern "C"
 #  define EXTERN extern
 #endif
 
-typedef int (*wait_cc1101_ready)(FAR struct cc1101_dev_s *dev, uint32_t);
+typedef CODE int (*wait_cc1101_ready)(FAR struct cc1101_dev_s *dev, uint32_t);
 struct cc1101_dev_s;
 
 struct cc1101_ops_s
@@ -305,9 +305,7 @@ struct cc1101_dev_s
   sem_t sem_rx_buffer;    /* Protect access to rx fifo */
   sem_t sem_rx;           /* Wait for availability of received data */
   sem_t sem_tx;           /* Wait for availability of send data */
-#ifndef CONFIG_DISABLE_POLL
   FAR struct pollfd *pfd; /* Polled file descr  (or NULL if any) */
-#endif
 };
 
 /* The RF Settings includes only those fields required to configure
@@ -366,7 +364,7 @@ struct c1101_rfsettings_s
 
   /* REGULATORY LIMITS */
 
-  uint8_t CHMIN;    /* Channel Range defintion MIN .. */
+  uint8_t CHMIN;    /* Channel Range definition MIN .. */
   uint8_t CHMAX;    /* .. and MAX */
   uint8_t PAMAX;    /* at given maximum output power */
 

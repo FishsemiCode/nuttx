@@ -134,7 +134,7 @@ static int lpc23xx_timerisr(int irq, uint32_t * regs, FAR void *arg)
  ****************************************************************************/
 
 /****************************************************************************
- * Function:  arm_timer_initialize
+ * Function:  up_timer_initialize
  *
  * Description:
  *   This function is called during start-up to initialize
@@ -142,7 +142,7 @@ static int lpc23xx_timerisr(int irq, uint32_t * regs, FAR void *arg)
  *
  ****************************************************************************/
 
-void arm_timer_initialize(void)
+void up_timer_initialize(void)
 {
   uint16_t mcr;
 
@@ -170,7 +170,7 @@ void arm_timer_initialize(void)
   /* Set timer match register to get a TICK_PER_SEC rate See arch/board.h and
    */
 
-  tmr_putreg32(T0_TICKS_COUNT, TMR_MR0_OFFSET); /* 10ms Intterrupt */
+  tmr_putreg32(T0_TICKS_COUNT, TMR_MR0_OFFSET); /* 10ms Interrupt */
 
   /* Reset timer counter register and interrupt on match */
 
@@ -189,7 +189,7 @@ void arm_timer_initialize(void)
 #ifdef CONFIG_VECTORED_INTERRUPTS
   up_attach_vector(IRQ_SYSTIMER, ???, (vic_vector_t) lpc23xx_timerisr);
 #else
-  (void)irq_attach(IRQ_SYSTIMER, (xcpt_t)lpc23xx_timerisr, NULL);
+  irq_attach(IRQ_SYSTIMER, (xcpt_t)lpc23xx_timerisr, NULL);
 #endif
 
   /* And enable the system timer interrupt */

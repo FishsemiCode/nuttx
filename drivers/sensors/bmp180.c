@@ -1,4 +1,3 @@
-
 /****************************************************************************
  * drivers/sensors/bmp180.c
  * Character driver for the Freescale BMP1801 Barometer Sensor
@@ -164,10 +163,8 @@ static const struct file_operations g_bmp180fops =
   bmp180_read,                  /* read */
   bmp180_write,                 /* write */
   NULL,                         /* seek */
-  NULL                          /* ioctl */
-#ifndef CONFIG_DISABLE_POLL
-  , NULL                        /* poll */
-#endif
+  NULL,                         /* ioctl */
+  NULL                          /* poll */
 #ifndef CONFIG_DISABLE_PSEUDOFS_OPERATIONS
   , NULL                        /* unlink */
 #endif
@@ -229,7 +226,8 @@ static uint8_t bmp180_getreg8(FAR struct bmp180_dev_s *priv, uint8_t regaddr)
 static uint16_t bmp180_getreg16(FAR struct bmp180_dev_s *priv, uint8_t regaddr)
 {
   struct i2c_config_s config;
-  uint16_t msb, lsb;
+  uint16_t msb;
+  uint16_t lsb;
   uint16_t regval = 0;
   int ret;
 
@@ -259,8 +257,8 @@ static uint16_t bmp180_getreg16(FAR struct bmp180_dev_s *priv, uint8_t regaddr)
 
   /* MSB and LSB are inverted */
 
-  msb = (regval & 0xFF);
-  lsb = (regval & 0xFF00) >> 8;
+  msb = (regval & 0xff);
+  lsb = (regval & 0xff00) >> 8;
 
   regval = (msb << 8) | lsb;
 

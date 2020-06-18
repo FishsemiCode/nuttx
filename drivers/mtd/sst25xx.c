@@ -94,7 +94,7 @@
 #endif
 
 /* SST25 Registers *******************************************************************/
-/* Indentification register values */
+/* Identification register values */
 
 #define SST25_MANUFACTURER         CONFIG_SST25XX_MANUFACTURER
 #define SST25_MEMORY_TYPE          CONFIG_SST25XX_MEMORY_TYPE
@@ -219,26 +219,26 @@ static int sst25xx_ioctl(FAR struct mtd_dev_s *dev, int cmd, unsigned long arg);
 
 static void sst25xx_lock(FAR struct spi_dev_s *dev)
 {
-  /* On SPI busses where there are multiple devices, it will be necessary to
-   * lock SPI to have exclusive access to the busses for a sequence of
+  /* On SPI buses where there are multiple devices, it will be necessary to
+   * lock SPI to have exclusive access to the buses for a sequence of
    * transfers.  The bus should be locked before the chip is selected.
    *
-   * This is a blocking call and will not return until we have exclusiv access to
-   * the SPI buss.  We will retain that exclusive access until the bus is unlocked.
+   * This is a blocking call and will not return until we have exclusive access to
+   * the SPI bus.  We will retain that exclusive access until the bus is unlocked.
    */
 
-  (void)SPI_LOCK(dev, true);
+  SPI_LOCK(dev, true);
 
   /* After locking the SPI bus, the we also need call the setfrequency, setbits, and
    * setmode methods to make sure that the SPI is properly configured for the device.
-   * If the SPI buss is being shared, then it may have been left in an incompatible
+   * If the SPI bus is being shared, then it may have been left in an incompatible
    * state.
    */
 
   SPI_SETMODE(dev, CONFIG_SST25XX_SPIMODE);
   SPI_SETBITS(dev, 8);
-  (void)SPI_HWFEATURES(dev, 0);
-  (void)SPI_SETFREQUENCY(dev, CONFIG_SST25XX_SPIFREQUENCY);
+  SPI_HWFEATURES(dev, 0);
+  SPI_SETFREQUENCY(dev, CONFIG_SST25XX_SPIFREQUENCY);
 }
 
 /************************************************************************************
@@ -247,7 +247,7 @@ static void sst25xx_lock(FAR struct spi_dev_s *dev)
 
 static inline void sst25xx_unlock(FAR struct spi_dev_s *dev)
 {
-  (void)SPI_LOCK(dev, false);
+  SPI_LOCK(dev, false);
 }
 
 /************************************************************************************
@@ -269,7 +269,7 @@ static inline int sst25xx_readid(struct sst25xx_dev_s *priv)
 
   /* Send the "Read ID (RDID)" command and read the first three ID bytes */
 
-  (void)SPI_SEND(priv->dev, SST25_RDID);
+  SPI_SEND(priv->dev, SST25_RDID);
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
   manufacturer = SPI_SEND(priv->dev, SST25_DUMMY);
   memory       = SPI_SEND(priv->dev, SST25_DUMMY);
@@ -331,7 +331,7 @@ static void sst25xx_waitwritecomplete(struct sst25xx_dev_s *priv)
 
       /* Send "Read Status Register (RDSR)" command */
 
-      (void)SPI_SEND(priv->dev, SST25_RDSR);
+      SPI_SEND(priv->dev, SST25_RDSR);
 
       /* Send a dummy byte to generate the clock needed to shift out the status */
 
@@ -372,7 +372,7 @@ static void sst25xx_writeenable(struct sst25xx_dev_s *priv)
 
   /* Send "Write Enable (WREN)" command */
 
-  (void)SPI_SEND(priv->dev, SST25_WREN);
+  SPI_SEND(priv->dev, SST25_WREN);
 
   /* Deselect the FLASH */
 
@@ -389,7 +389,7 @@ static void sst25xx_unprotect(struct sst25xx_dev_s *priv)
   /* Send "Write enable status (EWSR)" */
 
   SPI_SELECT(priv->dev, SPIDEV_FLASH(0), true);
-  (void)SPI_SEND(priv->dev, SST25_EWSR);
+  SPI_SEND(priv->dev, SST25_EWSR);
 
   /* Deselect the FLASH */
 
@@ -439,16 +439,16 @@ static void sst25xx_sectorerase(struct sst25xx_dev_s *priv, off_t sector, uint8_
    * that was passed in as the erase type.
    */
 
-  (void)SPI_SEND(priv->dev, type);
+  SPI_SEND(priv->dev, type);
 
   /* Send the sector offset high byte first.  For all of the supported
    * parts, the sector number is completely contained in the first byte
    * and the values used in the following two bytes don't really matter.
    */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
   priv->lastwaswrite = true;
 
   /* Deselect the FLASH */
@@ -483,7 +483,7 @@ static inline int sst25xx_bulkerase(struct sst25xx_dev_s *priv)
 
   /* Send the "Bulk Erase (BE)" instruction */
 
-  (void)SPI_SEND(priv->dev, SST25_BE);
+  SPI_SEND(priv->dev, SST25_BE);
 
   /* Deselect the FLASH */
 
@@ -523,13 +523,13 @@ static inline void sst25xx_pagewrite(struct sst25xx_dev_s *priv, FAR const uint8
 
   /* Send "Page Program (PP)" command */
 
-  (void)SPI_SEND(priv->dev, SST25_PP);
+  SPI_SEND(priv->dev, SST25_PP);
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Then write the specified number of bytes */
 
@@ -571,13 +571,13 @@ static inline void sst25xx_bytewrite(struct sst25xx_dev_s *priv,
 
   /* Send "Page Program (PP)" command */
 
-  (void)SPI_SEND(priv->dev, SST25_PP);
+  SPI_SEND(priv->dev, SST25_PP);
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Then write the specified number of bytes */
 
@@ -623,7 +623,7 @@ static int sst25xx_erase(FAR struct mtd_dev_s *dev, off_t startblock, size_t nbl
       sectorboundry = (startblock + blkper - 1) / blkper;
       sectorboundry *= blkper;
 
-      /* If we are on a sector boundry and have at least a full sector
+      /* If we are on a sector boundary and have at least a full sector
        * of blocks left to erase, then we can do a full sector erase.
        */
 
@@ -752,13 +752,13 @@ static ssize_t sst25xx_read(FAR struct mtd_dev_s *dev, off_t offset, size_t nbyt
 
   /* Send "Read from Memory " instruction */
 
-  (void)SPI_SEND(priv->dev, SST25_READ);
+  SPI_SEND(priv->dev, SST25_READ);
 
   /* Send the page offset high byte first. */
 
-  (void)SPI_SEND(priv->dev, (offset >> 16) & 0xff);
-  (void)SPI_SEND(priv->dev, (offset >> 8) & 0xff);
-  (void)SPI_SEND(priv->dev, offset & 0xff);
+  SPI_SEND(priv->dev, (offset >> 16) & 0xff);
+  SPI_SEND(priv->dev, (offset >> 8) & 0xff);
+  SPI_SEND(priv->dev, offset & 0xff);
 
   /* Then read all of the requested bytes */
 

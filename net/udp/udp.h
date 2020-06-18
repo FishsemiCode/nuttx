@@ -46,14 +46,10 @@
 #include <sys/socket.h>
 #include <queue.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/net/ip.h>
+#include <nuttx/mm/iob.h>
 
-#ifdef CONFIG_NET_UDP_READAHEAD
-#  include <nuttx/mm/iob.h>
-#endif
-
-#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+#ifdef CONFIG_NET_UDP_NOTIFIER
 #  include <nuttx/wqueue.h>
 #endif
 
@@ -64,12 +60,6 @@
  ****************************************************************************/
 
 #define NET_UDP_HAVE_STACK 1
-
-/* Conditions for support UDP poll/select operations */
-
-#if !defined(CONFIG_DISABLE_POLL) && defined(CONFIG_NET_UDP_READAHEAD)
-#  define HAVE_UDP_POLL
-#endif
 
 #ifdef CONFIG_NET_UDP_WRITE_BUFFERS
 /* UDP write buffer dump macros */
@@ -99,14 +89,43 @@
  * Public Type Definitions
  ****************************************************************************/
 
+struct sockaddr;      /* Forward reference */
+struct socket;        /* Forward reference */
+struct net_driver_s;  /* Forward reference */
+struct pollfd;        /* Forward reference */
+
 /* Representation of a UDP connection */
 
 struct devif_callback_s;  /* Forward reference */
 struct udp_hdr_s;         /* Forward reference */
 
+/* This is a container that holds the poll-related information */
+
+struct udp_poll_s
+{
+  FAR struct socket *psock;        /* Needed to handle loss of connection */
+  FAR struct net_driver_s *dev;    /* Needed to free the callback structure */
+  struct pollfd *fds;              /* Needed to handle poll events */
+  FAR struct devif_callback_s *cb; /* Needed to teardown the poll */
+#if defined(CONFIG_NET_UDP_WRITE_BUFFERS) && defined(CONFIG_IOB_NOTIFIER)
+  int16_t key;                     /* Needed to cancel pending notification */
+#endif
+};
+
 struct udp_conn_s
 {
+  /* Common prologue of all connection structures. */
+
   dq_entry_t node;        /* Supports a doubly linked list */
+
+  /* This is a list of UDP connection callbacks.  Each callback represents
+   * a thread that is stalled, waiting for a device-specific event.
+   */
+
+  FAR struct devif_callback_s *list;
+
+  /* UDP-specific content follows */
+
   union ip_binding_u u;   /* IP address binding */
   uint16_t lport;         /* Bound local port number (network byte order) */
   uint16_t rport;         /* Remote port number (network byte order) */
@@ -120,7 +139,6 @@ struct udp_conn_s
                            * Unbound: 0, Bound: 1-MAX_IFINDEX */
 #endif
 
-#ifdef CONFIG_NET_UDP_READAHEAD
   /* Read-ahead buffering.
    *
    *   readahead - A singly linked list of type struct iob_qentry_s
@@ -128,7 +146,6 @@ struct udp_conn_s
    */
 
   struct iob_queue_s readahead;   /* Read-ahead buffering */
-#endif
 
 #ifdef CONFIG_NET_UDP_WRITE_BUFFERS
   /* Write buffering
@@ -141,9 +158,11 @@ struct udp_conn_s
   FAR struct net_driver_s *dev;   /* Last device */
 #endif
 
-  /* Defines the list of UDP callbacks */
+  /* The following is a list of poll structures of threads waiting for
+   * socket events.
+   */
 
-  FAR struct devif_callback_s *list;
+  struct udp_poll_s pollinfo[CONFIG_NET_UDP_NPOLLWAITERS];
 };
 
 /* This structure supports UDP write buffering.  It is simply a container
@@ -155,9 +174,6 @@ struct udp_wrbuffer_s
 {
   sq_entry_t wb_node;              /* Supports a singly linked list */
   struct sockaddr_storage wb_dest; /* Destination address */
-#ifdef CONFIG_NET_SOCKOPTS
-  clock_t wb_start;                /* Start time for timeout calculation */
-#endif
   struct iob_s *wb_iob;            /* Head of the I/O buffer chain */
 };
 #endif
@@ -177,11 +193,6 @@ extern "C"
 /****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
-
-struct sockaddr;      /* Forward reference */
-struct socket;        /* Forward reference */
-struct net_driver_s;  /* Forward reference */
-struct pollfd;        /* Forward reference */
 
 /****************************************************************************
  * Name: udp_initialize
@@ -290,6 +301,22 @@ int udp_bind(FAR struct udp_conn_s *conn, FAR const struct sockaddr *addr);
 int udp_connect(FAR struct udp_conn_s *conn, FAR const struct sockaddr *addr);
 
 /****************************************************************************
+ * Name: udp_close
+ *
+ * Description:
+ *   Break any current UDP connection
+ *
+ * Input Parameters:
+ *   psock - An instance of the internal socket structure.
+ *
+ * Assumptions:
+ *   Called from normal user-level logic
+ *
+ ****************************************************************************/
+
+int udp_close(FAR struct socket *psock);
+
+/****************************************************************************
  * Name: udp_ipv4_select
  *
  * Description:
@@ -353,7 +380,7 @@ void udp_poll(FAR struct net_driver_s *dev, FAR struct udp_conn_s *conn);
  ****************************************************************************/
 
 int psock_udp_cansend(FAR struct socket *psock);
-;
+
 /****************************************************************************
  * Name: udp_send
  *
@@ -436,8 +463,28 @@ void udp_wrbuffer_initialize(void);
 
 #ifdef CONFIG_NET_UDP_WRITE_BUFFERS
 struct udp_wrbuffer_s;
-
 FAR struct udp_wrbuffer_s *udp_wrbuffer_alloc(void);
+#endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
+
+/****************************************************************************
+ * Name: udp_wrbuffer_tryalloc
+ *
+ * Description:
+ *   Try to allocate a UDP write buffer by taking a pre-allocated buffer from
+ *   the free list.  This function is called from UDP logic when a buffer
+ *   of UDP data is about to be sent if the socket is non-blocking. Returns
+ *   immediately if allocation fails.
+ *
+ * Input parameters:
+ *   None
+ *
+ * Assumptions:
+ *   Called from user logic with the network locked.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_WRITE_BUFFERS
+FAR struct udp_wrbuffer_s *udp_wrbuffer_tryalloc(void);
 #endif /* CONFIG_NET_UDP_WRITE_BUFFERS */
 
 /****************************************************************************
@@ -591,15 +638,30 @@ uint16_t udp_callback(FAR struct net_driver_s *dev,
                       FAR struct udp_conn_s *conn, uint16_t flags);
 
 /****************************************************************************
- * Name: psock_udp_send
+ * Name: psock_udp_recvfrom
  *
  * Description:
- *   Implements send() for connected UDP sockets
+ *   Perform the recvfrom operation for a UDP SOCK_DGRAM
+ *
+ * Input Parameters:
+ *   psock    Pointer to the socket structure for the SOCK_DRAM socket
+ *   buf      Buffer to receive data
+ *   len      Length of buffer
+ *   flags    Receive flags
+ *   from     INET address of source (may be NULL)
+ *   fromlen  The length of the address structure
+ *
+ * Returned Value:
+ *   On success, returns the number of characters received.  On  error,
+ *   -errno is returned (see recvfrom for list of errnos).
+ *
+ * Assumptions:
  *
  ****************************************************************************/
 
-ssize_t psock_udp_send(FAR struct socket *psock, FAR const void *buf,
-                       size_t len);
+ssize_t psock_udp_recvfrom(FAR struct socket *psock, FAR void *buf,
+                           size_t len, int flags, FAR struct sockaddr *from,
+                           FAR socklen_t *fromlen);
 
 /****************************************************************************
  * Name: psock_udp_sendto
@@ -646,9 +708,7 @@ ssize_t psock_udp_sendto(FAR struct socket *psock, FAR const void *buf,
  *
  ****************************************************************************/
 
-#ifdef HAVE_UDP_POLL
 int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds);
-#endif
 
 /****************************************************************************
  * Name: udp_pollteardown
@@ -666,12 +726,10 @@ int udp_pollsetup(FAR struct socket *psock, FAR struct pollfd *fds);
  *
  ****************************************************************************/
 
-#ifdef HAVE_UDP_POLL
 int udp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds);
-#endif
 
 /****************************************************************************
- * Name: udp_notifier_setup
+ * Name: udp_readahead_notifier_setup
  *
  * Description:
  *   Set up to perform a callback to the worker function when an UDP data
@@ -696,9 +754,42 @@ int udp_pollteardown(FAR struct socket *psock, FAR struct pollfd *fds);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
-int udp_notifier_setup(worker_t worker, FAR struct udp_conn_s *conn,
-                       FAR void *arg);
+#ifdef CONFIG_NET_UDP_NOTIFIER
+int udp_readahead_notifier_setup(worker_t worker,
+                                 FAR struct udp_conn_s *conn,
+                                 FAR void *arg);
+#endif
+
+/****************************************************************************
+ * Name: udp_writebuffer_notifier_setup
+ *
+ * Description:
+ *   Set up to perform a callback to the worker function when an UDP write
+ *   buffer is emptied.  The worker function will execute on the high
+ *   priority worker thread.
+ *
+ * Input Parameters:
+ *   worker - The worker function to execute on the low priority work
+ *            queue when data is available in the UDP read-ahead buffer.
+ *   conn   - The UDP connection where read-ahead data is needed.
+ *   arg    - A user-defined argument that will be available to the worker
+ *            function when it runs.
+ *
+ * Returned Value:
+ *   > 0   - The notification is in place.  The returned value is a key that
+ *           may be used later in a call to udp_notifier_teardown().
+ *   == 0  - There is already buffered read-ahead data.  No notification
+ *           will be provided.
+ *   < 0   - An unexpected error occurred and no notification will occur.
+ *           The returned value is a negated errno value that indicates the
+ *           nature of the failure.
+ *
+ ****************************************************************************/
+
+#ifdef CONFIG_NET_UDP_NOTIFIER
+int udp_writebuffer_notifier_setup(worker_t worker,
+                                   FAR struct udp_conn_s *conn,
+                                   FAR void *arg);
 #endif
 
 /****************************************************************************
@@ -706,13 +797,13 @@ int udp_notifier_setup(worker_t worker, FAR struct udp_conn_s *conn,
  *
  * Description:
  *   Eliminate a UDP read-ahead notification previously setup by
- *   udp_notifier_setup().  This function should only be called if the
+ *   udp_readahead_notifier_setup().  This function should only be called if the
  *   notification should be aborted prior to the notification.  The
  *   notification will automatically be torn down after the notification.
  *
  * Input Parameters:
  *   key - The key value returned from a previous call to
- *         udp_notifier_setup().
+ *         udp_readahead_notifier_setup().
  *
  * Returned Value:
  *   Zero (OK) is returned on success; a negated errno value is returned on
@@ -720,12 +811,12 @@ int udp_notifier_setup(worker_t worker, FAR struct udp_conn_s *conn,
  *
  ****************************************************************************/
 
-#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
+#ifdef CONFIG_NET_UDP_NOTIFIER
 int udp_notifier_teardown(int key);
 #endif
 
 /****************************************************************************
- * Name: udp_notifier_signal
+ * Name: udp_readahead_signal
  *
  * Description:
  *   Read-ahead data has been buffered.  Notify all threads waiting for
@@ -734,7 +825,7 @@ int udp_notifier_teardown(int key);
  *   When read-ahead data becomes available, *all* of the workers waiting
  *   for read-ahead data will be executed.  If there are multiple workers
  *   waiting for read-ahead data then only the first to execute will get the
- *   data.  Others will need to call udp_notifier_setup() once again.
+ *   data.  Others will need to call udp_readahead_notifier_setup() once again.
  *
  * Input Parameters:
  *   conn  - The UDP connection where read-ahead data was just buffered.
@@ -744,8 +835,55 @@ int udp_notifier_teardown(int key);
  *
  ****************************************************************************/
 
-#ifdef CONFIG_UDP_READAHEAD_NOTIFIER
-void udp_notifier_signal(FAR struct udp_conn_s *conn);
+#ifdef CONFIG_NET_UDP_NOTIFIER
+void udp_readahead_signal(FAR struct udp_conn_s *conn);
+#endif
+
+/****************************************************************************
+ * Name: udp_writebuffer_signal
+ *
+ * Description:
+ *   All buffer Tx data has been sent.  Signal all threads waiting for the
+ *   write buffers to become empty.
+ *
+ *   When write buffer becomes empty, *all* of the workers waiting
+ *   for that event data will be executed.  If there are multiple workers
+ *   waiting for read-ahead data then only the first to execute will get the
+ *   data.  Others will need to call tcp_writebuffer_notifier_setup() once
+ *   again.
+ *
+ * Input Parameters:
+ *   conn  - The UDP connection where read-ahead data was just buffered.
+ *
+ * Returned Value:
+ *   None.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_NET_UDP_WRITE_BUFFERS) && defined(CONFIG_NET_UDP_NOTIFIER)
+void udp_writebuffer_signal(FAR struct udp_conn_s *conn);
+#endif
+
+/****************************************************************************
+ * Name: udp_txdrain
+ *
+ * Description:
+ *   Wait for all write buffers to be sent (or for a timeout to occur).
+ *
+ * Input Parameters:
+ *   psock   - An instance of the internal socket structure.
+ *   timeout - The relative time when the timeout will occur
+ *
+ * Returned Value:
+ *   Zero (OK) is returned on success; a negated errno value is returned
+ *   on any failure.
+ *
+ ****************************************************************************/
+
+#if defined(CONFIG_NET_UDP_WRITE_BUFFERS) && defined(CONFIG_NET_UDP_NOTIFIER)
+int udp_txdrain(FAR struct socket *psock, unsigned int timeout);
+#else
+#  define udp_txdrain(conn, timeout) (0)
 #endif
 
 #undef EXTERN

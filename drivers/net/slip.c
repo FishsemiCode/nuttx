@@ -1,39 +1,24 @@
 /****************************************************************************
  * drivers/net/slip.c
  *
- *   Copyright (C) 2011-2012, 2015-2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Reference: RFC 1055
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
+
+/* Reference: RFC 1055 */
 
 /****************************************************************************
  * Included Files
@@ -59,6 +44,7 @@
 #include <nuttx/signal.h>
 #include <nuttx/kthread.h>
 #include <nuttx/semaphore.h>
+#include <nuttx/fs/fs.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/ip.h>
@@ -87,7 +73,7 @@
 #endif
 
 /* The Linux slip module hard-codes its MTU size to 296 (40 bytes for the
- * IP+TPC headers plus 256 bytes of data).  So you might as well set
+ * IP+TCP headers plus 256 bytes of data).  So you might as well set
  * CONFIG_NET_SLIP_PKTSIZE to 296 as well.
  *
  * There may be an issue with this setting, however.  I see that Linux uses
@@ -109,14 +95,14 @@
 # define CONFIG_NET_SLIP_NINTERFACES 1
 #endif
 
-/*  SLIP special character codes *******************************************/
+/*  SLIP special character codes ********************************************/
 
 #define SLIP_END      0300    /* Indicates end of packet */
 #define SLIP_ESC      0333    /* Indicates byte stuffing */
 #define SLIP_ESC_END  0334    /* ESC ESC_END means SLIP_END data byte */
 #define SLIP_ESC_ESC  0335    /* ESC ESC_ESC means ESC data byte */
 
-/* General driver definitions **********************************************/
+/* General driver definitions ***********************************************/
 
 /* TX poll delay = 1 second = 1000000 microseconds. */
 
@@ -139,7 +125,7 @@ struct slip_driver_s
 {
   volatile bool bifup;      /* true:ifup false:ifdown */
   bool          txnodelay;  /* True: nxsig_usleep() not needed */
-  int16_t       fd;         /* TTY file descriptor */
+  struct file   file;       /* TTY file descriptor */
   uint16_t      rxlen;      /* The number of bytes in rxbuf */
   pid_t         rxpid;      /* Receiver thread ID */
   pid_t         txpid;      /* Transmitter thread ID */
@@ -166,16 +152,17 @@ static struct slip_driver_s g_slip[CONFIG_NET_SLIP_NINTERFACES];
  * Private Function Prototypes
  ****************************************************************************/
 
-static void slip_semtake(FAR struct slip_driver_s *priv);
+static int slip_semtake(FAR struct slip_driver_s *priv);
+static void slip_forcetake(FAR struct slip_driver_s *priv);
 
 /* Common TX logic */
 
 static void slip_write(FAR struct slip_driver_s *priv,
                        FAR const uint8_t *buffer, int len);
 static void slip_putc(FAR struct slip_driver_s *priv, int ch);
-static int slip_transmit(FAR struct slip_driver_s *priv);
+static void slip_transmit(FAR struct slip_driver_s *priv);
 static int slip_txpoll(FAR struct net_driver_s *dev);
-static void slip_txtask(int argc, FAR char *argv[]);
+static int slip_txtask(int argc, FAR char *argv[]);
 
 /* Packet receiver task */
 
@@ -201,26 +188,40 @@ static int slip_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac);
  * Name: slip_semtake
  ****************************************************************************/
 
-static void slip_semtake(FAR struct slip_driver_s *priv)
+static int slip_semtake(FAR struct slip_driver_s *priv)
+{
+  return nxsem_wait_uninterruptible(&priv->waitsem);
+}
+
+#define slip_semgive(p) nxsem_post(&(p)->waitsem);
+
+/****************************************************************************
+ * Name: slip_forcetake
+ *
+ * Description:
+ *   This is just another wrapper but this one continues even if the thread
+ *   is canceled.  This must be done in certain conditions where were must
+ *   continue in order to clean-up resources.
+ *
+ ****************************************************************************/
+
+static void slip_forcetake(FAR struct slip_driver_s *priv)
 {
   int ret;
 
   do
     {
-      /* Take the semaphore (perhaps waiting) */
+      ret = nxsem_wait_uninterruptible(&priv->waitsem);
 
-      ret = nxsem_wait(&priv->waitsem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
+      /* The only expected error would -ECANCELED meaning that the
+       * parent thread has been canceled.  We have to continue and
+       * terminate the poll in this case.
        */
 
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      DEBUGASSERT(ret == OK || ret == -ECANCELED);
     }
-  while (ret == -EINTR);
+  while (ret < 0);
 }
-
-#define slip_semgive(p) nxsem_post(&(p)->waitsem);
 
 /****************************************************************************
  * Name: slip_write
@@ -240,9 +241,8 @@ static inline void slip_write(FAR struct slip_driver_s *priv,
 {
   /* Handle the case where the write is awakened by a signal */
 
-  while (write(priv->fd, buffer, len) < 0)
+  while (file_write(&priv->file, buffer, len) < 0)
     {
-      DEBUGASSERT(errno == EINTR);
     }
 }
 
@@ -279,7 +279,7 @@ static inline void slip_putc(FAR struct slip_driver_s *priv, int ch)
  *
  ****************************************************************************/
 
-static int slip_transmit(FAR struct slip_driver_s *priv)
+static void slip_transmit(FAR struct slip_driver_s *priv)
 {
   uint8_t *src;
   uint8_t *start;
@@ -373,7 +373,6 @@ static int slip_transmit(FAR struct slip_driver_s *priv)
   slip_putc(priv, SLIP_END);
   NETDEV_TXDONE(&priv->dev);
   priv->txnodelay = true;
-  return OK;
 }
 
 /****************************************************************************
@@ -399,7 +398,8 @@ static int slip_transmit(FAR struct slip_driver_s *priv)
 
 static int slip_txpoll(FAR struct net_driver_s *dev)
 {
-  FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
+  FAR struct slip_driver_s *priv =
+    (FAR struct slip_driver_s *)dev->d_private;
 
   /* If the polling resulted in data that should be sent out on the network,
    * the field d_len is set to a value > 0.
@@ -413,8 +413,8 @@ static int slip_txpoll(FAR struct net_driver_s *dev)
         }
     }
 
-  /* If zero is returned, the polling will continue until all connections have
-   * been examined.
+  /* If zero is returned, the polling will continue until all connections
+   * have been examined.
    */
 
   return 0;
@@ -434,13 +434,14 @@ static int slip_txpoll(FAR struct net_driver_s *dev)
  *
  ****************************************************************************/
 
-static void slip_txtask(int argc, FAR char *argv[])
+static int slip_txtask(int argc, FAR char *argv[])
 {
   FAR struct slip_driver_s *priv;
   unsigned int index = *(argv[1]) - '0';
   clock_t start_ticks;
   clock_t now_ticks;
   unsigned int hsec;
+  int ret;
 
   nerr("index: %d\n", index);
   DEBUGASSERT(index < CONFIG_NET_SLIP_NINTERFACES);
@@ -455,11 +456,17 @@ static void slip_txtask(int argc, FAR char *argv[])
   /* Loop forever */
 
   start_ticks = clock_systimer();
-  for (;  ; )
+  for (; ; )
     {
-      /* Wait for the timeout to expire (or until we are signaled by by  */
+      /* Wait for the timeout to expire (or until we are signaled by  */
 
-      slip_semtake(priv);
+      ret = slip_semtake(priv);
+      if (ret < 0)
+        {
+          DEBUGASSERT(ret == -ECANCELED);
+          break;
+        }
+
       if (!priv->txnodelay)
         {
           slip_semgive(priv);
@@ -475,12 +482,6 @@ static void slip_txtask(int argc, FAR char *argv[])
 
       if (priv->bifup)
         {
-          /* Get exclusive access to the network (if it it is already being
-           * used slip_rxtask, then we have to wait).
-           */
-
-          slip_semtake(priv);
-
           /* Poll the networking layer for new XMIT data. */
 
           net_lock();
@@ -494,20 +495,21 @@ static void slip_txtask(int argc, FAR char *argv[])
             {
               /* Yes, perform the timer poll */
 
-              (void)devif_timer(&priv->dev, slip_txpoll);
+              devif_timer(&priv->dev, hsec * TICK_PER_HSEC, slip_txpoll);
               start_ticks += hsec * TICK_PER_HSEC;
             }
           else
             {
               /* No, perform the normal TX poll */
 
-              (void)devif_poll(&priv->dev, slip_txpoll);
+              devif_poll(&priv->dev, slip_txpoll);
             }
 
           net_unlock();
-          slip_semgive(priv);
         }
     }
+
+  return OK;
 }
 
 /****************************************************************************
@@ -528,12 +530,11 @@ static inline int slip_getc(FAR struct slip_driver_s *priv)
 {
   uint8_t ch;
 
-  while (read(priv->fd, &ch, 1) < 0)
+  while (file_read(&priv->file, &ch, 1) < 0)
     {
-      DEBUGASSERT(errno == EINTR);
     }
 
-  return (int)ch;
+  return ch;
 }
 
 /****************************************************************************
@@ -554,8 +555,8 @@ static inline void slip_receive(FAR struct slip_driver_s *priv)
 {
   uint8_t ch;
 
-  /* Copy the data data from the hardware to to the RX buffer until we
-   * put together a whole packet. Make sure not to copy them into the
+  /* Copy the data from the hardware to the RX buffer until we put
+   * together a whole packet. Make sure not to copy them into the
    * packet if we run out of room.
    */
 
@@ -631,7 +632,7 @@ static inline void slip_receive(FAR struct slip_driver_s *priv)
 
         default:
           {
-            if (priv->rxlen < CONFIG_NET_SLIP_PKTSIZE+2)
+            if (priv->rxlen < CONFIG_NET_SLIP_PKTSIZE + 2)
               {
                 priv->rxbuf[priv->rxlen++] = ch;
               }
@@ -719,11 +720,10 @@ static int slip_rxtask(int argc, FAR char *argv[])
 
       /* Handle the IP input.  Get exclusive access to the network. */
 
-      slip_semtake(priv);
+      net_lock();
       priv->dev.d_buf = priv->rxbuf;
       priv->dev.d_len = priv->rxlen;
 
-      net_lock();
       NETDEV_RXPACKETS(&priv->dev);
 
       /* All packets are assumed to be IP packets (we don't have a choice..
@@ -773,7 +773,6 @@ static int slip_rxtask(int argc, FAR char *argv[])
         }
 
       net_unlock();
-      slip_semgive(priv);
     }
 
   /* We won't get here */
@@ -800,7 +799,8 @@ static int slip_rxtask(int argc, FAR char *argv[])
 
 static int slip_ifup(FAR struct net_driver_s *dev)
 {
-  FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
+  FAR struct slip_driver_s *priv =
+    (FAR struct slip_driver_s *)dev->d_private;
 
 #ifdef CONFIG_NET_IPv4
   nerr("Bringing up: %d.%d.%d.%d\n",
@@ -838,7 +838,8 @@ static int slip_ifup(FAR struct net_driver_s *dev)
 
 static int slip_ifdown(FAR struct net_driver_s *dev)
 {
-  FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
+  FAR struct slip_driver_s *priv =
+    (FAR struct slip_driver_s *)dev->d_private;
 
   /* Mark the device "down" */
 
@@ -864,7 +865,8 @@ static int slip_ifdown(FAR struct net_driver_s *dev)
 
 static int slip_txavail(FAR struct net_driver_s *dev)
 {
-  FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
+  FAR struct slip_driver_s *priv =
+    (FAR struct slip_driver_s *)dev->d_private;
 
   /* Ignore the notification if the interface is not yet up */
 
@@ -873,7 +875,7 @@ static int slip_txavail(FAR struct net_driver_s *dev)
       /* Wake up the TX polling thread */
 
       priv->txnodelay = true;
-      (void)nxsig_kill(priv->txpid, SIGALRM);
+      nxsig_kill(priv->txpid, SIGALRM);
     }
 
   return OK;
@@ -900,7 +902,8 @@ static int slip_txavail(FAR struct net_driver_s *dev)
 #ifdef CONFIG_NET_MCASTGROUP
 static int slip_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
-  FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
+  FAR struct slip_driver_s *priv =
+    (FAR struct slip_driver_s *)dev->d_private;
 
   /* Add the MAC address to the hardware multicast routing table */
 
@@ -929,7 +932,8 @@ static int slip_addmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 #ifdef CONFIG_NET_MCASTGROUP
 static int slip_rmmac(FAR struct net_driver_s *dev, FAR const uint8_t *mac)
 {
-  FAR struct slip_driver_s *priv = (FAR struct slip_driver_s *)dev->d_private;
+  FAR struct slip_driver_s *priv =
+    (FAR struct slip_driver_s *)dev->d_private;
 
   /* Add the MAC address to the hardware multicast routing table */
 
@@ -966,6 +970,7 @@ int slip_initialize(int intf, FAR const char *devname)
   FAR struct slip_driver_s *priv;
   char buffer[8];
   FAR char *argv[2];
+  int ret;
 
   /* Get the interface structure associated with this interface number. */
 
@@ -986,11 +991,11 @@ int slip_initialize(int intf, FAR const char *devname)
 
   /* Open the device */
 
-  priv->fd            = nx_open(devname, O_RDWR, 0666);
-  if (priv->fd < 0)
+  ret = file_open(&priv->file, devname, O_RDWR, 0666);
+  if (ret < 0)
     {
-      nerr("ERROR: Failed to open %s: %d\n", devname, priv->fd);
-      return priv->fd;
+      nerr("ERROR: Failed to open %s: %d\n", devname, ret);
+      return ret;
     }
 
   /* Initialize the wait semaphore */
@@ -1005,7 +1010,7 @@ int slip_initialize(int intf, FAR const char *devname)
   argv[1] = NULL;
 
   priv->rxpid = kthread_create("rxslip", CONFIG_NET_SLIP_DEFPRIO,
-                               CONFIG_NET_SLIP_STACKSIZE, (main_t)slip_rxtask,
+                               CONFIG_NET_SLIP_STACKSIZE, slip_rxtask,
                                (FAR char * const *)argv);
   if (priv->rxpid < 0)
     {
@@ -1015,12 +1020,12 @@ int slip_initialize(int intf, FAR const char *devname)
 
   /* Wait and make sure that the receive task is started. */
 
-  slip_semtake(priv);
+  slip_forcetake(priv);
 
   /* Start the SLIP transmitter kernel thread */
 
   priv->txpid = kthread_create("txslip", CONFIG_NET_SLIP_DEFPRIO,
-                               CONFIG_NET_SLIP_STACKSIZE, (main_t)slip_txtask,
+                               CONFIG_NET_SLIP_STACKSIZE, slip_txtask,
                                (FAR char * const *)argv);
   if (priv->txpid < 0)
     {
@@ -1030,7 +1035,7 @@ int slip_initialize(int intf, FAR const char *devname)
 
   /* Wait and make sure that the transmit task is started. */
 
-  slip_semtake(priv);
+  slip_forcetake(priv);
 
   /* Bump the semaphore count so that it can now be used as a mutex */
 
@@ -1038,14 +1043,7 @@ int slip_initialize(int intf, FAR const char *devname)
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
-  (void)netdev_register(&priv->dev, NET_LL_SLIP);
-
-  /* When the RX and TX tasks were created, the TTY file descriptor was
-   * dup'ed for each task.  This task no longer needs the file descriptor
-   * and we can safely close it.
-   */
-
-  close(priv->fd);
+  netdev_register(&priv->dev, NET_LL_SLIP);
   return OK;
 }
 

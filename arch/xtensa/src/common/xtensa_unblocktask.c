@@ -1,5 +1,5 @@
 /****************************************************************************
- *  arch/xtensa/src/common/arm_unblocktask.c
+ *  arch/xtensa/src/common/xtensa_unblocktask.c
  *
  *   Copyright (C) 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -161,7 +161,7 @@ void up_unblock_task(struct tcb_s *tcb)
            * thread at the head of the ready-to-run list.
            */
 
-          (void)group_addrenv(rtcb);
+          group_addrenv(rtcb);
 #endif
           /* Update scheduler parameters */
 

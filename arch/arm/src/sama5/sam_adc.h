@@ -44,13 +44,14 @@
 
 #include <nuttx/analog/adc.h>
 
-#include "chip/sam_adc.h"
+#include "hardware/sam_adc.h"
 
 #ifdef CONFIG_SAMA5_ADC
 
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
+
 /* Configuration ************************************************************/
 
 #ifndef CONFIG_SCHED_WORKQUEUE
@@ -109,7 +110,7 @@ extern "C"
 #endif
 
 /****************************************************************************
- * Public Functions
+ * Public Functions Prototypes
  ****************************************************************************/
 
 /****************************************************************************
@@ -138,7 +139,7 @@ FAR struct adc_dev_s *sam_adc_initialize(void);
  ****************************************************************************/
 
 struct sam_adc_s;
-void sam_adc_lock(FAR struct sam_adc_s *priv);
+int sam_adc_lock(FAR struct sam_adc_s *priv);
 
 /****************************************************************************
  * Name: sam_adc_unlock

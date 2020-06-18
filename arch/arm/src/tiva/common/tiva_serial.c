@@ -44,7 +44,6 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <unistd.h>
-#include <semaphore.h>
 #include <string.h>
 #include <errno.h>
 #include <debug.h>
@@ -66,6 +65,12 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+/* If we are not using the serial driver for the console, then we
+ * still must provide some minimal implementation of up_putc.
+ */
+
+#ifdef USE_SERIALDRIVER
+
 /* Some sanity checks *******************************************************/
 
 /* Is there a UART enabled? */
@@ -75,12 +80,6 @@
     !defined(CONFIG_TIVA_UART6) && !defined(CONFIG_TIVA_UART7)
 #  error "No UARTs enabled"
 #endif
-
-/* If we are not using the serial driver for the console, then we
- * still must provide some minimal implementation of up_putc.
- */
-
-#ifdef USE_SERIALDRIVER
 
 /* Which UART with be tty0/console and which tty1-7?  The console will always
  * be ttyS0.  If there is no console then will use the lowest numbered UART.
@@ -915,7 +914,7 @@ static void up_shutdown(struct uart_dev_s *dev)
  * Name: up_attach
  *
  * Description:
- *   Configure the UART to operation in interrupt driven mode.  This method is
+ *   Configure the UART to operate in interrupt driven mode.  This method is
  *   called when the serial port is opened.  Normally, this is just after the
  *   the setup() method is called, however, the serial console may operate in
  *   a non-interrupt driven mode during the boot phase.
@@ -970,8 +969,8 @@ static void up_detach(struct uart_dev_s *dev)
  *   This is the UART interrupt handler.  It will be invoked
  *   when an interrupt received on the 'irq'  It should call
  *   uart_transmitchars or uart_receivechar to perform the
- *   appropriate data transfers.  The interrupt handling logic\
- *   must be able to map the 'irq' number into the approprite
+ *   appropriate data transfers.  The interrupt handling logic
+ *   must be able to map the 'irq' number into the appropriate
  *   uart_dev_s structure in order to call these functions.
  *
  ****************************************************************************/
@@ -1175,7 +1174,7 @@ static int up_receive(struct uart_dev_s *dev, uint32_t *status)
   rxd     = up_serialin(priv, TIVA_UART_DR_OFFSET);
   *status = rxd;
 
-  /* The lower 8bits of the Rx data is the actual recevied byte */
+  /* The lower 8bits of the Rx data is the actual received byte */
 
   return rxd & 0xff;
 }
@@ -1193,7 +1192,7 @@ static void up_rxint(struct uart_dev_s *dev, bool enable)
   struct up_dev_s *priv = (struct up_dev_s *)dev->priv;
   if (enable)
     {
-      /* Receive an interrupt when their is anything in the Rx FIFO (or an Rx
+      /* Receive an interrupt when there is anything in the Rx FIFO (or an Rx
        * timeout occurs.
        */
 
@@ -1258,13 +1257,13 @@ static void up_txint(struct uart_dev_s *dev, bool enable)
       priv->im |= UART_IM_TXIM;
       up_serialout(priv, TIVA_UART_IM_OFFSET, priv->im);
 
-      /* The serial driver wants an interrupt here, but will not get get
+      /* The serial driver wants an interrupt here, but will not get
        * one unless we "prime the pump."  I believe that this is because
        * behave like a level interrupt and the Stellaris interrupts behave
        * (at least by default) like edge interrupts.
        *
        * In any event, faking a TX interrupt here solves the problem;
-       * Call uart_xmitchars() just as would have been done if we recieved
+       * Call uart_xmitchars() just as would have been done if we received
        * the TX interrupt.
        */
 
@@ -1323,7 +1322,7 @@ static bool up_txempty(struct uart_dev_s *dev)
  *
  ****************************************************************************/
 
-#ifndef CONFIG_NO_SERIAL_CONSOLE
+#ifdef USE_EARLYSERIALINIT
 void up_earlyserialinit(void)
 {
   /* NOTE:  All GPIO configuration for the UARTs was performed in
@@ -1362,7 +1361,7 @@ void up_earlyserialinit(void)
   up_setup(&CONSOLE_DEV);
 #endif
 }
-#endif /* !CONFIG_NO_SERIAL_CONSOLE */
+#endif /* !USE_EARLYSERIALINIT */
 
 /****************************************************************************
  * Name: up_serialinit
@@ -1378,32 +1377,32 @@ void up_serialinit(void)
   /* Register the console */
 
 #ifdef HAVE_SERIAL_CONSOLE
-  (void)uart_register("/dev/console", &CONSOLE_DEV);
+  uart_register("/dev/console", &CONSOLE_DEV);
 #endif
 
   /* Register all UARTs */
 
-  (void)uart_register("/dev/ttyS0", &TTYS0_DEV);
+  uart_register("/dev/ttyS0", &TTYS0_DEV);
 #ifdef TTYS1_DEV
-  (void)uart_register("/dev/ttyS1", &TTYS1_DEV);
+  uart_register("/dev/ttyS1", &TTYS1_DEV);
 #endif
 #ifdef TTYS2_DEV
-  (void)uart_register("/dev/ttyS2", &TTYS2_DEV);
+  uart_register("/dev/ttyS2", &TTYS2_DEV);
 #endif
 #ifdef TTYS3_DEV
-  (void)uart_register("/dev/ttyS3", &TTYS3_DEV);
+  uart_register("/dev/ttyS3", &TTYS3_DEV);
 #endif
 #ifdef TTYS4_DEV
-  (void)uart_register("/dev/ttyS4", &TTYS4_DEV);
+  uart_register("/dev/ttyS4", &TTYS4_DEV);
 #endif
 #ifdef TTYS5_DEV
-  (void)uart_register("/dev/ttyS5", &TTYS5_DEV);
+  uart_register("/dev/ttyS5", &TTYS5_DEV);
 #endif
 #ifdef TTYS6_DEV
-  (void)uart_register("/dev/ttyS6", &TTYS6_DEV);
+  uart_register("/dev/ttyS6", &TTYS6_DEV);
 #endif
 #ifdef TTYS7_DEV
-  (void)uart_register("/dev/ttyS7", &TTYS7_DEV);
+  uart_register("/dev/ttyS7", &TTYS7_DEV);
 #endif
 }
 
@@ -1411,7 +1410,7 @@ void up_serialinit(void)
  * Name: up_putc
  *
  * Description:
- *   Provide priority, low-level access to support OS debug  writes
+ *   Provide priority, low-level access to support OS debug writes
  *
  ****************************************************************************/
 

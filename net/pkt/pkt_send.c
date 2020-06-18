@@ -51,7 +51,6 @@
 
 #include <arch/irq.h>
 
-#include <nuttx/clock.h>
 #include <nuttx/semaphore.h>
 #include <nuttx/net/netdev.h>
 #include <nuttx/net/net.h>
@@ -154,8 +153,8 @@ static uint16_t psock_send_eventhandler(FAR struct net_driver_s *dev,
  * Name: psock_pkt_send
  *
  * Description:
- *   The psock_pkt_send() call may be used only when the packet socket is in a
- *   connected state (so that the intended recipient is known).
+ *   The psock_pkt_send() call may be used only when the packet socket is in
+ *   a connected state (so that the intended recipient is known).
  *
  * Input Parameters:
  *   psock    An instance of the internal socket structure.
@@ -191,10 +190,6 @@ ssize_t psock_pkt_send(FAR struct socket *psock, FAR const void *buf,
       return -ENODEV;
     }
 
-  /* Set the socket state to sending */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_SEND);
-
   /* Perform the send operation */
 
   /* Initialize the state structure. This is done with the network locked
@@ -208,8 +203,8 @@ ssize_t psock_pkt_send(FAR struct socket *psock, FAR const void *buf,
    * priority inheritance enabled.
    */
 
-  (void)nxsem_init(&state.snd_sem, 0, 0); /* Doesn't really fail */
-  (void)nxsem_setprotocol(&state.snd_sem, SEM_PRIO_NONE);
+  nxsem_init(&state.snd_sem, 0, 0); /* Doesn't really fail */
+  nxsem_setprotocol(&state.snd_sem, SEM_PRIO_NONE);
 
   state.snd_sock      = psock;          /* Socket descriptor to use */
   state.snd_buflen    = len;            /* Number of bytes to send */
@@ -249,10 +244,6 @@ ssize_t psock_pkt_send(FAR struct socket *psock, FAR const void *buf,
   nxsem_destroy(&state.snd_sem);
   net_unlock();
 
-  /* Set the socket state to idle */
-
-  psock->s_flags = _SS_SETSTATE(psock->s_flags, _SF_IDLE);
-
   /* Check for a errors, Errors are signalled by negative errno values
    * for the send length
    */
@@ -262,8 +253,9 @@ ssize_t psock_pkt_send(FAR struct socket *psock, FAR const void *buf,
       return state.snd_sent;
     }
 
-  /* If net_lockedwait failed, then we were probably reawakened by a signal. In
-   * this case, net_lockedwait will have returned negated errno appropriately.
+  /* If net_lockedwait failed, then we were probably reawakened by a signal.
+   * In this case, net_lockedwait will have returned negated errno
+   * appropriately.
    */
 
   if (ret < 0)

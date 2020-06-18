@@ -63,7 +63,7 @@
  *   the specific command.
  *
  * Returned Value:
- *   The returned value may depend on the specific commnand.  For PR_SET_NAME
+ *   The returned value may depend on the specific command.  For PR_SET_NAME
  *   and PR_GET_NAME, the returned value of 0 indicates successful operation.
  *   On any failure, -1 is retruend and the errno value is set appropriately.
  *
@@ -92,11 +92,11 @@ int prctl(int option, ...)
           int pid  = va_arg(ap, int);
           FAR struct tcb_s *tcb;
 
-          /* Get the TCB associated with the PID (handling the special case of
-           * pid==0 meaning "this thread")
+          /* Get the TCB associated with the PID (handling the special case
+           * of pid==0 meaning "this thread")
            */
 
-          if (!pid)
+          if (pid == 0)
             {
               tcb = this_task();
             }
@@ -109,7 +109,7 @@ int prctl(int option, ...)
            * sched_gettcb()
            */
 
-          if (!tcb)
+          if (tcb == NULL)
             {
               serr("ERROR: Pid does not correspond to a task: %d\n", pid);
               errcode = ESRCH;
@@ -118,7 +118,7 @@ int prctl(int option, ...)
 
           /* A pointer to the task name storage must also be provided */
 
-          if (!name)
+          if (name == NULL)
             {
               serr("ERROR: No name provide\n");
               errcode = EFAULT;

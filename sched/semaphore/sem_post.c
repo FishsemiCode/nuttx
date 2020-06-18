@@ -41,7 +41,6 @@
 #include <nuttx/config.h>
 
 #include <limits.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <sched.h>
 
@@ -125,7 +124,7 @@ int nxsem_post(FAR sem_t *sem)
 #ifdef CONFIG_PRIORITY_INHERITANCE
       /* Don't let any unblocked tasks run until we complete any priority
        * restoration steps.  Interrupts are disabled, but we do not want
-       * the head of the read-to-run list to be modified yet.
+       * the head of the ready-to-run list to be modified yet.
        *
        * NOTE: If this sched_lock is called from an interrupt handler, it
        * will do nothing.
@@ -133,7 +132,7 @@ int nxsem_post(FAR sem_t *sem)
 
       sched_lock();
 #endif
-      /* If the result of of semaphore unlock is non-positive, then
+      /* If the result of semaphore unlock is non-positive, then
        * there must be some task waiting for the semaphore.
        */
 

@@ -6,7 +6,6 @@
 config FS_PROCFS
 	bool "PROCFS File System"
 	default n
-	select FS_READABLE
 	---help---
 		The PROCFS file system provides access to task status and other driver
 		status through the NuttX file system.  The PROCFS may, for example, be
@@ -87,7 +86,7 @@ config FS_PROCFS_EXCLUDE_UPTIME
 
 config FS_PROCFS_EXCLUDE_VERSION
 	bool "Exclude version"
-	default y
+	default n
 
 config FS_PROCFS_EXCLUDE_CLK
 	bool "Exclude clk"
@@ -107,6 +106,11 @@ config FS_PROCFS_INCLUDE_PROGMEM
 	bool "Include prog mem"
 	default n
 	depends on ARCH_HAVE_PROGMEM && !FS_PROCFS_EXCLUDE_MEMINFO
+
+config FS_PROCFS_EXCLUDE_IOBINFO
+	bool "Exclude iobinfo"
+	depends on MM_IOB
+	default n
 
 config FS_PROCFS_EXCLUDE_MOUNTS
 	bool "Exclude mounts"
@@ -133,5 +137,5 @@ config FS_PROCFS_EXCLUDE_SMARTFS
 	depends on FS_SMARTFS
 	default n
 
-endmenu #
+endmenu # Exclude individual procfs entries
 endif # FS_PROCFS

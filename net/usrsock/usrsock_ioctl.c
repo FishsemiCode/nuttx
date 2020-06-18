@@ -47,7 +47,6 @@
 #include <debug.h>
 
 #include <sys/socket.h>
-#include <nuttx/semaphore.h>
 #include <nuttx/net/net.h>
 #include <nuttx/net/usrsock.h>
 
@@ -122,6 +121,7 @@ static int do_ioctl_request(FAR struct usrsock_conn_s *conn, int cmd,
   struct usrsock_request_ioctl_s req =
   {
   };
+
   struct iovec bufs[2];
 
   if (arglen > UINT16_MAX)
@@ -168,6 +168,7 @@ int usrsock_ioctl(FAR struct socket *psock, int cmd, FAR void *arg,
   struct usrsock_data_reqstate_s state =
   {
   };
+
   struct iovec inbufs[1];
   int ret;
 
@@ -208,11 +209,7 @@ int usrsock_ioctl(FAR struct socket *psock, int cmd, FAR void *arg,
     {
       /* Wait for completion of request. */
 
-      while ((ret = net_lockedwait(&state.reqstate.recvsem)) < 0)
-        {
-          DEBUGASSERT(ret == -EINTR);
-        }
-
+      net_lockedwait_uninterruptible(&state.reqstate.recvsem);
       ret = state.reqstate.result;
 
       DEBUGASSERT(state.valuelen <= arglen);

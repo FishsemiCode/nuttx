@@ -69,72 +69,74 @@ struct hostfs_rpmsg_server_s
  * Private Function Prototypes
  ****************************************************************************/
 
-static int hostfs_rpmsg_open_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_);
-static int hostfs_rpmsg_close_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_);
-static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_);
-static int hostfs_rpmsg_write_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_);
-static int hostfs_rpmsg_lseek_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_);
-static int hostfs_rpmsg_ioctl_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_);
-static int hostfs_rpmsg_sync_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_);
-static int hostfs_rpmsg_dup_handler(struct rpmsg_endpoint *ept,
-                                    void *data, size_t len,
-                                    uint32_t src, void *priv_);
-static int hostfs_rpmsg_fstat_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_);
-static int hostfs_rpmsg_ftruncate_handler(struct rpmsg_endpoint *ept,
-                                          void *data, size_t len,
-                                          uint32_t src, void *priv_);
-static int hostfs_rpmsg_opendir_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv_);
-static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv_);
-static int hostfs_rpmsg_rewinddir_handler(struct rpmsg_endpoint *ept,
-                                          void *data, size_t len,
-                                          uint32_t src, void *priv_);
-static int hostfs_rpmsg_closedir_handler(struct rpmsg_endpoint *ept,
-                                         void *data, size_t len,
-                                         uint32_t src, void *priv_);
-static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv);
-static int hostfs_rpmsg_unlink_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv);
-static int hostfs_rpmsg_mkdir_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv);
-static int hostfs_rpmsg_rmdir_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv);
-static int hostfs_rpmsg_rename_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv);
-static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv);
+static int hostfs_rpmsg_open_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_close_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_read_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_write_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_lseek_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_ioctl_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_sync_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_dup_handler(FAR struct rpmsg_endpoint *ept,
+                                    FAR void *data, size_t len,
+                                    uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_fstat_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_ftruncate_handler(FAR struct rpmsg_endpoint *ept,
+                                          FAR void *data, size_t len,
+                                          uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_opendir_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_readdir_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_rewinddir_handler(FAR struct rpmsg_endpoint *ept,
+                                          FAR void *data, size_t len,
+                                          uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_closedir_handler(FAR struct rpmsg_endpoint *ept,
+                                         FAR void *data, size_t len,
+                                         uint32_t src, FAR void *priv_);
+static int hostfs_rpmsg_statfs_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_unlink_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_mkdir_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_rmdir_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_rename_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv);
+static int hostfs_rpmsg_stat_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv);
 
-static void hostfs_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
-                                 const char *name, uint32_t dest);
-static void hostfs_rpmsg_ns_unbind(struct rpmsg_endpoint *ept);
-static int  hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                                size_t len, uint32_t src, void *priv);
+static void hostfs_rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
+                                 FAR void *priv_, FAR const char *name,
+                                 uint32_t dest);
+static void hostfs_rpmsg_ns_unbind(FAR struct rpmsg_endpoint *ept);
+static int  hostfs_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept,
+                                FAR void *data, size_t len, uint32_t src,
+                                FAR void *priv);
 
 /****************************************************************************
  * Private Data
@@ -168,39 +170,43 @@ static const rpmsg_ept_cb g_hostfs_rpmsg_handler[] =
  * Private Functions
  ****************************************************************************/
 
-static int hostfs_rpmsg_open_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_)
+static int hostfs_rpmsg_open_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_open_s *msg = data;
-  int i, ret = -ENOENT;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_open_s *msg = data;
+  int i;
+  int ret = -ENOENT;
 
   nxsem_wait(&priv->sem);
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
     {
       if (!priv->files[i].f_inode)
         {
-          ret = file_open(&priv->files[i], msg->pathname, msg->flags, msg->mode);
+          ret = file_open(&priv->files[i], msg->pathname, msg->flags,
+                          msg->mode);
           if (ret >= 0)
             {
               ret = i;
             }
+
           break;
         }
     }
+
   nxsem_post(&priv->sem);
 
   msg->header.result = ret;
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_close_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_)
+static int hostfs_rpmsg_close_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_close_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_close_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -214,13 +220,13 @@ static int hostfs_rpmsg_close_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_)
+static int hostfs_rpmsg_read_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_read_s *msg = data;
-  struct hostfs_rpmsg_read_s *rsp;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_read_s *msg = data;
+  FAR struct hostfs_rpmsg_read_s *rsp;
   int ret = -ENOENT;
   uint32_t space;
 
@@ -229,6 +235,7 @@ static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
     {
       return -ENOMEM;
     }
+
   *rsp = *msg;
 
   space -= sizeof(*msg);
@@ -246,12 +253,12 @@ static int hostfs_rpmsg_read_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send_nocopy(ept, rsp, (ret < 0 ? 0 : ret) + sizeof(*rsp));
 }
 
-static int hostfs_rpmsg_write_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_)
+static int hostfs_rpmsg_write_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_write_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_write_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -263,12 +270,12 @@ static int hostfs_rpmsg_write_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_lseek_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_)
+static int hostfs_rpmsg_lseek_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_lseek_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_lseek_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -280,12 +287,12 @@ static int hostfs_rpmsg_lseek_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_ioctl_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_)
+static int hostfs_rpmsg_ioctl_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_ioctl_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_ioctl_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -297,12 +304,12 @@ static int hostfs_rpmsg_ioctl_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_sync_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv_)
+static int hostfs_rpmsg_sync_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_sync_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_sync_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -314,13 +321,14 @@ static int hostfs_rpmsg_sync_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_dup_handler(struct rpmsg_endpoint *ept,
-                                    void *data, size_t len,
-                                    uint32_t src, void *priv_)
+static int hostfs_rpmsg_dup_handler(FAR struct rpmsg_endpoint *ept,
+                                    FAR void *data, size_t len,
+                                    uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_dup_s *msg = data;
-  int i, ret = -ENOENT;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_dup_s *msg = data;
+  int i;
+  int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
     {
@@ -334,9 +342,11 @@ static int hostfs_rpmsg_dup_handler(struct rpmsg_endpoint *ept,
                 {
                   ret = i;
                 }
+
               break;
             }
         }
+
       nxsem_post(&priv->sem);
     }
 
@@ -344,12 +354,12 @@ static int hostfs_rpmsg_dup_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_fstat_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv_)
+static int hostfs_rpmsg_fstat_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_fstat_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_fstat_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -361,12 +371,12 @@ static int hostfs_rpmsg_fstat_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_ftruncate_handler(struct rpmsg_endpoint *ept,
-                                          void *data, size_t len,
-                                          uint32_t src, void *priv_)
+static int hostfs_rpmsg_ftruncate_handler(FAR struct rpmsg_endpoint *ept,
+                                          FAR void *data, size_t len,
+                                          uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_ftruncate_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_ftruncate_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 0 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -378,14 +388,15 @@ static int hostfs_rpmsg_ftruncate_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_opendir_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv_)
+static int hostfs_rpmsg_opendir_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_opendir_s *msg = data;
-  int i, ret = -ENOENT;
-  void *dir;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_opendir_s *msg = data;
+  FAR void *dir;
+  int i;
+  int ret = -ENOENT;
 
   dir = opendir(msg->pathname);
   if (dir)
@@ -400,6 +411,7 @@ static int hostfs_rpmsg_opendir_handler(struct rpmsg_endpoint *ept,
               break;
             }
         }
+
       nxsem_post(&priv->sem);
 
       if (ret < 0)
@@ -412,13 +424,13 @@ static int hostfs_rpmsg_opendir_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv_)
+static int hostfs_rpmsg_readdir_handler(FAR struct rpmsg_endpoint *ept,
+                                        FAR void *data, size_t len,
+                                        uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_readdir_s *msg = data;
-  struct dirent *entry;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_readdir_s *msg = data;
+  FAR struct dirent *entry;
   int ret = -ENOENT;
 
   if (msg->fd >= 1 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -437,12 +449,12 @@ static int hostfs_rpmsg_readdir_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, len);
 }
 
-static int hostfs_rpmsg_rewinddir_handler(struct rpmsg_endpoint *ept,
-                                          void *data, size_t len,
-                                          uint32_t src, void *priv_)
+static int hostfs_rpmsg_rewinddir_handler(FAR struct rpmsg_endpoint *ept,
+                                          FAR void *data, size_t len,
+                                          uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_rewinddir_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_rewinddir_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 1 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -455,12 +467,12 @@ static int hostfs_rpmsg_rewinddir_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_closedir_handler(struct rpmsg_endpoint *ept,
-                                         void *data, size_t len,
-                                         uint32_t src, void *priv_)
+static int hostfs_rpmsg_closedir_handler(FAR struct rpmsg_endpoint *ept,
+                                         FAR void *data, size_t len,
+                                         uint32_t src, FAR void *priv_)
 {
-  struct hostfs_rpmsg_server_s *priv = priv_;
-  struct hostfs_rpmsg_closedir_s *msg = data;
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
+  FAR struct hostfs_rpmsg_closedir_s *msg = data;
   int ret = -ENOENT;
 
   if (msg->fd >= 1 && msg->fd < CONFIG_NFILE_DESCRIPTORS)
@@ -476,11 +488,11 @@ static int hostfs_rpmsg_closedir_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv)
+static int hostfs_rpmsg_statfs_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_statfs_s *msg = data;
+  FAR struct hostfs_rpmsg_statfs_s *msg = data;
   int ret;
 
   ret = statfs(msg->pathname, &msg->buf);
@@ -488,11 +500,11 @@ static int hostfs_rpmsg_statfs_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_unlink_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv)
+static int hostfs_rpmsg_unlink_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_unlink_s *msg = data;
+  FAR struct hostfs_rpmsg_unlink_s *msg = data;
   int ret;
 
   ret = unlink(msg->pathname);
@@ -500,11 +512,11 @@ static int hostfs_rpmsg_unlink_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_mkdir_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv)
+static int hostfs_rpmsg_mkdir_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_mkdir_s *msg = data;
+  FAR struct hostfs_rpmsg_mkdir_s *msg = data;
   int ret;
 
   ret = mkdir(msg->pathname, msg->mode);
@@ -512,11 +524,11 @@ static int hostfs_rpmsg_mkdir_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_rmdir_handler(struct rpmsg_endpoint *ept,
-                                      void *data, size_t len,
-                                      uint32_t src, void *priv)
+static int hostfs_rpmsg_rmdir_handler(FAR struct rpmsg_endpoint *ept,
+                                      FAR void *data, size_t len,
+                                      uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_rmdir_s *msg = data;
+  FAR struct hostfs_rpmsg_rmdir_s *msg = data;
   int ret;
 
   ret = rmdir(msg->pathname);
@@ -524,12 +536,12 @@ static int hostfs_rpmsg_rmdir_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_rename_handler(struct rpmsg_endpoint *ept,
-                                       void *data, size_t len,
-                                       uint32_t src, void *priv)
+static int hostfs_rpmsg_rename_handler(FAR struct rpmsg_endpoint *ept,
+                                       FAR void *data, size_t len,
+                                       uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_rename_s *msg = data;
-  char *newpath;
+  FAR struct hostfs_rpmsg_rename_s *msg = data;
+  FAR char *newpath;
   size_t oldlen;
   int ret;
 
@@ -541,11 +553,11 @@ static int hostfs_rpmsg_rename_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
-                                     void *data, size_t len,
-                                     uint32_t src, void *priv)
+static int hostfs_rpmsg_stat_handler(FAR struct rpmsg_endpoint *ept,
+                                     FAR void *data, size_t len,
+                                     uint32_t src, FAR void *priv)
 {
-  struct hostfs_rpmsg_stat_s *msg = data;
+  FAR struct hostfs_rpmsg_stat_s *msg = data;
   int ret;
 
   ret = stat(msg->pathname, &msg->buf);
@@ -553,10 +565,11 @@ static int hostfs_rpmsg_stat_handler(struct rpmsg_endpoint *ept,
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
 
-static void hostfs_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
-                                 const char *name, uint32_t dest)
+static void hostfs_rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
+                                 FAR void *priv_, FAR const char *name,
+                                 uint32_t dest)
 {
-  struct hostfs_rpmsg_server_s *priv;
+  FAR struct hostfs_rpmsg_server_s *priv;
   int ret;
 
   if (strcmp(name, HOSTFS_RPMSG_EPT_NAME))
@@ -583,9 +596,9 @@ static void hostfs_rpmsg_ns_bind(struct rpmsg_device *rdev, void *priv_,
     }
 }
 
-static void hostfs_rpmsg_ns_unbind(struct rpmsg_endpoint *ept)
+static void hostfs_rpmsg_ns_unbind(FAR struct rpmsg_endpoint *ept)
 {
-  struct hostfs_rpmsg_server_s *priv = ept->priv;
+  FAR struct hostfs_rpmsg_server_s *priv = ept->priv;
   int i;
 
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
@@ -610,8 +623,8 @@ static void hostfs_rpmsg_ns_unbind(struct rpmsg_endpoint *ept)
   kmm_free(priv);
 }
 
-static int hostfs_rpmsg_ept_cb(struct rpmsg_endpoint *ept, void *data,
-                               size_t len, uint32_t src, void *priv)
+static int hostfs_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept, FAR void *data,
+                               size_t len, uint32_t src, FAR void *priv)
 {
   struct hostfs_rpmsg_header_s *header = data;
   uint32_t command = header->command;

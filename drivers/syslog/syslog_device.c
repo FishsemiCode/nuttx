@@ -1,7 +1,7 @@
 /****************************************************************************
  * drivers/syslog/syslog_device.c
  *
- *   Copyright (C) 2012, 2016-2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2012, 2016-2017, 2019 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -47,13 +47,13 @@
 #include <string.h>
 #include <sched.h>
 #include <fcntl.h>
-#include <semaphore.h>
 #include <errno.h>
 #include <assert.h>
 
 #include <nuttx/arch.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/syslog/syslog.h>
 
 #include "syslog.h"
@@ -119,10 +119,6 @@ static const uint8_t g_syscrlf[2] =
 
 /****************************************************************************
  * Name: syslog_dev_takesem
- *
- * Description:
- *   Write to the syslog device
- *
  ****************************************************************************/
 
 static inline int syslog_dev_takesem(void)
@@ -163,10 +159,6 @@ static inline int syslog_dev_takesem(void)
 
 /****************************************************************************
  * Name: syslog_dev_givesem
- *
- * Description:
- *   Write to the syslog device
- *
  ****************************************************************************/
 
 static inline void syslog_dev_givesem(void)
@@ -207,15 +199,15 @@ static inline void syslog_dev_givesem(void)
  *     this case, we won't ever bother to try again (ever).
  *
  * NOTE: That the third case is different.  It applies only to the thread
- * that currently holds the sl_sem sempaphore.  Other threads should wait.
+ * that currently holds the sl_sem semaphore.  Other threads should wait.
  * that is why that case is handled in syslog_semtake().
  *
  * Input Parameters:
- *   ch - The character to add to the SYSLOG (must be positive).
+ *   None.
  *
  * Returned Value:
- *   On success, the character is echoed back to the caller.  A negated
- *   errno value is returned on any failure.
+ *   Zero (OK) is returned on success; a negated errno value is returned on
+ *   any failure.
  *
  ****************************************************************************/
 
@@ -240,9 +232,9 @@ static int syslog_dev_outputready(void)
 
       if (g_syslog_dev.sl_state == SYSLOG_UNINITIALIZED ||
           g_syslog_dev.sl_state == SYSLOG_INITIALIZING)
-       {
-         return -EAGAIN; /* Can't access the SYSLOG now... maybe next time? */
-       }
+        {
+          return -EAGAIN; /* Can't access the SYSLOG now... maybe next time? */
+        }
 
       /* Case (6) */
 
@@ -259,7 +251,7 @@ static int syslog_dev_outputready(void)
        *
        * NOTE that the scheduler is locked.  That is because we do not have
        * fully initialized semaphore capability until the SYSLOG device is
-       * successfully initialized
+       * successfully initialized.
        */
 
       sched_lock();
@@ -267,7 +259,7 @@ static int syslog_dev_outputready(void)
         {
           /* Try again to initialize the device.  We may do this repeatedly
            * because the log device might be something that was not ready
-           * the first time that syslog_dev_initializee() was called (such as a
+           * the first time that syslog_dev_initialize() was called (such as a
            * USB serial device that has not yet been connected or a file in
            * an NFS mounted file system that has not yet been mounted).
            */
@@ -303,7 +295,7 @@ static int syslog_dev_outputready(void)
  *
  *   One power up, the SYSLOG facility is non-existent or limited to very
  *   low-level output.  This function may be called later in the
- *   intialization sequence after full driver support has been initialized.
+ *   initialization sequence after full driver support has been initialized.
  *   (via syslog_initialize())  It installs the configured SYSLOG drivers
  *   and enables full SYSLOGing capability.
  *
@@ -326,7 +318,7 @@ int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode)
   int ret;
 
   /* At this point, the only expected states are SYSLOG_UNINITIALIZED or
-   * SYSLOG_REOPEN..  Not SYSLOG_INITIALIZING, SYSLOG_FAILURE, SYSLOG_OPENED.
+   * SYSLOG_REOPEN.  Not SYSLOG_INITIALIZING, SYSLOG_FAILURE, SYSLOG_OPENED.
    */
 
   DEBUGASSERT(g_syslog_dev.sl_state == SYSLOG_UNINITIALIZED ||
@@ -334,30 +326,42 @@ int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode)
 
   /* Save the path to the device in case we have to re-open it.
    * If we get here and sl_devpath is not equal to NULL, that is a clue
-   * that we will are re-openingthe file.
+   * that we are re-opening the file.
    */
 
   if (g_syslog_dev.sl_state == SYSLOG_REOPEN)
     {
       /* Re-opening: Then we should already have a copy of the path to the
-       * device.
+       * device. But that may be for a different device if we revert back
+       * to old syslog destination after the previous attempt failed.
        */
 
-      DEBUGASSERT(g_syslog_dev.sl_devpath != NULL &&
-                  strcmp(g_syslog_dev.sl_devpath, devpath) == 0);
+      DEBUGASSERT(g_syslog_dev.sl_devpath != NULL);
     }
   else
     {
-      /* Initializing.  Copy the device path so that we can use it if we
-       * have to re-open the file.
-       */
+      /* Initializing. We do not have the device path yet. */
 
       DEBUGASSERT(g_syslog_dev.sl_devpath == NULL);
-      g_syslog_dev.sl_oflags  = oflags;
-      g_syslog_dev.sl_mode    = mode;
-      g_syslog_dev.sl_devpath = strdup(devpath);
-      DEBUGASSERT(g_syslog_dev.sl_devpath != NULL);
     }
+
+  /* Copy the device path so that we can use it if we
+   * have to re-open the file.
+   */
+
+  g_syslog_dev.sl_oflags  = oflags;
+  g_syslog_dev.sl_mode    = mode;
+  if (g_syslog_dev.sl_devpath != devpath)
+    {
+      if (g_syslog_dev.sl_devpath != NULL)
+        {
+          kmm_free(g_syslog_dev.sl_devpath);
+        }
+
+      g_syslog_dev.sl_devpath = strdup(devpath);
+    }
+
+  DEBUGASSERT(g_syslog_dev.sl_devpath != NULL);
 
   g_syslog_dev.sl_state = SYSLOG_INITIALIZING;
 
@@ -409,16 +413,24 @@ int syslog_dev_initialize(FAR const char *devpath, int oflags, int mode)
  ****************************************************************************/
 
 #ifdef CONFIG_SYSLOG_FILE /* Currently only used in this configuration */
-int syslog_dev_uninitialize(void)
+void syslog_dev_uninitialize(void)
 {
+  /* Check if the system is ready */
+
+  if (syslog_dev_outputready() < 0)
+    {
+      return;
+    }
+
   /* Attempt to flush any buffered data */
 
   sched_lock();
-  (void)syslog_dev_flush();
+  syslog_dev_flush();
 
   /* Close the detached file instance */
 
-  (void)file_close(&g_syslog_dev.sl_file);
+  g_syslog_dev.sl_state = SYSLOG_UNINITIALIZED;
+  file_close(&g_syslog_dev.sl_file);
 
   /* Free the device path */
 
@@ -435,7 +447,6 @@ int syslog_dev_uninitialize(void)
 
   memset(&g_syslog_dev, 0, sizeof(struct syslog_dev_s));
   sched_unlock();
-  return OK;
 }
 #endif /* CONFIG_SYSLOG_FILE */
 
@@ -443,7 +454,7 @@ int syslog_dev_uninitialize(void)
  * Name: syslog_dev_write
  *
  * Description:
- *   This is the low-level, multile byte, system logging interface provided
+ *   This is the low-level, multiple byte, system logging interface provided
  *   for the character driver interface.
  *
  * Input Parameters:
@@ -516,8 +527,8 @@ ssize_t syslog_dev_write(FAR const char *buffer, size_t buflen)
                * - endptr points to the special character.
                */
 
-               writelen = (size_t)((uintptr_t)endptr - (uintptr_t)buffer);
-               if (writelen > 0)
+              writelen = (size_t)((uintptr_t)endptr - (uintptr_t)buffer);
+              if (writelen > 0)
                 {
                   nwritten = file_write(&g_syslog_dev.sl_file, buffer, writelen);
                   if (nwritten < 0)
@@ -585,8 +596,8 @@ errout_with_sem:
  *   ch - The character to add to the SYSLOG (must be positive).
  *
  * Returned Value:
- *   On success, the character is echoed back to the caller.  Minus one
- *   is returned on any failure with the errno set correctly.
+ *   On success, the character is echoed back to the caller. A negated errno
+ *   value is returned on any failure.
  *
  ****************************************************************************/
 
@@ -642,7 +653,7 @@ int syslog_dev_putc(int ch)
 #ifndef CONFIG_DISABLE_MOUNTPOINT
       if (nbytes > 0)
         {
-          (void)syslog_dev_flush();
+          syslog_dev_flush();
         }
 #endif
     }
@@ -690,9 +701,8 @@ int syslog_dev_flush(void)
    * mountpoint does not support the sync() method.
    */
 
-  (void)file_fsync(&g_syslog_dev.sl_file);
+  file_fsync(&g_syslog_dev.sl_file);
 #endif
 
   return OK;
 }
-

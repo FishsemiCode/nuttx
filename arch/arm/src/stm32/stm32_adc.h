@@ -46,14 +46,16 @@
 
 #include "chip.h"
 
-#include "chip/stm32_adc.h"
+#include "hardware/stm32_adc.h"
 
 #include <nuttx/analog/adc.h>
 
 /************************************************************************************
  * Pre-processor Definitions
  ************************************************************************************/
+
 /* Configuration ********************************************************************/
+
 /* Timer devices may be used for different purposes.  One special purpose is to
  * control periodic ADC sampling.  If CONFIG_STM32_TIMn is defined then
  * CONFIG_STM32_TIMn_ADC must also be defined to indicate that timer "n" is intended
@@ -1303,7 +1305,7 @@
 #  define ADC2_JEXTSEL_HRTTRG4 ADC12_JSQR_JEXTSEL_HRT1TRG4
 #endif
 
-/* EXTSEL configuration *****************************************************/
+/* EXTSEL configuration *************************************************************/
 
 #if defined(CONFIG_STM32_TIM1_ADC1)
 #  if CONFIG_STM32_ADC1_TIMTRIG == 0
@@ -1839,7 +1841,7 @@
 #  endif
 #endif
 
-/* JEXTSEL configuration ****************************************************/
+/* JEXTSEL configuration ************************************************************/
 
 /* TODO: ADC1 JEXTSEL trigger */
 
@@ -1869,7 +1871,7 @@
 
 #undef ADC4_JEXTSEL_VALUE
 
-/* ADC interrupts ***********************************************************/
+/* ADC interrupts *******************************************************************/
 
 #if defined(HAVE_IP_ADC_V1)
 #  define ADC_ISR_EOC                  ADC_SR_EOC
@@ -1905,7 +1907,7 @@
 #define ADC_IER_ALLINTS (ADC_IER_EOC | ADC_IER_AWD | ADC_IER_JEOC | \
                          ADC_IER_JEOS | ADC_IER_OVR)
 
-/* Low-level ops helpers ****************************************************/
+/* Low-level ops helpers ************************************************************/
 
 #define ADC_INT_ACK(adc, source)                     \
         (adc)->llops->int_ack(adc, source)
@@ -2008,9 +2010,9 @@ struct adc_sample_time_s
                                           * same value of the sample time */
   uint8_t        all_ch_sample_time:3;   /* Sample time for all channels */
 };
-#endif  /* CONFIG_STM32_ADC_CHANGE_SAMPLETIME */
+#endif /* CONFIG_STM32_ADC_CHANGE_SAMPLETIME */
 
-/* This structure provides the publicly visable representation of the
+/* This structure provides the publicly visible representation of the
  * "lower-half" ADC driver structure.
  */
 
@@ -2020,7 +2022,7 @@ struct stm32_adc_dev_s
 
   FAR const struct stm32_adc_ops_s *llops;
 
-  /* Require cast-compatibility with private "lower-half" ADC strucutre */
+  /* Require cast-compatibility with private "lower-half" ADC structure */
 };
 
 /* Low-level operations for ADC */
@@ -2084,7 +2086,7 @@ struct stm32_adc_ops_s
   void (*dump_regs)(FAR struct stm32_adc_dev_s *dev);
 };
 
-#endif  /* CONFIG_STM32_ADC_LL_OPS */
+#endif /* CONFIG_STM32_ADC_LL_OPS */
 
 /************************************************************************************
  * Public Function Prototypes
@@ -2099,7 +2101,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-/****************************************************************************
+/************************************************************************************
  * Name: stm32_adcinitialize
  *
  * Description:
@@ -2111,9 +2113,9 @@ extern "C"
  *   nchannels - Number of channels (regular + injected)
  *
  * Returned Value:
- *   Valid can device structure reference on succcess; a NULL on failure
+ *   Valid ADC device structure reference on success; a NULL on failure
  *
- ****************************************************************************/
+ ************************************************************************************/
 
 struct adc_dev_s;
 struct adc_dev_s *stm32_adcinitialize(int intf, FAR const uint8_t *chanlist,

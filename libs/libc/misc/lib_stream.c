@@ -1,7 +1,8 @@
 /****************************************************************************
  * libs/libc/misc/lib_stream.c
  *
- *   Copyright (C) 2007, 2011, 2013-2014, 2017 Gregory Nutt. All rights reserved.
+ *   Copyright (C) 2007, 2011, 2013-2014, 2017 Gregory Nutt.
+ *   All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
  * Redistribution and use in source and binary forms, with or without
@@ -84,12 +85,12 @@ void lib_stream_initialize(FAR struct task_group_s *group)
 
   /* Initialize the list access mutex */
 
-  (void)nxsem_init(&list->sl_sem, 0, 1);
+  nxsem_init(&list->sl_sem, 0, 1);
 
   /* Initialize each FILE structure */
 
   for (i = 0; i < CONFIG_NFILE_STREAMS; i++)
-   {
+    {
       FAR struct file_struct *stream = &list->sl_streams[i];
 
       /* Clear the IOB */
@@ -138,7 +139,7 @@ void lib_stream_release(FAR struct task_group_s *group)
 
   /* Destroy the semaphore and release the filelist */
 
-  (void)_SEM_DESTROY(&list->sl_sem);
+  _SEM_DESTROY(&list->sl_sem);
 
 #ifndef CONFIG_STDIO_DISABLE_BUFFERING
   /* Release each stream in the list */
@@ -149,7 +150,7 @@ void lib_stream_release(FAR struct task_group_s *group)
 
       /* Destroy the semaphore that protects the IO buffer */
 
-      (void)_SEM_DESTROY(&stream->fs_sem);
+      _SEM_DESTROY(&stream->fs_sem);
 
       /* Release the IO buffer */
 
@@ -180,4 +181,4 @@ void lib_stream_release(FAR struct task_group_s *group)
 }
 
 #endif /* CONFIG_NFILE_STREAMS > 0 */
-#endif /* (!CONFIG_BUILD_PROTECTED &&7 !CONFIG_BUILD_KERNEL) || __KERNEL__ */
+#endif /* (!CONFIG_BUILD_PROTECTED && !CONFIG_BUILD_KERNEL) || __KERNEL__ */

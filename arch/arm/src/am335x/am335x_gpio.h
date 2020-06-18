@@ -45,8 +45,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "chip/am335x_control.h"
-#include "chip/am335x_gpio.h"
+#include "hardware/am335x_scm.h"
+#include "hardware/am335x_gpio.h"
 
 /************************************************************************************
  * Pre-processor Definitions
@@ -300,8 +300,18 @@ int am335x_dump_gpio(uint32_t pinset, const char *msg);
 #  define am335x_dump_gpio(p,m)
 #endif
 
+/************************************************************************************
+ * Function:  am335x_periph_gpio
+ *
+ * Description:
+ *   Return GPIO pinset that correspond to provided peripheral pinset.
+ *
+ ************************************************************************************/
+
+gpio_pinset_t am335x_periph_gpio(gpio_pinset_t pinset);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
 #endif
-#endif  /* __ARCH_ARM_SRC_AM335X_AM335X_GPIO_H */
+#endif /* __ARCH_ARM_SRC_AM335X_AM335X_GPIO_H */

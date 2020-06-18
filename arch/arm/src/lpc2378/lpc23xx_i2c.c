@@ -4,7 +4,7 @@
  *   Copyright (C) 2013, 2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
  *
- * Derived from arch/arm/src/lpc17xx/lpc17xx_i2c.c
+ * Derived from arch/arm/src/lpc17xx_40xx/lpc17xx_40xx_i2c.c
  *
  *   Copyright (C) 2012, 2014-2016 Gregory Nutt. All rights reserved.
  *   Author: Gregory Nutt <gnutt@nuttx.org>
@@ -185,7 +185,7 @@ static void lpc2378_i2c_setfrequency(struct lpc2378_i2cdev_s *priv,
     {
       if (frequency > 100000)
         {
-          /* Asymetric per 400Khz I2C spec */
+          /* Asymmetric per 400Khz I2C spec */
 
           putreg32(LPC23XX_CCLK / (83 + 47) * 47 / frequency,
                    priv->base + I2C_SCLH_OFFSET);
@@ -220,8 +220,8 @@ static int lpc2378_i2c_start(struct lpc2378_i2cdev_s *priv)
            priv->base + I2C_CONCLR_OFFSET);
   putreg32(I2C_CONSET_STA, priv->base + I2C_CONSET_OFFSET);
 
-  (void)wd_start(priv->timeout, I2C_TIMEOUT, lpc2378_i2c_timeout, 1,
-                 (uint32_t)priv);
+  wd_start(priv->timeout, I2C_TIMEOUT, lpc2378_i2c_timeout, 1,
+           (uint32_t)priv);
   nxsem_wait(&priv->wait);
 
   wd_cancel(priv->timeout);

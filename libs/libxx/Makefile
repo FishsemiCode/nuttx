@@ -35,12 +35,6 @@
 
 -include $(TOPDIR)/Make.defs
 
-ifeq ($(CONFIG_LIBCXX),y)
-LIBXX=libcxx
-else
-LIBXX=libxx
-endif
-
 # Sources
 
 ASRCS =
@@ -96,7 +90,7 @@ CPPOBJS = $(CPPSRCS:.cpp=$(OBJEXT))
 SRCS = $(ASRCS) $(CSRCS) $(CXXSRCS) $(CPPSRCS)
 OBJS = $(AOBJS) $(COBJS) $(CXXOBJS) $(CPPOBJS)
 
-BIN = $(LIBXX)$(LIBEXT)
+BIN = libxx$(LIBEXT)
 
 all: $(BIN)
 .PHONY: dirlinks depend clean distclean

@@ -147,14 +147,15 @@ static inline int dlremove(FAR void *handle)
   ret = modlib_registry_del(modp);
   if (ret < 0)
     {
-      serr("ERROR: Failed to remove the module from the registry: %d\n", ret);
+      serr("ERROR: Failed to remove the module from the registry: %d\n",
+           ret);
       goto errout_with_lock;
     }
 
 #if CONFIG_MODLIB_MAXDEPEND > 0
   /* Eliminate any dependencies that this module has on other modules */
 
-  (void)modlib_undepend(modp);
+  modlib_undepend(modp);
 #endif
   modlib_registry_unlock();
 

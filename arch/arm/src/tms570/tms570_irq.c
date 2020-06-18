@@ -51,7 +51,7 @@
 #include "up_arch.h"
 #include "up_internal.h"
 
-#include "chip/tms570_vim.h"
+#include "hardware/tms570_vim.h"
 #include "tms570_gio.h"
 #include "tms570_esm.h"
 #include "tms570_irq.h"
@@ -181,8 +181,8 @@ void up_irqinitialize(void)
    * an NMI.
    */
 
-  (void)irq_attach(TMS570_REQ_ESMHIGH, tms570_esm_interrupt, NULL);
-  (void)irq_attach(TMS570_REQ_ESMLO, tms570_esm_interrupt, NULL);
+  irq_attach(TMS570_REQ_ESMHIGH, tms570_esm_interrupt, NULL);
+  irq_attach(TMS570_REQ_ESMLO, tms570_esm_interrupt, NULL);
   up_enable_irq(TMS570_REQ_ESMHIGH);
   up_enable_irq(TMS570_REQ_ESMLO);
 

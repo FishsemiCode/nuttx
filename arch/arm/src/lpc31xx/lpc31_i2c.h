@@ -158,7 +158,7 @@
 #define I2C_CLKLO_MASK                   (0x3ff << I2C_CLKLO_SHIFT)
 
 
-/* I2Cn Slave Addres I2C0_ADDR, address 0x1300a014, I2C1_ADDR, address 0x1300a414 */
+/* I2Cn Slave Address I2C0_ADDR, address 0x1300a014, I2C1_ADDR, address 0x1300a414 */
 
 #define I2C_ADR_SHIFT                    (0)       /* Bits 0-9: I2C bus slave address */
 #define I2C_ADR_MASK                     (0x3ff << I2C_ADR_SHIFT)
@@ -210,7 +210,7 @@
  *   Port number (for hardware that has multiple I2C interfaces)
  *
  * Returned Value:
- *   Valid I2C device structure reference on succcess; a NULL on failure
+ *   Valid I2C device structure reference on success; a NULL on failure
  *
  ************************************************************************************/
 

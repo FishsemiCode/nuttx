@@ -3,6 +3,14 @@
 # see the file kconfig-language.txt in the NuttX tools repository.
 #
 
+menuconfig USBDEV
+	bool "USB Device Driver Support"
+	default n
+	---help---
+		USB device drivers.  See also include/nuttx/usb/usbdev.h
+
+if USBDEV
+
 comment "USB Device Controller Driver Options"
 
 config USBDEV_ISOCHRONOUS
@@ -127,6 +135,52 @@ config USBDEV_TRACE_INITIALIDSET
 		include/nuttx/usbdev_trace.h.
 
 endif # USBDEV_TRACE
+
+menuconfig USBDEV_CUSTOM_TXFIFO_SIZE
+	bool "Custom TX Fifo size"
+	default n
+	---help---
+		Enables custom TX Fifo size
+
+if USBDEV_CUSTOM_TXFIFO_SIZE
+
+config USBDEV_EP0_TXFIFO_SIZE
+	int "USBDEV_EP0_TXFIFO_SIZE"
+	default 64
+
+config USBDEV_EP1_TXFIFO_SIZE
+	int "USBDEV_EP1_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP2_TXFIFO_SIZE
+	int "USBDEV_EP2_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP3_TXFIFO_SIZE
+	int "USBDEV_EP3_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP4_TXFIFO_SIZE
+	int "USBDEV_EP4_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP5_TXFIFO_SIZE
+	int "USBDEV_EP5_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP6_TXFIFO_SIZE
+	int "USBDEV_EP6_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP7_TXFIFO_SIZE
+	int "USBDEV_EP7_TXFIFO_SIZE"
+	default 0
+
+config USBDEV_EP8_TXFIFO_SIZE
+	int "USBDEV_EP8_TXFIFO_SIZE"
+	default 0
+
+endif # USBDEV_CUSTOM_TXFIFO_SIZE
 
 comment "USB Device Class Driver Options"
 
@@ -517,8 +571,6 @@ endif # CDCACM
 menuconfig USBMSC
 	bool "USB Mass storage class device"
 	default n
-	select FS_READABLE
-	select FS_WRITABLE
 	---help---
 		References:
 		"Universal Serial Bus Mass Storage Class, Specification Overview,"
@@ -690,13 +742,19 @@ menuconfig RNDIS
 
 if RNDIS
 
+config RNDIS_NWRREQS
+	int "The number of write requests that can be in flight"
+	default 2
+	---help---
+		The number of write/read requests that can be in flight
+
 config RNDIS_COMPOSITE
-    bool "RNDIS composite support"
-    default n
-    depends on USBDEV_COMPOSITE
-    ---help---
-        Configure the RNDIS driver as part of a composite driver
-        (only if USBDEV_COMPOSITE is also defined)
+	bool "RNDIS composite support"
+	default n
+	depends on USBDEV_COMPOSITE
+	---help---
+		Configure the RNDIS driver as part of a composite driver
+		(only if USBDEV_COMPOSITE is also defined)
 
 if !RNDIS_COMPOSITE
 
@@ -791,7 +849,7 @@ menuconfig NET_CDCECM
 		References:
 		- "Universal Serial Bus - Communications Class - Subclass
 		   Specification for Ethernet Control Model Devices,
-		   Revision 1.2, Feburary 9, 2007"
+		   Revision 1.2, February 9, 2007"
 
 		This option may require CONFIG_NETDEV_LATEINIT=y, otherwise the
 		power-up initialization may call the non-existent up_netinitialize().
@@ -830,7 +888,7 @@ config CDCECM_EPINTIN
 endif # !CDCECM_COMPOSITE
 
 config CDCECM_EPINTIN_FSSIZE
-	int "Interupt IN full speed MAXPACKET size"
+	int "Interrupt IN full speed MAXPACKET size"
 	default 16
 	---help---
 		Max package size for the interrupt IN endpoint if full speed mode.
@@ -839,7 +897,7 @@ config CDCECM_EPINTIN_FSSIZE
 if USBDEV_DUALSPEED
 
 config CDCECM_EPINTIN_HSSIZE
-	int "Interupt IN high speed MAXPACKET size"
+	int "Interrupt IN high speed MAXPACKET size"
 	default 64
 	---help---
 		Max package size for the interrupt IN endpoint if high speed mode.
@@ -943,3 +1001,5 @@ config CDCECM_PRODUCTSTR
 
 endif # !CDCECM_COMPOSITE
 endif # CDCECM
+
+endif # USBDEV

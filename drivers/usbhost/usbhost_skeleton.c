@@ -1,35 +1,20 @@
 /****************************************************************************
  * drivers/usbhost/usbhost_skeleton.c
  *
- *   Copyright (C) 2018 Gregory Nutt. All rights reserved.
- *   Author: Gregory Nutt <gnutt@nuttx.org>
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.  The
+ * ASF licenses this file to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in
- *    the documentation and/or other materials provided with the
- *    distribution.
- * 3. Neither the name NuttX nor the names of its contributors may be
- *    used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
- * FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- * COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
- * INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
- * BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS
- * OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  ****************************************************************************/
 
@@ -42,7 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <semaphore.h>
 #include <assert.h>
 #include <errno.h>
 #include <debug.h>
@@ -51,6 +35,7 @@
 #include <nuttx/kmalloc.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/arch.h>
+#include <nuttx/semaphore.h>
 #include <nuttx/wqueue.h>
 
 #include <nuttx/usb/usb.h>
@@ -67,6 +52,7 @@
 #endif
 
 /* Driver support ***********************************************************/
+
 /* This format is used to construct the /dev/skel[n] device driver path.  It
  * defined here so that it will be used consistently in all places.
  */
@@ -117,7 +103,8 @@ struct usbhost_state_s
 
 /* Semaphores */
 
-static void usbhost_takesem(sem_t *sem);
+static int usbhost_takesem(FAR sem_t *sem);
+static void usbhost_forcetake(FAR sem_t *sem);
 #define usbhost_givesem(s) nxsem_post(s);
 
 /* Memory allocation services */
@@ -157,8 +144,9 @@ static inline int usbhost_tfree(FAR struct usbhost_state_s *priv);
 
 /* struct usbhost_registry_s methods */
 
-static struct usbhost_class_s *usbhost_create(FAR struct usbhost_hubport_s *hport,
-                                              FAR const struct usbhost_id_s *id);
+static struct usbhost_class_s *
+  usbhost_create(FAR struct usbhost_hubport_s *hport,
+                 FAR const struct usbhost_id_s *id);
 
 /* struct usbhost_class_s methods */
 
@@ -176,7 +164,7 @@ static int usbhost_disconnected(FAR struct usbhost_class_s *usbclass);
  * used to associate the USB class driver to a connected USB device.
  */
 
-static const const struct usbhost_id_s g_id =
+static const struct usbhost_id_s g_id =
 {
   0,  /* base -- Must be one of the USB_CLASS_* definitions in usb.h */
   0,  /* subclass -- depends on the device */
@@ -212,23 +200,37 @@ static uint32_t g_devinuse;
  *
  ****************************************************************************/
 
-static void usbhost_takesem(sem_t *sem)
+static int usbhost_takesem(FAR sem_t *sem)
+{
+  return nxsem_wait_uninterruptible(sem);
+}
+
+/****************************************************************************
+ * Name: usbhost_forcetake
+ *
+ * Description:
+ *   This is just another wrapper but this one continues even if the thread
+ *   is canceled.  This must be done in certain conditions where were must
+ *   continue in order to clean-up resources.
+ *
+ ****************************************************************************/
+
+static void usbhost_forcetake(FAR sem_t *sem)
 {
   int ret;
 
   do
     {
-      /* Take the semaphore (perhaps waiting) */
+      ret = nxsem_wait_uninterruptible(sem);
 
-      ret = nxsem_wait(sem);
-
-      /* The only case that an error should occur here is if the wait was
-       * awakened by a signal.
+      /* The only expected error would -ECANCELED meaning that the
+       * parent thread has been canceled.  We have to continue and
+       * terminate the poll in this case.
        */
 
-      DEBUGASSERT(ret == OK || ret == -EINTR);
+      DEBUGASSERT(ret == OK || ret == -ECANCELED);
     }
-  while (ret == -EINTR);
+  while (ret < 0);
 }
 
 /****************************************************************************
@@ -255,7 +257,10 @@ static inline FAR struct usbhost_state_s *usbhost_allocclass(void)
   FAR struct usbhost_state_s *priv;
 
   DEBUGASSERT(!up_interrupt_context());
-  priv = (FAR struct usbhost_state_s *)kmm_malloc(sizeof(struct usbhost_state_s));
+
+  priv = (FAR struct usbhost_state_s *)
+    kmm_malloc(sizeof(struct usbhost_state_s));
+
   uinfo("Allocated: %p\n", priv);
   return priv;
 }
@@ -331,7 +336,7 @@ static void usbhost_freedevno(FAR struct usbhost_state_s *priv)
 static inline void usbhost_mkdevname(FAR struct usbhost_state_s *priv,
                                      FAR char *devname)
 {
-  (void)snprintf(devname, DEV_NAMELEN, DEV_FORMAT, priv->devchar);
+  snprintf(devname, DEV_NAMELEN, DEV_FORMAT, priv->devchar);
 }
 
 /****************************************************************************
@@ -410,8 +415,8 @@ static void usbhost_destroy(FAR void *arg)
  *   desclen - The length in bytes of the configuration descriptor.
  *
  * Returned Value:
- *   On success, zero (OK) is returned. On a failure, a negated errno value is
- *   returned indicating the nature of the failure
+ *   On success, zero (OK) is returned. On a failure, a negated errno value
+ *   is returned indicating the nature of the failure
  *
  * Assumptions:
  *   This function will *not* be called from an interrupt handler.
@@ -468,7 +473,8 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
 
         case USB_DESC_TYPE_INTERFACE:
           {
-            FAR struct usb_ifdesc_s *ifdesc = (FAR struct usb_ifdesc_s *)configdesc;
+            FAR struct usb_ifdesc_s *ifdesc =
+              (FAR struct usb_ifdesc_s *)configdesc;
 
             uinfo("Interface descriptor\n");
             DEBUGASSERT(remaining >= USB_SIZEOF_IFDESC);
@@ -486,14 +492,16 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
 
         case USB_DESC_TYPE_ENDPOINT:
           {
-            FAR struct usb_epdesc_s *epdesc = (FAR struct usb_epdesc_s *)configdesc;
+            FAR struct usb_epdesc_s *epdesc =
+              (FAR struct usb_epdesc_s *)configdesc;
 
             uinfo("Endpoint descriptor\n");
             DEBUGASSERT(remaining >= USB_SIZEOF_EPDESC);
 
             /* Check for a bulk endpoint. */
 
-            if ((epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) == USB_EP_ATTR_XFER_BULK)
+            if ((epdesc->attr & USB_EP_ATTR_XFERTYPE_MASK) ==
+                USB_EP_ATTR_XFER_BULK)
               {
                 /* Yes.. it is a bulk endpoint.  IN or OUT? */
 
@@ -511,16 +519,20 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
 
                         return -EINVAL;
                       }
+
                     found |= USBHOST_BOUTFOUND;
 
                     /* Save the bulk OUT endpoint information */
 
                     boutdesc.hport        = hport;
-                    boutdesc.addr         = epdesc->addr & USB_EP_ADDR_NUMBER_MASK;
+                    boutdesc.addr         = epdesc->addr &
+                                            USB_EP_ADDR_NUMBER_MASK;
                     boutdesc.in           = false;
                     boutdesc.xfrtype      = USB_EP_ATTR_XFER_BULK;
                     boutdesc.interval     = epdesc->interval;
-                    boutdesc.mxpacketsize = usbhost_getle16(epdesc->mxpacketsize);
+                    boutdesc.mxpacketsize =
+                      usbhost_getle16(epdesc->mxpacketsize);
+
                     uinfo("Bulk OUT EP addr:%d mxpacketsize:%d\n",
                           boutdesc.addr, boutdesc.mxpacketsize);
                   }
@@ -544,11 +556,14 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
                     /* Save the bulk IN endpoint information */
 
                     bindesc.hport        = hport;
-                    bindesc.addr         = epdesc->addr & USB_EP_ADDR_NUMBER_MASK;
+                    bindesc.addr         = epdesc->addr &
+                                           USB_EP_ADDR_NUMBER_MASK;
                     bindesc.in           = 1;
                     bindesc.xfrtype      = USB_EP_ATTR_XFER_BULK;
                     bindesc.interval     = epdesc->interval;
-                    bindesc.mxpacketsize = usbhost_getle16(epdesc->mxpacketsize);
+                    bindesc.mxpacketsize =
+                      usbhost_getle16(epdesc->mxpacketsize);
+
                     uinfo("Bulk IN EP addr:%d mxpacketsize:%d\n",
                           bindesc.addr, bindesc.mxpacketsize);
                   }
@@ -601,7 +616,7 @@ static inline int usbhost_cfgdesc(FAR struct usbhost_state_s *priv,
   if (ret < 0)
     {
       uerr("ERROR: Failed to allocate Bulk IN endpoint\n");
-      (void)DRVR_EPFREE(hport->drvr, priv->epout);
+      DRVR_EPFREE(hport->drvr, priv->epout);
       return ret;
     }
 
@@ -651,17 +666,24 @@ static inline int usbhost_devinit(FAR struct usbhost_state_s *priv)
 
       uinfo("Register block driver\n");
       usbhost_mkdevname(priv, devname);
-      // ret = register_blockdriver(devname, &g_bops, 0, priv);
+#if 0 /* Finish me */
+      ret = register_blockdriver(devname, &g_bops, 0, priv);
+#endif
     }
 
   /* Check if we successfully initialized. We now have to be concerned
    * about asynchronous modification of crefs because the block
-   * driver has been registerd.
+   * driver has been registered.
    */
 
   if (ret >= 0)
     {
-      usbhost_takesem(&priv->exclsem);
+      ret = usbhost_takesem(&priv->exclsem);
+      if (ret < 0)
+        {
+          return ert;
+        }
+
       DEBUGASSERT(priv->crefs >= 2);
 
       /* Handle a corner case where (1) open() has been called so the
@@ -750,7 +772,8 @@ static inline uint32_t usbhost_getle32(const uint8_t *val)
 {
   /* Little endian means LS halfword first in byte stream */
 
-  return (uint32_t)usbhost_getle16(&val[2]) << 16 | (uint32_t)usbhost_getle16(val);
+  return (uint32_t)usbhost_getle16(&val[2]) << 16 |
+         (uint32_t)usbhost_getle16(val);
 }
 
 /****************************************************************************
@@ -773,7 +796,7 @@ static void usbhost_putle32(uint8_t *dest, uint32_t val)
   /* Little endian means LS halfword first in byte stream */
 
   usbhost_putle16(dest, (uint16_t)(val & 0xffff));
-  usbhost_putle16(dest+2, (uint16_t)(val >> 16));
+  usbhost_putle16(dest + 2, (uint16_t)(val >> 16));
 }
 
 /****************************************************************************
@@ -843,12 +866,13 @@ static inline int usbhost_tfree(FAR struct usbhost_state_s *priv)
  * Name: usbhost_create
  *
  * Description:
- *   This function implements the create() method of struct usbhost_registry_s.
- *   The create() method is a callback into the class implementation.  It is
- *   used to (1) create a new instance of the USB host class state and to (2)
- *   bind a USB host driver "session" to the class instance.  Use of this
- *   create() method will support environments where there may be multiple
- *   USB ports and multiple USB devices simultaneously connected.
+ *   This function implements the create() method of struct
+ *   usbhost_registry_s.  The create() method is a callback into the class
+ *   implementation.  It is used to (1) create a new instance of the USB
+ *   host class state and to (2) bind a USB host driver "session" to the
+ *   class instance.  Use of this create() method will support environments
+ *   where there may be multiple USB ports and multiple USB devices
+ *   simultaneously connected.
  *
  * Input Parameters:
  *   hport - The hub hat manages the new class instance.
@@ -864,8 +888,9 @@ static inline int usbhost_tfree(FAR struct usbhost_state_s *priv)
  *
  ****************************************************************************/
 
-static FAR struct usbhost_class_s *usbhost_create(FAR struct usbhost_hubport_s *hport,
-                                                  FAR const struct usbhost_id_s *id)
+static FAR struct usbhost_class_s *
+  usbhost_create(FAR struct usbhost_hubport_s *hport,
+                 FAR const struct usbhost_id_s *id)
 {
   FAR struct usbhost_state_s *priv;
 
@@ -882,7 +907,7 @@ static FAR struct usbhost_class_s *usbhost_create(FAR struct usbhost_hubport_s *
 
       if (usbhost_allocdevno(priv) == OK)
         {
-         /* Initialize class method function pointers */
+          /* Initialize class method function pointers */
 
           priv->usbclass.hport        = hport;
           priv->usbclass.connect      = usbhost_connect;
@@ -908,12 +933,14 @@ static FAR struct usbhost_class_s *usbhost_create(FAR struct usbhost_hubport_s *
     {
       usbhost_freeclass(priv);
     }
+
   return NULL;
 }
 
 /****************************************************************************
  * struct usbhost_class_s methods
  ****************************************************************************/
+
 /****************************************************************************
  * Name: usbhost_connect
  *
@@ -931,11 +958,11 @@ static FAR struct usbhost_class_s *usbhost_create(FAR struct usbhost_hubport_s *
  *   desclen - The length in bytes of the configuration descriptor.
  *
  * Returned Value:
- *   On success, zero (OK) is returned. On a failure, a negated errno value is
- *   returned indicating the nature of the failure
+ *   On success, zero (OK) is returned. On a failure, a negated errno value
+ *   is returned indicating the nature of the failure
  *
- *   NOTE that the class instance remains valid upon return with a failure.  It is
- *   the responsibility of the higher level enumeration logic to call
+ *   NOTE that the class instance remains valid upon return with a failure.
+ *   It is the responsibility of the higher level enumeration logic to call
  *   CLASS_DISCONNECTED to free up the class driver resources.
  *
  * Assumptions:
@@ -1030,10 +1057,12 @@ static int usbhost_disconnected(struct usbhost_class_s *usbclass)
         {
           /* Destroy the instance on the worker thread. */
 
-          uinfo("Queuing destruction: worker %p->%p\n", priv->work.worker, usbhost_destroy);
+          uinfo("Queuing destruction: worker %p->%p\n",
+                priv->work.worker, usbhost_destroy);
+
           DEBUGASSERT(priv->work.worker == NULL);
-          (void)work_queue(HPWORK, &priv->work, usbhost_destroy, priv, 0);
-       }
+          work_queue(HPWORK, &priv->work, usbhost_destroy, priv, 0);
+        }
       else
         {
           /* Do the work now */
