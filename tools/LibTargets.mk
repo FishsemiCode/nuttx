@@ -188,8 +188,8 @@ $(ARCH_SRC)$(DELIM)libuarch$(LIBEXT): context
 staging$(DELIM)libuarch$(LIBEXT): $(ARCH_SRC)$(DELIM)libuarch$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)
 
-libs$(DELIM)libxx$(DELIM)$(LIBXX)$(LIBEXT): context
-	$(Q) $(MAKE) -C libs$(DELIM)libxx -f $(TOPDIR)$(DELIM)libs$(DELIM)libxx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libs$(DELIM)libxx TOPDIR="$(TOPDIR)"  $(LIBXX)$(LIBEXT) KERNEL=n
+libs$(DELIM)libxx$(DELIM)libxx$(LIBEXT): context
+	$(Q) $(MAKE) -C libs$(DELIM)libxx -f $(TOPDIR)$(DELIM)libs$(DELIM)libxx$(DELIM)Makefile -I $(TOPDIR)$(DELIM)libs$(DELIM)libxx TOPDIR="$(TOPDIR)"  libxx$(LIBEXT) KERNEL=n
 
 staging$(DELIM)libxx$(LIBEXT): libs$(DELIM)libxx$(DELIM)libxx$(LIBEXT)
 	$(Q) $(call INSTALL_LIB,$<,$@)

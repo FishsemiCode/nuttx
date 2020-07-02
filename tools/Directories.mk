@@ -73,12 +73,6 @@ endif
 #   be cleaned to prevent garbage from collecting in them when changing
 #   configurations.
 
-ifeq ($(CONFIG_LIBCXX),y)
-LIBXX=libcxx
-else
-LIBXX=libxx
-endif
-
 NONFSDIRS = sched drivers boards $(ARCH_SRC) $(NUTTX_ADDONS)
 FSDIRS = fs binfmt
 CONTEXTDIRS = boards $(APPDIR)

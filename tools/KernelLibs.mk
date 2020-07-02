@@ -121,7 +121,7 @@ endif
 # Add C++ library
 
 ifeq ($(CONFIG_HAVE_CXX),y)
-NUTTXLIBS += staging$(DELIM)$(LIBXX)$(LIBEXT)
+NUTTXLIBS += staging$(DELIM)libxx$(LIBEXT)
 endif
 
 # Add DSP library
