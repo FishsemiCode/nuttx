@@ -486,16 +486,16 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *ak4332_1;
   struct audio_lowerhalf_s *audio_dma_in;
   struct audio_lowerhalf_s *audio_dma_voice;
-  struct audio_lowerhalf_s *audio_dma_vt;
   struct audio_lowerhalf_s *audio_path_anc;
   struct audio_lowerhalf_s *audio_path_in;
   struct audio_lowerhalf_s *audio_path_voice;
-  struct audio_lowerhalf_s *audio_path_vt;
   struct audio_lowerhalf_s *dma_playback;
   struct audio_lowerhalf_s *dma_capture;
   struct audio_lowerhalf_s *pcm_playback;
   struct audio_lowerhalf_s *pcm_capture;
 #ifdef CONFIG_AUDIO_DP_ADC
+  struct audio_lowerhalf_s *audio_path_vt;
+  struct audio_lowerhalf_s *audio_dma_vt;
   struct audio_lowerhalf_s *dp_adc0;
   struct audio_lowerhalf_s *dp_adc1;
   struct audio_lowerhalf_s *dp_adc2;
@@ -528,9 +528,10 @@ static void up_audio_init(void)
 
   audio_dma_in    = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
   audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
-  audio_dma_vt    = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
 
 #ifdef CONFIG_AUDIO_DP_ADC
+  audio_dma_vt    = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
+
   dp_adc0 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 0);
   dp_adc1 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 1);
   dp_adc2 = dp_adc_initialize("dolphin_adc_mclk", 0xa0090000, 0, 2);
