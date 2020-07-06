@@ -277,6 +277,10 @@ void up_timer_initialize(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_CP, "CP", 256, false);
+  uart_rpmsg_init(CPU_NAME_CP, "AT", 1024, false);
+  uart_rpmsg_init(CPU_NAME_CP, "AT1", 256, false);
+  uart_rpmsg_init(CPU_NAME_CP, "GPS", 256, false);
+  uart_rpmsg_init(CPU_NAME_CP, "GPS1", 256, false);
 }
 #endif
 
