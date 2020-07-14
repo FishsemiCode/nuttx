@@ -227,6 +227,7 @@ static int dp_vad_resume(struct audio_lowerhalf_s *dev_)
 static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
 {
   struct dp_vad_s *dev = args;
+  struct audio_msg_s msg;
   uint32_t status;
 
   up_udelay(100);
@@ -234,6 +235,13 @@ static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
   status = dp_vad_getreg(dev, DP_VAD_CR4) & IRQ_FLAG;
   if (status)
     {
+      msg.msgId = AUDIO_MSG_WAKEUP;
+#ifdef CONFIG_AUDIO_MULTI_SESSION
+      dev->dev.upper(dev->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK, NULL);
+#else
+      dev->dev.upper(dev->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK);
+#endif
+
       dp_vad_updatereg(dev, DP_VAD_CR4, IRQ_FLAG, IRQ_FLAG);
       up_udelay(100);
       dp_vad_getreg(dev, DP_VAD_CR4);

@@ -501,6 +501,9 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *dp_adc2;
   uint32_t voice_adcs, voice_vt;
 #endif
+#ifdef CONFIG_AUDIO_DP_VAD
+  struct audio_lowerhalf_s *dp_vad;
+#endif
 
   /* audio_mclk_mx mux to audio_mclk */
 
@@ -566,7 +569,8 @@ static void up_audio_init(void)
 #endif
 
 #ifdef CONFIG_AUDIO_DP_VAD
-  dp_vad_initialize("vad_mclk_gated", 0xa00a0000, 23);
+  dp_vad = dp_vad_initialize("vad_mclk_gated", 0xa00a0000, 23);
+  audio_comp_initialize("vad", dp_vad, NULL);
 #endif
 }
 #endif
