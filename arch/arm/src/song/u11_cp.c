@@ -467,12 +467,12 @@ static void up_rptun_init(void)
     .rpmsg_vring0    =
     {
       .align         = 0x8,
-      .num           = 4,
+      .num           = 8,
     },
     .rpmsg_vring1    =
     {
       .align         = 0x8,
-      .num           = 4,
+      .num           = 8,
     },
     .buf_size        = 0x640,
   };
