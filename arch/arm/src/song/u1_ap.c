@@ -579,10 +579,18 @@ static void up_spi_init(void)
     .mclk = "spi0_mclk",
   };
 
+#ifdef CONFIG_SERVICES_ATCMD_CHIP_TEST
+  putreg32(0x10, MUX_PIN19);
+  putreg32(0x10, MUX_PIN20);
+  putreg32(0x10, MUX_PIN21);
+  putreg32(0x12, MUX_PIN22);
+#else
   putreg32(0x12, MUX_PIN19);
   putreg32(0x12, MUX_PIN20);
   putreg32(0x12, MUX_PIN21);
   putreg32(0x12, MUX_PIN22);
+#endif
+
   g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
 }
 #endif
