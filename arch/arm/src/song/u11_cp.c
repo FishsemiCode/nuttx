@@ -100,6 +100,7 @@
 #define TOP_PWR_CP_UNIT_PD_CTL      (TOP_PWR_BASE + 0x1fc)
 #define TOP_PWR_AP_M4_CTL0          (TOP_PWR_BASE + 0x218)
 #define TOP_PWR_CK802_CTL0          (TOP_PWR_BASE + 0x22c)
+#define TOP_PWR_RFIC_MODE_CTL       (TOP_PWR_BASE + 0x248)
 #define TOP_PWR_RES_REG2            (TOP_PWR_BASE + 0x260)
 #define TOP_PWR_BOOT_REG            (TOP_PWR_BASE + 0x290)
 #define TOP_PWR_SLPCTL1             (TOP_PWR_BASE + 0x354)
@@ -148,6 +149,8 @@
 #define TOP_PWR_FLASH_S_2PD_JMP     (1 << 8)
 
 #define TOP_PWR_CP_M4_TCM_AU_PD_MK  (1 << 7)    //TOP_PWR_CP_M4_TCM_PD_CTL0
+
+#define TOP_PWR_RFIC_MODE_CTL_CLK   (1 << 15)
 
 /****************************************************************************
  * Private Types
@@ -260,6 +263,9 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_CP_M4_SLP_EN << 16 |
            TOP_PWR_CP_M4_SLP_MK << 16 |
            TOP_PWR_CP_M4_DS_SLP_EN << 16, TOP_PWR_SLPCTL_CP_M4);
+
+  modifyreg32(TOP_PWR_RFIC_MODE_CTL,
+           TOP_PWR_RFIC_MODE_CTL_CLK, TOP_PWR_RFIC_MODE_CTL_CLK);
 
 #ifndef CONFIG_CPULOAD_PERIOD
   /* Allow TCM to LP, careful with it. At this time,
