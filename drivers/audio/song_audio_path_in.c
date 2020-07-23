@@ -719,7 +719,8 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
 static int song_audio_path_set_fmt(struct song_audio_path_s *dev,
                                    uint16_t fmt)
 {
-  audio_path_putreg(dev, SONG_AUDIO_PATH_CTL0,
+  audio_path_updatereg(dev, SONG_AUDIO_PATH_CTL0,
+                    SONG_AUDIO_PATH_I2S_EN,
                     SONG_AUDIO_PATH_I2S_EN);
   dev->i2s_en = true;
 
