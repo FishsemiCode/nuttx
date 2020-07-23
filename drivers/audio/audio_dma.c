@@ -553,6 +553,7 @@ static void audio_dma_callback(struct dma_chan_s *chan, void *arg, ssize_t len)
       if (audio_dma->playback)
         {
           audio_dma->xrun_times++;
+          syslog(LOG_INFO, "!!!!!!!!underflow:%u!!!!!!!", audio_dma->xrun_times);
         }
     }
 }
