@@ -988,6 +988,7 @@ static void up_crypto_init(void)
 static void up_extra_init(void)
 {
   uint32_t wdtrst;
+  char *poweron = "n";
 
   if (!up_is_u1v1())
     {
@@ -1014,12 +1015,22 @@ static void up_extra_init(void)
                    RDFLAG_WRENABLED | RDFLAG_FUNLINK);
 #endif
 
+  if (getreg32(TOP_PMICFSM_RES_REG0) != TOP_PMICFSM_POWERON_DUMMY)
+    {
+      /* Chip reset by power_on reason */
+
+      poweron = "y";
+      putreg32(TOP_PMICFSM_POWERON_DUMMY, TOP_PMICFSM_RES_REG0);
+    }
+
   /* Set start reason to env */
 
   setenv("START_REASON", up_get_wkreason_env(), 1);
+  setenv_global("POWERON_RST", poweron, 1);
 
-  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x, WDTRST 0x%x\n",
-          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON), getreg32(TOP_PWR_WDTRST_CTL));
+  syslog(LOG_INFO, "START_REASON: %s, PIMCFSM 0x%x, WDTRST 0x%x, POWERON_RST: %s\n",
+          up_get_wkreason_env(), getreg32(TOP_PMICFSM_WAKEUP_REASON), getreg32(TOP_PWR_WDTRST_CTL),
+          poweron);
 
   wdtrst = getreg32(TOP_PWR_WDTRST_CTL) & TOP_PWR_WDT_BITED_MASK;
   if (wdtrst)

@@ -211,6 +211,11 @@ static void up_misc_init(void)
       env.name = "external-flash";
       ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
 
+      /* Get poweron_rst env from sp */
+
+      env.name = "POWERON_RST";
+      ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
+
       close(fd);
     }
 }
