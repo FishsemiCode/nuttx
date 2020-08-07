@@ -66,6 +66,7 @@
 struct song_pinctrl_dev_s
 {
   FAR struct pinctrl_dev_s       pinctrl;
+  uint32_t                       num;
   uint32_t                       base;
   const struct pinctrl_mapping_s *mapping;
 };
@@ -78,7 +79,7 @@ static inline uint32_t readreg(struct song_pinctrl_dev_s *priv, uint32_t offset)
 static inline void writereg(struct song_pinctrl_dev_s *priv, uint32_t offset, uint32_t val);
 static inline void updatereg(struct song_pinctrl_dev_s *priv,
       uint32_t offset, uint32_t mask, uint32_t val);
-static int pinctrl_find_offset(struct song_pinctrl_dev_s *priv, uint32_t pin);
+static int pinctrl_find_addr(struct song_pinctrl_dev_s *priv, uint32_t pin);
 
 static int song_set_mux(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t selector);
 static int song_set_ds(FAR struct pinctrl_dev_s *dev,  uint32_t pin, uint32_t level);
@@ -123,17 +124,17 @@ static inline void updatereg(struct song_pinctrl_dev_s *priv,
        (readreg(priv, offset) & ~mask));
 }
 
-static int pinctrl_find_offset(struct song_pinctrl_dev_s *priv, uint32_t pin)
+static int pinctrl_find_addr(struct song_pinctrl_dev_s *priv, uint32_t pin)
 {
   uint32_t i = 0;
 
-  while (UINT32_MAX != priv->mapping[i].pin)
+  for (i = 0; i < priv->num; i++)
     {
-      if (priv->mapping[i].pin == pin)
+      if (pin >= priv->mapping[i].pin_start && pin <= priv->mapping[i].pin_end)
         {
-          return priv->mapping[i].offset;
+          priv->base = priv->mapping[i].base;
+          return (priv->mapping[i].offset + (((pin - priv->mapping[i].pin_start) << 2)));
         }
-      i++;
     }
 
   return -EINVAL;
@@ -144,7 +145,7 @@ static int song_set_mux(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t se
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
   int offset;
 
-  offset = pinctrl_find_offset(priv, pin);
+  offset = pinctrl_find_addr(priv, pin);
   if (offset >= 0)
     {
       updatereg(priv, offset, SONG_PINCTRL_MUX_MASK, selector);
@@ -158,7 +159,7 @@ static int song_set_ds(FAR struct pinctrl_dev_s *dev,  uint32_t pin, uint32_t le
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
   int offset;
 
-  offset = pinctrl_find_offset(priv, pin);
+  offset = pinctrl_find_addr(priv, pin);
   if (offset >= 0)
     {
       updatereg(priv, offset, SONG_PINCTRL_DS_MASK, level << SONG_PINCTRL_DS_SHIFT);
@@ -172,7 +173,7 @@ static int song_set_dt(FAR struct pinctrl_dev_s *dev, uint32_t pin, enum pinctrl
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
   int offset;
 
-  offset = pinctrl_find_offset(priv, pin);
+  offset = pinctrl_find_addr(priv, pin);
   if (offset >= 0)
     {
       updatereg(priv, offset, SONG_PINCTRL_DT_MASK, type << SONG_PINCTRL_DT_SHIFT);
@@ -186,7 +187,7 @@ static int song_set_slew(FAR struct pinctrl_dev_s *dev, uint32_t pin, uint32_t s
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
   int offset;
 
-  offset = pinctrl_find_offset(priv, pin);
+  offset = pinctrl_find_addr(priv, pin);
   if (offset >= 0)
     {
       updatereg(priv, offset, SONG_PINCTRL_SLEW_MASK, state << SONG_PINCTRL_SLEW_SHIFT);
@@ -200,7 +201,7 @@ static int song_sel_gpio(FAR struct pinctrl_dev_s *dev, uint32_t pin)
   FAR struct song_pinctrl_dev_s *priv = (FAR struct song_pinctrl_dev_s *)dev;
   int offset;
 
-  offset = pinctrl_find_offset(priv, pin);
+  offset = pinctrl_find_addr(priv, pin);
   if (offset >= 0)
     {
       updatereg(priv, offset, SONG_PINCTRL_MUX_MASK, SONG_PINCTRL_MUX_GPIO_FUNC);
@@ -220,20 +221,20 @@ static int song_sel_gpio(FAR struct pinctrl_dev_s *dev, uint32_t pin)
  *   Create pinctrl device driver instances for song platform.
  *
  * Input Parameters:
- *   base     - The base register address of song pinctrl.
- *   mapping  - The pin number and its address offset of song pinctrl.
+ *   num      - The number of song pinctrl_mapping.
+ *   mapping  - The pin number base address and its address offset of song pinctrl.
  *
  * Returned Value:
  *   an pinctrl_dev_s instance on success; NULL on failure.
  *
  ****************************************************************************/
 
-FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base,
+FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t num,
                             const struct pinctrl_mapping_s *mapping)
 {
   FAR struct song_pinctrl_dev_s *priv;
 
-  DEBUGASSERT(base && mapping);
+  DEBUGASSERT(num && mapping);
 
   priv = kmm_zalloc(sizeof(struct song_pinctrl_dev_s));
   if (priv == NULL)
@@ -241,9 +242,9 @@ FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base,
       return NULL;
     }
 
-  priv->base = base;
+  priv->num = num;
   priv->mapping = mapping;
-
+  priv->base = mapping[0].base;
   priv->pinctrl.ops = &g_song_pinctrl_ops;
 
   return &priv->pinctrl;

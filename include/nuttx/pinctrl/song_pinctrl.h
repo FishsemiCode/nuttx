@@ -50,7 +50,9 @@
 
 struct pinctrl_mapping_s
 {
-  uint32_t pin;
+  uint32_t base;
+  uint32_t pin_start;
+  uint32_t pin_end;
   uint32_t offset;
 };
 
@@ -65,15 +67,15 @@ struct pinctrl_mapping_s
  *   Create pinctrl device driver instances for song platform.
  *
  * Input Parameters:
- *   base     - The base register address of song pinctrl.
- *   mapping  - The pin number and its address offset of song pinctrl.
+ *   num      - The number of song pinctrl_mapping.
+ *   mapping  - The pin number base address and its address offset of song pinctrl.
  *
  * Returned Value:
  *   an pinctrl_dev_s instance on success; NULL on failure.
  *
  ****************************************************************************/
 
-FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t base,
+FAR struct pinctrl_dev_s *song_pinctrl_initialize(uint32_t num,
                             const struct pinctrl_mapping_s *mapping);
 
 #endif
