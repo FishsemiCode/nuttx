@@ -38,6 +38,8 @@
  ****************************************************************************/
 
 #include <nuttx/config.h>
+#include <stdio.h>
+
 #include <nuttx/audio/audio_dma.h>
 #include <nuttx/kmalloc.h>
 #include <queue.h>
@@ -61,6 +63,7 @@ struct audio_dma_s
   apb_samp_t buffer_size;
   apb_samp_t buffer_num;
   int xrun_times;
+  struct timespec xrun_ts;
 };
 
 /****************************************************************************
@@ -448,6 +451,11 @@ static int audio_dma_enqueuebuffer(struct audio_lowerhalf_s *dev,
 
   if (audio_dma->xrun)
     {
+      struct timespec ts, delta;
+      clock_gettime(CLOCK_MONOTONIC, &ts);
+      clock_timespec_subtract(&ts, &audio_dma->xrun_ts, &delta);
+      printf("!!!!! underflow (%d, %dus) !!!! \n", audio_dma->xrun_times,
+                                 (delta.tv_sec * 10000000 + delta.tv_nsec / 1000));
       audio_dma->xrun = false;
       return audio_dma_resume(dev);
     }
@@ -553,7 +561,7 @@ static void audio_dma_callback(struct dma_chan_s *chan, void *arg, ssize_t len)
       if (audio_dma->playback)
         {
           audio_dma->xrun_times++;
-          printf("!!!!!!!!underflow:%u!!!!!!!\n", audio_dma->xrun_times);
+          clock_gettime(CLOCK_MONOTONIC, &audio_dma->xrun_ts);
         }
     }
 }
