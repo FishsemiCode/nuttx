@@ -441,18 +441,15 @@ static void up_pinctrl_init(void)
 {
   static const struct pinctrl_mapping_s mapping[] =
   {
-    { 0, 0x00}, { 1, 0x04}, { 2, 0x08}, { 3, 0x0C},
-    { 4, 0x10}, { 5, 0x1C}, { 6, 0x20}, { 7, 0x2C},
-    { 8, 0x30}, { 9, 0x34}, {10, 0x38}, {11, 0x3C},
-    {12, 0x40}, {13, 0x44}, {14, 0x48}, {15, 0x4C},
-    {16, 0x50}, {17, 0x54}, {18, 0x58}, {19, 0x5C},
-    {20, 0x60}, {21, 0x6C}, {22, 0x70}, {23, 0x74},
-    {24, 0x78}, {25, 0x7C}, {26, 0x80}, {27, 0x84},
-    {28, 0x88}, {29, 0x8C}, {30, 0x90}, {31, 0x94},
-    {32, 0x98}, {.pin = UINT32_MAX,},
+    {
+      .base = 0xb0050000,
+      .pin_start = 0,
+      .pin_end = 32,
+      .offset = 0,
+    }
   };
 
-  g_pinctrl[0] = song_pinctrl_initialize(0xb0050000, mapping);
+  g_pinctrl[0] = song_pinctrl_initialize(sizeof(mapping) / sizeof(mapping[0]), mapping);
   pinctrl_register(g_pinctrl[0], 0);
 }
 #endif
