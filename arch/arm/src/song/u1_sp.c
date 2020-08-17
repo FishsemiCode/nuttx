@@ -1015,7 +1015,7 @@ static void up_extra_init(void)
                    RDFLAG_WRENABLED | RDFLAG_FUNLINK);
 #endif
 
-  if (getreg32(TOP_PMICFSM_RES_REG0) != TOP_PMICFSM_POWERON_DUMMY)
+  if (getreg32(TOP_PMICFSM_RES_REG0) == TOP_PMICFSM_REG0_RESET_VALUE)
     {
       /* Chip reset by power_on reason */
 
