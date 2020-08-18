@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/risc-v/src/song/u2_ap_clk.c
+ * arch/risc-v/src/song/u2_apv3_clk.c
  *
- *   Copyright (C) 2017 Pinecone Inc. All rights reserved.
- *   Author: zhuyanlin <zhuyanlin@pinecone.net>
+ *   Copyright (C) 2020 FishSemi Inc. All rights reserved.
+ *   Author: FishSemi <Fishsemi@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,8 +39,7 @@
 
 #include <nuttx/config.h>
 
-#if ((defined(CONFIG_ARCH_CHIP_U2_AP) || defined(CONFIG_ARCH_CHIP_U2_APV3)) && \
-      defined(CONFIG_SONG_CLK))
+#if defined(CONFIG_ARCH_CHIP_U2_APV3) && defined(CONFIG_SONG_CLK)
 
 #include <nuttx/clk/clk.h>
 #include <nuttx/clk/song/song-clk.h>
@@ -56,26 +55,14 @@ static const char *out_clk_src[] =
   "top_bus_mclk",
   "rfphy_sys_clk",
   "pll1_mclk",
-  "pll0",
+  "audio_mclk",
   "clk32k",
   "codec_ref_clk",
 };
 
-static const char *rfphy_pll0_clk_src[] =
-{
-  "pll0",
-  "rfphy_sys_clk",
-};
-
-static const char *pll1_pll0_src[] =
-{
-  "pll0",
-  "pll1_occ",
-};
-
 static const char *audio_mclk_mx_src[] =
 {
-  "pll0",
+  "rfphy_sys_clk",
   "audio_mclk",
 };
 
@@ -113,22 +100,11 @@ static const struct song_fixed_factor_clk fixed_factor[] =
   {},
 };
 
-static const struct song_pll_lf_clk pll_lf[] =
-{
-  {
-    .name = "pll0",
-    .parent_name = "clk32k",
-    .cfg0_offset = 0x30,
-    .cfg1_offset = 0x34,
-  },
-  {},
-};
-
 static const struct song_pll_clk pll[] =
 {
   {
     .name = "pll1_ori",
-    .parent_name = "pll1_ref_clk",
+    .parent_name = "rfphy_sys_clk",
     .cfg0_offset = 0x38,
     .cfg1_offset = 0x3c,
     .ctl_offset = 0x40,
@@ -152,33 +128,6 @@ static const struct song_out_clk out[] =
 
 static const struct song_mux_clk mux[] =
 {
-  {
-    .name = "rfphy_pll0_clk",
-    .parent_names = rfphy_pll0_clk_src,
-    .num_parents = ARRAY_SIZE(rfphy_pll0_clk_src),
-    .mux_offset = 0xdc,
-    .mux_shift = 2,
-    .mux_width = 1,
-    .mux_flags = CLK_MUX_HIWORD_MASK,
-  },
-  {
-    .name = "pll1",
-    .parent_names = pll1_pll0_src,
-    .num_parents = ARRAY_SIZE(pll1_pll0_src),
-    .mux_offset = 0xdc,
-    .mux_shift = 1,
-    .mux_width = 1,
-    .mux_flags = CLK_MUX_HIWORD_MASK,
-  },
-  {
-    .name = "pll1_ref_clk",
-    .parent_names = rfphy_pll0_clk_src,
-    .num_parents = ARRAY_SIZE(rfphy_pll0_clk_src),
-    .mux_offset = 0xdc,
-    .mux_shift = 0,
-    .mux_width = 1,
-    .mux_flags = CLK_MUX_HIWORD_MASK,
-  },
   {
     .name = "audio_mclk_mx",
     .parent_names = audio_mclk_mx_src,
@@ -247,7 +196,7 @@ static const struct song_gr_fdiv_clk gr_fdiv[] =
   },
   {
     .name = "vad_mclk_pll0_div",
-    .parent_name = "pll0",
+    .parent_name = "rfphy_sys_clk",
     .div_offset = 0xec,
   },
   {},
@@ -286,7 +235,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "pwm_mclk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "rfphy_sys_clk",
     .en_offset = 0xd8,
     .en_shift = 0,
     .div_offset = 0xd8,
@@ -322,7 +271,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "bus_lp_clk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "rfphy_sys_clk",
     .en_offset = 0x0c4,
     .en_shift = 0,
     .div_offset = 0x0c4,
@@ -332,7 +281,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "pll_adj_clk",
-    .parent_name = "pll0",
+    .parent_name = "rfphy_sys_clk",
     .en_offset = 0x0a8,
     .en_shift = 0,
     .div_offset = 0x0a8,
@@ -416,7 +365,7 @@ static const struct song_div_clk div[] =
   },
   {
     .name = "at_clk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "rfphy_sys_clk",
     .en_offset = 0x06c,
     .en_shift = 0,
     .div_offset = 0x06c,
@@ -496,7 +445,7 @@ static const struct song_gate_clk gate[] =
   },
   {
     .name = "at_calib_clk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "rfphy_sys_clk",
     .en_offset = 0x090,
     .en_shift = 5,
   },
@@ -554,7 +503,7 @@ static const struct song_gate_clk gate[] =
   },
   {
     .name = "btdm_bb_hclk",
-    .parent_name = "rfphy_pll0_clk",
+    .parent_name = "rfphy_sys_clk",
     .en_offset = 0x094,
     .en_shift = 0,
   },
@@ -572,7 +521,7 @@ static const struct song_gate_clk gate[] =
     .en_shift = 3,
   },
   {
-    .name = "pll1_occ",
+    .name = "pll1",
     .parent_name = "pll1_ori",
     .en_offset = 0x098,
     .en_shift = 4,
@@ -871,8 +820,16 @@ static const struct song_lp_reg_clk lp_reg[] =
 static const struct clk_rate def_rates[] =
 {
   {
+    .name = "pll1_ori",
+    .rate = 294912000,
+  },
+  {
     .name = "clk_cpu_sys",
     .rate = 147456000,
+  },
+  {
+    .name = "uart0_clk",
+    .rate = 14745600,
   },
   {},
 };
@@ -888,7 +845,6 @@ static const struct song_clk_table clk_tbl =
   .gate_clks         = gate,
   .mux_clks          = mux,
   .pll_clks          = pll,
-  .pll_lf_clks       = pll_lf,
   .out_clks          = out,
   .lp_reg            = lp_reg,
 };
@@ -907,6 +863,4 @@ void up_clk_finalinitialize(void)
   clk_set_rates(def_rates);
   clk_disable_unused();
 }
-#endif /* ((defined(CONFIG_ARCH_CHIP_U2_AP) || defined(CONFIG_ARCH_CHIP_U2_APV3)) && \
-            defined(CONFIG_SONG_CLK)) */
-
+#endif /* (CONFIG_ARCH_CHIP_U2_APV3) && (CONFIG_SONG_CLK) */

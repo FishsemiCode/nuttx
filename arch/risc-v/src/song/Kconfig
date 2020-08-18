@@ -18,6 +18,11 @@ config ARCH_CHIP_U2_AP
 	select ARCH_RV32IM
 	select ARCH_HAVE_FPU
 
+config ARCH_CHIP_U2_APV3
+	bool "U2 APV3"
+	select ARCH_RV32IM
+	select ARCH_HAVE_FPU
+
 config ARCH_CHIP_U2_AUDIO
 	bool "U2 AUDIO"
 	select ARCH_RV32IM

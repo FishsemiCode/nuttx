@@ -38,7 +38,8 @@
 
 #include <nuttx/config.h>
 
-#if (defined(CONFIG_ARCH_CHIP_U2_AP) && defined(CONFIG_SONG_PMIC_I2C))
+#if ((defined(CONFIG_ARCH_CHIP_U2_AP) || defined(CONFIG_ARCH_CHIP_U2_APV3)) && \
+      defined(CONFIG_SONG_PMIC_I2C))
 
 #include <stdint.h>
 #include <nuttx/i2c/i2c_master.h>
@@ -192,4 +193,6 @@ void up_pmu_initialize(void)
   spmu_i2c_init((g_i2c[0]), 0x70, 400000,
       spmu_regulator_desc, ARRAY_SIZE(spmu_regulator_desc));
 }
-#endif /* (defined(CONFIG_ARCH_CHIP_U2_AP) && defined(CONFIG_SONG_PMIC_I2C) */
+#endif /* ((defined(CONFIG_ARCH_CHIP_U2_AP) || defined(CONFIG_ARCH_CHIP_U2_APV3)) && \
+            defined(CONFIG_SONG_PMIC_I2C)) */
+
