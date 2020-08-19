@@ -90,12 +90,11 @@
 #define TOP_MAILBOX_BASE            (0xa0050000)
 
 #define MUX_PIN_BASE                (0xa00d0000)
-#define MUXPIN_CLKO0_CTL            (MUX_PIN_BASE + 0x14)
-#define MUXPIN_IIS0DI_CTL           (MUX_PIN_BASE + 0x7c)
-#define MUXPIN_IIS0DO_CTL           (MUX_PIN_BASE + 0x80)
-#define MUXPIN_IIS0CK_CTL           (MUX_PIN_BASE + 0x84)
-#define MUXPIN_IIS0WS_CTL           (MUX_PIN_BASE + 0x88)
-#define MUXPIN_GPIO8_CTL            (MUX_PIN_BASE + 0xe4)
+#define MUXPIN_CLKO0_CTL            (MUX_PIN_BASE + 0x04)
+#define MUXPIN_IIS0DI_CTL           (MUX_PIN_BASE + 0x58)
+#define MUXPIN_IIS0DO_CTL           (MUX_PIN_BASE + 0x5c)
+#define MUXPIN_IIS0CK_CTL           (MUX_PIN_BASE + 0x60)
+#define MUXPIN_IIS0WS_CTL           (MUX_PIN_BASE + 0x64)
 
 #define MUXPIN_DS                   0x4
 #define MUXPIN_PDU                  0x2
@@ -514,7 +513,6 @@ static void up_audio_init(void)
   putreg32(1 << (MUXPIN_DS) | 0 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DO_CTL);
   putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0CK_CTL);
   putreg32(1 << (MUXPIN_DS) | 1 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0WS_CTL);
-  putreg32(1 << (MUXPIN_DS), MUXPIN_GPIO8_CTL);
   IOEXP_SETDIRECTION(g_ioe[0], 0x8, IOEXPANDER_DIRECTION_OUT);
   IOEXP_WRITEPIN(g_ioe[0], 0x8, true);
 
