@@ -451,11 +451,14 @@ static int audio_dma_enqueuebuffer(struct audio_lowerhalf_s *dev,
 
   if (audio_dma->xrun)
     {
-      struct timespec ts, delta;
-      clock_gettime(CLOCK_MONOTONIC, &ts);
-      clock_timespec_subtract(&ts, &audio_dma->xrun_ts, &delta);
-      printf("!!!!! underflow (%d, %dus) !!!! \n", audio_dma->xrun_times,
-                                 (delta.tv_sec * 10000000 + delta.tv_nsec / 1000));
+      if (audio_dma->playback)
+        {
+          struct timespec ts, delta;
+          clock_gettime(CLOCK_MONOTONIC, &ts);
+          clock_timespec_subtract(&ts, &audio_dma->xrun_ts, &delta);
+          printf("!!!!! underflow (%d, %dus) !!!! \n", audio_dma->xrun_times,
+                                     (delta.tv_sec * 10000000 + delta.tv_nsec / 1000));
+        }
       audio_dma->xrun = false;
       return audio_dma_resume(dev);
     }
