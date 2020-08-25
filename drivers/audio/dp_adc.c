@@ -771,7 +771,12 @@ struct audio_lowerhalf_s *dp_adc_initialize(const char *mclk, uint32_t base,
         break;
     }
 
+#ifdef CONFIG_ARCH_CHIP_U2_APV3
+  dp_adc_putreg(dev, DP_ADC_ANA1,   0x40);
+#else
   dp_adc_putreg(dev, DP_ADC_ANA1,   0x04);
+#endif
+
   dp_adc_putreg(dev, DP_ADC_CR_VIC, 0x01);
 
   if (dev->anc_rate && dp_adc_samplerate(dev, dev->anc_rate) < 0)
