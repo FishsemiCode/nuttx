@@ -59,4 +59,9 @@ config AT24CS_UUID
 
 endif # I2C_EE_24XX
 
+config SONG_EFUSE
+	bool "EFUSE devices"
+	default n
+	---help---
+		This selection enables support for the efuse device
 endif
