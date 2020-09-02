@@ -43,6 +43,7 @@
 
 #include <nuttx/arch.h>
 #include <nuttx/dma/song_dmas.h>
+#include <nuttx/eeprom/song_efuse.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/partition.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
@@ -570,6 +571,13 @@ static void up_partition_init(FAR struct partition_s *part, FAR void *arg)
   register_mtdpartition(path, 0, arg, part->firstblock, part->nblocks);
 }
 
+#ifdef CONFIG_SONG_EFUSE
+static void up_efuse_init(void)
+{
+  song_efuse_initialize(0, 0xb0150000, 45);
+}
+#endif
+
 static void up_flash_init(void)
 {
   char *path = "/dev/spiflash";
@@ -617,6 +625,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_IOE
   up_ioe_init();
+#endif
+
+#ifdef CONFIG_SONG_EFUSE
+  up_efuse_init();
 #endif
 
 #ifdef CONFIG_SONG_SPI_FLASH
