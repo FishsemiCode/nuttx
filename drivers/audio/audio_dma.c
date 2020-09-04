@@ -285,10 +285,10 @@ static int audio_dma_shutdown(struct audio_lowerhalf_s *dev)
 {
   struct audio_dma_s *audio_dma = (struct audio_dma_s *)dev;
 
+  /* Apps enqueued buffers, but doesn't start. Stop here to
+     clear audio_dma->pendq.
+  */
   audio_dma_stop(dev);
-  kumm_free(audio_dma->alloc_addr);
-  audio_dma->alloc_addr = NULL;
-  audio_dma->alloc_index = 0;
 
   return OK;
 }
@@ -430,7 +430,14 @@ static int audio_dma_freebuffer(struct audio_lowerhalf_s *dev,
   nxsem_destroy(&apb->sem);
   kumm_free(apb);
 
+  if (audio_dma->alloc_index == 0)
+    {
+      kumm_free(audio_dma->alloc_addr);
+      audio_dma->alloc_addr = NULL;
+    }
+
   return sizeof(struct audio_buf_desc_s);
+
 }
 
 static int audio_dma_enqueuebuffer(struct audio_lowerhalf_s *dev,
