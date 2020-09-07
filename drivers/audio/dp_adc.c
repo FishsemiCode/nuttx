@@ -387,23 +387,28 @@ static int dp_adc_start(struct audio_lowerhalf_s *dev_)
   switch(dev->idx)
     {
       case 0:
-        dp_adc_updatereg(dev, DP_ADC_AICR_SB_ADC, SB_AICR_ADC, 0x00);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x00);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC1, 0);
+        usleep(30*1000);
+        dp_adc_updatereg(dev, DP_ADC_AICR_SB_ADC, SB_AICR_ADC, 0x00);
         break;
       case 1:
-        dp_adc_updatereg(dev, DP_ADC_AICR_SB_ADC, SB_AICR_ADC, 0x00);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x00);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC2, 0);
+        usleep(30*1000);
+        dp_adc_updatereg(dev, DP_ADC_AICR_SB_ADC, SB_AICR_ADC, 0x00);
         break;
       case 2:
-        dp_adc_updatereg(dev, DP_ADC_AICR_SB_ADC2, SB_AICR_ADC, 0x00);
-        dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_SOFT_MUTE, 0x00);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, SB_ADC3, 0);
+        usleep(5*1000);
+        dp_adc_updatereg(dev, DP_ADC_AICR_SB_ADC2, SB_AICR_ADC, 0x00);
         break;
     }
 
   dp_adc_putreg(dev, DP_ADC_CR_VIC, 0);
+
+  if (dev->idx < 2)
+    dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x00);
+  else
+    dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_SOFT_MUTE, 0x00);
 
   return OK;
 }
@@ -420,14 +425,17 @@ static int dp_adc_stop(struct audio_lowerhalf_s *dev_)
   switch(dev->idx)
     {
       case 0:
+        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x01);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC1, SB_ADC1);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC1, SB_MICBIAS, SB_MICBIAS);
         break;
       case 1:
+        dp_adc_updatereg(dev, DP_ADC_CR_ADC12, ADC12_SOFT_MUTE, 0x01);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC12, SB_ADC2, SB_ADC2);
         dp_adc_updatereg(dev, DP_ADC_CR_MIC2, SB_MICBIAS, SB_MICBIAS);
         break;
       case 2:
+        dp_adc_updatereg(dev, DP_ADC_CR_ADC3, ADC3_SOFT_MUTE, 0x01);
         dp_adc_updatereg(dev, DP_ADC_CR_ADC3, SB_ADC3, SB_ADC3);
         break;
     }

@@ -540,12 +540,12 @@ static void up_audio_init(void)
   audio_path_in    = song_audio_path_in_initialize(0xa0070000, "audio_sys_in_clk", "audio_i2s_mclk");
   audio_path_anc   = song_audio_path_anc_initialize(0xa0070000, true);
 
-  audio_comp_initialize("pcm0c", audio_dma_voice, audio_path_voice, dp_adc0, dp_adc2, NULL);
+  audio_comp_initialize("pcm0c", audio_dma_voice, dp_adc0, dp_adc2, audio_path_voice, NULL);
   audio_comp_initialize("pcm0p", audio_path_in, ak4332_0, audio_dma_in, NULL);
   audio_comp_initialize("pcm1c", dma_capture, pcm_capture, NULL);
   audio_comp_initialize("pcm1p", dma_playback, pcm_playback, NULL);
   audio_comp_initialize("pcm3p", ak4332_0, audio_path_anc, dp_adc0, dp_adc1, NULL);
-  audio_comp_initialize("pcm2c", audio_dma_vt, audio_path_vt, dp_adc2, NULL);
+  audio_comp_initialize("pcm2c", audio_dma_vt, dp_adc2, audio_path_vt,  NULL);
 
   up_audio_thinker_init(dp_adc2);
 #else

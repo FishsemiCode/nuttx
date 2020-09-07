@@ -58,13 +58,18 @@
 #define SONG_AUDIO_PATH_CTL0                        0x480
 #define SONG_AUDIO_PATH_CFG                         0x488
 
-#define SONG_AUDIO_PATH_VOICE_ADCx_REST_MASK        0x000f0000
-#define SONG_AUDIO_PATH_VOICE_ADCx_ENABLE_MASK      0x0000000f
-
 #ifdef CONFIG_ARCH_CHIP_U2_APV3
+#define SONG_AUDIO_PATH_ADC_CFG3                    0x420
+
+#define SONG_AUDIO_PATH_VOICE_ADCx_REST_MASK        0x00030000
+#define SONG_AUDIO_PATH_VOICE_ADCx_ENABLE_MASK      0x00000003
+
 #define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_MASK(x)     (0x1f << (x * 5 + 11))
 #define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_SHIFT(x)    (x * 5 + 11)
 #else
+#define SONG_AUDIO_PATH_VOICE_ADCx_REST_MASK        0x000f0000
+#define SONG_AUDIO_PATH_VOICE_ADCx_ENABLE_MASK      0x0000000f
+
 #define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_MASK(x)     (0x7 << (x * 3 + 11))
 #define SONG_AUDIO_PATH_VOICE_ADCx_GAIN_SHIFT(x)    (x * 3 + 11)
 #endif
@@ -284,12 +289,15 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
     }
   else
     {
-      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
-                         SONG_AUDIO_PATH_VOICE_ADC_ENABLE,
-                         SONG_AUDIO_PATH_VOICE_ADC_ENABLE);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL0,
-                           SONG_AUDIO_PATH_VOICE_ADCx_ENABLE_MASK,
-                           dev->voice_adc_enable_bitsmap);
+                 SONG_AUDIO_PATH_VOICE_ADCx_ENABLE_MASK,
+                 dev->voice_adc_enable_bitsmap);
+
+      usleep(40*1000);
+
+      audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CTL1,
+                   SONG_AUDIO_PATH_VOICE_ADC_ENABLE,
+                   SONG_AUDIO_PATH_VOICE_ADC_ENABLE);
     }
 
   return OK;
@@ -637,15 +645,22 @@ struct audio_lowerhalf_s *song_audio_path_voice_initialize(uintptr_t base,
 
   clk_enable(clk_get("audio_mclk"));
 
+#ifndef CONFIG_ARCH_CHIP_U2_APV3
   audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG1,
                             SONG_AUDIO_PATH_VOICE_ADC_UX_SWAP_MASK,
                             0);
+#endif
+
   if (extern_adc)
     {
       audio_path_updatereg(dev, SONG_AUDIO_PATH_ADC_CFG2,
                            SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC,
                            SONG_AUDIO_PATH_VOICE_DMA_SRC_EXT_ADC);
     }
+
+#ifdef CONFIG_ARCH_CHIP_U2_APV3
+  audio_path_putreg(dev, SONG_AUDIO_PATH_ADC_CFG3, 0x3e3e3e3e);
+#endif
 
   return &dev->dev;
 }
