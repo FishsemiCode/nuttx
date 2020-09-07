@@ -199,6 +199,11 @@
 #define SO_TYPE         15 /* Reports the socket type (get only).
                             * return: int
                             */
+#define SO_CONNTIMEO    16 /* Sets the timeout value specifying the amount of
+                            * time that a connection action blocks because the
+                            * server sends no response or invalid addr.
+                            * arg: struct timeval
+                            */
 
 /* Protocol-level socket operations. */
 

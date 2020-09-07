@@ -157,7 +157,7 @@ enum net_lltype_e
 
 /* This defines a bitmap big enough for one bit for each socket option */
 
-typedef uint16_t sockopt_t;
+typedef uint32_t sockopt_t;
 
 /* This defines the storage size of a timeout value.  This effects only
  * range of supported timeout values.  With an LSB in seciseconds, the
@@ -264,6 +264,7 @@ struct socket
   sockopt_t     s_options;   /* Selected socket options */
   socktimeo_t   s_rcvtimeo;  /* Receive timeout value (in deciseconds) */
   socktimeo_t   s_sndtimeo;  /* Send timeout value (in deciseconds) */
+  socktimeo_t   s_conntimeo; /* Connect timeout value (in deciseconds) */
 #ifdef CONFIG_NET_SOLINGER
   socktimeo_t   s_linger;    /* Linger timeout value (in deciseconds) */
 #endif

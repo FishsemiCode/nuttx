@@ -92,6 +92,7 @@ int psock_dup2(FAR struct socket *psock1, FAR struct socket *psock2)
   psock2->s_options  = psock1->s_options;   /* Selected socket options */
   psock2->s_rcvtimeo = psock1->s_rcvtimeo;  /* Receive timeout value (in deciseconds) */
   psock2->s_sndtimeo = psock1->s_sndtimeo;  /* Send timeout value (in deciseconds) */
+  psock2->s_conntimeo = psock1->s_conntimeo; /* Connect timeout value (in deciseconds) */
 #ifdef CONFIG_NET_SOLINGER
   psock2->s_linger   = psock1->s_linger;    /* Linger timeout value (in deciseconds) */
 #endif

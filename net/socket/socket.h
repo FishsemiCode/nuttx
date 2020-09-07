@@ -77,10 +77,11 @@
 #define _SO_SNDLOWAT     _SO_BIT(SO_SNDLOWAT)
 #define _SO_SNDTIMEO     _SO_BIT(SO_SNDTIMEO)
 #define _SO_TYPE         _SO_BIT(SO_TYPE)
+#define _SO_CONNTIMEO    _SO_BIT(SO_CONNTIMEO)
 
 /* This is the largest option value.  REVISIT: belongs in sys/socket.h */
 
-#define _SO_MAXOPT       (15)
+#define _SO_MAXOPT       (16)
 
 /* Macros to set, test, clear options */
 

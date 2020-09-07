@@ -341,7 +341,7 @@ int psock_tcp_connect(FAR struct socket *psock,
            * is received.
            */
 
-          ret = net_lockedwait(&state.tc_sem);
+          ret = net_timedwait(&state.tc_sem, _SO_TIMEOUT(psock->s_conntimeo));
 
           /* Uninitialize the state structure */
 

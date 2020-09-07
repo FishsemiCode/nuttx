@@ -109,7 +109,7 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
         {
           case SO_RCVTIMEO: /* Rx timeouts can be handled at NuttX side, thus
                              * simplify daemon implementation. */
-          case SO_SNDTIMEO: /* Rx timeouts can be handled at NuttX side, thus
+          case SO_SNDTIMEO: /* Tx timeouts can be handled at NuttX side, thus
                              * simplify daemon implementation. */
             break;
 
@@ -196,6 +196,7 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
 
       case SO_RCVTIMEO:
       case SO_SNDTIMEO:
+      case SO_CONNTIMEO:
         {
           FAR struct timeval *tv = (FAR struct timeval *)value;
           socktimeo_t timeo;
@@ -219,9 +220,13 @@ static int psock_socketlevel_option(FAR struct socket *psock, int option,
             {
               psock->s_rcvtimeo = timeo;
             }
-          else
+          else if (option == SO_SNDTIMEO)
             {
               psock->s_sndtimeo = timeo;
+            }
+          else
+            {
+              psock->s_conntimeo = timeo;
             }
 
           /* Set/clear the corresponding enable/disable bit */
