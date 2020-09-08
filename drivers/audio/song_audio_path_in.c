@@ -634,6 +634,14 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
       case 44100:
         for (i = 0; i < dev->channels; ++i)
           {
+            #ifdef CONFIG_ARCH_CHIP_U2_APV3
+            audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
+                                 SONG_AUDIO_PATH_ANC_HBF0_BYPASS |
+                                 SONG_AUDIO_PATH_ANC_HBF2_BYPASS |
+                                 SONG_AUDIO_PATH_ANC_SRC_BYPASS |
+                                 SONG_AUDIO_PATH_ANC_SRC_MODE,
+                                 SONG_AUDIO_PATH_ANC_SRC_MODE_88K);
+            #else
             audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CFG(i),
                                  SONG_AUDIO_PATH_ANC_HBF0_BYPASS |
                                  SONG_AUDIO_PATH_ANC_HBF2_BYPASS |
@@ -641,8 +649,13 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
                                  SONG_AUDIO_PATH_ANC_SRC_MODE,
                                  SONG_AUDIO_PATH_ANC_HBF2_BYPASS |
                                  SONG_AUDIO_PATH_ANC_SRC_MODE_88K);
+            #endif
           }
+        #ifdef CONFIG_ARCH_CHIP_U2_APV3
+        clk_set_rate(dev->sys_in_clk, 192000);
+        #else
         clk_set_rate(dev->sys_in_clk, 88200);
+        #endif
         break;
       case 48000:
         for (i = 0; i < dev->channels; ++i)
