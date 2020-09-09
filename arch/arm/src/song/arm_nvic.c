@@ -481,11 +481,12 @@ void up_irqinitialize(void)
   idle->adj_stack_ptr   = (FAR void *)g_idle_topstack;
   idle->adj_stack_size  = CONFIG_IDLETHREAD_STACKSIZE;
 
-  /* Disable all interrupts */
+  /* Disable all interrupts , Clear all pending interrupts */
 
   for (i = 0; i < NR_IRQS - NVIC_IRQ_FIRST; i += 32)
     {
       putreg32(0xffffffff, NVIC_IRQ_CLEAR(i));
+      putreg32(0xffffffff, NVIC_IRQ_CLRPEND(i));
     }
 
   /* Set the NVIC vector location in case _vectors not equal zero. */
