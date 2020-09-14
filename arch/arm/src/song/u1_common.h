@@ -248,6 +248,7 @@ static inline bool up_is_u1v1(void)
 
 int up_file_copy(char *dstfile, char *srcfile);
 int up_folder_copy(char *dstdir, char *srcdir);
+int up_folder_sync(char *dstdir, char *srcdir);
 int up_file_copy_append(char *dstfile, char *srcfile);
 int up_folder_copy_skippatch(char *dstdir, char *srcdir);
 

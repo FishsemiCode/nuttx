@@ -53,7 +53,7 @@ static inline int ls_specialdir(const char *dir)
   return (strcmp(dir, ".")  == 0 || strcmp(dir, "..") == 0);
 }
 
-static int _up_file_copy(char *dstfile, char *srcfile, bool append)
+static int _up_file_sync(char *dstfile, char *srcfile, bool append, bool sync)
 {
   char *buf = NULL;
   int ret = 0;
@@ -64,7 +64,14 @@ static int _up_file_copy(char *dstfile, char *srcfile, bool append)
   fdr = open(srcfile, O_RDONLY);
   if (fdr < 0)
     {
-      return fdr;
+      if (sync && get_errno() == ENOENT)
+        {
+          return unlink(dstfile);
+        }
+      else
+        {
+          return fdr;
+        }
     }
 
   oflags  = append ? O_APPEND : 0;
@@ -123,19 +130,27 @@ out:
 
 int up_file_copy(char *dstfile, char *srcfile)
 {
-  return _up_file_copy(dstfile, srcfile, false);
+  return _up_file_sync(dstfile, srcfile, false, false);
 }
 
 int up_file_copy_append(char *dstfile, char *srcfile)
 {
-  return _up_file_copy(dstfile, srcfile, true);
+  return _up_file_sync(dstfile, srcfile, true, false);
 }
 
-static int _up_folder_copy(char *dstdir, char *srcdir, bool skippatch)
+static int _up_folder_sync(char *dstdir, char *srcdir, bool skippatch, bool sync)
 {
   DIR *dirp;
 
-  dirp = opendir(srcdir);
+  if (sync)
+    {
+      dirp = opendir(dstdir);
+    }
+  else
+    {
+      dirp = opendir(srcdir);
+    }
+
   if (!dirp)
     {
       return -EINVAL;
@@ -169,12 +184,26 @@ static int _up_folder_copy(char *dstdir, char *srcdir, bool skippatch)
         }
       else if (DIRENT_ISDIRECTORY(entryp->d_type))
         {
-          mkdir(dstfile, 0777);
-          _up_folder_copy(dstfile, srcfile, skippatch);
+          if (sync)
+            {
+              if (!opendir(srcfile) && get_errno() == ENOENT)
+                {
+                  rmdir(dstfile);
+                }
+              else
+                {
+                  _up_folder_sync(dstfile, srcfile, skippatch, sync);
+                }
+            }
+          else
+            {
+              mkdir(dstfile, 0777);
+              _up_folder_sync(dstfile, srcfile, skippatch, sync);
+            }
         }
       else
         {
-          up_file_copy(dstfile, srcfile);
+          _up_file_sync(dstfile, srcfile, false, sync);
         }
     }
 
@@ -184,10 +213,16 @@ static int _up_folder_copy(char *dstdir, char *srcdir, bool skippatch)
 
 int up_folder_copy(char *dstdir, char *srcdir)
 {
-  return _up_folder_copy(dstdir, srcdir, false);
+  return _up_folder_sync(dstdir, srcdir, false, false);
+}
+
+int up_folder_sync(char *dstdir, char *srcdir)
+{
+  _up_folder_sync(dstdir, srcdir, false, true);
+  _up_folder_sync(dstdir, srcdir, false, false);
 }
 
 int up_folder_copy_skippatch(char *dstdir, char *srcdir)
 {
-  return _up_folder_copy(dstdir, srcdir, true);
+  return _up_folder_sync(dstdir, srcdir, true, false);
 }

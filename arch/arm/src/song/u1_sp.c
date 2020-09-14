@@ -1194,9 +1194,9 @@ static void up_ds_enter_work(void)
 #endif
 
 #ifdef CONFIG_FS_TMPFS
-  /* Save ap data to internal flash */
+  /* Sync ap data to internal flash */
 
-  up_folder_copy("/onchip/chipap", "/tmp");
+  up_folder_sync("/onchip/chipap", "/tmp");
 #endif
 
   /* Final work */
