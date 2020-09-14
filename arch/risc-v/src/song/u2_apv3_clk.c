@@ -261,15 +261,6 @@ static const struct song_div_clk div[] =
     .div_width = 5,
   },
   {
-    .name = "i2c2_mclk",
-    .parent_name = "pll1_mclk",
-    .en_offset = 0x0c0,
-    .en_shift = 0,
-    .div_offset = 0x0c0,
-    .div_shift = 4,
-    .div_width = 5,
-  },
-  {
     .name = "bus_lp_clk",
     .parent_name = "rfphy_sys_clk",
     .en_offset = 0x0c4,
@@ -562,12 +553,6 @@ static const struct song_gate_clk gate[] =
     .parent_name = "top_pclk1",
     .en_offset = 0x098,
     .en_shift = 9,
-  },
-  {
-    .name = "i2c2_pclk",
-    .parent_name = "top_pclk1",
-    .en_offset = 0x098,
-    .en_shift = 10,
   },
   {
     .name = "spi0_pclk",

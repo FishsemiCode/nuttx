@@ -154,9 +154,9 @@ FAR struct spi_dev_s *g_spi[3] =
 #endif
 
 #ifdef CONFIG_I2C_DW
-FAR struct i2c_master_s *g_i2c[4] =
+FAR struct i2c_master_s *g_i2c[3] =
 {
-  [3] = DEV_END,
+  [2] = DEV_END,
 };
 #endif
 
@@ -403,13 +403,6 @@ static void up_i2c_init(void)
       .rate = 25600000,
       .irq  = 12,
     },
-    {
-      .bus  = 2,
-      .base = 0xa0190000,
-      .mclk = "i2c2_mclk",
-      .rate = 25600000,
-      .irq  = 3,
-    }
   };
   int config_num = sizeof(config) / sizeof(config[0]);
 
@@ -504,9 +497,6 @@ static void up_audio_init(void)
   /* audio_mclk_mx mux to audio_mclk */
 
   clk_set_parent(clk_get("audio_mclk_mx"), clk_get("audio_mclk"));
-
-  clk_enable(clk_get("i2c1_mclk"));
-  clk_enable(clk_get("i2c2_mclk"));
 
   putreg32(2 << (MUXPIN_DS), MUXPIN_CLKO0_CTL);
   putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DI_CTL);
