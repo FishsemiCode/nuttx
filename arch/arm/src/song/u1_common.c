@@ -82,6 +82,17 @@ static int _up_file_sync(char *dstfile, char *srcfile, bool append, bool sync)
       goto out;
     }
 
+  ret = (int)lseek(fdr, 0L, SEEK_END);
+  if (ret == 0)
+    {
+      ftruncate(fdw, 0);
+      goto out;
+    }
+  else
+    {
+      lseek(fdr, 0L, SEEK_SET);
+    }
+
   buf = kmm_malloc(1024);
   if (!buf)
     {
