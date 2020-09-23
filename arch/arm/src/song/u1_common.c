@@ -74,23 +74,17 @@ static int _up_file_sync(char *dstfile, char *srcfile, bool append, bool sync)
         }
     }
 
+  if (sync)
+    {
+      return ret;
+    }
+
   oflags  = append ? O_APPEND : 0;
-  oflags |= O_WRONLY | O_CREAT;
+  oflags |= O_WRONLY | O_CREAT | O_TRUNC;
   fdw = open(dstfile, oflags);
   if (fdw < 0)
     {
       goto out;
-    }
-
-  ret = (int)lseek(fdr, 0L, SEEK_END);
-  if (ret == 0)
-    {
-      ftruncate(fdw, 0);
-      goto out;
-    }
-  else
-    {
-      lseek(fdr, 0L, SEEK_SET);
     }
 
   buf = kmm_malloc(1024);
@@ -229,8 +223,8 @@ int up_folder_copy(char *dstdir, char *srcdir)
 
 int up_folder_sync(char *dstdir, char *srcdir)
 {
-  _up_folder_sync(dstdir, srcdir, false, true);
   _up_folder_sync(dstdir, srcdir, false, false);
+  _up_folder_sync(dstdir, srcdir, false, true);
 }
 
 int up_folder_copy_skippatch(char *dstdir, char *srcdir)
