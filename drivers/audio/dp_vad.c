@@ -80,11 +80,13 @@
  * Private Types
  ****************************************************************************/
 
+
 struct dp_vad_s
 {
   struct audio_lowerhalf_s dev;
   struct clk *mclk;
   uint32_t base;
+  vad_callback_t cbk;
 };
 
 /****************************************************************************
@@ -114,6 +116,8 @@ static int dp_vad_pause(struct audio_lowerhalf_s *dev_);
 static int dp_vad_resume(struct audio_lowerhalf_s *dev_);
 #endif
 #endif
+static int dp_vad_ioctl(struct audio_lowerhalf_s *dev_, int cmd,
+                           unsigned long arg);
 
 /****************************************************************************
  * Private Data
@@ -121,14 +125,16 @@ static int dp_vad_resume(struct audio_lowerhalf_s *dev_);
 
 static const struct audio_ops_s g_dp_vad_ops =
 {
-  .start = dp_vad_start,
+  .start  = dp_vad_start,
 #ifndef CONFIG_AUDIO_EXCLUDE_STOP
-  .stop = dp_vad_stop,
+  .stop   = dp_vad_stop,
 #endif
 #ifndef CONFIG_AUDIO_EXCLUDE_PAUSE_RESUME
-  .pause = dp_vad_pause,
+  .pause  = dp_vad_pause,
   .resume = dp_vad_resume,
 #endif
+  .ioctl  = dp_vad_ioctl,
+
 };
 
 /****************************************************************************
@@ -224,10 +230,25 @@ static int dp_vad_resume(struct audio_lowerhalf_s *dev_)
 }
 #endif
 
+static int dp_vad_ioctl(struct audio_lowerhalf_s *dev_, int cmd,
+                           unsigned long arg)
+{
+  struct dp_vad_s *dev = (struct dp_vad_s *)dev_;
+  switch (cmd)
+    {
+      case AUDIOIOC_SETVADCBK:
+        dev->cbk = (vad_callback_t) arg;
+        break;
+
+      default:
+        break;
+    }
+  return OK;
+}
+
 static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
 {
   struct dp_vad_s *dev = args;
-  struct audio_msg_s msg;
   uint32_t status;
 
   up_udelay(100);
@@ -235,12 +256,8 @@ static int dp_vad_irq_handler(int irq, FAR void *context, void *args)
   status = dp_vad_getreg(dev, DP_VAD_CR4) & IRQ_FLAG;
   if (status)
     {
-      msg.msgId = AUDIO_MSG_WAKEUP;
-#ifdef CONFIG_AUDIO_MULTI_SESSION
-      dev->dev.upper(dev->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK, NULL);
-#else
-      dev->dev.upper(dev->dev.priv, AUDIO_CALLBACK_MESSAGE, (struct ap_buffer_s *)&msg, OK);
-#endif
+      if (dev->cbk != NULL)
+        dev->cbk();
 
       dp_vad_updatereg(dev, DP_VAD_CR4, IRQ_FLAG, IRQ_FLAG);
       up_udelay(100);

@@ -47,6 +47,7 @@
  * Public Function Prototypes
  ****************************************************************************/
 
+typedef void (*vad_callback_t)(void);
 struct audio_lowerhalf_s *dp_vad_initialize(const char *mclk, uint32_t base, int irq);
 
 #endif

@@ -126,6 +126,7 @@
 #define AUDIOIOC_SETBUFFERINFO      _AUDIOIOC(17)
 #define AUDIOIOC_GETVOLUME          _AUDIOIOC(18)
 #define AUDIOIOC_GETUNDERFLOW       _AUDIOIOC(19)
+#define AUDIOIOC_SETVADCBK          _AUDIOIOC(20)
 
 /* Audio Device Types *******************************************************/
 /* The NuttX audio interface support different types of audio devices for
