@@ -400,7 +400,7 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET,
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET);
-       usleep(1);
+       usleep(1000);
        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET, 0);
     }
