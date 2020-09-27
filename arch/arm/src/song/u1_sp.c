@@ -50,6 +50,7 @@
 #include <nuttx/dma/song_dmas.h>
 #include <nuttx/drivers/addrenv.h>
 #include <nuttx/drivers/ramdisk.h>
+#include <nuttx/environ.h>
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/fs/partition.h>
