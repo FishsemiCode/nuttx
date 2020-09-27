@@ -400,7 +400,9 @@ static int song_audio_path_stop(struct audio_lowerhalf_s *dev_)
        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET,
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET);
+       syslog(0, "%s line %d i = %d 0x%08x \n", __func__, __func__, i, audio_path_getreg(dev, SONG_AUDIO_PATH_ANC_CTL(i)));
        usleep(1000);
+       syslog(0, "%s line %d i = %d 0x%08x \n", __func__, __func__, i, audio_path_getreg(dev, SONG_AUDIO_PATH_ANC_CTL(i)));
        audio_path_updatereg(dev, SONG_AUDIO_PATH_ANC_CTL(i),
                             SONG_AUDIO_PATH_ANC_IN_FIFO_RESET, 0);
     }
