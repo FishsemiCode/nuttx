@@ -51,6 +51,7 @@
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/mbox/song_mbox.h>
 #include <nuttx/misc/misc_rpmsg.h>
+#include <nuttx/net/rpmsgdrv.h>
 #include <nuttx/power/pm.h>
 #include <nuttx/power/regulator.h>
 #include <nuttx/pwm/song_pwm.h>
@@ -281,6 +282,14 @@ void rpmsg_serialinit(void)
   uart_rpmsg_init(CPU_NAME_CP, "AT1", 256, false);
   uart_rpmsg_init(CPU_NAME_CP, "GPS", 256, false);
   uart_rpmsg_init(CPU_NAME_CP, "GPS1", 256, false);
+}
+#endif
+
+#ifdef CONFIG_NET_RPMSG_DRV
+void up_netinitialize(void)
+{
+  net_rpmsg_drv_init(CPU_NAME_CP, "sl0", NET_LL_SLIP);
+  net_rpmsg_drv_init(CPU_NAME_CP, "sl1", NET_LL_SLIP);
 }
 #endif
 
