@@ -324,7 +324,7 @@ void up_timer_initialize(void)
       .minor      = -1,
       .base       = TOP_PWR_BASE,
       .irq        = 18,
-      .c1_freq    = 8192000,
+      .c1_freq    = 7680000,
       .ctl_off    = 0x170,
       .calib_off  = 0x194,
       .calib_inc  = 0x198,
