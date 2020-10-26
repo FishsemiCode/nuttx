@@ -476,44 +476,80 @@ static int ap_start(const struct song_rptun_config_s *config)
 
 static void up_rptun_init(void)
 {
-  static struct rptun_rsc_s rptun_rsc_ap
+  struct __attribute__((aligned(B2C(8)))) rptun_rsc_ext_s
+  {
+    struct rptun_rsc_s        rsc;
+    struct rptun_rsc_vdev_s   rsc_ext;
+  };
+
+  static struct rptun_rsc_ext_s rptun_rsc_ap
       __attribute__ ((section(".resource_table.ap"))) =
   {
-    .rsc_tbl_hdr     =
+    .rsc =
     {
-      .ver           = 1,
-      .num           = 1,
+      .rsc_tbl_hdr     =
+      {
+        .ver           = 1,
+        .num           = 2,
+      },
+
+      .offset          =
+      {
+        offsetof(struct rptun_rsc_s, rpmsg_vdev),
+        offsetof(struct rptun_rsc_s, rsc_vdev[0]),
+      },
+
+      .rpmsg_vdev      =
+      {
+        .type          = RSC_VDEV,
+        .id            = VIRTIO_ID_RPMSG,
+        .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                      | 1 << VIRTIO_RPMSG_F_BIND
+                      | 1 << VIRTIO_RPMSG_F_BUFSZ,
+        .num_of_vrings = 2,
+      },
+      .rpmsg_vring0    =
+      {
+        .align         = 0x8,
+        .num           = 8,
+      },
+      .rpmsg_vring1    =
+      {
+        .align         = 0x8,
+        .num           = 8,
+      },
+      .buf_size        = 0x80,
     },
-    .offset          =
+    .rsc_ext =
     {
-      offsetof(struct rptun_rsc_s, rpmsg_vdev),
+      .rpmsg_vdev      =
+      {
+        .type          = RSC_VDEV,
+        .id            = VIRTIO_ID_RPMSG,
+        .notifyid      = 1,
+        .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
+                      | 1 << VIRTIO_RPMSG_F_BIND
+                      | 1 << VIRTIO_RPMSG_F_BUFSZ,
+        .num_of_vrings = 2,
+      },
+      .rpmsg_vring0    =
+      {
+        .align         = 0x8,
+        .num           = 4,
+      },
+      .rpmsg_vring1    =
+      {
+        .align         = 0x8,
+        .num           = 4,
+      },
+      .buf_size        = 0x640,
     },
-    .rpmsg_vdev      =
-    {
-      .type          = RSC_VDEV,
-      .id            = VIRTIO_ID_RPMSG,
-      .dfeatures     = 1 << VIRTIO_RPMSG_F_NS
-                     | 1 << VIRTIO_RPMSG_F_BIND
-                     | 1 << VIRTIO_RPMSG_F_BUFSZ,
-      .num_of_vrings = 2,
-    },
-    .rpmsg_vring0    =
-    {
-      .align         = 0x8,
-      .num           = 16,
-    },
-    .rpmsg_vring1    =
-    {
-      .align         = 0x8,
-      .num           = 16,
-    },
-    .buf_size        = 0x1C0,
   };
 
   static const struct song_rptun_config_s rptun_cfg_ap =
   {
     .cpuname    = CPU_NAME_AP,
-    .rsc        = &rptun_rsc_ap,
+    .rsc        = &rptun_rsc_ap.rsc,
     .nautostart = true,
     .master     = true,
     .vringtx    = 15,
