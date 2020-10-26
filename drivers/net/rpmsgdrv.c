@@ -1391,10 +1391,23 @@ int net_rpmsg_drv_init(FAR const char *cpuname,
 
   /* Register the device with the openamp */
 
-  rpmsg_register_callback(dev,
-                          net_rpmsg_drv_device_created,
-                          net_rpmsg_drv_device_destroy,
-                          NULL);
+#ifdef CONFIG_NET_SLIP
+  if (lltype == NET_LL_SLIP)
+    {
+      rpmsg_register_channel_callback(dev,
+                              CONFIG_NET_SLIP_PKTSIZE,
+                              net_rpmsg_drv_device_created,
+                              net_rpmsg_drv_device_destroy,
+                              NULL);
+    }
+  else
+#endif
+    {
+      rpmsg_register_callback(dev,
+                              net_rpmsg_drv_device_created,
+                              net_rpmsg_drv_device_destroy,
+                              NULL);
+    }
 
   /* Register the device with the OS so that socket IOCTLs can be performed */
 
