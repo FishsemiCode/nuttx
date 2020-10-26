@@ -268,15 +268,24 @@ struct rptun_addrenv_s
   size_t    size;
 };
 
+struct __attribute__((aligned(B2C(8)))) rptun_rsc_vdev_s
+{
+  struct fw_rsc_vdev       rpmsg_vdev;
+  struct fw_rsc_vdev_vring rpmsg_vring0;
+  struct fw_rsc_vdev_vring rpmsg_vring1;
+  unsigned int             buf_size;
+};
+
 struct __attribute__((aligned(B2C(8)))) rptun_rsc_s
 {
   struct resource_table    rsc_tbl_hdr;
-  unsigned int             offset[2];
+  unsigned int             offset[CONFIG_RPTUN_VDEV_NUM];
   struct fw_rsc_trace      log_trace;
   struct fw_rsc_vdev       rpmsg_vdev;
   struct fw_rsc_vdev_vring rpmsg_vring0;
   struct fw_rsc_vdev_vring rpmsg_vring1;
   unsigned int             buf_size;
+  struct rptun_rsc_vdev_s  rsc_vdev[0];
 };
 
 struct rptun_dev_s;

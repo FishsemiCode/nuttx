@@ -25,6 +25,10 @@ config RPTUN_USE_HPWORK
 	default n
 	depends on SCHED_HPWORK
 
+config RPTUN_VDEV_NUM
+	int "rpturn virtio device number"
+	default 2
+
 config SONG_RPTUN
 	bool "Song Tunnel Support"
 	default n

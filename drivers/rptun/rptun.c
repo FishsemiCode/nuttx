@@ -71,8 +71,9 @@ struct rptun_priv_s
 {
   FAR struct rptun_dev_s       *dev;
   struct remoteproc            rproc;
-  struct rpmsg_virtio_device   vdev;
-  struct rpmsg_virtio_shm_pool shm_pool;
+  int                          vdev_num;
+  struct rpmsg_virtio_device   *vdev[CONFIG_RPTUN_VDEV_NUM];
+  struct rpmsg_virtio_shm_pool *shm_pool[CONFIG_RPTUN_VDEV_NUM];
   struct metal_list            bind;
   struct metal_list            node;
 #ifdef CONFIG_RPTUN_USE_HPWORK
@@ -84,14 +85,16 @@ struct rptun_priv_s
 
 struct rptun_bind_s
 {
-  char              name[RPMSG_NAME_SIZE];
-  uint32_t          dest;
-  struct metal_list node;
+  char                      name[RPMSG_NAME_SIZE];
+  uint32_t                  dest;
+  struct metal_list         node;
+  FAR struct rpmsg_device   *rdev;
 };
 
 struct rptun_cb_s
 {
   FAR void          *priv;
+  uint32_t          buf_size;
   rpmsg_dev_cb_t    device_created;
   rpmsg_dev_cb_t    device_destroy;
   rpmsg_bind_cb_t   ns_bind;
@@ -138,6 +141,8 @@ static int rptun_store_load(FAR void *store_, size_t offset,
                             FAR struct metal_io_region *io,
                             char is_blocking);
 
+static int rptun_get_vdev_num(FAR struct rptun_rsc_s *rsc);
+static int rptun_get_vdev_index(FAR void *priv_, uint32_t buf_size);
 static metal_phys_addr_t rptun_pa_to_da(FAR struct rptun_dev_s *dev,
                                         metal_phys_addr_t pa);
 static metal_phys_addr_t rptun_da_to_pa(FAR struct rptun_dev_s *dev,
@@ -374,6 +379,7 @@ static void rptun_ns_bind(FAR struct rpmsg_device *rdev,
 
       bind->dest = dest;
       strncpy(bind->name, name, RPMSG_NAME_SIZE);
+      bind->rdev = rdev;
 
       nxsem_wait(&g_rptun_sem);
 
@@ -401,6 +407,7 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
   FAR struct rptun_cb_s *cb;
   unsigned int role = RPMSG_REMOTE;
   int ret;
+  int i;
 
   ret = remoteproc_config(&priv->rproc, NULL);
   if (ret)
@@ -423,6 +430,8 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
         }
 
       rsc = rproc->rsc_table;
+
+      priv->vdev_num = 1;
     }
   else
     {
@@ -432,18 +441,42 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
           return -EINVAL;
         }
 
+      priv->vdev_num = rptun_get_vdev_num(rsc);
+
+      if (!priv->vdev_num || priv->vdev_num > CONFIG_RPTUN_VDEV_NUM)
+        {
+          return -EINVAL;
+        }
+
       ret = remoteproc_set_rsc_table(rproc, (struct resource_table *)rsc,
-                                     sizeof(struct rptun_rsc_s));
+                                     (priv->vdev_num - 1) * sizeof(struct rptun_rsc_vdev_s)
+                                     + sizeof(struct rptun_rsc_s));
       if (ret)
         {
           return ret;
         }
     }
 
+  priv->vdev[0] = kmm_zalloc(priv->vdev_num * (sizeof(struct rpmsg_virtio_device)
+                             + sizeof(struct rpmsg_virtio_shm_pool)));
+  if (priv->vdev[0] == NULL)
+    {
+      return -ENOMEM;
+    }
+
+  for (i = 0; i < priv->vdev_num - 1; i++)
+    {
+      priv->shm_pool[i] = (struct rpmsg_virtio_shm_pool *)(priv->vdev[i] + 1);
+      priv->vdev[i + 1] = (struct rpmsg_virtio_device *)(priv->shm_pool[i] + 1);
+    }
+
+  priv->shm_pool[i] = (struct rpmsg_virtio_shm_pool *)(priv->vdev[i] + 1);
+
   /* Update resource table on MASTER side */
 
   if (RPTUN_IS_MASTER(priv->dev))
     {
+      int j;
       uint32_t tbsz;
       uint32_t v0sz;
       uint32_t v1sz;
@@ -455,48 +488,71 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
       FAR void *va0;
       FAR void *va1;
       FAR void *shbuf;
-
-      align0 = B2C(rsc->rpmsg_vring0.align);
-      align1 = B2C(rsc->rpmsg_vring1.align);
-
-      tbsz = ALIGN_UP(sizeof(struct rptun_rsc_s), MAX(align0, align1));
-      v0sz = ALIGN_UP(vring_size(rsc->rpmsg_vring0.num, align0), align0);
-      v1sz = ALIGN_UP(vring_size(rsc->rpmsg_vring1.num, align1), align1);
-
-      va0 = (char *)rsc + tbsz;
-      va1 = (char *)rsc + tbsz + v0sz;
-
-      da0 = da1 = METAL_BAD_PHYS;
-
-      remoteproc_mmap(rproc, NULL, &da0, &va0, v0sz, 0, NULL);
-      remoteproc_mmap(rproc, NULL, &da1, &va1, v1sz, 0, NULL);
-
-      rsc->rpmsg_vring0.da = da0;
-      rsc->rpmsg_vring1.da = da1;
-
-      shbuf   = (FAR char *)rsc + tbsz + v0sz + v1sz;
-      shbufsz = rsc->buf_size *
-                (rsc->rpmsg_vring0.num + rsc->rpmsg_vring1.num);
-
-      rpmsg_virtio_init_shm_pool(&priv->shm_pool, shbuf, shbufsz);
+      FAR char *start;
+      FAR struct rptun_rsc_vdev_s *rsc_vdev;
 
       role = RPMSG_MASTER;
+
+      tbsz = (priv->vdev_num - 1) * sizeof(struct rptun_rsc_vdev_s)
+             + sizeof(struct rptun_rsc_s);
+
+      for (i = 0, j = 0; i < rsc->rsc_tbl_hdr.num; i++)
+        {
+          start = (char *)rsc;
+          start += B2C(rsc->offset[i]);
+
+          if (*((uint32_t *)start) != RSC_VDEV)
+            {
+              continue;
+            }
+
+          rsc_vdev = (struct rptun_rsc_vdev_s *)start;
+
+          align0 = B2C(rsc_vdev->rpmsg_vring0.align);
+          align1 = B2C(rsc_vdev->rpmsg_vring1.align);
+
+          tbsz = ALIGN_UP(tbsz, MAX(align0, align1));
+          v0sz = ALIGN_UP(vring_size(rsc_vdev->rpmsg_vring0.num, align0), align0);
+          v1sz = ALIGN_UP(vring_size(rsc_vdev->rpmsg_vring1.num, align1), align1);
+
+          va0 = (char *)rsc + tbsz;
+          va1 = (char *)rsc + tbsz + v0sz;
+
+          da0 = da1 = METAL_BAD_PHYS;
+
+          remoteproc_mmap(rproc, NULL, &da0, &va0, v0sz, 0, NULL);
+          remoteproc_mmap(rproc, NULL, &da1, &va1, v1sz, 0, NULL);
+
+          rsc_vdev->rpmsg_vring0.da = da0;
+          rsc_vdev->rpmsg_vring1.da = da1;
+
+          shbuf   = (FAR char *)rsc + tbsz + v0sz + v1sz;
+          shbufsz = rsc_vdev->buf_size *
+                    (rsc_vdev->rpmsg_vring0.num + rsc_vdev->rpmsg_vring1.num);
+
+          rpmsg_virtio_init_shm_pool(priv->shm_pool[j++], shbuf, shbufsz);
+
+          tbsz += (v0sz + v1sz + shbufsz);
+        }
     }
 
   /* Remote proc create */
 
-  vdev = remoteproc_create_virtio(rproc, 0, role, NULL);
-  if (!vdev)
+  for (i = 0; i < priv->vdev_num; i++)
     {
-      return -ENOMEM;
-    }
+      vdev = remoteproc_create_virtio(rproc, i, role, NULL);
+      if (!vdev)
+        {
+          ret = -ENOMEM;
+          goto clean;
+        }
 
-  ret = rpmsg_init_vdev(&priv->vdev, vdev, rptun_ns_bind,
-                        metal_io_get_region(), &priv->shm_pool);
-  if (ret)
-    {
-      remoteproc_remove_virtio(rproc, vdev);
-      return ret;
+      ret = rpmsg_init_vdev(priv->vdev[i], vdev, rptun_ns_bind,
+                            metal_io_get_region(), priv->shm_pool[i]);
+      if (ret)
+        {
+          goto clean;
+        }
     }
 
   /* Remote proc start */
@@ -504,8 +560,7 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
   ret = remoteproc_start(rproc);
   if (ret)
     {
-      remoteproc_remove_virtio(rproc, vdev);
-      return ret;
+      goto clean;
     }
 
   nxsem_wait(&g_rptun_sem);
@@ -521,7 +576,8 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
       cb = metal_container_of(node, struct rptun_cb_s, node);
       if (cb->device_created)
         {
-          cb->device_created(&priv->vdev.rdev, cb->priv);
+          i = rptun_get_vdev_index(priv, cb->buf_size);
+          cb->device_created(&priv->vdev[i]->rdev, cb->priv);
         }
     }
 
@@ -532,6 +588,19 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
   RPTUN_REGISTER_CALLBACK(priv->dev, rptun_callback, priv);
 
   return 0;
+
+clean:
+  for (i = 0; i < priv->vdev_num; i++)
+    {
+      if (priv->vdev[i]->vdev)
+        {
+          remoteproc_remove_virtio(rproc, priv->vdev[i]->vdev);
+        }
+    }
+
+    kmm_free(priv->vdev[0]);
+
+    return ret;
 }
 
 static int rptun_dev_stop(FAR struct remoteproc *rproc)
@@ -539,6 +608,7 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc)
   FAR struct rptun_priv_s *priv = rproc->priv;
   FAR struct metal_list *node;
   FAR struct rptun_cb_s *cb;
+  int i;
 
   /* Unregister callback from mbox */
 
@@ -557,7 +627,8 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc)
       cb = metal_container_of(node, struct rptun_cb_s, node);
       if (cb->device_destroy)
         {
-          cb->device_destroy(&priv->vdev.rdev, cb->priv);
+          i = rptun_get_vdev_index(priv, cb->buf_size);
+          cb->device_destroy(&priv->vdev[i]->rdev, cb->priv);
         }
     }
 
@@ -569,8 +640,11 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc)
 
   /* Remote proc remove */
 
-  remoteproc_remove_virtio(rproc, priv->vdev.vdev);
-  rpmsg_deinit_vdev(&priv->vdev);
+  for (i = 0; i < priv->vdev_num; i++)
+    {
+      remoteproc_remove_virtio(rproc, priv->vdev[i]->vdev);
+      rpmsg_deinit_vdev(priv->vdev[i]);
+    }
 
   /* Free bind list */
 
@@ -581,6 +655,8 @@ static int rptun_dev_stop(FAR struct remoteproc *rproc)
       bind = metal_container_of(node, struct rptun_bind_s, node);
       kmm_free(bind);
     }
+
+  kmm_free(priv->vdev[0]);
 
   return 0;
 }
@@ -677,6 +753,44 @@ static int rptun_store_load(FAR void *store_, size_t offset,
   return file_read(&store->file, tmp, size);
 }
 
+static int rptun_get_vdev_num(FAR struct rptun_rsc_s *rsc)
+{
+  uint32_t type;
+  uint32_t i;
+  char *start;
+  int num = 0;
+
+  for (i = 0; i < rsc->rsc_tbl_hdr.num; i++)
+    {
+      start = (char *)rsc;
+      start += B2C(rsc->offset[i]);
+      type = *((uint32_t *)start);
+
+      if (type == RSC_VDEV)
+        {
+          num++;
+        }
+    }
+
+  return num;
+}
+
+static int rptun_get_vdev_index(FAR void *priv_, uint32_t buf_size)
+{
+  FAR struct rptun_priv_s *priv = priv_;
+  int i;
+
+  for (i = 0; i < priv->vdev_num; i++)
+    {
+      if (priv->vdev[i]->shbuf_size >= buf_size)
+        {
+          return i;
+        }
+    }
+
+  return priv->vdev_num - 1;
+}
+
 static metal_phys_addr_t rptun_pa_to_da(FAR struct rptun_dev_s *dev,
                                         metal_phys_addr_t pa)
 {
@@ -739,6 +853,16 @@ int rpmsg_register_callback(FAR void *priv_,
                             rpmsg_dev_cb_t device_destroy,
                             rpmsg_bind_cb_t ns_bind)
 {
+  return rpmsg_register_channel_callback(priv_, 0,
+                            device_created, device_destroy, ns_bind);
+}
+
+int rpmsg_register_channel_callback(FAR void *priv_,
+                                    uint32_t chan_size,
+                                    rpmsg_dev_cb_t device_created,
+                                    rpmsg_dev_cb_t device_destroy,
+                                    rpmsg_bind_cb_t ns_bind)
+{
   FAR struct metal_list *node;
   FAR struct metal_list *bnode;
   FAR struct rptun_cb_s *cb;
@@ -750,6 +874,7 @@ int rpmsg_register_callback(FAR void *priv_,
     }
 
   cb->priv           = priv_;
+  cb->buf_size       = chan_size;
   cb->device_created = device_created;
   cb->device_destroy = device_destroy;
   cb->ns_bind        = ns_bind;
@@ -761,11 +886,13 @@ int rpmsg_register_callback(FAR void *priv_,
   metal_list_for_each(&g_rptun_priv, node)
     {
       struct rptun_priv_s *priv;
+      int i;
 
       priv = metal_container_of(node, struct rptun_priv_s, node);
       if (device_created)
         {
-          device_created(&priv->vdev.rdev, priv_);
+          i = rptun_get_vdev_index(priv, chan_size);
+          device_created(&priv->vdev[i]->rdev, priv_);
         }
 
       if (ns_bind)
@@ -775,7 +902,7 @@ int rpmsg_register_callback(FAR void *priv_,
               struct rptun_bind_s *bind;
 
               bind = metal_container_of(bnode, struct rptun_bind_s, node);
-              ns_bind(&priv->vdev.rdev, priv_, bind->name, bind->dest);
+              ns_bind(bind->rdev, priv_, bind->name, bind->dest);
             }
         }
     }
@@ -810,9 +937,11 @@ void rpmsg_unregister_callback(FAR void *priv_,
               metal_list_for_each(&g_rptun_priv, pnode)
                 {
                   struct rptun_priv_s *priv;
+                  int i;
 
                   priv = metal_container_of(pnode, struct rptun_priv_s, node);
-                  device_destroy(&priv->vdev.rdev, priv_);
+                  i = rptun_get_vdev_index(priv, cb->buf_size);
+                  device_destroy(&priv->vdev[i]->rdev, priv_);
                 }
             }
 

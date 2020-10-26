@@ -73,6 +73,11 @@ int rpmsg_register_callback(FAR void *priv,
                             rpmsg_dev_cb_t device_created,
                             rpmsg_dev_cb_t device_destroy,
                             rpmsg_bind_cb_t ns_bind);
+int rpmsg_register_channel_callback(FAR void *priv,
+                                    uint32_t chan_size,
+                                    rpmsg_dev_cb_t device_created,
+                                    rpmsg_dev_cb_t device_destroy,
+                                    rpmsg_bind_cb_t ns_bind);
 void rpmsg_unregister_callback(FAR void *priv,
                                rpmsg_dev_cb_t device_created,
                                rpmsg_dev_cb_t device_destroy,
