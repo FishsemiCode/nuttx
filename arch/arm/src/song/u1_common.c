@@ -223,8 +223,10 @@ int up_folder_copy(char *dstdir, char *srcdir)
 
 int up_folder_sync(char *dstdir, char *srcdir)
 {
-  _up_folder_sync(dstdir, srcdir, false, false);
-  _up_folder_sync(dstdir, srcdir, false, true);
+  int iret = -1;
+  iret = _up_folder_sync(dstdir, srcdir, false, false);
+  iret |= _up_folder_sync(dstdir, srcdir, false, true);
+  return iret;
 }
 
 int up_folder_copy_skippatch(char *dstdir, char *srcdir)
