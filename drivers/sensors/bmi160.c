@@ -223,6 +223,21 @@
 #define MAG_PM_NORMAL         (0x19)
 #define MAG_PM_LOWPOWER       (0x1A)
 
+/* ACCEL_ANYMOTIN  MASK */
+
+#define ACCEL_ANYMOT_INTMAP   (0x04) /* Anymotion interrupt mapped to pin INT1 */
+#define ACCEL_ANYMOT_ENANYMO  (0x00) /* Enable Any motion */
+#define ACCEL_ANYMOT_NOLATCH  (0x30) /* Disable input enable and non-latched */
+#define ACCEL_ANYMOT_SETTHRE  (0x03) /* Set threshold +-2:1.95mg */
+#define ACCEL_ANYMOT_OVMASK   (0x03) /* Times mask */
+#define ACCEL_ANYMOT_OVCOUNT  (0x02) /* Times exceed the threshold */
+#define ACCEL_ANYMOT_INT1_EN  (0x0A) /* INT1 enable and active high */
+#define ACCEL_ANYMOT_MASKCTRL (0x0F) /* Only use Pin1 */
+#define ACCEL_ANYMOT_MASKX    (0x01)
+#define ACCEL_ANYMOT_MASKY    (0x02)
+#define ACCEL_ANYMOT_MASKZ    (0x04)
+#define ACCEL_ANYMOT_MASKXYZ  (ACCEL_ANYMOT_MASKX | ACCEL_ANYMOT_MASKY | ACCEL_ANYMOT_MASKZ)
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -552,7 +567,7 @@ static void bmi160_set_normal_imu(FAR struct bmi160_dev_s *priv)
 
   bmi160_putreg8(priv, BMI160_CMD, ACCEL_PM_NORMAL);
   up_mdelay(30);
-  bmi160_putreg8(priv, BMI160_CMD, GYRO_PM_NORMAL);
+  bmi160_putreg8(priv, BMI160_CMD, GYRO_PM_SUSPEND);
   up_mdelay(30);
 
   /* Set accel & gyro output data rate. */
@@ -654,6 +669,66 @@ static void bmi160_enable_stepcounter(FAR struct bmi160_dev_s *priv,
   sninfo("Step counter %sabled.\n", val & STEP_CNT_EN ? "en" : "dis");
 }
 
+static void bmi160_enable_anymotion_interrupt(FAR struct bmi160_dev_s *priv,
+                                              int enable)
+{
+  uint8_t val;
+
+  /* Enable X,Y,Z anymotion or disable X,Y,Z anymotion */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_ENABLE_0);
+  val = val & ~ACCEL_ANYMOT_MASKXYZ;
+  if (enable)
+    {
+      val |= ACCEL_ANYMOT_MASKXYZ;
+    }
+  bmi160_putreg8(priv, BMI160_INTR_ENABLE_0, val);
+
+  if (!enable)
+    goto out;
+
+  /* Only Configure Interrupt pin1, Level trigger and active high */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_OUT_CTRL);
+  val &= ~ACCEL_ANYMOT_MASKCTRL;
+  val |= ACCEL_ANYMOT_INT1_EN;
+  bmi160_putreg8(priv, BMI160_INTR_OUT_CTRL, val);
+
+  /* Times exceeded the thresold */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_MOTION_0);
+  val &= ~ACCEL_ANYMOT_OVMASK;
+  val |= ACCEL_ANYMOT_OVCOUNT;
+  bmi160_putreg8(priv, BMI160_INTR_MOTION_0, val);
+
+  /* Set thresold */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_MOTION_1);
+  val = ACCEL_ANYMOT_SETTHRE;
+  bmi160_putreg8(priv, BMI160_INTR_MOTION_1, val);
+
+  /* Disable latched and disable input enable */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_LATCH);
+  val &= ~ACCEL_ANYMOT_NOLATCH;
+  bmi160_putreg8(priv, BMI160_INTR_LATCH, val);
+
+  /* Sig_mot_sel, Any-motion */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_MOTION_3);
+  val &= ACCEL_ANYMOT_ENANYMO;
+  bmi160_putreg8(priv, BMI160_INTR_MOTION_3, val);
+
+  /* INT MAP INT1 anymotion */
+
+  val = bmi160_getreg8(priv, BMI160_INTR_MAP_0);
+  val &= ~ACCEL_ANYMOT_INTMAP;
+  val |= ACCEL_ANYMOT_INTMAP;
+  bmi160_putreg8(priv, BMI160_INTR_MAP_0, val);
+
+out:;
+}
+
 /****************************************************************************
  * Name: bmi160_ioctl
  *
@@ -687,6 +762,23 @@ static int bmi160_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           DEBUGASSERT(ptr != NULL);
 
           *ptr = bmi160_getreg16(priv, BMI160_STEP_COUNT_0);
+        }
+        break;
+
+      /* Enable bmi160 any-motion. Arg: int value */
+
+      case SNIOC_ENABLEMOTION:
+        {
+          bmi160_enable_anymotion_interrupt(priv, (int)arg);
+        }
+        break;
+
+      /* Read Motion Status */
+
+      case SNIOC_MOTIONSTATUS:
+        {
+          unsigned long *ptr1 = (FAR unsigned long *)(arg);
+          *ptr1 = bmi160_getreg8(priv, BMI160_INTR_STAT_2);
         }
         break;
 

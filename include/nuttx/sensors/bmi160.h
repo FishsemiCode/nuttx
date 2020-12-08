@@ -81,6 +81,8 @@
 #define SNIOC_READSC       _SNIOC(0x0002) /* Arg: int16_t* pointer */
 #define SNIOC_SETACCPM     _SNIOC(0x0003) /* Arg: uint8_t value */
 #define SNIOC_SETACCODR    _SNIOC(0x0004) /* Arg: uint8_t value */
+#define SNIOC_ENABLEMOTION _SNIOC(0x0005) /* Arg: uint8_t value */
+#define SNIOC_MOTIONSTATUS _SNIOC(0x0006) /* Arg: unsigned long value */
 
 /****************************************************************************
  * Public Types
