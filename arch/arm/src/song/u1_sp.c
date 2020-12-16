@@ -226,9 +226,6 @@ static FAR struct misc_dev_s *g_misc[3] =
 extern uint32_t _slog;
 extern uint32_t _logsize;
 
-extern uint32_t _ssharmv1;
-extern uint32_t _esharmv1;
-
 extern uint32_t _ssharmv2;
 extern uint32_t _esharmv2;
 
@@ -288,48 +285,13 @@ void up_earlystart(void)
 {
   uint32_t trim;
 
-  if (up_is_u1v1())
-    {
-      int i;
+  /* Set VDDMAIN 1.1V@work+0.8V@SLEEP+off@DS */
 
-      /* Set freq of TOP_PCLK1 low */
+  putreg32(0xc2401, TOP_PMICFSM_BUCK1);
 
-      putreg32(0xf000f0, TOP_PWR_TOP_PCLK1_CTL);
-      udelay_coarse(5);
+  /* Set VDDAON 1.1V@work and 0.7V@SLEEP */
 
-      /* VDDAON(LDO0) runs at low voltage in deep sleep. Recover the voltage
-       * as early as possible.
-       */
-
-      for (i = 0; i < 1000; i++)
-        {
-          /* WA - writing to TOP_PMICFSM on power up seems to be unstable. Read
-           * the register back to make sure it's programmed correctly.
-           */
-
-          putreg32(TOP_PMICFSM_LDO0_DEFAULT, TOP_PMICFSM_LDO0);
-
-          if (getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT)
-            {
-              break;
-            }
-        }
-
-      /* Restore freq of TOP_PCLK1 */
-
-      udelay_coarse(5);
-      putreg32(0xf00090, TOP_PWR_TOP_PCLK1_CTL);
-    }
-  else
-    {
-      /* Set VDDMAIN 1.1V@work+0.8V@SLEEP+off@DS */
-
-      putreg32(0xc2401, TOP_PMICFSM_BUCK1);
-
-      /* Set VDDAON 1.1V@work and 0.7V@SLEEP */
-
-      putreg32(0x41403, TOP_PMICFSM_LDO0);
-    }
+  putreg32(0x41403, TOP_PMICFSM_LDO0);
 
   /* Get trim value from info page, and update TOP_PMICFSM_TRIM0.
    * This should do as early as possible, for some chip can't work
@@ -373,35 +335,21 @@ void up_earlyinitialize(void)
   putreg32(TOP_PWR_SEC_AU_PD_MK << 16, TOP_PWR_SEC_M4_TCM_PD_CTL);
 #endif
 
-  if (up_is_u1v1())
+  /* Configure PLL stable time (~1.15ms). */
+
+  putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
+           TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
+  modifyreg32(TOP_PMICFSM_CONFIG2, TOP_PMICFSM_LDO0_RF_ICTRL_MK,
+           TOP_PMICFSM_DS_RF_RST_MK | TOP_PMICFSM_LDO0_RF_ICTRL_1);
+
+  /* Disable iomod up/pull when LDO1.VOLT is 0x19 */
+
+  if ((getreg32(TOP_PMICFSM_LDO1) & TOP_PMICFSM_LDO1_VOLT_MK)
+          == TOP_PMICFSM_LDO1_VOLT_0x19)
     {
-      /* Set the DMAS no effort to power down */
-
-      putreg32(TOP_PWR_SLP_DMA_MK << 16 |
-               TOP_PWR_SLP_DMA_MK, TOP_PWR_SLPCTL0);
-
-      /* Configure PLL stable time (~1.15ms). */
-
-      putreg32(TOP_PWR_PLL_STABLE_TIME | TOP_PWR_OSC_STABLE_TIME, TOP_PWR_PLLTIME);
-    }
-  else
-    {
-      /* Configure PLL stable time (~1.15ms). */
-
-      putreg32(TOP_PMICFSM_PLL_STABLE_TIME |
-               TOP_PMICFSM_OSC_STABLE_TIME, TOP_PMICFSM_PLLTIME);
-      modifyreg32(TOP_PMICFSM_CONFIG2, TOP_PMICFSM_LDO0_RF_ICTRL_MK,
-               TOP_PMICFSM_DS_RF_RST_MK | TOP_PMICFSM_LDO0_RF_ICTRL_1);
-
-      /* Disable iomod up/pull when LDO1.VOLT is 0x19 */
-
-      if ((getreg32(TOP_PMICFSM_LDO1) & TOP_PMICFSM_LDO1_VOLT_MK)
-              == TOP_PMICFSM_LDO1_VOLT_0x19)
-        {
-          modifyreg32(TOP_PMICFSM_IOMOD_CTL,
-                      TOP_PMICFSM_IOMOD_PUD_CTL_MK,
-                      TOP_PMICFSM_IOMOD_PUD_CTL_NO);
-        }
+      modifyreg32(TOP_PMICFSM_IOMOD_CTL,
+                  TOP_PMICFSM_IOMOD_PUD_CTL_MK,
+                  TOP_PMICFSM_IOMOD_PUD_CTL_NO);
     }
 
   /* Set flash no effort to PWR_SLEEP */
@@ -473,11 +421,6 @@ void up_dma_initialize(void)
 #if defined(CONFIG_16550_UART) && defined(CONFIG_SONG_DMAS)
 FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 {
-  if (up_is_u1v1())
-    {
-      return NULL;
-    }
-
   return g_dma[0] ? DMA_GET_CHAN(g_dma[0], ident) : NULL;
 }
 #endif
@@ -486,50 +429,24 @@ void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
 
-  if (up_is_u1v1())
+  static const struct song_oneshot_config_s config =
     {
-      static const struct song_oneshot_config_s config =
-        {
-          .minor      = -1,
-          .base       = TOP_PWR_BASE,
-          .irq        = 18,
-          .c1_freq    = 8192000,
-          .ctl_off    = 0x170,
-          .calib_off  = 0x194,
-          .calib_inc  = 0x198,
-          .c1_off     = 0x174,
-          .c2_off     = 0x178,
-          .spec_off   = 0x1ac,
-          .intren_off = 0x124,
-          .intrst_off = 0x130,
-          .intr_bit   = 2,
-          .man_calib  = true,
-          .man_calibv = 0xfa0000,
-        };
+      .minor      = -1,
+      .base       = TOP_PWR_BASE,
+      .irq        = 18,
+      .c1_freq    = 8192000,
+      .ctl_off    = 0x170,
+      .calib_off  = 0x194,
+      .calib_inc  = 0x198,
+      .c1_off     = 0x174,
+      .c2_off     = 0x178,
+      .spec_off   = 0x1ac,
+      .intren_off = 0x124,
+      .intrst_off = 0x130,
+      .intr_bit   = 2,
+    };
 
-      up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
-    }
-  else
-    {
-      static const struct song_oneshot_config_s config =
-        {
-          .minor      = -1,
-          .base       = TOP_PWR_BASE,
-          .irq        = 18,
-          .c1_freq    = 8192000,
-          .ctl_off    = 0x170,
-          .calib_off  = 0x194,
-          .calib_inc  = 0x198,
-          .c1_off     = 0x174,
-          .c2_off     = 0x178,
-          .spec_off   = 0x1ac,
-          .intren_off = 0x124,
-          .intrst_off = 0x130,
-          .intr_bit   = 2,
-        };
-
-      up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
-    }
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
 #ifdef CONFIG_CPULOAD_PERIOD
@@ -670,13 +587,6 @@ static int cp_start(const struct song_rptun_config_s *config)
       unlink(CP_RVSD_FILE);
     }
 #endif
-
-  /* Make sure LDO0 voltage is correct. */
-
-  if (up_is_u1v1())
-    {
-      ASSERT(getreg32(TOP_PMICFSM_LDO0) == TOP_PMICFSM_LDO0_DEFAULT);
-    }
 
   /* SP <--shram1--> CP */
 
@@ -978,11 +888,8 @@ static void up_crypto_init(void)
     .rodata_dma = false,
   };
 
-  if (!up_is_u1v1())
-    {
-      up_cryptoinitialize();
-      song_crypto_initialize(&config);
-    }
+  up_cryptoinitialize();
+  song_crypto_initialize(&config);
 }
 #endif
 
@@ -991,17 +898,14 @@ static void up_extra_init(void)
   uint32_t wdtrst;
   char *poweron = "n";
 
-  if (!up_is_u1v1())
-    {
-      /* Attach and enable PMICFSM intrrupt */
+  /* Attach and enable PMICFSM intrrupt */
 
-      irq_attach(32, up_pmicfsm_isr, NULL);
-      up_enable_irq(32);
+  irq_attach(32, up_pmicfsm_isr, NULL);
+  up_enable_irq(32);
 
-      /* Enable SLP_U0RXD_ACT in PMICFSM */
+  /* Enable SLP_U0RXD_ACT in PMICFSM */
 
-      modifyreg32(TOP_PMICFSM_INT_MASK, TOP_PMICFSM_SLP_U0RXD_ACT, 0);
-    }
+  modifyreg32(TOP_PMICFSM_INT_MASK, TOP_PMICFSM_SLP_U0RXD_ACT, 0);
 
 #ifdef CONFIG_SONG_RAMDISK
   /* Register a RAMDISK device: /dev/ram1 */
@@ -1141,35 +1045,6 @@ static void cp_flash_save_finish(void)
 
 static void up_ds_enter_final(void)
 {
-  if (up_is_u1v1())
-    {
-      struct regulator *reg;
-      struct clk *clk;
-
-      /* Decrease LDO0/VDDAON voltage to 0.625V. Before setting
-       * voltage, decrease clock rate first.
-       */
-
-      clk = clk_get("top_bus_mclk");
-      if (clk != NULL)
-        {
-          clk_set_rate(clk, 51200000);
-        }
-
-      clk = clk_get("top_pclk1");
-      if (clk != NULL)
-        {
-          clk_set_rate(clk, 3200000);
-        }
-
-      reg = regulator_get(NULL, "ldo0");
-      if (reg != NULL)
-        {
-          const int voltage = 700000;
-          regulator_set_voltage(reg, voltage, voltage);
-        }
-    }
-
   /* Force enable UART0 interrupt for UART0 wakeup DS */
 
   modifyreg32(0xb2000004, 0, 0x1);
@@ -1314,24 +1189,9 @@ void up_finalinitialize(void)
 
       rptun_boot(CPU_NAME_AP);
 
-      if (up_is_u1v1())
+      if (up_get_wkreason() == WAKEUP_REASON_UART_RSTN)
         {
-          if (up_get_wkreason() == WAKEUP_REASON_RTC_RSTN)
-            {
-              if (getreg32(0xb2020040) & 0x1)
-                rptun_boot(CPU_NAME_CP);
-            }
-          else
-            {
-              rptun_boot(CPU_NAME_CP);
-            }
-        }
-      else
-        {
-          if (up_get_wkreason() == WAKEUP_REASON_UART_RSTN)
-            {
-              rptun_boot(CPU_NAME_CP);
-            }
+          rptun_boot(CPU_NAME_CP);
         }
     }
 #endif
@@ -1341,26 +1201,15 @@ void up_finalinitialize(void)
   irq_attach(18, up_ds_enter_exit_isr, NULL);
   up_enable_irq(18);
   modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_SLPU_FLASH_S);
-  if (!up_is_u1v1())
-    {
-      modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_CP_DS_WAKEUP);
-    }
+  modifyreg32(TOP_PWR_INTR_EN_SEC_M4_1, 0, TOP_PWR_CP_DS_WAKEUP);
 
 #ifdef CONFIG_SONG_CLK
   up_clk_finalinitialize();
 #endif
 
 #ifdef CONFIG_CRASH_DUMPFILE
-  if (up_is_u1v1())
-    {
-      dumpfile_initialize("sp", (char *)&_ssharmv1, \
-                          ((uintptr_t)&_esharmv1) - ((uintptr_t)&_ssharmv1));
-    }
-  else
-    {
-      dumpfile_initialize("sp", (char *)&_ssharmv2, \
-                          ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
-    }
+  dumpfile_initialize("sp", (char *)&_ssharmv2, \
+                      ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
 #endif
 }
 

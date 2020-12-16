@@ -149,9 +149,6 @@ extern uint32_t _logsize;
 extern uint32_t _cpram1_srsvd;
 extern uint32_t _cpram1_ersvd;
 
-extern uint32_t _ssharmv1;
-extern uint32_t _esharmv1;
-
 extern uint32_t _ssharmv2;
 extern uint32_t _esharmv2;
 
@@ -201,7 +198,7 @@ static void up_misc_init(void)
           .blkid = 0,
           .base  = base,
           .size  = size,
-          .dma   = !up_is_u1v1(),
+          .dma   = 1,
         };
 
       ioctl(fd, MISC_RETENT_ADD, (unsigned long)&add);
@@ -264,28 +261,14 @@ void up_earlyinitialize(void)
 
 void up_wic_initialize(void)
 {
-  if (up_is_u1v1())
-    {
-      putreg32(0xffffffff, TOP_PWR_CP_M4_INTR2SLP_MK0);
-    }
-  else
-    {
-      putreg32(0xffffffff, TOP_PMICFSM_CP_M4_INT2SLP_MK0);
-    }
+  putreg32(0xffffffff, TOP_PMICFSM_CP_M4_INT2SLP_MK0);
 }
 
 void up_wic_enable_irq(int irq)
 {
   if (irq >= NVIC_IRQ_FIRST)
     {
-      if (up_is_u1v1())
-        {
-          modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-        }
-      else
-        {
-          modifyreg32(TOP_PMICFSM_CP_M4_INT2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
-        }
+      modifyreg32(TOP_PMICFSM_CP_M4_INT2SLP_MK0, 1 << (irq - NVIC_IRQ_FIRST), 0);
     }
 }
 
@@ -293,14 +276,7 @@ void up_wic_disable_irq(int irq)
 {
   if (irq >= NVIC_IRQ_FIRST)
     {
-      if (up_is_u1v1())
-        {
-          modifyreg32(TOP_PWR_CP_M4_INTR2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-        }
-      else
-        {
-          modifyreg32(TOP_PMICFSM_CP_M4_INT2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
-        }
+      modifyreg32(TOP_PMICFSM_CP_M4_INT2SLP_MK0, 0, 1 << (irq - NVIC_IRQ_FIRST));
     }
 }
 
@@ -321,50 +297,24 @@ FAR struct dma_chan_s *uart_dmachan(uart_addrwidth_t base, unsigned int ident)
 void up_timer_initialize(void)
 {
 #ifdef CONFIG_ONESHOT_SONG
-  if (up_is_u1v1())
+  static const struct song_oneshot_config_s config =
     {
-      static const struct song_oneshot_config_s config =
-        {
-          .minor      = -1,
-          .base       = TOP_PWR_BASE,
-          .irq        = 18,
-          .c1_freq    = 8192000,
-          .ctl_off    = 0x170,
-          .calib_off  = 0x194,
-          .calib_inc  = 0x198,
-          .c1_off     = 0x174,
-          .c2_off     = 0x178,
-          .spec_off   = 0x1a4,
-          .intren_off = 0x12c,
-          .intrst_off = 0x138,
-          .intr_bit   = 0,
-          .man_calib  = true,
-          .man_calibv = 0xfa0000,
-        };
+      .minor      = -1,
+      .base       = TOP_PWR_BASE,
+      .irq        = 18,
+      .c1_freq    = 8192000,
+      .ctl_off    = 0x170,
+      .calib_off  = 0x194,
+      .calib_inc  = 0x198,
+      .c1_off     = 0x174,
+      .c2_off     = 0x178,
+      .spec_off   = 0x1a4,
+      .intren_off = 0x12c,
+      .intrst_off = 0x138,
+      .intr_bit   = 0,
+    };
 
-      up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
-    }
-  else
-    {
-      static const struct song_oneshot_config_s config =
-        {
-          .minor      = -1,
-          .base       = TOP_PWR_BASE,
-          .irq        = 18,
-          .c1_freq    = 8192000,
-          .ctl_off    = 0x170,
-          .calib_off  = 0x194,
-          .calib_inc  = 0x198,
-          .c1_off     = 0x174,
-          .c2_off     = 0x178,
-          .spec_off   = 0x1a4,
-          .intren_off = 0x12c,
-          .intrst_off = 0x138,
-          .intr_bit   = 0,
-        };
-
-      up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
-    }
+  up_alarm_set_lowerhalf(song_oneshot_initialize(&config));
 #endif
 
 #ifdef CONFIG_CPULOAD_PERIOD
@@ -594,16 +544,8 @@ void up_finalinitialize(void)
 #endif
 
 #ifdef CONFIG_CRASH_DUMPFILE
-  if (up_is_u1v1())
-    {
-      dumpfile_initialize("cp", (char *)&_ssharmv1, \
-                          ((uintptr_t)&_esharmv1) - ((uintptr_t)&_ssharmv1));
-    }
-  else
-    {
-      dumpfile_initialize("cp", (char *)&_ssharmv2, \
-                          ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
-    }
+  dumpfile_initialize("cp", (char *)&_ssharmv2, \
+                      ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
 #endif
 }
 

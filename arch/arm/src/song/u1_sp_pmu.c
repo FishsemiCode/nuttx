@@ -200,10 +200,6 @@ void up_pmu_initialize(void)
 {
   spmu_apb_init(TOP_PMICFSM_BASE, 0xb0180000,
       spmu_regulator_desc, ARRAY_SIZE(spmu_regulator_desc));
-  if (up_is_u1v1())
-    {
-       modifyreg32(TOP_PMICFSM_BUCK1, 0x3f << 14, 0x14 << 14);
-    }
 }
 #endif /* (defined(CONFIG_ARCH_CHIP_U1_SP) || defined(CONFIG_ARCH_CHIP_U1_RECOVERY))
           && defined(CONFIG_SONG_PMIC_APB) */

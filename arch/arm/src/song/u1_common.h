@@ -237,11 +237,6 @@ static inline bool up_is_warm_rstn(void)
   return false;
 }
 
-static inline bool up_is_u1v1(void)
-{
-  return getreg32(TOP_PMICFSM_PLLTIME) == 0xdeadbeaf;
-}
-
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
