@@ -190,7 +190,7 @@ static void up_misc_init(void)
 
   /* Add ram-misc block */
 
-  fd = open("/dev/misc", 0);
+  fd = open("/dev/miscsp", 0);
   if (fd >= 0)
     {
       struct misc_retent_add_s add =

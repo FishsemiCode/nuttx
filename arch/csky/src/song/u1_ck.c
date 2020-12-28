@@ -185,7 +185,7 @@ static void up_misc_init(void)
 
   misc_rpmsg_initialize(CPU_NAME_SP, true);
 
-  fd = open("/dev/misc", 0);
+  fd = open("/dev/miscsp", 0);
   if (fd >= 0)
     {
       /* Get board-id env from sp */
