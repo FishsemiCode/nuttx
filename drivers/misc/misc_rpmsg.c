@@ -49,6 +49,7 @@
 
 #include <fcntl.h>
 #include <crc32.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
 
@@ -935,8 +936,10 @@ struct misc_dev_s *misc_rpmsg_initialize(const char *cpuname,
   if (devctl)
     {
       /* Client */
+      char devname[16];
+      snprintf(devname, 16, "/dev/misc%s",cpuname);
 
-      register_driver("/dev/misc", &g_misc_devops, 0666, priv);
+      register_driver(devname, &g_misc_devops, 0666, priv);
     }
 
   return &priv->dev;
@@ -947,7 +950,7 @@ int misc_rpmsg_clocksync(void)
   struct file filep;
   int ret;
 
-  ret = file_open(&filep, "/dev/misc", 0, 0);
+  ret = file_open(&filep, "/dev/miscsp", 0, 0);
   if (ret)
     {
       /* Server */
