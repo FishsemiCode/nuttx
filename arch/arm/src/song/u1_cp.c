@@ -186,6 +186,20 @@ static void up_misc_init(void)
 
   /* Retention init */
 
+  misc_rpmsg_initialize(CPU_NAME_AP, true);
+
+  fd = open("/dev/miscap",0)
+  if (fd >= 0)
+  {
+      struct misc_remote_envsync_s env =
+        {
+          .name = "bootnb",
+        };
+
+      ioctl(fd, MISC_REMOTE_ENVSYNC, (unsigned long)&env);
+      close(fd);
+  }
+
   misc_rpmsg_initialize(CPU_NAME_SP, true);
 
   /* Add ram-misc block */

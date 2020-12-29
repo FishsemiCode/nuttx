@@ -191,6 +191,7 @@ static void up_misc_init(void)
   int fd;
 
   /* Retention init */
+  misc_rpmsg_initialize(CPU_NAME_CP, false);
 
   misc_rpmsg_initialize(CPU_NAME_SP, true);
 
