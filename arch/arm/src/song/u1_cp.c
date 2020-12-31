@@ -188,7 +188,7 @@ static void up_misc_init(void)
 
   misc_rpmsg_initialize(CPU_NAME_AP, true);
 
-  fd = open("/dev/miscap",0)
+  fd = open("/dev/miscap",0);
   if (fd >= 0)
   {
       struct misc_remote_envsync_s env =
