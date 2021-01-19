@@ -1167,6 +1167,8 @@ static int misc_ramflush_cb(char *fpath, int flags)
 
 void up_finalinitialize(void)
 {
+  char *id;
+
 #ifdef CONFIG_FS_TMPFS
   /* Restore ap data from internal flash */
 
@@ -1211,6 +1213,11 @@ void up_finalinitialize(void)
   dumpfile_initialize("sp", (char *)&_ssharmv2, \
                       ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
 #endif
+  id = getenv_global("board-id");
+  if (id && !strncmp(id, "U1TX", 4))
+    {
+      modifyreg32(TOP_PMICFSM_CONFIG2, TOP_PMICFSM_LDO0_RF_ICTRL_1, 0);
+    }
 }
 
 void up_reset(int status)
