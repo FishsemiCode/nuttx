@@ -182,6 +182,7 @@ static uint32_t song_i2s_samplerate(struct i2s_dev_s *dev_, uint32_t rate)
 
   song_i2s_updatereg(dev, SONG_I2S_FSYNC_CFG, SONG_I2S_FSYNC_DIV_MASK,
                      (dev->channels * dev->data_width) << SONG_I2S_FSYNC_DIV_OFF);
+
   clk_set_rate(dev->sclk, bclk_rate);
 
   return rate;
@@ -276,7 +277,13 @@ static int song_i2s_set_fmt(struct song_i2s_s *dev, uint16_t fmt)
         song_i2s_updatereg(dev, SONG_I2S_MODE, SONG_I2S_TRAN_POL_MASK |
                            SONG_I2S_REC_POL_MASK | SONG_I2S_SLAVE_EN,
                            SONG_I2S_TRAN_POL_FALL | SONG_I2S_REC_POL_FALL |
-                           SONG_I2S_SLAVE_EN);
+                           0);
+
+        if (strstr(clk_get_name(dev->sclk), "pcm") != NULL)
+          {
+            song_i2s_updatereg(dev, SONG_I2S_MODE,
+                               SONG_I2S_SLAVE_EN, SONG_I2S_SLAVE_EN);
+          }
         break;
       default:
         return -EINVAL;

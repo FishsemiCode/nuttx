@@ -91,14 +91,8 @@
 
 #define MUX_PIN_BASE                (0xa00d0000)
 #define MUXPIN_CLKO0_CTL            (MUX_PIN_BASE + 0x04)
-#define MUXPIN_IIS0DI_CTL           (MUX_PIN_BASE + 0x58)
-#define MUXPIN_IIS0DO_CTL           (MUX_PIN_BASE + 0x5c)
-#define MUXPIN_IIS0CK_CTL           (MUX_PIN_BASE + 0x60)
-#define MUXPIN_IIS0WS_CTL           (MUX_PIN_BASE + 0x64)
 
 #define MUXPIN_DS                   0x4
-#define MUXPIN_PDU                  0x2
-#define MUXPIN_FUNC_SEL             0x0
 
 #define TOP_PWR_BASE                (0xa00e0000)
 #define TOP_PWR_SFRST_CTL           (TOP_PWR_BASE + 0x178)
@@ -482,6 +476,10 @@ static void up_audio_init(void)
   struct audio_lowerhalf_s *dma_capture;
   struct audio_lowerhalf_s *pcm_playback;
   struct audio_lowerhalf_s *pcm_capture;
+
+  struct audio_lowerhalf_s *i2s_playback;
+
+  struct audio_lowerhalf_s *dma_i2s;
 #ifdef CONFIG_AUDIO_DP_ADC
   struct audio_lowerhalf_s *audio_path_vt;
   struct audio_lowerhalf_s *audio_dma_vt;
@@ -499,10 +497,6 @@ static void up_audio_init(void)
   clk_set_parent(clk_get("audio_mclk_mx"), clk_get("audio_mclk"));
 
   putreg32(2 << (MUXPIN_DS), MUXPIN_CLKO0_CTL);
-  putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DI_CTL);
-  putreg32(1 << (MUXPIN_DS) | 0 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DO_CTL);
-  putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0CK_CTL);
-  putreg32(1 << (MUXPIN_DS) | 1 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0WS_CTL);
   IOEXP_SETDIRECTION(g_ioe[0], 0x8, IOEXPANDER_DIRECTION_OUT);
   IOEXP_WRITEPIN(g_ioe[0], 0x8, true);
 
@@ -513,8 +507,12 @@ static void up_audio_init(void)
   dma_playback = audio_dma_initialize(g_dma[0], 3, true, 4, 0xa0060018);
   dma_capture  = audio_dma_initialize(g_dma[0], 11, false, 4, 0xa0060014);
 
+  i2s_playback = audio_i2s_initialize(song_i2s_initialize(0xa0070440, "audio_i2s_mclk"), true);
+
   audio_dma_in    = audio_dma_initialize(g_dma[1], 1, true, 0, 0xa0070490);
   audio_dma_voice = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
+
+  dma_i2s = audio_dma_initialize(g_dma[1], 4, true, 0, 0xa0070458);
 
 #ifdef CONFIG_AUDIO_DP_ADC
   audio_dma_vt    = audio_dma_initialize(g_dma[1], 8, false, 4, 0xa0070408);
@@ -550,6 +548,7 @@ static void up_audio_init(void)
   audio_comp_initialize("pcm3p", ak4332_0, audio_path_anc, NULL);
 
   up_audio_thinker_init(NULL);
+  audio_comp_initialize("pcm4p", i2s_playback, ak4332_0, dma_i2s, NULL);
 #endif
 
 #ifdef CONFIG_AUDIO_DP_VAD

@@ -147,6 +147,8 @@
 #define SONG_AUDIO_PATH_ANC_CFG1_GAIN_MASK          0x0000ffff
 #define SONG_AUDIO_PATH_ANC_CFG1_GAIN               0x00001100
 
+#define CHANNELS 2
+
 /****************************************************************************
  * Private Types
  ****************************************************************************/
@@ -338,14 +340,16 @@ static int song_audio_path_start(struct audio_lowerhalf_s *dev_)
   clk_enable(dev->sys_in_clk);
   clk_enable(clk_get(AUDIO_SYS_CLK3072K));
   clk_enable(clk_get(AUDIO_SYS_CLK49152K));
+
   if (!dev->i2s_en)
     clk_enable(clk_get("out0"));
+
   if (dev->i2s_en)
     {
+      clk_enable(dev->i2s_sclk);
       audio_path_updatereg(dev, SONG_AUDIO_PATH_I2S_MODE,
                            SONG_AUDIO_PATH_I2S_TRAN_EN,
                            SONG_AUDIO_PATH_I2S_TRAN_EN);
-      clk_enable(dev->i2s_sclk);
     }
 
   for (i = 0; i < dev->channels; ++i)
@@ -690,7 +694,7 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
 
   if (dev->i2s_en)
     {
-      audio_path_putreg(dev, SONG_AUDIO_PATH_I2S_FSYNC_CFG, dev->channels * dev->bpsamp);
+      audio_path_putreg(dev, SONG_AUDIO_PATH_I2S_FSYNC_CFG, CHANNELS * dev->bpsamp);
       switch((audio_path_getreg(dev, SONG_AUDIO_PATH_CFG) &
               SONG_AUDIO_PATH_PCM_OUT_FSYNC_MASK) >>
               SONG_AUDIO_PATH_PCM_OUT_FSYNC_SHIFT)
@@ -725,7 +729,7 @@ static uint32_t song_audio_path_samplerate(struct song_audio_path_s *dev,
             return -EINVAL;
         }
 
-      clk_set_rate(dev->i2s_sclk, dev->channels * i * dev->bclk_ratio);
+      clk_set_rate(dev->i2s_sclk, CHANNELS * i * dev->bclk_ratio);
     }
 
   return OK;

@@ -47,6 +47,16 @@
  * Pre-processor Definitions
  ****************************************************************************/
 
+#define MUX_PIN_BASE                (0xa00d0000)
+#define MUXPIN_IIS0DI_CTL           (MUX_PIN_BASE + 0x58)
+#define MUXPIN_IIS0DO_CTL           (MUX_PIN_BASE + 0x5c)
+#define MUXPIN_IIS0CK_CTL           (MUX_PIN_BASE + 0x60)
+#define MUXPIN_IIS0WS_CTL           (MUX_PIN_BASE + 0x64)
+
+#define MUXPIN_DS                   0x4
+#define MUXPIN_PDU                  0x2
+#define MUXPIN_FUNC_SEL             0x0
+
 #define AK4332_PWR1                       0x00
 #define AK4332_PWR2                       0x01
 #define AK4332_PWR3                       0x02
@@ -198,6 +208,8 @@ struct ak4332_s
   struct clk *mclk;
   bool is_enable;
   bool pdm;
+  uint32_t rate;
+  uint8_t width;
 };
 
 /****************************************************************************
@@ -293,6 +305,84 @@ static inline void ak4332_updatereg(struct ak4332_s *dev,
   ak4332_putreg(dev, offset, regval);
 }
 
+static int ak4332_pll_config(struct ak4332_s *dev)
+{
+  switch (dev->rate)
+    {
+      case 44100:
+      case 48000:
+        {
+          /* Enable AKM PLL
+           * PLS: 0x01 BCLK
+           * BCLK: 1.4112M
+           * REFCLK = 1.4112M / (PLD + 1); PLD= 1; 0.7056M
+           * PLLCLK = REFCLK * (PLM + 1); PLM = 31
+           * DACMCLK = PLLCLK / (MDIV + 1); MDIV = 0, 22.5792M
+           * PLD: 0x01
+           * */
+          ak4332_putreg(dev, AK4332_PLL_SRC, 0x01);
+          ak4332_putreg(dev, AK4332_PLL_FB_DIV2, 0x1F);
+
+          if (dev->width == 16)
+            {
+              ak4332_putreg(dev, AK4332_PLL_REF_DIV2, 0x01);
+            }
+          else if (dev->width == 32)
+            {
+              ak4332_putreg(dev, AK4332_PLL_REF_DIV2, 0x03);
+            }
+
+            ak4332_putreg(dev, AK4332_DAC_CLK_DIV, 0x01); //44100 * 256 = 11.2896M
+            break;
+        }
+       case 8000:
+        {
+          ak4332_putreg(dev, AK4332_PLL_SRC, 0x01);
+          ak4332_putreg(dev, AK4332_PLL_REF_DIV2, 0x01);
+
+          if (dev->width == 16)
+            {
+              ak4332_putreg(dev, AK4332_PLL_FB_DIV2, 0x5F);
+            }
+          else if (dev->width == 32)
+            {
+              ak4332_putreg(dev, AK4332_PLL_FB_DIV2, 0x2F);
+            }
+
+          ak4332_putreg(dev, AK4332_DAC_CLK_DIV, 0x0B); //8000 * 256 = 11.2896M
+
+          break;
+        }
+        case 16000:
+          {
+            ak4332_putreg(dev, AK4332_PLL_SRC, 0x01);
+            if (dev->width == 32)
+              ak4332_putreg(dev, AK4332_PLL_REF_DIV2, 0x01);
+
+            ak4332_putreg(dev, AK4332_PLL_FB_DIV2, 0x2F);
+
+            ak4332_putreg(dev, AK4332_DAC_CLK_DIV, 0x06);
+
+            break;
+          }
+        case 96000:
+          {
+            ak4332_putreg(dev, AK4332_PLL_SRC, 0x01);
+            ak4332_putreg(dev, AK4332_PLL_FB_DIV2, 0x7);
+            ak4332_putreg(dev, AK4332_DAC_CLK_DIV, 0x01);
+          }
+        default:
+          {
+            return -EINVAL;
+          }
+    }
+
+  /* DAC CLK SRC: PLL */
+  ak4332_putreg(dev, AK4332_DAC_CLK_SRC, 0x01);
+  return 0;
+}
+
+
 #ifdef CONFIG_AUDIO_MULTI_SESSION
 static int ak4332_configure(struct audio_lowerhalf_s *dev_,
                             void *session,
@@ -382,6 +472,15 @@ static int ak4332_start(struct audio_lowerhalf_s *dev_)
     return OK;
   dev->is_enable = true;
   clk_enable(dev->mclk);
+
+  if (dev->pdm == 0)
+  {
+    ak4332_putreg(dev, AK4332_PWR1, 0x01);
+    usleep(2000);
+
+    ak4332_pll_config(dev);
+  }
+
   ak4332_updatereg(dev, AK4332_PWR1, AK4332_PWR_PMTIM,
                    AK4332_PWR_PMTIM);
   ak4332_updatereg(dev, AK4332_PWR2, AK4332_PWR_PMCP1,
@@ -402,6 +501,7 @@ static int ak4332_start(struct audio_lowerhalf_s *dev_)
   usleep(4500);
   ak4332_updatereg(dev, AK4332_PWR4, AK4332_PWR_PMHP,
                    AK4332_PWR_PMHP);
+
   return OK;
 }
 
@@ -503,6 +603,7 @@ static int ak4332_setdatawidth(struct ak4332_s *dev, uint32_t bpsamp)
       default:
         return -EINVAL;
     }
+    dev->width = bpsamp;
     return OK;
 }
 
@@ -511,6 +612,10 @@ static int ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
   if (dev->pdm)
     {
       rate = 48000;
+    }
+  else
+    {
+      dev->rate = rate;
     }
 
   switch (rate)
@@ -530,6 +635,10 @@ static int ak4332_samplerate(struct ak4332_s *dev, uint32_t rate)
       case 96000:
         ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
                          AK4332_CLK_FS_96K);
+        break;
+      case 44100:
+        ak4332_updatereg(dev, AK4332_CLK_MODE, AK4332_CLK_FS_MASK,
+                         AK4332_CLK_FS_44K);
         break;
       default:
         return -EINVAL;
@@ -594,6 +703,15 @@ static int ak4332_set_fmt(struct ak4332_s *dev, uint16_t fmt)
         return -EINVAL;
     }
 
+  if (dev->pdm == true)
+    {
+      # define putreg32(v,a)        (*(volatile uint32_t *)(a) = (v))
+      putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DI_CTL);
+      putreg32(1 << (MUXPIN_DS) | 0 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0DO_CTL);
+      putreg32(1 << (MUXPIN_DS) | 2 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0CK_CTL);
+      putreg32(1 << (MUXPIN_DS) | 1 << (MUXPIN_PDU) | 3 << (MUXPIN_FUNC_SEL), MUXPIN_IIS0WS_CTL);
+    }
+
   return OK;
 }
 
@@ -623,25 +741,26 @@ struct audio_lowerhalf_s *ak4332_initialize(struct i2c_master_s *i2c,
   ak4332_putreg(dev, AK4332_DAC_ADJ1, 0x02);
   ak4332_putreg(dev, AK4332_DAC_ADJ2, 0xc0);
   ak4332_putreg(dev, AK4332_OUT_MODE, 0x40);
+  ak4332_putreg(dev, AK4332_DAC_OUT_VOL, 0x19);
 
   switch (mix)
-  {
-    case 0:
-      ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
-                       AK4332_MIX_LDAC, AK4332_MIX_LDAC);
-      break;
-    case 1:
-      ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
-                       AK4332_MIX_RDAC, AK4332_MIX_RDAC);
-      break;
-    default:
-      ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
-                       AK4332_MIX_MDAC | AK4332_MIX_LDAC |
-                       AK4332_MIX_RDAC,
-                       AK4332_MIX_MDAC | AK4332_MIX_LDAC |
-                       AK4332_MIX_RDAC);
-      break;
-  }
+    {
+      case 0:
+        ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
+                         AK4332_MIX_LDAC, AK4332_MIX_LDAC);
+        break;
+      case 1:
+        ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
+                         AK4332_MIX_RDAC, AK4332_MIX_RDAC);
+        break;
+      default:
+        ak4332_updatereg(dev, AK4332_DAC_MONO_MIX,
+                         AK4332_MIX_MDAC | AK4332_MIX_LDAC |
+                         AK4332_MIX_RDAC,
+                         AK4332_MIX_MDAC | AK4332_MIX_LDAC |
+                         AK4332_MIX_RDAC);
+        break;
+    }
 
   return &dev->dev;
 }
