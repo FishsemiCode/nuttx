@@ -212,6 +212,10 @@ __attribute__((section(".warm_start")))
 #endif
 void up_earlystart(void)
 {
+#ifdef CONFIG_SONG_EFUSE
+  uint32_t trim;
+#endif
+
   if (!(getreg32(TOP_PWR_BOOT_REG) & TOP_PWR_CP_M4_COLD_BOOT))
     {
       /* Reset the NVIC vector location */
@@ -224,6 +228,24 @@ void up_earlystart(void)
     }
 
   putreg32(TOP_PWR_CP_M4_COLD_BOOT << 16, TOP_PWR_BOOT_REG);
+
+  /* Get trim value from efuse page, and update TOP_PMICFSM_TRIM0.
+   * This should do as early as possible, for some chip can't work
+   * well at un-trimed situation.
+   */
+
+#ifdef CONFIG_SONG_EFUSE
+  song_efuse_read_info(0xb0150000, 0x42, &trim, sizeof(trim));
+  if (trim != 0xffffffff && trim != 0)
+    {
+      uint32_t val = getreg32(TOP_PMICFSM_TRIM0);
+
+      val &= ~0x3ff0000;
+      val |= trim & 0x3ff0000;
+
+      putreg32(val, TOP_PMICFSM_TRIM0);
+    }
+#endif
 }
 
 void up_earlyinitialize(void)
