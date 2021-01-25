@@ -69,6 +69,7 @@
 
 #define EFUSE_INTR_EN_MASK       (0x03)
 #define EFUSE_INTR_EFUSE_EN      (1 << 1)
+#define EFUSE_INTR_EFUSE_ST      (1 << 1)
 #define EFUSE_INTR_PGM_EN        (1 << 2)
 
 #define EFUSE_INTR_STS_MASK      (0x03)
@@ -428,7 +429,6 @@ static int efuse_close(FAR struct file *filep)
 static off_t efuse_seek(FAR struct file *filep, off_t offset, int whence)
 {
   FAR struct inode *inode = filep->f_inode;
-  FAR struct efuse_dev_s *priv = inode->i_private;
   off_t newpos;
   off_t ret = 0;
 
@@ -649,5 +649,29 @@ int song_efuse_initialize(int minor, uint32_t base, uint8_t irq)
     }
 
   return ret;
+}
+
+int song_efuse_read_info(int base, uint32_t addr, uint8_t *buffer, uint32_t cnt)
+{
+  uint8_t i;
+
+  while (getreg32(base + EFUSE_CTRL_OFFSET) & EFUSE_CTRL_BUSY);
+
+  /* Set read mode */
+
+  modreg32(EFUSE_MODE_READ, EFUSE_MODE_MASK, base + EFUSE_MODE_OFFSET);
+  putreg32(addr * 8, base + EFUSE_ADDR_OFFSET);
+  putreg32(cnt * 8, base + EFUSE_LENGTH_OFFSET);
+
+  /* Enable efuse ctrl register */
+
+  modreg32(EFUSE_CTRL_ENABLE, EFUSE_MODE_MASK, base + EFUSE_CTRL_OFFSET);
+  while ((getreg32(base + EFUSE_RAW_OFFSET) & EFUSE_INTR_EFUSE_ST) == 0);
+  putreg32(EFUSE_INTR_EFUSE_ST, base + EFUSE_RAW_OFFSET);
+
+  for (i = 0; i < cnt; i++)
+    buffer[i] = getreg32(base + EFUSE_DATA_OFFSET + addr + i);
+
+  return 0;
 }
 #endif /* CONFIG_EFUSE */

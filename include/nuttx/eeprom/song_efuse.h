@@ -89,6 +89,8 @@ extern "C"
 
 int song_efuse_initialize(int minor, uint32_t base, uint8_t irq);
 
+int song_efuse_read_info(int base, uint32_t addr, uint8_t *buffer, uint32_t cnt);
+
 #undef EXTERN
 #if defined(__cplusplus)
 }
