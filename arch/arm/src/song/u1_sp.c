@@ -80,6 +80,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "chip.h"
 #include "nvic.h"
@@ -1071,8 +1072,14 @@ static void up_ds_enter_work(void)
 
 #ifdef CONFIG_FS_TMPFS
   /* Sync ap data to internal flash */
+  char *flash;
 
-  up_folder_sync("/onchip/chipap", "/tmp");
+  flash = getenv_global("external-flash");
+
+  if (!strcmp(flash,"N"))
+    {
+      up_folder_sync("/onchip/chipap", "/tmp");
+    }
 #endif
 
   /* Final work */
@@ -1167,16 +1174,25 @@ static int misc_ramflush_cb(char *fpath, int flags)
 
 void up_finalinitialize(void)
 {
-  char *id;
+  char *env;
 
 #ifdef CONFIG_FS_TMPFS
-  /* Restore ap data from internal flash */
+  env = getenv_global("external-flash");
+  if (env && !strcmp(env,"N"))
+    {
+     /* Mount tmpfs and link to /data */
 
-  up_folder_copy_skippatch("/tmp", "/onchip/chipap");
+      mount(NULL, "/tmp", "tmpfs", 0, NULL);
+      link("/tmp","/data");
 
-  /* Register callback for force flush /data to /onchip */
+      /* Restore ap data from internal flash */
 
-  MISC_RAMFLUSH_REGISTER(g_misc[0], misc_ramflush_cb);
+      mkdir("/onchip/chipap", 0777);
+      up_folder_copy_skippatch("/tmp", "/onchip/chipap");
+
+      /* Register callback for force flush /data to /onchip */
+      MISC_RAMFLUSH_REGISTER(g_misc[0], misc_ramflush_cb);
+    }
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
@@ -1213,8 +1229,8 @@ void up_finalinitialize(void)
   dumpfile_initialize("sp", (char *)&_ssharmv2, \
                       ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
 #endif
-  id = getenv_global("board-id");
-  if (id && !strncmp(id, "U1TX", 4))
+  env = getenv_global("board-id");
+  if (env && !strncmp(env, "U1TX", 4))
     {
       modifyreg32(TOP_PMICFSM_CONFIG2, TOP_PMICFSM_LDO0_RF_ICTRL_1, 0);
     }
