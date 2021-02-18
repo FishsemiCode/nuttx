@@ -1260,6 +1260,7 @@ void up_reset(int status)
   if (status == 1)
     {
       /* Reset board to romboot */
+      putreg32(TOP_PMICFSM_REG0_RESET_VALUE, TOP_PMICFSM_RES_REG0);
 
       putreg32(TOP_PWR_RESET_ROMBOOT, TOP_PWR_RES_REG2);
       putreg32(TOP_PWR_SFRST_RESET << 16 |
