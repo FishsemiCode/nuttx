@@ -41,6 +41,7 @@
 
 #include <nuttx/kmalloc.h>
 #include <nuttx/leds/fishled.h>
+#include <nuttx/pinctrl/pinctrl.h>
 #include <nuttx/ioexpander/ioexpander.h>
 
 #include <errno.h>
@@ -52,6 +53,8 @@
 struct fishled_dev_s
 {
   struct ioexpander_dev_s *ioe; /* IOE interface */
+  FAR const struct led_config_s *config;
+  uint8_t count;
 };
 
 /************************************************************************************
@@ -100,16 +103,25 @@ static int fishled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
 {
   FAR struct inode *inode = filep->f_inode;
   FAR struct fishled_dev_s *priv = inode->i_private;
+  FAR const struct led_config_s *config = priv->config;
+  uint8_t number = priv->count;
   int ret = OK;
 
   switch (cmd)
     {
       case FISHLED_SET:
-        IOEXP_SETDIRECTION(priv->ioe, 30, IOEXPANDER_DIRECTION_OUT);
-        IOEXP_WRITEPIN(priv->ioe, 30, !!arg);
+        for (uint8_t i = 0; i < number; i++)
+          {
+            PINCTRL_SELGPIO(g_pinctrl[0], config[i].gpio_port);
+            IOEXP_SETDIRECTION(priv->ioe, config[i].gpio_port, IOEXPANDER_DIRECTION_OUT);
+            IOEXP_WRITEPIN(priv->ioe, config[i].gpio_port, config[i].level);
+          }
         break;
       case FISHLED_GET:
-        IOEXP_READPIN(priv->ioe, 30, (bool *)arg);
+        for (uint8_t i = 0; i < number; i++)
+          {
+            IOEXP_READPIN(priv->ioe, config[i].gpio_port, (bool *)arg);
+          }
         break;
       default:
         ret = -ENOTTY;
@@ -123,10 +135,9 @@ static int fishled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
  * Public Functions
  ************************************************************************************/
 
-int fishled_initialize(FAR struct ioexpander_dev_s *ioe)
+int fishled_initialize(FAR struct ioexpander_dev_s *ioe, const struct led_config_s *config, uint8_t count)
 {
   struct fishled_dev_s *priv;
-
   priv = kmm_zalloc(sizeof(struct fishled_dev_s));
   if (!priv)
     {
@@ -134,6 +145,8 @@ int fishled_initialize(FAR struct ioexpander_dev_s *ioe)
     }
 
   priv->ioe = ioe;
+  priv->config = config;
+  priv->count = count;
 
   return register_driver("/dev/fishled", &g_fishled_ops, 0666, priv);
 }

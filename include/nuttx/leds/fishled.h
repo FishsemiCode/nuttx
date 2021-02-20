@@ -55,6 +55,16 @@
 #define FISHLED_GET         _ULEDIOC(2)     /* Arg: int * pointer */
 
 /****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+struct led_config_s
+{
+  uint32_t gpio_port;
+  uint8_t level;
+};
+
+/****************************************************************************
  * Public Function Prototypes
  ****************************************************************************/
 
@@ -66,7 +76,7 @@ extern "C"
 #define EXTERN extern
 #endif
 
-int fishled_initialize(FAR struct ioexpander_dev_s *ioe);
+int fishled_initialize(FAR struct ioexpander_dev_s *ioe, FAR const struct led_config_s *config, uint8_t count);
 
 #undef EXTERN
 #ifdef __cplusplus
