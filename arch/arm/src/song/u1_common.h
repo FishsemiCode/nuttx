@@ -56,6 +56,7 @@
 #define TOP_PMICFSM_BUCK1               (TOP_PMICFSM_BASE + 0x24)
 #define TOP_PMICFSM_LDO0                (TOP_PMICFSM_BASE + 0x28)
 #define TOP_PMICFSM_LDO1                (TOP_PMICFSM_BASE + 0x2c)
+#define TOP_PMICFSM_GPIO1_CTL           (TOP_PMICFSM_BASE + 0xa4)
 #define TOP_PMICFSM_IOMOD_CTL           (TOP_PMICFSM_BASE + 0xbc)
 #define TOP_PMICFSM_RES_REG0            (TOP_PMICFSM_BASE + 0xe0)
 #define TOP_PMICFSM_PLLTIME             (TOP_PMICFSM_BASE + 0xe8)
@@ -77,6 +78,7 @@
 #define TOP_PMICFSM_GPIO1_ENABLE        (1 << 20)
 #define TOP_PMICFSM_GPIO2_ENABLE        (1 << 24)
 #define TOP_PMICFSM_GPIO3_ENABLE        (1 << 28)
+#define TOP_PMICFSM_GPIO1_RISING_EDGE   (2 << 21)
 
 #define TOP_PMICFSM_FIRST_PON           (1 << 0)
 #define TOP_PMICFSM_PON                 (1 << 1)
@@ -110,6 +112,9 @@
 
 #define TOP_PMICFSM_PLL_STABLE_TIME     (0xf << 8)
 #define TOP_PMICFSM_OSC_STABLE_TIME     (0x52 << 0)
+
+#define TOP_PMICFSM_GPIO1_PDU_MK        (0x3 << 2)
+#define TOP_PMICFSM_GPIO1_PDU_UP        (0x1 << 2)
 
 /* RAMDISK */
 
