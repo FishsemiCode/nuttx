@@ -61,6 +61,7 @@
 #define MISC_REMOTE_ENVSYNC     _MISCIOC(5)
 #define MISC_REMOTE_INFOWRITE   _MISCIOC(6)
 #define MISC_REMOTE_RAMFLUSH    _MISCIOC(7)
+#define MISC_REMOTE_MOUNT       _MISCIOC(8)
 
 #define MISC_RAMFLUSH_NORMAL    (0)
 #define MISC_RAMFLUSH_APPEND    (1)
@@ -173,6 +174,14 @@ struct misc_remote_ramflush_s
 {
   const char *fpath;
   int         flags;
+};
+
+struct misc_remote_mount_s
+{
+  const char *source;
+  const char *target;
+  const char *fstype;
+  const char *options;
 };
 
 /****************************************************************************
