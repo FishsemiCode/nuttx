@@ -1095,7 +1095,7 @@ static void up_ds_enter_work(void)
 
   flash = getenv_global("external-flash");
 
-  if (!strcmp(flash, "N"))
+  if (!strcmp(flash,"N"))
     {
       up_folder_sync("/onchip/chipap", "/tmp");
     }
@@ -1191,34 +1191,18 @@ static int misc_ramflush_cb(char *fpath, int flags)
 }
 #endif
 
-static void up_create_dir(bool islink, bool ismkdir)
-{
-  if (ismkdir)
-    {
-       mkdir("/persist/data", 0777);
-       mkdir("/persist/services", 0777);
-       mkdir("/persist/log", 0777);
-    }
-  if (islink)
-    {
-      link("/persist/data", "/data");
-      link("/persist/services", "/services");
-      link("/persist/log", "/log");
-    }
-}
-
 void up_finalinitialize(void)
 {
   char *env;
 
 #ifdef CONFIG_FS_TMPFS
   env = getenv_global("external-flash");
-  if (env && !strcmp(env, "N"))
+  if (env && !strcmp(env,"N"))
     {
      /* Mount tmpfs and link to /data */
 
       mount(NULL, "/tmp", "tmpfs", 0, NULL);
-      link("/tmp", "/data");
+      link("/tmp","/data");
 
       /* Restore ap data from internal flash */
 
@@ -1233,14 +1217,11 @@ void up_finalinitialize(void)
 #ifdef CONFIG_SONG_RPTUN
   if (!up_is_warm_rstn())
     {
-      up_create_dir(true, true);
       rptun_boot(CPU_NAME_AP);
       rptun_boot(CPU_NAME_CP);
     }
   else
     {
-      up_create_dir(true, false);
-
       /* Force boot AP, choice boot CP */
 
       rptun_boot(CPU_NAME_AP);
