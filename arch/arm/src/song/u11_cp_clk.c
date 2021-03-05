@@ -835,6 +835,21 @@ static const struct song_mux_clk mux[] =
   {},
 };
 
+static const struct song_lp_reg_clk lp_reg[] =
+{
+  /* LP_EN0 */
+  {
+    .offset = 0x1c4,
+    .value = 0xffffffff,
+  },
+  /* LP_EN1 */
+  {
+    .offset = 0x1c8,
+    .value = 0xffff,
+  },
+  {}
+};
+
 static const struct clk_rate def_rates[] =
 {
   {
@@ -865,6 +880,7 @@ static const struct song_clk_table u11_cp_clk_tbl =
   .pll_clks          = pll,
   .out_clks          = out,
   .timer_clks        = timer,
+  .lp_reg            = lp_reg,
 };
 
 /****************************************************************************
