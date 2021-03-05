@@ -35,3 +35,14 @@ config FS_HOSTFS_RPMSG_SERVER
 	---help---
 		Use Host file system to mount directories through rpmsg.
 		This is the driver that receiving the message.
+
+if FS_HOSTFS_RPMSG_SERVER
+
+config FS_HOSTFS_SERVER_MOUNT
+	bool "Mount on server when file open fail"
+	default n
+	---help---
+		Try use hostfs mount table to mount the direntory on the server,
+		When open file fail, delay the mount time from startup to application.
+
+endif #FS_HOSTFS_RPMSG_SERVER

@@ -51,6 +51,8 @@
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/rptun/openamp.h>
 
+#include <sys/mount.h>
+
 #include "hostfs_rpmsg.h"
 
 /****************************************************************************
@@ -59,10 +61,13 @@
 
 struct hostfs_rpmsg_server_s
 {
-  struct rpmsg_endpoint ept;
-  struct file           files[CONFIG_NFILE_DESCRIPTORS];
-  void                  *dirs[CONFIG_NFILE_DESCRIPTORS];
-  sem_t                 sem;
+  struct rpmsg_endpoint                ept;
+  struct file                          files[CONFIG_NFILE_DESCRIPTORS];
+  void                                 *dirs[CONFIG_NFILE_DESCRIPTORS];
+  sem_t                                sem;
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  const struct hostfs_server_config_s *cfg;
+#endif
 };
 
 /****************************************************************************
@@ -177,7 +182,11 @@ static int hostfs_rpmsg_open_handler(FAR struct rpmsg_endpoint *ept,
   FAR struct hostfs_rpmsg_server_s *priv = priv_;
   FAR struct hostfs_rpmsg_open_s *msg = data;
   int i;
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  int ret = 0;
+#else
   int ret = -ENOENT;
+#endif
 
   nxsem_wait(&priv->sem);
   for (i = 0; i < CONFIG_NFILE_DESCRIPTORS; i++)
@@ -186,6 +195,31 @@ static int hostfs_rpmsg_open_handler(FAR struct rpmsg_endpoint *ept,
         {
           ret = file_open(&priv->files[i], msg->pathname, msg->flags,
                           msg->mode);
+
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+          if (ret == -ENOENT)
+            {
+              /* No direntory, Try mount the direntory on server Once */
+
+              const struct hostfs_server_mount_s *mntp = priv->cfg->mnt;
+              int j;
+
+              for (j = 0; j < priv->cfg->mntcnt; j++)
+                {
+                  if (!strncmp(msg->pathname, mntp[j].target,
+                        strchr(msg->pathname + 1, '/') - msg->pathname))
+                    {
+
+                      mount(mntp[j].source, mntp[j].target, mntp[j].fstype,
+                          0, mntp[j].options);
+
+                      ret = file_open(&priv->files[j], msg->pathname, msg->flags,
+                                    msg->mode);
+                      break;
+                    }
+                }
+            }
+#endif
           if (ret >= 0)
             {
               ret = i;
@@ -583,6 +617,9 @@ static void hostfs_rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
       return;
     }
 
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  priv->cfg = priv_;
+#endif
   priv->ept.priv = priv;
   nxsem_init(&priv->sem, 0, 1);
 
@@ -637,9 +674,17 @@ static int hostfs_rpmsg_ept_cb(FAR struct rpmsg_endpoint *ept, FAR void *data,
   return -EINVAL;
 }
 
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+int hostfs_rpmsg_server_init(FAR const struct hostfs_server_config_s* cfg)
+#else
 int hostfs_rpmsg_server_init(void)
+#endif
 {
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  return rpmsg_register_callback((void *)cfg,
+#else
   return rpmsg_register_callback(NULL,
+#endif
                                  NULL,
                                  NULL,
                                  hostfs_rpmsg_ns_bind);

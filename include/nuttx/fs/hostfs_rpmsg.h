@@ -49,11 +49,37 @@ extern "C"
 #define EXTERN extern
 #endif
 
+/****************************************************************************
+ * Public Types
+ ****************************************************************************/
+
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+struct hostfs_server_mount_s
+{
+  const char source[16];
+  const char target[16];
+  const char fstype[16];
+  const char options[64];
+};
+
+struct hostfs_server_config_s
+{
+  uint8_t mntcnt;
+  FAR const struct hostfs_server_mount_s *mnt;
+};
+#endif
+
+/****************************************************************************
+ * Public Function Prototypes
+ ****************************************************************************/
+
 #ifdef CONFIG_FS_HOSTFS_RPMSG
 int hostfs_rpmsg_init(FAR const char *cpu_name);
 #endif
 
-#ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+int hostfs_rpmsg_server_init(FAR const struct hostfs_server_config_s* cfg);
+#else
 int hostfs_rpmsg_server_init(void);
 #endif
 
