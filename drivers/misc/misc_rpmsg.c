@@ -52,7 +52,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/ioctl.h>
-#include <sys/mount.h>
 
 /****************************************************************************
  * Pre-processor definitions
@@ -69,9 +68,7 @@
 #define MISC_RPMSG_REMOTE_ENVSYNC       4
 #define MISC_RPMSG_REMOTE_INFOWRITE     5
 #define MISC_RPMSG_REMOTE_RAMFLUSH      6
-#define MISC_RPMSG_REMOTE_MOUNT         7
 
-#define MISC_RPMSG_MOUNT_MAX_PATH       32
 #define MISC_RETENT_MAGIC               (0xdeadbeef)
 
 #ifndef ARRAY_SIZE
@@ -174,18 +171,6 @@ struct misc_work_param_s
   void                  *data;
 };
 
-begin_packed_struct struct misc_rpmsg_remote_mount_s
-{
-  uint32_t command;
-  uint32_t response;
-  int      result;
-  uint32_t cookie;
-  char     source[MISC_RPMSG_MOUNT_MAX_PATH];
-  char     target[MISC_RPMSG_MOUNT_MAX_PATH];
-  char     fstype[16];
-  char     options[64];
-} end_packed_struct;
-
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -216,11 +201,6 @@ static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
 static int misc_remote_ramflush_handler(struct rpmsg_endpoint *ept,
                                         void *data, size_t len,
                                         uint32_t src, void *priv_);
-static int misc_remote_mount_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv_);
-
-static void misc_mount_work(FAR void *arg);
 
 static void misc_ramflush_work(FAR void *arg);
 static int misc_ramflush_register(struct misc_dev_s *dev,
@@ -251,7 +231,6 @@ static const rpmsg_ept_cb g_misc_rpmsg_handler[] =
   [MISC_RPMSG_REMOTE_ENVSYNC]   = misc_remote_envsync_handler,
   [MISC_RPMSG_REMOTE_INFOWRITE] = misc_remote_infowrite_handler,
   [MISC_RPMSG_REMOTE_RAMFLUSH]  = misc_remote_ramflush_handler,
-  [MISC_RPMSG_REMOTE_MOUNT]     = misc_remote_mount_handler,
 };
 
 static const struct misc_ops_s g_misc_ops =
@@ -474,63 +453,6 @@ static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
     }
 
   return 0;
-}
-
-static int misc_remote_mount_handler(struct rpmsg_endpoint *ept,
-                                        void *data, size_t len,
-                                        uint32_t src, void *priv_)
-{
-  struct misc_rpmsg_remote_mount_s *msg = data;
-  struct misc_rpmsg_s *priv = priv_;
-
-  if (msg->response)
-    {
-      struct misc_rpmsg_cookie_s *cookie =
-          (struct misc_rpmsg_cookie_s *)msg->cookie;
-
-      cookie->result = msg->result;
-      nxsem_post(&cookie->sem);
-    }
-  else
-    {
-      struct misc_work_param_s *param;
-
-      param = kmm_malloc(sizeof(struct misc_work_param_s));
-      if (!param)
-        {
-          syslog(LOG_ERR, "Fail to malloc misc_work_param\n");
-          return 0;
-        }
-
-      rpmsg_hold_rx_buffer(ept, data);
-
-      param->priv  = priv;
-      param->ept   = ept;
-      param->data  = data;
-
-      work_queue(HPWORK, &priv->worker, misc_mount_work, param, 0);
-    }
-
-  return 0;
-}
-
-static void misc_mount_work(FAR void *arg)
-{
-  struct misc_work_param_s *param = arg;
-  struct misc_rpmsg_remote_mount_s *msg = param->data;
-  int ret = 0;
-
-  msg->result = mount(msg->source, msg->target, msg->fstype, 0, msg->options);
-  msg->response = 1;
-
-  ret = rpmsg_send(param->ept, msg, sizeof(*msg));
-  if (ret < 0)
-    {
-      syslog(LOG_ERR, "Misc mount: rpmsg send err, ret = %d\r\n", ret);
-    }
-
-  rpmsg_release_rx_buffer(param->ept, param->data);
-  kmm_free(param);
 }
 
 static int misc_remote_ramflush_handler(struct rpmsg_endpoint *ept,
@@ -945,42 +867,6 @@ end:
   return ret;
 }
 
-static int misc_remote_mount(struct misc_rpmsg_s *priv, unsigned long arg)
-{
-  struct misc_remote_mount_s *fsmount = (struct misc_remote_mount_s *)arg;
-  struct misc_rpmsg_remote_mount_s msg = {0};
-  struct misc_rpmsg_cookie_s cookie;
-  int ret;
-
-  nxsem_init(&cookie.sem, 0, 0);
-  nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
-
-  msg.command = MISC_RPMSG_REMOTE_MOUNT;
-  msg.cookie  = (uint32_t)&cookie;
-  ncstr2bstr(msg.source, fsmount->source, MISC_RPMSG_MOUNT_MAX_PATH);
-  ncstr2bstr(msg.target, fsmount->target, MISC_RPMSG_MOUNT_MAX_PATH);
-  ncstr2bstr(msg.fstype, fsmount->fstype, 16);
-  ncstr2bstr(msg.options, fsmount->options, 64);
-  msg.response = 0;
-  msg.result   = 0;
-
-  ret = rpmsg_send(&priv->ept, &msg, sizeof(msg));
-  if (ret < 0)
-    {
-      goto end;
-    }
-
-  ret = nxsem_wait_uninterruptible(&cookie.sem);
-  if (!ret)
-    {
-      ret = cookie.result;
-    }
-
-end:
-  nxsem_destroy(&cookie.sem);
-  return ret;
-}
-
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
   struct inode *inode = filep->f_inode;
@@ -1009,9 +895,6 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
         break;
       case MISC_REMOTE_RAMFLUSH:
         ret = misc_remote_ramflush(priv, arg);
-        break;
-      case MISC_REMOTE_MOUNT:
-        ret = misc_remote_mount(priv, arg);
         break;
     }
 
