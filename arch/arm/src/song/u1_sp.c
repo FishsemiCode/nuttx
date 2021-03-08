@@ -743,7 +743,21 @@ static void up_rptun_init(void)
 #  endif
 
 #  ifdef CONFIG_FS_HOSTFS_RPMSG_SERVER
+  #ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  static const struct hostfs_server_mount_s mount_tbl[] =
+  {
+    {"/dev/data", "/persist", "littlefs", "autoformat"},
+    {"/dev/persist", "/onchip", "littlefs", "autoformat"},
+  };
+  static const struct hostfs_server_config_s config =
+  {
+    .mntcnt = sizeof(mount_tbl) / sizeof(struct hostfs_server_mount_s),
+    .mnt    = mount_tbl,
+  };
+  hostfs_rpmsg_server_init(&config);
+  #else
   hostfs_rpmsg_server_init();
+  #endif
 #  endif
 
 #  ifdef CONFIG_MISC_RPMSG
