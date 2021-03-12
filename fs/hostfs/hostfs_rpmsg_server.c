@@ -175,6 +175,29 @@ static const rpmsg_ept_cb g_hostfs_rpmsg_handler[] =
  * Private Functions
  ****************************************************************************/
 
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+static int hostfs_rpmsg_try_mount(const struct hostfs_server_config_s *cfg,
+                                     const char *pathname)
+{
+  const struct hostfs_server_mount_s *mntp = cfg->mnt;
+  int i;
+
+  for (i = 0; i < cfg->mntcnt; i++)
+    {
+      if (!strncmp(pathname, mntp[i].target,
+            strchr(pathname + 1, '/') - pathname))
+        {
+          mount(mntp[i].source, mntp[i].target, mntp[i].fstype,
+              0, mntp[i].options);
+
+          return OK;
+        }
+    }
+
+  return ERROR;
+}
+#endif
+
 static int hostfs_rpmsg_open_handler(FAR struct rpmsg_endpoint *ept,
                                      FAR void *data, size_t len,
                                      uint32_t src, FAR void *priv_)
@@ -200,23 +223,10 @@ static int hostfs_rpmsg_open_handler(FAR struct rpmsg_endpoint *ept,
           if (ret == -ENOENT)
             {
               /* No direntory, Try mount the direntory on server Once */
-
-              const struct hostfs_server_mount_s *mntp = priv->cfg->mnt;
-              int j;
-
-              for (j = 0; j < priv->cfg->mntcnt; j++)
+              if (hostfs_rpmsg_try_mount(priv->cfg, msg->pathname) == OK)
                 {
-                  if (!strncmp(msg->pathname, mntp[j].target,
-                        strchr(msg->pathname + 1, '/') - msg->pathname))
-                    {
-
-                      mount(mntp[j].source, mntp[j].target, mntp[j].fstype,
-                          0, mntp[j].options);
-
-                      ret = file_open(&priv->files[j], msg->pathname, msg->flags,
-                                    msg->mode);
-                      break;
-                    }
+                  ret = file_open(&priv->files[i], msg->pathname, msg->flags,
+                                msg->mode);
                 }
             }
 #endif
@@ -430,9 +440,20 @@ static int hostfs_rpmsg_opendir_handler(FAR struct rpmsg_endpoint *ept,
   FAR struct hostfs_rpmsg_opendir_s *msg = data;
   FAR void *dir;
   int i;
-  int ret = -ENOENT;
+  int ret = -ENOTDIR;
 
   dir = opendir(msg->pathname);
+
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  if (!dir && get_errno() == ENOTDIR)
+    {
+      if (hostfs_rpmsg_try_mount(priv->cfg, msg->pathname) == OK)
+        {
+          dir = opendir(msg->pathname);
+        }
+    }
+#endif
+
   if (dir)
     {
       nxsem_wait(&priv->sem);
