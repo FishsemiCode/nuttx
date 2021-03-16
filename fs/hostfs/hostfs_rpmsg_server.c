@@ -133,7 +133,7 @@ static int hostfs_rpmsg_rename_handler(FAR struct rpmsg_endpoint *ept,
                                        uint32_t src, FAR void *priv);
 static int hostfs_rpmsg_stat_handler(FAR struct rpmsg_endpoint *ept,
                                      FAR void *data, size_t len,
-                                     uint32_t src, FAR void *priv);
+                                     uint32_t src, FAR void *priv_);
 
 static void hostfs_rpmsg_ns_bind(FAR struct rpmsg_device *rdev,
                                  FAR void *priv_, FAR const char *name,
@@ -610,12 +610,22 @@ static int hostfs_rpmsg_rename_handler(FAR struct rpmsg_endpoint *ept,
 
 static int hostfs_rpmsg_stat_handler(FAR struct rpmsg_endpoint *ept,
                                      FAR void *data, size_t len,
-                                     uint32_t src, FAR void *priv)
+                                     uint32_t src, FAR void *priv_)
 {
+  FAR struct hostfs_rpmsg_server_s *priv = priv_;
   FAR struct hostfs_rpmsg_stat_s *msg = data;
   int ret;
 
   ret = stat(msg->pathname, &msg->buf);
+#ifdef CONFIG_FS_HOSTFS_SERVER_MOUNT
+  if (ret && get_errno() == ENOENT)
+    {
+      if (hostfs_rpmsg_try_mount(priv->cfg, msg->pathname) == OK)
+        {
+          ret = stat(msg->pathname, &msg->buf);
+        }
+    }
+#endif
   msg->header.result = ret ? get_errno(ret) : 0;
   return rpmsg_send(ept, msg, sizeof(*msg));
 }
