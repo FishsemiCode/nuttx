@@ -368,11 +368,6 @@ void up_earlyinitialize(void)
            TOP_PMICFSM_GPIO1_RISING_EDGE | TOP_PMICFSM_PON_ENABLE,
            TOP_PMICFSM_WAKEUP_ENABLE);
 
-  /* Set GPIO1 to Pull Up */
-
-  modifyreg32(TOP_PMICFSM_GPIO1_CTL, TOP_PMICFSM_GPIO1_PDU_MK,
-           TOP_PMICFSM_GPIO1_PDU_UP);
-
   /* Set CP & RF no effect to power */
 
   putreg32(TOP_PWR_SLP_RF_MASK << 16 |
@@ -1248,10 +1243,17 @@ void up_finalinitialize(void)
   dumpfile_initialize("sp", (char *)&_ssharmv2, \
                       ((uintptr_t)&_esharmv2) - ((uintptr_t)&_ssharmv2));
 #endif
+
   env = getenv_global("board-id");
   if (env && !strncmp(env, "U1TX", 4))
     {
       modifyreg32(TOP_PMICFSM_CONFIG2, TOP_PMICFSM_LDO0_RF_ICTRL_1, 0);
+
+      /* Set GPIO1 to Pull Up */
+
+      modifyreg32(TOP_PMICFSM_GPIO1_CTL, TOP_PMICFSM_GPIO1_PDU_MK,
+               TOP_PMICFSM_GPIO1_PDU_UP);
+
     }
 }
 
