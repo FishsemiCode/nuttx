@@ -68,6 +68,7 @@
 #define MISC_RPMSG_REMOTE_ENVSYNC       4
 #define MISC_RPMSG_REMOTE_INFOWRITE     5
 #define MISC_RPMSG_REMOTE_RAMFLUSH      6
+#define MISC_RPMSG_REMOTE_APPBOOT       7
 
 #define MISC_RETENT_MAGIC               (0xdeadbeef)
 
@@ -141,11 +142,28 @@ begin_packed_struct struct misc_rpmsg_remote_ramflush_s
   int      flags;
 } end_packed_struct;
 
+begin_packed_struct struct misc_rpmsg_remote_appboot_s
+{
+  uint32_t command;
+  uint32_t response;
+  int      result;
+  uint32_t cookie;
+  uint32_t flags;
+} end_packed_struct;
+
+struct misc_rpmsg_appboot_s
+{
+  misc_appboot_func_t func;
+  uint32_t            flag;
+  struct metal_list   node;
+};
+
 struct misc_rpmsg_s
 {
   struct misc_dev_s     dev;
   struct rpmsg_endpoint ept;
   struct metal_list     blks;
+  struct metal_list     apps;
   struct work_s         worker;
   misc_ramflush_cb_t    ramflush_cb;
   const char            *cpuname;
@@ -201,10 +219,15 @@ static int misc_remote_infowrite_handler(struct rpmsg_endpoint *ept,
 static int misc_remote_ramflush_handler(struct rpmsg_endpoint *ept,
                                         void *data, size_t len,
                                         uint32_t src, void *priv_);
+static int misc_remote_appboot_handler(struct rpmsg_endpoint *ept,
+                                        void *data, size_t len,
+                                        uint32_t src, void *priv_);
 
 static void misc_ramflush_work(FAR void *arg);
 static int misc_ramflush_register(struct misc_dev_s *dev,
                                   misc_ramflush_cb_t cb);
+static int misc_appboot_register(struct misc_dev_s *dev,
+                                  misc_appboot_func_t func, uint32_t flag);
 static int misc_retent_save_blk(struct misc_retent_blk_s *blk, int fd);
 static int misc_retent_save(struct misc_dev_s *dev, char *file);
 static int misc_retent_restore_blk(struct misc_retent_blk_s *blk, int fd);
@@ -231,6 +254,7 @@ static const rpmsg_ept_cb g_misc_rpmsg_handler[] =
   [MISC_RPMSG_REMOTE_ENVSYNC]   = misc_remote_envsync_handler,
   [MISC_RPMSG_REMOTE_INFOWRITE] = misc_remote_infowrite_handler,
   [MISC_RPMSG_REMOTE_RAMFLUSH]  = misc_remote_ramflush_handler,
+  [MISC_RPMSG_REMOTE_APPBOOT]   = misc_remote_appboot_handler,
 };
 
 static const struct misc_ops_s g_misc_ops =
@@ -238,6 +262,7 @@ static const struct misc_ops_s g_misc_ops =
   .ramflush_register = misc_ramflush_register,
   .retent_save       = misc_retent_save,
   .retent_restore    = misc_retent_restore,
+  .appboot_register  = misc_appboot_register,
 };
 
 static const struct file_operations g_misc_devops =
@@ -357,6 +382,46 @@ static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
   if (rptun_boot(msg->name))
     {
       _err("Boot core err, name %s\n", msg->name);
+    }
+
+  return 0;
+}
+
+static int misc_remote_appboot_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_)
+{
+  struct misc_rpmsg_remote_appboot_s *msg = data;
+
+  if (msg->response)
+    {
+      struct misc_rpmsg_cookie_s *cookie =
+          (struct misc_rpmsg_cookie_s *)msg->cookie;
+
+      cookie->result = msg->result;
+      nxsem_post(&cookie->sem);
+    }
+  else
+    {
+      struct misc_rpmsg_s *priv = priv_;
+      struct metal_list *node;
+      uint32_t ret = 0;
+
+      metal_list_for_each(&priv->apps, node)
+        {
+          struct misc_rpmsg_appboot_s *afunc;
+
+          afunc = metal_container_of(node, struct misc_rpmsg_appboot_s, node);
+          if (afunc->flag & msg->flags)
+            {
+              afunc->func();
+              ret |= afunc->flag;
+            }
+        }
+
+      msg->response = 1;
+      msg->result  = ret;
+      return rpmsg_send(ept, msg, sizeof(*msg));
     }
 
   return 0;
@@ -520,6 +585,36 @@ static int misc_ramflush_register(struct misc_dev_s *dev,
 
   priv->ramflush_cb = cb;
 
+  return 0;
+}
+
+static int misc_appboot_register(struct misc_dev_s *dev,
+                                  misc_appboot_func_t func, uint32_t flag)
+{
+  struct misc_rpmsg_s *priv = (struct misc_rpmsg_s *)dev;
+  struct misc_rpmsg_appboot_s *afunc;
+  struct metal_list *node;
+
+  metal_list_for_each(&priv->apps, node)
+    {
+      afunc = metal_container_of(node, struct misc_rpmsg_appboot_s, node);
+      if (flag == afunc->flag)
+        {
+          /* func already in the applist, just return */
+          return -EEXIST;
+        }
+    }
+
+  afunc = kmm_zalloc(sizeof(struct misc_rpmsg_appboot_s));
+  if (!afunc)
+    {
+      return -ENOMEM;
+    }
+
+  afunc->func = func;
+  afunc->flag = flag;
+
+  metal_list_add_tail(&priv->apps, &afunc->node);
   return 0;
 }
 
@@ -867,6 +962,36 @@ end:
   return ret;
 }
 
+static int misc_remote_appboot(struct misc_rpmsg_s *priv, unsigned long arg)
+{
+  struct misc_rpmsg_remote_appboot_s msg = {0};
+  struct misc_rpmsg_cookie_s cookie;
+  int ret;
+
+  nxsem_init(&cookie.sem, 0, 0);
+  nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
+
+  msg.command = MISC_RPMSG_REMOTE_APPBOOT;
+  msg.cookie  = (uint32_t)&cookie;
+  msg.flags = arg;
+
+  ret = rpmsg_send(&priv->ept, &msg, sizeof(msg));
+  if (ret < 0)
+    {
+      goto end;
+    }
+
+  ret = nxsem_wait_uninterruptible(&cookie.sem);
+  if (!ret)
+    {
+      ret = cookie.result;
+    }
+
+end:
+  nxsem_destroy(&cookie.sem);
+  return ret;
+}
+
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
   struct inode *inode = filep->f_inode;
@@ -896,6 +1021,9 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
       case MISC_REMOTE_RAMFLUSH:
         ret = misc_remote_ramflush(priv, arg);
         break;
+      case MISC_REMOTE_APPBOOT:
+        ret = misc_remote_appboot(priv, arg);
+        break;
     }
 
   return ret;
@@ -918,6 +1046,7 @@ struct misc_dev_s *misc_rpmsg_initialize(const char *cpuname,
     }
 
   metal_list_init(&priv->blks);
+  metal_list_init(&priv->apps);
 
   priv->cpuname = cpuname;
   priv->dev.ops = &g_misc_ops;

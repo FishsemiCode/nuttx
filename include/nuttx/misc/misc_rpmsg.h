@@ -61,6 +61,7 @@
 #define MISC_REMOTE_ENVSYNC     _MISCIOC(5)
 #define MISC_REMOTE_INFOWRITE   _MISCIOC(6)
 #define MISC_REMOTE_RAMFLUSH    _MISCIOC(7)
+#define MISC_REMOTE_APPBOOT     _MISCIOC(8)
 
 #define MISC_RAMFLUSH_NORMAL    (0)
 #define MISC_RAMFLUSH_APPEND    (1)
@@ -119,8 +120,29 @@
 #define MISC_RETENT_RESTORE(d,f) ((d)?(d)->ops->retent_restore((d),(f)):0)
 
 /****************************************************************************
+ * Name: MISC_APPBOOT_REGISTER
+ *
+ * Description:
+ *   Register appboot function callback
+ *
+ * Input Parameters:
+ *   dev  - Device-specific state data
+ *   func - Function to be boot
+ *   flag - flag to use by func
+ *
+ * Returned Value:
+ *   Zero on success, NULL on failure.
+ *
+ ****************************************************************************/
+
+#define MISC_APPBOOT_REGISTER(d,func,flag)  \
+      ((d)?(d)->ops->appboot_register((d),(func),(flag)):0)
+
+/****************************************************************************
  * Public Types
  ****************************************************************************/
+
+typedef int (*misc_appboot_func_t)(void);
 
 typedef int (*misc_ramflush_cb_t)(char *fpath, int flags);
 
@@ -130,6 +152,8 @@ struct misc_ops_s
   int (*ramflush_register)(struct misc_dev_s *dev, misc_ramflush_cb_t cb);
   int (*retent_save)(struct misc_dev_s *dev, char *file);
   int (*retent_restore)(struct misc_dev_s *dev, char *file);
+  int (*appboot_register)(struct misc_dev_s *dev,
+                       misc_appboot_func_t func, uint32_t flag);
 };
 
 struct misc_dev_s
