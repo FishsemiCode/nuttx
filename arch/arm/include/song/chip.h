@@ -83,6 +83,9 @@ extern FAR struct spi_dev_s *g_spi[];
 /* Designware I2C controller instances */
 extern FAR struct i2c_master_s *g_i2c[];
 
+/* Misc Rpmsg driver instance */
+extern FAR struct misc_dev_s *g_misc[];
+
 #endif
 
 /****************************************************************************

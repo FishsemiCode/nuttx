@@ -166,6 +166,13 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 };
 #endif
 
+#ifdef CONFIG_MISC_RPMSG
+FAR struct misc_dev_s *g_misc[3] =
+{
+  [2] = DEV_END,
+};
+#endif
+
 /****************************************************************************
  * Private Functions
  ****************************************************************************/
@@ -186,7 +193,7 @@ static void up_misc_init(void)
 
   /* Retention init */
 
-  misc_rpmsg_initialize(CPU_NAME_AP, true);
+  g_misc[0] = misc_rpmsg_initialize(CPU_NAME_AP, true);
 
   fd = open("/dev/miscap",0);
   if (fd >= 0)

@@ -213,13 +213,6 @@ static FAR struct dma_dev_s *g_dma[2] =
 };
 #endif
 
-#ifdef CONFIG_MISC_RPMSG
-static FAR struct misc_dev_s *g_misc[3] =
-{
-  [2] = DEV_END,
-};
-#endif
-
 /****************************************************************************
  * Public Data
  ****************************************************************************/
@@ -246,6 +239,13 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 
 #ifdef CONFIG_SPI_DW
 FAR struct spi_dev_s *g_spi[3] =
+{
+  [2] = DEV_END,
+};
+#endif
+
+#ifdef CONFIG_MISC_RPMSG
+FAR struct misc_dev_s *g_misc[3] =
 {
   [2] = DEV_END,
 };
