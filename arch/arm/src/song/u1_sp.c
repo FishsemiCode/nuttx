@@ -744,10 +744,16 @@ static void up_rptun_init(void)
     {"/dev/data", "/persist", "littlefs", "autoformat"},
     {"/dev/persist", "/onchip", "littlefs", "autoformat"},
   };
+  static const struct hostfs_mkdir_s dir_tbl[] =
+  {
+    {"/persist", "/persist/data"},
+  };
   static const struct hostfs_server_config_s config =
   {
     .mntcnt = sizeof(mount_tbl) / sizeof(struct hostfs_server_mount_s),
     .mnt    = mount_tbl,
+    .dircnt = sizeof(dir_tbl) / sizeof(struct hostfs_mkdir_s),
+    .dir    = dir_tbl,
   };
   hostfs_rpmsg_server_init(&config);
   #else
