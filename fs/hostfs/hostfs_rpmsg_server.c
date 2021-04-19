@@ -180,6 +180,8 @@ static int hostfs_rpmsg_try_mount(const struct hostfs_server_config_s *cfg,
                                      const char *pathname)
 {
   const struct hostfs_server_mount_s *mntp = cfg->mnt;
+  const struct hostfs_mkdir_s *dirp = cfg->dir;
+  int ret = -1;
   int i;
 
   for (i = 0; i < cfg->mntcnt; i++)
@@ -190,11 +192,20 @@ static int hostfs_rpmsg_try_mount(const struct hostfs_server_config_s *cfg,
           mount(mntp[i].source, mntp[i].target, mntp[i].fstype,
               0, mntp[i].options);
 
-          return OK;
+          ret = 0;
         }
     }
 
-  return ERROR;
+  for (i = 0; i < cfg->dircnt; i++)
+    {
+      if (!strncmp(pathname, dirp[i].parent_dir,
+            strchr(pathname + 1, '/') - pathname))
+        {
+          mkdir(dirp[i].full_dir, 0777);
+        }
+    }
+
+  return (ret == 0) ? OK : ERROR;
 }
 #endif
 

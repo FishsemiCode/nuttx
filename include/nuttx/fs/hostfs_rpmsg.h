@@ -62,10 +62,18 @@ struct hostfs_server_mount_s
   const char options[64];
 };
 
+struct hostfs_mkdir_s
+{
+  const char parent_dir[16];
+  const char full_dir[16];
+};
+
 struct hostfs_server_config_s
 {
   uint8_t mntcnt;
   FAR const struct hostfs_server_mount_s *mnt;
+  uint8_t dircnt;
+  FAR const struct hostfs_mkdir_s *dir;
 };
 #endif
 
