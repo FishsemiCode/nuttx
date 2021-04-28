@@ -374,6 +374,16 @@ int mount(FAR const char *source, FAR const char *target,
           inode_release(mountpt_inode);
           goto errout_with_semaphore;
         }
+
+      /* If the target node is already mount on certain fs */
+
+      if (INODE_IS_TYPE(mountpt_inode, FSNODEFLAG_TYPE_MOUNTPT) &&
+          mountpt_inode->i_private)
+        {
+          errcode = -EBUSY;
+          inode_release(mountpt_inode);
+          goto errout_with_semaphore;
+        }
     }
   else
 #endif
