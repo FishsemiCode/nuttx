@@ -1216,8 +1216,22 @@ void up_finalinitialize(void)
 #endif
 
 #ifdef CONFIG_SONG_RPTUN
-  rptun_boot(CPU_NAME_AP);
-  rptun_boot(CPU_NAME_CP);
+  if (!up_is_warm_rstn())
+    {
+      rptun_boot(CPU_NAME_AP);
+      rptun_boot(CPU_NAME_CP);
+    }
+  else
+    {
+      /* Force boot AP, choice boot CP */
+
+      rptun_boot(CPU_NAME_AP);
+
+      if (up_get_wkreason() == WAKEUP_REASON_UART_RSTN)
+        {
+          rptun_boot(CPU_NAME_CP);
+        }
+    }
 #endif
 
   /* Attach and enable DS enter exit intr */
