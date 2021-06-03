@@ -161,9 +161,9 @@ FAR struct ioexpander_dev_s *g_ioe[2] =
 #endif
 
 #ifdef CONFIG_SPI_DW
-FAR struct spi_dev_s *g_spi[2] =
+FAR struct spi_dev_s *g_spi[4] =
 {
-  [1] = DEV_END,
+  [3] = DEV_END,
 };
 #endif
 
@@ -520,6 +520,23 @@ static void up_ioe_init(void)
 #ifdef CONFIG_SPI_DW
 static void up_spi_init(void)
 {
+#ifdef CONFIG_U1_APU1X
+  static const struct dw_spi_config_s config =
+  {
+    .bus = 2,
+    .base = 0xb0170000,
+    .irq = 27,
+    .hbits = true,
+    .mclk = "spi2_mclk",
+  };
+
+  putreg32(0x13, MUX_PIN19);
+  putreg32(0x13, MUX_PIN20);
+  putreg32(0x13, MUX_PIN21);
+  putreg32(0x13, MUX_PIN22);
+
+  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], NULL);
+#else
   static const struct dw_spi_config_s config =
   {
     .bus = 0,
@@ -546,6 +563,7 @@ static void up_spi_init(void)
 #endif
 
   g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
+#endif
 }
 #endif
 
