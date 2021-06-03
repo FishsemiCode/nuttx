@@ -268,6 +268,17 @@ static const struct song_gate_clk gate[] =
   {},
 };
 
+#ifdef CONFIG_U1_APU1X
+static const struct clk_rate def_rates[] =
+{
+  {
+    .name = "spi2_mclk",
+    .rate = 54613335,
+  },
+  {},
+};
+#endif
+
 static const struct song_clk_table clk_tbl =
 {
   .fixed_rate_clks   = fixed_rate,
@@ -290,5 +301,8 @@ void up_clk_initialize(void)
 void up_clk_finalinitialize(void)
 {
   clk_disable_unused();
+#ifdef CONFIG_U1_APU1X
+  clk_set_rates(def_rates);
+#endif
 }
 #endif /* (CONFIG_ARCH_CHIP_U1_AP) && (CONFIG_SONG_CLK) */
