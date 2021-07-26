@@ -43,6 +43,8 @@
 
 #include <nuttx/syslog/syslog.h>
 
+#include "syslog/syslog.h"
+
 #include "libc.h"
 
 /****************************************************************************
@@ -58,13 +60,16 @@ int printf(FAR const IPTR char *fmt, ...)
   va_list ap;
   int     ret;
 
-  va_start(ap, fmt);
+  if (g_syslog_mask != 0)
+  {
+    va_start(ap, fmt);
 #if CONFIG_NFILE_STREAMS > 0
-  ret = vfprintf(stdout, fmt, ap);
+    ret = vfprintf(stdout, fmt, ap);
 #else
-  ret = nx_vsyslog(LOG_INFO, fmt, &ap);
+    ret = nx_vsyslog(LOG_INFO, fmt, &ap);
 #endif
-  va_end(ap);
+    va_end(ap);
+  }
 
   return ret;
 }
