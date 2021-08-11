@@ -431,7 +431,10 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
 
       rsc = rproc->rsc_table;
 
-      priv->vdev_num = 1;
+      if (rsc)
+        priv->vdev_num = 1;
+      else
+        priv->vdev_num = 0;
     }
   else
     {
@@ -457,24 +460,27 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
         }
     }
 
-  priv->vdev[0] = kmm_zalloc(priv->vdev_num * (sizeof(struct rpmsg_virtio_device)
-                             + sizeof(struct rpmsg_virtio_shm_pool)));
-  if (priv->vdev[0] == NULL)
+  if (priv->vdev_num)
     {
-      return -ENOMEM;
-    }
+      priv->vdev[0] = kmm_zalloc(priv->vdev_num * (sizeof(struct rpmsg_virtio_device)
+                                 + sizeof(struct rpmsg_virtio_shm_pool)));
+      if (priv->vdev[0] == NULL)
+        {
+          return -ENOMEM;
+        }
 
-  for (i = 0; i < priv->vdev_num - 1; i++)
-    {
+      for (i = 0; i < priv->vdev_num - 1; i++)
+        {
+          priv->shm_pool[i] = (struct rpmsg_virtio_shm_pool *)(priv->vdev[i] + 1);
+          priv->vdev[i + 1] = (struct rpmsg_virtio_device *)(priv->shm_pool[i] + 1);
+        }
+
       priv->shm_pool[i] = (struct rpmsg_virtio_shm_pool *)(priv->vdev[i] + 1);
-      priv->vdev[i + 1] = (struct rpmsg_virtio_device *)(priv->shm_pool[i] + 1);
     }
-
-  priv->shm_pool[i] = (struct rpmsg_virtio_shm_pool *)(priv->vdev[i] + 1);
 
   /* Update resource table on MASTER side */
 
-  if (RPTUN_IS_MASTER(priv->dev))
+  if (RPTUN_IS_MASTER(priv->dev) && rsc)
     {
       int j;
       uint32_t tbsz;
@@ -571,13 +577,16 @@ static int rptun_dev_start(FAR struct remoteproc *rproc)
 
   /* Broadcast device_created to all registers */
 
-  metal_list_for_each(&g_rptun_cb, node)
+  if (priv->vdev_num > 0)
     {
-      cb = metal_container_of(node, struct rptun_cb_s, node);
-      if (cb->device_created)
+      metal_list_for_each(&g_rptun_cb, node)
         {
-          i = rptun_get_vdev_index(priv, cb->buf_size);
-          cb->device_created(&priv->vdev[i]->rdev, cb->priv);
+          cb = metal_container_of(node, struct rptun_cb_s, node);
+          if (cb->device_created)
+            {
+              i = rptun_get_vdev_index(priv, cb->buf_size);
+              cb->device_created(&priv->vdev[i]->rdev, cb->priv);
+            }
         }
     }
 
