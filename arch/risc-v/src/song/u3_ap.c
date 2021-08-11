@@ -82,9 +82,11 @@
 #define CPU_NAME_AP                     "ap"
 #define CPU_NAME_CPR                    "cpr"
 #define CPU_NAME_CPX                    "cpx"
+#define CPU_NAME_DSP                    "dsp"
 #define CPU_INDEX_AP                    0
 #define CPU_INDEX_CPR                   1
 #define CPU_INDEX_CPX                   2
+#define CPU_INDEX_DSP                   2
 
 #define TOP_MAILBOX_BASE                (0xb0030000)
 
@@ -193,6 +195,8 @@ static int cpr_start(const struct song_rptun_config_s *config)
   return 0;
 }
 
+#ifdef U3_BOARD
+
 static int cpx_config(const struct song_rptun_config_s *config, void *data)
 {
   modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, TOP_PWR_CP_XC5_WAIT);
@@ -211,6 +215,28 @@ static int cpx_start(const struct song_rptun_config_s *config)
 
   return 0;
 }
+
+#else
+
+static int dsp_config(const struct song_rptun_config_s *config, void *data)
+{
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, TOP_PWR_CP_XC5_WAIT);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
+
+  return 0;
+}
+
+static int dsp_start(const struct song_rptun_config_s *config)
+{
+  putreg32(0x60000000, TOP_PWR_CP_XC5_BOOT_ADDR);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, TOP_PWR_CP_XC5_RSTN);
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, 0);
+  modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
+
+  return 0;
+}
+
+#endif
 
 static uint8_t up_i2c_pmic_read(void)
 {
@@ -365,7 +391,9 @@ void up_wdtinit(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_CPR, "CPR", 256, false);
+#ifdef U3_BOARD
   uart_rpmsg_init(CPU_NAME_CPX, "CPX", 256, false);
+#endif
 }
 #endif
 
@@ -396,6 +424,7 @@ static void up_mbox_init(void)
       .chnl_count = 16,
       .irq        = -1,
     },
+#ifdef U3_BOARD
     {
       .index      = CPU_INDEX_CPX,
       .base       = TOP_MAILBOX_BASE,
@@ -407,6 +436,7 @@ static void up_mbox_init(void)
       .chnl_count = 16,
       .irq        = -1,
     }
+#endif
   };
 
   song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
@@ -420,6 +450,7 @@ static void up_rptun_init(void)
   {
     {.pa = 0xd0200000, .da = 0x40200000, .size = 0x00100000},
     {.pa = 0xd0300000, .da = 0x40300000, .size = 0x00100000},
+    {.pa = 0x60000000, .da = 0x60000000, .size = 0x00040000},
     {.pa = 0x00000000, .da = 0x00000000, .size = 0x00000000},
   };
 
@@ -435,6 +466,7 @@ static void up_rptun_init(void)
     .start      = cpr_start,
   };
 
+#ifdef U3_BOARD
   static const struct song_rptun_config_s rptun_cfg_cpx = {
     .cpuname    = CPU_NAME_CPX,
     .firmware   = "/dev/cpx.coff",
@@ -446,9 +478,26 @@ static void up_rptun_init(void)
     .config     = cpx_config,
     .start      = cpx_start,
   };
+#else
+  static const struct song_rptun_config_s rptun_cfg_dsp = {
+    .cpuname    = CPU_NAME_DSP,
+    .firmware   = "/dev/dsp.elf",
+    .addrenv    = addrenv,
+    .nautostart = true,
+    .master     = true,
+    .vringtx    = 15,
+    .vringrx    = 15,
+    .config     = dsp_config,
+    .start      = dsp_start,
+  };
+#endif
 
   song_rptun_initialize(&rptun_cfg_cpr, g_mbox[CPU_INDEX_CPR], g_mbox[CPU_INDEX_AP]);
+#ifdef U3_BOARD
   song_rptun_initialize(&rptun_cfg_cpx, g_mbox[CPU_INDEX_CPX], g_mbox[CPU_INDEX_AP]);
+#else
+  song_rptun_initialize(&rptun_cfg_dsp, g_mbox[CPU_INDEX_DSP], g_mbox[CPU_INDEX_AP]);
+#endif
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize();
@@ -626,7 +675,11 @@ static void up_ds_enter_exit_work(FAR void *arg)
   else if (status & TOP_PWR_CP_XC5_WAKEUP)
     {
 #ifdef CONFIG_SONG_RPTUN
+#ifdef U3_BOARD
       rptun_boot(CPU_NAME_CPX);
+#else
+      rptun_boot(CPU_NAME_DSP);
+#endif
 #endif
     }
 }
