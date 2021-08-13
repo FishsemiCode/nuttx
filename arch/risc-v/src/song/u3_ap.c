@@ -120,6 +120,7 @@
 
 #define TOP_PWR_CP_XC5_WAIT             (1 << 3)    //TOP_PWR_CP_XC5_CTL0
 #define TOP_PWR_CP_XC5_CACHE_INV        (1 << 4)
+#define TOP_PWR_CP_XC5_BOOT             (1 << 5)
 
 #define TOP_PWR_TOP_ROCKET_SLP_EN       (1 << 0)
 #define TOP_PWR_TOP_ROCKET_SLP_MK       (1 << 1)
@@ -220,7 +221,7 @@ static int cpx_start(const struct song_rptun_config_s *config)
 
 static int dsp_config(const struct song_rptun_config_s *config, void *data)
 {
-  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, TOP_PWR_CP_XC5_WAIT);
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT | TOP_PWR_CP_XC5_BOOT, TOP_PWR_CP_XC5_WAIT);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
 
   return 0;
@@ -228,7 +229,7 @@ static int dsp_config(const struct song_rptun_config_s *config, void *data)
 
 static int dsp_start(const struct song_rptun_config_s *config)
 {
-  putreg32(0x60000000, TOP_PWR_CP_XC5_BOOT_ADDR);
+  putreg32(0x64200000, TOP_PWR_CP_XC5_BOOT_ADDR);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, TOP_PWR_CP_XC5_RSTN);
   modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, 0);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
