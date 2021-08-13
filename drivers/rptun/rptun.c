@@ -737,6 +737,8 @@ static int rptun_store_load(FAR void *store_, size_t offset,
 {
   FAR struct rptun_store_s *store = store_;
   FAR char *tmp;
+  FAR char *bounce = NULL;
+  ssize_t ret;
 
   if (pa == METAL_BAD_PHYS)
     {
@@ -751,15 +753,47 @@ static int rptun_store_load(FAR void *store_, size_t offset,
     }
   else
     {
-      tmp = metal_io_phys_to_virt(io, pa);
-      if (!tmp)
+      if ((size % sizeof(unsigned int)) == 0)
         {
-          return -EINVAL;
+          tmp = kmm_zalloc(size);
+          if (!tmp)
+            {
+              return -ENOMEM;
+            }
+
+          bounce = metal_io_phys_to_virt(io, pa);
+          if (!bounce)
+            {
+              kmm_free(tmp);
+              return -EINVAL;
+            }
+        }
+      else
+        {
+          tmp = metal_io_phys_to_virt(io, pa);
+          if (!tmp)
+            {
+              return -EINVAL;
+            }
         }
     }
 
   file_seek(&store->file, offset, SEEK_SET);
-  return file_read(&store->file, tmp, size);
+  ret = file_read(&store->file, tmp, size);
+  if (bounce != NULL)
+    {
+      int i = 0;
+      unsigned int *src = (unsigned int *)tmp;
+      unsigned int *dst = (unsigned int *)bounce;
+
+      for (i = 0; i < (size / sizeof(unsigned int)); i++)
+        {
+          *dst++ = *src++;
+        }
+      kmm_free(tmp);
+    }
+
+  return ret;
 }
 
 static int rptun_get_vdev_num(FAR struct rptun_rsc_s *rsc)
