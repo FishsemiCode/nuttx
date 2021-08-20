@@ -1,8 +1,8 @@
 /****************************************************************************
- * arch/arm/src/song/u3_ap.c
+ * arch/arm/src/song/u31_ap.c
  *
- *   Copyright (C) 2019 FishSemi Inc. All rights reserved.
- *   Author: Guiding Li<liguiding@pinecone.net>
+ *   Copyright (C) 2021 FishSemi Inc. All rights reserved.
+ *   Author: Zhou, Tianyang <zhoutianyang@fishsemi.com>
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -39,7 +39,7 @@
 
 #include <nuttx/config.h>
 
-#ifdef CONFIG_ARCH_CHIP_U3_AP
+#ifdef CONFIG_ARCH_CHIP_U31_AP
 
 #include <nuttx/arch.h>
 #include <nuttx/clk/clk.h>
@@ -81,10 +81,10 @@
 
 #define CPU_NAME_AP                     "ap"
 #define CPU_NAME_CPR                    "cpr"
-#define CPU_NAME_CPX                    "cpx"
+#define CPU_NAME_DSP                    "dsp"
 #define CPU_INDEX_AP                    0
 #define CPU_INDEX_CPR                   1
-#define CPU_INDEX_CPX                   2
+#define CPU_INDEX_DSP                   2
 
 #define TOP_MAILBOX_BASE                (0xb0030000)
 
@@ -118,6 +118,7 @@
 
 #define TOP_PWR_CP_XC5_WAIT             (1 << 3)    //TOP_PWR_CP_XC5_CTL0
 #define TOP_PWR_CP_XC5_CACHE_INV        (1 << 4)
+#define TOP_PWR_CP_XC5_BOOT             (1 << 5)
 
 #define TOP_PWR_TOP_ROCKET_SLP_EN       (1 << 0)
 #define TOP_PWR_TOP_ROCKET_SLP_MK       (1 << 1)
@@ -193,18 +194,17 @@ static int cpr_start(const struct song_rptun_config_s *config)
   return 0;
 }
 
-static int cpx_config(const struct song_rptun_config_s *config, void *data)
+static int dsp_config(const struct song_rptun_config_s *config, void *data)
 {
-  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, TOP_PWR_CP_XC5_WAIT);
+  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT | TOP_PWR_CP_XC5_BOOT, TOP_PWR_CP_XC5_WAIT);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
 
   return 0;
 }
 
-static int cpx_start(const struct song_rptun_config_s *config)
+static int dsp_start(const struct song_rptun_config_s *config)
 {
-  modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_CACHE_INV, TOP_PWR_CP_XC5_CACHE_INV);
-  putreg32(0x40300000, TOP_PWR_CP_XC5_BOOT_ADDR);
+  putreg32(0x64200000, TOP_PWR_CP_XC5_BOOT_ADDR);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, TOP_PWR_CP_XC5_RSTN);
   modifyreg32(TOP_PWR_CP_XC5_CTL0, TOP_PWR_CP_XC5_WAIT, 0);
   modifyreg32(TOP_PWR_RSTCTL1, TOP_PWR_CP_XC5_RSTN, 0);
@@ -365,7 +365,6 @@ void up_wdtinit(void)
 void rpmsg_serialinit(void)
 {
   uart_rpmsg_init(CPU_NAME_CPR, "CPR", 256, false);
-  uart_rpmsg_init(CPU_NAME_CPX, "CPX", 256, false);
 }
 #endif
 
@@ -396,17 +395,6 @@ static void up_mbox_init(void)
       .chnl_count = 16,
       .irq        = -1,
     },
-    {
-      .index      = CPU_INDEX_CPX,
-      .base       = TOP_MAILBOX_BASE,
-      .set_off    = 0x10,
-      .en_off     = 0x14,
-      .en_bit     = 16,
-      .src_en_off = 0x14,
-      .sta_off    = 0x18,
-      .chnl_count = 16,
-      .irq        = -1,
-    }
   };
 
   song_mbox_allinitialize(config, ARRAY_SIZE(config), g_mbox);
@@ -420,6 +408,7 @@ static void up_rptun_init(void)
   {
     {.pa = 0xd0200000, .da = 0x40200000, .size = 0x00100000},
     {.pa = 0xd0300000, .da = 0x40300000, .size = 0x00100000},
+    {.pa = 0x60000000, .da = 0x60000000, .size = 0x00040000},
     {.pa = 0x00000000, .da = 0x00000000, .size = 0x00000000},
   };
 
@@ -435,20 +424,8 @@ static void up_rptun_init(void)
     .start      = cpr_start,
   };
 
-  static const struct song_rptun_config_s rptun_cfg_cpx = {
-    .cpuname    = CPU_NAME_CPX,
-    .firmware   = "/dev/cpx.coff",
-    .addrenv    = addrenv,
-    .nautostart = true,
-    .master     = true,
-    .vringtx    = 15,
-    .vringrx    = 15,
-    .config     = cpx_config,
-    .start      = cpx_start,
-  };
-
   song_rptun_initialize(&rptun_cfg_cpr, g_mbox[CPU_INDEX_CPR], g_mbox[CPU_INDEX_AP]);
-  song_rptun_initialize(&rptun_cfg_cpx, g_mbox[CPU_INDEX_CPX], g_mbox[CPU_INDEX_AP]);
+  song_rptun_initialize(&rptun_cfg_dsp, g_mbox[CPU_INDEX_DSP], g_mbox[CPU_INDEX_AP]);
 
 #  ifdef CONFIG_CLK_RPMSG
   clk_rpmsg_initialize();
@@ -626,7 +603,7 @@ static void up_ds_enter_exit_work(FAR void *arg)
   else if (status & TOP_PWR_CP_XC5_WAKEUP)
     {
 #ifdef CONFIG_SONG_RPTUN
-      rptun_boot(CPU_NAME_CPX);
+      rptun_boot(CPU_NAME_DSP);
 #endif
     }
 }
@@ -744,4 +721,4 @@ void up_cpu_sleep(void)
   up_cpu_wfi();
 }
 
-#endif /* CONFIG_ARCH_CHIP_U3_AP */
+#endif /* CONFIG_ARCH_CHIP_U31_AP */

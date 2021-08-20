@@ -59,6 +59,7 @@ CHIP_CSRCS += song_board.c song_dcache.c song_heap.c
 CHIP_CSRCS += song_idle.c song_irq.c song_start.c
 CHIP_CSRCS += u2_ap.c u2_ap_clk.c u2_apv3.c u2_apv3_clk.c u2_audio.c u2_ap_pmu.c
 CHIP_CSRCS += u3_ap.c u3_ap_clk.c u3_cpr.c u3_cpr_clk.c u3_qemu.c
+CHIP_CSRCS += u31_ap.c u31_ap_clk.c u31_cpr.c u31_cpr_clk.c
 CHIP_CSRCS += v1_isp.c v1_rpm.c
 CHIP_UCSRCS += song_userspace.c
 HEAD_ASRC = song_vectors.S

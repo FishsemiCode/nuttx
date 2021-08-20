@@ -44,6 +44,18 @@ config ARCH_CHIP_U3_QEMU
 	select ARCH_RV32IM
 	select RISCV_MTIME
 
+config ARCH_CHIP_U31_AP
+	bool "U31 AP"
+	select ARCH_RV32IM
+	select ARCH_DCACHE
+	select ARCH_HAVE_FPU
+
+config ARCH_CHIP_U31_CPR
+	bool "U31 CPR"
+	select ARCH_RV32IM
+	select ARCH_DCACHE
+	select ARCH_HAVE_FPU
+
 config ARCH_CHIP_V1_ISP
 	bool "V1 ISP"
 	select ARCH_RV32IM
