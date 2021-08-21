@@ -195,6 +195,12 @@ static const struct song_gate_clk gate[] =
     .en_shift = 14,
   },
   {
+    .name = "pdcp_clk",
+    .parent_name = "cp_bus_mclk",
+    .en_offset = 0x094,
+    .en_shift = 4,
+  },
+  {
     .name = "cp_bus_shram_mclk",
     .parent_name = "cp_bus_mclk",
     .en_offset = 0x94,
