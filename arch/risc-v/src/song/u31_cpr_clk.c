@@ -59,7 +59,7 @@ static const char *rf_port_src[] =
 static const struct song_mux_div_clk mux_div[] =
 {
   {
-    .name = "rf_port",
+    .name = "rf_port_clk",
     .parent_names = rf_port_src,
     .num_parents = ARRAY_SIZE(rf_port_src),
     .en_offset = 0x2c4,
@@ -70,6 +70,25 @@ static const struct song_mux_div_clk mux_div[] =
     .div_offset = 0x2c4,
     .div_shift = 4,
     .div_width = 5,
+  },
+  {},
+};
+
+static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
+{
+  {
+    .name = "rf_tm2_calib_clk",
+    .parent_name = "ap/pll0_mclk",
+    .div_offset = 0x02c8,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 3 << CLK_DIVIDER_MINDIV_OFF,
+  },
+  {
+    .name = "rf_ltesp_clk",
+    .parent_name = "ap/pll0_mclk",
+    .div_offset = 0x02cc,
+    .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 3 << CLK_DIVIDER_MINDIV_OFF,
   },
   {},
 };
@@ -114,25 +133,7 @@ static const struct song_div_clk div[] =
     .div_width = 5,
   },
   {
-    .name = "rf_tm2_calib",
-    .parent_name = "ap/pll0_mclk",
-    .en_offset = 0x02c8,
-    .en_shift = 0,
-    .div_offset = 0x02c8,
-    .div_shift = 4,
-    .div_width = 5,
-  },
-  {
-    .name = "rf_ltesp",
-    .parent_name = "ap/pll0_mclk",
-    .en_offset = 0x2cc,
-    .en_shift = 0,
-    .div_offset = 0x2cc,
-    .div_shift = 4,
-    .div_width = 5,
-  },
-  {
-    .name = "rfif_rffe",
+    .name = "rfif_rffe_clk",
     .parent_name = "ap/pll0_mclk",
     .en_offset = 0x2d0,
     .en_shift = 0,
@@ -141,7 +142,7 @@ static const struct song_div_clk div[] =
     .div_width = 5,
   },
   {
-    .name = "rfif_match_rx",
+    .name = "rfif_match_rx_clk",
     .parent_name = "ap/sys_clk",
     .en_offset = 0x2e8,
     .en_shift = 0,
@@ -150,7 +151,7 @@ static const struct song_div_clk div[] =
     .div_width = 5,
   },
   {
-    .name = "rfif_match_tx",
+    .name = "rfif_match_tx_clk",
     .parent_name = "ap/sys_clk",
     .en_offset = 0x2ec,
     .en_shift = 0,
@@ -199,6 +200,12 @@ static const struct song_gate_clk gate[] =
     .parent_name = "cp_bus_mclk",
     .en_offset = 0x094,
     .en_shift = 4,
+  },
+  {
+    .name = "dmag_clk",
+    .parent_name = "cp_bus_mclk",
+    .en_offset = 0x94,
+    .en_shift = 5,
   },
   {
     .name = "cp_bus_shram_mclk",
