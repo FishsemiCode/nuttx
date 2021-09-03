@@ -424,6 +424,18 @@ static void up_rptun_init(void)
     .start      = cpr_start,
   };
 
+  static const struct song_rptun_config_s rptun_cfg_dsp = {
+    .cpuname    = CPU_NAME_DSP,
+    .firmware   = "/dev/dsp.elf",
+    .addrenv    = addrenv,
+    .nautostart = true,
+    .master     = true,
+    .vringtx    = 15,
+    .vringrx    = 15,
+    .config     = dsp_config,
+    .start      = dsp_start,
+  };
+
   song_rptun_initialize(&rptun_cfg_cpr, g_mbox[CPU_INDEX_CPR], g_mbox[CPU_INDEX_AP]);
   song_rptun_initialize(&rptun_cfg_dsp, g_mbox[CPU_INDEX_DSP], g_mbox[CPU_INDEX_AP]);
 
