@@ -114,7 +114,10 @@ static int fishled_ioctl(FAR struct file *filep, int cmd, unsigned long arg)
           {
             PINCTRL_SELGPIO(g_pinctrl[0], config[i].gpio_port);
             IOEXP_SETDIRECTION(priv->ioe, config[i].gpio_port, IOEXPANDER_DIRECTION_OUT);
-            IOEXP_WRITEPIN(priv->ioe, config[i].gpio_port, config[i].level);
+            if (arg)
+              IOEXP_WRITEPIN(priv->ioe, config[i].gpio_port, config[i].level);
+            else
+              IOEXP_WRITEPIN(priv->ioe, config[i].gpio_port, !config[i].level);
           }
         break;
       case FISHLED_GET:
