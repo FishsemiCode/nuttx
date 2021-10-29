@@ -101,11 +101,13 @@ clk_pll_recalc_rate(struct clk *clk, uint32_t parent_rate)
     {
       uint32_t frac;
       uint64_t rate_d;
+      uint64_t ret;
 
       val = clk_read(pll->cfg1_reg);
       frac = (val >> PLL_FRAC_SHIFT) & PLL_FRAC_MASK;
-      rate_d = (uint64_t)(parent_rate * (fbdiv * PLL_FRAC_MULTI + frac));
-      return DIV_ROUND_UP(rate_d / PLL_FRAC_MULTI, div);
+      rate_d = (uint64_t)(parent_rate * ((uint64_t)(fbdiv) * PLL_FRAC_MULTI + frac));
+      ret = DIV_ROUND_UP(rate_d / PLL_FRAC_MULTI, div);
+      return ret;
     }
 }
 

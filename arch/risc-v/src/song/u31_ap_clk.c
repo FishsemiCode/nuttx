@@ -68,7 +68,7 @@ static const struct song_fixed_rate_clk fixed_rate[] =
   },
   {
     .name = "sys_clk",
-    .fixed_rate = 19200000,
+    .fixed_rate = 30720000,
   },
   {},
 };
@@ -197,9 +197,9 @@ static const struct song_sdiv_sdiv_clk sdiv_sdiv[] =
   {
     .name = "spi0_mclk",
     .parent_name = "pll0_mclk",
-    .div_offset = 0x70,
+/*    .div_offset = 0x70,
     .div1_flags = 1 << CLK_DIVIDER_MINDIV_OFF,
-    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,
+    .div2_flags = 2 << CLK_DIVIDER_MINDIV_OFF,*/
   },
   {
     .name = "spi1_mclk",
@@ -401,7 +401,7 @@ static const struct song_gate_clk gate[] =
     .en_shift = 5,
   },
   {
-    .name = "top_cipher_clk",
+    .name = "top_sdio_clk",
     .parent_name = "top_bus_mclk",
     .en_offset = 0x90,
     .en_shift = 6,
@@ -603,6 +603,22 @@ static const struct song_gate_clk gate[] =
 #endif
   {},
 };
+static const struct clk_rate def_rates[] =
+{
+ /* {
+    .name = "top_rocket",
+    .rate = 416000000,
+  },*/
+  {
+    .name = "uart1_clk",
+    .rate = 14745600,
+  },
+  {
+    .name = "spi3_mclk",
+    .rate = 14745600,
+  },
+  {},
+};
 
 static const struct song_clk_table clk_tbl =
 {
@@ -624,6 +640,7 @@ static const struct song_clk_table clk_tbl =
 void up_clk_initialize(void)
 {
   song_clk_initialize(0xb0040000, &clk_tbl);
+  clk_set_rates(def_rates);
 }
 
 void up_clk_finalinitialize(void)

@@ -49,6 +49,8 @@
 #include <nuttx/fs/fs.h>
 #include <nuttx/fs/hostfs_rpmsg.h>
 #include <nuttx/i2c/i2c_dw.h>
+#include <nuttx/audio/audio.h>
+#include <nuttx/audio/song_i2s.h>
 #include <nuttx/ioexpander/song_ioe.h>
 #include <nuttx/kmalloc.h>
 #include <nuttx/mbox/song_mbox.h>
@@ -66,6 +68,8 @@
 #include <nuttx/timers/song_oneshot.h>
 #include <nuttx/timers/song_rtc.h>
 #include <nuttx/wqueue.h>
+#include <nuttx/audio/audio_i2s.h>
+#include <nuttx/audio/audio_dma.h>
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -74,6 +78,7 @@
 #include "chip.h"
 #include "up_arch.h"
 #include "up_internal.h"
+#include "song_sdio.h"
 
 /****************************************************************************
  * Pre-processor Definitions
@@ -140,14 +145,17 @@
 #define TOP_PWR_RESET_ROMBOOT           (0xaaaa1234)
 #define TOP_PWR_RESET_RECOVERY          (0xbbbb1234)
 
+#define SPI_SLAVE_ENABLE 1
+#define I2S_CASE0        1
+
 /****************************************************************************
  * Private Data
  ****************************************************************************/
 
 #ifdef CONFIG_SONG_DMAS
-static FAR struct dma_dev_s *g_dma[2] =
+static FAR struct dma_dev_s *g_dma[3] =
 {
-  [1] = DEV_END,
+  [2] = DEV_END,
 };
 #endif
 
@@ -181,6 +189,17 @@ FAR struct i2c_master_s *g_i2c[3] =
 {
   [2] = DEV_END,
 };
+#endif
+
+#ifdef CONFIG_I2S
+FAR struct i2s_dev_s *g_i2s[3] =
+{
+  [2] = DEV_END,
+};
+struct audio_lowerhalf_s *dma_playback;
+struct audio_lowerhalf_s *dma_capture;
+struct audio_lowerhalf_s *pcm_playback;
+struct audio_lowerhalf_s *pcm_capture;
 #endif
 
 /****************************************************************************
@@ -290,7 +309,7 @@ void up_wic_disable_irq(int irq)
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
-  g_dma[0] = song_dmas_initialize(2, 0xb0020000, 12, "dmas_hclk");
+  g_dma[1] = song_dmas_initialize(1, 0xb0020000, 12, "dmas_hclk");
 #endif
 }
 
@@ -306,7 +325,7 @@ void up_timer_initialize(void)
 #ifdef CONFIG_ONESHOT_SONG
   static const struct song_oneshot_config_s config =
   {
-    .minor      = -1,
+    .minor      = 1,
     .base       = TOP_PWR_BASE,
     .irq        = 3,
     .c1_max     = 480,
@@ -354,7 +373,7 @@ void up_wdtinit(void)
     .path = CONFIG_WATCHDOG_DEVPATH,
     .base = 0xb0090000,
     .irq  = 5,
-    .tclk = "swdt_tclk",
+    .tclk = "wdt0_tclk",
   };
 
   dw_wdt_initialize(&config);
@@ -512,7 +531,7 @@ static void up_spi_init(void)
   {
     {
       .bus = 0,
-      .base = 0xb0110000,
+      .base = 0xb0110400,
       .irq = 11,
       .tx_dma = 4,
       .rx_dma = 12,
@@ -540,12 +559,53 @@ static void up_spi_init(void)
       .cs_gpio[0] = 28,
       .mclk = "spi2_mclk",
     },
+#if SPI_SLAVE_ENABLE
+    {
+      .bus = 3,
+      .base = 0xb0260000,
+      .irq = 17,
+      .tx_dma = 3,
+      .rx_dma = 11,
+      .cs_num = 1,
+      .cs_gpio[0] = 28,
+      .mclk = "spi3_mclk",
+    },
+#endif
   };
   int config_num = sizeof(config) / sizeof(config[0]);
+
+#if SPI_SLAVE_ENABLE
+  /* Mux pin choose spi3 */
+
+  putreg32(0x13, 0xb0050074);
+  putreg32(0x13, 0xb0050078);
+  putreg32(0x13, 0xb005007c);
+  putreg32(0x13, 0xb0050080);
+
+  /* Mail box spi sel spi3 */
+
+  putreg32(0x01, 0xb00300b8);
+
+#endif
 
   dw_spi_allinitialize(config, config_num, g_ioe[0], g_dma[0], g_spi);
 }
 #endif
+
+void up_sdio_init(void)
+{
+  static const struct dw_sdio_config_s config =
+  {
+    .bus = 0,
+    .base = 0xb0240000,
+    .mclk = NULL,
+    .pclk = NULL,
+    .clk_en = "top_sdio_clk",
+    .rate = 0,
+    .irq = 21,
+  };
+  dw_sdio_allinitialize(&config, 1, NULL);
+}
 
 void up_lateinitialize(void)
 {
@@ -555,6 +615,10 @@ void up_lateinitialize(void)
 
 #ifdef CONFIG_SONG_RPTUN
   up_rptun_init();
+#endif
+
+#ifdef CONFIG_SONG_DMAS
+  up_dma_initialize();
 #endif
 
 #ifdef CONFIG_RTC_SONG
@@ -577,9 +641,48 @@ void up_lateinitialize(void)
   up_spi_init();
 #endif
 
+#if I2S_CASE0
+  pcm_playback = audio_i2s_initialize(song_i2s_initialize(0xb0160000, "i2s0_mclk"), true);
+  pcm_capture  = audio_i2s_initialize(song_i2s_initialize(0xb0170000, "i2s1_mclk"), false);
+
+  /* Send i2s0 fifo address */
+
+  dma_playback = audio_dma_initialize(g_dma[1], 6, true, 4, 0xb0160018);
+
+  /* Recv i2s1 fifo address */
+
+  dma_capture  = audio_dma_initialize(g_dma[1], 15, false, 4, 0xb0170014);
+  audio_comp_initialize("i2s1p", dma_playback, pcm_playback, NULL);
+  audio_comp_initialize("i2s2p", dma_capture, pcm_capture, NULL);
+
+#else
+  pcm_capture = audio_i2s_initialize(song_i2s_initialize(0xb0160000, "i2s0_mclk"), false);
+  pcm_playback= audio_i2s_initialize(song_i2s_initialize(0xb0170000, "i2s1_mclk"), true);
+
+  /* Send i2s1 fifo address */
+
+  dma_playback = audio_dma_initialize(g_dma[1], 7, true, 4, 0xb0170018);
+
+  /* Recv i2s0 fifo address */
+
+  dma_capture  = audio_dma_initialize(g_dma[1], 14, false, 4, 0xb0160014);
+  audio_comp_initialize("i2s1p", dma_playback, pcm_playback, NULL);
+  audio_comp_initialize("i2s2p", dma_capture, pcm_capture, NULL);
+#endif
+
+
 #ifdef CONFIG_PWM_SONG
   song_pwm_initialize(0, 0xb0100000, 4, "pwm_mclk");
+
+  /* Modify Pinmux */
+
+  putreg32(0x18, 0xb0050084);
+  putreg32(0x18, 0xb0050088);
+  putreg32(0x18, 0xb005008c);
+  putreg32(0x18, 0xb0050090);
 #endif
+
+  up_sdio_init();
 }
 
 static void up_ds_enter(void)

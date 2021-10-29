@@ -180,10 +180,15 @@ static uint32_t song_i2s_samplerate(struct i2s_dev_s *dev_, uint32_t rate)
 
   bclk_rate = dev->channels * dev->data_width * rate;
 
+#ifndef CONFIG_U31_AP
   song_i2s_updatereg(dev, SONG_I2S_FSYNC_CFG, SONG_I2S_FSYNC_DIV_MASK,
                      (dev->channels * dev->data_width) << SONG_I2S_FSYNC_DIV_OFF);
 
   clk_set_rate(dev->sclk, bclk_rate);
+#else
+  song_i2s_updatereg(dev, SONG_I2S_FSYNC_CFG, SONG_I2S_FSYNC_DIV_MASK,
+                     (dev->channels * dev->data_width * 2 + 2) << SONG_I2S_FSYNC_DIV_OFF);
+#endif
 
   return rate;
 }
@@ -296,7 +301,7 @@ static int song_i2s_ioctl(struct i2s_dev_s *dev_, int cmd, unsigned long arg)
 {
   struct song_i2s_s *dev = (struct song_i2s_s *) dev_;
   struct audio_caps_s *caps;
-  bool playback = arg;
+  bool playback = !!arg;
   int ret;
 
   switch (cmd)
@@ -306,6 +311,13 @@ static int song_i2s_ioctl(struct i2s_dev_s *dev_, int cmd, unsigned long arg)
         ret = clk_enable(dev->sclk);
         if (ret < 0)
           return ret;
+
+        /* FIFO RESET */
+
+        song_i2s_updatereg(dev, SONG_I2S_MODE, SONG_I2S_FLUSH_TRAN_BUF | SONG_I2S_FLUSH_REC_BUF,
+                           SONG_I2S_FLUSH_REC_BUF | SONG_I2S_FLUSH_TRAN_BUF);
+        song_i2s_updatereg(dev, SONG_I2S_MODE, SONG_I2S_FLUSH_TRAN_BUF | SONG_I2S_FLUSH_REC_BUF, 0);
+
         if (playback)
           song_i2s_updatereg(dev, SONG_I2S_MODE, SONG_I2S_TRAN_EN,
                              SONG_I2S_TRAN_EN);
@@ -337,7 +349,7 @@ static int song_i2s_ioctl(struct i2s_dev_s *dev_, int cmd, unsigned long arg)
       case AUDIOIOC_CONFIGURE:
         caps = (struct audio_caps_s *) arg;
         DEBUGASSERT(caps);
-        switch (caps->ac_type)
+        switch (caps->ac_type & AUDIO_TYPE_EXTENSION)
           {
             case AUDIO_TYPE_EXTENSION:
               switch(caps->ac_format.hw)

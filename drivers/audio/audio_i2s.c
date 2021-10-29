@@ -53,6 +53,8 @@ struct audio_i2s_s
   bool playback;
 };
 
+#define AUDIO_TYPE_MASK 0x03
+
 /****************************************************************************
  * Private Function Prototypes
  ****************************************************************************/
@@ -241,31 +243,35 @@ static int audio_i2s_configure(FAR struct audio_lowerhalf_s *dev,
 
   /* Process the configure operation */
 
-  switch (caps->ac_type)
+  switch (caps->ac_type & AUDIO_TYPE_MASK)
     {
       case AUDIO_TYPE_OUTPUT:
       case AUDIO_TYPE_INPUT:
 
         /* Save the current stream configuration */
 
-        samprate  = caps->ac_controls.hw[0] |
-                    (caps->ac_controls.b[3] << 16);
+        /*  samprate  = caps->ac_controls.hw[0] |
+                    (caps->ac_controls.b[3] << 16); */
+        samprate = caps->ac_controls.b[3];
         nchannels = caps->ac_channels;
         bpsamp    = caps->ac_controls.b[2];
 
         if (audio_i2s->playback)
           {
-            I2S_TXCHANNELS(i2s, nchannels);
-            I2S_TXDATAWIDTH(i2s, bpsamp);
+            if (nchannels != 0)
+              I2S_TXCHANNELS(i2s, nchannels);
+            if (bpsamp != 0)
+              I2S_TXDATAWIDTH(i2s, bpsamp);
             I2S_TXSAMPLERATE(i2s, samprate);
           }
         else
           {
-            I2S_RXCHANNELS(i2s, nchannels);
-            I2S_RXDATAWIDTH(i2s, bpsamp);
+            if (nchannels != 0)
+              I2S_RXCHANNELS(i2s, nchannels);
+            if (bpsamp != 0)
+              I2S_RXDATAWIDTH(i2s, bpsamp);
             I2S_RXSAMPLERATE(i2s, samprate);
           }
-        break;
 
       default:
         ret = I2S_IOCTL(i2s, AUDIOIOC_CONFIGURE, (unsigned long)caps);

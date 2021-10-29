@@ -143,7 +143,7 @@ static int song_pwm_start(FAR struct pwm_lowerhalf_s *dev,
   FAR struct song_pwm_lowerhalf_s *pwm = (FAR struct song_pwm_lowerhalf_s *)dev;
   int ret;
 
-  ret = clk_set_rate(pwm->clk, 100 * info->frequency);
+  ret = clk_set_rate(pwm->clk, 200 * info->frequency);
   if (ret < 0)
     {
       return ret;

@@ -579,32 +579,58 @@ static void audio_dma_callback(struct dma_chan_s *chan, void *arg, ssize_t len)
 /****************************************************************************
  * Public Functions
  ****************************************************************************/
+#if CONFIG_U31_AP
+uint32_t data[128];
+#endif
 
 struct audio_lowerhalf_s *audio_dma_initialize(struct dma_dev_s *dma_dev,
                                                uint8_t chan_num, bool playback,
                                                uint8_t fifo_width, uintptr_t fifo_addr)
 {
   struct audio_dma_s *audio_dma;
+#if CONFIG_U31_AP
+  for(int i = 0;i < 128;i++)
+      data[i] = 0xaabbccdd; //发送ddccbbaa
+#endif
 
   if (!dma_dev)
     return NULL;
+
   audio_dma = kmm_zalloc(sizeof(struct audio_dma_s));
   if (!audio_dma)
     return NULL;
+
   audio_dma->chan = DMA_GET_CHAN(dma_dev, chan_num);
   if (!audio_dma->chan)
     {
       kmm_free(audio_dma);
       return NULL;
     }
+
   audio_dma->playback = playback;
   audio_dma->fifo_width = fifo_width;
+#ifdef CONFIG_U31_AP
+  if (audio_dma->playback)
+    {
+      audio_dma->src_addr = (data);
+      audio_dma->dst_addr = ((void *)fifo_addr);
+    }
+  else
+    {
+      audio_dma->src_addr = ((void *)fifo_addr);
+      audio_dma->dst_addr = ((void *)((volatile uint32_t *)(0x70010000)));
+    }
+
+  audio_dma->buffer_size = 256;
+#else
   if (audio_dma->playback)
     audio_dma->dst_addr = up_addrenv_va_to_pa((void *)fifo_addr);
   else
     audio_dma->src_addr = up_addrenv_va_to_pa((void *)fifo_addr);
 
   audio_dma->buffer_size = CONFIG_AUDIO_BUFFER_NUMBYTES;
+#endif
+
   audio_dma->buffer_num  = CONFIG_AUDIO_NUM_BUFFERS;
   dq_init(&audio_dma->pendq);
 

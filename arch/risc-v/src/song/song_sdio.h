@@ -1,8 +1,7 @@
 /****************************************************************************
- * arch/risc-v/include/song/chip.h
+ * arch/risc-v/src/song/sdio.h
  *
- *   Copyright (C) 2018 Pinecone Inc. All rights reserved.
- *   Author: Xiang Xiao <xiaoxiang@pinecone.net>
+ *   Copyright (C)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -33,97 +32,50 @@
  *
  ****************************************************************************/
 
-#ifndef __ARCH_RISCV_INCLUDE_SONG_CHIP_H
-#define __ARCH_RISCV_INCLUDE_SONG_CHIP_H
+#ifndef __ARCH_RISCV_SRC_SONG_RISCV_MTIMER_H
+#define __ARCH_RISCV_SRC_SONG_RISCV_MTIMER_H
 
 /****************************************************************************
  * Included Files
  ****************************************************************************/
 
 #include <nuttx/config.h>
-#include <nuttx/compiler.h>
-
-/****************************************************************************
- * Pre-processor Definitions
- ****************************************************************************/
-
-#define PM_IDLE_DOMAIN                0
-#define DEV_END                       (void *)0xffffffff
+#include <nuttx/sdio.h>
 
 /****************************************************************************
  * Public Types
  ****************************************************************************/
 
+struct dw_sdio_config_s
+{
+  int bus;
+  uintptr_t base;
+  FAR const char *mclk;
+  FAR const char *pclk;
+  FAR const char *clk_en;
+  uint32_t rate;
+  uint32_t irq;
+};
+
 /****************************************************************************
- * Public Data
+ * Public Function Prototypes
  ****************************************************************************/
 
-#ifndef __ASSEMBLY__
-#ifdef __cplusplus
+#undef EXTERN
+#if defined(__cplusplus)
 #define EXTERN extern "C"
 extern "C"
 {
 #else
 #define EXTERN extern
-
-/* Global driver instances */
-
-/* Song mailbox instances */
-extern FAR struct mbox_dev_s *g_mbox[];
-
-/* Song general gpio instance */
-extern FAR struct ioexpander_dev_s *g_ioe[];
-
-/* Designware SPI controller instances */
-extern FAR struct spi_dev_s *g_spi[];
-
-/* Designware I2C controller instances */
-extern FAR struct i2c_master_s *g_i2c[];
-
-/* Designware I2S controller instances */
-extern FAR struct i2s_dev_s *g_i2s[];
-
 #endif
 
-#ifdef CONFIG_ARCH_HIPRI_INTERRUPT
-#define NVIC_SYSH_HIGH_PRIORITY     CONFIG_HIPRI_INTERRUPT_PRIORITY
-#endif
-#define NVIC_IRQ_PENDSV                 (24)
-
-#define READ_CSR(reg) \
-({ \
-  unsigned long __tmp; \
-  asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
-  __tmp; \
-})
-
-#define WRITE_CSR(reg, val) \
-({ \
-  asm volatile ("csrw " #reg ", %0" :: "rK"(val)); \
-})
-
-#define SET_CSR(reg, bit) \
-({ \
-  unsigned long __tmp; \
-  asm volatile ("csrrs %0, " #reg ", %1" : "=r"(__tmp) : "rK"(bit)); \
-  __tmp; \
-})
-
-#define CLEAR_CSR(reg, bit) \
-({ \
-  unsigned long __tmp; \
-  asm volatile ("csrrc %0, " #reg ", %1" : "=r"(__tmp) : "rK"(bit)); \
-  __tmp; \
-})
-
-/****************************************************************************
- * Public Functions
- ****************************************************************************/
+void dw_sdio_allinitialize(FAR const struct dw_sdio_config_s *config, int config_num, FAR struct sdio_dev_s *sdio_dev);
 
 #undef EXTERN
-#ifdef __cplusplus
+#if defined(__cplusplus)
 }
 #endif
-#endif
 
-#endif /* __ARCH_RISCV_INCLUDE_SONG_CHIP_H */
+
+#endif /* __ARCH_RISCV_SRC_SONG_RISCV_MTIMER_H */

@@ -604,6 +604,7 @@ int pwm_register(FAR const char *path, FAR struct pwm_lowerhalf_s *dev)
 #endif
 
   upper->dev = dev;
+  upper->started = true;
 
   /* Register the PWM device */
 
