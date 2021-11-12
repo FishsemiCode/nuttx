@@ -284,7 +284,11 @@ void up_wic_disable_irq(int irq)
 void up_dma_initialize(void)
 {
 #ifdef CONFIG_SONG_DMAS
+#ifdef CONFIG_U1_APU1X
+  g_dma[0] = song_dmas_initialize(1, 0xb0020000, 28, "dmas_hclk");
+#else
   g_dma[0] = song_dmas_initialize(1, 0xb0020000, 28, NULL);
+#endif
 #endif
 }
 
@@ -526,6 +530,8 @@ static void up_spi_init(void)
     .bus = 2,
     .base = 0xb0170000,
     .irq = 27,
+    .tx_dma = 4,
+    .rx_dma = 12,
     .hbits = true,
     .mclk = "spi2_mclk",
   };
@@ -535,7 +541,7 @@ static void up_spi_init(void)
   putreg32(0x13, MUX_PIN21);
   putreg32(0x13, MUX_PIN22);
 
-  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], NULL);
+  g_spi[config.bus] = dw_spi_initialize(&config, g_ioe[0], g_dma[0]);
 #else
   static const struct dw_spi_config_s config =
   {
