@@ -529,9 +529,15 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
       cfg.direction = DMA_DEV_TO_MEM;
       cfg.src_width = spi->n_bytes;
       DMA_CONFIG(spi->rx_chan, &cfg);
+#ifdef CONFIG_U1_APU1X
+      DMA_START_CYCLIC(spi->rx_chan, dw_spi_dma_cb,
+                spi, up_addrenv_va_to_pa(rxbuffer),
+                up_addrenv_va_to_pa((void *)&hw->DATA), nwords * spi->n_bytes, nwords * spi->n_bytes / 4);
+#else
       DMA_START(spi->rx_chan, dw_spi_dma_cb,
                 spi, up_addrenv_va_to_pa(rxbuffer),
                 up_addrenv_va_to_pa((void *)&hw->DATA), nwords * spi->n_bytes);
+#endif
     }
 
   /* For RX: DMA_START, SPI enable
@@ -552,15 +558,9 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
       DMA_CONFIG(spi->tx_chan, &cfg);
 
       up_clean_dcache((uintptr_t)txbuffer, (uintptr_t)txbuffer + nwords * spi->n_bytes);
-#ifdef CONFIG_U1_APU1X
-      DMA_START_CYCLIC(spi->rx_chan, dw_spi_dma_cb,
-                spi, up_addrenv_va_to_pa(rxbuffer),
-                up_addrenv_va_to_pa((void *)&hw->DATA), nwords * spi->n_bytes, nwords * spi->n_bytes / 4);
-#else
       DMA_START(spi->tx_chan, rxbuffer ? NULL : dw_spi_dma_cb,
                 spi, up_addrenv_va_to_pa((void *)&hw->DATA),
                 up_addrenv_va_to_pa((void *)txbuffer), nwords * spi->n_bytes);
-#endif
     }
   else /* RECEIVE-only mode, we need to trigger the transfer */
     {
