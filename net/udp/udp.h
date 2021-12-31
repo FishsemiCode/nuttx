@@ -46,6 +46,7 @@
 #include <sys/socket.h>
 #include <queue.h>
 
+#include <nuttx/semaphore.h>
 #include <nuttx/net/ip.h>
 #include <nuttx/mm/iob.h>
 
@@ -138,6 +139,7 @@ struct udp_conn_s
   uint8_t  boundto;       /* Index of the interface we are bound to.
                            * Unbound: 0, Bound: 1-MAX_IFINDEX */
 #endif
+  sem_t    sndsem;        /* Semaphore signals send completion */
 
   /* Read-ahead buffering.
    *
@@ -885,6 +887,22 @@ int udp_txdrain(FAR struct socket *psock, unsigned int timeout);
 #else
 #  define udp_txdrain(conn, timeout) (0)
 #endif
+
+/****************************************************************************
+ * Name: udp_sendbuffer_notify
+ *
+ * Description:
+ *   Notify the send buffer semaphore
+ *
+ * Input Parameters:
+ *   conn - The UDP connection of interest
+ *
+ * Assumptions:
+ *   Called from user logic with the network locked.
+ *
+ ****************************************************************************/
+
+void udp_sendbuffer_notify(FAR struct udp_conn_s *conn);
 
 #undef EXTERN
 #ifdef __cplusplus

@@ -576,6 +576,8 @@ FAR struct udp_conn_s *udp_alloc(uint8_t domain)
 #endif
       conn->lport   = 0;
       conn->ttl     = IP_TTL;
+      nxsem_init(&conn->sndsem, 0, 0);
+      nxsem_setprotocol(&conn->sndsem, SEM_PRIO_NONE);
 
 #ifdef CONFIG_NET_UDP_WRITE_BUFFERS
       /* Initialize the write buffer lists */

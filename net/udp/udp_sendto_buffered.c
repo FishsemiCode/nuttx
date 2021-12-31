@@ -120,6 +120,39 @@ static uint16_t sendto_eventhandler(FAR struct net_driver_s *dev,
  * Private Functions
  ****************************************************************************/
 
+
+/****************************************************************************
+ * Name: udp_inqueue_wrb_size
+ *
+ * Description:
+ *   Get the in-queued write buffer size from connection
+ *
+ * Input Parameters:
+ *   conn - The UDP connection of interest
+ *
+ * Assumptions:
+ *   Called from user logic with the network locked.
+ *
+ ****************************************************************************/
+
+static uint32_t udp_inqueue_wrb_size(FAR struct udp_conn_s *conn)
+{
+  FAR struct udp_wrbuffer_s *wrb;
+  FAR sq_entry_t *entry;
+  uint32_t total = 0;
+
+  if (conn)
+    {
+      for (entry = sq_peek(&conn->write_q); entry; entry = sq_next(entry))
+        {
+          wrb = (FAR struct udp_wrbuffer_s *)entry;
+          total += wrb->wb_iob->io_pktlen;
+        }
+    }
+
+  return total;
+}
+
 /****************************************************************************
  * Name: sendto_writebuffer_release
  *
@@ -185,6 +218,8 @@ static void sendto_writebuffer_release(FAR struct socket *psock,
         }
     }
   while (wrb != NULL && ret < 0);
+
+  udp_sendbuffer_notify(conn);
 }
 
 /****************************************************************************
@@ -642,6 +677,15 @@ ssize_t psock_udp_sendto(FAR struct socket *psock, FAR const void *buf,
       /* Allocate a write buffer.  Careful, the network will be momentarily
        * unlocked here.
        */
+       while (udp_inqueue_wrb_size(conn) + len > 1024)
+         {
+           if(nonblock)
+             {
+               ret = -EAGAIN;
+               goto errout_with_lock;
+             }
+           net_lockedwait_uninterruptible(&conn->sndsem);
+         }
 
       if (nonblock)
         {
@@ -842,4 +886,16 @@ int psock_udp_cansend(FAR struct socket *psock)
 
   return OK;
 }
+
+void udp_sendbuffer_notify(FAR struct udp_conn_s *conn)
+{
+  int val = 0;
+
+  nxsem_getvalue(&conn->sndsem, &val);
+  if (val < 0)
+    {
+      nxsem_post(&conn->sndsem);
+    }
+}
+
 #endif /* CONFIG_NET && CONFIG_NET_UDP && CONFIG_NET_UDP_WRITE_BUFFERS */
