@@ -902,7 +902,9 @@ int udp_txdrain(FAR struct socket *psock, unsigned int timeout);
  *
  ****************************************************************************/
 
+#ifdef CONFIG_U1_APU1X
 void udp_sendbuffer_notify(FAR struct udp_conn_s *conn);
+#endif
 
 #undef EXTERN
 #ifdef __cplusplus

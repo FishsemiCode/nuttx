@@ -135,6 +135,7 @@ static uint16_t sendto_eventhandler(FAR struct net_driver_s *dev,
  *
  ****************************************************************************/
 
+#ifdef CONFIG_U1_APU1X
 static uint32_t udp_inqueue_wrb_size(FAR struct udp_conn_s *conn)
 {
   FAR struct udp_wrbuffer_s *wrb;
@@ -152,6 +153,7 @@ static uint32_t udp_inqueue_wrb_size(FAR struct udp_conn_s *conn)
 
   return total;
 }
+#endif
 
 /****************************************************************************
  * Name: sendto_writebuffer_release
@@ -218,8 +220,9 @@ static void sendto_writebuffer_release(FAR struct socket *psock,
         }
     }
   while (wrb != NULL && ret < 0);
-
+#ifdef CONFIG_U1_APU1X
   udp_sendbuffer_notify(conn);
+#endif
 }
 
 /****************************************************************************
@@ -677,6 +680,7 @@ ssize_t psock_udp_sendto(FAR struct socket *psock, FAR const void *buf,
       /* Allocate a write buffer.  Careful, the network will be momentarily
        * unlocked here.
        */
+#ifdef CONFIG_U1_APU1X
        while (udp_inqueue_wrb_size(conn) + len > 1024)
          {
            if(nonblock)
@@ -686,6 +690,7 @@ ssize_t psock_udp_sendto(FAR struct socket *psock, FAR const void *buf,
              }
            net_lockedwait_uninterruptible(&conn->sndsem);
          }
+#endif
 
       if (nonblock)
         {
