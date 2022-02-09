@@ -513,7 +513,9 @@ static void up_ioe_init(void)
 
   g_ioe[0] = song_ioe_initialize(&cfg);
 
+#ifdef CONFIG_U1_APFACTORY
   up_ioe_pon_setup();
+#endif
 }
 #endif
 
