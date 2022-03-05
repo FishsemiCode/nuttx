@@ -533,7 +533,7 @@ static int dw_i2c_transfer(FAR struct i2c_master_s *dev, FAR struct i2c_msg_s *m
     {
       ret = -EIO;
     }
-#if CONFIG_U31_AP
+#ifdef CONFIG_U31_AP
   usleep(1000*10);
 #endif
 
