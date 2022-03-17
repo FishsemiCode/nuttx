@@ -409,6 +409,10 @@
 #  define SPI_EXCHANGE(d,t,r,l) ((d)->ops->exchange(d,t,r,l))
 #endif
 
+#ifdef CONFIG_SPI_EXCHANGE
+#  define SPI_CANCEL(d) ((d)->ops->cancel(d))
+#endif
+
 /****************************************************************************
  * Name: SPI_REGISTERCALLBACK
  *
@@ -554,6 +558,7 @@ typedef uint8_t spi_hwfeatures_t;
 struct spi_dev_s;
 struct spi_ops_s
 {
+  CODE int      (*cancel)(FAR struct spi_dev_s *dev);
   CODE int      (*lock)(FAR struct spi_dev_s *dev, bool lock);
   CODE void     (*select)(FAR struct spi_dev_s *dev, uint32_t devid,
                   bool selected);

@@ -137,6 +137,9 @@ struct dw_spi_s
   void *rx;
   void *rx_end;
   size_t len;
+  int canceled;
+  sem_t clsem;
+  int isexchanging;
 };
 
 struct dw_spi_dfs_set
@@ -264,6 +267,28 @@ static inline void dw_spi_mask_intr(struct dw_spi_hw_s *hw, uint32_t mask)
 static inline void dw_spi_unmask_intr(struct dw_spi_hw_s *hw, uint32_t mask)
 {
   dw_spi_update_reg(&hw->IE, mask, mask);
+}
+
+static int dw_spi_cancelexchange(struct spi_dev_s *dev)
+{
+  struct dw_spi_s *spi = container_of(dev,
+                                struct dw_spi_s, spi_dev);
+  int ret;
+  if (spi->isexchanging && !spi->canceled)
+    {
+      spi->canceled = 1;
+      nxsem_post(&spi->sem);
+      do
+        {
+          ret = nxsem_wait(&spi->clsem);
+        }
+      while (ret == -EINTR);
+      spi->canceled = 0;
+
+      nxsem_reset(&spi->sem, 0);
+      nxsem_reset(&spi->clsem, 0);
+    }
+  return 0;
 }
 
 /****************************************************************************
@@ -579,6 +604,10 @@ static void dw_spi_dma_transfer(FAR struct dw_spi_s *spi,
 
   hw->DMAC = 0;
   dw_spi_enable(hw, false);
+  if (txbuffer)
+    DMA_STOP(spi->tx_chan);
+  if (rxbuffer)
+    DMA_STOP(spi->rx_chan);
 }
 
 static void dw_spi_cpu_transfer(FAR struct dw_spi_s *spi,
@@ -670,6 +699,8 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
       return;
     }
 
+  spi->isexchanging = 1;
+
   /* using dma only when: the data is longer than the fifo length and
    * the dma channel is valid. additionally, the rx buffer should be 4-aligned */
   using_dma = (nwords > spi->fifo_len) &&
@@ -725,6 +756,8 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
             nsize = nwords;
 
           dw_spi_dma_transfer(spi, swap ? temp : txbuffer, rxbuffer, nsize);
+          if (spi->canceled)
+            break;
 
           if (txbuffer)
             txbuffer += nsize * spi->n_bytes;
@@ -761,6 +794,10 @@ static void dw_spi_exchange(FAR struct spi_dev_s *dev,
     dw_spi_cpu_transfer(spi, txbuffer, rxbuffer, nwords);
 
 out:
+  spi->isexchanging = 0;
+  if (spi->canceled)
+    sem_post(&spi->clsem);
+
   clk_disable(spi->clk);
   clk_disable(spi->pclk);
 }
@@ -768,6 +805,7 @@ out:
 
 static const struct spi_ops_s dw_spi_ops =
 {
+  .cancel = dw_spi_cancelexchange,
   .lock = dw_spi_lock,
   .select = dw_spi_select,
   .setfrequency = dw_spi_setfrequency,
@@ -948,6 +986,14 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
   if (ret)
     goto sem_prio_err;
 
+  ret = nxsem_init(&spi->clsem, 0, 0);
+  if (ret)
+    goto sem_err;
+
+  ret = nxsem_setprotocol(&spi->clsem, SEM_PRIO_NONE);
+  if (ret)
+    goto sem_prio_err;
+
   dw_spi_hw_init(spi);
 
   ret = irq_attach(config->irq, dw_spi_isr, spi);
@@ -965,6 +1011,8 @@ FAR struct spi_dev_s *dw_spi_initialize(FAR const struct dw_spi_config_s *config
 
 irq_err:
 sem_prio_err:
+  nxsem_destroy(&spi->clsem);
+clsem_err:
   nxsem_destroy(&spi->sem);
 sem_err:
   nxmutex_destroy(&spi->mutex);
