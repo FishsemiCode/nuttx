@@ -69,6 +69,7 @@
 #define MISC_RPMSG_REMOTE_INFOWRITE     5
 #define MISC_RPMSG_REMOTE_RAMFLUSH      6
 #define MISC_RPMSG_REMOTE_APPBOOT       7
+#define MISC_RPMSG_REMOTE_DATASWAP      8
 
 #define MISC_RETENT_MAGIC               (0xdeadbeef)
 
@@ -158,6 +159,16 @@ struct misc_rpmsg_appboot_s
   struct metal_list   node;
 };
 
+begin_packed_struct struct misc_rpmsg_remote_dataswap_s
+{
+  uint32_t command;
+  uint32_t response;
+  int      result;
+  uint32_t cookie;
+  uint16_t len;
+  char     value[32];
+} end_packed_struct;
+
 struct misc_rpmsg_s
 {
   struct misc_dev_s     dev;
@@ -222,6 +233,9 @@ static int misc_remote_ramflush_handler(struct rpmsg_endpoint *ept,
 static int misc_remote_appboot_handler(struct rpmsg_endpoint *ept,
                                         void *data, size_t len,
                                         uint32_t src, void *priv_);
+static int misc_remote_dataswap_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_);
 
 static void misc_ramflush_work(FAR void *arg);
 static int misc_ramflush_register(struct misc_dev_s *dev,
@@ -255,6 +269,7 @@ static const rpmsg_ept_cb g_misc_rpmsg_handler[] =
   [MISC_RPMSG_REMOTE_INFOWRITE] = misc_remote_infowrite_handler,
   [MISC_RPMSG_REMOTE_RAMFLUSH]  = misc_remote_ramflush_handler,
   [MISC_RPMSG_REMOTE_APPBOOT]   = misc_remote_appboot_handler,
+  [MISC_RPMSG_REMOTE_DATASWAP]  = misc_remote_dataswap_handler,
 };
 
 static const struct misc_ops_s g_misc_ops =
@@ -371,6 +386,27 @@ static int misc_retent_set_handler(struct rpmsg_endpoint *ept,
     }
 
   return 0;
+}
+
+static int misc_remote_dataswap_handler(struct rpmsg_endpoint *ept,
+                                   void *data, size_t len,
+                                   uint32_t src, void *priv_)
+{
+  struct misc_rpmsg_remote_dataswap_s *msg = data;
+  if (msg->response)
+    {
+      struct misc_rpmsg_cookie_s *cookie =
+          (struct misc_rpmsg_cookie_s *)msg->cookie;
+
+      cookie->result = msg->result;
+      nxsem_post(&cookie->sem);
+    }
+  else
+    {
+      msg->response = 1;
+      msg->result  = 0;
+      return rpmsg_send(ept, msg, sizeof(*msg));
+    }
 }
 
 static int misc_remote_boot_handler(struct rpmsg_endpoint *ept,
@@ -992,6 +1028,38 @@ end:
   return ret;
 }
 
+static int misc_remote_dataswap(struct misc_rpmsg_s *priv, unsigned long arg)
+{
+  struct misc_remote_dataswap_s *dataswap = (struct misc_remote_dataswap_s *)(arg);
+  struct misc_rpmsg_remote_dataswap_s msg = {0};
+  struct misc_rpmsg_cookie_s cookie;
+  int ret;
+
+  nxsem_init(&cookie.sem, 0, 0);
+  nxsem_setprotocol(&cookie.sem, SEM_PRIO_NONE);
+
+  msg.command = MISC_RPMSG_REMOTE_DATASWAP;
+  msg.len = dataswap->len;
+  msg.cookie = (uint32_t)&cookie;
+  memcpy(msg.value, dataswap->value, msg.len);
+
+  ret = rpmsg_send(&priv->ept, &msg, sizeof(msg));
+  if (ret < 0)
+    {
+      goto end;
+    }
+
+  ret = nxsem_wait_uninterruptible(&cookie.sem);
+  if (!ret)
+    {
+      ret = cookie.result;
+    }
+
+end:
+  nxsem_destroy(&cookie.sem);
+  return ret;
+}
+
 static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
 {
   struct inode *inode = filep->f_inode;
@@ -1023,6 +1091,9 @@ static int misc_dev_ioctl(struct file *filep, int cmd, unsigned long arg)
         break;
       case MISC_REMOTE_APPBOOT:
         ret = misc_remote_appboot(priv, arg);
+        break;
+      case MISC_REMOTE_DATASWAP:
+        ret = misc_remote_dataswap(priv, arg);
         break;
     }
 
