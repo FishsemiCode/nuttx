@@ -139,7 +139,7 @@ jobs:
         run: mv sources-cache sources
       - name: Download Source Artifact
         if: steps.cache-source.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.7
         with:
           name: source-bundle
           path: ./
@@ -190,7 +190,7 @@ jobs:
         run: mv sources-cache sources
       - name: Download Source Artifact
         if: steps.cache-source.outputs.cache-hit != 'true'
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4.1.7
         with:
           name: source-bundle
           path: ./
